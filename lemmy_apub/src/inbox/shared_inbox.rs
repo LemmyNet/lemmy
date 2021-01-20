@@ -15,7 +15,8 @@ use crate::{
 use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_db::{community::Community, ApubObject, DbPool};
+use lemmy_db_queries::{ApubObject, DbPool};
+use lemmy_db_schema::source::community::Community;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -66,7 +67,7 @@ pub async fn shared_inbox(
 
   let activity_any_base = activity.clone().into_any_base()?;
   let mut res: Option<HttpResponse> = None;
-  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  let to_and_cc = get_activity_to_and_cc(&activity);
   // Handle community first, so in case the sender is banned by the community, it will error out.
   // If we handled the user receive first, the activity would be inserted to the database before the
   // community could check for bans.

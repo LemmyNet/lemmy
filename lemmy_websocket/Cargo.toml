@@ -11,18 +11,18 @@ path = "src/lib.rs"
 [dependencies]
 lemmy_utils = { path = "../lemmy_utils" }
 lemmy_structs = { path = "../lemmy_structs" }
-lemmy_db = { path = "../lemmy_db" }
-lemmy_rate_limit = { path = "../lemmy_rate_limit" }
-reqwest = { version = "0.10.9", features = ["json"] }
+lemmy_db_queries = { path = "../lemmy_db_queries" }
+lemmy_db_schema = { path = "../lemmy_db_schema" }
+reqwest = { version = "0.10.10", features = ["json"] }
 log = "0.4.11"
-rand = "0.7.3"
+rand = "0.8.0"
 serde = { version = "1.0.118", features = ["derive"] }
 serde_json = { version = "1.0.60", features = ["preserve_order"] }
 actix = "0.10.0"
-anyhow = "1.0.35"
+anyhow = "1.0.36"
 diesel = "1.4.5"
 background-jobs = "0.8.0"
-tokio = "0.3.5"
+tokio = "0.3.6"
 strum = "0.20.0"
 strum_macros = "0.20.1"
 chrono = { version = "0.4.19", features = ["serde"] }

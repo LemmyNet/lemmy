@@ -1,6 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
-  fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
   inbox::community_inbox::check_community_or_site_ban,
 };
 use activitystreams::{
@@ -11,7 +11,7 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use lemmy_db::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;

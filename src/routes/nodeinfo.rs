@@ -1,7 +1,7 @@
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api::version;
-use lemmy_db::site_view::SiteView;
+use lemmy_db_views::site_view::SiteView;
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -47,12 +47,12 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     protocols,
     usage: NodeInfoUsage {
       users: NodeInfoUsers {
-        total: site_view.number_of_users,
+        total: site_view.counts.users,
       },
-      local_posts: site_view.number_of_posts,
-      local_comments: site_view.number_of_comments,
-      open_registrations: site_view.open_registration,
+      local_posts: site_view.counts.posts,
+      local_comments: site_view.counts.comments,
     },
+    open_registrations: site_view.site.open_registration,
   };
 
   Ok(HttpResponse::Ok().json(json))
@@ -70,11 +70,13 @@ struct NodeInfoWellKnownLinks {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct NodeInfo {
   pub version: String,
   pub software: NodeInfoSoftware,
   pub protocols: Vec<String>,
   pub usage: NodeInfoUsage,
+  pub open_registrations: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -89,7 +91,6 @@ struct NodeInfoUsage {
   pub users: NodeInfoUsers,
   pub local_posts: i64,
   pub local_comments: i64,
-  pub open_registrations: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

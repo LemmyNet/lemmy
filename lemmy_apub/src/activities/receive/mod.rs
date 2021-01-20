@@ -1,11 +1,11 @@
-use crate::fetcher::get_or_fetch_and_upsert_user;
+use crate::fetcher::user::get_or_fetch_and_upsert_user;
 use activitystreams::{
   activity::{ActorAndObjectRef, ActorAndObjectRefExt},
   base::{AsBase, BaseExt},
   error::DomainError,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db::user::User_;
+use lemmy_db_schema::source::user::User_;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;

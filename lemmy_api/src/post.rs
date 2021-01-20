@@ -1,5 +1,6 @@
 use crate::{
   check_community_ban,
+  check_downvotes_enabled,
   check_optional_url,
   collect_moderated_communities,
   get_user_from_jwt,
@@ -9,21 +10,31 @@ use crate::{
 };
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
-use lemmy_db::{
-  comment_view::*,
-  community_view::*,
-  moderator::*,
-  naive_now,
-  post::*,
-  post_report::*,
-  post_view::*,
-  site_view::*,
+use lemmy_db_queries::{
+  source::post::Post_,
   Crud,
   Likeable,
   ListingType,
   Reportable,
   Saveable,
   SortType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{
+    moderator::*,
+    post::*,
+    post_report::{PostReport, PostReportForm},
+  },
+};
+use lemmy_db_views::{
+  comment_view::CommentQueryBuilder,
+  post_report_view::{PostReportQueryBuilder, PostReportView},
+  post_view::{PostQueryBuilder, PostView},
+};
+use lemmy_db_views_actor::{
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
 };
 use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
@@ -35,7 +46,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{GetPostUsersOnline, JoinPostRoom, SendModRoomMessage, SendPost, SendUserRoomMessage},
+  messages::{GetPostUsersOnline, SendModRoomMessage, SendPost, SendUserRoomMessage},
   LemmyContext,
   UserOperation,
 };
@@ -142,7 +153,7 @@ impl Perform for CreatePost {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::CreatePost,
@@ -180,24 +191,28 @@ impl Perform for GetPost {
     let id = data.id;
     let comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
-        .for_post_id(id)
         .my_user_id(user_id)
+        .post_id(id)
         .limit(9999)
         .list()
     })
     .await??;
 
-    let community_id = post_view.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, user_id)
-    })
-    .await??;
-
-    let community_id = post_view.community_id;
+    let community_id = post_view.community.id;
     let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await??;
+
+    // Necessary for the sidebar
+    let community_view = match blocking(context.pool(), move |conn| {
+      CommunityView::read(conn, community_id, user_id)
+    })
+    .await?
+    {
+      Ok(community) => community,
+      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+    };
 
     let online = context
       .chat_server()
@@ -207,9 +222,9 @@ impl Perform for GetPost {
 
     // Return the jwt
     Ok(GetPostResponse {
-      post: post_view,
+      post_view,
+      community_view,
       comments,
-      community,
       moderators,
       online,
     })
@@ -250,8 +265,8 @@ impl Perform for GetPosts {
         .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
-        .for_community_id(community_id)
-        .for_community_name(community_name)
+        .community_id(community_id)
+        .community_name(community_name)
         .my_user_id(user_id)
         .page(page)
         .limit(limit)
@@ -280,12 +295,7 @@ impl Perform for CreatePostLike {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled
-    if data.score == -1 {
-      let site = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
-      if !site.enable_downvotes {
-        return Err(APIError::err("downvotes_disabled").into());
-      }
-    }
+    check_downvotes_enabled(data.score, context.pool()).await?;
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -335,7 +345,7 @@ impl Perform for CreatePostLike {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::CreatePostLike,
@@ -366,8 +376,8 @@ impl Perform for EditPost {
       return Err(APIError::err("invalid_post_title").into());
     }
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -401,9 +411,9 @@ impl Perform for EditPost {
       published: None,
     };
 
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let res = blocking(context.pool(), move |conn| {
-      Post::update(conn, edit_id, &post_form)
+      Post::update(conn, post_id, &post_form)
     })
     .await?;
     let updated_post: Post = match res {
@@ -422,13 +432,13 @@ impl Perform for EditPost {
     // Send apub update
     updated_post.send_update(&user, context).await?;
 
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::EditPost,
@@ -452,8 +462,8 @@ impl Perform for DeletePost {
     let data: &DeletePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -463,10 +473,10 @@ impl Perform for DeletePost {
     }
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let deleted = data.deleted;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_deleted(conn, edit_id, deleted)
+      Post::update_deleted(conn, post_id, deleted)
     })
     .await??;
 
@@ -478,13 +488,13 @@ impl Perform for DeletePost {
     }
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::DeletePost,
@@ -508,8 +518,8 @@ impl Perform for RemovePost {
     let data: &RemovePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -517,17 +527,17 @@ impl Perform for RemovePost {
     is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let removed = data.removed;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_removed(conn, edit_id, removed)
+      Post::update_removed(conn, post_id, removed)
     })
     .await??;
 
     // Mod tables
     let form = ModRemovePostForm {
       mod_user_id: user.id,
-      post_id: data.edit_id,
+      post_id: data.post_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
     };
@@ -544,14 +554,14 @@ impl Perform for RemovePost {
     }
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let user_id = user.id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user_id))
+      PostView::read(conn, post_id, Some(user_id))
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::RemovePost,
@@ -575,8 +585,8 @@ impl Perform for LockPost {
     let data: &LockPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -584,17 +594,17 @@ impl Perform for LockPost {
     is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let locked = data.locked;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_locked(conn, edit_id, locked)
+      Post::update_locked(conn, post_id, locked)
     })
     .await??;
 
     // Mod tables
     let form = ModLockPostForm {
       mod_user_id: user.id,
-      post_id: data.edit_id,
+      post_id: data.post_id,
       locked: Some(locked),
     };
     blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
@@ -603,13 +613,13 @@ impl Perform for LockPost {
     updated_post.send_update(&user, context).await?;
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::LockPost,
@@ -633,8 +643,8 @@ impl Perform for StickyPost {
     let data: &StickyPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -642,17 +652,17 @@ impl Perform for StickyPost {
     is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let stickied = data.stickied;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_stickied(conn, edit_id, stickied)
+      Post::update_stickied(conn, post_id, stickied)
     })
     .await??;
 
     // Mod tables
     let form = ModStickyPostForm {
       mod_user_id: user.id,
-      post_id: data.edit_id,
+      post_id: data.post_id,
       stickied: Some(stickied),
     };
     blocking(context.pool(), move |conn| {
@@ -665,13 +675,13 @@ impl Perform for StickyPost {
     updated_post.send_update(&user, context).await?;
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::StickyPost,
@@ -719,29 +729,7 @@ impl Perform for SavePost {
     })
     .await??;
 
-    Ok(PostResponse { post: post_view })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for PostJoin {
-  type Response = PostJoinResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostJoinResponse, LemmyError> {
-    let data: &PostJoin = &self;
-
-    if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinPostRoom {
-        post_id: data.post_id,
-        id: ws_id,
-      });
-    }
-
-    Ok(PostJoinResponse { joined: true })
+    Ok(PostResponse { post_view })
   }
 }
 
@@ -769,19 +757,19 @@ impl Perform for CreatePostReport {
 
     let user_id = user.id;
     let post_id = data.post_id;
-    let post = blocking(context.pool(), move |conn| {
+    let post_view = blocking(context.pool(), move |conn| {
       PostView::read(&conn, post_id, None)
     })
     .await??;
 
-    check_community_ban(user_id, post.community_id, context.pool()).await?;
+    check_community_ban(user_id, post_view.community.id, context.pool()).await?;
 
     let report_form = PostReportForm {
       creator_id: user_id,
       post_id,
-      original_post_name: post.name,
-      original_post_url: post.url,
-      original_post_body: post.body,
+      original_post_name: post_view.post.name,
+      original_post_url: post_view.post.url,
+      original_post_body: post_view.post.body,
       reason: data.reason.to_owned(),
     };
 
@@ -806,7 +794,7 @@ impl Perform for CreatePostReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreatePostReport,
       response: report,
-      community_id: post.community_id,
+      community_id: post_view.community.id,
       websocket_id,
     });
 
@@ -834,7 +822,7 @@ impl Perform for ResolvePostReport {
     .await??;
 
     let user_id = user.id;
-    is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+    is_mod_or_admin(context.pool(), user_id, report.community.id).await?;
 
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
@@ -857,7 +845,7 @@ impl Perform for ResolvePostReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::ResolvePostReport,
       response: res.clone(),
-      community_id: report.community_id,
+      community_id: report.community.id,
       websocket_id,
     });
 

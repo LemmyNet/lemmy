@@ -6,10 +6,10 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use lemmy_rate_limit::RateLimit;
 use lemmy_structs::{comment::*, post::*};
 use lemmy_utils::{
   location_info,
+  rate_limit::RateLimit,
   APIError,
   CommunityId,
   ConnectionId,
@@ -329,17 +329,27 @@ impl ChatServer {
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError> {
     let mut comment_reply_sent = comment.clone();
-    comment_reply_sent.comment.my_vote = None;
-    comment_reply_sent.comment.user_id = None;
 
-    let mut comment_post_sent = comment_reply_sent.clone();
-    comment_post_sent.recipient_ids = Vec::new();
+    // Strip out my specific user info
+    comment_reply_sent.comment_view.my_vote = None;
 
     // Send it to the post room
+    let mut comment_post_sent = comment_reply_sent.clone();
+    // Remove the recipients here to separate mentions / user messages from post or community comments
+    comment_post_sent.recipient_ids = Vec::new();
     self.send_post_room_message(
       user_operation,
       &comment_post_sent,
-      comment_post_sent.comment.post_id,
+      comment_post_sent.comment_view.post.id,
+      websocket_id,
+    )?;
+
+    // Send it to the community too
+    self.send_community_room_message(user_operation, &comment_post_sent, 0, websocket_id)?;
+    self.send_community_room_message(
+      user_operation,
+      &comment_post_sent,
+      comment.comment_view.community.id,
       websocket_id,
     )?;
 
@@ -353,37 +363,32 @@ impl ChatServer {
       )?;
     }
 
-    // Send it to the community too
-    self.send_community_room_message(user_operation, &comment_post_sent, 0, websocket_id)?;
-    self.send_community_room_message(
-      user_operation,
-      &comment_post_sent,
-      comment.comment.community_id,
-      websocket_id,
-    )?;
-
     Ok(())
   }
 
   pub fn send_post(
     &self,
     user_operation: &UserOperation,
-    post: &PostResponse,
+    post_res: &PostResponse,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError> {
-    let community_id = post.post.community_id;
+    let community_id = post_res.post_view.community.id;
 
     // Don't send my data with it
-    let mut post_sent = post.clone();
-    post_sent.post.my_vote = None;
-    post_sent.post.user_id = None;
+    let mut post_sent = post_res.clone();
+    post_sent.post_view.my_vote = None;
 
     // Send it to /c/all and that community
     self.send_community_room_message(user_operation, &post_sent, 0, websocket_id)?;
     self.send_community_room_message(user_operation, &post_sent, community_id, websocket_id)?;
 
     // Send it to the post room
-    self.send_post_room_message(user_operation, &post_sent, post.post.id, websocket_id)?;
+    self.send_post_room_message(
+      user_operation,
+      &post_sent,
+      post_res.post_view.post.id,
+      websocket_id,
+    )?;
 
     Ok(())
   }

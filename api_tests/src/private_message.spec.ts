@@ -5,12 +5,10 @@ import {
   setupLogins,
   followBeta,
   createPrivateMessage,
-  updatePrivateMessage,
+  editPrivateMessage,
   listPrivateMessages,
   deletePrivateMessage,
   unfollowRemotes,
-  delay,
-  longDelay,
 } from './shared';
 
 let recipient_id: number;
@@ -18,8 +16,7 @@ let recipient_id: number;
 beforeAll(async () => {
   await setupLogins();
   let follow = await followBeta(alpha);
-  await longDelay();
-  recipient_id = follow.community.creator_id;
+  recipient_id = follow.community_view.creator.id;
 });
 
 afterAll(async () => {
@@ -28,55 +25,66 @@ afterAll(async () => {
 
 test('Create a private message', async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
-  expect(pmRes.message.content).toBeDefined();
-  expect(pmRes.message.local).toBe(true);
-  expect(pmRes.message.creator_local).toBe(true);
-  expect(pmRes.message.recipient_local).toBe(false);
-  await delay();
+  expect(pmRes.private_message_view.private_message.content).toBeDefined();
+  expect(pmRes.private_message_view.private_message.local).toBe(true);
+  expect(pmRes.private_message_view.creator.local).toBe(true);
+  expect(pmRes.private_message_view.recipient.local).toBe(false);
 
   let betaPms = await listPrivateMessages(beta);
-  expect(betaPms.messages[0].content).toBeDefined();
-  expect(betaPms.messages[0].local).toBe(false);
-  expect(betaPms.messages[0].creator_local).toBe(false);
-  expect(betaPms.messages[0].recipient_local).toBe(true);
+  expect(betaPms.private_messages[0].private_message.content).toBeDefined();
+  expect(betaPms.private_messages[0].private_message.local).toBe(false);
+  expect(betaPms.private_messages[0].creator.local).toBe(false);
+  expect(betaPms.private_messages[0].recipient.local).toBe(true);
 });
 
 test('Update a private message', async () => {
   let updatedContent = 'A jest test federated private message edited';
 
   let pmRes = await createPrivateMessage(alpha, recipient_id);
-  let pmUpdated = await updatePrivateMessage(alpha, pmRes.message.id);
-  expect(pmUpdated.message.content).toBe(updatedContent);
-  await longDelay();
+  let pmUpdated = await editPrivateMessage(
+    alpha,
+    pmRes.private_message_view.private_message.id
+  );
+  expect(pmUpdated.private_message_view.private_message.content).toBe(
+    updatedContent
+  );
 
   let betaPms = await listPrivateMessages(beta);
-  expect(betaPms.messages[0].content).toBe(updatedContent);
+  expect(betaPms.private_messages[0].private_message.content).toBe(
+    updatedContent
+  );
 });
 
 test('Delete a private message', async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
-  await delay();
   let betaPms1 = await listPrivateMessages(beta);
-  let deletedPmRes = await deletePrivateMessage(alpha, true, pmRes.message.id);
-  expect(deletedPmRes.message.deleted).toBe(true);
-  await delay();
+  let deletedPmRes = await deletePrivateMessage(
+    alpha,
+    true,
+    pmRes.private_message_view.private_message.id
+  );
+  expect(deletedPmRes.private_message_view.private_message.deleted).toBe(true);
 
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.
   // no reason to show them
   let betaPms2 = await listPrivateMessages(beta);
-  expect(betaPms2.messages.length).toBe(betaPms1.messages.length - 1);
-  await delay();
+  expect(betaPms2.private_messages.length).toBe(
+    betaPms1.private_messages.length - 1
+  );
 
   // Undelete
   let undeletedPmRes = await deletePrivateMessage(
     alpha,
     false,
-    pmRes.message.id
+    pmRes.private_message_view.private_message.id
   );
-  expect(undeletedPmRes.message.deleted).toBe(false);
-  await longDelay();
+  expect(undeletedPmRes.private_message_view.private_message.deleted).toBe(
+    false
+  );
 
   let betaPms3 = await listPrivateMessages(beta);
-  expect(betaPms3.messages.length).toBe(betaPms1.messages.length);
+  expect(betaPms3.private_messages.length).toBe(
+    betaPms1.private_messages.length
+  );
 });

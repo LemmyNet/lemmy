@@ -1,3 +1,5 @@
+use crate::location_info;
+use anyhow::Context;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use std::{env, fs, io::Error, net::IpAddr, path::PathBuf, sync::RwLock};
@@ -89,7 +91,7 @@ impl Settings {
   /// added to the config.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
-  /// `lemmy_db/src/lib.rs::get_database_url_from_env()`
+  /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
   fn init() -> Result<Self, ConfigError> {
     let mut s = Config::new();
 
@@ -176,6 +178,21 @@ impl Settings {
   /// with the correct protocol and hostname.
   pub fn get_protocol_and_hostname(&self) -> String {
     format!("{}://{}", self.get_protocol_string(), self.hostname)
+  }
+
+  /// When running the federation test setup in `api_tests/` or `docker/federation`, the `hostname`
+  /// variable will be like `lemmy-alpha:8541`. This method removes the port and returns
+  /// `lemmy-alpha` instead. It has no effect in production.
+  pub fn get_hostname_without_port(&self) -> Result<String, anyhow::Error> {
+    Ok(
+      self
+        .hostname
+        .split(':')
+        .collect::<Vec<&str>>()
+        .first()
+        .context(location_info!())?
+        .to_string(),
+    )
   }
 
   pub fn save_config_file(data: &str) -> Result<String, Error> {

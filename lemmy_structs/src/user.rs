@@ -1,10 +1,13 @@
-use lemmy_db::{
-  comment_view::{CommentView, ReplyView},
-  community_view::{CommunityFollowerView, CommunityModeratorView},
+use lemmy_db_views::{
+  comment_view::CommentView,
   post_view::PostView,
   private_message_view::PrivateMessageView,
+};
+use lemmy_db_views_actor::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
   user_mention_view::UserMentionView,
-  user_view::UserView,
+  user_view::UserViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,7 +23,6 @@ pub struct Register {
   pub email: Option<String>,
   pub password: String,
   pub password_verify: String,
-  pub admin: bool,
   pub show_nsfw: bool,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
@@ -31,7 +33,7 @@ pub struct GetCaptcha {}
 
 #[derive(Serialize)]
 pub struct GetCaptchaResponse {
-  pub ok: Option<CaptchaResponse>,
+  pub ok: Option<CaptchaResponse>, // Will be None if captchas are disabled
 }
 
 #[derive(Serialize)]
@@ -81,7 +83,7 @@ pub struct GetUserDetails {
 
 #[derive(Serialize)]
 pub struct GetUserDetailsResponse {
-  pub user: UserView,
+  pub user_view: UserViewSafe,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub comments: Vec<CommentView>,
@@ -90,7 +92,7 @@ pub struct GetUserDetailsResponse {
 
 #[derive(Serialize)]
 pub struct GetRepliesResponse {
-  pub replies: Vec<ReplyView>,
+  pub replies: Vec<CommentView>,
 }
 
 #[derive(Serialize)]
@@ -112,14 +114,14 @@ pub struct AddAdmin {
 
 #[derive(Serialize, Clone)]
 pub struct AddAdminResponse {
-  pub admins: Vec<UserView>,
+  pub admins: Vec<UserViewSafe>,
 }
 
 #[derive(Deserialize)]
 pub struct BanUser {
   pub user_id: i32,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  pub remove_data: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: String,
@@ -127,7 +129,7 @@ pub struct BanUser {
 
 #[derive(Serialize, Clone)]
 pub struct BanUserResponse {
-  pub user: UserView,
+  pub user_view: UserViewSafe,
   pub banned: bool,
 }
 
@@ -158,7 +160,7 @@ pub struct MarkUserMentionAsRead {
 
 #[derive(Serialize, Clone)]
 pub struct UserMentionResponse {
-  pub mention: UserMentionView,
+  pub user_mention_view: UserMentionView,
 }
 
 #[derive(Deserialize)]
@@ -191,21 +193,21 @@ pub struct CreatePrivateMessage {
 
 #[derive(Deserialize)]
 pub struct EditPrivateMessage {
-  pub edit_id: i32,
+  pub private_message_id: i32,
   pub content: String,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct DeletePrivateMessage {
-  pub edit_id: i32,
+  pub private_message_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct MarkPrivateMessageAsRead {
-  pub edit_id: i32,
+  pub private_message_id: i32,
   pub read: bool,
   pub auth: String,
 }
@@ -220,22 +222,12 @@ pub struct GetPrivateMessages {
 
 #[derive(Serialize, Clone)]
 pub struct PrivateMessagesResponse {
-  pub messages: Vec<PrivateMessageView>,
+  pub private_messages: Vec<PrivateMessageView>,
 }
 
 #[derive(Serialize, Clone)]
 pub struct PrivateMessageResponse {
-  pub message: PrivateMessageView,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct UserJoin {
-  pub auth: String,
-}
-
-#[derive(Serialize, Clone)]
-pub struct UserJoinResponse {
-  pub joined: bool,
+  pub private_message_view: PrivateMessageView,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

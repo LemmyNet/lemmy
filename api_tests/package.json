@@ -7,14 +7,19 @@
   "author": "Dessalines",
   "license": "AGPL-3.0",
   "scripts": {
+    "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
+    "fix": "prettier --write src && eslint --fix src",
     "api-test": "jest src/ -i --verbose"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.14",
-    "jest": "^26.4.2",
-    "lemmy-js-client": "^1.0.14",
+    "@types/jest": "^26.0.19",
+    "jest": "^26.6.3",
+    "lemmy-js-client": "0.9.0-rc.12",
     "node-fetch": "^2.6.1",
-    "ts-jest": "^26.4.1",
-    "typescript": "^4.0.3"
+    "ts-jest": "^26.4.4",
+    "prettier": "^2.1.2",
+    "eslint": "^7.10.0",
+    "eslint-plugin-jane": "^9.0.3",
+    "typescript": "^4.1.3"
   }
 }

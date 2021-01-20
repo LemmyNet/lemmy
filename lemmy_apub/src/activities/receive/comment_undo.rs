@@ -1,10 +1,8 @@
 use crate::activities::receive::get_actor_as_user;
 use activitystreams::activity::{Dislike, Like};
-use lemmy_db::{
-  comment::{Comment, CommentLike},
-  comment_view::CommentView,
-  Likeable,
-};
+use lemmy_db_queries::{source::comment::Comment_, Likeable};
+use lemmy_db_schema::source::comment::{Comment, CommentLike};
+use lemmy_db_views::comment_view::CommentView;
 use lemmy_structs::{blocking, comment::CommentResponse};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
@@ -33,7 +31,7 @@ pub(crate) async fn receive_undo_like_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -71,7 +69,7 @@ pub(crate) async fn receive_undo_dislike_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -104,7 +102,7 @@ pub(crate) async fn receive_undo_delete_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -137,7 +135,7 @@ pub(crate) async fn receive_undo_remove_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };

@@ -26,14 +26,12 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
-use lemmy_db::{
+use lemmy_db_queries::{source::community::Community_, ApubObject, DbPool, Followable};
+use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
-  community_view::CommunityUserBanView,
   user::User_,
-  ApubObject,
-  DbPool,
-  Followable,
 };
+use lemmy_db_views_actor::community_user_ban_view::CommunityUserBanView;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -82,7 +80,7 @@ pub async fn community_inbox(
     Community::read_from_name(&conn, &path)
   })
   .await??;
-  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  let to_and_cc = get_activity_to_and_cc(&activity);
   if !to_and_cc.contains(&&community.actor_id()?) {
     return Err(anyhow!("Activity delivered to wrong community").into());
   }
@@ -177,7 +175,7 @@ pub(crate) async fn community_receive_message(
       .await?;
   }
 
-  return Ok(HttpResponse::Ok().finish());
+  Ok(HttpResponse::Ok().finish())
 }
 
 /// Handle a follow request from a remote user, adding the user as follower and returning an

@@ -20,13 +20,14 @@ use background_jobs::{
   WorkerConfig,
 };
 use itertools::Itertools;
-use lemmy_db::{community::Community, user::User_, DbPool};
+use lemmy_db_queries::DbPool;
+use lemmy_db_schema::source::{community::Community, user::User_};
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{debug, warn};
 use reqwest::Client;
 use serde::{export::fmt::Debug, Deserialize, Serialize};
-use std::{collections::BTreeMap, future::Future, pin::Pin};
+use std::{collections::BTreeMap, env, future::Future, pin::Pin};
 use url::Url;
 
 /// Sends a local activity to a single, remote actor.
@@ -218,6 +219,13 @@ where
     return Ok(());
   }
 
+  // Don't send anything to ourselves
+  let hostname = Settings::get().get_hostname_without_port()?;
+  let inboxes: Vec<&Url> = inboxes
+    .iter()
+    .filter(|i| i.domain().unwrap() != hostname)
+    .collect();
+
   let activity = activity.into_any_base()?;
   let serialised_activity = serde_json::to_string(&activity)?;
 
@@ -231,11 +239,15 @@ where
   for i in inboxes {
     let message = SendActivityTask {
       activity: serialised_activity.to_owned(),
-      inbox: i,
+      inbox: i.to_owned(),
       actor_id: actor.actor_id()?,
       private_key: actor.private_key().context(location_info!())?,
     };
-    activity_sender.queue::<SendActivityTask>(message)?;
+    if env::var("LEMMY_TEST_SEND_SYNC").is_ok() {
+      do_send(message, &Client::default()).await?;
+    } else {
+      activity_sender.queue::<SendActivityTask>(message)?;
+    }
   }
 
   Ok(())
@@ -260,30 +272,32 @@ impl ActixJob for SendActivityTask {
   const BACKOFF: Backoff = Backoff::Exponential(2);
 
   fn run(self, state: Self::State) -> Self::Future {
-    Box::pin(async move {
-      let mut headers = BTreeMap::<String, String>::new();
-      headers.insert("Content-Type".into(), APUB_JSON_CONTENT_TYPE.to_string());
-      let result = sign_and_send(
-        &state.client,
-        headers,
-        &self.inbox,
-        self.activity.clone(),
-        &self.actor_id,
-        self.private_key.to_owned(),
-      )
-      .await;
-
-      if let Err(e) = result {
-        warn!("{}", e);
-        return Err(anyhow!(
-          "Failed to send activity {} to {}",
-          &self.activity,
-          self.inbox
-        ));
-      }
-      Ok(())
-    })
+    Box::pin(async move { do_send(self, &state.client).await })
   }
+}
+
+async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
+  let mut headers = BTreeMap::<String, String>::new();
+  headers.insert("Content-Type".into(), APUB_JSON_CONTENT_TYPE.to_string());
+  let result = sign_and_send(
+    client,
+    headers,
+    &task.inbox,
+    task.activity.clone(),
+    &task.actor_id,
+    task.private_key.to_owned(),
+  )
+  .await;
+
+  if let Err(e) = result {
+    warn!("{}", e);
+    return Err(anyhow!(
+      "Failed to send activity {} to {}",
+      &task.activity,
+      task.inbox
+    ));
+  }
+  Ok(())
 }
 
 pub fn create_activity_queue() -> QueueHandle {

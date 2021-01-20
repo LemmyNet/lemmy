@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, group_extensions::GroupExtension},
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
     create_tombstone,
@@ -22,12 +22,12 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
-use lemmy_db::{
-  community::{Community, CommunityForm},
-  community_view::CommunityModeratorView,
+use lemmy_db_queries::DbPool;
+use lemmy_db_schema::{
   naive_now,
-  DbPool,
+  source::community::{Community, CommunityForm},
 };
+use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
@@ -51,7 +51,10 @@ impl ToApub for Community {
       CommunityModeratorView::for_community(&conn, id)
     })
     .await??;
-    let moderators: Vec<String> = moderators.into_iter().map(|m| m.user_actor_id).collect();
+    let moderators: Vec<String> = moderators
+      .into_iter()
+      .map(|m| m.moderator.actor_id)
+      .collect();
 
     let mut group = ApObject::new(Group::new());
     group

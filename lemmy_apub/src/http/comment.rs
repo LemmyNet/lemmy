@@ -4,7 +4,8 @@ use crate::{
 };
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
-use lemmy_db::{comment::Comment, Crud};
+use lemmy_db_queries::Crud;
+use lemmy_db_schema::source::comment::Comment;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

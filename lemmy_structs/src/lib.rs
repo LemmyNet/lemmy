@@ -6,13 +6,12 @@ pub mod user;
 pub mod websocket;
 
 use diesel::PgConnection;
-use lemmy_db::{
+use lemmy_db_queries::{source::user::User, Crud, DbPool};
+use lemmy_db_schema::source::{
   comment::Comment,
   post::Post,
   user::User_,
   user_mention::{UserMention, UserMentionForm},
-  Crud,
-  DbPool,
 };
 use lemmy_utils::{email::send_email, settings::Settings, utils::MentionData, LemmyError};
 use log::error;

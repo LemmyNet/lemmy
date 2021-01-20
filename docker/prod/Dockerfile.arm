@@ -1,0 +1,48 @@
+ARG RUST_BUILDER_IMAGE=rust:1.47-slim-buster
+
+# Build Lemmy
+FROM $RUST_BUILDER_IMAGE as builder
+
+# Install compilation dependencies
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY ./ ./
+
+RUN cargo build --release
+
+# reduce binary size
+RUN strip ./target/release/lemmy_server
+
+RUN cp ./target/release/lemmy_server /app/lemmy_server
+
+# Build the docs
+FROM $RUST_BUILDER_IMAGE as docs
+WORKDIR /app
+RUN cargo install mdbook --git https://github.com/Nutomic/mdBook.git --branch localization --rev 0982a82 --force
+COPY docs ./docs
+RUN mdbook build docs/
+
+# The Debian runner
+FROM debian:buster-slim as lemmy
+
+# Install libpq for postgres and espeak for captchas
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends espeak postgresql-client libc6 libssl1.1 \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN addgroup --gid 1000 lemmy
+RUN adduser --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
+
+# Copy resources
+COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
+COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
+COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/documentation/
+
+RUN chown lemmy:lemmy /app/lemmy
+USER lemmy
+EXPOSE 8536
+CMD ["/app/lemmy"]

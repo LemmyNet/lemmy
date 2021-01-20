@@ -3,7 +3,7 @@ use crate::{
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   ActorType,
 };
 use activitystreams::{
@@ -23,7 +23,9 @@ use activitystreams::{
 };
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_db::{community::Community, community_view::CommunityFollowerView, DbPool};
+use lemmy_db_queries::DbPool;
+use lemmy_db_schema::source::community::Community;
+use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -179,9 +181,9 @@ impl ActorType for Community {
     .await??;
     let inboxes = inboxes
       .into_iter()
-      .filter(|i| !i.user_local)
+      .filter(|i| !i.follower.local)
       .map(|u| -> Result<Url, LemmyError> {
-        let url = Url::parse(&u.user_actor_id)?;
+        let url = Url::parse(&u.follower.actor_id)?;
         let domain = url.domain().context(location_info!())?;
         let port = if let Some(port) = url.port() {
           format!(":{}", port)

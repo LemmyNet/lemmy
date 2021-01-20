@@ -3,14 +3,19 @@ use diesel::{
   sql_types::{Nullable, Text},
   *,
 };
-use lemmy_db::{
-  comment::Comment,
-  community::{Community, CommunityForm},
-  naive_now,
-  post::Post,
-  private_message::PrivateMessage,
-  user::{UserForm, User_},
+use lemmy_db_queries::{
+  source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
   Crud,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{
+    comment::Comment,
+    community::{Community, CommunityForm},
+    post::Post,
+    private_message::PrivateMessage,
+    user::{UserForm, User_},
+  },
 };
 use lemmy_utils::{
   apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},
@@ -31,7 +36,7 @@ pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::user_::dsl::*;
+  use lemmy_db_schema::schema::user_::dsl::*;
 
   info!("Running user_updates_2020_04_02");
 
@@ -40,8 +45,6 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(actor_id.like("changeme_%"))
     .filter(local.eq(true))
     .load::<User_>(conn)?;
-
-  sql_query("alter table user_ disable trigger refresh_user").execute(conn)?;
 
   for cuser in &incorrect_users {
     let keypair = generate_actor_keypair()?;
@@ -76,15 +79,13 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     User_::update(&conn, cuser.id, &form)?;
   }
 
-  sql_query("alter table user_ enable trigger refresh_user").execute(conn)?;
-
   info!("{} user rows updated.", incorrect_users.len());
 
   Ok(())
 }
 
 fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::community::dsl::*;
+  use lemmy_db_schema::schema::community::dsl::*;
 
   info!("Running community_updates_2020_04_02");
 
@@ -93,8 +94,6 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(actor_id.like("changeme_%"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
-
-  sql_query("alter table community disable trigger refresh_community").execute(conn)?;
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
@@ -122,15 +121,13 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     Community::update(&conn, ccommunity.id, &form)?;
   }
 
-  sql_query("alter table community enable trigger refresh_community").execute(conn)?;
-
   info!("{} community rows updated.", incorrect_communities.len());
 
   Ok(())
 }
 
 fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::post::dsl::*;
+  use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_updates_2020_04_03");
 
@@ -140,8 +137,6 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(local.eq(true))
     .load::<Post>(conn)?;
 
-  sql_query("alter table post disable trigger refresh_post").execute(conn)?;
-
   for cpost in &incorrect_posts {
     let apub_id = make_apub_endpoint(EndpointType::Post, &cpost.id.to_string()).to_string();
     Post::update_ap_id(&conn, cpost.id, apub_id)?;
@@ -149,13 +144,11 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   info!("{} post rows updated.", incorrect_posts.len());
 
-  sql_query("alter table post enable trigger refresh_post").execute(conn)?;
-
   Ok(())
 }
 
 fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::comment::dsl::*;
+  use lemmy_db_schema::schema::comment::dsl::*;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -165,14 +158,10 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
 
-  sql_query("alter table comment disable trigger refresh_comment").execute(conn)?;
-
   for ccomment in &incorrect_comments {
     let apub_id = make_apub_endpoint(EndpointType::Comment, &ccomment.id.to_string()).to_string();
     Comment::update_ap_id(&conn, ccomment.id, apub_id)?;
   }
-
-  sql_query("alter table comment enable trigger refresh_comment").execute(conn)?;
 
   info!("{} comment rows updated.", incorrect_comments.len());
 
@@ -180,7 +169,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::private_message::dsl::*;
+  use lemmy_db_schema::schema::private_message::dsl::*;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -201,7 +190,7 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
 }
 
 fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::post::dsl::*;
+  use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 

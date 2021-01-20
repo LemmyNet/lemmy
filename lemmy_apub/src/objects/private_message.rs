@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
     create_tombstone,
@@ -19,11 +19,10 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_db::{
+use lemmy_db_queries::{Crud, DbPool};
+use lemmy_db_schema::source::{
   private_message::{PrivateMessage, PrivateMessageForm},
   user::User_,
-  Crud,
-  DbPool,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};

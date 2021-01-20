@@ -1,13 +1,13 @@
 use crate::{settings::Settings, APIError};
 use actix_web::dev::ConnectionInfo;
-use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
 static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
-static ref SLUR_REGEX: Regex = RegexBuilder::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|\bn(i|1)g(\b|g?(a|er)?(s|z)?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btr(a|@)nn?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap();
+static ref SLUR_REGEX: Regex = RegexBuilder::new(r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|\bn(i|1)g(\b|g?(a|er)?(s|z)?)\b|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap();
 static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").unwrap();
 // TODO keep this old one, it didn't work with port well tho
 // static ref MENTIONS_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)").unwrap();
@@ -22,8 +22,7 @@ pub fn naive_from_unix(time: i64) -> NaiveDateTime {
 }
 
 pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
-  let now = Local::now();
-  DateTime::<FixedOffset>::from_utc(datetime, *now.offset())
+  DateTime::<FixedOffset>::from_utc(datetime, FixedOffset::east(0))
 }
 
 pub fn remove_slurs(test: &str) -> String {
@@ -66,7 +65,11 @@ pub(crate) fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
 }
 
 pub fn generate_random_string() -> String {
-  thread_rng().sample_iter(&Alphanumeric).take(30).collect()
+  thread_rng()
+    .sample_iter(&Alphanumeric)
+    .map(char::from)
+    .take(30)
+    .collect()
 }
 
 pub fn markdown_to_html(text: &str) -> String {

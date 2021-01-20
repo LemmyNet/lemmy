@@ -17,7 +17,7 @@ use crate::{
     verify_activity_domains_valid,
   },
   check_is_apub_id_valid,
-  fetcher::get_or_fetch_and_upsert_community,
+  fetcher::community::get_or_fetch_and_upsert_community,
   inbox::{
     assert_activity_not_local,
     get_activity_id,
@@ -48,12 +48,11 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
-use lemmy_db::{
+use lemmy_db_queries::{source::user::User, ApubObject, Followable};
+use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
   private_message::PrivateMessage,
   user::User_,
-  ApubObject,
-  Followable,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
@@ -102,7 +101,7 @@ pub async fn user_inbox(
     User_::read_from_name(&conn, &username)
   })
   .await??;
-  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  let to_and_cc = get_activity_to_and_cc(&activity);
   // TODO: we should also accept activities that are sent to community followers
   if !to_and_cc.contains(&&user.actor_id()?) {
     return Err(anyhow!("Activity delivered to wrong user").into());
@@ -173,7 +172,7 @@ async fn is_for_user_inbox(
   context: &LemmyContext,
   activity: &UserAcceptedActivities,
 ) -> Result<(), LemmyError> {
-  let to_and_cc = get_activity_to_and_cc(activity)?;
+  let to_and_cc = get_activity_to_and_cc(activity);
   // Check if it is addressed directly to any local user
   if is_addressed_to_local_user(&to_and_cc, context.pool()).await? {
     return Ok(());
@@ -394,5 +393,5 @@ async fn find_community_or_private_message_by_id(
     return Ok(CommunityOrPrivateMessage::PrivateMessage(p));
   }
 
-  return Err(NotFound.into());
+  Err(NotFound.into())
 }

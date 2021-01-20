@@ -4,12 +4,12 @@ use activitystreams::{
   base::ExtendsExt,
 };
 use anyhow::Context;
-use lemmy_db::{
+use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
+use lemmy_db_schema::source::{
   comment::{Comment, CommentLike, CommentLikeForm},
-  comment_view::CommentView,
   post::Post,
-  Likeable,
 };
+use lemmy_db_views::comment_view::CommentView;
 use lemmy_structs::{blocking, comment::CommentResponse, send_local_notifs};
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
@@ -43,7 +43,7 @@ pub(crate) async fn receive_create_comment(
   .await??;
 
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -83,7 +83,7 @@ pub(crate) async fn receive_update_comment(
   .await??;
 
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -128,7 +128,7 @@ pub(crate) async fn receive_like_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -173,7 +173,7 @@ pub(crate) async fn receive_dislike_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -206,7 +206,7 @@ pub(crate) async fn receive_delete_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };
@@ -239,7 +239,7 @@ pub(crate) async fn receive_remove_comment(
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
   let res = CommentResponse {
-    comment: comment_view,
+    comment_view,
     recipient_ids,
     form_id: None,
   };

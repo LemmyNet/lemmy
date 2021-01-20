@@ -1,14 +1,25 @@
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
-use lemmy_db::{
-  community::{Community, CommunityModerator},
-  community_view::CommunityUserBanView,
-  post::Post,
-  user::User_,
+use lemmy_db_queries::{
+  source::{
+    community::{CommunityModerator_, Community_},
+    site::Site_,
+    user::UserSafeSettings_,
+  },
   Crud,
   DbPool,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityModerator},
+  post::Post,
+  site::Site,
+  user::{UserSafeSettings, User_},
+};
+use lemmy_db_views_actor::{
+  community_user_ban_view::CommunityUserBanView,
+  community_view::CommunityView,
+};
+use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
@@ -22,6 +33,7 @@ pub mod post;
 pub mod site;
 pub mod user;
 pub mod version;
+pub mod websocket;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
@@ -40,7 +52,7 @@ pub(crate) async fn is_mod_or_admin(
   community_id: i32,
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = blocking(pool, move |conn| {
-    Community::is_mod_or_admin(conn, user_id, community_id)
+    CommunityView::is_mod_or_admin(conn, user_id, community_id)
   })
   .await?;
   if !is_mod_or_admin {
@@ -87,6 +99,33 @@ pub(crate) async fn get_user_from_jwt_opt(
   }
 }
 
+pub(crate) async fn get_user_safe_settings_from_jwt(
+  jwt: &str,
+  pool: &DbPool,
+) -> Result<UserSafeSettings, LemmyError> {
+  let claims = match Claims::decode(&jwt) {
+    Ok(claims) => claims.claims,
+    Err(_e) => return Err(APIError::err("not_logged_in").into()),
+  };
+  let user_id = claims.id;
+  let user = blocking(pool, move |conn| UserSafeSettings::read(conn, user_id)).await??;
+  // Check for a site ban
+  if user.banned {
+    return Err(APIError::err("site_ban").into());
+  }
+  Ok(user)
+}
+
+pub(crate) async fn get_user_safe_settings_from_jwt_opt(
+  jwt: &Option<String>,
+  pool: &DbPool,
+) -> Result<Option<UserSafeSettings>, LemmyError> {
+  match jwt {
+    Some(jwt) => Ok(Some(get_user_safe_settings_from_jwt(jwt, pool).await?)),
+    None => Ok(None),
+  }
+}
+
 pub(crate) async fn check_community_ban(
   user_id: i32,
   community_id: i32,
@@ -98,6 +137,16 @@ pub(crate) async fn check_community_ban(
   } else {
     Ok(())
   }
+}
+
+pub(crate) async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
+  if score == -1 {
+    let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
+    if !site.enable_downvotes {
+      return Err(APIError::err("downvotes_disabled").into());
+    }
+  }
+  Ok(())
 }
 
 /// Returns a list of communities that the user moderates

@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, page_extension::PageExtension},
-  fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
@@ -20,12 +20,11 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
-use lemmy_db::{
+use lemmy_db_queries::{Crud, DbPool};
+use lemmy_db_schema::source::{
   community::Community,
   post::{Post, PostForm},
   user::User_,
-  Crud,
-  DbPool,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{

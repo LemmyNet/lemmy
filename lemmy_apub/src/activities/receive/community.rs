@@ -4,7 +4,9 @@ use activitystreams::{
   base::{AnyBase, ExtendsExt},
 };
 use anyhow::Context;
-use lemmy_db::{community::Community, community_view::CommunityView, ApubObject};
+use lemmy_db_queries::{source::community::Community_, ApubObject};
+use lemmy_db_schema::source::community::Community;
+use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_structs::{blocking, community::CommunityResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
@@ -21,13 +23,13 @@ pub(crate) async fn receive_delete_community(
 
   let community_id = deleted_community.id;
   let res = CommunityResponse {
-    community: blocking(context.pool(), move |conn| {
+    community_view: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
     })
     .await??,
   };
 
-  let community_id = res.community.id;
+  let community_id = res.community_view.community.id;
   context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,
     response: res,
@@ -64,13 +66,13 @@ pub(crate) async fn receive_remove_community(
 
   let community_id = removed_community.id;
   let res = CommunityResponse {
-    community: blocking(context.pool(), move |conn| {
+    community_view: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
     })
     .await??,
   };
 
-  let community_id = res.community.id;
+  let community_id = res.community_view.community.id;
   context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,
     response: res,
@@ -100,13 +102,13 @@ pub(crate) async fn receive_undo_delete_community(
 
   let community_id = deleted_community.id;
   let res = CommunityResponse {
-    community: blocking(context.pool(), move |conn| {
+    community_view: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
     })
     .await??,
   };
 
-  let community_id = res.community.id;
+  let community_id = res.community_view.community.id;
   context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,
     response: res,
@@ -146,13 +148,13 @@ pub(crate) async fn receive_undo_remove_community(
 
   let community_id = removed_community.id;
   let res = CommunityResponse {
-    community: blocking(context.pool(), move |conn| {
+    community_view: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
     })
     .await??,
   };
 
-  let community_id = res.community.id;
+  let community_id = res.community_view.community.id;
 
   context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,

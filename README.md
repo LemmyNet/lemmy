@@ -1,7 +1,7 @@
 <div align="center">
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
-[![Build Status](https://travis-ci.org/LemmyNet/lemmy.svg?branch=main)](https://travis-ci.org/LemmyNet/lemmy)
+![Build Status](https://cloud.drone.io/api/badges/LemmyNet/lemmy/status.svg)
 [![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
 [![Translation status](http://weblate.yerbamate.ml/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.ml/engage/lemmy/)
@@ -27,6 +27,8 @@
     <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
+    ·
+    <a href="https://lemmy.ml/docs/en/code_of_conduct.html">Code of Conduct</a>
   </p>
 </p>
 

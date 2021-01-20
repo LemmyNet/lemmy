@@ -1,0 +1,153 @@
+---
+kind: pipeline
+name: amd64
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: fetch git submodules
+    image: node:15-alpine3.12
+    commands:
+      - apk add git
+      - git submodule update --init --recursive --remote
+
+  - name: chown repo
+    image: ekidd/rust-musl-builder:1.47.0
+    user: root
+    commands:
+      - chown 1000:1000 . -R
+
+  - name: check formatting
+    image: rustdocker/rust:nightly
+    commands:
+      - /root/.cargo/bin/cargo fmt -- --check
+
+  - name: cargo clippy
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
+
+  - name: cargo test
+    image: ekidd/rust-musl-builder:1.47.0
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+    commands:
+      - sudo apt-get update
+      - sudo apt-get -y install --no-install-recommends espeak postgresql-client
+      - cargo test --workspace --no-fail-fast
+
+  - name: cargo build
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+
+  - name: run federation tests
+    image: node:15-alpine3.12
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - apk add bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+
+  - name: make release build and push to docker hub
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      auto_tag: true
+    when:
+      ref:
+      - refs/tags/*
+
+services:
+  - name: database
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: lemmy
+      POSTGRES_PASSWORD: password
+
+---
+kind: pipeline
+name: arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+
+  - name: fetch git submodules
+    image: node:15-alpine3.12
+    commands:
+      - apk add git
+      - git submodule update --init --recursive --remote
+
+  - name: cargo test
+    image: rust:1.47-slim-buster
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+    commands:
+      - apt-get update
+      - apt-get -y install --no-install-recommends espeak postgresql-client libssl-dev pkg-config libpq-dev
+      - cargo test --workspace --no-fail-fast
+      - cargo build
+
+  # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
+  - name: cargo build
+    image: rust:1.47-slim-buster
+    commands:
+      - apt-get update
+      - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+
+  - name: run federation tests
+    image: node:15-buster-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - mkdir -p /usr/share/man/man1 /usr/share/man/man7
+      - apt-get update
+      - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+
+  - name: make release build and push to docker hub
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile.arm
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      auto_tag: true
+      auto_tag_suffix: arm64
+    when:
+      ref:
+        - refs/tags/*
+
+services:
+  - name: database
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: lemmy
+      POSTGRES_PASSWORD: password

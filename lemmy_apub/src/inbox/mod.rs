@@ -12,7 +12,8 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use lemmy_db::{activity::Activity, community::Community, user::User_, ApubObject, DbPool};
+use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
+use lemmy_db_schema::source::{activity::Activity, community::Community, user::User_};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -50,7 +51,7 @@ pub(crate) async fn is_activity_already_known(
   }
 }
 
-pub(crate) fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Result<Vec<Url>, LemmyError>
+pub(crate) fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Vec<Url>
 where
   T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
 {
@@ -75,14 +76,14 @@ where
       .collect();
     to_and_cc.append(&mut cc);
   }
-  Ok(to_and_cc)
+  to_and_cc
 }
 
 pub(crate) fn is_addressed_to_public<T, Kind>(activity: &T) -> Result<(), LemmyError>
 where
   T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
 {
-  let to_and_cc = get_activity_to_and_cc(activity)?;
+  let to_and_cc = get_activity_to_and_cc(activity);
   if to_and_cc.contains(&public()) {
     Ok(())
   } else {

@@ -1,6 +1,8 @@
 use crate::{
   get_user_from_jwt,
   get_user_from_jwt_opt,
+  get_user_safe_settings_from_jwt,
+  get_user_safe_settings_from_jwt_opt,
   is_admin,
   linked_instances,
   version,
@@ -8,22 +10,41 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_apub::fetcher::search_by_apub_id;
-use lemmy_db::{
-  category::*,
-  comment_view::*,
-  community_view::*,
+use lemmy_apub::fetcher::search::search_by_apub_id;
+use lemmy_db_queries::{
   diesel_option_overwrite,
-  moderator::*,
-  moderator_views::*,
-  naive_now,
-  post_view::*,
-  site::*,
-  site_view::*,
-  user_view::*,
+  source::{category::Category_, site::Site_},
   Crud,
   SearchType,
   SortType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{
+    category::Category,
+    moderator::*,
+    site::{Site, *},
+  },
+};
+use lemmy_db_views::{
+  comment_view::CommentQueryBuilder,
+  post_view::PostQueryBuilder,
+  site_view::SiteView,
+};
+use lemmy_db_views_actor::{
+  community_view::CommunityQueryBuilder,
+  user_view::{UserQueryBuilder, UserViewSafe},
+};
+use lemmy_db_views_moderator::{
+  mod_add_community_view::ModAddCommunityView,
+  mod_add_view::ModAddView,
+  mod_ban_from_community_view::ModBanFromCommunityView,
+  mod_ban_view::ModBanView,
+  mod_lock_post_view::ModLockPostView,
+  mod_remove_comment_view::ModRemoveCommentView,
+  mod_remove_community_view::ModRemoveCommunityView,
+  mod_remove_post_view::ModRemovePostView,
+  mod_sticky_post_view::ModStickyPostView,
 };
 use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{
@@ -145,7 +166,7 @@ impl Perform for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = &self;
 
-    let read_site = move |conn: &'_ _| Site::read(conn, 1);
+    let read_site = move |conn: &'_ _| Site::read_simple(conn);
     if blocking(context.pool(), read_site).await?.is_ok() {
       return Err(APIError::err("site_already_exists").into());
     };
@@ -177,7 +198,7 @@ impl Perform for CreateSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    Ok(SiteResponse { site: site_view })
+    Ok(SiteResponse { site_view })
   }
 }
 
@@ -198,7 +219,7 @@ impl Perform for EditSite {
     // Make sure user is an admin
     is_admin(context.pool(), user.id).await?;
 
-    let found_site = blocking(context.pool(), move |conn| Site::read(conn, 1)).await??;
+    let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
@@ -222,7 +243,7 @@ impl Perform for EditSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    let res = SiteResponse { site: site_view };
+    let res = SiteResponse { site_view };
 
     context.chat_server().do_send(SendAllMessage {
       op: UserOperation::EditSite,
@@ -245,55 +266,56 @@ impl Perform for GetSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = &self;
 
-    // TODO refactor this a little
-    let res = blocking(context.pool(), move |conn| Site::read(conn, 1)).await?;
-    let site_view = if res.is_ok() {
-      Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
-    } else if let Some(setup) = Settings::get().setup.as_ref() {
-      let register = Register {
-        username: setup.admin_username.to_owned(),
-        email: setup.admin_email.to_owned(),
-        password: setup.admin_password.to_owned(),
-        password_verify: setup.admin_password.to_owned(),
-        admin: true,
-        show_nsfw: true,
-        captcha_uuid: None,
-        captcha_answer: None,
-      };
-      let login_response = register.perform(context, websocket_id).await?;
-      info!("Admin {} created", setup.admin_username);
+    let site_view = match blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
+      Ok(site_view) => Some(site_view),
+      // If the site isn't created yet, check the setup
+      Err(_) => {
+        if let Some(setup) = Settings::get().setup.as_ref() {
+          let register = Register {
+            username: setup.admin_username.to_owned(),
+            email: setup.admin_email.to_owned(),
+            password: setup.admin_password.to_owned(),
+            password_verify: setup.admin_password.to_owned(),
+            show_nsfw: true,
+            captcha_uuid: None,
+            captcha_answer: None,
+          };
+          let login_response = register.perform(context, websocket_id).await?;
+          info!("Admin {} created", setup.admin_username);
 
-      let create_site = CreateSite {
-        name: setup.site_name.to_owned(),
-        description: None,
-        icon: None,
-        banner: None,
-        enable_downvotes: true,
-        open_registration: true,
-        enable_nsfw: true,
-        auth: login_response.jwt,
-      };
-      create_site.perform(context, websocket_id).await?;
-      info!("Site {} created", setup.site_name);
-      Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
-    } else {
-      None
+          let create_site = CreateSite {
+            name: setup.site_name.to_owned(),
+            description: None,
+            icon: None,
+            banner: None,
+            enable_downvotes: true,
+            open_registration: true,
+            enable_nsfw: true,
+            auth: login_response.jwt,
+          };
+          create_site.perform(context, websocket_id).await?;
+          info!("Site {} created", setup.site_name);
+          Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
+        } else {
+          None
+        }
+      }
     };
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
-      let site_creator_id = site_view.creator_id;
+      let site_creator_id = site_view.creator.id;
       // TODO investigate why this is sometimes coming back null
       // Maybe user_.admin isn't being set to true?
-      if let Some(creator_index) = admins.iter().position(|r| r.id == site_creator_id) {
+      if let Some(creator_index) = admins.iter().position(|r| r.user.id == site_creator_id) {
         let creator_user = admins.remove(creator_index);
         admins.insert(0, creator_user);
       }
     }
 
-    let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
 
     let online = context
       .chat_server()
@@ -301,17 +323,10 @@ impl Perform for GetSite {
       .await
       .unwrap_or(1);
 
-    let my_user = get_user_from_jwt_opt(&data.auth, context.pool())
-      .await?
-      .map(|mut u| {
-        u.password_encrypted = "".to_string();
-        u.private_key = None;
-        u.public_key = None;
-        u
-      });
+    let my_user = get_user_safe_settings_from_jwt_opt(&data.auth, context.pool()).await?;
 
     Ok(GetSiteResponse {
-      site: site_view,
+      site_view,
       admins,
       banned,
       online,
@@ -362,10 +377,10 @@ impl Perform for Search {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .for_community_id(community_id)
-            .for_community_name(community_name)
-            .search_term(q)
+            .community_id(community_id)
+            .community_name(community_name)
             .my_user_id(user_id)
+            .search_term(q)
             .page(page)
             .limit(limit)
             .list()
@@ -411,10 +426,10 @@ impl Perform for Search {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .for_community_id(community_id)
-            .for_community_name(community_name)
-            .search_term(q)
+            .community_id(community_id)
+            .community_name(community_name)
             .my_user_id(user_id)
+            .search_term(q)
             .page(page)
             .limit(limit)
             .list()
@@ -466,8 +481,8 @@ impl Perform for Search {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .for_community_id(community_id)
-            .for_community_name(community_name)
+            .community_id(community_id)
+            .community_name(community_name)
             .url_search(q)
             .page(page)
             .limit(limit)
@@ -498,16 +513,11 @@ impl Perform for TransferSite {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = &self;
-    let mut user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let user = get_user_safe_settings_from_jwt(&data.auth, context.pool()).await?;
 
     is_admin(context.pool(), user.id).await?;
 
-    // TODO add a User_::read_safe() for this.
-    user.password_encrypted = "".to_string();
-    user.private_key = None;
-    user.public_key = None;
-
-    let read_site = blocking(context.pool(), move |conn| Site::read(conn, 1)).await??;
+    let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
     // Make sure user is the creator
     if read_site.creator_id != user.id {
@@ -531,18 +541,18 @@ impl Perform for TransferSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.id == site_view.creator_id)
+      .position(|r| r.user.id == site_view.creator.id)
       .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
 
     Ok(GetSiteResponse {
-      site: Some(site_view),
+      site_view: Some(site_view),
       admins,
       banned,
       online: 0,
@@ -587,12 +597,8 @@ impl Perform for SaveSiteConfig {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    let admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
-    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
-
-    if !admin_ids.contains(&user.id) {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    let user_id = user.id;
+    is_admin(context.pool(), user_id).await?;
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = match Settings::save_config_file(&data.config_hjson) {

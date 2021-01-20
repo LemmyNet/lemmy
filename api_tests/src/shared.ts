@@ -1,52 +1,54 @@
 import {
-  LoginForm,
+  Login,
   LoginResponse,
-  Post,
-  PostForm,
-  Comment,
-  DeletePostForm,
-  RemovePostForm,
-  StickyPostForm,
-  LockPostForm,
+  CreatePost,
+  EditPost,
+  CreateComment,
+  DeletePost,
+  RemovePost,
+  StickyPost,
+  LockPost,
   PostResponse,
   SearchResponse,
-  FollowCommunityForm,
+  FollowCommunity,
   CommunityResponse,
   GetFollowedCommunitiesResponse,
   GetPostResponse,
-  RegisterForm,
-  CommentForm,
-  DeleteCommentForm,
-  RemoveCommentForm,
-  SearchForm,
+  Register,
+  Comment,
+  EditComment,
+  DeleteComment,
+  RemoveComment,
+  Search,
   CommentResponse,
-  GetCommunityForm,
-  CommunityForm,
-  DeleteCommunityForm,
-  RemoveCommunityForm,
-  GetUserMentionsForm,
-  CommentLikeForm,
-  CreatePostLikeForm,
-  PrivateMessageForm,
-  EditPrivateMessageForm,
-  DeletePrivateMessageForm,
-  GetFollowedCommunitiesForm,
-  GetPrivateMessagesForm,
-  GetSiteForm,
-  GetPostForm,
+  GetCommunity,
+  CreateCommunity,
+  DeleteCommunity,
+  RemoveCommunity,
+  GetUserMentions,
+  CreateCommentLike,
+  CreatePostLike,
+  EditPrivateMessage,
+  DeletePrivateMessage,
+  GetFollowedCommunities,
+  GetPrivateMessages,
+  GetSite,
+  GetPost,
   PrivateMessageResponse,
   PrivateMessagesResponse,
   GetUserMentionsResponse,
-  UserSettingsForm,
+  SaveUserSettings,
   SortType,
   ListingType,
   GetSiteResponse,
   SearchType,
   LemmyHttp,
   BanUserResponse,
-  BanUserForm,
-  BanFromCommunityForm,
+  BanUser,
+  BanFromCommunity,
   BanFromCommunityResponse,
+  Post,
+  CreatePrivateMessage,
 } from 'lemmy-js-client';
 
 export interface API {
@@ -55,27 +57,27 @@ export interface API {
 }
 
 export let alpha: API = {
-  client: new LemmyHttp('http://localhost:8541/api/v1'),
+  client: new LemmyHttp('http://localhost:8541/api/v2'),
 };
 
 export let beta: API = {
-  client: new LemmyHttp('http://localhost:8551/api/v1'),
+  client: new LemmyHttp('http://localhost:8551/api/v2'),
 };
 
 export let gamma: API = {
-  client: new LemmyHttp('http://localhost:8561/api/v1'),
+  client: new LemmyHttp('http://localhost:8561/api/v2'),
 };
 
 export let delta: API = {
-  client: new LemmyHttp('http://localhost:8571/api/v1'),
+  client: new LemmyHttp('http://localhost:8571/api/v2'),
 };
 
 export let epsilon: API = {
-  client: new LemmyHttp('http://localhost:8581/api/v1'),
+  client: new LemmyHttp('http://localhost:8581/api/v2'),
 };
 
 export async function setupLogins() {
-  let formAlpha: LoginForm = {
+  let formAlpha: Login = {
     username_or_email: 'lemmy_alpha',
     password: 'lemmy',
   };
@@ -127,7 +129,7 @@ export async function createPost(
   let name = randomString(5);
   let body = randomString(10);
   let url = 'https://google.com/';
-  let form: PostForm = {
+  let form: CreatePost = {
     name,
     url,
     body,
@@ -138,11 +140,11 @@ export async function createPost(
   return api.client.createPost(form);
 }
 
-export async function updatePost(api: API, post: Post): Promise<PostResponse> {
+export async function editPost(api: API, post: Post): Promise<PostResponse> {
   let name = 'A jest test federated post, updated';
-  let form: PostForm = {
+  let form: EditPost = {
     name,
-    edit_id: post.id,
+    post_id: post.id,
     auth: api.auth,
     nsfw: false,
   };
@@ -154,8 +156,8 @@ export async function deletePost(
   deleted: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let form: DeletePostForm = {
-    edit_id: post.id,
+  let form: DeletePost = {
+    post_id: post.id,
     deleted: deleted,
     auth: api.auth,
   };
@@ -167,8 +169,8 @@ export async function removePost(
   removed: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let form: RemovePostForm = {
-    edit_id: post.id,
+  let form: RemovePost = {
+    post_id: post.id,
     removed,
     auth: api.auth,
   };
@@ -180,8 +182,8 @@ export async function stickyPost(
   stickied: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let form: StickyPostForm = {
-    edit_id: post.id,
+  let form: StickyPost = {
+    post_id: post.id,
     stickied,
     auth: api.auth,
   };
@@ -193,8 +195,8 @@ export async function lockPost(
   locked: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let form: LockPostForm = {
-    edit_id: post.id,
+  let form: LockPost = {
+    post_id: post.id,
     locked,
     auth: api.auth,
   };
@@ -205,7 +207,7 @@ export async function searchPost(
   api: API,
   post: Post
 ): Promise<SearchResponse> {
-  let form: SearchForm = {
+  let form: Search = {
     q: post.ap_id,
     type_: SearchType.Posts,
     sort: SortType.TopAll,
@@ -217,7 +219,7 @@ export async function searchPostLocal(
   api: API,
   post: Post
 ): Promise<SearchResponse> {
-  let form: SearchForm = {
+  let form: Search = {
     q: post.name,
     type_: SearchType.Posts,
     sort: SortType.TopAll,
@@ -229,7 +231,7 @@ export async function getPost(
   api: API,
   post_id: number
 ): Promise<GetPostResponse> {
-  let form: GetPostForm = {
+  let form: GetPost = {
     id: post_id,
   };
   return api.client.getPost(form);
@@ -239,7 +241,7 @@ export async function searchComment(
   api: API,
   comment: Comment
 ): Promise<SearchResponse> {
-  let form: SearchForm = {
+  let form: Search = {
     q: comment.ap_id,
     type_: SearchType.Comments,
     sort: SortType.TopAll,
@@ -252,7 +254,7 @@ export async function searchForBetaCommunity(
 ): Promise<SearchResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let form: SearchForm = {
+  let form: Search = {
     q: '!main@lemmy-beta:8551',
     type_: SearchType.Communities,
     sort: SortType.TopAll,
@@ -262,10 +264,10 @@ export async function searchForBetaCommunity(
 
 export async function searchForCommunity(
   api: API,
-  q: string,
+  q: string
 ): Promise<SearchResponse> {
   // Use short-hand search url
-  let form: SearchForm = {
+  let form: Search = {
     q,
     type_: SearchType.Communities,
     sort: SortType.TopAll,
@@ -279,7 +281,7 @@ export async function searchForUser(
 ): Promise<SearchResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let form: SearchForm = {
+  let form: Search = {
     q: apShortname,
     type_: SearchType.Users,
     sort: SortType.TopAll,
@@ -290,13 +292,14 @@ export async function searchForUser(
 export async function banUserFromSite(
   api: API,
   user_id: number,
-  ban: boolean,
+  ban: boolean
 ): Promise<BanUserResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let form: BanUserForm = {
+  let form: BanUser = {
     user_id,
     ban,
+    remove_data: false,
     auth: api.auth,
   };
   return api.client.banUser(form);
@@ -306,13 +309,14 @@ export async function banUserFromCommunity(
   api: API,
   user_id: number,
   community_id: number,
-  ban: boolean,
+  ban: boolean
 ): Promise<BanFromCommunityResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let form: BanFromCommunityForm = {
+  let form: BanFromCommunity = {
     user_id,
     community_id,
+    remove_data: false,
     ban,
     auth: api.auth,
   };
@@ -324,7 +328,7 @@ export async function followCommunity(
   follow: boolean,
   community_id: number
 ): Promise<CommunityResponse> {
-  let form: FollowCommunityForm = {
+  let form: FollowCommunity = {
     community_id,
     follow,
     auth: api.auth,
@@ -335,7 +339,7 @@ export async function followCommunity(
 export async function checkFollowedCommunities(
   api: API
 ): Promise<GetFollowedCommunitiesResponse> {
-  let form: GetFollowedCommunitiesForm = {
+  let form: GetFollowedCommunities = {
     auth: api.auth,
   };
   return api.client.getFollowedCommunities(form);
@@ -346,7 +350,7 @@ export async function likePost(
   score: number,
   post: Post
 ): Promise<PostResponse> {
-  let form: CreatePostLikeForm = {
+  let form: CreatePostLike = {
     post_id: post.id,
     score: score,
     auth: api.auth,
@@ -361,7 +365,7 @@ export async function createComment(
   parent_id?: number,
   content = 'a jest test comment'
 ): Promise<CommentResponse> {
-  let form: CommentForm = {
+  let form: CreateComment = {
     content,
     post_id,
     parent_id,
@@ -370,14 +374,14 @@ export async function createComment(
   return api.client.createComment(form);
 }
 
-export async function updateComment(
+export async function editComment(
   api: API,
-  edit_id: number,
+  comment_id: number,
   content = 'A jest test federated comment update'
 ): Promise<CommentResponse> {
-  let form: CommentForm = {
+  let form: EditComment = {
     content,
-    edit_id,
+    comment_id,
     auth: api.auth,
   };
   return api.client.editComment(form);
@@ -386,10 +390,10 @@ export async function updateComment(
 export async function deleteComment(
   api: API,
   deleted: boolean,
-  edit_id: number
+  comment_id: number
 ): Promise<CommentResponse> {
-  let form: DeleteCommentForm = {
-    edit_id,
+  let form: DeleteComment = {
+    comment_id,
     deleted,
     auth: api.auth,
   };
@@ -399,10 +403,10 @@ export async function deleteComment(
 export async function removeComment(
   api: API,
   removed: boolean,
-  edit_id: number
+  comment_id: number
 ): Promise<CommentResponse> {
-  let form: RemoveCommentForm = {
-    edit_id,
+  let form: RemoveComment = {
+    comment_id,
     removed,
     auth: api.auth,
   };
@@ -410,7 +414,7 @@ export async function removeComment(
 }
 
 export async function getMentions(api: API): Promise<GetUserMentionsResponse> {
-  let form: GetUserMentionsForm = {
+  let form: GetUserMentions = {
     sort: SortType.New,
     unread_only: false,
     auth: api.auth,
@@ -423,7 +427,7 @@ export async function likeComment(
   score: number,
   comment: Comment
 ): Promise<CommentResponse> {
-  let form: CommentLikeForm = {
+  let form: CreateCommentLike = {
     comment_id: comment.id,
     score,
     auth: api.auth,
@@ -438,7 +442,7 @@ export async function createCommunity(
   let description = 'a sample description';
   let icon = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let banner = 'https://image.flaticon.com/icons/png/512/35/35896.png';
-  let form: CommunityForm = {
+  let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
@@ -453,9 +457,9 @@ export async function createCommunity(
 
 export async function getCommunity(
   api: API,
-  id: number,
+  id: number
 ): Promise<CommunityResponse> {
-  let form: GetCommunityForm = {
+  let form: GetCommunity = {
     id,
   };
   return api.client.getCommunity(form);
@@ -464,10 +468,10 @@ export async function getCommunity(
 export async function deleteCommunity(
   api: API,
   deleted: boolean,
-  edit_id: number
+  community_id: number
 ): Promise<CommunityResponse> {
-  let form: DeleteCommunityForm = {
-    edit_id,
+  let form: DeleteCommunity = {
+    community_id,
     deleted,
     auth: api.auth,
   };
@@ -477,10 +481,10 @@ export async function deleteCommunity(
 export async function removeCommunity(
   api: API,
   removed: boolean,
-  edit_id: number
+  community_id: number
 ): Promise<CommunityResponse> {
-  let form: RemoveCommunityForm = {
-    edit_id,
+  let form: RemoveCommunity = {
+    community_id,
     removed,
     auth: api.auth,
   };
@@ -492,7 +496,7 @@ export async function createPrivateMessage(
   recipient_id: number
 ): Promise<PrivateMessageResponse> {
   let content = 'A jest test federated private message';
-  let form: PrivateMessageForm = {
+  let form: CreatePrivateMessage = {
     content,
     recipient_id,
     auth: api.auth,
@@ -500,14 +504,14 @@ export async function createPrivateMessage(
   return api.client.createPrivateMessage(form);
 }
 
-export async function updatePrivateMessage(
+export async function editPrivateMessage(
   api: API,
-  edit_id: number
+  private_message_id: number
 ): Promise<PrivateMessageResponse> {
   let updatedContent = 'A jest test federated private message edited';
-  let form: EditPrivateMessageForm = {
+  let form: EditPrivateMessage = {
     content: updatedContent,
-    edit_id,
+    private_message_id,
     auth: api.auth,
   };
   return api.client.editPrivateMessage(form);
@@ -516,11 +520,11 @@ export async function updatePrivateMessage(
 export async function deletePrivateMessage(
   api: API,
   deleted: boolean,
-  edit_id: number
+  private_message_id: number
 ): Promise<PrivateMessageResponse> {
-  let form: DeletePrivateMessageForm = {
+  let form: DeletePrivateMessage = {
     deleted,
-    edit_id,
+    private_message_id,
     auth: api.auth,
   };
   return api.client.deletePrivateMessage(form);
@@ -530,11 +534,10 @@ export async function registerUser(
   api: API,
   username: string = randomString(5)
 ): Promise<LoginResponse> {
-  let form: RegisterForm = {
+  let form: Register = {
     username,
     password: 'test',
     password_verify: 'test',
-    admin: false,
     show_nsfw: true,
   };
   return api.client.register(form);
@@ -544,7 +547,7 @@ export async function saveUserSettingsBio(
   api: API,
   auth: string
 ): Promise<LoginResponse> {
-  let form: UserSettingsForm = {
+  let form: SaveUserSettings = {
     show_nsfw: true,
     theme: 'darkly',
     default_sort_type: Object.keys(SortType).indexOf(SortType.Active),
@@ -560,7 +563,7 @@ export async function saveUserSettingsBio(
 
 export async function saveUserSettings(
   api: API,
-  form: UserSettingsForm
+  form: SaveUserSettings
 ): Promise<LoginResponse> {
   return api.client.saveUserSettings(form);
 }
@@ -569,7 +572,7 @@ export async function getSite(
   api: API,
   auth: string
 ): Promise<GetSiteResponse> {
-  let form: GetSiteForm = {
+  let form: GetSite = {
     auth,
   };
   return api.client.getSite(form);
@@ -578,7 +581,7 @@ export async function getSite(
 export async function listPrivateMessages(
   api: API
 ): Promise<PrivateMessagesResponse> {
-  let form: GetPrivateMessagesForm = {
+  let form: GetPrivateMessages = {
     auth: api.auth,
     unread_only: false,
     limit: 999,
@@ -592,31 +595,27 @@ export async function unfollowRemotes(
   // Unfollow all remote communities
   let followed = await checkFollowedCommunities(api);
   let remoteFollowed = followed.communities.filter(
-    c => c.community_local == false
+    c => c.community.local == false
   );
   for (let cu of remoteFollowed) {
-    await followCommunity(api, false, cu.community_id);
+    await followCommunity(api, false, cu.community.id);
   }
   let followed2 = await checkFollowedCommunities(api);
   return followed2;
 }
 
 export async function followBeta(api: API): Promise<CommunityResponse> {
-  await unfollowRemotes(api);
-
   // Cache it
   let search = await searchForBetaCommunity(api);
-  let com = search.communities.filter(c => c.local == false);
-  if (com[0]) {
-    let follow = await followCommunity(api, true, com[0].id);
+  let com = search.communities.find(c => c.community.local == false);
+  if (com) {
+    let follow = await followCommunity(api, true, com.community.id);
     return follow;
   }
 }
 
 export function delay(millis: number = 500) {
-  return new Promise((resolve, _reject) => {
-    setTimeout(_ => resolve(), millis);
-  });
+  return new Promise(resolve => setTimeout(resolve, millis));
 }
 
 export function longDelay() {

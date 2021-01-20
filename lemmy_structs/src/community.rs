@@ -1,6 +1,8 @@
-use lemmy_db::{
-  community_view::{CommunityFollowerView, CommunityModeratorView, CommunityView},
-  user_view::UserView,
+use lemmy_db_views_actor::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
+  user_view::UserViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +15,7 @@ pub struct GetCommunity {
 
 #[derive(Serialize)]
 pub struct GetCommunityResponse {
-  pub community: CommunityView,
+  pub community_view: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
 }
@@ -32,7 +34,7 @@ pub struct CreateCommunity {
 
 #[derive(Serialize, Clone)]
 pub struct CommunityResponse {
-  pub community: CommunityView,
+  pub community_view: CommunityView,
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,7 +55,7 @@ pub struct BanFromCommunity {
   pub community_id: i32,
   pub user_id: i32,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  pub remove_data: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: String,
@@ -61,7 +63,7 @@ pub struct BanFromCommunity {
 
 #[derive(Serialize, Clone)]
 pub struct BanFromCommunityResponse {
-  pub user: UserView,
+  pub user_view: UserViewSafe,
   pub banned: bool,
 }
 
@@ -80,7 +82,7 @@ pub struct AddModToCommunityResponse {
 
 #[derive(Deserialize)]
 pub struct EditCommunity {
-  pub edit_id: i32,
+  pub community_id: i32,
   pub title: String,
   pub description: Option<String>,
   pub icon: Option<String>,
@@ -92,14 +94,14 @@ pub struct EditCommunity {
 
 #[derive(Deserialize)]
 pub struct DeleteCommunity {
-  pub edit_id: i32,
+  pub community_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct RemoveCommunity {
-  pub edit_id: i32,
+  pub community_id: i32,
   pub removed: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
@@ -128,24 +130,4 @@ pub struct TransferCommunity {
   pub community_id: i32,
   pub user_id: i32,
   pub auth: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct CommunityJoin {
-  pub community_id: i32,
-}
-
-#[derive(Serialize, Clone)]
-pub struct CommunityJoinResponse {
-  pub joined: bool,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ModJoin {
-  pub community_id: i32,
-}
-
-#[derive(Serialize, Clone)]
-pub struct ModJoinResponse {
-  pub joined: bool,
 }

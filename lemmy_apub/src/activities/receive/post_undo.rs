@@ -1,10 +1,8 @@
 use crate::activities::receive::get_actor_as_user;
 use activitystreams::activity::{Dislike, Like};
-use lemmy_db::{
-  post::{Post, PostLike},
-  post_view::PostView,
-  Likeable,
-};
+use lemmy_db_queries::{source::post::Post_, Likeable};
+use lemmy_db_schema::source::post::{Post, PostLike};
+use lemmy_db_views::post_view::PostView;
 use lemmy_structs::{blocking, post::PostResponse};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
@@ -30,7 +28,7 @@ pub(crate) async fn receive_undo_like_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePostLike,
@@ -62,7 +60,7 @@ pub(crate) async fn receive_undo_dislike_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePostLike,
@@ -89,7 +87,7 @@ pub(crate) async fn receive_undo_delete_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,
@@ -115,7 +113,7 @@ pub(crate) async fn receive_undo_remove_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,

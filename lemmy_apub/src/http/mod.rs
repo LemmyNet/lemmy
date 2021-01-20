@@ -1,11 +1,12 @@
 use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::{body::Body, web, HttpResponse};
-use lemmy_db::activity::Activity;
+use http::StatusCode;
+use lemmy_db_queries::source::activity::Activity_;
+use lemmy_db_schema::source::activity::Activity;
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
-use http::StatusCode;
 
 pub mod comment;
 pub mod community;

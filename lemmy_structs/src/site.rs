@@ -1,12 +1,16 @@
-use lemmy_db::{
-  category::*,
-  comment_view::*,
-  community_view::*,
-  moderator_views::*,
-  post_view::*,
-  site_view::*,
-  user::*,
-  user_view::*,
+use lemmy_db_schema::source::{category::*, user::UserSafeSettings};
+use lemmy_db_views::{comment_view::CommentView, post_view::PostView, site_view::SiteView};
+use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
+use lemmy_db_views_moderator::{
+  mod_add_community_view::ModAddCommunityView,
+  mod_add_view::ModAddView,
+  mod_ban_from_community_view::ModBanFromCommunityView,
+  mod_ban_view::ModBanView,
+  mod_lock_post_view::ModLockPostView,
+  mod_remove_comment_view::ModRemoveCommentView,
+  mod_remove_community_view::ModRemoveCommunityView,
+  mod_remove_post_view::ModRemovePostView,
+  mod_sticky_post_view::ModStickyPostView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +40,7 @@ pub struct SearchResponse {
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub communities: Vec<CommunityView>,
-  pub users: Vec<UserView>,
+  pub users: Vec<UserViewSafe>,
 }
 
 #[derive(Deserialize)]
@@ -91,17 +95,17 @@ pub struct GetSite {
 
 #[derive(Serialize, Clone)]
 pub struct SiteResponse {
-  pub site: SiteView,
+  pub site_view: SiteView,
 }
 
 #[derive(Serialize)]
 pub struct GetSiteResponse {
-  pub site: Option<SiteView>,
-  pub admins: Vec<UserView>,
-  pub banned: Vec<UserView>,
+  pub site_view: Option<SiteView>, // Because the site might not be set up yet
+  pub admins: Vec<UserViewSafe>,
+  pub banned: Vec<UserViewSafe>,
   pub online: usize,
   pub version: String,
-  pub my_user: Option<User_>,
+  pub my_user: Option<UserSafeSettings>,
   pub federated_instances: Vec<String>,
 }
 

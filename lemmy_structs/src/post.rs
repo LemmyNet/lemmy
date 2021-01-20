@@ -1,8 +1,11 @@
-use lemmy_db::{
+use lemmy_db_views::{
   comment_view::CommentView,
-  community_view::{CommunityModeratorView, CommunityView},
-  post_report::PostReportView,
+  post_report_view::PostReportView,
   post_view::PostView,
+};
+use lemmy_db_views_actor::{
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +21,7 @@ pub struct CreatePost {
 
 #[derive(Serialize, Clone)]
 pub struct PostResponse {
-  pub post: PostView,
+  pub post_view: PostView,
 }
 
 #[derive(Deserialize)]
@@ -29,9 +32,9 @@ pub struct GetPost {
 
 #[derive(Serialize)]
 pub struct GetPostResponse {
-  pub post: PostView,
+  pub post_view: PostView,
+  pub community_view: CommunityView,
   pub comments: Vec<CommentView>,
-  pub community: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
 }
@@ -61,7 +64,7 @@ pub struct CreatePostLike {
 
 #[derive(Deserialize)]
 pub struct EditPost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub name: String,
   pub url: Option<String>,
   pub body: Option<String>,
@@ -71,14 +74,14 @@ pub struct EditPost {
 
 #[derive(Deserialize)]
 pub struct DeletePost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct RemovePost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub removed: bool,
   pub reason: Option<String>,
   pub auth: String,
@@ -86,14 +89,14 @@ pub struct RemovePost {
 
 #[derive(Deserialize)]
 pub struct LockPost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub locked: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct StickyPost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub stickied: bool,
   pub auth: String,
 }
@@ -103,16 +106,6 @@ pub struct SavePost {
   pub post_id: i32,
   pub save: bool,
   pub auth: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct PostJoin {
-  pub post_id: i32,
-}
-
-#[derive(Serialize, Clone)]
-pub struct PostJoinResponse {
-  pub joined: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -148,7 +141,7 @@ pub struct ListPostReports {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ListPostReportsResponse {
   pub posts: Vec<PostReportView>,
 }

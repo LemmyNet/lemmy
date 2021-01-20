@@ -14,32 +14,50 @@ use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_apub::ApubObjectType;
-use lemmy_db::{
-  comment::*,
-  comment_report::CommentReportView,
-  comment_view::*,
-  community::*,
-  community_view::*,
+use lemmy_db_queries::{
   diesel_option_overwrite,
-  moderator::*,
-  naive_now,
-  password_reset_request::*,
-  post::*,
-  post_report::PostReportView,
-  post_view::*,
-  private_message::*,
-  private_message_view::*,
-  site::*,
-  site_view::*,
-  user::*,
-  user_mention::*,
-  user_mention_view::*,
-  user_view::*,
+  source::{
+    comment::Comment_,
+    community::Community_,
+    password_reset_request::PasswordResetRequest_,
+    post::Post_,
+    private_message::PrivateMessage_,
+    site::Site_,
+    user::User,
+    user_mention::UserMention_,
+  },
   Crud,
   Followable,
   Joinable,
   ListingType,
   SortType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{
+    comment::Comment,
+    community::*,
+    moderator::*,
+    password_reset_request::*,
+    post::Post,
+    private_message::*,
+    site::*,
+    user::*,
+    user_mention::*,
+  },
+};
+use lemmy_db_views::{
+  comment_report_view::CommentReportView,
+  comment_view::CommentQueryBuilder,
+  post_report_view::PostReportView,
+  post_view::PostQueryBuilder,
+  private_message_view::{PrivateMessageQueryBuilder, PrivateMessageView},
+};
+use lemmy_db_views_actor::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+  user_mention_view::{UserMentionQueryBuilder, UserMentionView},
+  user_view::UserViewSafe,
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{
@@ -60,7 +78,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
+  messages::{CaptchaItem, CheckCaptcha, SendAllMessage, SendUserRoomMessage},
   LemmyContext,
   UserOperation,
 };
@@ -113,8 +131,7 @@ impl Perform for Register {
     let data: &Register = &self;
 
     // Make sure site has open registration
-    if let Ok(site) = blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
-      let site: SiteView = site;
+    if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
       if !site.open_registration {
         return Err(APIError::err("registration_closed").into());
       }
@@ -130,8 +147,14 @@ impl Perform for Register {
       return Err(APIError::err("passwords_dont_match").into());
     }
 
+    // Check if there are admins. False if admins exist
+    let no_admins = blocking(context.pool(), move |conn| {
+      UserViewSafe::admins(conn).map(|a| a.is_empty())
+    })
+    .await??;
+
     // If its not the admin, check the captcha
-    if !data.admin && Settings::get().captcha.enabled {
+    if !no_admins && Settings::get().captcha.enabled {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
@@ -152,15 +175,6 @@ impl Perform for Register {
 
     check_slurs(&data.username)?;
 
-    // Make sure there are no admins
-    let any_admins = blocking(context.pool(), move |conn| {
-      UserView::admins(conn).map(|a| a.is_empty())
-    })
-    .await??;
-    if data.admin && !any_admins {
-      return Err(APIError::err("admin_already_created").into());
-    }
-
     let user_keypair = generate_actor_keypair()?;
     if !is_valid_username(&data.username) {
       return Err(APIError::err("invalid_username").into());
@@ -177,7 +191,7 @@ impl Perform for Register {
       preferred_username: None,
       published: None,
       updated: None,
-      admin: data.admin,
+      admin: no_admins,
       banned: Some(false),
       show_nsfw: data.show_nsfw,
       theme: "browser".into(),
@@ -263,7 +277,7 @@ impl Perform for Register {
     };
 
     // If its an admin, add them as a mod and follower to main
-    if data.admin {
+    if no_admins {
       let community_moderator_form = CommunityModeratorForm {
         community_id: main_community.id,
         user_id: inserted_user.id,
@@ -341,9 +355,6 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
-    let read_user = blocking(context.pool(), move |conn| User_::read(conn, user_id)).await??;
-
     let avatar = diesel_option_overwrite(&data.avatar);
     let banner = diesel_option_overwrite(&data.banner);
     let email = diesel_option_overwrite(&data.email);
@@ -367,6 +378,7 @@ impl Perform for SaveUserSettings {
       }
     }
 
+    let user_id = user.id;
     let password_encrypted = match &data.new_password {
       Some(new_password) => {
         match &data.new_password_verify {
@@ -379,8 +391,7 @@ impl Perform for SaveUserSettings {
             // Check the old password
             match &data.old_password {
               Some(old_password) => {
-                let valid: bool =
-                  verify(old_password, &read_user.password_encrypted).unwrap_or(false);
+                let valid: bool = verify(old_password, &user.password_encrypted).unwrap_or(false);
                 if !valid {
                   return Err(APIError::err("password_incorrect").into());
                 }
@@ -397,33 +408,36 @@ impl Perform for SaveUserSettings {
           None => return Err(APIError::err("passwords_dont_match").into()),
         }
       }
-      None => read_user.password_encrypted,
+      None => user.password_encrypted,
     };
 
+    let default_listing_type = data.default_listing_type;
+    let default_sort_type = data.default_sort_type;
+
     let user_form = UserForm {
-      name: read_user.name,
+      name: user.name,
       email,
       matrix_user_id,
       avatar,
       banner,
       password_encrypted,
       preferred_username,
-      published: Some(read_user.published),
+      published: Some(user.published),
       updated: Some(naive_now()),
-      admin: read_user.admin,
-      banned: Some(read_user.banned),
+      admin: user.admin,
+      banned: Some(user.banned),
       show_nsfw: data.show_nsfw,
       theme: data.theme.to_owned(),
-      default_sort_type: data.default_sort_type,
-      default_listing_type: data.default_listing_type,
+      default_sort_type,
+      default_listing_type,
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
       send_notifications_to_email: data.send_notifications_to_email,
-      actor_id: Some(read_user.actor_id),
+      actor_id: Some(user.actor_id),
       bio,
-      local: read_user.local,
-      private_key: read_user.private_key,
-      public_key: read_user.public_key,
+      local: user.local,
+      private_key: user.private_key,
+      public_key: user.public_key,
       last_refreshed_at: None,
     };
 
@@ -491,23 +505,13 @@ impl Perform for GetUserDetails {
     };
 
     let user_id = user.map(|u| u.id);
-    let user_fun = move |conn: &'_ _| {
-      match user_id {
-        // if there's a logged in user and it's the same id as the user whose details are being
-        // requested we need to use get_user_dangerous so it returns their email or other sensitive
-        // data hidden when viewing users other than yourself
-        Some(auth_user_id) => {
-          if user_details_id == auth_user_id {
-            UserView::get_user_dangerous(conn, auth_user_id)
-          } else {
-            UserView::get_user_secure(conn, user_details_id)
-          }
-        }
-        None => UserView::get_user_secure(conn, user_details_id),
-      }
-    };
 
-    let user_view = blocking(context.pool(), user_fun).await??;
+    // You don't need to return settings for the user, since this comes back with GetSite
+    // `my_user`
+    let user_view = blocking(context.pool(), move |conn| {
+      UserViewSafe::read(conn, user_details_id)
+    })
+    .await??;
 
     let page = data.page;
     let limit = data.limit;
@@ -519,23 +523,23 @@ impl Perform for GetUserDetails {
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .saved_only(saved_only)
-        .for_community_id(community_id)
+        .community_id(community_id)
         .my_user_id(user_id)
         .page(page)
         .limit(limit);
 
       let mut comments_query = CommentQueryBuilder::create(conn)
+        .my_user_id(user_id)
         .sort(&sort)
         .saved_only(saved_only)
-        .my_user_id(user_id)
         .page(page)
         .limit(limit);
 
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
       if !saved_only {
-        posts_query = posts_query.for_creator_id(user_details_id);
-        comments_query = comments_query.for_creator_id(user_details_id);
+        posts_query = posts_query.creator_id(user_details_id);
+        comments_query = comments_query.creator_id(user_details_id);
       }
 
       let posts = posts_query.list()?;
@@ -556,7 +560,7 @@ impl Perform for GetUserDetails {
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
-      user: user_view,
+      user_view,
       follows,
       moderates,
       comments,
@@ -601,10 +605,10 @@ impl Perform for AddAdmin {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.id == site_creator_id)
+      .position(|r| r.user.id == site_creator_id)
       .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -644,22 +648,22 @@ impl Perform for BanUser {
     }
 
     // Remove their data if that's desired
-    if let Some(remove_data) = data.remove_data {
+    if data.remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_user_id, None, remove_data)
+        Post::update_removed_for_creator(conn, banned_user_id, None, true)
       })
       .await??;
 
       // Communities
       blocking(context.pool(), move |conn: &'_ _| {
-        Community::update_removed_for_creator(conn, banned_user_id, remove_data)
+        Community::update_removed_for_creator(conn, banned_user_id, true)
       })
       .await??;
 
       // Comments
       blocking(context.pool(), move |conn: &'_ _| {
-        Comment::update_removed_for_creator(conn, banned_user_id, remove_data)
+        Comment::update_removed_for_creator(conn, banned_user_id, true)
       })
       .await??;
     }
@@ -682,12 +686,12 @@ impl Perform for BanUser {
 
     let user_id = data.user_id;
     let user_view = blocking(context.pool(), move |conn| {
-      UserView::get_user_secure(conn, user_id)
+      UserViewSafe::read(conn, user_id)
     })
     .await??;
 
     let res = BanUserResponse {
-      user: user_view,
+      user_view,
       banned: data.ban,
     };
 
@@ -720,9 +724,11 @@ impl Perform for GetReplies {
     let unread_only = data.unread_only;
     let user_id = user.id;
     let replies = blocking(context.pool(), move |conn| {
-      ReplyQueryBuilder::create(conn, user_id)
+      CommentQueryBuilder::create(conn)
         .sort(&sort)
         .unread_only(unread_only)
+        .recipient_id(user_id)
+        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()
@@ -752,7 +758,9 @@ impl Perform for GetUserMentions {
     let unread_only = data.unread_only;
     let user_id = user.id;
     let mentions = blocking(context.pool(), move |conn| {
-      UserMentionQueryBuilder::create(conn, user_id)
+      UserMentionQueryBuilder::create(conn)
+        .recipient_id(user_id)
+        .my_user_id(user_id)
         .sort(&sort)
         .unread_only(unread_only)
         .page(page)
@@ -797,13 +805,11 @@ impl Perform for MarkUserMentionAsRead {
     let user_mention_id = read_user_mention.id;
     let user_id = user.id;
     let user_mention_view = blocking(context.pool(), move |conn| {
-      UserMentionView::read(conn, user_mention_id, user_id)
+      UserMentionView::read(conn, user_mention_id, Some(user_id))
     })
     .await??;
 
-    Ok(UserMentionResponse {
-      mention: user_mention_view,
-    })
+    Ok(UserMentionResponse { user_mention_view })
   }
 }
 
@@ -821,7 +827,9 @@ impl Perform for MarkAllAsRead {
 
     let user_id = user.id;
     let replies = blocking(context.pool(), move |conn| {
-      ReplyQueryBuilder::create(conn, user_id)
+      CommentQueryBuilder::create(conn)
+        .my_user_id(user_id)
+        .recipient_id(user_id)
         .unread_only(true)
         .page(1)
         .limit(999)
@@ -832,8 +840,8 @@ impl Perform for MarkAllAsRead {
     // TODO: this should probably be a bulk operation
     // Not easy to do as a bulk operation,
     // because recipient_id isn't in the comment table
-    for reply in &replies {
-      let reply_id = reply.id;
+    for comment_view in &replies {
+      let reply_id = comment_view.comment.id;
       let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
       if blocking(context.pool(), mark_as_read).await?.is_err() {
         return Err(APIError::err("couldnt_update_comment").into());
@@ -1062,7 +1070,9 @@ impl Perform for CreatePrivateMessage {
     })
     .await??;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::CreatePrivateMessage,
@@ -1088,9 +1098,9 @@ impl Perform for EditPrivateMessage {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, edit_id)
+      PrivateMessage::read(conn, private_message_id)
     })
     .await??;
     if user.id != orig_private_message.creator_id {
@@ -1099,9 +1109,9 @@ impl Perform for EditPrivateMessage {
 
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content);
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let updated_private_message = match blocking(context.pool(), move |conn| {
-      PrivateMessage::update_content(conn, edit_id, &content_slurs_removed)
+      PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
     })
     .await?
     {
@@ -1112,14 +1122,16 @@ impl Perform for EditPrivateMessage {
     // Send the apub update
     updated_private_message.send_update(&user, context).await?;
 
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let message = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, edit_id)
+      PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = message.recipient_id;
+    let recipient_id = message.recipient.id;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::EditPrivateMessage,
@@ -1145,9 +1157,9 @@ impl Perform for DeletePrivateMessage {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, edit_id)
+      PrivateMessage::read(conn, private_message_id)
     })
     .await??;
     if user.id != orig_private_message.creator_id {
@@ -1155,10 +1167,10 @@ impl Perform for DeletePrivateMessage {
     }
 
     // Doing the update
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let deleted = data.deleted;
     let updated_private_message = match blocking(context.pool(), move |conn| {
-      PrivateMessage::update_deleted(conn, edit_id, deleted)
+      PrivateMessage::update_deleted(conn, private_message_id, deleted)
     })
     .await?
     {
@@ -1175,14 +1187,16 @@ impl Perform for DeletePrivateMessage {
         .await?;
     }
 
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let message = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, edit_id)
+      PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = message.recipient_id;
+    let recipient_id = message.recipient.id;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::DeletePrivateMessage,
@@ -1208,9 +1222,9 @@ impl Perform for MarkPrivateMessageAsRead {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, edit_id)
+      PrivateMessage::read(conn, private_message_id)
     })
     .await??;
     if user.id != orig_private_message.recipient_id {
@@ -1218,10 +1232,10 @@ impl Perform for MarkPrivateMessageAsRead {
     }
 
     // Doing the update
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let read = data.read;
     match blocking(context.pool(), move |conn| {
-      PrivateMessage::update_read(conn, edit_id, read)
+      PrivateMessage::update_read(conn, private_message_id, read)
     })
     .await?
     {
@@ -1231,14 +1245,16 @@ impl Perform for MarkPrivateMessageAsRead {
 
     // No need to send an apub update
 
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let message = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, edit_id)
+      PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = message.recipient_id;
+    let recipient_id = message.recipient.id;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::MarkPrivateMessageAsRead,
@@ -1276,30 +1292,9 @@ impl Perform for GetPrivateMessages {
     })
     .await??;
 
-    Ok(PrivateMessagesResponse { messages })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for UserJoin {
-  type Response = UserJoinResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<UserJoinResponse, LemmyError> {
-    let data: &UserJoin = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-
-    if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinUserRoom {
-        user_id: user.id,
-        id: ws_id,
-      });
-    }
-
-    Ok(UserJoinResponse { joined: true })
+    Ok(PrivateMessagesResponse {
+      private_messages: messages,
+    })
   }
 }
 
