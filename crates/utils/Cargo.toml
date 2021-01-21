@@ -31,3 +31,5 @@ tokio = { version = "0.3.6", features = ["sync"] }
 strum = "0.20.0"
 strum_macros = "0.20.1"
 futures = "0.3.8"
+diesel = "1.4.5"
+http = "0.2.2"

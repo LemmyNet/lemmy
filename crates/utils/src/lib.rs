@@ -13,6 +13,7 @@ mod test;
 pub mod utils;
 
 use crate::settings::Settings;
+use http::StatusCode;
 use regex::Regex;
 use thiserror::Error;
 
@@ -68,7 +69,14 @@ impl std::fmt::Display for LemmyError {
   }
 }
 
-impl actix_web::error::ResponseError for LemmyError {}
+impl actix_web::error::ResponseError for LemmyError {
+  fn status_code(&self) -> StatusCode {
+    match self.inner.downcast_ref::<diesel::result::Error>() {
+      Some(diesel::result::Error::NotFound) => StatusCode::NOT_FOUND,
+      _ => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+  }
+}
 
 lazy_static! {
   pub static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
