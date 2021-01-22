@@ -112,6 +112,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
 - [Lemmur - A flutter lemmy app ( under development )](https://github.com/krawieck/lemmur)
 - [Lemmy-mobile (Android / IOS) - React native ( under development )](https://github.com/koredefashokun/lemmy-mobile)
+- [Lemmer — Client for Lemmy, native iOS app](https://github.com/uuttff8/Lemmy-iOS)
 
 ### Libraries
 
