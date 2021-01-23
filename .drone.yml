@@ -10,7 +10,7 @@ steps:
   - name: test docker
     image: docker:20
     commands:
-      - docker images
+      - docker login -u=test -p=test2
 
   - name: fetch git submodules
     image: node:15-alpine3.12
