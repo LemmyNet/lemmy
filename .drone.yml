@@ -9,8 +9,13 @@ platform:
 steps:
   - name: test docker
     image: docker:20
+    environment:
+      USERNAME:
+        from_secret: docker_username
+      PASSWORD:
+        from_secret: docker_password
     commands:
-      - docker login -u=test -p=test2
+      - docker login -u=$USERNAME -p=$PASSWORD
 
   - name: fetch git submodules
     image: node:15-alpine3.12
