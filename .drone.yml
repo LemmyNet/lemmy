@@ -68,9 +68,22 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       auto_tag: true
+      auto_tag_suffix: amd64
     when:
       ref:
       - refs/tags/*
+
+  - name: push to docker manifest
+    image: node:15-alpine3.12
+    environment:
+      USERNAME:
+        from_secret: docker_username
+      PASSWORD:
+        from_secret: docker_password
+    commands:
+      - docker login -u="$USERNAME" -p="$PASSWORD"
+      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64 
+      - docker manifest push dessalines/lemmy:${DRONE_TAG}
 
 services:
   - name: database
@@ -141,6 +154,21 @@ steps:
       repo: dessalines/lemmy
       auto_tag: true
       auto_tag_suffix: arm64
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: push to docker manifest
+    image: node:15-alpine3.12
+    environment:
+      USERNAME:
+        from_secret: docker_username
+      PASSWORD:
+        from_secret: docker_password
+    commands:
+      - docker login -u="$USERNAME" -p="$PASSWORD"
+      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-arm64
+      - docker manifest push dessalines/lemmy:${DRONE_TAG}
     when:
       ref:
         - refs/tags/*
