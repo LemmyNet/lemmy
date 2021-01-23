@@ -85,7 +85,7 @@ steps:
       - refs/tags/*
 
   - name: push to docker manifest
-    image: node:15-alpine3.12
+    image: docker:20
     environment:
       USERNAME:
         from_secret: docker_username
@@ -93,8 +93,8 @@ steps:
         from_secret: docker_password
     commands:
       - docker login -u=$USERNAME -p=$PASSWORD
-      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64
-      - docker manifest push dessalines/lemmy:${DRONE_TAG}
+      - docker manifest create dessalines/lemmy:$DRONE_TAG --amend dessalines/lemmy:$DRONE_TAG-amd64
+      - docker manifest push dessalines/lemmy:$DRONE_TAG
     when:
       ref:
       - refs/tags/*
@@ -173,7 +173,7 @@ steps:
         - refs/tags/*
 
   - name: push to docker manifest
-    image: node:15-alpine3.12
+    image: docker:20
     environment:
       USERNAME:
         from_secret: docker_username
@@ -181,8 +181,8 @@ steps:
         from_secret: docker_password
     commands:
       - docker login -u=$USERNAME -p=$PASSWORD
-      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-arm64
-      - docker manifest push dessalines/lemmy:${DRONE_TAG}
+      - docker manifest create dessalines/lemmy:$DRONE_TAG --amend dessalines/lemmy:$DRONE_TAG-arm64
+      - docker manifest push dessalines/lemmy:$DRONE_TAG
     when:
       ref:
         - refs/tags/*
