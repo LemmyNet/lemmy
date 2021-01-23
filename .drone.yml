@@ -69,7 +69,7 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       auto_tag: true
-      auto_tag_suffix: amd64
+      auto_tag_suffix: linux-amd64
     when:
       ref:
       - refs/tags/*
@@ -159,7 +159,7 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       auto_tag: true
-      auto_tag_suffix: arm64
+      auto_tag_suffix: linux-arm64
     when:
       ref:
         - refs/tags/*
