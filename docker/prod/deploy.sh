@@ -9,8 +9,8 @@ new_tag="$1"
 # Setting the version on the front end
 cd ../../
 # Setting the version on the backend
-echo "pub const VERSION: &str = \"$new_tag\";" > "lemmy_api/src/version.rs"
-git add "lemmy_api/src/version.rs"
+echo "pub const VERSION: &str = \"$new_tag\";" > "crates/api/src/version.rs"
+git add "crates/api/src/version.rs"
 # Setting the version for Ansible
 echo $new_tag > "ansible/VERSION"
 git add "ansible/VERSION"
