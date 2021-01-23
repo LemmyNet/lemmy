@@ -86,7 +86,7 @@ steps:
       PASSWORD:
         from_secret: docker_password
     commands:
-      - docker login -u="$USERNAME" -p="$PASSWORD"
+      - docker login -u=$USERNAME -p=$PASSWORD
       - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64
       - docker manifest push dessalines/lemmy:${DRONE_TAG}
 
@@ -171,7 +171,7 @@ steps:
       PASSWORD:
         from_secret: docker_password
     commands:
-      - docker login -u="$USERNAME" -p="$PASSWORD"
+      - docker login -u=$USERNAME -p=$PASSWORD
       - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-arm64
       - docker manifest push dessalines/lemmy:${DRONE_TAG}
     when:
