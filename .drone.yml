@@ -16,6 +16,7 @@ steps:
         from_secret: docker_password
     commands:
       - docker login -u=$USERNAME -p=$PASSWORD
+      - docker pull dessalines/lemmy:0.9.0-rc.12
 
   - name: fetch git submodules
     image: node:15-alpine3.12
@@ -83,17 +84,20 @@ steps:
       ref:
       - refs/tags/*
 
-  # - name: push to docker manifest
-  #   image: node:15-alpine3.12
-  #   environment:
-  #     USERNAME:
-  #       from_secret: docker_username
-  #     PASSWORD:
-  #       from_secret: docker_password
-  #   commands:
-  #     - docker login -u=test -p=test2
-  #     - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64
-  #     - docker manifest push dessalines/lemmy:${DRONE_TAG}
+  - name: push to docker manifest
+    image: node:15-alpine3.12
+    environment:
+      USERNAME:
+        from_secret: docker_username
+      PASSWORD:
+        from_secret: docker_password
+    commands:
+      - docker login -u=$USERNAME -p=$PASSWORD
+      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64
+      - docker manifest push dessalines/lemmy:${DRONE_TAG}
+    when:
+      ref:
+      - refs/tags/*
 
 services:
   - name: database
@@ -168,20 +172,20 @@ steps:
       ref:
         - refs/tags/*
 
-  # - name: push to docker manifest
-  #   image: node:15-alpine3.12
-  #   environment:
-  #     USERNAME:
-  #       from_secret: docker_username
-  #     PASSWORD:
-  #       from_secret: docker_password
-  #   commands:
-  #     - docker login -u=test -p=test2
-  #     - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-arm64
-  #     - docker manifest push dessalines/lemmy:${DRONE_TAG}
-  #   when:
-  #     ref:
-  #       - refs/tags/*
+  - name: push to docker manifest
+    image: node:15-alpine3.12
+    environment:
+      USERNAME:
+        from_secret: docker_username
+      PASSWORD:
+        from_secret: docker_password
+    commands:
+      - docker login -u=$USERNAME -p=$PASSWORD
+      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-arm64
+      - docker manifest push dessalines/lemmy:${DRONE_TAG}
+    when:
+      ref:
+        - refs/tags/*
 
 services:
   - name: database
