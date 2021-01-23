@@ -16,6 +16,7 @@ steps:
         from_secret: docker_password
     commands:
       - docker login -u=$USERNAME -p=$PASSWORD
+      - docker run --privileged --name some-docker -d --network some-network --network-alias docker -e DOCKER_TLS_CERTDIR=/certs -v some-docker-certs-ca:/certs/ca -v some-docker-certs-client:/certs/client docker:dind
       - docker pull dessalines/lemmy:0.9.0-rc.12
 
   - name: fetch git submodules
