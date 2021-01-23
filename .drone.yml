@@ -7,6 +7,11 @@ platform:
   arch: amd64
 
 steps:
+  - name: test docker
+    image: docker:20
+    commands:
+      - docker images
+
   - name: fetch git submodules
     image: node:15-alpine3.12
     commands:
@@ -82,7 +87,7 @@ steps:
         from_secret: docker_password
     commands:
       - docker login -u="$USERNAME" -p="$PASSWORD"
-      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64 
+      - docker manifest create dessalines/lemmy:${DRONE_TAG} --amend dessalines/lemmy:${DRONE_TAG}-amd64
       - docker manifest push dessalines/lemmy:${DRONE_TAG}
 
 services:
