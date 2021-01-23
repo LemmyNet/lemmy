@@ -165,21 +165,6 @@ steps:
         - refs/tags/*
 
   - name: push to docker manifest
-    image: docker:20
-    environment:
-      USERNAME:
-        from_secret: docker_username
-      PASSWORD:
-        from_secret: docker_password
-    commands:
-      - docker login -u=$USERNAME -p=$PASSWORD
-      - docker manifest create dessalines/lemmy:$DRONE_TAG --amend dessalines/lemmy:$DRONE_TAG-arm64
-      - docker manifest push dessalines/lemmy:$DRONE_TAG
-    when:
-      ref:
-        - refs/tags/*
-
-  - name: push to docker manifest
     image: plugins/manifest
     settings: 
       username:
