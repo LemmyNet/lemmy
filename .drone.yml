@@ -7,6 +7,7 @@ platform:
   arch: amd64
 
 steps:
+
   - name: fetch git submodules
     image: node:15-alpine3.12
     commands:
@@ -68,6 +69,24 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       auto_tag: true
+      auto_tag_suffix: linux-amd64
+    when:
+      ref:
+      - refs/tags/*
+
+  - name: push to docker manifest
+    image: plugins/manifest
+    settings: 
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:${DRONE_TAG}"
+      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
     when:
       ref:
       - refs/tags/*
@@ -140,10 +159,27 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       auto_tag: true
-      auto_tag_suffix: arm64
+      auto_tag_suffix: linux-arm64
     when:
       ref:
         - refs/tags/*
+
+  - name: push to docker manifest
+    image: plugins/manifest
+    settings: 
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:${DRONE_TAG}"
+      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      ref:
+      - refs/tags/*
 
 services:
   - name: database
