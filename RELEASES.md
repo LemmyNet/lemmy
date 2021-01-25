@@ -21,6 +21,16 @@ We've also seen the first release of [Lemmur](https://github.com/krawieck/lemmur
 - Added query performance testing and comparisons. Added indexes to make sure every query is `< 30 ms`.
 - Added compilation time testing.
 
+### Federation
+
+This release includes some bug fixes for federation, and some changes to get us closer to compliance with the ActivityPub standard.
+
+- [Community bans now federating](https://github.com/LemmyNet/lemmy/issues/1287).
+- [Local posts sometimes got marked as remote](https://github.com/LemmyNet/lemmy/issues/1302).
+- [Creator of post/comment was not notified about new child comments](https://github.com/LemmyNet/lemmy/issues/1325).
+- [Community deletion now federated](https://github.com/LemmyNet/lemmy/issues/1256).
+
+None of these are breaking changes, so federation between 0.9.0 and 0.8.11 will work without problems.
 
 ### Lemmy javascript / typescript client
 
@@ -40,18 +50,6 @@ We've also seen the first release of [Lemmur](https://github.com/krawieck/lemmur
 
 - We moved documentation into a separate git repository, and support translation for the docs now!
 - Moved our code of conduct into the documentation.
-
-### Federation
-
-This release includes some bug fixes for federation, and some changes to get us closer to compliance with the ActivityPub standard.
-
-- fixed: [Community bans not federating](https://github.com/LemmyNet/lemmy/issues/1287)
-- fixed: [Local posts sometimes got marked as remote](https://github.com/LemmyNet/lemmy/issues/1302)
-- fixed: [Creator of post/comment is not notified about new child comments](https://github.com/LemmyNet/lemmy/issues/1325)
-- fixed: [Community deletion not federated](https://github.com/LemmyNet/lemmy/issues/1256)
-
-None of these are breaking changes, so federation between 0.9.0 and 0.8.11 will work without problems.
-
 
 ## Upgrading
 
