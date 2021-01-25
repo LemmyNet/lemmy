@@ -80,6 +80,7 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{password_reset_request::PasswordResetRequest, user::*};
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -104,7 +105,11 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/password_reset/1")
+          .unwrap()
+          .into(),
+      ),
       bio: None,
       local: true,
       private_key: None,

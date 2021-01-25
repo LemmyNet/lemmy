@@ -35,6 +35,7 @@ mod tests {
     site::{Site, SiteForm},
     user::{UserForm, User_},
   };
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -59,7 +60,11 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/site_aggregates/1")
+          .unwrap()
+          .into(),
+      ),
       bio: None,
       local: true,
       private_key: None,
@@ -93,7 +98,11 @@ mod tests {
       removed: None,
       deleted: None,
       updated: None,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/site_aggregates/2")
+          .unwrap()
+          .into(),
+      ),
       local: true,
       private_key: None,
       public_key: None,
@@ -105,7 +114,7 @@ mod tests {
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
 
-    let new_post = PostForm {
+    let mut new_post = PostForm {
       name: "A test post".into(),
       url: None,
       body: None,
@@ -121,13 +130,22 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/site_aggregates/3")
+          .unwrap()
+          .into(),
+      ),
       local: true,
       published: None,
     };
 
     // Insert two of those posts
     let inserted_post = Post::create(&conn, &new_post).unwrap();
+    new_post.ap_id = Some(
+      Url::parse("http://example.com/site_aggregates/4")
+        .unwrap()
+        .into(),
+    );
     let _inserted_post_again = Post::create(&conn, &new_post).unwrap();
 
     let comment_form = CommentForm {
@@ -140,7 +158,11 @@ mod tests {
       parent_id: None,
       published: None,
       updated: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/site_aggregates/5")
+          .unwrap()
+          .into(),
+      ),
       local: true,
     };
 
@@ -157,7 +179,11 @@ mod tests {
       parent_id: Some(inserted_comment.id),
       published: None,
       updated: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/site_aggregates/6")
+          .unwrap()
+          .into(),
+      ),
       local: true,
     };
 

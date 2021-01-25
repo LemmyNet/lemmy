@@ -375,6 +375,7 @@ impl User for User_ {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, source::user::*, ListingType, SortType};
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -399,7 +400,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(Url::parse("http://example.com/user/1").unwrap().into()),
       bio: None,
       local: true,
       private_key: None,

@@ -420,6 +420,7 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{community::*, post::*, user::*};
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -448,7 +449,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(Url::parse("http://example.com/post_view/1").unwrap().into()),
       bio: None,
       local: true,
       private_key: None,
@@ -468,7 +469,7 @@ mod tests {
       deleted: None,
       updated: None,
       nsfw: false,
-      actor_id: None,
+      actor_id: Some(Url::parse("http://example.com/post_view/2").unwrap().into()),
       local: true,
       private_key: None,
       public_key: None,
@@ -496,7 +497,7 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
-      ap_id: None,
+      ap_id: Some(Url::parse("http://example.com/post_view/3").unwrap().into()),
       local: true,
       published: None,
     };

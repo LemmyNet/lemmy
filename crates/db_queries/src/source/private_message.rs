@@ -147,6 +147,7 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{private_message::*, user::*};
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -171,7 +172,11 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/private_message/1")
+          .unwrap()
+          .into(),
+      ),
       bio: None,
       local: true,
       private_key: None,
@@ -200,7 +205,11 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/private_message/2")
+          .unwrap()
+          .into(),
+      ),
       bio: None,
       local: true,
       private_key: None,
@@ -218,7 +227,11 @@ mod tests {
       read: None,
       published: None,
       updated: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/private_message/3")
+          .unwrap()
+          .into(),
+      ),
       local: true,
     };
 

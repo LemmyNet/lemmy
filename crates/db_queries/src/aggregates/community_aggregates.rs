@@ -37,6 +37,7 @@ mod tests {
     post::{Post, PostForm},
     user::{UserForm, User_},
   };
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -61,7 +62,11 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/community_aggregates/1")
+          .unwrap()
+          .into(),
+      ),
       bio: None,
       local: true,
       private_key: None,
@@ -90,7 +95,11 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/community_aggregates/2")
+          .unwrap()
+          .into(),
+      ),
       bio: None,
       local: true,
       private_key: None,
@@ -110,7 +119,11 @@ mod tests {
       removed: None,
       deleted: None,
       updated: None,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/community_aggregates/3")
+          .unwrap()
+          .into(),
+      ),
       local: true,
       private_key: None,
       public_key: None,
@@ -132,7 +145,11 @@ mod tests {
       removed: None,
       deleted: None,
       updated: None,
-      actor_id: None,
+      actor_id: Some(
+        Url::parse("http://example.com/community_aggregates/4")
+          .unwrap()
+          .into(),
+      ),
       local: true,
       private_key: None,
       public_key: None,
@@ -184,7 +201,11 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/community_aggregates/5")
+          .unwrap()
+          .into(),
+      ),
       local: true,
       published: None,
     };
@@ -201,7 +222,11 @@ mod tests {
       parent_id: None,
       published: None,
       updated: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/community_aggregates/6")
+          .unwrap()
+          .into(),
+      ),
       local: true,
     };
 
@@ -217,7 +242,11 @@ mod tests {
       parent_id: Some(inserted_comment.id),
       published: None,
       updated: None,
-      ap_id: None,
+      ap_id: Some(
+        Url::parse("http://example.com/community_aggregates/7")
+          .unwrap()
+          .into(),
+      ),
       local: true,
     };
 

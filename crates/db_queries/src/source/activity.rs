@@ -99,6 +99,7 @@ mod tests {
     user::{UserForm, User_},
   };
   use serde_json::Value;
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -123,7 +124,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(Url::parse("http://example.com/activity/1").unwrap().into()),
       bio: None,
       local: true,
       private_key: None,

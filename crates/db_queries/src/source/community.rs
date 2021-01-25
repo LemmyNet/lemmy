@@ -331,6 +331,7 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{community::*, user::*};
+  use url::Url;
 
   #[test]
   fn test_crud() {
@@ -355,7 +356,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: None,
+      actor_id: Some(Url::parse("http://example.com/community/1").unwrap().into()),
       bio: None,
       local: true,
       private_key: None,
@@ -375,7 +376,7 @@ mod tests {
       removed: None,
       deleted: None,
       updated: None,
-      actor_id: None,
+      actor_id: Some(Url::parse("http://example.com/community/2").unwrap().into()),
       local: true,
       private_key: None,
       public_key: None,
