@@ -55,10 +55,10 @@ None of these are breaking changes, so federation between 0.9.0 and 0.8.11 will 
 
 ## Upgrading
 
-If you'd like to make a DB backup before upgrading, follow [this guide](https://lemmy.ml/docs/en/administration_backup_and_restore.html).
+If you'd like to make a DB backup before upgrading, follow [this guide](https://lemmy.ml/docs/en/administration/backup_and_restore.html).
 
-- [Upgrade with manual Docker installation](https://lemmy.ml/docs/en/administration_install_docker.html#updating)
-- [Upgrade with Ansible installation](https://lemmy.ml/docs/en/administration_install_ansible.html)
+- [Upgrade with manual Docker installation](https://lemmy.ml/docs/en/administration/install_docker.html#updating)
+- [Upgrade with Ansible installation](https://lemmy.ml/docs/en/administration/install_ansible.html)
 
 # Lemmy v0.8.0 Release (2020-10-16)
 
