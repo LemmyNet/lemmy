@@ -20,7 +20,7 @@ pub(crate) async fn receive_create_post(
   let page = PageExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = Post::from_apub(&page, context, user.actor_id()?, request_counter).await?;
+  let post = Post::from_apub(&page, context, user.actor_id(), request_counter).await?;
 
   // Refetch the view
   let post_id = post.id;
@@ -49,7 +49,7 @@ pub(crate) async fn receive_update_post(
   let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = Post::from_apub(&page, context, user.actor_id()?, request_counter).await?;
+  let post = Post::from_apub(&page, context, user.actor_id(), request_counter).await?;
 
   let post_id = post.id;
   // Refetch the view

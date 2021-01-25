@@ -1,9 +1,9 @@
 use crate::{
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
+  Url,
 };
 use serde::Serialize;
-use url::{ParseError, Url};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -26,7 +26,7 @@ pub struct Comment {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
-  pub ap_id: String,
+  pub ap_id: Url,
   pub local: bool,
 }
 
@@ -44,7 +44,7 @@ pub struct CommentAlias1 {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
-  pub ap_id: String,
+  pub ap_id: Url,
   pub local: bool,
 }
 
@@ -60,14 +60,8 @@ pub struct CommentForm {
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
-  pub ap_id: Option<String>,
+  pub ap_id: Option<Url>,
   pub local: bool,
-}
-
-impl CommentForm {
-  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
-    Url::parse(&self.ap_id.as_ref().unwrap_or(&"not_a_url".to_string()))
-  }
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Clone)]

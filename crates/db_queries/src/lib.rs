@@ -10,6 +10,7 @@ extern crate lazy_static;
 extern crate diesel_migrations;
 
 use diesel::{result::Error, *};
+use lemmy_db_schema::Url;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
@@ -108,7 +109,7 @@ pub trait Reportable<T> {
 }
 
 pub trait ApubObject<T> {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error>
+  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error>
   where
     Self: Sized;
   fn upsert(conn: &PgConnection, user_form: &T) -> Result<Self, Error>

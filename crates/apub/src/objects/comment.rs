@@ -54,22 +54,22 @@ impl ToApub for Comment {
 
     // Add a vector containing some important info to the "in_reply_to" field
     // [post_ap_id, Option(parent_comment_ap_id)]
-    let mut in_reply_to_vec = vec![post.ap_id];
+    let mut in_reply_to_vec = vec![post.ap_id.into_inner()];
 
     if let Some(parent_id) = self.parent_id {
       let parent_comment = blocking(pool, move |conn| Comment::read(conn, parent_id)).await??;
 
-      in_reply_to_vec.push(parent_comment.ap_id);
+      in_reply_to_vec.push(parent_comment.ap_id.into_inner());
     }
 
     comment
       // Not needed when the Post is embedded in a collection (like for community outbox)
       .set_many_contexts(lemmy_context()?)
-      .set_id(Url::parse(&self.ap_id)?)
+      .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id)
+      .set_to(community.actor_id.into_inner())
       .set_many_in_reply_tos(in_reply_to_vec)
-      .set_attributed_to(creator.actor_id);
+      .set_attributed_to(creator.actor_id.into_inner());
 
     set_content_and_source(&mut comment, &self.content)?;
 
@@ -81,7 +81,12 @@ impl ToApub for Comment {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(self.deleted, &self.ap_id, self.updated, NoteType::Note)
+    create_tombstone(
+      self.deleted,
+      self.ap_id.to_owned().into(),
+      self.updated,
+      NoteType::Note,
+    )
   }
 }
 

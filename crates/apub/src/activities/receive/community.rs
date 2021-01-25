@@ -55,7 +55,7 @@ pub(crate) async fn receive_remove_community(
     .single_xsd_any_uri()
     .context(location_info!())?;
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, community_uri.as_str())
+    Community::read_from_apub_id(conn, &community_uri.into())
   })
   .await??;
 
@@ -137,7 +137,7 @@ pub(crate) async fn receive_undo_remove_community(
     .single_xsd_any_uri()
     .context(location_info!())?;
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, community_uri.as_str())
+    Community::read_from_apub_id(conn, &community_uri.into())
   })
   .await??;
 

@@ -51,15 +51,15 @@ impl ToApub for Community {
       CommunityModeratorView::for_community(&conn, id)
     })
     .await??;
-    let moderators: Vec<String> = moderators
+    let moderators: Vec<Url> = moderators
       .into_iter()
-      .map(|m| m.moderator.actor_id)
+      .map(|m| m.moderator.actor_id.into_inner())
       .collect();
 
     let mut group = ApObject::new(Group::new());
     group
       .set_many_contexts(lemmy_context()?)
-      .set_id(Url::parse(&self.actor_id)?)
+      .set_id(self.actor_id.to_owned().into())
       .set_name(self.title.to_owned())
       .set_published(convert_datetime(self.published))
       .set_many_attributed_tos(moderators);
@@ -108,7 +108,12 @@ impl ToApub for Community {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(self.deleted, &self.actor_id, self.updated, GroupType::Group)
+    create_tombstone(
+      self.deleted,
+      self.actor_id.to_owned().into(),
+      self.updated,
+      GroupType::Group,
+    )
   }
 }
 

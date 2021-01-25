@@ -5,6 +5,7 @@ use lemmy_db_schema::{
   naive_now,
   schema::user_::dsl::*,
   source::user::{UserForm, UserSafeSettings, User_},
+  Url,
 };
 use lemmy_utils::settings::Settings;
 
@@ -237,7 +238,7 @@ impl Crud<UserForm> for User_ {
 }
 
 impl ApubObject<UserForm> for User_ {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error> {
     use lemmy_db_schema::schema::user_::dsl::*;
     user_
       .filter(deleted.eq(false))

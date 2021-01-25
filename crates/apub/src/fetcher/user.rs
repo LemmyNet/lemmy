@@ -24,7 +24,7 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
 ) -> Result<User_, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let user = blocking(context.pool(), move |conn| {
-    User_::read_from_apub_id(conn, apub_id_owned.as_ref())
+    User_::read_from_apub_id(conn, &apub_id_owned.into())
   })
   .await?;
 

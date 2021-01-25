@@ -119,8 +119,11 @@ pub(crate) async fn is_addressed_to_local_user(
   pool: &DbPool,
 ) -> Result<bool, LemmyError> {
   for url in to_and_cc {
-    let url = url.to_string();
-    let user = blocking(&pool, move |conn| User_::read_from_apub_id(&conn, &url)).await?;
+    let url = url.to_owned();
+    let user = blocking(&pool, move |conn| {
+      User_::read_from_apub_id(&conn, &url.into())
+    })
+    .await?;
     if let Ok(u) = user {
       if u.local {
         return Ok(true);
@@ -140,9 +143,9 @@ pub(crate) async fn is_addressed_to_community_followers(
     let url = url.to_string();
     // TODO: extremely hacky, we should just store the followers url for each community in the db
     if url.ends_with("/followers") {
-      let community_url = url.replace("/followers", "");
+      let community_url = Url::parse(&url.replace("/followers", ""))?;
       let community = blocking(&pool, move |conn| {
-        Community::read_from_apub_id(&conn, &community_url)
+        Community::read_from_apub_id(&conn, &community_url.into())
       })
       .await??;
       if !community.local {

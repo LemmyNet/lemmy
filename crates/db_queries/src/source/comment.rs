@@ -10,6 +10,7 @@ use lemmy_db_schema::{
     CommentSaved,
     CommentSavedForm,
   },
+  Url,
 };
 
 pub trait Comment_ {
@@ -144,7 +145,7 @@ impl Crud<CommentForm> for Comment {
 }
 
 impl ApubObject<CommentForm> for Comment {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }

@@ -72,7 +72,7 @@ pub async fn get_apub_user_inbox(
 
   let mut collection = OrderedCollection::new();
   collection
-    .set_id(format!("{}/inbox", user.actor_id).parse()?)
+    .set_id(format!("{}/inbox", user.actor_id.into_inner()).parse()?)
     .set_many_contexts(lemmy_context()?);
   Ok(create_apub_response(&collection))
 }

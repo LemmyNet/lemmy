@@ -33,8 +33,8 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ActorType for Community {
-  fn actor_id_str(&self) -> String {
-    self.actor_id.to_owned()
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into_inner()
   }
 
   fn public_key(&self) -> Option<String> {
@@ -72,11 +72,14 @@ impl ActorType for Community {
       .context(location_info!())?;
     let user = get_or_fetch_and_upsert_user(actor_uri, context, &mut 0).await?;
 
-    let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
+    let mut accept = Accept::new(
+      self.actor_id.to_owned().into_inner(),
+      follow.into_any_base()?,
+    );
     accept
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AcceptType::Accept)?)
-      .set_to(user.actor_id()?);
+      .set_to(user.actor_id());
 
     send_activity_single_dest(accept, self, user.get_inbox_url()?, context).await?;
     Ok(())
@@ -84,7 +87,7 @@ impl ActorType for Community {
 
   /// If the creator of a community deletes the community, send this to all followers.
   async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    let mut delete = Delete::new(self.actor_id()?, self.actor_id()?);
+    let mut delete = Delete::new(self.actor_id(), self.actor_id());
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
@@ -97,14 +100,14 @@ impl ActorType for Community {
 
   /// If the creator of a community reverts the deletion of a community, send this to all followers.
   async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    let mut delete = Delete::new(self.actor_id()?, self.actor_id()?);
+    let mut delete = Delete::new(self.actor_id(), self.actor_id());
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    let mut undo = Undo::new(self.actor_id()?, delete.into_any_base()?);
+    let mut undo = Undo::new(self.actor_id(), delete.into_any_base()?);
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
@@ -117,7 +120,7 @@ impl ActorType for Community {
 
   /// If an admin removes a community, send this to all followers.
   async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    let mut remove = Remove::new(self.actor_id()?, self.actor_id()?);
+    let mut remove = Remove::new(self.actor_id(), self.actor_id());
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
@@ -130,7 +133,7 @@ impl ActorType for Community {
 
   /// If an admin reverts the removal of a community, send this to all followers.
   async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    let mut remove = Remove::new(self.actor_id()?, self.actor_id()?);
+    let mut remove = Remove::new(self.actor_id(), self.actor_id());
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
@@ -138,7 +141,7 @@ impl ActorType for Community {
       .set_many_ccs(vec![self.get_followers_url()?]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(self.actor_id()?, remove.into_any_base()?);
+    let mut undo = Undo::new(self.actor_id(), remove.into_any_base()?);
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
@@ -156,7 +159,7 @@ impl ActorType for Community {
     activity: AnyBase,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut announce = Announce::new(self.actor_id.to_owned(), activity);
+    let mut announce = Announce::new(self.actor_id.to_owned().into_inner(), activity);
     announce
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
@@ -183,7 +186,7 @@ impl ActorType for Community {
       .into_iter()
       .filter(|i| !i.follower.local)
       .map(|u| -> Result<Url, LemmyError> {
-        let url = Url::parse(&u.follower.actor_id)?;
+        let url = u.follower.actor_id.into_inner();
         let domain = url.domain().context(location_info!())?;
         let port = if let Some(port) = url.port() {
           format!(":{}", port)

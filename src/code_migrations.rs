@@ -42,7 +42,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_users = user_
-    .filter(actor_id.like("changeme_%"))
+    .filter(actor_id.like("http://changeme_%"))
     .filter(local.eq(true))
     .load::<User_>(conn)?;
 
@@ -68,7 +68,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       lang: cuser.lang.to_owned(),
       show_avatars: cuser.show_avatars,
       send_notifications_to_email: cuser.send_notifications_to_email,
-      actor_id: Some(make_apub_endpoint(EndpointType::User, &cuser.name).to_string()),
+      actor_id: Some(make_apub_endpoint(EndpointType::User, &cuser.name).into()),
       bio: Some(cuser.bio.to_owned()),
       local: cuser.local,
       private_key: Some(keypair.private_key),
@@ -91,7 +91,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
-    .filter(actor_id.like("changeme_%"))
+    .filter(actor_id.like("http://changeme_%"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
 
@@ -108,7 +108,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       deleted: None,
       nsfw: ccommunity.nsfw,
       updated: None,
-      actor_id: Some(make_apub_endpoint(EndpointType::Community, &ccommunity.name).to_string()),
+      actor_id: Some(make_apub_endpoint(EndpointType::Community, &ccommunity.name).into()),
       local: ccommunity.local,
       private_key: Some(keypair.private_key),
       public_key: Some(keypair.public_key),
@@ -133,7 +133,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the ap_id
   let incorrect_posts = post
-    .filter(ap_id.eq("changeme_%"))
+    .filter(ap_id.eq("http://changeme_%"))
     .filter(local.eq(true))
     .load::<Post>(conn)?;
 
@@ -154,7 +154,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the ap_id
   let incorrect_comments = comment
-    .filter(ap_id.eq("changeme_%"))
+    .filter(ap_id.eq("http://changeme_%"))
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
 
@@ -175,7 +175,7 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
 
   // Update the ap_id
   let incorrect_pms = private_message
-    .filter(ap_id.eq("changeme_%"))
+    .filter(ap_id.eq("http://changeme_%"))
     .filter(local.eq(true))
     .load::<PrivateMessage>(conn)?;
 
