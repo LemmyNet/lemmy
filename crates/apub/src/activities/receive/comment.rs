@@ -23,7 +23,7 @@ pub(crate) async fn receive_create_comment(
   let note = NoteExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment = Comment::from_apub(&note, context, user.actor_id()?, request_counter).await?;
+  let comment = Comment::from_apub(&note, context, user.actor_id(), request_counter).await?;
 
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -66,7 +66,7 @@ pub(crate) async fn receive_update_comment(
     .context(location_info!())?;
   let user = get_actor_as_user(&update, context, request_counter).await?;
 
-  let comment = Comment::from_apub(&note, context, user.actor_id()?, request_counter).await?;
+  let comment = Comment::from_apub(&note, context, user.actor_id(), request_counter).await?;
 
   let comment_id = comment.id;
   let post_id = comment.post_id;

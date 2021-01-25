@@ -64,7 +64,7 @@ pub(in crate::objects) trait FromApubToForm<ApubType> {
 /// Updated is actually the deletion time
 fn create_tombstone<T>(
   deleted: bool,
-  object_id: &str,
+  object_id: Url,
   updated: Option<NaiveDateTime>,
   former_type: T,
 ) -> Result<Tombstone, LemmyError>
@@ -74,7 +74,7 @@ where
   if deleted {
     if let Some(updated) = updated {
       let mut tombstone = Tombstone::new();
-      tombstone.set_id(object_id.parse()?);
+      tombstone.set_id(object_id);
       tombstone.set_former_type(former_type.to_string());
       tombstone.set_deleted(convert_datetime(updated));
       Ok(tombstone)
@@ -89,14 +89,14 @@ where
 pub(in crate::objects) fn check_object_domain<T, Kind>(
   apub: &T,
   expected_domain: Url,
-) -> Result<String, LemmyError>
+) -> Result<lemmy_db_schema::Url, LemmyError>
 where
   T: Base + AsBase<Kind>,
 {
   let domain = expected_domain.domain().context(location_info!())?;
   let object_id = apub.id(domain)?.context(location_info!())?;
-  check_is_apub_id_valid(&object_id)?;
-  Ok(object_id.to_string())
+  check_is_apub_id_valid(object_id)?;
+  Ok(object_id.to_owned().into())
 }
 
 pub(in crate::objects) fn set_content_and_source<T, Kind1, Kind2>(
@@ -189,7 +189,7 @@ where
   // if its a local object, return it directly from the database
   if Settings::get().hostname == domain {
     let object = blocking(context.pool(), move |conn| {
-      To::read_from_apub_id(conn, object_id.as_str())
+      To::read_from_apub_id(conn, &object_id.into())
     })
     .await??;
     Ok(object)

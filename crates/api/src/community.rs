@@ -135,10 +135,10 @@ impl Perform for CreateCommunity {
     }
 
     // Double check for duplicate community actor_ids
-    let actor_id = make_apub_endpoint(EndpointType::Community, &data.name).to_string();
+    let actor_id = make_apub_endpoint(EndpointType::Community, &data.name);
     let actor_id_cloned = actor_id.to_owned();
     let community_dupe = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &actor_id_cloned)
+      Community::read_from_apub_id(conn, &actor_id_cloned.into())
     })
     .await?;
     if community_dupe.is_ok() {
@@ -167,7 +167,7 @@ impl Perform for CreateCommunity {
       deleted: None,
       nsfw: data.nsfw,
       updated: None,
-      actor_id: Some(actor_id),
+      actor_id: Some(actor_id.into()),
       local: true,
       private_key: Some(keypair.private_key),
       public_key: Some(keypair.public_key),
@@ -506,9 +506,9 @@ impl Perform for FollowCommunity {
     } else if data.follow {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
-      user.send_follow(&community.actor_id()?, context).await?;
+      user.send_follow(&community.actor_id(), context).await?;
     } else {
-      user.send_unfollow(&community.actor_id()?, context).await?;
+      user.send_unfollow(&community.actor_id(), context).await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(context.pool(), unfollow).await?.is_err() {
         return Err(APIError::err("community_follower_already_exists").into());

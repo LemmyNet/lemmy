@@ -200,7 +200,7 @@ impl Perform for Register {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: Some(make_apub_endpoint(EndpointType::User, &data.username).to_string()),
+      actor_id: Some(make_apub_endpoint(EndpointType::User, &data.username).into()),
       bio: None,
       local: true,
       private_key: Some(user_keypair.private_key),
@@ -247,7 +247,7 @@ impl Perform for Register {
             deleted: None,
             updated: None,
             actor_id: Some(
-              make_apub_endpoint(EndpointType::Community, default_community_name).to_string(),
+              make_apub_endpoint(EndpointType::Community, default_community_name).into(),
             ),
             local: true,
             private_key: Some(main_community_keypair.private_key),

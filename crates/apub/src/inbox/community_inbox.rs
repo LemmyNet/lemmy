@@ -69,7 +69,7 @@ pub async fn community_inbox(
   let actor = inbox_verify_http_signature(&activity, &context, request, request_counter).await?;
 
   // Do nothing if we received the same activity before
-  let activity_id = get_activity_id(&activity, &actor.actor_id()?)?;
+  let activity_id = get_activity_id(&activity, &actor.actor_id())?;
   if is_activity_already_known(context.pool(), &activity_id).await? {
     return Ok(HttpResponse::Ok().finish());
   }
@@ -81,7 +81,7 @@ pub async fn community_inbox(
   })
   .await??;
   let to_and_cc = get_activity_to_and_cc(&activity);
-  if !to_and_cc.contains(&&community.actor_id()?) {
+  if !to_and_cc.contains(&&community.actor_id()) {
     return Err(anyhow!("Activity delivered to wrong community").into());
   }
 
@@ -92,7 +92,7 @@ pub async fn community_inbox(
     "Community {} received activity {:?} from {}",
     community.name,
     &activity.id_unchecked(),
-    &actor.actor_id_str()
+    &actor.actor_id()
   );
 
   community_receive_message(
@@ -115,15 +115,15 @@ pub(crate) async fn community_receive_message(
 ) -> Result<HttpResponse, LemmyError> {
   // Only users can send activities to the community, so we can get the actor as user
   // unconditionally.
-  let actor_id = actor.actor_id_str();
+  let actor_id = actor.actor_id();
   let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_apub_id(&conn, &actor_id)
+    User_::read_from_apub_id(&conn, &actor_id.into())
   })
   .await??;
   check_community_or_site_ban(&user, &to_community, context.pool()).await?;
 
   let any_base = activity.clone().into_any_base()?;
-  let actor_url = actor.actor_id()?;
+  let actor_url = actor.actor_id();
   let activity_kind = activity.kind().context(location_info!())?;
   let do_announce = match activity_kind {
     CommunityValidTypes::Follow => {
@@ -187,7 +187,7 @@ async fn handle_follow(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let follow = Follow::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &user.actor_id()?, false)?;
+  verify_activity_domains_valid(&follow, &user.actor_id(), false)?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
@@ -241,7 +241,7 @@ async fn handle_undo_follow(
   verify_activity_domains_valid(&follow, &user_url, false)?;
 
   let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_apub_id(&conn, user_url.as_str())
+    User_::read_from_apub_id(&conn, &user_url.into())
   })
   .await??;
   let community_follower_form = CommunityFollowerForm {

@@ -21,7 +21,6 @@ use lemmy_db_schema::source::{private_message::PrivateMessage, user::User_};
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for PrivateMessage {
@@ -32,12 +31,15 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut create = Create::new(
+      creator.actor_id.to_owned().into_inner(),
+      note.into_any_base()?,
+    );
 
     create
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(CreateType::Create)?)
-      .set_to(recipient.actor_id()?);
+      .set_to(recipient.actor_id());
 
     send_activity_single_dest(create, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
@@ -50,11 +52,14 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut update = Update::new(
+      creator.actor_id.to_owned().into_inner(),
+      note.into_any_base()?,
+    );
     update
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UpdateType::Update)?)
-      .set_to(recipient.actor_id()?);
+      .set_to(recipient.actor_id());
 
     send_activity_single_dest(update, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
@@ -64,11 +69,14 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut delete = Delete::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
-      .set_to(recipient.actor_id()?);
+      .set_to(recipient.actor_id());
 
     send_activity_single_dest(delete, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
@@ -82,18 +90,24 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut delete = Delete::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
-      .set_to(recipient.actor_id()?);
+      .set_to(recipient.actor_id());
 
     // Undo that fake activity
-    let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
+    let mut undo = Undo::new(
+      creator.actor_id.to_owned().into_inner(),
+      delete.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
-      .set_to(recipient.actor_id()?);
+      .set_to(recipient.actor_id());
 
     send_activity_single_dest(undo, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())

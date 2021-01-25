@@ -1,4 +1,7 @@
-use crate::schema::{community, community_follower, community_moderator, community_user_ban};
+use crate::{
+  schema::{community, community_follower, community_moderator, community_user_ban},
+  Url,
+};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -15,7 +18,7 @@ pub struct Community {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
-  pub actor_id: String,
+  pub actor_id: Url,
   pub local: bool,
   pub private_key: Option<String>,
   pub public_key: Option<String>,
@@ -39,7 +42,7 @@ pub struct CommunitySafe {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
-  pub actor_id: String,
+  pub actor_id: Url,
   pub local: bool,
   pub icon: Option<String>,
   pub banner: Option<String>,
@@ -58,7 +61,7 @@ pub struct CommunityForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: bool,
-  pub actor_id: Option<String>,
+  pub actor_id: Option<Url>,
   pub local: bool,
   pub private_key: Option<String>,
   pub public_key: Option<String>,

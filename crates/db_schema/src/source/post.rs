@@ -1,6 +1,8 @@
-use crate::schema::{post, post_like, post_read, post_saved};
+use crate::{
+  schema::{post, post_like, post_read, post_saved},
+  Url,
+};
 use serde::Serialize;
-use url::{ParseError, Url};
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "post"]
@@ -22,7 +24,7 @@ pub struct Post {
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
   pub thumbnail_url: Option<String>,
-  pub ap_id: String,
+  pub ap_id: Url,
   pub local: bool,
 }
 
@@ -45,14 +47,8 @@ pub struct PostForm {
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
   pub thumbnail_url: Option<String>,
-  pub ap_id: Option<String>,
+  pub ap_id: Option<Url>,
   pub local: bool,
-}
-
-impl PostForm {
-  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
-    Url::parse(&self.ap_id.as_ref().unwrap_or(&"not_a_url".to_string()))
-  }
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
