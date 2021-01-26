@@ -5,6 +5,7 @@ use lemmy_db_queries::{
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
+  ListingType,
   MaybeOptional,
   SortType,
   ToSafe,
@@ -97,6 +98,7 @@ impl CommunityView {
 
 pub struct CommunityQueryBuilder<'a> {
   conn: &'a PgConnection,
+  listing_type: &'a ListingType,
   sort: &'a SortType,
   my_user_id: Option<i32>,
   show_nsfw: bool,
@@ -110,12 +112,18 @@ impl<'a> CommunityQueryBuilder<'a> {
     CommunityQueryBuilder {
       conn,
       my_user_id: None,
+      listing_type: &ListingType::All,
       sort: &SortType::Hot,
       show_nsfw: true,
       search_term: None,
       page: None,
       limit: None,
     }
+  }
+
+  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
+    self.listing_type = listing_type;
+    self
   }
 
   pub fn sort(mut self, sort: &'a SortType) -> Self {
@@ -199,6 +207,12 @@ impl<'a> CommunityQueryBuilder<'a> {
 
     if !self.show_nsfw {
       query = query.filter(community::nsfw.eq(false));
+    };
+
+    query = match self.listing_type {
+      ListingType::Subscribed => query.filter(community_follower::user_id.is_not_null()), // TODO could be this: and(community_follower::user_id.eq(user_id_join)),
+      ListingType::Local => query.filter(community::local.eq(true)),
+      _ => query,
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);

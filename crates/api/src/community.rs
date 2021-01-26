@@ -21,6 +21,7 @@ use lemmy_db_queries::{
   Crud,
   Followable,
   Joinable,
+  ListingType,
   SortType,
 };
 use lemmy_db_schema::{
@@ -447,12 +448,14 @@ impl Perform for ListCommunities {
       None => false,
     };
 
+    let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
     let page = data.page;
     let limit = data.limit;
     let communities = blocking(context.pool(), move |conn| {
       CommunityQueryBuilder::create(conn)
+        .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .my_user_id(user_id)
