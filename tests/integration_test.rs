@@ -130,7 +130,11 @@ fn create_community(conn: &PgConnection, creator_id: i32) -> Community {
     removed: None,
     deleted: None,
     updated: None,
-    actor_id: None,
+    actor_id: Some(
+      Url::parse("http://localhost:8536/u/c/test_community")
+        .unwrap()
+        .into(),
+    ),
     local: true,
     private_key: None,
     public_key: None,
