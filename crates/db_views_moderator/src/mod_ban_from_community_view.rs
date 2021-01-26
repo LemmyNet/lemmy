@@ -31,7 +31,9 @@ impl ModBanFromCommunityView {
     let mut query = mod_ban_from_community::table
       .inner_join(user_::table.on(mod_ban_from_community::mod_user_id.eq(user_::id)))
       .inner_join(community::table)
-      .inner_join(user_alias_1::table.on(mod_ban_from_community::other_user_id.eq(user_::id)))
+      .inner_join(
+        user_alias_1::table.on(mod_ban_from_community::other_user_id.eq(user_alias_1::id)),
+      )
       .select((
         mod_ban_from_community::all_columns,
         User_::safe_columns_tuple(),

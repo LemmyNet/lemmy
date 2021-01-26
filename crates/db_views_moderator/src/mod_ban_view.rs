@@ -27,7 +27,7 @@ impl ModBanView {
   ) -> Result<Vec<Self>, Error> {
     let mut query = mod_ban::table
       .inner_join(user_::table.on(mod_ban::mod_user_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(mod_ban::other_user_id.eq(user_::id)))
+      .inner_join(user_alias_1::table.on(mod_ban::other_user_id.eq(user_alias_1::id)))
       .select((
         mod_ban::all_columns,
         User_::safe_columns_tuple(),

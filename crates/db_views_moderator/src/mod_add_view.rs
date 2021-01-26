@@ -27,7 +27,7 @@ impl ModAddView {
   ) -> Result<Vec<Self>, Error> {
     let mut query = mod_add::table
       .inner_join(user_::table.on(mod_add::mod_user_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(mod_add::other_user_id.eq(user_::id)))
+      .inner_join(user_alias_1::table.on(mod_add::other_user_id.eq(user_alias_1::id)))
       .select((
         mod_add::all_columns,
         User_::safe_columns_tuple(),
