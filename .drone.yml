@@ -14,6 +14,13 @@ steps:
       - apk add git
       - git submodule update --init --recursive --remote
 
+  - name: run diesel migrations
+    image: christophwurst/diesel-cli:latest
+    environment:
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+
   - name: chown repo
     image: ekidd/rust-musl-builder:1.47.0
     user: root

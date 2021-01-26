@@ -2,4 +2,4 @@
 # see diesel.rs/guides/configuring-diesel-cli
 
 [print_schema]
-file = "lemmy_db/src/schema.rs"
+file = "crates/db_schema/src/schema.rs"
