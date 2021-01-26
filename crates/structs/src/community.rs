@@ -39,6 +39,7 @@ pub struct CommunityResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct ListCommunities {
+  pub type_: String,
   pub sort: String,
   pub page: Option<i64>,
   pub limit: Option<i64>,
