@@ -236,7 +236,7 @@ async fn receive_accept(
 }
 
 /// Takes an announce and passes the inner activity to the appropriate handler.
-async fn receive_announce(
+pub async fn receive_announce(
   context: &LemmyContext,
   activity: AnyBase,
   actor: &dyn ActorType,
