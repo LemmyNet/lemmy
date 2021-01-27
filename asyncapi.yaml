@@ -9,7 +9,7 @@ info:
     ### How to use this API document
 
     You can either use it to:
-    - **Interactively browse the WebsSocket API.** Browse the *Channels*, check out the responses and examples (tailor the *PUBLISH* requests to suit with your favorite WebSocket API client). For testing purposes, either [set up your own server](https://lemmy.ml/docs/en/administration/administration.html) or use the Enterprise server (*ws://enterprise.lemmy.ml/api/v2/ws*)
+    - **Interactively browse the WebSocket API.** Browse the *Channels*, check out the responses and examples (tailor the *PUBLISH* requests to suit with your favorite WebSocket API client). For testing purposes, either [set up your own server](https://lemmy.ml/docs/en/administration/administration.html) or use the Enterprise server (*ws://enterprise.lemmy.ml/api/v2/ws*)
     - **[Open and save](asyncapi.yaml) this specification file** and use it with the various [AsyncAPI tools](https://www.asyncapi.com/docs/community/tooling) (perhaps to generate code or documentation).
   license:
     name: AGPL
