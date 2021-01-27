@@ -1,0 +1,726 @@
+asyncapi: 2.0.0
+info:
+  title: Lemmy WebSocket API
+  version: '2.0'
+  description: |-
+    ### About Lemmy
+    [**Lemmy**](https://github.com/LemmyNet/lemmy) is a decentralized alternative to widely-used proprietary link aggregators like Reddit.
+
+    ### How to use this API document
+
+    You can either use it to:
+    - **Interactively browse the WebsSocket API.** Browse the *Channels*, check out the responses and examples (tailor the *PUBLISH* requests to suit with your favorite WebSocket API client). For testing purposes, either [set up your own server](https://lemmy.ml/docs/en/administration/administration.html) or use the Enterprise server (*ws://enterprise.lemmy.ml/api/v2/ws*)
+    - **[Open and save](asyncapi.yaml) this specification file** and use it with the various [AsyncAPI tools](https://www.asyncapi.com/docs/community/tooling) (perhaps to generate code or documentation).
+  license:
+    name: AGPL
+    url: 'https://www.gnu.org/licenses/agpl-3.0.en.html'
+servers:
+  production:
+    url: enterprise.lemmy.ml/api/v2/ws
+    protocol: http
+    description: Enterprise server
+  local:
+    url: localhost:1235/api/v2/ws
+    protocol: http
+    description: Local Docker container
+externalDocs:
+  description: Lemmy documentation
+  url: 'https://lemmy.ml/docs/index.html'
+tags:
+  - name: User, authentication and admin
+channels:
+  Login:
+    publish:
+      summary: Login request
+      description: '**PUBLISH** Login with username or registered email'
+      operationId: loginRequestMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/loginRequest'
+    subscribe:
+      summary: Login response
+      description: '**SUBSCRIBE** You will receive an authentication string (*jwt*)'
+      operationId: loginResponseMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/loginResponse'
+  GetCaptcha:
+    publish:
+      summary: Get Captcha details for registering a user
+      description: '**PUBLISH** These details expire after 10 minutes'
+      operationId: getCaptchaRequestMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/getCaptchaRequest'
+    subscribe:
+      summary: Captcha details returned from the server
+      description: '**SUBSCRIBE** These details expire after 10 minutes'
+      operationId: getCaptchaResponseMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/getCaptchaResponse'
+  Register:
+    publish:
+      summary: Register a user on the Lemmy server.
+      description: '**PUBLISH** If Captcha is enabled on the server, obtain those details by using **GetCaptcha** (*before* attempting to register)'
+      operationId: registerRequestMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/registerRequest'
+    subscribe:
+      summary: Response to registration request
+      description: '**SUBSCRIBE** You will receive an authentication string (*jwt*) for that user'
+      operationId: registerResponseMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/registerResponse'
+  GetUserDetails:
+    publish:
+      summary: Request details about a specified user
+      description: |-
+        **PUBLISH** 
+        Returns full details (including the last post the user wrote).
+
+        - Use the **username** field to return details about a local user
+        - Use the **user-id** field to return details about a federated user.
+      operationId: getUserDetailsMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/getUserDetailsRequest'
+    subscribe:
+      summary: Get details about a specified user
+      description: '**SUBSCRIBE** Returns detailed data'
+      operationId: getUserDetailsResponseMessage
+      tags:
+        - name: User, authentication and admin
+      message:
+        $ref: '#/components/messages/getUserDetailsResponse'
+components:
+  messages:
+    loginRequest:
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^Login$'
+            default: 'Login'
+          data:
+            type: object
+            properties:
+              username_or_email:
+                type: string
+                description: '**(Required)** Username or registered email'
+                example: 'lemmy'
+              password:
+                type: string
+                description: '**(Required)** *Exact* password'
+                example: 'lemmy'
+    loginResponse:
+      name: Login response
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^Login$'
+            default: 'Login'
+          data:
+            $ref: '#/components/schemas/authSchema'
+    getCaptchaRequest:
+      name: Captcha request
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^GetCaptcha$'
+            default: 'GetCaptcha'
+          data:
+            type: object
+    getCaptchaResponse:
+      name: Return Captcha request details
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^GetCaptcha$'
+            default: 'GetCaptcha'
+          data:
+            type: object
+            properties:
+              ok:
+                type: object
+                description: 'Will be *undefined* if Captcha is disabled on the Lemmy server'
+                properties:
+                  png:
+                    type: string
+                    description: 'A [Base64 encoded](https://www.base64encode.org/) representation of the Captcha image (in .PNG format)'
+                  wav:
+                    type: string
+                    description: 'A [Base64 encoded](https://www.base64encode.org/) representation of the Captcha audio (in .WAV format)'
+                  uuid:
+                    type: string
+                    description: The unique id of the Catpcha request
+                    example: '77cfa414-999e-4445-9940-cebe86139d14'
+    registerRequest:
+      name: Register a user on the Lemmy server
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^Register$'
+            default: 'Register'
+          data:
+            type: object
+            properties:
+              username:
+                type: string
+                description: '**(Required)** The username for the new user'
+                example: 'testuser'
+              password:
+                type: string
+                description: '**(Required)** The password for the new user'
+                example: 'L3mmy!'
+              password_verify:
+                type: string
+                description: '**(Required)** Verify (duplicate) **password**'
+                example: 'L3mmy!'
+              admin:
+                type: boolean
+                description: 'Set to *true* if this is to be the admin user. Only the user who was *first* registered on the Lemmy server is allowed to be admin.'
+                example: false
+                default: false
+              show_nsfw:
+                type: boolean
+                description: '**(Required)** Set to *true* if you wish this user to be able to view [NSFW](https://en.wikipedia.org/wiki/Not_safe_for_work) content on the Lemmy server.'
+                example: false
+                default: false
+              captcha_uuid:
+                type: string
+                description: 'The unique id of the Catpcha request (as reported by **GetCaptcha**)'
+                example: '77cfa414-999e-4445-9940-cebe86139d14'
+              captcha_answer:
+                type: string
+                description: 'The *answer* to the Captcha test'
+                example: 'EjhBi7'
+    registerResponse:
+      name: Registration request response
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^Register$'
+            default: 'Register'
+          data:
+            $ref: '#/components/schemas/authSchema'
+    getUserDetailsRequest:
+      name: Return requested user details
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^GetUserDetails$'
+            default: 'GetUserDetails'
+          sort:
+            type: string
+            description: |-
+              **(Required)**
+
+              Sort the response from the server according to one of the following criteria:
+              - *Active* - the hottest posts/communities, depending on votes, and newest comment publish date
+              - *Hot* - the hottest posts/communities, depending on votes and publish date
+              - *New* - the newest posts/communities
+              - *TopDay* - the most upvoted posts/communities of the current day
+              - *TopWeek* - the most upvoted posts/communities of the current week
+              - *TopMonth* - the most upvoted posts/communities of the current month
+              - *TopYear* - the most upvoted posts/communities of the current year
+              - *TopAll* - the most upvoted posts/communities on the server.
+            enum:
+              - Active
+              - Hot
+              - New
+              - TopDay
+              - TopWeek
+              - TopMonth
+              - TopYear
+              - TopAll
+          page:
+            type: integer
+            format: int64
+            description: Forthcoming...
+          limit:
+            type: integer
+            format: int64
+            description: Forthcoming...
+          community_id:
+            $ref: '#/components/schemas/community_id'
+          saved_only:
+            type: boolean
+            description: Forthcoming...
+            default: false
+            example: false
+          auth:
+            $ref: '#/components/schemas/authStringSchema'
+    getUserDetailsResponse:
+      name: Registration request response
+      payload:
+        type: object
+        properties:
+          op:
+            type: string
+            pattern: '^GetUserDetails$'
+            default: 'GetUserDetails'
+          data:
+            type: object
+            properties:
+              op:
+                type: string
+              data:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    description: An array of all posts by the user
+                    items:
+                      properties:
+                        read:
+                          type: boolean
+                          description: Forthcoming...
+                          example: false
+                        post:
+                          $ref: '#/components/schemas/post'
+                        creator:
+                          $ref: '#/components/schemas/user'           
+                        creator_banned_from_community:
+                          $ref: '#/components/schemas/creator_banned_from_community'
+                        subscribed:
+                          $ref: '#/components/schemas/subscribed'
+                        my_vote:
+                          $ref: '#/components/schemas/my_vote'
+                        counts:
+                          type: object
+                          properties:
+                            score:
+                              $ref: '#/components/schemas/score'
+                            downvotes:
+                              $ref: '#/components/schemas/downvotes'
+                            post_id:
+                              type: number
+                              description: Forthcoming...What is the relevance of this post_id?
+                              example: 208
+                            id:
+                              type: number
+                              description: Forthcoming...
+                              example: 107
+                            comments:
+                              type: number
+                              description: Forthcoming...
+                              example: 1
+                            upvotes:
+                              $ref: '#/components/schemas/upvotes'
+                            newest_comment_time:
+                              description: 'The last time this user posted a comment (in [ISO8601 format](https://www.w3.org/TR/NOTE-datetime))'
+                              type: string
+                              example: '2021-01-21T16:42:39.897148'
+                            stickied:
+                              type: boolean
+                              description: Forthcoming...
+                              example: false
+                            published:
+                              $ref: '#/components/schemas/publishedPost'
+                        saved:
+                          $ref: '#/components/schemas/saved'
+                        community:
+                          $ref: '#/components/schemas/community'
+                      user_view:
+                        $ref: '#/components/schemas/user'           
+                      counts:
+                        type: object
+                        properties:
+                          comment_score:
+                            description: Forthcoming...
+                            type: number
+                            example: 1
+                          user_id:
+                            description: Forthcoming...
+                            type: number
+                            example: 77
+                          post_count:
+                            description: The number of posts this user has made
+                            type: number
+                            example: 2
+                          comment_count:
+                            description: The number of comments this user has made
+                            type: number
+                            example: 2
+                          id:
+                            description: Forthcoming...
+                            type: number
+                            example: 43
+                          post_score:
+                            description: This user's rating (score), based on an algorithm that measures comments and posts made by that user. This score is not displayed to end-users
+                            type: number
+                            example: 2
+                  comments:
+                    type: array
+                    items:
+                      properties:
+                        comment:
+                          type: object
+                          properties:
+                            creator_id:
+                              $ref: '#/components/schemas/creator_id'
+                            content:
+                              description: The text of the comment
+                              type: string
+                              example: '> Communities\n\n\n![](https:\/\/enterprise.lemmy.ml\/pictrs\/image\/KZ7NoyJgxx.jpg)'
+                            id:
+                              description: Forthcoming...
+                              type: number
+                              example: 312
+                            read:
+                              description: Is *true* if the author of the original post has read the comment 
+                              type: boolean
+                              example: true
+                            parent_id:
+                              description: Forthcoming...
+                              type: number
+                              nullable: true
+                            removed:
+                              $ref: '#/components/schemas/removed'
+                            post_id:
+                              description: Forthcoming...
+                              type: number
+                              example: 208
+                            local:
+                              $ref: '#/components/schemas/local'
+                            updated:
+                              description: Forthcoming...
+                              type: string
+                              nullable: true
+                            ap_id:
+                              $ref: '#/components/schemas/ap_id'
+                            deleted:
+                              $ref: '#/components/schemas/deleted'
+                            published:
+                              type: string
+                              description: 'The date this comment was created (in [ISO8601 format](https://www.w3.org/TR/NOTE-datetime))'
+                              example: '2021-01-21T16:42:39.897148'
+                        recipient:
+                          description: Forthcoming...
+                          type: number
+                          nullable: true
+                        post:
+                          $ref: '#/components/schemas/post'
+                        creator:
+                          $ref: '#/components/schemas/user'
+                        creator_banned_from_community:
+                          $ref: '#/components/schemas/creator_banned_from_community'
+                        subscribed:
+                          $ref: '#/components/schemas/subscribed'
+                        my_vote:
+                          $ref: '#/components/schemas/subscribed'
+                        counts:
+                          type: object
+                          properties:
+                            downvotes:
+                              $ref: '#/components/schemas/downvotes'
+                            published:
+                              $ref: '#/components/schemas/publishedPost'
+                            score:
+                              $ref: '#/components/schemas/score'
+                            comment_id:
+                              type: number
+                            id:
+                              type: number
+                            upvotes:
+                              $ref: '#/components/schemas/upvotes'
+                        saved:
+                          $ref: '#/components/schemas/saved'
+                        community:
+                          $ref: '#/components/schemas/community'
+                  moderates:
+                    description: The list of moderators for each community
+                    type: array
+                    items:
+                      properties:
+                        moderator:
+                          $ref: '#/components/schemas/user'
+                        community:
+                          $ref: '#/components/schemas/community'
+                  follows:
+                    description: The list of followers (members) for each community
+                    type: array
+                    items:
+                      properties:
+                        follower:
+                          $ref: '#/components/schemas/user'
+                        community:
+                          $ref: '#/components/schemas/community'
+  schemas:
+    'actor_id':
+      type: string
+      description: |-
+        URL for the user/community profile/home page, using the format:
+        - **User profile** - Site  URL/u/username
+        - **Community home page** - Site  URL/c/commmunity name
+      example: 'https:\/\/enterprise.lemmy.ml\/u\/griddle'
+    'ap_id':
+      type: string
+      description: The URL of this post or comment
+      example: 'https:\/\/enterprise.lemmy.ml\/post\/223'
+    'authSchema':
+      type: object
+      description: The authentication string returned by **Login** and **Register**.
+      properties:
+        jwt:
+          $ref: '#/components/schemas/authStringSchema'
+    'authStringSchema':
+      type: string
+      description: Authentication string
+      example: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NzcsImlzcyI6ImVudGVycHJpc2UubGVtbXkubWwifQ.8UbfUE1v4mfH88s2diX2h6_5bzLHSa_5wIlpOZmHbMQ'
+    'banner':
+      type: string
+      nullable: true
+      description: Forthcoming...
+    'community':
+      type: object
+      properties:
+        updated:
+          type: string
+          description: Forthcoming...
+          example: '2020-11-14T13:35:10.270578'
+        name:
+          type: string
+          description: The name of this community
+          example: 'borgwatch'
+        category_id:
+          type: number
+          description: Forthcoming...How do these numbers correlate to the sidebar dropdown list of categories? Ate the categories fixed for all Lemmy instances?
+          example: 15
+        icon:
+          type: string
+          nullable: true
+          description: Forthcoming...
+        nsfw:
+          $ref: '#/components/schemas/nsfw'
+        deleted:
+          $ref: '#/components/schemas/deleted'
+        removed:
+          $ref: '#/components/schemas/removed'
+        published:
+          type: string
+          description: 'The date this community was created (in [ISO8601 format](https://www.w3.org/TR/NOTE-datetime))'
+          example: '2020-11-12T18:37:16.597668'
+        creator_id:
+          $ref: '#/components/schemas/creator_id'
+        id:
+          description: Forthcoming...
+          type: number
+          example: 239
+        description:
+          type: string
+          description: |-
+            The title for the community's **Sidebar** area
+          example: 'All about the Rolex/Björn Borg collaboration'
+        actor_id:
+          $ref: '#/components/schemas/actor_id'
+        local:
+          $ref: '#/components/schemas/local'
+        title:
+          type: string
+          description: |-
+            The title (**Display name**) of this community.
+
+            If set, this is the name shown instead of, or as well as, *name* in some contexts
+        banner:
+          $ref: '#/components/schemas/banner'
+    'community_id':
+      type: integer
+      format: int64
+      description: Forthcoming...How to find community_id?
+    'creator_banned_from_community':
+      type: boolean
+      description: Forthcoming...
+      example: false
+    'creator_id':
+      type: number
+      description: Forthcoming...
+      example: 20
+    'deleted':
+      type: boolean
+      description: 'Set to *true* if this community, post, comment or user account has been deleted'
+      example: false
+    'downvotes':
+      type: number
+      description: Forthcoming...
+      example: 0
+    'local':
+      type: boolean
+      description: |-
+        - *true* if this is a local user
+        - *false* if this is a federated user
+      example: true
+    'my_vote':
+      type: number
+      description: Forthcoming...
+      example: 1
+    'nsfw':
+      type: boolean
+      description: 'Set to *true* if this commmunity, post or comment is deemed [NSFW](https://en.wikipedia.org/wiki/Not_safe_for_work) (hence invisble to users who have the NSFW option selected in their profile'
+      example: false
+    'post':
+      type: object
+      properties:
+        updated:
+          type: string
+          description: Forthcoming...
+          nullable: true
+        community_id:
+          $ref: '#/components/schemas/community_id'
+        embed_title:
+          type: string
+          nullable: true
+          description: 'If the **url** for an associated post was provided, this will be the *<title>* data from that URL'
+          example: 'Covid: Novichok scientist invents vaccine | The Independent'
+        nsfw:
+          $ref: '#/components/schemas/nsfw'
+        deleted:
+          $ref: '#/components/schemas/deleted'
+        removed:
+          $ref: '#/components/schemas/removed'
+        locked:
+          type: boolean
+          description: 'Set to *true* if this post is locked (that is, no comments can be added to it)'
+          example: false
+        url:
+          type: string
+          description: The link to the URL associated with the post
+          nullable: true
+          example: 'https:\/\/www.independent.co.uk\/news\/world\/europe\/covid-vaccine-novichok-russia-navalny-b1792778.html'
+        published:
+          $ref: '#/components/schemas/publishedPost'
+        stickied:
+          type: boolean
+          description: 'Set to *true* if this post has been made *sticky* (that is, it is presented at the top of a list of posts)'
+          example: false
+        body:
+          description: 'The body text of the post'
+          type: string
+          nullable: true
+        embed_html:
+          type: string
+          nullable: true
+          description: Forthcoming...
+        creator_id:
+          $ref: '#/components/schemas/creator_id'
+        thumbnail_url:
+          type: string
+          nullable: true
+          description: Forthcoming...
+        id:
+          type: number
+          description: The post number
+          example: 223
+        ap_id:
+          $ref: '#/components/schemas/ap_id'
+        embed_description:
+          type: string
+          nullable: true
+          description: 'If the **url** for an associated post was provided, this will be the *meta name="description"* data from that URL'
+          example: 'Scientist Leonid Rink has a murky past and is well-known for selling nerve agents to criminals'
+        local:
+          $ref: '#/components/schemas/local'
+        name:
+          type: string
+          description: 'The title of the post'
+          example: 'Pot. Kettle. Black.'
+    'publishedPost':
+      type: string
+      description: 'The date this user added a post on this Lemmy server (in [ISO8601 format](https://www.w3.org/TR/NOTE-datetime))'
+      example: '2021-01-21T16:19:08.725191'
+    'removed':
+      type: boolean
+      description: Forthcoming...What is the difference between deletion and removal?
+      example: false
+    'saved':
+      description: Forthcoming...
+      type: boolean
+      example: false
+    'score':
+      type: number
+      description: Forthcoming...
+      example: 1
+    'subscribed':
+      type: boolean
+      description: Forthcoming...
+      example: true
+    'upvotes':
+      type: number
+      description: Forthcoming...
+      example: 1
+    'user':
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            updated:
+              type: string
+              description: 'The last time this user profile was updated (in [ISO8601 format](https://www.w3.org/TR/NOTE-datetime))'
+              example: '2021-01-21T16:26:16.285610'
+            bio:
+              type: string
+              nullable: true
+              description: 'A self-written description of the user'
+              example: 'I am a watercolour artist. I am happy to share the paintings I am working on, give and receive critiques, and post resources such as tutorials.'
+            admin:
+              type: boolean
+              description: 'Set to *true* if this person is the Lemmy server administrator'
+              example: false
+            preferred_username:
+              type: string
+              description: 'If set, this is the name shown instead of, or as well as, *username* in some contexts (also known as **Display name**)'
+              example: 'Queen of the Griddle'
+            deleted:
+              $ref: '#/components/schemas/deleted'
+            banned:
+              type: boolean
+              description: 'Set to *true* if this account (username) has been banned from posting on the Lemmy server'
+              example: false
+            published:
+              $ref: '#/components/schemas/publishedPost'
+            matrix_user_id:
+              type: string
+              nullable: true
+              description: 'The [Matrix](https://matrix.org/docs/projects/try-matrix-now/) id of the user'
+            avatar:
+              type: string
+              nullable: true
+              description: Forthcoming...
+            id:
+              type: number
+              description: Forthcoming...
+              example: 77
+            actor_id:
+              $ref: '#/components/schemas/actor_id'
+            local:
+              $ref: '#/components/schemas/local'
+            banner:
+              $ref: '#/components/schemas/banner'
+            name:
+              type: string
+              description: The user's username
+              example: 'griddle'
