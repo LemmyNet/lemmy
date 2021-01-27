@@ -140,7 +140,7 @@ pub trait ApubLikeableType {
 /// implemented by all actors.
 #[async_trait::async_trait(?Send)]
 pub trait ActorType {
-  fn actor_id_str(&self) -> String;
+  fn actor_id(&self) -> Url;
 
   // TODO: every actor should have a public key, so this shouldnt be an option (needs to be fixed in db)
   fn public_key(&self) -> Option<String>;
@@ -178,17 +178,13 @@ pub trait ActorType {
   /// For a given community, returns the inboxes of all followers.
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
 
-  fn actor_id(&self) -> Result<Url, ParseError> {
-    Url::parse(&self.actor_id_str())
-  }
-
   // TODO move these to the db rows
   fn get_inbox_url(&self) -> Result<Url, ParseError> {
-    Url::parse(&format!("{}/inbox", &self.actor_id_str()))
+    Url::parse(&format!("{}/inbox", &self.actor_id()))
   }
 
   fn get_shared_inbox_url(&self) -> Result<Url, LemmyError> {
-    let actor_id = self.actor_id()?;
+    let actor_id = self.actor_id();
     let url = format!(
       "{}://{}{}/inbox",
       &actor_id.scheme(),
@@ -203,18 +199,18 @@ pub trait ActorType {
   }
 
   fn get_outbox_url(&self) -> Result<Url, ParseError> {
-    Url::parse(&format!("{}/outbox", &self.actor_id_str()))
+    Url::parse(&format!("{}/outbox", &self.actor_id()))
   }
 
   fn get_followers_url(&self) -> Result<Url, ParseError> {
-    Url::parse(&format!("{}/followers", &self.actor_id_str()))
+    Url::parse(&format!("{}/followers", &self.actor_id()))
   }
 
   fn get_public_key_ext(&self) -> Result<PublicKeyExtension, LemmyError> {
     Ok(
       PublicKey {
-        id: format!("{}#main-key", self.actor_id_str()),
-        owner: self.actor_id_str(),
+        id: format!("{}#main-key", self.actor_id()),
+        owner: self.actor_id(),
         public_key_pem: self.public_key().context(location_info!())?,
       }
       .to_ext(),
@@ -254,18 +250,18 @@ pub(crate) async fn find_post_or_comment_by_id(
   context: &LemmyContext,
   apub_id: Url,
 ) -> Result<PostOrComment, LemmyError> {
-  let ap_id = apub_id.to_string();
+  let ap_id = apub_id.clone();
   let post = blocking(context.pool(), move |conn| {
-    Post::read_from_apub_id(conn, &ap_id)
+    Post::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
   if let Ok(p) = post {
     return Ok(PostOrComment::Post(p));
   }
 
-  let ap_id = apub_id.to_string();
+  let ap_id = apub_id.clone();
   let comment = blocking(context.pool(), move |conn| {
-    Comment::read_from_apub_id(conn, &ap_id)
+    Comment::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
   if let Ok(c) = comment {
@@ -287,34 +283,34 @@ pub(crate) async fn find_object_by_id(
   context: &LemmyContext,
   apub_id: Url,
 ) -> Result<Object, LemmyError> {
-  if let Ok(pc) = find_post_or_comment_by_id(context, apub_id.to_owned()).await {
+  let ap_id = apub_id.clone();
+  if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
     return Ok(match pc {
       PostOrComment::Post(p) => Object::Post(p),
       PostOrComment::Comment(c) => Object::Comment(c),
     });
   }
 
-  let ap_id = apub_id.to_string();
+  let ap_id = apub_id.clone();
   let user = blocking(context.pool(), move |conn| {
-    User_::read_from_apub_id(conn, &ap_id)
+    User_::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
   if let Ok(u) = user {
     return Ok(Object::User(u));
   }
 
-  let ap_id = apub_id.to_string();
+  let ap_id = apub_id.clone();
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &ap_id)
+    Community::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
   if let Ok(c) = community {
     return Ok(Object::Community(c));
   }
 
-  let ap_id = apub_id.to_string();
   let private_message = blocking(context.pool(), move |conn| {
-    PrivateMessage::read_from_apub_id(conn, &ap_id)
+    PrivateMessage::read_from_apub_id(conn, &apub_id.into())
   })
   .await?;
   if let Ok(pm) = private_message {

@@ -59,7 +59,10 @@ impl ApubObjectType for Comment {
 
     let maa = collect_non_local_mentions(&self, &community, context).await?;
 
-    let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut create = Create::new(
+      creator.actor_id.to_owned().into_inner(),
+      note.into_any_base()?,
+    );
     create
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(CreateType::Create)?)
@@ -89,7 +92,10 @@ impl ApubObjectType for Comment {
 
     let maa = collect_non_local_mentions(&self, &community, context).await?;
 
-    let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut update = Update::new(
+      creator.actor_id.to_owned().into_inner(),
+      note.into_any_base()?,
+    );
     update
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UpdateType::Update)?)
@@ -113,12 +119,15 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut delete = Delete::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(delete, &creator, &community, context).await?;
     Ok(())
@@ -139,20 +148,26 @@ impl ApubObjectType for Comment {
     .await??;
 
     // Generate a fake delete activity, with the correct object
-    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut delete = Delete::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
+    let mut undo = Undo::new(
+      creator.actor_id.to_owned().into_inner(),
+      delete.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(undo, &creator, &community, context).await?;
     Ok(())
@@ -168,12 +183,15 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut remove = Remove::new(
+      mod_.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(remove, &mod_, &community, context).await?;
     Ok(())
@@ -190,20 +208,26 @@ impl ApubObjectType for Comment {
     .await??;
 
     // Generate a fake delete activity, with the correct object
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut remove = Remove::new(
+      mod_.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
+    let mut undo = Undo::new(
+      mod_.actor_id.to_owned().into_inner(),
+      remove.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(undo, &mod_, &community, context).await?;
     Ok(())
@@ -222,12 +246,15 @@ impl ApubLikeableType for Comment {
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut like = Like::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(like, &creator, &community, context).await?;
     Ok(())
@@ -243,12 +270,15 @@ impl ApubLikeableType for Comment {
     })
     .await??;
 
-    let mut dislike = Dislike::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut dislike = Dislike::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     dislike
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(dislike, &creator, &community, context).await?;
     Ok(())
@@ -268,20 +298,26 @@ impl ApubLikeableType for Comment {
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut like = Like::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
+    let mut undo = Undo::new(
+      creator.actor_id.to_owned().into_inner(),
+      like.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(undo, &creator, &community, context).await?;
     Ok(())
@@ -313,7 +349,7 @@ async fn collect_non_local_mentions(
   context: &LemmyContext,
 ) -> Result<MentionsAndAddresses, LemmyError> {
   let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
-  let mut addressed_ccs = vec![community.actor_id()?, parent_creator.actor_id()?];
+  let mut addressed_ccs = vec![community.actor_id(), parent_creator.actor_id()];
   // Note: dont include community inbox here, as we send to it separately with `send_to_community()`
   let mut inboxes = vec![parent_creator.get_shared_inbox_url()?];
 
@@ -393,7 +429,5 @@ async fn fetch_webfinger_url(mention: &MentionData, client: &Client) -> Result<U
   link
     .href
     .to_owned()
-    .map(|u| Url::parse(&u))
-    .transpose()?
     .ok_or_else(|| anyhow!("No href found.").into())
 }

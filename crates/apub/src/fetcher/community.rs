@@ -40,7 +40,7 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
 ) -> Result<Community, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, apub_id_owned.as_str())
+    Community::read_from_apub_id(conn, &apub_id_owned.into())
   })
   .await?;
 

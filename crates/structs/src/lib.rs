@@ -16,13 +16,14 @@ use lemmy_db_schema::source::{
 use lemmy_utils::{email::send_email, settings::Settings, utils::MentionData, LemmyError};
 use log::error;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebFingerLink {
   pub rel: Option<String>,
   #[serde(rename(serialize = "type", deserialize = "type"))]
   pub type_: Option<String>,
-  pub href: Option<String>,
+  pub href: Option<Url>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub template: Option<String>,
 }
@@ -30,7 +31,7 @@ pub struct WebFingerLink {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebFingerResponse {
   pub subject: String,
-  pub aliases: Vec<String>,
+  pub aliases: Vec<Url>,
   pub links: Vec<WebFingerLink>,
 }
 

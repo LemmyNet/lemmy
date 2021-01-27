@@ -20,7 +20,7 @@ pub(crate) async fn get_or_fetch_and_insert_post(
 ) -> Result<Post, LemmyError> {
   let post_ap_id_owned = post_ap_id.to_owned();
   let post = blocking(context.pool(), move |conn| {
-    Post::read_from_apub_id(conn, post_ap_id_owned.as_str())
+    Post::read_from_apub_id(conn, &post_ap_id_owned.into())
   })
   .await?;
 
@@ -49,7 +49,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
 ) -> Result<Comment, LemmyError> {
   let comment_ap_id_owned = comment_ap_id.to_owned();
   let comment = blocking(context.pool(), move |conn| {
-    Comment::read_from_apub_id(conn, comment_ap_id_owned.as_str())
+    Comment::read_from_apub_id(conn, &comment_ap_id_owned.into())
   })
   .await?;
 

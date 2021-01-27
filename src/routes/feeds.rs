@@ -204,7 +204,7 @@ fn get_feed_community(
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
     .title(&format!("{} - {}", site_view.site.name, community.name))
-    .link(community.actor_id)
+    .link(community.actor_id.to_string())
     .items(items);
 
   if let Some(community_desc) = community.description {
@@ -367,7 +367,7 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
 
     i.title(p.post.name);
 
-    dc_extension.creators(vec![p.creator.actor_id.to_owned()]);
+    dc_extension.creators(vec![p.creator.actor_id.to_string()]);
 
     let dt = DateTime::<Utc>::from_utc(p.post.published, Utc);
     i.pub_date(dt.to_rfc2822());

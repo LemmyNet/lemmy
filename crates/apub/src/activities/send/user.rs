@@ -25,8 +25,8 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ActorType for User_ {
-  fn actor_id_str(&self) -> String {
-    self.actor_id.to_owned()
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into_inner()
   }
 
   fn public_key(&self) -> Option<String> {
@@ -43,9 +43,9 @@ impl ActorType for User_ {
     follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let follow_actor_id = follow_actor_id.to_string();
+    let follow_actor_id = follow_actor_id.to_owned();
     let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &follow_actor_id)
+      Community::read_from_apub_id(conn, &follow_actor_id.into())
     })
     .await??;
 
@@ -59,11 +59,11 @@ impl ActorType for User_ {
     })
     .await?;
 
-    let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
+    let mut follow = Follow::new(self.actor_id.to_owned().into_inner(), community.actor_id());
     follow
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(FollowType::Follow)?)
-      .set_to(community.actor_id()?);
+      .set_to(community.actor_id());
 
     send_activity_single_dest(follow, self, community.get_inbox_url()?, context).await?;
     Ok(())
@@ -74,24 +74,27 @@ impl ActorType for User_ {
     follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let follow_actor_id = follow_actor_id.to_string();
+    let follow_actor_id = follow_actor_id.to_owned();
     let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &follow_actor_id)
+      Community::read_from_apub_id(conn, &follow_actor_id.into())
     })
     .await??;
 
-    let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
+    let mut follow = Follow::new(self.actor_id.to_owned().into_inner(), community.actor_id());
     follow
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(FollowType::Follow)?)
-      .set_to(community.actor_id()?);
+      .set_to(community.actor_id());
 
     // Undo that fake activity
-    let mut undo = Undo::new(Url::parse(&self.actor_id)?, follow.into_any_base()?);
+    let mut undo = Undo::new(
+      self.actor_id.to_owned().into_inner(),
+      follow.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
-      .set_to(community.actor_id()?);
+      .set_to(community.actor_id());
 
     send_activity_single_dest(undo, self, community.get_inbox_url()?, context).await?;
     Ok(())

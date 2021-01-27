@@ -26,7 +26,6 @@ use lemmy_db_schema::source::{community::Community, post::Post, user::User_};
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Post {
@@ -40,12 +39,15 @@ impl ApubObjectType for Post {
     })
     .await??;
 
-    let mut create = Create::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut create = Create::new(
+      creator.actor_id.to_owned().into_inner(),
+      page.into_any_base()?,
+    );
     create
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(create, creator, &community, context).await?;
     Ok(())
@@ -61,12 +63,15 @@ impl ApubObjectType for Post {
     })
     .await??;
 
-    let mut update = Update::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut update = Update::new(
+      creator.actor_id.to_owned().into_inner(),
+      page.into_any_base()?,
+    );
     update
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(update, creator, &community, context).await?;
     Ok(())
@@ -79,12 +84,15 @@ impl ApubObjectType for Post {
     })
     .await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut delete = Delete::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(delete, creator, &community, context).await?;
     Ok(())
@@ -101,20 +109,26 @@ impl ApubObjectType for Post {
     })
     .await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut delete = Delete::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     delete
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
+    let mut undo = Undo::new(
+      creator.actor_id.to_owned().into_inner(),
+      delete.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(undo, creator, &community, context).await?;
     Ok(())
@@ -127,12 +141,15 @@ impl ApubObjectType for Post {
     })
     .await??;
 
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut remove = Remove::new(
+      mod_.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(remove, mod_, &community, context).await?;
     Ok(())
@@ -145,20 +162,26 @@ impl ApubObjectType for Post {
     })
     .await??;
 
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut remove = Remove::new(
+      mod_.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
+    let mut undo = Undo::new(
+      mod_.actor_id.to_owned().into_inner(),
+      remove.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(undo, mod_, &community, context).await?;
     Ok(())
@@ -174,12 +197,15 @@ impl ApubLikeableType for Post {
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut like = Like::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(like, &creator, &community, context).await?;
     Ok(())
@@ -192,12 +218,15 @@ impl ApubLikeableType for Post {
     })
     .await??;
 
-    let mut dislike = Dislike::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut dislike = Dislike::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     dislike
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(dislike, &creator, &community, context).await?;
     Ok(())
@@ -214,20 +243,26 @@ impl ApubLikeableType for Post {
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
+    let mut like = Like::new(
+      creator.actor_id.to_owned().into_inner(),
+      self.ap_id.to_owned().into_inner(),
+    );
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     // Undo that fake activity
-    let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
+    let mut undo = Undo::new(
+      creator.actor_id.to_owned().into_inner(),
+      like.into_any_base()?,
+    );
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.actor_id()?]);
+      .set_many_ccs(vec![community.actor_id()]);
 
     send_to_community(undo, &creator, &community, context).await?;
     Ok(())

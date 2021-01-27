@@ -104,7 +104,11 @@ fn create_user(conn: &PgConnection, name: &str) -> User_ {
     lang: "browser".into(),
     show_avatars: true,
     send_notifications_to_email: false,
-    actor_id: Some(format!("http://localhost:8536/u/{}", name)),
+    actor_id: Some(
+      Url::parse(&format!("http://localhost:8536/u/{}", name))
+        .unwrap()
+        .into(),
+    ),
     bio: None,
     local: true,
     private_key: Some(user_keypair.private_key),
@@ -137,7 +141,7 @@ fn create_community(conn: &PgConnection, creator_id: i32) -> Community {
   };
   Community::create(&conn, &new_community).unwrap()
 }
-fn create_activity<'a, Activity, Return>(user_id: String) -> web::Json<Return>
+fn create_activity<'a, Activity, Return>(user_id: Url) -> web::Json<Return>
 where
   for<'de> Return: Deserialize<'de> + 'a,
   Activity: std::default::Default + Serialize,
@@ -173,7 +177,7 @@ async fn test_shared_inbox_expired_signature() {
   let connection = &context.pool().get().unwrap();
   let user = create_user(connection, "shared_inbox_rvgfd");
   let activity =
-    create_activity::<CreateType, ActorAndObject<shared_inbox::ValidTypes>>(user.actor_id);
+    create_activity::<CreateType, ActorAndObject<shared_inbox::ValidTypes>>(user.actor_id.into());
   let response = shared_inbox(request, activity, web::Data::new(context)).await;
   assert_eq!(
     format!("{}", response.err().unwrap()),
@@ -189,7 +193,7 @@ async fn test_user_inbox_expired_signature() {
   let connection = &context.pool().get().unwrap();
   let user = create_user(connection, "user_inbox_cgsax");
   let activity =
-    create_activity::<CreateType, ActorAndObject<user_inbox::UserValidTypes>>(user.actor_id);
+    create_activity::<CreateType, ActorAndObject<user_inbox::UserValidTypes>>(user.actor_id.into());
   let path = Path::<String> {
     0: "username".to_string(),
   };
@@ -209,7 +213,7 @@ async fn test_community_inbox_expired_signature() {
   let community = create_community(connection, user.id);
   let request = create_http_request();
   let activity = create_activity::<FollowType, ActorAndObject<community_inbox::CommunityValidTypes>>(
-    user.actor_id,
+    user.actor_id.into(),
   );
   let path = Path::<String> { 0: community.name };
   let response = community_inbox(request, activity, path, web::Data::new(context)).await;

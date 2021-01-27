@@ -41,7 +41,7 @@ impl ToApub for User_ {
     let mut person = ApObject::new(Person::new());
     person
       .set_many_contexts(lemmy_context()?)
-      .set_id(Url::parse(&self.actor_id)?)
+      .set_id(self.actor_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published));
 
     if let Some(u) = self.updated {
@@ -101,7 +101,7 @@ impl FromApub for User_ {
     let domain = user_id.domain().context(location_info!())?;
     if domain == Settings::get().hostname {
       let user = blocking(context.pool(), move |conn| {
-        User_::read_from_apub_id(conn, user_id.as_str())
+        User_::read_from_apub_id(conn, &user_id.into())
       })
       .await??;
       Ok(user)

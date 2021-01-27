@@ -55,13 +55,13 @@ impl ToApub for Post {
       // TODO: need to set proper context defining sensitive/commentsEnabled fields
       // https://git.asonix.dog/Aardwolf/activitystreams/issues/5
       .set_many_contexts(lemmy_context()?)
-      .set_id(self.ap_id.parse::<Url>()?)
+      .set_id(self.ap_id.to_owned().into_inner())
       // Use summary field to be consistent with mastodon content warning.
       // https://mastodon.xyz/@Louisa/103987265222901387.json
       .set_summary(self.name.to_owned())
       .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id)
-      .set_attributed_to(creator.actor_id);
+      .set_to(community.actor_id.into_inner())
+      .set_attributed_to(creator.actor_id.into_inner());
 
     if let Some(body) = &self.body {
       set_content_and_source(&mut page, &body)?;
@@ -93,7 +93,12 @@ impl ToApub for Post {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(self.deleted, &self.ap_id, self.updated, PageType::Page)
+    create_tombstone(
+      self.deleted,
+      self.ap_id.to_owned().into(),
+      self.updated,
+      PageType::Page,
+    )
   }
 }
 
