@@ -3,3 +3,4 @@
 extern crate lazy_static;
 pub mod code_migrations;
 pub mod routes;
+pub mod scheduled_tasks;

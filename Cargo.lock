@@ -760,6 +760,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clokwerk"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9797a6d3acefa28d4cc62bf548b6ddc57b8ae51a43702d001cb46fba1dc48c1"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1865,6 +1874,7 @@ dependencies = [
  "awc",
  "cargo-husky",
  "chrono",
+ "clokwerk",
  "diesel",
  "diesel_migrations",
  "env_logger",
