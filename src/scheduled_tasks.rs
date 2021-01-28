@@ -11,29 +11,16 @@ use std::{thread, time::Duration};
 pub fn setup(pool: DbPool) {
   let mut scheduler = Scheduler::new();
 
-  // Reindex the aggregates tables every one hour
-  // This is necessary because hot_rank is actually a mutable function:
-  // https://dba.stackexchange.com/questions/284052/how-to-create-an-index-based-on-a-time-based-function-in-postgres?noredirect=1#comment555727_284052
-  let conn = pool.get().unwrap();
-  scheduler.every(1.hour()).run(move || {
-    for table_name in &[
-      "post_aggregates",
-      "comment_aggregates",
-      "community_aggregates",
-    ] {
-      reindex_table(&conn, &table_name);
-    }
-  });
-
-  // Re-calculate the site and community active counts every 12 hours
   let conn = pool.get().unwrap();
   active_counts(&conn);
-  scheduler.every(12.hours()).run(move || {
+  reindex_aggregates_tables(&conn);
+  scheduler.every(1.hour()).run(move || {
     active_counts(&conn);
+    reindex_aggregates_tables(&conn);
   });
 
-  // Clear old activities
   let conn = pool.get().unwrap();
+  clear_old_activities(&conn);
   scheduler.every(1.weeks()).run(move || {
     clear_old_activities(&conn);
   });
@@ -45,6 +32,19 @@ pub fn setup(pool: DbPool) {
   }
 }
 
+/// Reindex the aggregates tables every one hour
+/// This is necessary because hot_rank is actually a mutable function:
+/// https://dba.stackexchange.com/questions/284052/how-to-create-an-index-based-on-a-time-based-function-in-postgres?noredirect=1#comment555727_284052
+fn reindex_aggregates_tables(conn: &PgConnection) {
+  for table_name in &[
+    "post_aggregates",
+    "comment_aggregates",
+    "community_aggregates",
+  ] {
+    reindex_table(&conn, &table_name);
+  }
+}
+
 fn reindex_table(conn: &PgConnection, table_name: &str) {
   info!("Reindexing table {} ...", table_name);
   let query = format!("reindex table concurrently {}", table_name);
@@ -52,12 +52,14 @@ fn reindex_table(conn: &PgConnection, table_name: &str) {
   info!("Done.");
 }
 
+/// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &PgConnection) {
   info!("Clearing old activities...");
   Activity::delete_olds(&conn).unwrap();
   info!("Done.");
 }
 
+/// Re-calculate the site and community active counts every 12 hours
 fn active_counts(conn: &PgConnection) {
   info!("Updating active site and community aggregates ...");
 
