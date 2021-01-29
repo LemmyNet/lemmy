@@ -96,6 +96,7 @@ struct NodeInfoUsage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct NodeInfoUsers {
   pub total: i64,
   pub active_half_year: i64,
