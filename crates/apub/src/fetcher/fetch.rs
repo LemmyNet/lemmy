@@ -10,8 +10,9 @@ use url::Url;
 /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object
 /// fetch through the search).
 ///
-/// Tests are passing with a value of 5, so 10 should be safe for production.
-static MAX_REQUEST_NUMBER: i32 = 10;
+/// A community fetch will load the outbox with up to 20 items, and fetch the creator for each item.
+/// So we are looking at a maximum of 22 requests (rounded up just to be safe).
+static MAX_REQUEST_NUMBER: i32 = 25;
 
 #[derive(Debug, Error)]
 pub(in crate::fetcher) struct FetchError {
