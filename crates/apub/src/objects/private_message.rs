@@ -44,10 +44,10 @@ impl ToApub for PrivateMessage {
 
     private_message
       .set_many_contexts(lemmy_context()?)
-      .set_id(Url::parse(&self.ap_id.to_owned())?)
+      .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
-      .set_to(recipient.actor_id)
-      .set_attributed_to(creator.actor_id);
+      .set_to(recipient.actor_id.into_inner())
+      .set_attributed_to(creator.actor_id.into_inner());
 
     set_content_and_source(&mut private_message, &self.content)?;
 
@@ -59,7 +59,12 @@ impl ToApub for PrivateMessage {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(self.deleted, &self.ap_id, self.updated, NoteType::Note)
+    create_tombstone(
+      self.deleted,
+      self.ap_id.to_owned().into(),
+      self.updated,
+      NoteType::Note,
+    )
   }
 }
 

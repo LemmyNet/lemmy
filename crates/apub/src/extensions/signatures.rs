@@ -98,17 +98,17 @@ pub(crate) fn verify_signature(
 /// Extension for actor public key, which is needed on user and community for HTTP signatures.
 ///
 /// Taken from: https://docs.rs/activitystreams/0.5.0-alpha.17/activitystreams/ext/index.html
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKeyExtension {
   pub public_key: PublicKey,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
   pub id: String,
-  pub owner: String,
+  pub owner: Url,
   pub public_key_pem: String,
 }
 

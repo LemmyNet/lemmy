@@ -1033,6 +1033,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel_json"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2812f0f63b6d3508fb7bfdb872c2dc2321ba938f5e0f4cb9751ec899e8b297c9"
+dependencies = [
+ "diesel",
+ "serde 1.0.118",
+ "serde_json",
+]
+
+[[package]]
 name = "diesel_migrations"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1803,6 +1814,7 @@ dependencies = [
  "bcrypt",
  "chrono",
  "diesel",
+ "diesel_json",
  "diesel_migrations",
  "lazy_static",
  "lemmy_db_schema",
@@ -1918,6 +1930,7 @@ dependencies = [
  "log",
  "serde 1.0.118",
  "serde_json",
+ "url",
 ]
 
 [[package]]

@@ -1,28 +1,23 @@
 use crate::{
-  check_is_apub_id_valid,
   fetcher::{
     fetch::fetch_remote_object,
     get_or_fetch_and_upsert_user,
     is_deleted,
     should_refetch_actor,
   },
+  inbox::user_inbox::receive_announce,
   objects::FromApub,
   ActorType,
   GroupExt,
-  PageExt,
 };
 use activitystreams::{
-  base::{BaseExt, ExtendsExt},
   collection::{CollectionExt, OrderedCollection},
   object::ObjectExt,
 };
 use anyhow::Context;
 use diesel::result::Error::NotFound;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator, CommunityModeratorForm},
-  post::Post,
-};
+use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -40,7 +35,7 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
 ) -> Result<Community, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, apub_id_owned.as_str())
+    Community::read_from_apub_id(conn, &apub_id_owned.into())
   })
   .await?;
 
@@ -119,29 +114,34 @@ async fn fetch_remote_community(
     .await??;
   }
 
-  // fetch outbox (maybe make this conditional)
+  // only fetch outbox for new communities, otherwise this can create an infinite loop
+  if old_community.is_none() {
+    fetch_community_outbox(context, &community, recursion_counter).await?
+  }
+
+  Ok(community)
+}
+
+async fn fetch_community_outbox(
+  context: &LemmyContext,
+  community: &Community,
+  recursion_counter: &mut i32,
+) -> Result<(), LemmyError> {
   let outbox = fetch_remote_object::<OrderedCollection>(
     context.client(),
     &community.get_outbox_url()?,
     recursion_counter,
   )
   .await?;
-  let outbox_items = outbox.items().context(location_info!())?.clone();
-  let mut outbox_items = outbox_items.many().context(location_info!())?;
-  if outbox_items.len() > 20 {
-    outbox_items = outbox_items[0..20].to_vec();
-  }
-  for o in outbox_items {
-    let page = PageExt::from_any_base(o)?.context(location_info!())?;
-    let page_id = page.id_unchecked().context(location_info!())?;
-
-    // The post creator may be from a blocked instance, if it errors, then skip it
-    if check_is_apub_id_valid(page_id).is_err() {
-      continue;
-    }
-    Post::from_apub(&page, context, page_id.to_owned(), recursion_counter).await?;
-    // TODO: we need to send a websocket update here
+  let outbox_activities = outbox.items().context(location_info!())?.clone();
+  let mut outbox_activities = outbox_activities.many().context(location_info!())?;
+  if outbox_activities.len() > 20 {
+    outbox_activities = outbox_activities[0..20].to_vec();
   }
 
-  Ok(community)
+  for activity in outbox_activities {
+    receive_announce(context, activity, community, recursion_counter).await?;
+  }
+
+  Ok(())
 }

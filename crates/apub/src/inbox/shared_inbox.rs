@@ -54,7 +54,7 @@ pub async fn shared_inbox(
   let actor = inbox_verify_http_signature(&activity, &context, request, request_counter).await?;
 
   // Do nothing if we received the same activity before
-  let actor_id = actor.actor_id()?;
+  let actor_id = actor.actor_id();
   let activity_id = get_activity_id(&activity, &actor_id)?;
   if is_activity_already_known(context.pool(), &activity_id).await? {
     return Ok(HttpResponse::Ok().finish());
@@ -137,8 +137,11 @@ async fn extract_local_community_from_destinations(
   pool: &DbPool,
 ) -> Result<Option<Community>, LemmyError> {
   for url in to_and_cc {
-    let url = url.to_string();
-    let community = blocking(&pool, move |conn| Community::read_from_apub_id(&conn, &url)).await?;
+    let url = url.to_owned();
+    let community = blocking(&pool, move |conn| {
+      Community::read_from_apub_id(&conn, &url.into())
+    })
+    .await?;
     if let Ok(c) = community {
       if c.local {
         return Ok(Some(c));

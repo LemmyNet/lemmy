@@ -1,4 +1,4 @@
-use crate::schema::private_message;
+use crate::{schema::private_message, Url};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
@@ -12,7 +12,7 @@ pub struct PrivateMessage {
   pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: String,
+  pub ap_id: Url,
   pub local: bool,
 }
 
@@ -26,6 +26,6 @@ pub struct PrivateMessageForm {
   pub read: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: Option<String>,
+  pub ap_id: Option<Url>,
   pub local: bool,
 }

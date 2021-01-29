@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     PostSaved,
     PostSavedForm,
   },
+  Url,
 };
 
 impl Crud<PostForm> for Post {
@@ -146,7 +147,7 @@ impl Post_ for Post {
 }
 
 impl ApubObject<PostForm> for Post {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }

@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     CommunityUserBan,
     CommunityUserBanForm,
   },
+  Url,
 };
 
 mod safe_type {
@@ -91,7 +92,7 @@ impl Crud<CommunityForm> for Community {
 }
 
 impl ApubObject<CommunityForm> for Community {
-  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &Url) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community
       .filter(actor_id.eq(for_actor_id))

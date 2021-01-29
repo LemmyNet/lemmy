@@ -240,7 +240,7 @@ where
     let message = SendActivityTask {
       activity: serialised_activity.to_owned(),
       inbox: i.to_owned(),
-      actor_id: actor.actor_id()?,
+      actor_id: actor.actor_id(),
       private_key: actor.private_key().context(location_info!())?,
     };
     if env::var("LEMMY_TEST_SEND_SYNC").is_ok() {

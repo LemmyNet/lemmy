@@ -90,7 +90,7 @@ pub async fn user_inbox(
   let actor = inbox_verify_http_signature(&activity, &context, request, request_counter).await?;
 
   // Do nothing if we received the same activity before
-  let activity_id = get_activity_id(&activity, &actor.actor_id()?)?;
+  let activity_id = get_activity_id(&activity, &actor.actor_id())?;
   if is_activity_already_known(context.pool(), &activity_id).await? {
     return Ok(HttpResponse::Ok().finish());
   }
@@ -103,7 +103,7 @@ pub async fn user_inbox(
   .await??;
   let to_and_cc = get_activity_to_and_cc(&activity);
   // TODO: we should also accept activities that are sent to community followers
-  if !to_and_cc.contains(&&user.actor_id()?) {
+  if !to_and_cc.contains(&&user.actor_id()) {
     return Err(anyhow!("Activity delivered to wrong user").into());
   }
 
@@ -114,7 +114,7 @@ pub async fn user_inbox(
     "User {} received activity {:?} from {}",
     user.name,
     &activity.id_unchecked(),
-    &actor.actor_id_str()
+    &actor.actor_id()
   );
 
   user_receive_message(
@@ -139,7 +139,7 @@ pub(crate) async fn user_receive_message(
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
-  let actor_url = actor.actor_id()?;
+  let actor_url = actor.actor_id();
   match kind {
     UserValidTypes::Accept => {
       receive_accept(&context, any_base, actor, to_user.unwrap(), request_counter).await?;
@@ -209,11 +209,11 @@ async fn receive_accept(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let accept = Accept::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&accept, &actor.actor_id()?, false)?;
+  verify_activity_domains_valid(&accept, &actor.actor_id(), false)?;
 
   let object = accept.object().to_owned().one().context(location_info!())?;
   let follow = Follow::from_any_base(object)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &user.actor_id()?, false)?;
+  verify_activity_domains_valid(&follow, &user.actor_id(), false)?;
 
   let community_uri = accept
     .actor()?
@@ -236,14 +236,14 @@ async fn receive_accept(
 }
 
 /// Takes an announce and passes the inner activity to the appropriate handler.
-async fn receive_announce(
+pub async fn receive_announce(
   context: &LemmyContext,
   activity: AnyBase,
   actor: &dyn ActorType,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let announce = Announce::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&announce, &actor.actor_id()?, false)?;
+  verify_activity_domains_valid(&announce, &actor.actor_id(), false)?;
   is_addressed_to_public(&announce)?;
 
   let kind = announce.object().as_single_kind_str();
@@ -375,18 +375,18 @@ async fn find_community_or_private_message_by_id(
   context: &LemmyContext,
   apub_id: Url,
 ) -> Result<CommunityOrPrivateMessage, LemmyError> {
-  let ap_id = apub_id.to_string();
+  let ap_id = apub_id.to_owned();
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &ap_id)
+    Community::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
   if let Ok(c) = community {
     return Ok(CommunityOrPrivateMessage::Community(c));
   }
 
-  let ap_id = apub_id.to_string();
+  let ap_id = apub_id.to_owned();
   let private_message = blocking(context.pool(), move |conn| {
-    PrivateMessage::read_from_apub_id(conn, &ap_id)
+    PrivateMessage::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
   if let Ok(p) = private_message {

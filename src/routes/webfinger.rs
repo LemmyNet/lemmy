@@ -70,18 +70,18 @@ async fn get_webfinger_response(
 
   let json = WebFingerResponse {
     subject: info.resource.to_owned(),
-    aliases: vec![url.to_owned()],
+    aliases: vec![url.to_owned().into()],
     links: vec![
       WebFingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         type_: Some("text/html".to_string()),
-        href: Some(url.to_owned()),
+        href: Some(url.to_owned().into()),
         template: None,
       },
       WebFingerLink {
         rel: Some("self".to_string()),
         type_: Some("application/activity+json".to_string()),
-        href: Some(url),
+        href: Some(url.into()),
         template: None,
       }, // TODO: this also needs to return the subscribe link once that's implemented
          //{

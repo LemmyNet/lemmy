@@ -1,8 +1,9 @@
 use crate::Crud;
-use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::source::activity::*;
+use diesel::{dsl::*, result::Error, sql_types::Text, *};
+use lemmy_db_schema::{source::activity::*, Url};
 use log::debug;
 use serde::Serialize;
+use serde_json::Value;
 use std::{
   fmt::Debug,
   io::{Error as IoError, ErrorKind},
@@ -47,8 +48,15 @@ pub trait Activity_ {
   ) -> Result<Activity, IoError>
   where
     T: Serialize + Debug;
+
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error>;
   fn delete_olds(conn: &PgConnection) -> Result<usize, Error>;
+
+  /// Returns up to 20 activities of type `Announce/Create/Page` from the community
+  fn read_community_outbox(
+    conn: &PgConnection,
+    community_actor_id: &Url,
+  ) -> Result<Vec<Value>, Error>;
 }
 
 impl Activity_ for Activity {
@@ -88,6 +96,25 @@ impl Activity_ for Activity {
   fn delete_olds(conn: &PgConnection) -> Result<usize, Error> {
     use lemmy_db_schema::schema::activity::dsl::*;
     diesel::delete(activity.filter(published.lt(now - 6.months()))).execute(conn)
+  }
+
+  fn read_community_outbox(
+    conn: &PgConnection,
+    community_actor_id: &Url,
+  ) -> Result<Vec<Value>, Error> {
+    use lemmy_db_schema::schema::activity::dsl::*;
+    let res: Vec<Value> = activity
+      .select(data)
+      .filter(
+        sql("activity.data ->> 'type' = 'Announce'")
+          .sql(" AND activity.data -> 'object' ->> 'type' = 'Create'")
+          .sql(" AND activity.data -> 'object' -> 'object' ->> 'type' = 'Page'")
+          .sql(" AND activity.data ->> 'actor' = ")
+          .bind::<Text, _>(community_actor_id),
+      )
+      .limit(20)
+      .get_results(conn)?;
+    Ok(res)
   }
 }
 

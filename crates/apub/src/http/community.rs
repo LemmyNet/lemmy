@@ -5,12 +5,12 @@ use crate::{
   ActorType,
 };
 use activitystreams::{
-  base::{AnyBase, BaseExt, ExtendsExt},
+  base::{AnyBase, BaseExt},
   collection::{CollectionExt, OrderedCollection, UnorderedCollection},
 };
 use actix_web::{body::Body, web, HttpResponse};
-use lemmy_db_queries::source::{community::Community_, post::Post_};
-use lemmy_db_schema::source::{community::Community, post::Post};
+use lemmy_db_queries::source::{activity::Activity_, community::Community_};
+use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
@@ -76,21 +76,20 @@ pub async fn get_apub_community_outbox(
   })
   .await??;
 
-  let community_id = community.id;
-  let posts = blocking(context.pool(), move |conn| {
-    Post::list_for_community(conn, community_id)
+  let community_actor_id = community.actor_id.to_owned();
+  let activities = blocking(context.pool(), move |conn| {
+    Activity::read_community_outbox(conn, &community_actor_id)
   })
   .await??;
 
-  let mut pages: Vec<AnyBase> = vec![];
-  for p in posts {
-    pages.push(p.to_apub(context.pool()).await?.into_any_base()?);
-  }
-
-  let len = pages.len();
+  let activities = activities
+    .iter()
+    .map(AnyBase::from_arbitrary_json)
+    .collect::<Result<Vec<AnyBase>, serde_json::Error>>()?;
+  let len = activities.len();
   let mut collection = OrderedCollection::new();
   collection
-    .set_many_items(pages)
+    .set_many_items(activities)
     .set_many_contexts(lemmy_context()?)
     .set_id(community.get_outbox_url()?)
     .set_total_items(len as u64);
