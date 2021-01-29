@@ -48,7 +48,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     usage: NodeInfoUsage {
       users: NodeInfoUsers {
         total: site_view.counts.users,
-        active_half_year: site_view.counts.users_active_half_year,
+        active_halfyear: site_view.counts.users_active_half_year,
         active_month: site_view.counts.users_active_month,
       },
       local_posts: site_view.counts.posts,
@@ -99,6 +99,6 @@ struct NodeInfoUsage {
 #[serde(rename_all = "camelCase")]
 struct NodeInfoUsers {
   pub total: i64,
-  pub active_half_year: i64,
+  pub active_halfyear: i64,
   pub active_month: i64,
 }
