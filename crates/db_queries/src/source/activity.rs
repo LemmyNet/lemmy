@@ -50,6 +50,7 @@ pub trait Activity_ {
     T: Serialize + Debug;
 
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error>;
+  fn delete_olds(conn: &PgConnection) -> Result<usize, Error>;
 
   /// Returns up to 20 activities of type `Announce/Create/Page` from the community
   fn read_community_outbox(
@@ -90,6 +91,11 @@ impl Activity_ for Activity {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error> {
     use lemmy_db_schema::schema::activity::dsl::*;
     activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
+  }
+
+  fn delete_olds(conn: &PgConnection) -> Result<usize, Error> {
+    use lemmy_db_schema::schema::activity::dsl::*;
+    diesel::delete(activity.filter(published.lt(now - 6.months()))).execute(conn)
   }
 
   fn read_community_outbox(

@@ -10,7 +10,7 @@ use diesel::{
 use lemmy_api::match_websocket_operation;
 use lemmy_apub::activity_queue::create_activity_queue;
 use lemmy_db_queries::get_database_url_from_env;
-use lemmy_server::{code_migrations::run_advanced_migrations, routes::*};
+use lemmy_server::{code_migrations::run_advanced_migrations, routes::*, scheduled_tasks};
 use lemmy_structs::blocking;
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
@@ -19,7 +19,7 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
-use std::sync::Arc;
+use std::{sync::Arc, thread};
 use tokio::sync::Mutex;
 
 embed_migrations!();
@@ -47,6 +47,11 @@ async fn main() -> Result<(), LemmyError> {
     Ok(()) as Result<(), LemmyError>
   })
   .await??;
+
+  let pool2 = pool.clone();
+  thread::spawn(move || {
+    scheduled_tasks::setup(pool2);
+  });
 
   // Set up the rate limiter
   let rate_limiter = RateLimit {

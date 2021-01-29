@@ -11,6 +11,10 @@ pub struct CommunityAggregates {
   pub posts: i64,
   pub comments: i64,
   pub published: chrono::NaiveDateTime,
+  pub users_active_day: i64,
+  pub users_active_week: i64,
+  pub users_active_month: i64,
+  pub users_active_half_year: i64,
 }
 
 impl CommunityAggregates {

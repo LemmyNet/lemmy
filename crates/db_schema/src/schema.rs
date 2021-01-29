@@ -110,6 +110,10 @@ table! {
         posts -> Int8,
         comments -> Int8,
         published -> Timestamp,
+        users_active_day -> Int8,
+        users_active_week -> Int8,
+        users_active_month -> Int8,
+        users_active_half_year -> Int8,
     }
 }
 
@@ -371,6 +375,10 @@ table! {
         posts -> Int8,
         comments -> Int8,
         communities -> Int8,
+        users_active_day -> Int8,
+        users_active_week -> Int8,
+        users_active_month -> Int8,
+        users_active_half_year -> Int8,
     }
 }
 

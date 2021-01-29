@@ -48,6 +48,8 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     usage: NodeInfoUsage {
       users: NodeInfoUsers {
         total: site_view.counts.users,
+        active_half_year: site_view.counts.users_active_half_year,
+        active_month: site_view.counts.users_active_month,
       },
       local_posts: site_view.counts.posts,
       local_comments: site_view.counts.comments,
@@ -96,4 +98,6 @@ struct NodeInfoUsage {
 #[derive(Serialize, Deserialize, Debug)]
 struct NodeInfoUsers {
   pub total: i64,
+  pub active_half_year: i64,
+  pub active_month: i64,
 }
