@@ -136,13 +136,13 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://lemmy.ml/docs/en/contributing.html)
+- [Contributing instructions](https://lemmy.ml/docs/en/contributing/contributing.html)
 - [Docker Development](https://lemmy.ml/docs/en/contributing/docker_development.html)
 - [Local Development](https://lemmy.ml/docs/en/contributing/local_development.html)
 
 ### Translations
 
-If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.ml/projects/lemmy/).
+If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.ml/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
 ## Contact
 
