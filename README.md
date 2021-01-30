@@ -142,7 +142,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ### Translations
 
-If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.ml/projects/lemmy/).
+If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.ml/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
 ## Contact
 
