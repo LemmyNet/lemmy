@@ -1,0 +1,1 @@
+drop index idx_post_aggregates_comments;
