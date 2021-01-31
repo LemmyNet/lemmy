@@ -183,33 +183,38 @@ pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), Le
   Ok(())
 }
 
-pub(crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
-  let mut instances: Vec<String> = Vec::new();
-
+pub(crate) async fn build_federated_instances(
+  pool: &DbPool,
+) -> Result<Option<FederatedInstances>, LemmyError> {
   if Settings::get().federation.enabled {
     let distinct_communities = blocking(pool, move |conn| {
       Community::distinct_federated_communities(conn)
     })
     .await??;
 
-    instances = distinct_communities
+    let allowed = Settings::get().get_allowed_instances();
+    let blocked = Settings::get().get_blocked_instances();
+
+    let mut linked = distinct_communities
       .iter()
       .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
       .collect::<Result<Vec<String>, LemmyError>>()?;
 
-    instances.append(&mut Settings::get().get_allowed_instances());
-    instances.retain(|a| {
-      !Settings::get().get_blocked_instances().contains(a)
-        && !a.eq("")
-        && !a.eq(&Settings::get().hostname)
-    });
+    linked.extend_from_slice(&allowed);
+    linked.retain(|a| !blocked.contains(a) && !a.eq("") && !a.eq(&Settings::get().hostname));
 
     // Sort and remove dupes
-    instances.sort_unstable();
-    instances.dedup();
-  }
+    linked.sort_unstable();
+    linked.dedup();
 
-  Ok(instances)
+    Ok(Some(FederatedInstances {
+      linked,
+      allowed,
+      blocked,
+    }))
+  } else {
+    Ok(None)
+  }
 }
 
 pub async fn match_websocket_operation(
