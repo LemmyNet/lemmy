@@ -1,4 +1,5 @@
 use crate::{
+  check_community_ban,
   check_optional_url,
   get_user_from_jwt,
   get_user_from_jwt_opt,
@@ -495,6 +496,8 @@ impl Perform for FollowCommunity {
 
     if community.local {
       if data.follow {
+        check_community_ban(user.id, community_id, context.pool()).await?;
+
         let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
         if blocking(context.pool(), follow).await?.is_err() {
           return Err(APIError::err("community_follower_already_exists").into());
@@ -591,6 +594,18 @@ impl Perform for BanFromCommunity {
       if blocking(context.pool(), ban).await?.is_err() {
         return Err(APIError::err("community_user_already_banned").into());
       }
+
+      // Also unsubscribe them from the community, if they are subscribed
+      let community_follower_form = CommunityFollowerForm {
+        community_id: data.community_id,
+        user_id: banned_user_id,
+        pending: false,
+      };
+      blocking(context.pool(), move |conn: &'_ _| {
+        CommunityFollower::unfollow(conn, &community_follower_form)
+      })
+      .await?
+      .ok();
     } else {
       let unban = move |conn: &'_ _| CommunityUserBan::unban(conn, &community_user_ban_form);
       if blocking(context.pool(), unban).await?.is_err() {
