@@ -64,6 +64,19 @@ impl Perform for CreateComment {
       return Err(APIError::err("locked").into());
     }
 
+    // If there's a parent_id, check to make sure that comment is in that post
+    if let Some(parent_id) = data.parent_id {
+      // Make sure the parent comment exists
+      let parent =
+        match blocking(context.pool(), move |conn| Comment::read(&conn, parent_id)).await? {
+          Ok(comment) => comment,
+          Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
+        };
+      if parent.post_id != post_id {
+        return Err(APIError::err("couldnt_create_comment").into());
+      }
+    }
+
     let comment_form = CommentForm {
       content: content_slurs_removed,
       parent_id: data.parent_id.to_owned(),
