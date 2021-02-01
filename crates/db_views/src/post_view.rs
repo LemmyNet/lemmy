@@ -70,7 +70,7 @@ impl PostView {
       follower,
       saved,
       read,
-      my_vote,
+      post_like,
     ) = post::table
       .find(post_id)
       .inner_join(user_::table)
@@ -123,6 +123,14 @@ impl PostView {
         post_like::score.nullable(),
       ))
       .first::<PostViewTuple>(conn)?;
+
+    // If a user is given, then my_vote, if None, should be 0, not null
+    // Necessary to differentiate between other user's votes
+    let my_vote = if my_user_id.is_some() && post_like.is_none() {
+      Some(0)
+    } else {
+      post_like
+    };
 
     Ok(PostView {
       post,
