@@ -106,7 +106,7 @@ pub struct GetSiteResponse {
   pub online: usize,
   pub version: String,
   pub my_user: Option<UserSafeSettings>,
-  pub federated_instances: Vec<String>,
+  pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
 }
 
 #[derive(Deserialize)]
@@ -129,4 +129,11 @@ pub struct GetSiteConfigResponse {
 pub struct SaveSiteConfig {
   pub config_hjson: String,
   pub auth: String,
+}
+
+#[derive(Serialize)]
+pub struct FederatedInstances {
+  pub linked: Vec<String>,
+  pub allowed: Vec<String>,
+  pub blocked: Vec<String>,
 }
