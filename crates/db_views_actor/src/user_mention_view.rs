@@ -270,7 +270,7 @@ impl<'a> UserMentionQueryBuilder<'a> {
       SortType::Hot | SortType::Active => query
         .order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
         .then_order_by(comment_aggregates::published.desc()),
-      SortType::New => query.order_by(comment::published.desc()),
+      SortType::New | SortType::MostComments => query.order_by(comment::published.desc()),
       SortType::TopAll => query.order_by(comment_aggregates::score.desc()),
       SortType::TopYear => query
         .filter(comment::published.gt(now - 1.years()))

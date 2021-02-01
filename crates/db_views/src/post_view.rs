@@ -363,6 +363,7 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
+      SortType::MostComments => query.then_order_by(post_aggregates::comments.desc()),
       SortType::TopAll => query.then_order_by(post_aggregates::score.desc()),
       SortType::TopYear => query
         .filter(post::published.gt(now - 1.years()))
