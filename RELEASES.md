@@ -7,10 +7,10 @@
 - Fixed a critical bug with votes and comment unlike responses not being `0` for your user.
 - Fixed a critical bug with comment creation not checking if its parent comment is in the post.
 - Serving proper activities for community outbox.
-- Added some active user counts, including `users_active_day`, `users_active_week`, `users_active_month`, `users_active_half_year` to `SiteAggregates` and `CommunityAggregates`.
+- Added some active user counts, including `users_active_day`, `users_active_week`, `users_active_month`, `users_active_half_year` to `SiteAggregates` and `CommunityAggregates`. (Also added to lemmy-ui)
 - Made sure banned users can't follow.
-- Added `FederatedInstances` to `SiteResponse`, to show allowed and blocked instances.
-- Added a `MostComments` sort for posts.
+- Added `FederatedInstances` to `SiteResponse`, to show allowed and blocked instances. (Also added to lemmy-ui)
+- Added a `MostComments` sort for posts. (Also added to lemmy-ui)
 
 ### Lemmy-UI
 
