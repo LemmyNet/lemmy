@@ -1,3 +1,22 @@
+# Lemmy v0.9.4 Pre-Release (2021-02-02)
+
+## Changes
+
+- Fixed a critical bug with votes and comment unlike responses not being `0` for your user.
+- Fixed a critical bug with comment creation not checking if its parent comment is in the post.
+- Serving proper activities for community outbox.
+- Added URL type for database fields.
+- Added some active user counts, including `users_active_day`, `users_active_week`, `users_active_month`, `users_active_half_year` to `SiteAggregates` and `CommunityAggregates`.
+- Made sure banned users can't follow.
+- Added `FederatedInstances` to `SiteResponse`, to show allowed and blocked instances.
+- Added a `MostComments` sort for posts.
+- Added a scroll position restore to lemmy-ui.
+- Reworked the combined inbox so incoming comments don't wipe out your current form.
+- Fixed an updated bug on the user page.
+- Fixed cross-post titles and body getting clipped.
+- Fixing the post creation title height.
+- Squashed some other smaller bugs.
+
 # Lemmy v0.9.0 Release (2021-01-25)
 
 ## Changes
