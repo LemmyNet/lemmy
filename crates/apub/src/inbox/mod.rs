@@ -17,7 +17,8 @@ use lemmy_db_schema::source::{activity::Activity, community::Community, user::Us
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use serde::{export::fmt::Debug, Serialize};
+use serde::Serialize;
+use std::fmt::Debug;
 use url::Url;
 
 pub mod community_inbox;

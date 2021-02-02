@@ -8,28 +8,28 @@ name = "lemmy_utils"
 path = "src/lib.rs"
 
 [dependencies]
-regex = "1.4.2"
+regex = "1.4.3"
 config = { version = "0.10.1", default-features = false, features = ["hjson"] }
 chrono = { version = "0.4.19", features = ["serde"] }
-lettre = "0.10.0-alpha.4"
-log = "0.4.11"
-itertools = "0.9.0"
-rand = "0.8.0"
+lettre = "0.10.0-alpha.5"
+log = "0.4.14"
+itertools = "0.10.0"
+rand = "0.8.3"
 percent-encoding = "2.1.0"
-serde = { version = "1.0.118", features = ["derive"] }
-serde_json = { version = "1.0.60", features = ["preserve_order"] }
-thiserror = "1.0.22"
+serde = { version = "1.0.123", features = ["derive"] }
+serde_json = { version = "1.0.61", features = ["preserve_order"] }
+thiserror = "1.0.23"
 comrak = { version = "0.9.0", default-features = false }
 lazy_static = "1.4.0"
-openssl = "0.10.31"
+openssl = "0.10.32"
 url = { version = "2.2.0", features = ["serde"] }
 actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
 actix-rt = { version = "1.1.1", default-features = false }
-anyhow = "1.0.36"
+anyhow = "1.0.38"
 reqwest = { version = "0.10.10", features = ["json"] }
 tokio = { version = "0.3.6", features = ["sync"] }
 strum = "0.20.0"
 strum_macros = "0.20.1"
-futures = "0.3.8"
+futures = "0.3.12"
 diesel = "1.4.5"
-http = "0.2.2"
+http = "0.2.3"

@@ -26,8 +26,8 @@ use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{debug, warn};
 use reqwest::Client;
-use serde::{export::fmt::Debug, Deserialize, Serialize};
-use std::{collections::BTreeMap, env, future::Future, pin::Pin};
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, env, fmt::Debug, future::Future, pin::Pin};
 use url::Url;
 
 /// Sends a local activity to a single, remote actor.

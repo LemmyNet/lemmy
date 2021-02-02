@@ -7,5 +7,5 @@ edition = "2018"
 lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }
 diesel = { version = "1.4.5", features = ["postgres","chrono","r2d2","serde_json"] }
-serde = { version = "1.0.118", features = ["derive"] }
-log = "0.4.11"
+serde = { version = "1.0.123", features = ["derive"] }
+log = "0.4.14"

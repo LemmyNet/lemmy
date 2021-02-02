@@ -48,23 +48,23 @@ pub fn send_email(
       MultiPart::mixed().multipart(
         MultiPart::alternative()
           .singlepart(
-            SinglePart::eight_bit()
+            SinglePart::builder()
               .header(header::ContentType(
                 "text/plain; charset=utf8"
                   .parse()
                   .expect("email could not parse header"),
               ))
-              .body(html),
+              .body(html.to_string()),
           )
           .multipart(
             MultiPart::related().singlepart(
-              SinglePart::eight_bit()
+              SinglePart::builder()
                 .header(header::ContentType(
                   "text/html; charset=utf8"
                     .parse()
                     .expect("email could not parse header"),
                 ))
-                .body(html),
+                .body(html.to_string()),
             ),
           ),
       ),
