@@ -26,8 +26,8 @@ url = { version = "2.2.0", features = ["serde"] }
 actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
 actix-rt = { version = "1.1.1", default-features = false }
 anyhow = "1.0.38"
-reqwest = { version = "0.11.0", features = ["json"] }
-tokio = { version = "1.1.1", features = ["sync"] }
+reqwest = { version = "0.10.10", features = ["json"] }
+tokio = { version = "0.3.6", features = ["sync"] }
 strum = "0.20.0"
 strum_macros = "0.20.1"
 futures = "0.3.12"

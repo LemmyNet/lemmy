@@ -48,10 +48,10 @@ rss = "1.10.0"
 url = { version = "2.2.0", features = ["serde"] }
 openssl = "0.10.32"
 http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
-tokio = "1.1.1"
+tokio = "0.3.6"
 sha2 = "0.9.3"
 anyhow = "1.0.38"
-reqwest = { version = "0.11.0", features = ["json"] }
+reqwest = { version = "0.10.10", features = ["json"] }
 activitystreams = "0.7.0-alpha.10"
 actix-rt = { version = "1.1.1", default-features = false }
 serde_json = { version = "1.0.61", features = ["preserve_order"] }
