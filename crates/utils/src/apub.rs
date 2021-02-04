@@ -1,7 +1,5 @@
-use crate::settings::Settings;
 use openssl::{pkey::PKey, rsa::Rsa};
 use std::io::{Error, ErrorKind};
-use url::Url;
 
 pub struct Keypair {
   pub private_key: String,
@@ -25,31 +23,4 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
     private_key: key_to_string(private_key)?,
     public_key: key_to_string(public_key)?,
   })
-}
-
-pub enum EndpointType {
-  Community,
-  User,
-  Post,
-  Comment,
-  PrivateMessage,
-}
-
-/// Generates the ActivityPub ID for a given object type and ID.
-pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
-  let point = match endpoint_type {
-    EndpointType::Community => "c",
-    EndpointType::User => "u",
-    EndpointType::Post => "post",
-    EndpointType::Comment => "comment",
-    EndpointType::PrivateMessage => "private_message",
-  };
-
-  Url::parse(&format!(
-    "{}/{}/{}",
-    Settings::get().get_protocol_and_hostname(),
-    point,
-    name
-  ))
-  .unwrap()
 }

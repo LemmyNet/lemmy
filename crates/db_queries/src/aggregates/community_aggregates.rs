@@ -71,6 +71,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -100,6 +102,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let another_inserted_user = User_::create(&conn, &another_user).unwrap();
@@ -122,6 +126,9 @@ mod tests {
       published: None,
       icon: None,
       banner: None,
+      followers_url: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -144,6 +151,9 @@ mod tests {
       published: None,
       icon: None,
       banner: None,
+      followers_url: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let another_inserted_community = Community::create(&conn, &another_community).unwrap();

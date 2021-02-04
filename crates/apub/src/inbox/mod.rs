@@ -12,7 +12,11 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
+use lemmy_db_queries::{
+  source::{activity::Activity_, community::Community_},
+  ApubObject,
+  DbPool,
+};
 use lemmy_db_schema::source::{activity::Activity, community::Community, user::User_};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
@@ -141,16 +145,15 @@ pub(crate) async fn is_addressed_to_community_followers(
   pool: &DbPool,
 ) -> Result<Option<Community>, LemmyError> {
   for url in to_and_cc {
-    let url = url.to_string();
-    // TODO: extremely hacky, we should just store the followers url for each community in the db
-    if url.ends_with("/followers") {
-      let community_url = Url::parse(&url.replace("/followers", ""))?;
-      let community = blocking(&pool, move |conn| {
-        Community::read_from_apub_id(&conn, &community_url.into())
-      })
-      .await??;
-      if !community.local {
-        return Ok(Some(community));
+    let url = url.to_owned().into();
+    let community = blocking(&pool, move |conn| {
+      // ignore errors here, because the current url might not actually be a followers url
+      Community::read_from_followers_url(&conn, &url).ok()
+    })
+    .await?;
+    if let Some(c) = community {
+      if !c.local {
+        return Ok(Some(c));
       }
     }
   }

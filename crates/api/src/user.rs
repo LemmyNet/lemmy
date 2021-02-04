@@ -13,7 +13,14 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_apub::ApubObjectType;
+use lemmy_apub::{
+  generate_apub_endpoint,
+  generate_followers_url,
+  generate_inbox_url,
+  generate_shared_inbox_url,
+  ApubObjectType,
+  EndpointType,
+};
 use lemmy_db_queries::{
   diesel_option_overwrite,
   source::{
@@ -61,7 +68,7 @@ use lemmy_db_views_actor::{
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{
-  apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},
+  apub::generate_actor_keypair,
   email::send_email,
   location_info,
   settings::Settings,
@@ -179,6 +186,7 @@ impl Perform for Register {
     if !is_valid_username(&data.username) {
       return Err(APIError::err("invalid_username").into());
     }
+    let user_actor_id = generate_apub_endpoint(EndpointType::User, &data.username)?;
 
     // Register the new user
     let user_form = UserForm {
@@ -200,12 +208,14 @@ impl Perform for Register {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: Some(make_apub_endpoint(EndpointType::User, &data.username).into()),
+      actor_id: Some(user_actor_id.clone()),
       bio: None,
       local: true,
       private_key: Some(user_keypair.private_key),
       public_key: Some(user_keypair.public_key),
       last_refreshed_at: None,
+      inbox_url: Some(generate_inbox_url(&user_actor_id)?),
+      shared_inbox_url: Some(Some(generate_shared_inbox_url(&user_actor_id)?)),
     };
 
     // Create the user
@@ -236,6 +246,7 @@ impl Perform for Register {
         Ok(c) => c,
         Err(_e) => {
           let default_community_name = "main";
+          let actor_id = generate_apub_endpoint(EndpointType::Community, default_community_name)?;
           let community_form = CommunityForm {
             name: default_community_name.to_string(),
             title: "The Default Community".to_string(),
@@ -246,9 +257,7 @@ impl Perform for Register {
             removed: None,
             deleted: None,
             updated: None,
-            actor_id: Some(
-              make_apub_endpoint(EndpointType::Community, default_community_name).into(),
-            ),
+            actor_id: Some(actor_id.to_owned()),
             local: true,
             private_key: Some(main_community_keypair.private_key),
             public_key: Some(main_community_keypair.public_key),
@@ -256,6 +265,9 @@ impl Perform for Register {
             published: None,
             icon: None,
             banner: None,
+            followers_url: Some(generate_followers_url(&actor_id)?),
+            inbox_url: Some(generate_inbox_url(&actor_id)?),
+            shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
           };
           blocking(context.pool(), move |conn| {
             Community::create(conn, &community_form)
@@ -420,6 +432,7 @@ impl Perform for SaveUserSettings {
       matrix_user_id,
       avatar,
       banner,
+      inbox_url: None,
       password_encrypted,
       preferred_username,
       published: Some(user.published),
@@ -439,6 +452,7 @@ impl Perform for SaveUserSettings {
       private_key: user.private_key,
       public_key: user.public_key,
       last_refreshed_at: None,
+      shared_inbox_url: None,
     };
 
     let res = blocking(context.pool(), move |conn| {
@@ -1036,14 +1050,20 @@ impl Perform for CreatePrivateMessage {
     };
 
     let inserted_private_message_id = inserted_private_message.id;
-    let updated_private_message = match blocking(context.pool(), move |conn| {
-      let apub_id = make_apub_endpoint(
-        EndpointType::PrivateMessage,
-        &inserted_private_message_id.to_string(),
-      )
-      .to_string();
-      PrivateMessage::update_ap_id(&conn, inserted_private_message_id, apub_id)
-    })
+    let updated_private_message = match blocking(
+      context.pool(),
+      move |conn| -> Result<PrivateMessage, LemmyError> {
+        let apub_id = generate_apub_endpoint(
+          EndpointType::PrivateMessage,
+          &inserted_private_message_id.to_string(),
+        )?;
+        Ok(PrivateMessage::update_ap_id(
+          &conn,
+          inserted_private_message_id,
+          apub_id,
+        )?)
+      },
+    )
     .await?
     {
       Ok(private_message) => private_message,

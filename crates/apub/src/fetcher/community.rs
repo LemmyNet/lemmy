@@ -7,10 +7,10 @@ use crate::{
   },
   inbox::user_inbox::receive_announce,
   objects::FromApub,
-  ActorType,
   GroupExt,
 };
 use activitystreams::{
+  actor::ApActorExt,
   collection::{CollectionExt, OrderedCollection},
   object::ObjectExt,
 };
@@ -116,7 +116,8 @@ async fn fetch_remote_community(
 
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {
-    fetch_community_outbox(context, &community, recursion_counter).await?
+    let outbox = group.inner.outbox()?.context(location_info!())?;
+    fetch_community_outbox(context, outbox, &community, recursion_counter).await?
   }
 
   Ok(community)
@@ -124,15 +125,12 @@ async fn fetch_remote_community(
 
 async fn fetch_community_outbox(
   context: &LemmyContext,
+  outbox: &Url,
   community: &Community,
   recursion_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let outbox = fetch_remote_object::<OrderedCollection>(
-    context.client(),
-    &community.get_outbox_url()?,
-    recursion_counter,
-  )
-  .await?;
+  let outbox =
+    fetch_remote_object::<OrderedCollection>(context.client(), outbox, recursion_counter).await?;
   let outbox_activities = outbox.items().context(location_info!())?.clone();
   let mut outbox_activities = outbox_activities.many().context(location_info!())?;
   if outbox_activities.len() > 20 {

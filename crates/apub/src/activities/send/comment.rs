@@ -351,7 +351,7 @@ async fn collect_non_local_mentions(
   let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
   let mut addressed_ccs = vec![community.actor_id(), parent_creator.actor_id()];
   // Note: dont include community inbox here, as we send to it separately with `send_to_community()`
-  let mut inboxes = vec![parent_creator.get_shared_inbox_url()?];
+  let mut inboxes = vec![parent_creator.get_shared_inbox_or_inbox_url()];
 
   // Add the mention tag
   let mut tags = Vec::new();
@@ -370,7 +370,7 @@ async fn collect_non_local_mentions(
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
 
       let mention_user = get_or_fetch_and_upsert_user(&actor_id, context, &mut 0).await?;
-      inboxes.push(mention_user.get_shared_inbox_url()?);
+      inboxes.push(mention_user.get_shared_inbox_or_inbox_url());
 
       let mut mention_tag = Mention::new();
       mention_tag.set_href(actor_id).set_name(mention.full_name());

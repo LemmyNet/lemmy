@@ -162,6 +162,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_creator = User_::create(&conn, &creator_form).unwrap();

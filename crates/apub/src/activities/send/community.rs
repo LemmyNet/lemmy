@@ -27,21 +27,31 @@ use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ActorType for Community {
+  fn is_local(&self) -> bool {
+    self.local
+  }
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into_inner()
   }
-
   fn public_key(&self) -> Option<String> {
     self.public_key.to_owned()
   }
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
+  }
+
+  fn get_shared_inbox_or_inbox_url(&self) -> Url {
+    self
+      .shared_inbox_url
+      .clone()
+      .unwrap_or_else(|| self.inbox_url.to_owned())
+      .into()
   }
 
   async fn send_follow(
@@ -81,7 +91,7 @@ impl ActorType for Community {
       .set_id(generate_activity_id(AcceptType::Accept)?)
       .set_to(user.actor_id());
 
-    send_activity_single_dest(accept, self, user.get_inbox_url()?, context).await?;
+    send_activity_single_dest(accept, self, user.inbox_url.into(), context).await?;
     Ok(())
   }
 
@@ -92,7 +102,7 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     send_to_community_followers(delete, self, context).await?;
     Ok(())
@@ -105,14 +115,14 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     let mut undo = Undo::new(self.actor_id(), delete.into_any_base()?);
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     send_to_community_followers(undo, self, context).await?;
     Ok(())
@@ -125,7 +135,7 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     send_to_community_followers(remove, self, context).await?;
     Ok(())
@@ -138,7 +148,7 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     // Undo that fake activity
     let mut undo = Undo::new(self.actor_id(), remove.into_any_base()?);
@@ -146,7 +156,7 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     send_to_community_followers(undo, self, context).await?;
     Ok(())
@@ -164,7 +174,7 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()?]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     send_to_community_followers(announce, self, context).await?;
 
@@ -172,38 +182,21 @@ impl ActorType for Community {
   }
 
   /// For a given community, returns the inboxes of all followers.
-  ///
-  /// TODO: this function is very badly implemented, we should just store shared_inbox_url in
-  ///       CommunityFollowerView
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let inboxes = blocking(pool, move |conn| {
+    let follows = blocking(pool, move |conn| {
       CommunityFollowerView::for_community(conn, id)
     })
     .await??;
-    let inboxes = inboxes
+    let inboxes = follows
       .into_iter()
-      .filter(|i| !i.follower.local)
-      .map(|u| -> Result<Url, LemmyError> {
-        let url = u.follower.actor_id.into_inner();
-        let domain = url.domain().context(location_info!())?;
-        let port = if let Some(port) = url.port() {
-          format!(":{}", port)
-        } else {
-          "".to_string()
-        };
-        Ok(Url::parse(&format!(
-          "{}://{}{}/inbox",
-          Settings::get().get_protocol_string(),
-          domain,
-          port,
-        ))?)
-      })
-      .filter_map(Result::ok)
+      .filter(|f| !f.follower.local)
+      .map(|f| f.follower.shared_inbox_url.unwrap_or(f.follower.inbox_url))
+      .map(|i| i.into_inner())
+      .unique()
       // Don't send to blocked instances
       .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
-      .unique()
       .collect();
 
     Ok(inboxes)

@@ -41,7 +41,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(recipient.actor_id());
 
-    send_activity_single_dest(create, creator, recipient.get_inbox_url()?, context).await?;
+    send_activity_single_dest(create, creator, recipient.inbox_url.into(), context).await?;
     Ok(())
   }
 
@@ -61,7 +61,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(recipient.actor_id());
 
-    send_activity_single_dest(update, creator, recipient.get_inbox_url()?, context).await?;
+    send_activity_single_dest(update, creator, recipient.inbox_url.into(), context).await?;
     Ok(())
   }
 
@@ -78,7 +78,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(recipient.actor_id());
 
-    send_activity_single_dest(delete, creator, recipient.get_inbox_url()?, context).await?;
+    send_activity_single_dest(delete, creator, recipient.inbox_url.into(), context).await?;
     Ok(())
   }
 
@@ -109,7 +109,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(recipient.actor_id());
 
-    send_activity_single_dest(undo, creator, recipient.get_inbox_url()?, context).await?;
+    send_activity_single_dest(undo, creator, recipient.inbox_url.into(), context).await?;
     Ok(())
   }
 

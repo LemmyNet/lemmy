@@ -33,6 +33,8 @@ pub struct User_ {
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub banner: Option<String>,
   pub deleted: bool,
+  pub inbox_url: Url,
+  pub shared_inbox_url: Option<Url>,
 }
 
 /// A safe representation of user, without the sensitive info
@@ -53,6 +55,8 @@ pub struct UserSafe {
   pub local: bool,
   pub banner: Option<String>,
   pub deleted: bool,
+  pub inbox_url: Url,
+  pub shared_inbox_url: Option<Url>,
 }
 
 /// A safe user view with only settings
@@ -211,4 +215,6 @@ pub struct UserForm {
   pub public_key: Option<String>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
   pub banner: Option<Option<String>>,
+  pub inbox_url: Option<Url>,
+  pub shared_inbox_url: Option<Option<Url>>,
 }

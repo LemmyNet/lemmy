@@ -463,6 +463,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -485,6 +487,9 @@ mod tests {
       published: None,
       icon: None,
       banner: None,
+      followers_url: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -588,6 +593,8 @@ mod tests {
         admin: false,
         updated: None,
         matrix_user_id: None,
+        inbox_url: inserted_user.inbox_url.to_owned(),
+        shared_inbox_url: None,
       },
       creator_banned_from_community: false,
       community: CommunitySafe {

@@ -25,6 +25,9 @@ pub struct Community {
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub icon: Option<String>,
   pub banner: Option<String>,
+  pub followers_url: Url,
+  pub inbox_url: Url,
+  pub shared_inbox_url: Option<Url>,
 }
 
 /// A safe representation of community, without the sensitive info
@@ -68,6 +71,9 @@ pub struct CommunityForm {
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
   pub icon: Option<Option<String>>,
   pub banner: Option<Option<String>>,
+  pub followers_url: Option<Url>,
+  pub inbox_url: Option<Url>,
+  pub shared_inbox_url: Option<Option<Url>>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

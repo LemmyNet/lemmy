@@ -42,7 +42,7 @@ impl Crud<PostForm> for Post {
 pub trait Post_ {
   //fn read(conn: &PgConnection, post_id: i32) -> Result<Post, Error>;
   fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Post>, Error>;
-  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Post, Error>;
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: Url) -> Result<Post, Error>;
   fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Post>, Error>;
   fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Post, Error>;
   fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Post, Error>;
@@ -68,7 +68,7 @@ impl Post_ for Post {
       .load::<Self>(conn)
   }
 
-  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: Url) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
@@ -261,6 +261,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -283,6 +285,9 @@ mod tests {
       published: None,
       icon: None,
       banner: None,
+      followers_url: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();

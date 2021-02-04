@@ -9,7 +9,7 @@ use crate::{
   Perform,
 };
 use actix_web::web::Data;
-use lemmy_apub::{ApubLikeableType, ApubObjectType};
+use lemmy_apub::{generate_apub_endpoint, ApubLikeableType, ApubObjectType, EndpointType};
 use lemmy_db_queries::{
   source::post::Post_,
   Crud,
@@ -38,7 +38,6 @@ use lemmy_db_views_actor::{
 };
 use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
-  apub::{make_apub_endpoint, EndpointType},
   request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, check_slurs_opt, is_valid_post_title},
   APIError,
@@ -115,10 +114,9 @@ impl Perform for CreatePost {
       };
 
     let inserted_post_id = inserted_post.id;
-    let updated_post = match blocking(context.pool(), move |conn| {
-      let apub_id =
-        make_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string()).to_string();
-      Post::update_ap_id(conn, inserted_post_id, apub_id)
+    let updated_post = match blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
+      let apub_id = generate_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string())?;
+      Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
     })
     .await?
     {

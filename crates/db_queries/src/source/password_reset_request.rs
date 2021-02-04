@@ -110,6 +110,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();

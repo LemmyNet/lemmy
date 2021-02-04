@@ -94,7 +94,7 @@ where
     .collect();
   debug!(
     "Sending activity {:?} to followers of {}",
-    &activity.id_unchecked(),
+    &activity.id_unchecked().map(|i| i.to_string()),
     &community.actor_id
   );
 
@@ -135,7 +135,7 @@ where
       .send_announce(activity.into_any_base()?, context)
       .await?;
   } else {
-    let inbox = community.get_shared_inbox_url()?;
+    let inbox = community.get_shared_inbox_or_inbox_url();
     check_is_apub_id_valid(&inbox)?;
     debug!(
       "Sending activity {:?} to community {}",

@@ -9,7 +9,7 @@ use crate::{
   Perform,
 };
 use actix_web::web::Data;
-use lemmy_apub::{ApubLikeableType, ApubObjectType};
+use lemmy_apub::{generate_apub_endpoint, ApubLikeableType, ApubObjectType, EndpointType};
 use lemmy_db_queries::{
   source::comment::Comment_,
   Crud,
@@ -26,7 +26,6 @@ use lemmy_db_views::{
 };
 use lemmy_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_utils::{
-  apub::{make_apub_endpoint, EndpointType},
   utils::{remove_slurs, scrape_text_for_mentions},
   APIError,
   ConnectionId,
@@ -104,16 +103,17 @@ impl Perform for CreateComment {
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
-    let updated_comment: Comment = match blocking(context.pool(), move |conn| {
-      let apub_id =
-        make_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string()).to_string();
-      Comment::update_ap_id(&conn, inserted_comment_id, apub_id)
-    })
-    .await?
-    {
-      Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
-    };
+    let updated_comment: Comment =
+      match blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
+        let apub_id =
+          generate_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string())?;
+        Ok(Comment::update_ap_id(&conn, inserted_comment_id, apub_id)?)
+      })
+      .await?
+      {
+        Ok(comment) => comment,
+        Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
+      };
 
     updated_comment.send_create(&user, context).await?;
 

@@ -60,7 +60,7 @@ pub async fn get_apub_community_followers(
   let mut collection = UnorderedCollection::new();
   collection
     .set_many_contexts(lemmy_context()?)
-    .set_id(community.get_followers_url()?)
+    .set_id(community.followers_url.into())
     .set_total_items(community_followers.len() as u64);
   Ok(create_apub_response(&collection))
 }

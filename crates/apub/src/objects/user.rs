@@ -71,12 +71,12 @@ impl ToApub for User_ {
       person.set_name(i);
     }
 
-    let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
+    let mut ap_actor = ApActor::new(self.inbox_url.clone().into(), person);
     ap_actor
       .set_preferred_username(self.name.to_owned())
       .set_outbox(self.get_outbox_url()?)
       .set_endpoints(Endpoints {
-        shared_inbox: Some(self.get_shared_inbox_url()?),
+        shared_inbox: Some(self.get_shared_inbox_or_inbox_url()),
         ..Default::default()
       });
 
@@ -158,8 +158,13 @@ impl FromApubToForm<PersonExt> for UserForm {
       .flatten()
       .map(|n| n.to_owned().xsd_string())
       .flatten();
-
     let bio = get_source_markdown_value(person)?;
+    let shared_inbox = person
+      .inner
+      .endpoints()?
+      .map(|e| e.shared_inbox)
+      .flatten()
+      .map(|s| s.to_owned().into());
 
     check_slurs(&name)?;
     check_slurs_opt(&preferred_username)?;
@@ -190,6 +195,8 @@ impl FromApubToForm<PersonExt> for UserForm {
       private_key: None,
       public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),
       last_refreshed_at: Some(naive_now()),
+      inbox_url: Some(person.inner.inbox()?.to_owned().into()),
+      shared_inbox_url: Some(shared_inbox),
     })
   }
 }

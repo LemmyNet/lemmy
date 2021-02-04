@@ -83,13 +83,13 @@ impl ToApub for Community {
       group.set_image(image.into_any_base()?);
     }
 
-    let mut ap_actor = ApActor::new(self.get_inbox_url()?, group);
+    let mut ap_actor = ApActor::new(self.inbox_url.clone().into(), group);
     ap_actor
       .set_preferred_username(self.name.to_owned())
       .set_outbox(self.get_outbox_url()?)
-      .set_followers(self.get_followers_url()?)
+      .set_followers(self.followers_url.clone().into())
       .set_endpoints(Endpoints {
-        shared_inbox: Some(self.get_shared_inbox_url()?),
+        shared_inbox: Some(self.get_shared_inbox_or_inbox_url()),
         ..Default::default()
       });
 
@@ -184,7 +184,6 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       ),
       None => None,
     };
-
     let banner = match group.image() {
       Some(any_image) => Some(
         Image::from_any_base(any_image.as_one().context(location_info!())?.clone())
@@ -197,6 +196,12 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       ),
       None => None,
     };
+    let shared_inbox = group
+      .inner
+      .endpoints()?
+      .map(|e| e.shared_inbox)
+      .flatten()
+      .map(|s| s.to_owned().into());
 
     Ok(CommunityForm {
       name,
@@ -216,6 +221,16 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       last_refreshed_at: Some(naive_now()),
       icon,
       banner,
+      followers_url: Some(
+        group
+          .inner
+          .followers()?
+          .context(location_info!())?
+          .to_owned()
+          .into(),
+      ),
+      inbox_url: Some(group.inner.inbox()?.to_owned().into()),
+      shared_inbox_url: Some(shared_inbox),
     })
   }
 }

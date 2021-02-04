@@ -114,6 +114,8 @@ fn create_user(conn: &PgConnection, name: &str) -> User_ {
     private_key: Some(user_keypair.private_key),
     public_key: Some(user_keypair.public_key),
     last_refreshed_at: None,
+    inbox_url: None,
+    shared_inbox_url: None,
   };
 
   User_::create(&conn, &new_user).unwrap()
@@ -138,6 +140,9 @@ fn create_community(conn: &PgConnection, creator_id: i32) -> Community {
     published: None,
     icon: None,
     banner: None,
+    followers_url: None,
+    inbox_url: None,
+    shared_inbox_url: None,
   };
   Community::create(&conn, &new_community).unwrap()
 }

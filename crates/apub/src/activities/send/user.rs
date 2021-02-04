@@ -25,6 +25,9 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ActorType for User_ {
+  fn is_local(&self) -> bool {
+    self.local
+  }
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into_inner()
   }
@@ -35,6 +38,14 @@ impl ActorType for User_ {
 
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
+  }
+
+  fn get_shared_inbox_or_inbox_url(&self) -> Url {
+    self
+      .shared_inbox_url
+      .clone()
+      .unwrap_or_else(|| self.inbox_url.to_owned())
+      .into()
   }
 
   /// As a given local user, send out a follow request to a remote community.
@@ -65,7 +76,7 @@ impl ActorType for User_ {
       .set_id(generate_activity_id(FollowType::Follow)?)
       .set_to(community.actor_id());
 
-    send_activity_single_dest(follow, self, community.get_inbox_url()?, context).await?;
+    send_activity_single_dest(follow, self, community.inbox_url.into(), context).await?;
     Ok(())
   }
 
@@ -96,7 +107,7 @@ impl ActorType for User_ {
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(community.actor_id());
 
-    send_activity_single_dest(undo, self, community.get_inbox_url()?, context).await?;
+    send_activity_single_dest(undo, self, community.inbox_url.into(), context).await?;
     Ok(())
   }
 

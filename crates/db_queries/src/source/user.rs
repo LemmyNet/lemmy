@@ -28,6 +28,8 @@ mod safe_type {
     local,
     banner,
     deleted,
+    inbox_url,
+    shared_inbox_url,
   );
 
   impl ToSafe for User_ {
@@ -48,6 +50,8 @@ mod safe_type {
         local,
         banner,
         deleted,
+        inbox_url,
+        shared_inbox_url,
       )
     }
   }
@@ -405,6 +409,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -436,6 +442,8 @@ mod tests {
       public_key: None,
       last_refreshed_at: inserted_user.published,
       deleted: false,
+      inbox_url: inserted_user.inbox_url.to_owned(),
+      shared_inbox_url: None,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

@@ -1887,6 +1887,7 @@ dependencies = [
  "lemmy_db_schema",
  "log",
  "serde 1.0.123",
+ "url",
 ]
 
 [[package]]

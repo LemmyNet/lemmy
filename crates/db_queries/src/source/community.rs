@@ -133,6 +133,7 @@ pub trait Community_ {
     new_creator_id: i32,
   ) -> Result<Community, Error>;
   fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error>;
+  fn read_from_followers_url(conn: &PgConnection, followers_url: &Url) -> Result<Community, Error>;
 }
 
 impl Community_ for Community {
@@ -191,6 +192,16 @@ impl Community_ for Community {
   fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community.select(actor_id).distinct().load::<String>(conn)
+  }
+
+  fn read_from_followers_url(
+    conn: &PgConnection,
+    followers_url_: &Url,
+  ) -> Result<Community, Error> {
+    use lemmy_db_schema::schema::community::dsl::*;
+    community
+      .filter(followers_url.eq(followers_url_))
+      .first::<Self>(conn)
   }
 }
 
@@ -361,6 +372,8 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -383,6 +396,9 @@ mod tests {
       published: None,
       icon: None,
       banner: None,
+      followers_url: None,
+      inbox_url: None,
+      shared_inbox_url: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -406,6 +422,9 @@ mod tests {
       last_refreshed_at: inserted_community.published,
       icon: None,
       banner: None,
+      followers_url: inserted_community.followers_url.to_owned(),
+      inbox_url: inserted_community.inbox_url.to_owned(),
+      shared_inbox_url: None,
     };
 
     let community_follower_form = CommunityFollowerForm {
