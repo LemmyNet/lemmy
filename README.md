@@ -21,7 +21,7 @@
     <br />
     <a href="https://join.lemmy.ml">Join Lemmy</a>
     ·
-    <a href="https://lemmy.ml/docs/en/index.html">Documentation</a>
+    <a href="https://join.lemmy.ml/docs/en/index.html">Documentation</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
     ·
@@ -29,7 +29,7 @@
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
     ·
-    <a href="https://lemmy.ml/docs/en/code_of_conduct.html">Code of Conduct</a>
+    <a href="https://join.lemmy.ml/docs/en/code_of_conduct.html">Code of Conduct</a>
   </p>
 </p>
 
@@ -68,7 +68,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](https://lemmy.ml/docs/en/administration/install_docker.html) and [Ansible](https://lemmy.ml/docs/en/administration/install_ansible.html).
+  - Comes with [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html) and [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html).
 - Clean, mobile-friendly interface.
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
@@ -103,8 +103,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://lemmy.ml/docs/en/administration/install_docker.html)
-- [Ansible](https://lemmy.ml/docs/en/administration/install_ansible.html)
+- [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html)
+- [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
 
 ## Lemmy Projects
 
@@ -137,9 +137,9 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://lemmy.ml/docs/en/contributing/contributing.html)
-- [Docker Development](https://lemmy.ml/docs/en/contributing/docker_development.html)
-- [Local Development](https://lemmy.ml/docs/en/contributing/local_development.html)
+- [Contributing instructions](https://join.lemmy.ml/docs/en/contributing/contributing.html)
+- [Docker Development](https://join.lemmy.ml/docs/en/contributing/docker_development.html)
+- [Local Development](https://join.lemmy.ml/docs/en/contributing/local_development.html)
 
 ### Translations
 
