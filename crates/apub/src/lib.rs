@@ -80,11 +80,11 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let host = apub_id.host_str().context(location_info!())?;
   let host_as_ip = host.parse::<IpAddr>();
   if host == "localhost" || host_as_ip.is_ok() {
-    return Err(anyhow!("invalid hostname: {:?}", host).into());
+    return Err(anyhow!("invalid hostname {}: {}", host, apub_id).into());
   }
 
   if apub_id.scheme() != Settings::get().get_protocol_string() {
-    return Err(anyhow!("invalid apub id scheme: {:?}", apub_id.scheme()).into());
+    return Err(anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id).into());
   }
 
   let mut allowed_instances = Settings::get().get_allowed_instances();
