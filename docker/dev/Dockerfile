@@ -43,15 +43,6 @@ RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
 
 RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
 
-# Build the docs
-FROM $RUST_BUILDER_IMAGE as docs
-WORKDIR /app
-RUN cargo install mdbook --git https://github.com/Nutomic/mdBook.git \
-        --branch localization --rev 0982a82 --force
-COPY --chown=rust:rust docs ./docs
-RUN ls -la docs/
-RUN mdbook build docs/
-
 # The alpine runner
 FROM alpine:3.12 as lemmy
 
@@ -67,7 +58,6 @@ RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 # Copy resources
 COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
 COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
-COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/documentation/
 
 RUN chown lemmy:lemmy /app/lemmy
 USER lemmy

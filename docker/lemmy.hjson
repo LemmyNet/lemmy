@@ -1,6 +1,6 @@
 {
   # for more info about the config, check out the documentation
-  # https://lemmy.ml/docs/administration_configuration.html
+  # https://join.lemmy.ml/docs/en/administration/configuration.html
 
   setup: {
     # username for the admin user
