@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageExtension {
-  pub comments_enabled: bool,
-  pub sensitive: bool,
-  pub stickied: bool,
+  pub comments_enabled: Option<bool>,
+  pub sensitive: Option<bool>,
+  pub stickied: Option<bool>,
 }
 
 impl<U> UnparsedExtension<U> for PageExtension

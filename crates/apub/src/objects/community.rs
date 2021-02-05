@@ -207,13 +207,19 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       name,
       title,
       description,
-      category_id: group.ext_one.category.identifier.parse::<i32>()?,
+      category_id: group
+        .ext_one
+        .category
+        .clone()
+        .map(|c| c.identifier.parse::<i32>().ok())
+        .flatten()
+        .unwrap_or(1),
       creator_id: creator.id,
       removed: None,
       published: group.inner.published().map(|u| u.to_owned().naive_local()),
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      nsfw: group.ext_one.sensitive,
+      nsfw: group.ext_one.sensitive.unwrap_or(false),
       actor_id: Some(check_object_domain(group, expected_domain)?),
       local: false,
       private_key: None,
