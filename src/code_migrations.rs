@@ -143,7 +143,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the ap_id
   let incorrect_posts = post
-    .filter(ap_id.eq("http://changeme_%"))
+    .filter(ap_id.like("http://changeme_%"))
     .filter(local.eq(true))
     .load::<Post>(conn)?;
 
@@ -164,7 +164,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the ap_id
   let incorrect_comments = comment
-    .filter(ap_id.eq("http://changeme_%"))
+    .filter(ap_id.like("http://changeme_%"))
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
 
@@ -185,7 +185,7 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
 
   // Update the ap_id
   let incorrect_pms = private_message
-    .filter(ap_id.eq("http://changeme_%"))
+    .filter(ap_id.like("http://changeme_%"))
     .filter(local.eq(true))
     .load::<PrivateMessage>(conn)?;
 
@@ -234,7 +234,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   {
     use lemmy_db_schema::schema::user_::dsl::*;
     let users = user_
-      .filter(inbox_url.eq("http://changeme_%"))
+      .filter(inbox_url.like("http://changeme_%"))
       .load::<User_>(conn)?;
 
     for u in &users {
@@ -252,7 +252,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   {
     use lemmy_db_schema::schema::community::dsl::*;
     let communities = community
-      .filter(inbox_url.eq("http://changeme_%"))
+      .filter(inbox_url.like("http://changeme_%"))
       .load::<Community>(conn)?;
 
     for c in &communities {
