@@ -85,9 +85,9 @@ impl ToApub for Post {
     }
 
     let ext = PageExtension {
-      comments_enabled: !self.locked,
-      sensitive: self.nsfw,
-      stickied: self.stickied,
+      comments_enabled: Some(!self.locked),
+      sensitive: Some(self.nsfw),
+      stickied: Some(self.stickied),
     };
     Ok(Ext1::new(page, ext))
   }
@@ -198,7 +198,7 @@ impl FromApubToForm<PageExt> for PostForm {
       creator_id: creator.id,
       community_id: community.id,
       removed: None,
-      locked: Some(!ext.comments_enabled),
+      locked: ext.comments_enabled.map(|e| !e),
       published: page
         .inner
         .published()
@@ -210,8 +210,8 @@ impl FromApubToForm<PageExt> for PostForm {
         .as_ref()
         .map(|u| u.to_owned().naive_local()),
       deleted: None,
-      nsfw: ext.sensitive,
-      stickied: Some(ext.stickied),
+      nsfw: ext.sensitive.unwrap_or(false),
+      stickied: ext.stickied.or(Some(false)),
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
