@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupExtension {
-  pub category: GroupCategory,
-  pub sensitive: bool,
+  pub category: Option<GroupCategory>,
+  pub sensitive: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -35,8 +35,8 @@ impl GroupExtension {
       name: category.name,
     };
     Ok(GroupExtension {
-      category: group_category,
-      sensitive,
+      category: Some(group_category),
+      sensitive: Some(sensitive),
     })
   }
 }
