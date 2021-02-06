@@ -1,3 +1,12 @@
+# Lemmy v0.9.6 Release (2021-02-05)
+
+## Changes
+
+- Fixed inbox_urls not being correctly set, which broke federation in `v0.9.5`. Added some logging to catch these.
+- Fixing community search not using auth.
+- Moved docs to https://join.lemmy.ml
+- Fixed an issue w/ lemmy-ui with forms being cleared out.
+
 # Lemmy v0.9.4 Pre-Release (2021-02-02)
 
 ## Changes
