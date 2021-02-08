@@ -1,3 +1,14 @@
+# Lemmy v0.9.7 Release (2021-02-08)
+
+## Changes
+
+- Posts and comments are no longer live-sorted (meaning most content should stay in place).
+- Fixed an issue with the create post title field not expanding when copied from iframely suggestion.
+- Fixed broken federated community paging / sorting.
+- Added aria attributes for accessibility, thx to @Mitch Lillie.
+- Updated translations and added croatian.
+- No changes to lemmy back-end.
+
 # Lemmy v0.9.6 Release (2021-02-05)
 
 ## Changes
