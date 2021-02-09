@@ -1,6 +1,4 @@
-use actix_web::*;
-use http_signature_normalization_actix::digest::middleware::VerifyDigest;
-use lemmy_apub::{
+use crate::{
   http::{
     comment::get_apub_comment,
     community::{
@@ -16,6 +14,8 @@ use lemmy_apub::{
   inbox::{community_inbox::community_inbox, shared_inbox::shared_inbox, user_inbox::user_inbox},
   APUB_JSON_CONTENT_TYPE,
 };
+use actix_web::*;
+use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use lemmy_utils::settings::Settings;
 use sha2::{Digest, Sha256};
 

@@ -1,7 +1,6 @@
 use crate::{
   captcha_espeak_wav_base64,
   check_optional_url,
-  claims::Claims,
   collect_moderated_communities,
   get_user_from_jwt,
   get_user_from_jwt_opt,
@@ -69,6 +68,7 @@ use lemmy_db_views_actor::{
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{
   apub::generate_actor_keypair,
+  claims::Claims,
   email::send_email,
   location_info,
   settings::Settings,
@@ -121,7 +121,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(user, Settings::get().hostname)?,
+      jwt: Claims::jwt(user.id, Settings::get().hostname)?,
     })
   }
 }
@@ -303,7 +303,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_user, Settings::get().hostname)?,
+      jwt: Claims::jwt(inserted_user.id, Settings::get().hostname)?,
     })
   }
 }
@@ -476,7 +476,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_user, Settings::get().hostname)?,
+      jwt: Claims::jwt(updated_user.id, Settings::get().hostname)?,
     })
   }
 }
@@ -1007,7 +1007,7 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_user, Settings::get().hostname)?,
+      jwt: Claims::jwt(updated_user.id, Settings::get().hostname)?,
     })
   }
 }

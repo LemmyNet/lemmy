@@ -18,6 +18,7 @@ members = [
     "crates/db_views_actor",
     "crates/structs",
     "crates/websocket",
+    "crates/routes"
 ]
 
 [dependencies]
@@ -31,25 +32,20 @@ lemmy_db_views_moderator = { path = "./crates/db_views_moderator" }
 lemmy_db_views_actor = { path = "./crates/db_views_actor" }
 lemmy_structs = { path = "./crates/structs" }
 lemmy_websocket = { path = "./crates/websocket" }
+lemmy_routes = { path = "./crates/routes" }
 diesel = "1.4.5"
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.123", features = ["derive"] }
 actix = "0.10.0"
 actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
-actix-files = { version = "0.5.0", default-features = false }
-actix-web-actors = { version = "3.0.0", default-features = false }
-awc = { version = "2.0.3", default-features = false }
 log = "0.4.14"
 env_logger = "0.8.2"
 strum = "0.20.0"
-lazy_static = "1.4.0"
-rss = "1.10.0"
 url = { version = "2.2.0", features = ["serde"] }
 openssl = "0.10.32"
 http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
 tokio = "0.3.6"
-sha2 = "0.9.3"
 anyhow = "1.0.38"
 reqwest = { version = "0.10.10", features = ["json"] }
 activitystreams = "0.7.0-alpha.10"

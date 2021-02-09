@@ -8,6 +8,7 @@ pub mod fetcher;
 pub mod http;
 pub mod inbox;
 pub mod objects;
+pub mod routes;
 
 use crate::extensions::{
   group_extensions::GroupExtension,

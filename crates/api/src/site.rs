@@ -5,7 +5,6 @@ use crate::{
   get_user_safe_settings_from_jwt,
   get_user_safe_settings_from_jwt_opt,
   is_admin,
-  version,
   Perform,
 };
 use actix_web::web::Data;
@@ -51,6 +50,7 @@ use lemmy_utils::{
   location_info,
   settings::Settings,
   utils::{check_slurs, check_slurs_opt},
+  version,
   APIError,
   ConnectionId,
   LemmyError,
