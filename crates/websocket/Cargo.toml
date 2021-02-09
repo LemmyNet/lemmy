@@ -26,3 +26,5 @@ tokio = "0.3.6"
 strum = "0.20.0"
 strum_macros = "0.20.1"
 chrono = { version = "0.4.19", features = ["serde"] }
+actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "3.0.0", default-features = false }

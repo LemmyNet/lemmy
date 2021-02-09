@@ -1,15 +1,15 @@
+use crate::Perform;
 use actix_web::{error::ErrorBadRequest, *};
-use lemmy_api::Perform;
 use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_utils::rate_limit::RateLimit;
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{routes::chat_route, LemmyContext};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/api/v2")
       // Websockets
-      .service(web::resource("/ws").to(super::websocket::chat_route))
+      .service(web::resource("/ws").to(chat_route))
       // Site
       .service(
         web::scope("/site")

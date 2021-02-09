@@ -1,4 +1,3 @@
-use crate::claims::Claims;
 use actix_web::{web, web::Data};
 use lemmy_db_queries::{
   source::{
@@ -20,19 +19,18 @@ use lemmy_db_views_actor::{
   community_view::CommunityView,
 };
 use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
-use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
+use lemmy_utils::{claims::Claims, settings::Settings, APIError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 use std::process::Command;
 use url::Url;
 
-pub mod claims;
 pub mod comment;
 pub mod community;
 pub mod post;
+pub mod routes;
 pub mod site;
 pub mod user;
-pub mod version;
 pub mod websocket;
 
 #[async_trait::async_trait(?Send)]
