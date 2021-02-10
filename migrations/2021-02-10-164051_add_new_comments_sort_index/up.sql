@@ -1,5 +1,5 @@
 -- First rename current newest comment time to newest_comment_time_necro
--- necro means that time is limited, whereas newest_comment_time 
+-- necro means that time is limited to 2 days, whereas newest_comment_time ignores that.
 alter table post_aggregates rename column newest_comment_time to newest_comment_time_necro;
 
 -- Add the newest_comment_time column
