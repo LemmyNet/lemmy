@@ -291,6 +291,7 @@ table! {
         downvotes -> Int8,
         stickied -> Bool,
         published -> Timestamp,
+        newest_comment_time_necro -> Timestamp,
         newest_comment_time -> Timestamp,
     }
 }
