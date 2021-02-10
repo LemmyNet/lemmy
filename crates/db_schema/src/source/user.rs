@@ -7,34 +7,34 @@ use serde::Serialize;
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "user_"]
 pub struct User_ {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub password_encrypted: String,
-  pub email: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: Url,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: Option<String>,
-  pub last_refreshed_at: chrono::NaiveDateTime,
-  pub banner: Option<String>,
-  pub deleted: bool,
-  pub inbox_url: Url,
-  pub shared_inbox_url: Option<Url>,
+  pub id: i32,                                  // person
+  pub name: String,                             // person
+  pub preferred_username: Option<String>,       // person
+  pub password_encrypted: String,               // local_user
+  pub email: Option<String>,                    // local_user
+  pub avatar: Option<String>,                   // person
+  pub admin: bool,                              // local_user
+  pub banned: bool,                             // person?
+  pub published: chrono::NaiveDateTime,         // person
+  pub updated: Option<chrono::NaiveDateTime>,   // person
+  pub show_nsfw: bool,                          // local_user
+  pub theme: String,                            // local_user
+  pub default_sort_type: i16,                   // local_user
+  pub default_listing_type: i16,                // local_user
+  pub lang: String,                             // local_user
+  pub show_avatars: bool,                       // local_user
+  pub send_notifications_to_email: bool,        // local_user
+  pub matrix_user_id: Option<String>,           // local_user
+  pub actor_id: Url,                            // person
+  pub bio: Option<String>,                      // person
+  pub local: bool,                              // person
+  pub private_key: Option<String>,              // person
+  pub public_key: Option<String>,               // person
+  pub last_refreshed_at: chrono::NaiveDateTime, // person
+  pub banner: Option<String>,                   // person
+  pub deleted: bool,                            // local_user
+  pub inbox_url: Url,                           // person
+  pub shared_inbox_url: Option<Url>,            // person
 }
 
 /// A safe representation of user, without the sensitive info
