@@ -11,7 +11,9 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
+use diesel::result::Error::NotFound;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
+use lemmy_db_schema::source::community::Community;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -217,11 +219,31 @@ where
     .as_single_xsd_any_uri()
     .context(location_info!())?;
   let user = get_or_fetch_and_upsert_user(user_id, context, request_counter).await?;
-  let community_id = object
+  let community = get_to_community(object, context, request_counter).await?;
+  check_community_or_site_ban(&user, &community, context.pool()).await
+}
+
+pub(in crate::objects) async fn get_to_community<T, Kind>(
+  object: &T,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<Community, LemmyError>
+where
+  T: ObjectExt<Kind>,
+{
+  let community_ids = object
     .to()
     .context(location_info!())?
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  let community = get_or_fetch_and_upsert_community(community_id, context, request_counter).await?;
-  check_community_or_site_ban(&user, &community, context.pool()).await
+    .as_many()
+    .context(location_info!())?
+    .iter()
+    .map(|a| a.as_xsd_any_uri().context(location_info!()))
+    .collect::<Result<Vec<&Url>, anyhow::Error>>()?;
+  for cid in community_ids {
+    let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
+    if community.is_ok() {
+      return community;
+    }
+  }
+  Err(NotFound.into())
 }

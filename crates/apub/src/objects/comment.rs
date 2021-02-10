@@ -18,6 +18,7 @@ use crate::{
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
+  public,
 };
 use anyhow::{anyhow, Context};
 use lemmy_db_queries::{Crud, DbPool};
@@ -67,7 +68,7 @@ impl ToApub for Comment {
       .set_many_contexts(lemmy_context()?)
       .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id.into_inner())
+      .set_many_tos(vec![community.actor_id.into_inner(), public()])
       .set_many_in_reply_tos(in_reply_to_vec)
       .set_attributed_to(creator.actor_id.into_inner());
 
