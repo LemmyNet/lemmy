@@ -672,7 +672,7 @@ impl Perform for CreateCommentReport {
     if reason.is_empty() {
       return Err(APIError::err("report_reason_required").into());
     }
-    if reason.len() > 1000 {
+    if reason.chars().count() > 1000 {
       return Err(APIError::err("report_too_long").into());
     }
 
