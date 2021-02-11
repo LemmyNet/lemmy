@@ -563,10 +563,15 @@ impl Perform for GetUserDetails {
     })
     .await??;
 
-    let follows = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_user(conn, user_details_id)
-    })
-    .await??;
+    let mut follows = vec![];
+    if let Some(uid) = user_id {
+      if uid == user_details_id {
+        follows = blocking(context.pool(), move |conn| {
+          CommunityFollowerView::for_user(conn, user_details_id)
+        })
+        .await??;
+      }
+    };
     let moderates = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_user(conn, user_details_id)
     })
