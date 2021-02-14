@@ -32,7 +32,7 @@ pub struct User_ {
   pub public_key: Option<String>,               // person
   pub last_refreshed_at: chrono::NaiveDateTime, // person
   pub banner: Option<String>,                   // person
-  pub deleted: bool,                            // local_user
+  pub deleted: bool,                            // person
   pub inbox_url: Url,                           // person
   pub shared_inbox_url: Option<Url>,            // person
 }
