@@ -37,7 +37,7 @@ async fn main() -> Result<(), LemmyError> {
   };
   let manager = ConnectionManager::<PgConnection>::new(&db_url);
   let pool = Pool::builder()
-    .max_size(settings.database.pool_size)
+    .max_size(settings.database.unwrap_or_default().pool_size)
     .build(manager)
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 
@@ -61,7 +61,8 @@ async fn main() -> Result<(), LemmyError> {
 
   println!(
     "Starting http server at {}:{}",
-    settings.bind, settings.port
+    settings.bind.unwrap(),
+    settings.port.unwrap_or_default()
   );
 
   let activity_queue = create_activity_queue();
@@ -94,7 +95,7 @@ async fn main() -> Result<(), LemmyError> {
       .configure(nodeinfo::config)
       .configure(webfinger::config)
   })
-  .bind((settings.bind, settings.port))?
+  .bind((settings.bind.unwrap(), settings.port.unwrap_or_default()))?
   .run()
   .await?;
 

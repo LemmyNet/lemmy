@@ -54,8 +54,10 @@ async fn upload(
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
-  let mut client_req =
-    client.request_from(format!("{}/image", Settings::get().pictrs_url), req.head());
+  let mut client_req = client.request_from(
+    format!("{}/image", Settings::get().pictrs_url.unwrap_or_default()),
+    req.head(),
+  );
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
@@ -78,14 +80,18 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}/image/original/{}", Settings::get().pictrs_url, name,)
+    format!(
+      "{}/image/original/{}",
+      Settings::get().pictrs_url.unwrap_or_default(),
+      name,
+    )
   } else {
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
     let mut url = format!(
       "{}/image/process.{}?src={}",
-      Settings::get().pictrs_url,
+      Settings::get().pictrs_url.unwrap_or_default(),
       format,
       name,
     );
@@ -134,7 +140,7 @@ async fn delete(
 
   let url = format!(
     "{}/image/delete/{}/{}",
-    Settings::get().pictrs_url,
+    Settings::get().pictrs_url.unwrap_or_default(),
     &token,
     &file
   );

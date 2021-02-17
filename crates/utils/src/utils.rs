@@ -85,7 +85,10 @@ pub struct MentionData {
 
 impl MentionData {
   pub fn is_local(&self) -> bool {
-    Settings::get().hostname.eq(&self.domain)
+    Settings::get()
+      .hostname
+      .unwrap_or_default()
+      .eq(&self.domain)
   }
   pub fn full_name(&self) -> String {
     format!("@{}@{}", &self.name, &self.domain)

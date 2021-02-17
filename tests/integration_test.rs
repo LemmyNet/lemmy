@@ -58,7 +58,7 @@ fn create_context() -> LemmyContext {
   };
   let manager = ConnectionManager::<PgConnection>::new(&db_url);
   let pool = Pool::builder()
-    .max_size(settings.database.pool_size)
+    .max_size(settings.database.unwrap_or_default().pool_size)
     .build(manager)
     .unwrap();
   embedded_migrations::run(&pool.get().unwrap()).unwrap();

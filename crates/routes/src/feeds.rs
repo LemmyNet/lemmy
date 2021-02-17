@@ -163,7 +163,7 @@ fn get_feed_user(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
-  let user_url = user.get_profile_url(&Settings::get().hostname);
+  let user_url = user.get_profile_url(&Settings::get().hostname.unwrap_or_default());
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::All)

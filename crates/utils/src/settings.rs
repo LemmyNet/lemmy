@@ -1,27 +1,53 @@
-use crate::location_info;
+use crate::{location_info, LemmyError};
 use anyhow::Context;
-use config::{Config, ConfigError, Environment, File};
+use deser_hjson::from_str;
+use merge::Merge;
 use serde::Deserialize;
-use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
+use std::{
+  env,
+  fs,
+  io::Error,
+  net::{IpAddr, Ipv4Addr},
+  sync::RwLock,
+};
 
-static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
 static CONFIG_FILE: &str = "config/config.hjson";
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Merge)]
 pub struct Settings {
   pub setup: Option<Setup>,
-  pub database: DatabaseConfig,
-  pub hostname: String,
-  pub bind: IpAddr,
-  pub port: u16,
-  pub tls_enabled: bool,
-  pub jwt_secret: String,
-  pub pictrs_url: String,
-  pub iframely_url: String,
-  pub rate_limit: RateLimitConfig,
+  pub database: Option<DatabaseConfig>,
+  pub hostname: Option<String>,
+  pub bind: Option<IpAddr>,
+  pub port: Option<u16>,
+  pub tls_enabled: Option<bool>,
+  pub jwt_secret: Option<String>,
+  pub pictrs_url: Option<String>,
+  pub iframely_url: Option<String>,
+  pub rate_limit: Option<RateLimitConfig>,
   pub email: Option<EmailConfig>,
-  pub federation: FederationConfig,
-  pub captcha: CaptchaConfig,
+  pub federation: Option<FederationConfig>,
+  pub captcha: Option<CaptchaConfig>,
+}
+
+impl Default for Settings {
+  fn default() -> Self {
+    Self {
+      database: Some(DatabaseConfig::default()),
+      rate_limit: Some(RateLimitConfig::default()),
+      federation: Some(FederationConfig::default()),
+      captcha: Some(CaptchaConfig::default()),
+      email: None,
+      setup: None,
+      hostname: None,
+      bind: Some(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
+      port: Some(8536),
+      tls_enabled: Some(true),
+      jwt_secret: Some("changeme".into()),
+      pictrs_url: Some("http://pictrs:8080".into()),
+      iframely_url: Some("http://iframely".into()),
+    }
+  }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -44,6 +70,21 @@ pub struct RateLimitConfig {
   pub image_per_second: i32,
 }
 
+impl Default for RateLimitConfig {
+  fn default() -> Self {
+    Self {
+      message: 180,
+      message_per_second: 60,
+      post: 6,
+      post_per_second: 600,
+      register: 3,
+      register_per_second: 3600,
+      image: 6,
+      image_per_second: 3600,
+    }
+  }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct EmailConfig {
   pub smtp_server: String,
@@ -56,7 +97,16 @@ pub struct EmailConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct CaptchaConfig {
   pub enabled: bool,
-  pub difficulty: String, // easy, medium, or hard
+  pub difficulty: String,
+}
+
+impl Default for CaptchaConfig {
+  fn default() -> Self {
+    Self {
+      enabled: true,
+      difficulty: "medium".into(),
+    }
+  }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -69,11 +119,34 @@ pub struct DatabaseConfig {
   pub pool_size: u32,
 }
 
+impl Default for DatabaseConfig {
+  fn default() -> Self {
+    Self {
+      user: "lemmy".into(),
+      password: "password".into(),
+      host: "localhost".into(),
+      port: 5432,
+      database: "lemmy".into(),
+      pool_size: 5,
+    }
+  }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct FederationConfig {
   pub enabled: bool,
   pub allowed_instances: String,
   pub blocked_instances: String,
+}
+
+impl Default for FederationConfig {
+  fn default() -> Self {
+    Self {
+      enabled: false,
+      allowed_instances: "".into(),
+      blocked_instances: "".into(),
+    }
+  }
 }
 
 lazy_static! {
@@ -91,21 +164,14 @@ impl Settings {
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
-  fn init() -> Result<Self, ConfigError> {
-    let mut s = Config::new();
+  fn init() -> Result<Self, LemmyError> {
+    // Read the config file
+    let mut custom_config = from_str::<Settings>(&Self::read_config_file()?)?;
 
-    s.merge(File::with_name(&Self::get_config_defaults_location()))?;
+    // Merge with default
+    custom_config.merge(Settings::default());
 
-    s.merge(File::with_name(&Self::get_config_location()).required(false))?;
-
-    // Add in settings from the environment (with a prefix of LEMMY)
-    // Eg.. `LEMMY_DEBUG=1 ./target/app` would set the `debug` key
-    // Note: we need to use double underscore here, because otherwise variables containing
-    //       underscore cant be set from environmnet.
-    // https://github.com/mehcode/config-rs/issues/73
-    s.merge(Environment::with_prefix("LEMMY").separator("__"))?;
-
-    s.try_into()
+    Ok(custom_config)
   }
 
   /// Returns the config as a struct.
@@ -114,18 +180,11 @@ impl Settings {
   }
 
   pub fn get_database_url(&self) -> String {
+    let conf = self.database.to_owned().unwrap_or_default();
     format!(
       "postgres://{}:{}@{}:{}/{}",
-      self.database.user,
-      self.database.password,
-      self.database.host,
-      self.database.port,
-      self.database.database
+      conf.user, conf.password, conf.host, conf.port, conf.database,
     )
-  }
-
-  pub fn get_config_defaults_location() -> String {
-    env::var("LEMMY_CONFIG_DEFAULTS_LOCATION").unwrap_or_else(|_| CONFIG_FILE_DEFAULTS.to_string())
   }
 
   pub fn get_config_location() -> String {
@@ -139,6 +198,8 @@ impl Settings {
   pub fn get_allowed_instances(&self) -> Vec<String> {
     let mut allowed_instances: Vec<String> = self
       .federation
+      .to_owned()
+      .unwrap_or_default()
       .allowed_instances
       .split(',')
       .map(|d| d.trim().to_string())
@@ -146,13 +207,14 @@ impl Settings {
 
     // The defaults.hjson config always returns a [""]
     allowed_instances.retain(|d| !d.eq(""));
-
     allowed_instances
   }
 
   pub fn get_blocked_instances(&self) -> Vec<String> {
     let mut blocked_instances: Vec<String> = self
       .federation
+      .to_owned()
+      .unwrap_or_default()
       .blocked_instances
       .split(',')
       .map(|d| d.trim().to_string())
@@ -160,14 +222,17 @@ impl Settings {
 
     // The defaults.hjson config always returns a [""]
     blocked_instances.retain(|d| !d.eq(""));
-
     blocked_instances
   }
 
   /// Returns either "http" or "https", depending on tls_enabled setting
   pub fn get_protocol_string(&self) -> &'static str {
-    if self.tls_enabled {
-      "https"
+    if let Some(tls_enabled) = self.tls_enabled {
+      if tls_enabled {
+        "https"
+      } else {
+        "http"
+      }
     } else {
       "http"
     }
@@ -176,7 +241,11 @@ impl Settings {
   /// Returns something like `http://localhost` or `https://lemmy.ml`,
   /// with the correct protocol and hostname.
   pub fn get_protocol_and_hostname(&self) -> String {
-    format!("{}://{}", self.get_protocol_string(), self.hostname)
+    format!(
+      "{}://{}",
+      self.get_protocol_string(),
+      self.hostname.to_owned().unwrap_or_default()
+    )
   }
 
   /// When running the federation test setup in `api_tests/` or `docker/federation`, the `hostname`
@@ -186,6 +255,8 @@ impl Settings {
     Ok(
       self
         .hostname
+        .to_owned()
+        .unwrap_or_default()
         .split(':')
         .collect::<Vec<&str>>()
         .first()
