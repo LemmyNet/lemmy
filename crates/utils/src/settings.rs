@@ -135,16 +135,16 @@ impl Default for DatabaseConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct FederationConfig {
   pub enabled: bool,
-  pub allowed_instances: String,
-  pub blocked_instances: String,
+  pub allowed_instances: Option<String>,
+  pub blocked_instances: Option<String>,
 }
 
 impl Default for FederationConfig {
   fn default() -> Self {
     Self {
       enabled: false,
-      allowed_instances: "".into(),
-      blocked_instances: "".into(),
+      allowed_instances: Some("".into()),
+      blocked_instances: Some("".into()),
     }
   }
 }
@@ -201,11 +201,11 @@ impl Settings {
       .to_owned()
       .unwrap_or_default()
       .allowed_instances
+      .unwrap_or_default()
       .split(',')
       .map(|d| d.trim().to_string())
       .collect();
 
-    // The defaults.hjson config always returns a [""]
     allowed_instances.retain(|d| !d.eq(""));
     allowed_instances
   }
@@ -216,11 +216,11 @@ impl Settings {
       .to_owned()
       .unwrap_or_default()
       .blocked_instances
+      .unwrap_or_default()
       .split(',')
       .map(|d| d.trim().to_string())
       .collect();
 
-    // The defaults.hjson config always returns a [""]
     blocked_instances.retain(|d| !d.eq(""));
     blocked_instances
   }
