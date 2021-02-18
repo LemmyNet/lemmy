@@ -1,12 +1,13 @@
 use crate::{
   extensions::{context::lemmy_context, page_extension::PageExtension},
-  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
+  fetcher::user::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
     create_tombstone,
     get_object_from_apub,
     get_source_markdown_value,
+    get_to_community,
     set_content_and_source,
     FromApub,
     FromApubToForm,
@@ -17,6 +18,7 @@ use crate::{
 use activitystreams::{
   object::{kind::PageType, ApObject, Image, Page, Tombstone},
   prelude::*,
+  public,
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
@@ -60,7 +62,7 @@ impl ToApub for Post {
       // https://mastodon.xyz/@Louisa/103987265222901387.json
       .set_summary(self.name.to_owned())
       .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id.into_inner())
+      .set_many_tos(vec![community.actor_id.into_inner(), public()])
       .set_attributed_to(creator.actor_id.into_inner());
 
     if let Some(body) = &self.body {
@@ -139,16 +141,7 @@ impl FromApubToForm<PageExt> for PostForm {
 
     let creator = get_or_fetch_and_upsert_user(creator_actor_id, context, request_counter).await?;
 
-    let community_actor_id = page
-      .inner
-      .to()
-      .as_ref()
-      .context(location_info!())?
-      .as_single_xsd_any_uri()
-      .context(location_info!())?;
-
-    let community =
-      get_or_fetch_and_upsert_community(community_actor_id, context, request_counter).await?;
+    let community = get_to_community(page, context, request_counter).await?;
 
     let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(
