@@ -41,8 +41,8 @@ use log::debug;
 use url::Url;
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
-#[serde(untagged)]
 #[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
 enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
