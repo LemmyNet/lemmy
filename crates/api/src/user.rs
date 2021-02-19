@@ -121,7 +121,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(user.id, Settings::get().hostname.unwrap_or_default())?,
+      jwt: Claims::jwt(user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -161,7 +161,7 @@ impl Perform for Register {
     .await??;
 
     // If its not the admin, check the captcha
-    if !no_admins && Settings::get().captcha.unwrap_or_default().enabled {
+    if !no_admins && Settings::get().captcha().enabled {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
@@ -303,10 +303,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        inserted_user.id,
-        Settings::get().hostname.unwrap_or_default(),
-      )?,
+      jwt: Claims::jwt(inserted_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -320,7 +317,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let captcha_settings = Settings::get().captcha.unwrap_or_default();
+    let captcha_settings = Settings::get().captcha();
 
     if !captcha_settings.enabled {
       return Ok(GetCaptchaResponse { ok: None });
@@ -479,10 +476,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        updated_user.id,
-        Settings::get().hostname.unwrap_or_default(),
-      )?,
+      jwt: Claims::jwt(updated_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -1018,10 +1012,7 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        updated_user.id,
-        Settings::get().hostname.unwrap_or_default(),
-      )?,
+      jwt: Claims::jwt(updated_user.id, Settings::get().hostname())?,
     })
   }
 }

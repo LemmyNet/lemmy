@@ -184,7 +184,7 @@ pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), Le
 pub(crate) async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
-  if Settings::get().federation.unwrap_or_default().enabled {
+  if Settings::get().federation().enabled {
     let distinct_communities = blocking(pool, move |conn| {
       Community::distinct_federated_communities(conn)
     })
@@ -198,10 +198,13 @@ pub(crate) async fn build_federated_instances(
       .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
       .collect::<Result<Vec<String>, LemmyError>>()?;
 
-    linked.extend_from_slice(&allowed);
-    linked.retain(|a| {
-      !blocked.contains(a) && !a.eq("") && !a.eq(&Settings::get().hostname.unwrap_or_default())
-    });
+    if let Some(allowed) = allowed.as_ref() {
+      linked.extend_from_slice(allowed);
+    }
+
+    if let Some(blocked) = blocked.as_ref() {
+      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname()));
+    }
 
     // Sort and remove dupes
     linked.sort_unstable();

@@ -55,7 +55,7 @@ async fn upload(
   };
 
   let mut client_req = client.request_from(
-    format!("{}/image", Settings::get().pictrs_url.unwrap_or_default()),
+    format!("{}/image", Settings::get().pictrs_url()),
     req.head(),
   );
 
@@ -80,18 +80,14 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!(
-      "{}/image/original/{}",
-      Settings::get().pictrs_url.unwrap_or_default(),
-      name,
-    )
+    format!("{}/image/original/{}", Settings::get().pictrs_url(), name,)
   } else {
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
     let mut url = format!(
       "{}/image/process.{}?src={}",
-      Settings::get().pictrs_url.unwrap_or_default(),
+      Settings::get().pictrs_url(),
       format,
       name,
     );
@@ -140,7 +136,7 @@ async fn delete(
 
   let url = format!(
     "{}/image/delete/{}/{}",
-    Settings::get().pictrs_url.unwrap_or_default(),
+    Settings::get().pictrs_url(),
     &token,
     &file
   );
