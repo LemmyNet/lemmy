@@ -18,7 +18,7 @@
   }
   federation: {
     enabled: true
-    blocked_instances: [lemmy-alpha]
+    blocked_instances: ["lemmy-alpha"]
   }
   captcha: {
     enabled: false
