@@ -19,7 +19,13 @@ use lemmy_db_views_actor::{
   community_view::CommunityView,
 };
 use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
-use lemmy_utils::{claims::Claims, settings::Settings, APIError, ConnectionId, LemmyError};
+use lemmy_utils::{
+  claims::Claims,
+  settings::structs::Settings,
+  APIError,
+  ConnectionId,
+  LemmyError,
+};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 use std::process::Command;

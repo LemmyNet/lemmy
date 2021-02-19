@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     user::{UserForm, User_},
   },
 };
-use lemmy_utils::{apub::generate_actor_keypair, settings::Settings, LemmyError};
+use lemmy_utils::{apub::generate_actor_keypair, settings::structs::Settings, LemmyError};
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {

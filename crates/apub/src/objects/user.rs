@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
   LemmyError,
 };

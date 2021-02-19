@@ -48,7 +48,7 @@ use lemmy_db_views_moderator::{
 use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   version,
   APIError,

@@ -7,7 +7,7 @@ use lemmy_db_schema::{
   source::user::{UserForm, UserSafeSettings, User_},
   Url,
 };
-use lemmy_utils::settings::Settings;
+use lemmy_utils::settings::structs::Settings;
 
 mod safe_type {
   use crate::ToSafe;

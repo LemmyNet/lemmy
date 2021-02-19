@@ -1,4 +1,4 @@
-use crate::{settings::Settings, APIError};
+use crate::{settings::structs::Settings, APIError};
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;

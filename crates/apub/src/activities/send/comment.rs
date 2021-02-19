@@ -31,7 +31,7 @@ use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post
 use lemmy_structs::{blocking, WebFingerResponse};
 use lemmy_utils::{
   request::{retry, RecvError},
-  settings::Settings,
+  settings::structs::Settings,
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };

@@ -16,7 +16,7 @@ use crate::{
 };
 use actix_web::*;
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
-use lemmy_utils::settings::Settings;
+use lemmy_utils::settings::structs::Settings;
 use sha2::{Digest, Sha256};
 
 static APUB_JSON_CONTENT_TYPE_LONG: &str =

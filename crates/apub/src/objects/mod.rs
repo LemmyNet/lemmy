@@ -15,7 +15,12 @@ use diesel::result::Error::NotFound;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_db_schema::source::community::Community;
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
+use lemmy_utils::{
+  location_info,
+  settings::structs::Settings,
+  utils::convert_datetime,
+  LemmyError,
+};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 

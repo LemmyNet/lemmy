@@ -71,7 +71,7 @@ use lemmy_utils::{
   claims::Claims,
   email::send_email,
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{
     check_slurs,
     generate_random_string,

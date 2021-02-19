@@ -4,7 +4,7 @@ use lemmy_db_queries::source::{community::Community_, user::User};
 use lemmy_db_schema::source::{community::Community, user::User_};
 use lemmy_structs::{blocking, WebFingerLink, WebFingerResponse};
 use lemmy_utils::{
-  settings::Settings,
+  settings::structs::Settings,
   LemmyError,
   WEBFINGER_COMMUNITY_REGEX,
   WEBFINGER_USER_REGEX,

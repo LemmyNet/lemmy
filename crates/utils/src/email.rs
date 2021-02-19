@@ -1,4 +1,4 @@
-use crate::settings::Settings;
+use crate::settings::structs::Settings;
 use lettre::{
   message::{header, Mailbox, MultiPart, SinglePart},
   transport::smtp::{

@@ -1,5 +1,5 @@
 use crate::{
-  settings::{RateLimitConfig, Settings},
+  settings::structs::{RateLimitConfig, Settings},
   utils::get_ip,
   LemmyError,
 };
