@@ -38,9 +38,20 @@ services:
       - lemmy-alpha
   lemmy-alpha:
     image: lemmy-federation:latest
-    volumes:
-      - ./lemmy_alpha.hjson:/config/config.hjson
     environment:
+      - LEMMY_HOSTNAME=lemmy-alpha:8541
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
+      - LEMMY_PORT=8541
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-alpha
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
@@ -67,9 +78,20 @@ services:
       - lemmy-beta
   lemmy-beta:
     image: lemmy-federation:latest
-    volumes:
-      - ./lemmy_beta.hjson:/config/config.hjson
     environment:
+      - LEMMY_HOSTNAME=lemmy-beta:8551
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma,lemmy-delta,lemmy-epsilon
+      - LEMMY_PORT=8551
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-beta
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
@@ -96,9 +118,20 @@ services:
       - lemmy-gamma
   lemmy-gamma:
     image: lemmy-federation:latest
-    volumes:
-      - ./lemmy_gamma.hjson:/config/config.hjson
     environment:
+      - LEMMY_HOSTNAME=lemmy-gamma:8561
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta,lemmy-delta,lemmy-epsilon
+      - LEMMY_PORT=8561
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-gamma
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
@@ -126,9 +159,20 @@ services:
       - lemmy-delta
   lemmy-delta:
     image: lemmy-federation:latest
-    volumes:
-      - ./lemmy_delta.hjson:/config/config.hjson
     environment:
+      - LEMMY_HOSTNAME=lemmy-delta:8571
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_delta:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta
+      - LEMMY_PORT=8571
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_delta
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-delta
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
@@ -156,9 +200,20 @@ services:
       - lemmy-epsilon
   lemmy-epsilon:
     image: lemmy-federation:latest
-    volumes:
-      - ./lemmy_epsilon.hjson:/config/config.hjson
     environment:
+      - LEMMY_HOSTNAME=lemmy-epsilon:8581
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_epsilon:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_TLS_ENABLED=false
+      - LEMMY_FEDERATION__BLOCKED_INSTANCES=lemmy-alpha
+      - LEMMY_PORT=8581
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_epsilon
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-epsilon
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug

@@ -1,22 +1,21 @@
-use merge::Merge;
 use serde::Deserialize;
 use std::net::IpAddr;
 
-#[derive(Debug, Deserialize, Clone, Merge)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
   pub setup: Option<Setup>,
-  pub database: Option<DatabaseConfig>,
-  pub hostname: Option<String>,
-  pub bind: Option<IpAddr>,
-  pub port: Option<u16>,
-  pub tls_enabled: Option<bool>,
-  pub jwt_secret: Option<String>,
-  pub pictrs_url: Option<String>,
-  pub iframely_url: Option<String>,
-  pub rate_limit: Option<RateLimitConfig>,
+  pub database: DatabaseConfig,
+  pub hostname: String,
+  pub bind: IpAddr,
+  pub port: u16,
+  pub tls_enabled: bool,
+  pub jwt_secret: String,
+  pub pictrs_url: String,
+  pub iframely_url: String,
+  pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
-  pub federation: Option<FederationConfig>,
-  pub captcha: Option<CaptchaConfig>,
+  pub federation: FederationConfig,
+  pub captcha: CaptchaConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -51,6 +50,7 @@ pub struct EmailConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct CaptchaConfig {
   pub enabled: bool,
+  // TODO: use enum for this
   pub difficulty: String,
 }
 
@@ -67,6 +67,6 @@ pub struct DatabaseConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct FederationConfig {
   pub enabled: bool,
-  pub allowed_instances: Option<String>,
-  pub blocked_instances: Option<String>,
+  pub allowed_instances: String,
+  pub blocked_instances: String,
 }

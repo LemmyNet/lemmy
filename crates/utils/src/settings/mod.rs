@@ -1,11 +1,16 @@
-use crate::{location_info, settings::structs::Settings, LemmyError};
-use anyhow::Context;
+use crate::{
+  location_info,
+  settings::{merge::Merge, structs::Settings, structs_opt::SettingsOpt},
+  LemmyError,
+};
+use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use merge::Merge;
 use std::{env, fs, io::Error, sync::RwLock};
 
 pub mod defaults;
+mod merge;
 pub mod structs;
+mod structs_opt;
 
 static CONFIG_FILE: &str = "config/config.hjson";
 
@@ -25,13 +30,19 @@ impl Settings {
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
   fn init() -> Result<Self, LemmyError> {
+    let mut config = Settings::default();
+
     // Read the config file
-    let mut custom_config = from_str::<Settings>(&Self::read_config_file()?)?;
+    config.merge(from_str::<SettingsOpt>(&Self::read_config_file()?)?);
 
-    // Merge with default
-    custom_config.merge(Settings::default());
+    // Read env vars
+    config.merge(envy::prefixed("LEMMY_").from_env::<SettingsOpt>()?);
 
-    Ok(custom_config)
+    if config.hostname == Settings::default().hostname {
+      return Err(anyhow!("Hostname variable is not set!").into());
+    }
+
+    Ok(config)
   }
 
   /// Returns the config as a struct.
@@ -40,7 +51,7 @@ impl Settings {
   }
 
   pub fn get_database_url(&self) -> String {
-    let conf = self.database.to_owned().unwrap_or_default();
+    let conf = self.database.to_owned();
     format!(
       "postgres://{}:{}@{}:{}/{}",
       conf.user, conf.password, conf.host, conf.port, conf.database,
@@ -59,9 +70,7 @@ impl Settings {
     let mut allowed_instances: Vec<String> = self
       .federation
       .to_owned()
-      .unwrap_or_default()
       .allowed_instances
-      .unwrap_or_default()
       .split(',')
       .map(|d| d.trim().to_string())
       .collect();
@@ -74,9 +83,7 @@ impl Settings {
     let mut blocked_instances: Vec<String> = self
       .federation
       .to_owned()
-      .unwrap_or_default()
       .blocked_instances
-      .unwrap_or_default()
       .split(',')
       .map(|d| d.trim().to_string())
       .collect();
@@ -87,12 +94,8 @@ impl Settings {
 
   /// Returns either "http" or "https", depending on tls_enabled setting
   pub fn get_protocol_string(&self) -> &'static str {
-    if let Some(tls_enabled) = self.tls_enabled {
-      if tls_enabled {
-        "https"
-      } else {
-        "http"
-      }
+    if self.tls_enabled {
+      "https"
     } else {
       "http"
     }
@@ -104,7 +107,7 @@ impl Settings {
     format!(
       "{}://{}",
       self.get_protocol_string(),
-      self.hostname.to_owned().unwrap_or_default()
+      self.hostname.to_owned()
     )
   }
 
@@ -116,7 +119,6 @@ impl Settings {
       self
         .hostname
         .to_owned()
-        .unwrap_or_default()
         .split(':')
         .collect::<Vec<&str>>()
         .first()

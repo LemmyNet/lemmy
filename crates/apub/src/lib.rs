@@ -64,7 +64,7 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
 
-  if !settings.federation.unwrap_or_default().enabled {
+  if !settings.federation.enabled {
     return if domain == local_instance {
       Ok(())
     } else {

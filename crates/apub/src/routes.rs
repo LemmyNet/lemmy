@@ -23,11 +23,8 @@ static APUB_JSON_CONTENT_TYPE_LONG: &str =
   "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"";
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation.unwrap_or_default().enabled {
-    println!(
-      "federation enabled, host is {}",
-      Settings::get().hostname.unwrap_or_default()
-    );
+  if Settings::get().federation.enabled {
+    println!("federation enabled, host is {}", Settings::get().hostname);
     let digest_verifier = VerifyDigest::new(Sha256::new());
 
     let header_guard_accept = guard::Any(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))

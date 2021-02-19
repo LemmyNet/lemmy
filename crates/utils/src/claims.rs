@@ -18,7 +18,7 @@ impl Claims {
     };
     decode::<Claims>(
       &jwt,
-      &DecodingKey::from_secret(Settings::get().jwt_secret.unwrap_or_default().as_ref()),
+      &DecodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
       &v,
     )
   }
@@ -31,7 +31,7 @@ impl Claims {
     encode(
       &Header::default(),
       &my_claims,
-      &EncodingKey::from_secret(Settings::get().jwt_secret.unwrap_or_default().as_ref()),
+      &EncodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
     )
   }
 }

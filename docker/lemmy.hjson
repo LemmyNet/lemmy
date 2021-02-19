@@ -29,10 +29,6 @@
     password: "password"
     # host where postgres is running
     host: "postgres"
-    # port where postgres can be accessed
-    port: 5432
-    # maximum number of active sql connections
-    pool_size: 5
   }
 #  # optional: email sending configuration
 #  email: {

@@ -39,7 +39,7 @@ use lemmy_server::code_migrations::run_advanced_migrations;
 use lemmy_utils::{
   apub::generate_actor_keypair,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  settings::Settings,
+  settings::structs::Settings,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
@@ -58,7 +58,7 @@ fn create_context() -> LemmyContext {
   };
   let manager = ConnectionManager::<PgConnection>::new(&db_url);
   let pool = Pool::builder()
-    .max_size(settings.database.unwrap_or_default().pool_size)
+    .max_size(settings.database.pool_size)
     .build(manager)
     .unwrap();
   embedded_migrations::run(&pool.get().unwrap()).unwrap();

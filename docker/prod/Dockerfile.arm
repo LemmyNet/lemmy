@@ -31,6 +31,7 @@ RUN addgroup --gid 1000 lemmy
 RUN adduser --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
 
 # Copy resources
+COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
 COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
 
 RUN chown lemmy:lemmy /app/lemmy

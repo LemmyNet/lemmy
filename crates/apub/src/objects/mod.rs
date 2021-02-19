@@ -194,7 +194,7 @@ where
   let domain = object_id.domain().context(location_info!())?;
 
   // if its a local object, return it directly from the database
-  if Settings::get().hostname.unwrap_or_default() == domain {
+  if Settings::get().hostname == domain {
     let object = blocking(context.pool(), move |conn| {
       To::read_from_apub_id(conn, &object_id.into())
     })
