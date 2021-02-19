@@ -111,7 +111,7 @@ impl Activity_ for Activity {
           .sql(" AND activity.data -> 'object' -> 'object' ->> 'type' = 'Page'")
           .sql(" AND activity.data ->> 'actor' = ")
           .bind::<Text, _>(community_actor_id)
-          .sql(" ORDER BY activity.id DESC"),
+          .sql(" ORDER BY activity.published DESC"),
       )
       .limit(20)
       .get_results(conn)?;
