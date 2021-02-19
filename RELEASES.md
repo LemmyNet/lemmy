@@ -1,4 +1,4 @@
-# Lemmy v0.9.8 Release (2021-02-19)
+# Lemmy v0.9.9 Release (2021-02-19)
 
 ## Changes
 
