@@ -115,11 +115,11 @@ impl Settings {
   }
 
   pub fn get_allowed_instances(&self) -> Option<Vec<String>> {
-    self.federation().allowed_instances.to_owned()
+    self.federation().allowed_instances
   }
 
   pub fn get_blocked_instances(&self) -> Option<Vec<String>> {
-    self.federation().blocked_instances.to_owned()
+    self.federation().blocked_instances
   }
 
   /// Returns either "http" or "https", depending on tls_enabled setting
