@@ -1,6 +1,11 @@
 use crate::{
   location_info,
-  settings::{merge::Merge, structs::Settings, structs_opt::SettingsOpt},
+  settings::{
+    environment::parse_from_env,
+    merge::Merge,
+    structs::Settings,
+    structs_opt::SettingsOpt,
+  },
   LemmyError,
 };
 use anyhow::{anyhow, Context};
@@ -8,6 +13,7 @@ use deser_hjson::from_str;
 use std::{env, fs, io::Error, sync::RwLock};
 
 pub mod defaults;
+mod environment;
 mod merge;
 pub mod structs;
 mod structs_opt;
@@ -36,7 +42,7 @@ impl Settings {
     config.merge(from_str::<SettingsOpt>(&Self::read_config_file()?)?);
 
     // Read env vars
-    config.merge(envy::prefixed("LEMMY_").from_env::<SettingsOpt>()?);
+    config.merge(parse_from_env());
 
     if config.hostname == Settings::default().hostname {
       return Err(anyhow!("Hostname variable is not set!").into());
