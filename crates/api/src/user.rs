@@ -80,7 +80,7 @@ use lemmy_utils::{
     naive_from_unix,
     remove_slurs,
   },
-  APIError,
+  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -110,13 +110,13 @@ impl Perform for Login {
     .await?
     {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
     };
 
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err("password_incorrect").into());
+      return Err(ApiError::err("password_incorrect").into());
     }
 
     // Return the jwt
@@ -140,18 +140,18 @@ impl Perform for Register {
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
       if !site.open_registration {
-        return Err(APIError::err("registration_closed").into());
+        return Err(ApiError::err("registration_closed").into());
       }
     }
 
     // Password length check
     if data.password.len() > 60 {
-      return Err(APIError::err("invalid_password").into());
+      return Err(ApiError::err("invalid_password").into());
     }
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(APIError::err("passwords_dont_match").into());
+      return Err(ApiError::err("passwords_dont_match").into());
     }
 
     // Check if there are admins. False if admins exist
@@ -176,7 +176,7 @@ impl Perform for Register {
         })
         .await?;
       if !check {
-        return Err(APIError::err("captcha_incorrect").into());
+        return Err(ApiError::err("captcha_incorrect").into());
       }
     }
 
@@ -184,7 +184,7 @@ impl Perform for Register {
 
     let user_keypair = generate_actor_keypair()?;
     if !is_valid_username(&data.username) {
-      return Err(APIError::err("invalid_username").into());
+      return Err(ApiError::err("invalid_username").into());
     }
     let user_actor_id = generate_apub_endpoint(EndpointType::User, &data.username)?;
 
@@ -234,7 +234,7 @@ impl Perform for Register {
           "user_already_exists"
         };
 
-        return Err(APIError::err(err_type).into());
+        return Err(ApiError::err(err_type).into());
       }
     };
 
@@ -285,7 +285,7 @@ impl Perform for Register {
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
     if blocking(context.pool(), follow).await?.is_err() {
-      return Err(APIError::err("community_follower_already_exists").into());
+      return Err(ApiError::err("community_follower_already_exists").into());
     };
 
     // If its an admin, add them as a mod and follower to main
@@ -297,7 +297,7 @@ impl Perform for Register {
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       if blocking(context.pool(), join).await?.is_err() {
-        return Err(APIError::err("community_moderator_already_exists").into());
+        return Err(ApiError::err("community_moderator_already_exists").into());
       }
     }
 
@@ -380,13 +380,13 @@ impl Perform for SaveUserSettings {
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
-        return Err(APIError::err("bio_length_overflow").into());
+        return Err(ApiError::err("bio_length_overflow").into());
       }
     }
 
     if let Some(Some(preferred_username)) = &preferred_username {
       if !is_valid_preferred_username(preferred_username.trim()) {
-        return Err(APIError::err("invalid_username").into());
+        return Err(ApiError::err("invalid_username").into());
       }
     }
 
@@ -397,7 +397,7 @@ impl Perform for SaveUserSettings {
           Some(new_password_verify) => {
             // Make sure passwords match
             if new_password != new_password_verify {
-              return Err(APIError::err("passwords_dont_match").into());
+              return Err(ApiError::err("passwords_dont_match").into());
             }
 
             // Check the old password
@@ -405,7 +405,7 @@ impl Perform for SaveUserSettings {
               Some(old_password) => {
                 let valid: bool = verify(old_password, &user.password_encrypted).unwrap_or(false);
                 if !valid {
-                  return Err(APIError::err("password_incorrect").into());
+                  return Err(ApiError::err("password_incorrect").into());
                 }
                 let new_password = new_password.to_owned();
                 let user = blocking(context.pool(), move |conn| {
@@ -414,10 +414,10 @@ impl Perform for SaveUserSettings {
                 .await??;
                 user.password_encrypted
               }
-              None => return Err(APIError::err("password_incorrect").into()),
+              None => return Err(ApiError::err("password_incorrect").into()),
             }
           }
-          None => return Err(APIError::err("passwords_dont_match").into()),
+          None => return Err(ApiError::err("passwords_dont_match").into()),
         }
       }
       None => user.password_encrypted,
@@ -470,7 +470,7 @@ impl Perform for SaveUserSettings {
           "user_already_exists"
         };
 
-        return Err(APIError::err(err_type).into());
+        return Err(ApiError::err(err_type).into());
       }
     };
 
@@ -513,7 +513,7 @@ impl Perform for GetUserDetails {
         .await?;
         match user {
           Ok(user) => user.id,
-          Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
+          Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
         }
       }
     };
@@ -607,7 +607,7 @@ impl Perform for AddAdmin {
     let added_user_id = data.user_id;
     let add_admin = move |conn: &'_ _| User_::add_admin(conn, added_user_id, added);
     if blocking(context.pool(), add_admin).await?.is_err() {
-      return Err(APIError::err("couldnt_update_user").into());
+      return Err(ApiError::err("couldnt_update_user").into());
     }
 
     // Mod tables
@@ -663,7 +663,7 @@ impl Perform for BanUser {
     let banned_user_id = data.user_id;
     let ban_user = move |conn: &'_ _| User_::ban_user(conn, banned_user_id, ban);
     if blocking(context.pool(), ban_user).await?.is_err() {
-      return Err(APIError::err("couldnt_update_user").into());
+      return Err(ApiError::err("couldnt_update_user").into());
     }
 
     // Remove their data if that's desired
@@ -811,14 +811,14 @@ impl Perform for MarkUserMentionAsRead {
     .await??;
 
     if user.id != read_user_mention.recipient_id {
-      return Err(APIError::err("couldnt_update_comment").into());
+      return Err(ApiError::err("couldnt_update_comment").into());
     }
 
     let user_mention_id = read_user_mention.id;
     let read = data.read;
     let update_mention = move |conn: &'_ _| UserMention::update_read(conn, user_mention_id, read);
     if blocking(context.pool(), update_mention).await?.is_err() {
-      return Err(APIError::err("couldnt_update_comment").into());
+      return Err(ApiError::err("couldnt_update_comment").into());
     };
 
     let user_mention_id = read_user_mention.id;
@@ -863,7 +863,7 @@ impl Perform for MarkAllAsRead {
       let reply_id = comment_view.comment.id;
       let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
       if blocking(context.pool(), mark_as_read).await?.is_err() {
-        return Err(APIError::err("couldnt_update_comment").into());
+        return Err(ApiError::err("couldnt_update_comment").into());
       }
     }
 
@@ -873,13 +873,13 @@ impl Perform for MarkAllAsRead {
       .await?
       .is_err()
     {
-      return Err(APIError::err("couldnt_update_comment").into());
+      return Err(ApiError::err("couldnt_update_comment").into());
     }
 
     // Mark all private_messages as read
     let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, user_id);
     if blocking(context.pool(), update_pm).await?.is_err() {
-      return Err(APIError::err("couldnt_update_private_message").into());
+      return Err(ApiError::err("couldnt_update_private_message").into());
     }
 
     Ok(GetRepliesResponse { replies: vec![] })
@@ -901,20 +901,20 @@ impl Perform for DeleteAccount {
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err("password_incorrect").into());
+      return Err(ApiError::err("password_incorrect").into());
     }
 
     // Comments
     let user_id = user.id;
     let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, user_id);
     if blocking(context.pool(), permadelete).await?.is_err() {
-      return Err(APIError::err("couldnt_update_comment").into());
+      return Err(ApiError::err("couldnt_update_comment").into());
     }
 
     // Posts
     let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, user_id);
     if blocking(context.pool(), permadelete).await?.is_err() {
-      return Err(APIError::err("couldnt_update_post").into());
+      return Err(ApiError::err("couldnt_update_post").into());
     }
 
     blocking(context.pool(), move |conn| {
@@ -947,7 +947,7 @@ impl Perform for PasswordReset {
     .await?
     {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
     };
 
     // Generate a random token
@@ -969,7 +969,7 @@ impl Perform for PasswordReset {
     let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", user.name, hostname, &token);
     match send_email(subject, user_email, &user.name, html) {
       Ok(_o) => _o,
-      Err(_e) => return Err(APIError::err(&_e).into()),
+      Err(_e) => return Err(ApiError::err(&_e).into()),
     };
 
     Ok(PasswordResetResponse {})
@@ -996,7 +996,7 @@ impl Perform for PasswordChange {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(APIError::err("passwords_dont_match").into());
+      return Err(ApiError::err("passwords_dont_match").into());
     }
 
     // Update the user with the new password
@@ -1007,7 +1007,7 @@ impl Perform for PasswordChange {
     .await?
     {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_user").into()),
     };
 
     // Return the jwt
@@ -1050,7 +1050,7 @@ impl Perform for CreatePrivateMessage {
     {
       Ok(private_message) => private_message,
       Err(_e) => {
-        return Err(APIError::err("couldnt_create_private_message").into());
+        return Err(ApiError::err("couldnt_create_private_message").into());
       }
     };
 
@@ -1072,7 +1072,7 @@ impl Perform for CreatePrivateMessage {
     .await?
     {
       Ok(private_message) => private_message,
-      Err(_e) => return Err(APIError::err("couldnt_create_private_message").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_create_private_message").into()),
     };
 
     updated_private_message.send_create(&user, context).await?;
@@ -1129,7 +1129,7 @@ impl Perform for EditPrivateMessage {
     })
     .await??;
     if user.id != orig_private_message.creator_id {
-      return Err(APIError::err("no_private_message_edit_allowed").into());
+      return Err(ApiError::err("no_private_message_edit_allowed").into());
     }
 
     // Doing the update
@@ -1141,7 +1141,7 @@ impl Perform for EditPrivateMessage {
     .await?
     {
       Ok(private_message) => private_message,
-      Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_private_message").into()),
     };
 
     // Send the apub update
@@ -1188,7 +1188,7 @@ impl Perform for DeletePrivateMessage {
     })
     .await??;
     if user.id != orig_private_message.creator_id {
-      return Err(APIError::err("no_private_message_edit_allowed").into());
+      return Err(ApiError::err("no_private_message_edit_allowed").into());
     }
 
     // Doing the update
@@ -1200,7 +1200,7 @@ impl Perform for DeletePrivateMessage {
     .await?
     {
       Ok(private_message) => private_message,
-      Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_private_message").into()),
     };
 
     // Send the apub update
@@ -1253,7 +1253,7 @@ impl Perform for MarkPrivateMessageAsRead {
     })
     .await??;
     if user.id != orig_private_message.recipient_id {
-      return Err(APIError::err("couldnt_update_private_message").into());
+      return Err(ApiError::err("couldnt_update_private_message").into());
     }
 
     // Doing the update
@@ -1265,7 +1265,7 @@ impl Perform for MarkPrivateMessageAsRead {
     .await?
     {
       Ok(private_message) => private_message,
-      Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_private_message").into()),
     };
 
     // No need to send an apub update

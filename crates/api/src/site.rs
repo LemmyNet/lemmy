@@ -51,7 +51,7 @@ use lemmy_utils::{
   settings::Settings,
   utils::{check_slurs, check_slurs_opt},
   version,
-  APIError,
+  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -168,7 +168,7 @@ impl Perform for CreateSite {
 
     let read_site = move |conn: &'_ _| Site::read_simple(conn);
     if blocking(context.pool(), read_site).await?.is_ok() {
-      return Err(APIError::err("site_already_exists").into());
+      return Err(ApiError::err("site_already_exists").into());
     };
 
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -193,7 +193,7 @@ impl Perform for CreateSite {
 
     let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
     if blocking(context.pool(), create_site).await?.is_err() {
-      return Err(APIError::err("site_already_exists").into());
+      return Err(ApiError::err("site_already_exists").into());
     }
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
@@ -238,7 +238,7 @@ impl Perform for EditSite {
 
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
     if blocking(context.pool(), update_site).await?.is_err() {
-      return Err(APIError::err("couldnt_update_site").into());
+      return Err(ApiError::err("couldnt_update_site").into());
     }
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
@@ -525,13 +525,13 @@ impl Perform for TransferSite {
 
     // Make sure user is the creator
     if read_site.creator_id != user.id {
-      return Err(APIError::err("not_an_admin").into());
+      return Err(ApiError::err("not_an_admin").into());
     }
 
     let new_creator_id = data.user_id;
     let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
     if blocking(context.pool(), transfer_site).await?.is_err() {
-      return Err(APIError::err("couldnt_update_site").into());
+      return Err(ApiError::err("couldnt_update_site").into());
     };
 
     // Mod tables
@@ -608,7 +608,7 @@ impl Perform for SaveSiteConfig {
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = match Settings::save_config_file(&data.config_hjson) {
       Ok(config_hjson) => config_hjson,
-      Err(_e) => return Err(APIError::err("couldnt_update_site").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_site").into()),
     };
 
     Ok(GetSiteConfigResponse { config_hjson })
