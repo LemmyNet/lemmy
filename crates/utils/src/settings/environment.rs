@@ -48,7 +48,7 @@ pub(in crate::settings) fn parse_from_env() -> SettingsOpt {
       admin_username: env_var("SETUP__ADMIN_USERNAME"),
       admin_password: env_var("SETUP__ADMIN_PASSWORD"),
       admin_email: Some(env_var("SETUP__ADMIN_EMAIL")),
-      site_name: env_var("SETUP__ADMIN_SITE_NAME"),
+      site_name: env_var("SETUP__SITE_NAME"),
     }),
     database: Some(DatabaseConfigOpt {
       user: env_var("DATABASE__USER"),

@@ -10,7 +10,7 @@ use crate::{
 };
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use std::{env, fs, io::Error, sync::RwLock};
+use std::{env, fs, sync::RwLock};
 
 pub mod defaults;
 mod environment;
@@ -39,10 +39,12 @@ impl Settings {
     let mut config = Settings::default();
 
     // Read the config file
-    config.merge(from_str::<SettingsOpt>(&Self::read_config_file()?)?);
+    if let Some(config_file) = &Self::read_config_file() {
+      config = config.merge(from_str::<SettingsOpt>(config_file)?);
+    }
 
     // Read env vars
-    config.merge(parse_from_env());
+    config = config.merge(parse_from_env());
 
     if config.hostname == Settings::default().hostname {
       return Err(anyhow!("Hostname variable is not set!").into());
@@ -68,8 +70,8 @@ impl Settings {
     env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE.to_string())
   }
 
-  pub fn read_config_file() -> Result<String, Error> {
-    fs::read_to_string(Self::get_config_location())
+  pub fn read_config_file() -> Option<String> {
+    fs::read_to_string(Self::get_config_location()).ok()
   }
 
   pub fn get_allowed_instances(&self) -> Vec<String> {
@@ -133,7 +135,7 @@ impl Settings {
     )
   }
 
-  pub fn save_config_file(data: &str) -> Result<String, Error> {
+  pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
     fs::write(CONFIG_FILE, data)?;
 
     // Reload the new settings
@@ -144,6 +146,6 @@ impl Settings {
       Err(e) => panic!("{}", e),
     };
 
-    Self::read_config_file()
+    Self::read_config_file().ok_or(anyhow!("Failed to read config").into())
   }
 }

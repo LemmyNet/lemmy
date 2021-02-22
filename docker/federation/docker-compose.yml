@@ -39,6 +39,7 @@ services:
   lemmy-alpha:
     image: lemmy-federation:latest
     environment:
+      - RUST_BACKTRACE=full
       - LEMMY_HOSTNAME=lemmy-alpha:8541
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme

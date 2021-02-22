@@ -583,7 +583,9 @@ impl Perform for GetSiteConfig {
     // Only let admins read this
     is_admin(context.pool(), user.id).await?;
 
-    let config_hjson = Settings::read_config_file()?;
+    // TODO: should make the response field optional?
+    //       or include env vars, but then we cant really save it
+    let config_hjson = Settings::read_config_file().unwrap_or("".to_string());
 
     Ok(GetSiteConfigResponse { config_hjson })
   }
