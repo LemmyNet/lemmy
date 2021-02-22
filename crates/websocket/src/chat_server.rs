@@ -10,10 +10,10 @@ use lemmy_structs::{comment::*, post::*};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,
-  APIError,
+  ApiError,
   CommunityId,
   ConnectionId,
-  IPAddr,
+  IpAddr,
   LemmyError,
   PostId,
   UserId,
@@ -73,8 +73,8 @@ pub struct ChatServer {
 }
 
 pub struct SessionInfo {
-  pub addr: Recipient<WSMessage>,
-  pub ip: IPAddr,
+  pub addr: Recipient<WsMessage>,
+  pub ip: IpAddr,
 }
 
 /// `ChatServer` is an actor. It maintains list of connection client session.
@@ -395,7 +395,7 @@ impl ChatServer {
 
   fn sendit(&self, message: &str, id: ConnectionId) {
     if let Some(info) = self.sessions.get(&id) {
-      let _ = info.addr.do_send(WSMessage(message.to_owned()));
+      let _ = info.addr.do_send(WsMessage(message.to_owned()));
     }
   }
 
@@ -406,7 +406,7 @@ impl ChatServer {
   ) -> impl Future<Output = Result<String, LemmyError>> {
     let rate_limiter = self.rate_limiter.clone();
 
-    let ip: IPAddr = match self.sessions.get(&msg.id) {
+    let ip: IpAddr = match self.sessions.get(&msg.id) {
       Some(info) => info.ip.to_owned(),
       None => "blank_ip".to_string(),
     };
@@ -421,7 +421,7 @@ impl ChatServer {
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
       let data = &json["data"].to_string();
-      let op = &json["op"].as_str().ok_or(APIError {
+      let op = &json["op"].as_str().ok_or(ApiError {
         message: "Unknown op type".to_string(),
       })?;
 

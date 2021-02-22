@@ -1,13 +1,13 @@
 use crate::UserOperation;
 use actix::{prelude::*, Recipient};
 use lemmy_structs::{comment::CommentResponse, post::PostResponse};
-use lemmy_utils::{CommunityId, ConnectionId, IPAddr, PostId, UserId};
+use lemmy_utils::{CommunityId, ConnectionId, IpAddr, PostId, UserId};
 use serde::{Deserialize, Serialize};
 
 /// Chat server sends this messages to session
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct WSMessage(pub String);
+pub struct WsMessage(pub String);
 
 /// Message for chat server communications
 
@@ -15,8 +15,8 @@ pub struct WSMessage(pub String);
 #[derive(Message)]
 #[rtype(usize)]
 pub struct Connect {
-  pub addr: Recipient<WSMessage>,
-  pub ip: IPAddr,
+  pub addr: Recipient<WsMessage>,
+  pub ip: IpAddr,
 }
 
 /// Session is disconnected
@@ -24,7 +24,7 @@ pub struct Connect {
 #[rtype(result = "()")]
 pub struct Disconnect {
   pub id: ConnectionId,
-  pub ip: IPAddr,
+  pub ip: IpAddr,
 }
 
 /// The messages sent to websocket clients

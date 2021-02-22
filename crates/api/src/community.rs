@@ -48,7 +48,7 @@ use lemmy_utils::{
   apub::generate_actor_keypair,
   location_info,
   utils::{check_slurs, check_slurs_opt, is_valid_community_name, naive_from_unix},
-  APIError,
+  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -82,7 +82,7 @@ impl Perform for GetCommunity {
         .await?
         {
           Ok(community) => community,
-          Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+          Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
         }
         .id
       }
@@ -94,7 +94,7 @@ impl Perform for GetCommunity {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
     };
 
     let moderators: Vec<CommunityModeratorView> = match blocking(context.pool(), move |conn| {
@@ -103,7 +103,7 @@ impl Perform for GetCommunity {
     .await?
     {
       Ok(moderators) => moderators,
-      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
     };
 
     let online = context
@@ -140,7 +140,7 @@ impl Perform for CreateCommunity {
     check_slurs_opt(&data.description)?;
 
     if !is_valid_community_name(&data.name) {
-      return Err(APIError::err("invalid_community_name").into());
+      return Err(ApiError::err("invalid_community_name").into());
     }
 
     // Double check for duplicate community actor_ids
@@ -151,7 +151,7 @@ impl Perform for CreateCommunity {
     })
     .await?;
     if community_dupe.is_ok() {
-      return Err(APIError::err("community_already_exists").into());
+      return Err(ApiError::err("community_already_exists").into());
     }
 
     // Check to make sure the icon and banners are urls
@@ -193,7 +193,7 @@ impl Perform for CreateCommunity {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("community_already_exists").into()),
+      Err(_e) => return Err(ApiError::err("community_already_exists").into()),
     };
 
     // The community creator becomes a moderator
@@ -204,7 +204,7 @@ impl Perform for CreateCommunity {
 
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
     if blocking(context.pool(), join).await?.is_err() {
-      return Err(APIError::err("community_moderator_already_exists").into());
+      return Err(ApiError::err("community_moderator_already_exists").into());
     }
 
     // Follow your own community
@@ -216,7 +216,7 @@ impl Perform for CreateCommunity {
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
     if blocking(context.pool(), follow).await?.is_err() {
-      return Err(APIError::err("community_follower_already_exists").into());
+      return Err(ApiError::err("community_follower_already_exists").into());
     }
 
     let user_id = user.id;
@@ -252,7 +252,7 @@ impl Perform for EditCommunity {
     })
     .await??;
     if !mods.contains(&user.id) {
-      return Err(APIError::err("not_a_moderator").into());
+      return Err(ApiError::err("not_a_moderator").into());
     }
 
     let community_id = data.community_id;
@@ -297,7 +297,7 @@ impl Perform for EditCommunity {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_community").into()),
     };
 
     // TODO there needs to be some kind of an apub update
@@ -337,7 +337,7 @@ impl Perform for DeleteCommunity {
     })
     .await??;
     if read_community.creator_id != user.id {
-      return Err(APIError::err("no_community_edit_allowed").into());
+      return Err(ApiError::err("no_community_edit_allowed").into());
     }
 
     // Do the delete
@@ -349,7 +349,7 @@ impl Perform for DeleteCommunity {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_community").into()),
     };
 
     // Send apub messages
@@ -398,7 +398,7 @@ impl Perform for RemoveCommunity {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_community").into()),
     };
 
     // Mod tables
@@ -513,13 +513,13 @@ impl Perform for FollowCommunity {
 
         let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
         if blocking(context.pool(), follow).await?.is_err() {
-          return Err(APIError::err("community_follower_already_exists").into());
+          return Err(ApiError::err("community_follower_already_exists").into());
         }
       } else {
         let unfollow =
           move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
         if blocking(context.pool(), unfollow).await?.is_err() {
-          return Err(APIError::err("community_follower_already_exists").into());
+          return Err(ApiError::err("community_follower_already_exists").into());
         }
       }
     } else if data.follow {
@@ -530,7 +530,7 @@ impl Perform for FollowCommunity {
       user.send_unfollow(&community.actor_id(), context).await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(context.pool(), unfollow).await?.is_err() {
-        return Err(APIError::err("community_follower_already_exists").into());
+        return Err(ApiError::err("community_follower_already_exists").into());
       }
     }
 
@@ -571,7 +571,7 @@ impl Perform for GetFollowedCommunities {
     .await?
     {
       Ok(communities) => communities,
-      _ => return Err(APIError::err("system_err_login").into()),
+      _ => return Err(ApiError::err("system_err_login").into()),
     };
 
     // Return the jwt
@@ -605,7 +605,7 @@ impl Perform for BanFromCommunity {
     if data.ban {
       let ban = move |conn: &'_ _| CommunityUserBan::ban(conn, &community_user_ban_form);
       if blocking(context.pool(), ban).await?.is_err() {
-        return Err(APIError::err("community_user_already_banned").into());
+        return Err(ApiError::err("community_user_already_banned").into());
       }
 
       // Also unsubscribe them from the community, if they are subscribed
@@ -622,7 +622,7 @@ impl Perform for BanFromCommunity {
     } else {
       let unban = move |conn: &'_ _| CommunityUserBan::unban(conn, &community_user_ban_form);
       if blocking(context.pool(), unban).await?.is_err() {
-        return Err(APIError::err("community_user_already_banned").into());
+        return Err(ApiError::err("community_user_already_banned").into());
       }
     }
 
@@ -721,12 +721,12 @@ impl Perform for AddModToCommunity {
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       if blocking(context.pool(), join).await?.is_err() {
-        return Err(APIError::err("community_moderator_already_exists").into());
+        return Err(ApiError::err("community_moderator_already_exists").into());
       }
     } else {
       let leave = move |conn: &'_ _| CommunityModerator::leave(conn, &community_moderator_form);
       if blocking(context.pool(), leave).await?.is_err() {
-        return Err(APIError::err("community_moderator_already_exists").into());
+        return Err(ApiError::err("community_moderator_already_exists").into());
       }
     }
 
@@ -798,14 +798,14 @@ impl Perform for TransferCommunity {
     if user.id != read_community.creator_id
       && !admins.iter().map(|a| a.user.id).any(|x| x == user.id)
     {
-      return Err(APIError::err("not_an_admin").into());
+      return Err(ApiError::err("not_an_admin").into());
     }
 
     let community_id = data.community_id;
     let new_creator = data.user_id;
     let update = move |conn: &'_ _| Community::update_creator(conn, community_id, new_creator);
     if blocking(context.pool(), update).await?.is_err() {
-      return Err(APIError::err("couldnt_update_community").into());
+      return Err(ApiError::err("couldnt_update_community").into());
     };
 
     // You also have to re-do the community_moderator table, reordering it.
@@ -836,7 +836,7 @@ impl Perform for TransferCommunity {
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       if blocking(context.pool(), join).await?.is_err() {
-        return Err(APIError::err("community_moderator_already_exists").into());
+        return Err(ApiError::err("community_moderator_already_exists").into());
       }
     }
 
@@ -860,7 +860,7 @@ impl Perform for TransferCommunity {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
     };
 
     let community_id = data.community_id;
@@ -870,7 +870,7 @@ impl Perform for TransferCommunity {
     .await?
     {
       Ok(moderators) => moderators,
-      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
     };
 
     // Return the jwt
