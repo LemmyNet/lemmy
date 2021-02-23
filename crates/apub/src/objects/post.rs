@@ -118,8 +118,10 @@ impl FromApub for Post {
     expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Post, LemmyError> {
-    check_object_for_community_or_site_ban(page, context, request_counter).await?;
-    get_object_from_apub(page, context, expected_domain, request_counter).await
+    let post: Post = get_object_from_apub(page, context, expected_domain, request_counter).await?;
+    check_object_for_community_or_site_ban(page, post.community_id, context, request_counter)
+      .await?;
+    Ok(post)
   }
 }
 
