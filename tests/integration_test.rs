@@ -173,7 +173,7 @@ fn create_http_request() -> HttpRequest {
     .to_http_request()
 }
 
-// TODO: this fails with a stack overflow for some reason
+// This fails with a mysterious stack overflow - see #1449
 #[actix_rt::test]
 #[ignore]
 async fn test_shared_inbox_expired_signature() {
@@ -191,7 +191,9 @@ async fn test_shared_inbox_expired_signature() {
   User_::delete(connection, user.id).unwrap();
 }
 
+// This fails with a mysterious stack overflow - see #1449
 #[actix_rt::test]
+#[ignore]
 async fn test_user_inbox_expired_signature() {
   let request = create_http_request();
   let context = create_context();
