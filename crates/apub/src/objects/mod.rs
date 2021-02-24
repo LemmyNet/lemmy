@@ -207,6 +207,7 @@ where
 
 pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
   object: &T,
+  community_id: i32,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError>
@@ -219,8 +220,7 @@ where
     .as_single_xsd_any_uri()
     .context(location_info!())?;
   let user = get_or_fetch_and_upsert_user(user_id, context, request_counter).await?;
-  let community = get_to_community(object, context, request_counter).await?;
-  check_community_or_site_ban(&user, &community, context.pool()).await
+  check_community_or_site_ban(&user, community_id, context.pool()).await
 }
 
 pub(in crate::objects) async fn get_to_community<T, Kind>(
