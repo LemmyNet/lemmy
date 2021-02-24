@@ -48,7 +48,14 @@ use lemmy_db_schema::source::site::Site;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
+use strum_macros::EnumString;
 use url::Url;
+
+#[derive(EnumString)]
+enum PageOrNote {
+  Page,
+  Note,
+}
 
 /// This file is for post/comment activities received by the community, and for post/comment
 ///       activities announced by the community and received by the user.
@@ -64,9 +71,13 @@ pub(in crate::inbox) async fn receive_create_for_community(
   verify_activity_domains_valid(&create, &expected_domain, true)?;
   is_addressed_to_public(&create)?;
 
-  match create.object().as_single_kind_str() {
-    Some("Page") => receive_create_post(create, context, request_counter).await,
-    Some("Note") => receive_create_comment(create, context, request_counter).await,
+  let kind = create
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok());
+  match kind {
+    Some(PageOrNote::Page) => receive_create_post(create, context, request_counter).await,
+    Some(PageOrNote::Note) => receive_create_comment(create, context, request_counter).await,
     _ => receive_unhandled_activity(create),
   }
 }
@@ -82,9 +93,13 @@ pub(in crate::inbox) async fn receive_update_for_community(
   verify_activity_domains_valid(&update, &expected_domain, true)?;
   is_addressed_to_public(&update)?;
 
-  match update.object().as_single_kind_str() {
-    Some("Page") => receive_update_post(update, context, request_counter).await,
-    Some("Note") => receive_update_comment(update, context, request_counter).await,
+  let kind = update
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok());
+  match kind {
+    Some(PageOrNote::Page) => receive_update_post(update, context, request_counter).await,
+    Some(PageOrNote::Note) => receive_update_comment(update, context, request_counter).await,
     _ => receive_unhandled_activity(update),
   }
 }
@@ -201,6 +216,14 @@ pub(in crate::inbox) async fn receive_remove_for_community(
   }
 }
 
+#[derive(EnumString)]
+enum UndoableActivities {
+  Delete,
+  Remove,
+  Like,
+  Dislike,
+}
+
 /// A post/comment action being reverted (either a delete, remove, upvote or downvote)
 pub(in crate::inbox) async fn receive_undo_for_community(
   context: &LemmyContext,
@@ -212,13 +235,18 @@ pub(in crate::inbox) async fn receive_undo_for_community(
   verify_activity_domains_valid(&undo, &expected_domain.to_owned(), true)?;
   is_addressed_to_public(&undo)?;
 
-  match undo.object().as_single_kind_str() {
-    Some("Delete") => receive_undo_delete_for_community(context, undo, expected_domain).await,
-    Some("Remove") => receive_undo_remove_for_community(context, undo, expected_domain).await,
-    Some("Like") => {
+  use UndoableActivities::*;
+  match undo
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok())
+  {
+    Some(Delete) => receive_undo_delete_for_community(context, undo, expected_domain).await,
+    Some(Remove) => receive_undo_remove_for_community(context, undo, expected_domain).await,
+    Some(Like) => {
       receive_undo_like_for_community(context, undo, expected_domain, request_counter).await
     }
-    Some("Dislike") => {
+    Some(Dislike) => {
       receive_undo_dislike_for_community(context, undo, expected_domain, request_counter).await
     }
     _ => receive_unhandled_activity(undo),
