@@ -9,7 +9,7 @@ alter sequence user__id_seq rename to person_id_seq;
 -- create a new table local_user
 create table local_user (
   id serial primary key,
-  user_id int references person on update cascade on delete cascade not null,
+  person_id int references person on update cascade on delete cascade not null,
   password_encrypted text not null,
   email text,
   admin boolean default false not null,
@@ -21,13 +21,13 @@ create table local_user (
   show_avatars boolean default true not null,
   send_notifications_to_email boolean default false not null,
   matrix_user_id text,
-  unique (user_id)
+  unique (person_id)
 );
 
 -- Copy the local users over to the new table
 insert into local_user 
 (
-  user_id,
+  person_id,
   password_encrypted,
   email,
   admin,
@@ -268,6 +268,124 @@ alter table user_ban rename to person_ban;
 alter sequence user_ban_id_seq rename to person_ban_id_seq;
 alter index user_ban_pkey rename to person_ban_pkey;
 alter index user_ban_user_id_key rename to person_ban_person_id_key;
+alter table person_ban rename column user_id to person_id;
 alter table person_ban rename constraint user_ban_user_id_fkey to person_ban_person_id_fkey;
 
+-- comment_like
+alter table comment_like rename column user_id to person_id;
+alter index idx_comment_like_user rename to idx_comment_like_person;
+alter table comment_like rename constraint comment_like_comment_id_user_id_key to comment_like_comment_id_person_id_key;
+alter table comment_like rename constraint comment_like_user_id_fkey to comment_like_person_id_fkey;
 
+-- comment_saved
+alter table comment_saved rename column user_id to person_id;
+alter table comment_saved rename constraint comment_saved_comment_id_user_id_key to comment_saved_comment_id_person_id_key;
+alter table comment_saved rename constraint comment_saved_user_id_fkey to comment_saved_person_id_fkey;
+
+-- community_follower
+alter table community_follower rename column user_id to person_id;
+alter table community_follower rename constraint community_follower_community_id_user_id_key to community_follower_community_id_person_id_key;
+alter table community_follower rename constraint community_follower_user_id_fkey to community_follower_person_id_fkey;
+
+-- community_moderator
+alter table community_moderator rename column user_id to person_id;
+alter table community_moderator rename constraint community_moderator_community_id_user_id_key to community_moderator_community_id_person_id_key;
+alter table community_moderator rename constraint community_moderator_user_id_fkey to community_moderator_person_id_fkey;
+
+-- community_user_ban
+alter table community_user_ban rename to community_person_ban;
+alter sequence community_user_ban_id_seq rename to community_person_ban_id_seq;
+alter table community_person_ban rename column user_id to person_id;
+alter table community_person_ban rename constraint community_user_ban_pkey to community_person_ban_pkey; 
+alter table community_person_ban rename constraint community_user_ban_community_id_fkey to community_person_ban_community_id_fkey;
+alter table community_person_ban rename constraint community_user_ban_community_id_user_id_key to community_person_ban_community_id_person_id_key;
+alter table community_person_ban rename constraint community_user_ban_user_id_fkey to community_person_ban_person_id_fkey;
+
+-- mod_add
+alter table mod_add rename column mod_user_id to mod_person_id; 
+alter table mod_add rename column other_user_id to other_person_id; 
+alter table mod_add rename constraint mod_add_mod_user_id_fkey to mod_add_mod_person_id_fkey;
+alter table mod_add rename constraint mod_add_other_user_id_fkey to mod_add_other_person_id_fkey;
+
+-- mod_add_community
+alter table mod_add_community rename column mod_user_id to mod_person_id; 
+alter table mod_add_community rename column other_user_id to other_person_id; 
+alter table mod_add_community rename constraint mod_add_community_mod_user_id_fkey to mod_add_community_mod_person_id_fkey;
+alter table mod_add_community rename constraint mod_add_community_other_user_id_fkey to mod_add_community_other_person_id_fkey;
+
+-- mod_ban
+alter table mod_ban rename column mod_user_id to mod_person_id; 
+alter table mod_ban rename column other_user_id to other_person_id; 
+alter table mod_ban rename constraint mod_ban_mod_user_id_fkey to mod_ban_mod_person_id_fkey;
+alter table mod_ban rename constraint mod_ban_other_user_id_fkey to mod_ban_other_person_id_fkey;
+
+-- mod_ban_community
+alter table mod_ban_from_community rename column mod_user_id to mod_person_id; 
+alter table mod_ban_from_community rename column other_user_id to other_person_id; 
+alter table mod_ban_from_community rename constraint mod_ban_from_community_mod_user_id_fkey to mod_ban_from_community_mod_person_id_fkey;
+alter table mod_ban_from_community rename constraint mod_ban_from_community_other_user_id_fkey to mod_ban_from_community_other_person_id_fkey;
+
+-- mod_lock_post
+alter table mod_lock_post rename column mod_user_id to mod_person_id; 
+alter table mod_lock_post rename constraint mod_lock_post_mod_user_id_fkey to mod_lock_post_mod_person_id_fkey;
+
+-- mod_remove_comment
+alter table mod_remove_comment rename column mod_user_id to mod_person_id; 
+alter table mod_remove_comment rename constraint mod_remove_comment_mod_user_id_fkey to mod_remove_comment_mod_person_id_fkey;
+
+-- mod_remove_community
+alter table mod_remove_community rename column mod_user_id to mod_person_id; 
+alter table mod_remove_community rename constraint mod_remove_community_mod_user_id_fkey to mod_remove_community_mod_person_id_fkey;
+
+-- mod_remove_post
+alter table mod_remove_post rename column mod_user_id to mod_person_id; 
+alter table mod_remove_post rename constraint mod_remove_post_mod_user_id_fkey to mod_remove_post_mod_person_id_fkey;
+
+-- mod_sticky_post
+alter table mod_sticky_post rename column mod_user_id to mod_person_id; 
+alter table mod_sticky_post rename constraint mod_sticky_post_mod_user_id_fkey to mod_sticky_post_mod_person_id_fkey;
+
+-- password_reset_request
+delete from password_reset_request;
+alter table password_reset_request drop column user_id;
+alter table password_reset_request add column local_user_id integer not null references local_user(id) on update cascade on delete cascade;
+
+-- post_like
+alter table post_like rename column user_id to person_id;
+alter index idx_post_like_user rename to idx_post_like_person;
+alter table post_like rename constraint post_like_post_id_user_id_key to post_like_post_id_person_id_key;
+alter table post_like rename constraint post_like_user_id_fkey to post_like_person_id_fkey;
+
+-- post_read
+alter table post_read rename column user_id to person_id;
+alter table post_read rename constraint post_read_post_id_user_id_key to post_read_post_id_person_id_key;
+alter table post_read rename constraint post_read_user_id_fkey to post_read_person_id_fkey;
+
+-- post_saved
+alter table post_saved rename column user_id to person_id;
+alter table post_saved rename constraint post_saved_post_id_user_id_key to post_saved_post_id_person_id_key;
+alter table post_saved rename constraint post_saved_user_id_fkey to post_saved_person_id_fkey;
+
+-- redo site aggregates trigger
+create or replace function site_aggregates_activity(i text) returns integer
+    language plpgsql
+    as $$
+declare
+   count_ integer;
+begin
+  select count(*)
+  into count_
+  from (
+    select c.creator_id from comment c
+    inner join person u on c.creator_id = u.id
+    where c.published > ('now'::timestamp - i::interval) 
+    and u.local = true
+    union
+    select p.creator_id from post p
+    inner join person u on p.creator_id = u.id
+    where p.published > ('now'::timestamp - i::interval)
+    and u.local = true
+  ) a;
+  return count_;
+end;
+$$;
