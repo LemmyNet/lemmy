@@ -127,7 +127,6 @@ fn create_community(conn: &PgConnection, creator_id: i32) -> Community {
     creator_id,
     title: "test_community".to_owned(),
     description: None,
-    category_id: 1,
     nsfw: false,
     removed: None,
     deleted: None,

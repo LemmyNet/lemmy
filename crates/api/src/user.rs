@@ -251,7 +251,6 @@ impl Perform for Register {
             name: default_community_name.to_string(),
             title: "The Default Community".to_string(),
             description: Some("The Default Community".to_string()),
-            category_id: 1,
             nsfw: false,
             creator_id: inserted_user.id,
             removed: None,
