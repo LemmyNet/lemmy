@@ -34,6 +34,7 @@ echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \
   LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_alpha.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_alpha" \
+  LEMMY_HOSTNAME="lemmy-alpha:8541" \
   target/lemmy_server >/tmp/lemmy_alpha.out 2>&1 &
 
 echo "start beta"

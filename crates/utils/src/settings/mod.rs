@@ -10,7 +10,7 @@ use crate::{
   },
   LemmyError,
 };
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use merge::Merge;
 use serde::Deserialize;
@@ -87,8 +87,15 @@ impl Settings {
     // Read the config file
     let mut custom_config = from_str::<Settings>(&Self::read_config_file()?)?;
 
+    // Merge with env vars
+    custom_config.merge(envy::prefixed("LEMMY_").from_env::<Settings>()?);
+
     // Merge with default
     custom_config.merge(Settings::default());
+
+    if custom_config.hostname == Settings::default().hostname {
+      return Err(anyhow!("Hostname variable is not set!").into());
+    }
 
     Ok(custom_config)
   }
