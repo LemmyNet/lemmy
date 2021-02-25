@@ -191,7 +191,7 @@ mod tests {
 
   #[test]
   fn test_image() {
-    actix_rt::System::new("tset_image").block_on(async move {
+    actix_rt::System::new().block_on(async move {
       let client = reqwest::Client::default();
       assert!(is_image_content_type(&client, "https://1734811051.rsc.cdn77.org/data/images/full/365645/as-virus-kills-navajos-in-their-homes-tribal-women-provide-lifeline.jpg?w=600?w=650").await.is_ok());
       assert!(is_image_content_type(&client,
