@@ -25,7 +25,7 @@ serde_json = { version = "1.0.62", features = ["preserve_order"] }
 serde = { version = "1.0.123", features = ["derive"] }
 actix = "0.10.0"
 actix-web = { version = "3.3.2", default-features = false }
-actix-rt = { version = "1.1.1", default-features = false }
+actix-rt = { version = "2.0.2", default-features = false }
 awc = { version = "2.0.3", default-features = false }
 log = "0.4.14"
 rand = "0.8.3"

@@ -1753,7 +1753,7 @@ name = "lemmy_api"
 version = "0.1.0"
 dependencies = [
  "actix",
- "actix-rt 1.1.1",
+ "actix-rt 2.0.2",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -1800,7 +1800,7 @@ dependencies = [
  "activitystreams",
  "activitystreams-ext",
  "actix",
- "actix-rt 1.1.1",
+ "actix-rt 2.0.2",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -1938,7 +1938,7 @@ version = "0.0.1"
 dependencies = [
  "activitystreams",
  "actix",
- "actix-rt 1.1.1",
+ "actix-rt 2.0.2",
  "actix-web",
  "anyhow",
  "cargo-husky",
@@ -1992,7 +1992,7 @@ dependencies = [
 name = "lemmy_utils"
 version = "0.1.0"
 dependencies = [
- "actix-rt 1.1.1",
+ "actix-rt 2.0.2",
  "actix-web",
  "anyhow",
  "chrono",
