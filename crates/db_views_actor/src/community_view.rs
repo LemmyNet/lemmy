@@ -12,9 +12,8 @@ use lemmy_db_queries::{
   ViewToVec,
 };
 use lemmy_db_schema::{
-  schema::{category, community, community_aggregates, community_follower, user_},
+  schema::{community, community_aggregates, community_follower, user_},
   source::{
-    category::Category,
     community::{Community, CommunityFollower, CommunitySafe},
     user::{UserSafe, User_},
   },
@@ -25,7 +24,6 @@ use serde::Serialize;
 pub struct CommunityView {
   pub community: CommunitySafe,
   pub creator: UserSafe,
-  pub category: Category,
   pub subscribed: bool,
   pub counts: CommunityAggregates,
 }
@@ -33,7 +31,6 @@ pub struct CommunityView {
 type CommunityViewTuple = (
   CommunitySafe,
   UserSafe,
-  Category,
   CommunityAggregates,
   Option<CommunityFollower>,
 );
@@ -47,10 +44,9 @@ impl CommunityView {
     // The left join below will return None in this case
     let user_id_join = my_user_id.unwrap_or(-1);
 
-    let (community, creator, category, counts, follower) = community::table
+    let (community, creator, counts, follower) = community::table
       .find(community_id)
       .inner_join(user_::table)
-      .inner_join(category::table)
       .inner_join(community_aggregates::table)
       .left_join(
         community_follower::table.on(
@@ -62,7 +58,6 @@ impl CommunityView {
       .select((
         Community::safe_columns_tuple(),
         User_::safe_columns_tuple(),
-        category::all_columns,
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
       ))
@@ -71,7 +66,6 @@ impl CommunityView {
     Ok(CommunityView {
       community,
       creator,
-      category,
       subscribed: follower.is_some(),
       counts,
     })
@@ -162,7 +156,6 @@ impl<'a> CommunityQueryBuilder<'a> {
 
     let mut query = community::table
       .inner_join(user_::table)
-      .inner_join(category::table)
       .inner_join(community_aggregates::table)
       .left_join(
         community_follower::table.on(
@@ -174,7 +167,6 @@ impl<'a> CommunityQueryBuilder<'a> {
       .select((
         Community::safe_columns_tuple(),
         User_::safe_columns_tuple(),
-        category::all_columns,
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
       ))
@@ -235,9 +227,8 @@ impl ViewToVec for CommunityView {
       .map(|a| Self {
         community: a.0.to_owned(),
         creator: a.1.to_owned(),
-        category: a.2.to_owned(),
-        counts: a.3.to_owned(),
-        subscribed: a.4.is_some(),
+        counts: a.2.to_owned(),
+        subscribed: a.3.is_some(),
       })
       .collect::<Vec<Self>>()
   }

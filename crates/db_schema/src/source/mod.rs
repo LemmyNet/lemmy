@@ -1,5 +1,4 @@
 pub mod activity;
-pub mod category;
 pub mod comment;
 pub mod comment_report;
 pub mod community;
