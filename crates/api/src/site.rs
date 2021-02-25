@@ -10,17 +10,10 @@ use crate::{
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::fetcher::search::search_by_apub_id;
-use lemmy_db_queries::{
-  diesel_option_overwrite,
-  source::{category::Category_, site::Site_},
-  Crud,
-  SearchType,
-  SortType,
-};
+use lemmy_db_queries::{diesel_option_overwrite, source::site::Site_, Crud, SearchType, SortType};
 use lemmy_db_schema::{
   naive_now,
   source::{
-    category::Category,
     moderator::*,
     site::{Site, *},
   },
@@ -62,24 +55,6 @@ use lemmy_websocket::{
 };
 use log::{debug, info};
 use std::str::FromStr;
-
-#[async_trait::async_trait(?Send)]
-impl Perform for ListCategories {
-  type Response = ListCategoriesResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<ListCategoriesResponse, LemmyError> {
-    let _data: &ListCategories = &self;
-
-    let categories = blocking(context.pool(), move |conn| Category::list_all(conn)).await??;
-
-    // Return the jwt
-    Ok(ListCategoriesResponse { categories })
-  }
-}
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetModlog {

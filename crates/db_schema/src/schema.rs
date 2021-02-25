@@ -11,13 +11,6 @@ table! {
 }
 
 table! {
-    category (id) {
-        id -> Int4,
-        name -> Varchar,
-    }
-}
-
-table! {
     comment (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -85,7 +78,6 @@ table! {
         name -> Varchar,
         title -> Varchar,
         description -> Nullable<Text>,
-        category_id -> Int4,
         creator_id -> Int4,
         removed -> Bool,
         published -> Timestamp,
@@ -546,7 +538,6 @@ joinable!(comment_like -> user_ (user_id));
 joinable!(comment_report -> comment (comment_id));
 joinable!(comment_saved -> comment (comment_id));
 joinable!(comment_saved -> user_ (user_id));
-joinable!(community -> category (category_id));
 joinable!(community -> user_ (creator_id));
 joinable!(community_aggregates -> community (community_id));
 joinable!(community_follower -> community (community_id));
@@ -587,7 +578,6 @@ joinable!(user_mention -> user_ (recipient_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
-  category,
   comment,
   comment_aggregates,
   comment_like,

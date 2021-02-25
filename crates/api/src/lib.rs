@@ -298,9 +298,6 @@ pub async fn match_websocket_operation(
     UserOperation::TransferSite => {
       do_websocket_operation::<TransferSite>(context, id, op, data).await
     }
-    UserOperation::ListCategories => {
-      do_websocket_operation::<ListCategories>(context, id, op, data).await
-    }
 
     // Community ops
     UserOperation::GetCommunity => {

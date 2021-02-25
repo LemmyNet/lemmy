@@ -113,7 +113,6 @@ mod tests {
       creator_id: inserted_user.id,
       title: "nada".to_owned(),
       description: None,
-      category_id: 1,
       nsfw: false,
       removed: None,
       deleted: None,
