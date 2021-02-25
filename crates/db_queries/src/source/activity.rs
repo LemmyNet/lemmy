@@ -133,8 +133,10 @@ mod tests {
     user::{UserForm, User_},
   };
   use serde_json::Value;
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 

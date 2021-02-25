@@ -3,6 +3,9 @@ name = "lemmy_db_views_moderator"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+doctest = false
+
 [dependencies]
 lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }

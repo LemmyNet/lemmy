@@ -37,8 +37,10 @@ mod tests {
     post::{Post, PostForm},
     user::{UserForm, User_},
   };
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
