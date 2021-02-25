@@ -93,16 +93,9 @@ impl ToApub for Community {
         ..Default::default()
       });
 
-    let nsfw = self.nsfw;
-    let category_id = self.category_id;
-    let group_extension = blocking(pool, move |conn| {
-      GroupExtension::new(conn, category_id, nsfw)
-    })
-    .await??;
-
     Ok(Ext2::new(
       ap_actor,
-      group_extension,
+      GroupExtension::new(self.nsfw)?,
       self.get_public_key_ext()?,
     ))
   }
@@ -207,13 +200,6 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       name,
       title,
       description,
-      category_id: group
-        .ext_one
-        .category
-        .clone()
-        .map(|c| c.identifier.parse::<i32>().ok())
-        .flatten()
-        .unwrap_or(1),
       creator_id: creator.id,
       removed: None,
       published: group.inner.published().map(|u| u.to_owned().naive_local()),
