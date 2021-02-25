@@ -27,7 +27,7 @@ use lemmy_db_views::{
 use lemmy_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
-  APIError,
+  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -60,7 +60,7 @@ impl Perform for CreateComment {
 
     // Check if post is locked, no new comments
     if post.locked {
-      return Err(APIError::err("locked").into());
+      return Err(ApiError::err("locked").into());
     }
 
     // If there's a parent_id, check to make sure that comment is in that post
@@ -69,10 +69,10 @@ impl Perform for CreateComment {
       let parent =
         match blocking(context.pool(), move |conn| Comment::read(&conn, parent_id)).await? {
           Ok(comment) => comment,
-          Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
+          Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
         };
       if parent.post_id != post_id {
-        return Err(APIError::err("couldnt_create_comment").into());
+        return Err(ApiError::err("couldnt_create_comment").into());
       }
     }
 
@@ -98,7 +98,7 @@ impl Perform for CreateComment {
     .await?
     {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
     };
 
     // Necessary to update the ap_id
@@ -112,7 +112,7 @@ impl Perform for CreateComment {
       .await?
       {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
+        Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
       };
 
     updated_comment.send_create(&user, context).await?;
@@ -140,7 +140,7 @@ impl Perform for CreateComment {
 
     let like = move |conn: &'_ _| CommentLike::like(&conn, &like_form);
     if blocking(context.pool(), like).await?.is_err() {
-      return Err(APIError::err("couldnt_like_comment").into());
+      return Err(ApiError::err("couldnt_like_comment").into());
     }
 
     updated_comment.send_like(&user, context).await?;
@@ -160,7 +160,7 @@ impl Perform for CreateComment {
       .await?
       {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+        Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
       };
       comment_view.comment.read = true;
     }
@@ -205,7 +205,7 @@ impl Perform for EditComment {
 
     // Verify that only the creator can edit
     if user.id != orig_comment.creator.id {
-      return Err(APIError::err("no_comment_edit_allowed").into());
+      return Err(ApiError::err("no_comment_edit_allowed").into());
     }
 
     // Do the update
@@ -217,7 +217,7 @@ impl Perform for EditComment {
     .await?
     {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
     };
 
     // Send the apub update
@@ -281,7 +281,7 @@ impl Perform for DeleteComment {
 
     // Verify that only the creator can delete
     if user.id != orig_comment.creator.id {
-      return Err(APIError::err("no_comment_edit_allowed").into());
+      return Err(ApiError::err("no_comment_edit_allowed").into());
     }
 
     // Do the delete
@@ -292,7 +292,7 @@ impl Perform for DeleteComment {
     .await?
     {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
     };
 
     // Send the apub message
@@ -370,7 +370,7 @@ impl Perform for RemoveComment {
     .await?
     {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
     };
 
     // Mod tables
@@ -452,7 +452,7 @@ impl Perform for MarkCommentAsRead {
 
     // Verify that only the recipient can mark as read
     if user.id != orig_comment.get_recipient_id() {
-      return Err(APIError::err("no_comment_edit_allowed").into());
+      return Err(ApiError::err("no_comment_edit_allowed").into());
     }
 
     // Do the mark as read
@@ -463,7 +463,7 @@ impl Perform for MarkCommentAsRead {
     .await?
     {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
     };
 
     // Refetch it
@@ -504,12 +504,12 @@ impl Perform for SaveComment {
     if data.save {
       let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
       if blocking(context.pool(), save_comment).await?.is_err() {
-        return Err(APIError::err("couldnt_save_comment").into());
+        return Err(ApiError::err("couldnt_save_comment").into());
       }
     } else {
       let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
       if blocking(context.pool(), unsave_comment).await?.is_err() {
-        return Err(APIError::err("couldnt_save_comment").into());
+        return Err(ApiError::err("couldnt_save_comment").into());
       }
     }
 
@@ -577,7 +577,7 @@ impl Perform for CreateCommentLike {
       let like_form2 = like_form.clone();
       let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
       if blocking(context.pool(), like).await?.is_err() {
-        return Err(APIError::err("couldnt_like_comment").into());
+        return Err(ApiError::err("couldnt_like_comment").into());
       }
 
       if like_form.score == 1 {
@@ -647,7 +647,7 @@ impl Perform for GetComments {
     .await?;
     let comments = match comments {
       Ok(comments) => comments,
-      Err(_) => return Err(APIError::err("couldnt_get_comments").into()),
+      Err(_) => return Err(ApiError::err("couldnt_get_comments").into()),
     };
 
     Ok(GetCommentsResponse { comments })
@@ -670,10 +670,10 @@ impl Perform for CreateCommentReport {
     // check size of report and check for whitespace
     let reason = data.reason.trim();
     if reason.is_empty() {
-      return Err(APIError::err("report_reason_required").into());
+      return Err(ApiError::err("report_reason_required").into());
     }
-    if reason.len() > 1000 {
-      return Err(APIError::err("report_too_long").into());
+    if reason.chars().count() > 1000 {
+      return Err(ApiError::err("report_too_long").into());
     }
 
     let user_id = user.id;
@@ -698,7 +698,7 @@ impl Perform for CreateCommentReport {
     .await?
     {
       Ok(report) => report,
-      Err(_e) => return Err(APIError::err("couldnt_create_report").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_create_report").into()),
     };
 
     let res = CreateCommentReportResponse { success: true };
@@ -753,7 +753,7 @@ impl Perform for ResolveCommentReport {
     };
 
     if blocking(context.pool(), resolve_fun).await?.is_err() {
-      return Err(APIError::err("couldnt_resolve_report").into());
+      return Err(ApiError::err("couldnt_resolve_report").into());
     };
 
     let report_id = data.report_id;

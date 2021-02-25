@@ -1,4 +1,4 @@
-use lemmy_db_schema::source::{category::*, user::UserSafeSettings};
+use lemmy_db_schema::source::user::UserSafeSettings;
 use lemmy_db_views::{comment_view::CommentView, post_view::PostView, site_view::SiteView};
 use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
 use lemmy_db_views_moderator::{
@@ -13,14 +13,6 @@ use lemmy_db_views_moderator::{
   mod_sticky_post_view::ModStickyPostView,
 };
 use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize)]
-pub struct ListCategories {}
-
-#[derive(Serialize)]
-pub struct ListCategoriesResponse {
-  pub categories: Vec<Category>,
-}
 
 #[derive(Deserialize, Debug)]
 pub struct Search {

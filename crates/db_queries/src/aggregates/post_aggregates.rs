@@ -13,6 +13,7 @@ pub struct PostAggregates {
   pub downvotes: i64,
   pub stickied: bool,
   pub published: chrono::NaiveDateTime,
+  pub newest_comment_time_necro: chrono::NaiveDateTime, // A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time: chrono::NaiveDateTime,
 }
 
@@ -112,7 +113,6 @@ mod tests {
       creator_id: inserted_user.id,
       title: "nada".to_owned(),
       description: None,
-      category_id: 1,
       nsfw: false,
       removed: None,
       deleted: None,

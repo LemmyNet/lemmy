@@ -60,6 +60,7 @@ use lemmy_websocket::LemmyContext;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use strum_macros::EnumString;
 use url::Url;
 
 /// Allowed activities for user inbox.
@@ -235,6 +236,17 @@ async fn receive_accept(
   Ok(())
 }
 
+#[derive(EnumString)]
+enum AnnouncableActivities {
+  Create,
+  Update,
+  Like,
+  Dislike,
+  Delete,
+  Remove,
+  Undo,
+}
+
 /// Takes an announce and passes the inner activity to the appropriate handler.
 pub async fn receive_announce(
   context: &LemmyContext,
@@ -246,7 +258,10 @@ pub async fn receive_announce(
   verify_activity_domains_valid(&announce, &actor.actor_id(), false)?;
   is_addressed_to_public(&announce)?;
 
-  let kind = announce.object().as_single_kind_str();
+  let kind = announce
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok());
   let inner_activity = announce
     .object()
     .to_owned()
@@ -259,22 +274,23 @@ pub async fn receive_announce(
     return Ok(());
   }
 
+  use AnnouncableActivities::*;
   match kind {
-    Some("Create") => {
+    Some(Create) => {
       receive_create_for_community(context, inner_activity, &inner_id, request_counter).await
     }
-    Some("Update") => {
+    Some(Update) => {
       receive_update_for_community(context, inner_activity, &inner_id, request_counter).await
     }
-    Some("Like") => {
+    Some(Like) => {
       receive_like_for_community(context, inner_activity, &inner_id, request_counter).await
     }
-    Some("Dislike") => {
+    Some(Dislike) => {
       receive_dislike_for_community(context, inner_activity, &inner_id, request_counter).await
     }
-    Some("Delete") => receive_delete_for_community(context, inner_activity, &inner_id).await,
-    Some("Remove") => receive_remove_for_community(context, inner_activity, &inner_id).await,
-    Some("Undo") => {
+    Some(Delete) => receive_delete_for_community(context, inner_activity, &inner_id).await,
+    Some(Remove) => receive_remove_for_community(context, inner_activity, &inner_id).await,
+    Some(Undo) => {
       receive_undo_for_community(context, inner_activity, &inner_id, request_counter).await
     }
     _ => receive_unhandled_activity(inner_activity),

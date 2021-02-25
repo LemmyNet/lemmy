@@ -380,7 +380,9 @@ impl<'a> CommentQueryBuilder<'a> {
       SortType::Hot | SortType::Active => query
         .order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
         .then_order_by(comment_aggregates::published.desc()),
-      SortType::New | SortType::MostComments => query.order_by(comment::published.desc()),
+      SortType::New | SortType::MostComments | SortType::NewComments => {
+        query.order_by(comment::published.desc())
+      }
       SortType::TopAll => query.order_by(comment_aggregates::score.desc()),
       SortType::TopYear => query
         .filter(comment::published.gt(now - 1.years()))
@@ -481,7 +483,6 @@ mod tests {
       name: "test community 5".to_string(),
       title: "nada".to_owned(),
       description: None,
-      category_id: 1,
       creator_id: inserted_user.id,
       removed: None,
       deleted: None,
@@ -623,7 +624,6 @@ mod tests {
         title: "nada".to_owned(),
         description: None,
         creator_id: inserted_user.id,
-        category_id: 1,
         updated: None,
         banner: None,
         published: inserted_community.published,

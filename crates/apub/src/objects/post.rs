@@ -1,12 +1,13 @@
 use crate::{
   extensions::{context::lemmy_context, page_extension::PageExtension},
-  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
+  fetcher::user::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
     create_tombstone,
     get_object_from_apub,
     get_source_markdown_value,
+    get_to_community,
     set_content_and_source,
     FromApub,
     FromApubToForm,
@@ -17,6 +18,7 @@ use crate::{
 use activitystreams::{
   object::{kind::PageType, ApObject, Image, Page, Tombstone},
   prelude::*,
+  public,
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
@@ -56,11 +58,12 @@ impl ToApub for Post {
       // https://git.asonix.dog/Aardwolf/activitystreams/issues/5
       .set_many_contexts(lemmy_context()?)
       .set_id(self.ap_id.to_owned().into_inner())
-      // Use summary field to be consistent with mastodon content warning.
-      // https://mastodon.xyz/@Louisa/103987265222901387.json
+      .set_name(self.name.to_owned())
+      // `summary` field for compatibility with lemmy v0.9.9 and older,
+      // TODO: remove this after some time
       .set_summary(self.name.to_owned())
       .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id.into_inner())
+      .set_many_tos(vec![community.actor_id.into_inner(), public()])
       .set_attributed_to(creator.actor_id.into_inner());
 
     if let Some(body) = &self.body {
@@ -115,8 +118,10 @@ impl FromApub for Post {
     expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Post, LemmyError> {
-    check_object_for_community_or_site_ban(page, context, request_counter).await?;
-    get_object_from_apub(page, context, expected_domain, request_counter).await
+    let post: Post = get_object_from_apub(page, context, expected_domain, request_counter).await?;
+    check_object_for_community_or_site_ban(page, post.community_id, context, request_counter)
+      .await?;
+    Ok(post)
   }
 }
 
@@ -139,16 +144,7 @@ impl FromApubToForm<PageExt> for PostForm {
 
     let creator = get_or_fetch_and_upsert_user(creator_actor_id, context, request_counter).await?;
 
-    let community_actor_id = page
-      .inner
-      .to()
-      .as_ref()
-      .context(location_info!())?
-      .as_single_xsd_any_uri()
-      .context(location_info!())?;
-
-    let community =
-      get_or_fetch_and_upsert_community(community_actor_id, context, request_counter).await?;
+    let community = get_to_community(page, context, request_counter).await?;
 
     let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(
@@ -181,8 +177,11 @@ impl FromApubToForm<PageExt> for PostForm {
 
     let name = page
       .inner
-      .summary()
-      .as_ref()
+      .name()
+      .map(|s| s.map(|s2| s2.to_owned()))
+      // The following is for compatibility with lemmy v0.9.9 and older
+      // TODO: remove it after some time (along with the map above)
+      .or_else(|| page.inner.summary().map(|s| s.to_owned()))
       .context(location_info!())?
       .as_single_xsd_string()
       .context(location_info!())?

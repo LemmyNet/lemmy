@@ -18,12 +18,12 @@ use crate::{
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
+  public,
 };
 use anyhow::{anyhow, Context};
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentForm},
-  community::Community,
   post::Post,
   user::User_,
 };
@@ -49,9 +49,6 @@ impl ToApub for Comment {
     let post_id = self.post_id;
     let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
-    let community_id = post.community_id;
-    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
-
     // Add a vector containing some important info to the "in_reply_to" field
     // [post_ap_id, Option(parent_comment_ap_id)]
     let mut in_reply_to_vec = vec![post.ap_id.into_inner()];
@@ -67,7 +64,7 @@ impl ToApub for Comment {
       .set_many_contexts(lemmy_context()?)
       .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id.into_inner())
+      .set_to(public())
       .set_many_in_reply_tos(in_reply_to_vec)
       .set_attributed_to(creator.actor_id.into_inner());
 
@@ -103,13 +100,13 @@ impl FromApub for Comment {
     expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
-    check_object_for_community_or_site_ban(note, context, request_counter).await?;
-
     let comment: Comment =
       get_object_from_apub(note, context, expected_domain, request_counter).await?;
 
     let post_id = comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    check_object_for_community_or_site_ban(note, post.community_id, context, request_counter)
+      .await?;
     if post.locked {
       // This is not very efficient because a comment gets inserted just to be deleted right
       // afterwards, but it seems to be the easiest way to implement it.

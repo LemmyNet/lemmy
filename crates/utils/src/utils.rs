@@ -1,4 +1,4 @@
-use crate::{settings::Settings, APIError};
+use crate::{settings::Settings, ApiError};
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
@@ -43,15 +43,15 @@ pub(crate) fn slur_check(test: &str) -> Result<(), Vec<&str>> {
   }
 }
 
-pub fn check_slurs(text: &str) -> Result<(), APIError> {
+pub fn check_slurs(text: &str) -> Result<(), ApiError> {
   if let Err(slurs) = slur_check(text) {
-    Err(APIError::err(&slurs_vec_to_str(slurs)))
+    Err(ApiError::err(&slurs_vec_to_str(slurs)))
   } else {
     Ok(())
   }
 }
 
-pub fn check_slurs_opt(text: &Option<String>) -> Result<(), APIError> {
+pub fn check_slurs_opt(text: &Option<String>) -> Result<(), ApiError> {
   match text {
     Some(t) => check_slurs(t),
     None => Ok(()),
@@ -110,8 +110,8 @@ pub fn is_valid_username(name: &str) -> bool {
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_preferred_username(preferred_username: &str) -> bool {
   !preferred_username.starts_with('@')
-    && preferred_username.len() >= 3
-    && preferred_username.len() <= 20
+    && preferred_username.chars().count() >= 3
+    && preferred_username.chars().count() <= 20
 }
 
 pub fn is_valid_community_name(name: &str) -> bool {

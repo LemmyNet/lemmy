@@ -1,6 +1,6 @@
 use crate::{
   chat_server::ChatServer,
-  messages::{Connect, Disconnect, StandardMessage, WSMessage},
+  messages::{Connect, Disconnect, StandardMessage, WsMessage},
   LemmyContext,
 };
 use actix::prelude::*;
@@ -22,7 +22,7 @@ pub async fn chat_route(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   ws::start(
-    WSSession {
+    WsSession {
       cs_addr: context.chat_server().to_owned(),
       id: 0,
       hb: Instant::now(),
@@ -33,7 +33,7 @@ pub async fn chat_route(
   )
 }
 
-struct WSSession {
+struct WsSession {
   cs_addr: Addr<ChatServer>,
   /// unique session id
   id: usize,
@@ -43,7 +43,7 @@ struct WSSession {
   hb: Instant,
 }
 
-impl Actor for WSSession {
+impl Actor for WsSession {
   type Context = ws::WebsocketContext<Self>;
 
   /// Method is called on actor start.
@@ -87,16 +87,16 @@ impl Actor for WSSession {
 
 /// Handle messages from chat server, we simply send it to peer websocket
 /// These are room messages, IE sent to others in the room
-impl Handler<WSMessage> for WSSession {
+impl Handler<WsMessage> for WsSession {
   type Result = ();
 
-  fn handle(&mut self, msg: WSMessage, ctx: &mut Self::Context) {
+  fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
     ctx.text(msg.0);
   }
 }
 
 /// WebSocket message handler
-impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
   fn handle(&mut self, result: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
     let message = match result {
       Ok(m) => m,
@@ -143,7 +143,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
   }
 }
 
-impl WSSession {
+impl WsSession {
   /// helper method that sends ping to client every second.
   ///
   /// also this method checks heartbeats from client

@@ -40,7 +40,7 @@ use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
   request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, check_slurs_opt, is_valid_post_title},
-  APIError,
+  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -67,7 +67,7 @@ impl Perform for CreatePost {
     check_slurs_opt(&data.body)?;
 
     if !is_valid_post_title(&data.name) {
-      return Err(APIError::err("invalid_post_title").into());
+      return Err(ApiError::err("invalid_post_title").into());
     }
 
     check_community_ban(user.id, data.community_id, context.pool()).await?;
@@ -109,7 +109,7 @@ impl Perform for CreatePost {
             "couldnt_create_post"
           };
 
-          return Err(APIError::err(err_type).into());
+          return Err(ApiError::err(err_type).into());
         }
       };
 
@@ -121,7 +121,7 @@ impl Perform for CreatePost {
     .await?
     {
       Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_create_post").into()),
     };
 
     updated_post.send_create(&user, context).await?;
@@ -135,7 +135,7 @@ impl Perform for CreatePost {
 
     let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
     if blocking(context.pool(), like).await?.is_err() {
-      return Err(APIError::err("couldnt_like_post").into());
+      return Err(ApiError::err("couldnt_like_post").into());
     }
 
     updated_post.send_like(&user, context).await?;
@@ -148,7 +148,7 @@ impl Perform for CreatePost {
     .await?
     {
       Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_post").into()),
     };
 
     let res = PostResponse { post_view };
@@ -183,7 +183,7 @@ impl Perform for GetPost {
     .await?
     {
       Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_post").into()),
     };
 
     let id = data.id;
@@ -209,7 +209,7 @@ impl Perform for GetPost {
     .await?
     {
       Ok(community) => community,
-      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
     };
 
     let online = context
@@ -273,7 +273,7 @@ impl Perform for GetPosts {
     .await?
     {
       Ok(posts) => posts,
-      Err(_e) => return Err(APIError::err("couldnt_get_posts").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_get_posts").into()),
     };
 
     Ok(GetPostsResponse { posts })
@@ -320,7 +320,7 @@ impl Perform for CreatePostLike {
       let like_form2 = like_form.clone();
       let like = move |conn: &'_ _| PostLike::like(conn, &like_form2);
       if blocking(context.pool(), like).await?.is_err() {
-        return Err(APIError::err("couldnt_like_post").into());
+        return Err(ApiError::err("couldnt_like_post").into());
       }
 
       if like_form.score == 1 {
@@ -340,7 +340,7 @@ impl Perform for CreatePostLike {
     .await?
     {
       Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_find_post").into()),
     };
 
     let res = PostResponse { post_view };
@@ -371,7 +371,7 @@ impl Perform for EditPost {
     check_slurs_opt(&data.body)?;
 
     if !is_valid_post_title(&data.name) {
-      return Err(APIError::err("invalid_post_title").into());
+      return Err(ApiError::err("invalid_post_title").into());
     }
 
     let post_id = data.post_id;
@@ -381,7 +381,7 @@ impl Perform for EditPost {
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(user.id, orig_post.creator_id) {
-      return Err(APIError::err("no_post_edit_allowed").into());
+      return Err(ApiError::err("no_post_edit_allowed").into());
     }
 
     // Fetch Iframely and Pictrs cached image
@@ -423,7 +423,7 @@ impl Perform for EditPost {
           "couldnt_update_post"
         };
 
-        return Err(APIError::err(err_type).into());
+        return Err(ApiError::err(err_type).into());
       }
     };
 
@@ -467,7 +467,7 @@ impl Perform for DeletePost {
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(user.id, orig_post.creator_id) {
-      return Err(APIError::err("no_post_edit_allowed").into());
+      return Err(ApiError::err("no_post_edit_allowed").into());
     }
 
     // Update the post
@@ -711,12 +711,12 @@ impl Perform for SavePost {
     if data.save {
       let save = move |conn: &'_ _| PostSaved::save(conn, &post_saved_form);
       if blocking(context.pool(), save).await?.is_err() {
-        return Err(APIError::err("couldnt_save_post").into());
+        return Err(ApiError::err("couldnt_save_post").into());
       }
     } else {
       let unsave = move |conn: &'_ _| PostSaved::unsave(conn, &post_saved_form);
       if blocking(context.pool(), unsave).await?.is_err() {
-        return Err(APIError::err("couldnt_save_post").into());
+        return Err(ApiError::err("couldnt_save_post").into());
       }
     }
 
@@ -747,10 +747,10 @@ impl Perform for CreatePostReport {
     // check size of report and check for whitespace
     let reason = data.reason.trim();
     if reason.is_empty() {
-      return Err(APIError::err("report_reason_required").into());
+      return Err(ApiError::err("report_reason_required").into());
     }
-    if reason.len() > 1000 {
-      return Err(APIError::err("report_too_long").into());
+    if reason.chars().count() > 1000 {
+      return Err(ApiError::err("report_too_long").into());
     }
 
     let user_id = user.id;
@@ -777,7 +777,7 @@ impl Perform for CreatePostReport {
     .await?
     {
       Ok(report) => report,
-      Err(_e) => return Err(APIError::err("couldnt_create_report").into()),
+      Err(_e) => return Err(ApiError::err("couldnt_create_report").into()),
     };
 
     let res = CreatePostReportResponse { success: true };
@@ -837,7 +837,7 @@ impl Perform for ResolvePostReport {
     };
 
     if blocking(context.pool(), resolve_fun).await?.is_err() {
-      return Err(APIError::err("couldnt_resolve_report").into());
+      return Err(ApiError::err("couldnt_resolve_report").into());
     };
 
     context.chat_server().do_send(SendModRoomMessage {

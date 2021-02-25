@@ -165,6 +165,7 @@ pub enum SortType {
   TopYear,
   TopAll,
   MostComments,
+  NewComments,
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone)]
