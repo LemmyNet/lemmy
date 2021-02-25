@@ -199,9 +199,11 @@ impl Crud<ModAddForm> for ModAdd {
 mod tests {
   use crate::{establish_unpooled_connection, Crud, ListingType, SortType};
   use lemmy_db_schema::source::{comment::*, community::*, moderator::*, post::*, user::*};
+  use serial_test::serial;
 
   // use Crud;
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 

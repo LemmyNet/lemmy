@@ -3,6 +3,9 @@ name = "lemmy_server"
 version = "0.0.1"
 edition = "2018"
 
+[lib]
+doctest = false
+
 [profile.dev]
 debug = 0
 

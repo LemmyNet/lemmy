@@ -3,6 +3,9 @@ name = "lemmy_routes"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+doctest = false
+
 [dependencies]
 lemmy_utils = { path = "../utils" }
 lemmy_websocket = { path = "../websocket" }
