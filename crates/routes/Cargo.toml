@@ -22,6 +22,6 @@ chrono = { version = "0.4.19", features = ["serde"] }
 rss = "1.10.0"
 serde = { version = "1.0.123", features = ["derive"] }
 awc = { version = "2.0.3", default-features = false }
-url = { version = "2.2.0", features = ["serde"] }
+url = { version = "2.2.1", features = ["serde"] }
 strum = "0.20.0"
 lazy_static = "1.4.0"
