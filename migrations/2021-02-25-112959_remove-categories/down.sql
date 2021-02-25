@@ -31,4 +31,4 @@ insert into category (name) values
 ('Meta'),
 ('Other');
 
-ALTER TABLE community ADD category_id int references category on update cascade on delete cascade not null;
+ALTER TABLE community ADD category_id int references category on update cascade on delete cascade not null default 1;
