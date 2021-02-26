@@ -115,7 +115,10 @@ pub(in crate::inbox) async fn receive_like_for_community(
   verify_activity_domains_valid(&like, &expected_domain, false)?;
   is_addressed_to_public(&like)?;
 
-  let object_id = get_like_object_id(&like)?;
+  let object_id = like
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => receive_like_post(like, post, context, request_counter).await,
     PostOrComment::Comment(comment) => {
@@ -143,7 +146,10 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
   is_addressed_to_public(&dislike)?;
 
-  let object_id = get_like_object_id(&dislike)?;
+  let object_id = dislike
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_dislike_post(dislike, post, context, request_counter).await
@@ -313,7 +319,10 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
   verify_activity_domains_valid(&like, &expected_domain, false)?;
   is_addressed_to_public(&like)?;
 
-  let object_id = get_like_object_id(&like)?;
+  let object_id = like
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_undo_like_post(&like, post, context, request_counter).await
@@ -336,7 +345,10 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
   is_addressed_to_public(&dislike)?;
 
-  let object_id = get_like_object_id(&dislike)?;
+  let object_id = dislike
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_undo_dislike_post(&dislike, post, context, request_counter).await
@@ -361,27 +373,4 @@ async fn fetch_post_or_comment_by_id(
   }
 
   Err(NotFound.into())
-}
-
-fn get_like_object_id<Activity>(like_or_dislike: &Activity) -> Result<Url, LemmyError>
-where
-  Activity: ActorAndObjectRefExt,
-{
-  // TODO: For backwards compatibility with older Lemmy versions where like.object contains a full
-  //       post/comment. This can be removed after some time, using
-  //       `activity.oject().as_single_xsd_any_uri()` instead.
-  let object = like_or_dislike.object();
-  if let Some(xsd_uri) = object.as_single_xsd_any_uri() {
-    Ok(xsd_uri.to_owned())
-  } else {
-    Ok(
-      object
-        .to_owned()
-        .one()
-        .context(location_info!())?
-        .id()
-        .context(location_info!())?
-        .to_owned(),
-    )
-  }
 }
