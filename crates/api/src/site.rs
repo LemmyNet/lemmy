@@ -511,8 +511,8 @@ impl Perform for TransferSite {
 
     // Mod tables
     let form = ModAddForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: user.id,
+      other_person_id: data.user_id,
       removed: Some(false),
     };
 

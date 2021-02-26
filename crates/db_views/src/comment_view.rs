@@ -26,7 +26,7 @@ use lemmy_db_schema::{
   },
   source::{
     comment::{Comment, CommentAlias1, CommentSaved},
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    community::{Community, CommunityFollower, CommunitySafe, CommunityPersonBan},
     post::Post,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
@@ -55,7 +55,7 @@ type CommentViewTuple = (
   Post,
   CommunitySafe,
   CommentAggregates,
-  Option<CommunityUserBan>,
+  Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
   Option<i16>,
@@ -545,7 +545,7 @@ mod tests {
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_user.id,
       score: 1,
     };
 

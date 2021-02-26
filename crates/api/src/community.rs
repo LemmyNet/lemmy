@@ -198,7 +198,7 @@ impl Perform for CreateCommunity {
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
-      user_id: user.id,
+      person_id: user.id,
     };
 
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -209,7 +209,7 @@ impl Perform for CreateCommunity {
     // Follow your own community
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id: user.id,
+      person_id: user.id,
       pending: false,
     };
 
@@ -405,7 +405,7 @@ impl Perform for RemoveCommunity {
       None => None,
     };
     let form = ModRemoveCommunityForm {
-      mod_user_id: user.id,
+      mod_person_id: user.id,
       community_id: data.community_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -501,7 +501,7 @@ impl Perform for FollowCommunity {
     .await??;
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
-      user_id: user.id,
+      person_id: user.id,
       pending: false,
     };
 
@@ -595,13 +595,13 @@ impl Perform for BanFromCommunity {
     // Verify that only mods or admins can ban
     is_mod_or_admin(context.pool(), user.id, community_id).await?;
 
-    let community_user_ban_form = CommunityUserBanForm {
+    let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,
-      user_id: data.user_id,
+      person_id: data.user_id,
     };
 
     if data.ban {
-      let ban = move |conn: &'_ _| CommunityUserBan::ban(conn, &community_user_ban_form);
+      let ban = move |conn: &'_ _| CommunityPersonBan::ban(conn, &community_user_ban_form);
       if blocking(context.pool(), ban).await?.is_err() {
         return Err(ApiError::err("community_user_already_banned").into());
       }
@@ -609,7 +609,7 @@ impl Perform for BanFromCommunity {
       // Also unsubscribe them from the community, if they are subscribed
       let community_follower_form = CommunityFollowerForm {
         community_id: data.community_id,
-        user_id: banned_user_id,
+        person_id: banned_user_id,
         pending: false,
       };
       blocking(context.pool(), move |conn: &'_ _| {
@@ -618,7 +618,7 @@ impl Perform for BanFromCommunity {
       .await?
       .ok();
     } else {
-      let unban = move |conn: &'_ _| CommunityUserBan::unban(conn, &community_user_ban_form);
+      let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
       if blocking(context.pool(), unban).await?.is_err() {
         return Err(ApiError::err("community_user_already_banned").into());
       }
@@ -660,8 +660,8 @@ impl Perform for BanFromCommunity {
     };
 
     let form = ModBanFromCommunityForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: user.id,
+      other_person_id: data.user_id,
       community_id: data.community_id,
       reason: data.reason.to_owned(),
       banned: Some(data.ban),
@@ -708,7 +708,7 @@ impl Perform for AddModToCommunity {
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: data.community_id,
-      user_id: data.user_id,
+      person_id: data.user_id,
     };
 
     let community_id = data.community_id;
@@ -730,8 +730,8 @@ impl Perform for AddModToCommunity {
 
     // Mod tables
     let form = ModAddCommunityForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: user.id,
+      other_person_id: data.user_id,
       community_id: data.community_id,
       removed: Some(!data.added),
     };
@@ -829,7 +829,7 @@ impl Perform for TransferCommunity {
     for cmod in &community_mods {
       let community_moderator_form = CommunityModeratorForm {
         community_id: cmod.community.id,
-        user_id: cmod.moderator.id,
+        person_id: cmod.moderator.id,
       };
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -840,8 +840,8 @@ impl Perform for TransferCommunity {
 
     // Mod tables
     let form = ModAddCommunityForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: user.id,
+      other_person_id: data.user_id,
       community_id: data.community_id,
       removed: Some(false),
     };

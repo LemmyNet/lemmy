@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     user_,
   },
   source::{
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    community::{Community, CommunityFollower, CommunitySafe, CommunityPersonBan},
     post::{Post, PostRead, PostSaved},
     user::{UserSafe, User_},
   },
@@ -48,7 +48,7 @@ type PostViewTuple = (
   Post,
   UserSafe,
   CommunitySafe,
-  Option<CommunityUserBan>,
+  Option<CommunityPersonBan>,
   PostAggregates,
   Option<CommunityFollower>,
   Option<PostSaved>,
@@ -523,7 +523,7 @@ mod tests {
 
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_user.id,
       score: 1,
     };
 
@@ -532,7 +532,7 @@ mod tests {
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_user.id,
       published: inserted_post_like.published,
       score: 1,
     };

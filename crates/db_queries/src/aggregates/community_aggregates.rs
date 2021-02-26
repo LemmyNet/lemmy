@@ -39,32 +39,22 @@ mod tests {
     comment::{Comment, CommentForm},
     community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
     post::{Post, PostForm},
-    user::{UserForm, User_},
+    person::{PersonForm, Person},
   };
 
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "thommy_community_agg".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
       banned: Some(false),
+      deleted: false,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
       local: true,
@@ -75,27 +65,17 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
-    let another_user = UserForm {
+    let another_person = PersonForm {
       name: "jerry_community_agg".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
       banned: Some(false),
+      deleted: false,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
       local: true,
@@ -106,11 +86,11 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let another_inserted_user = User_::create(&conn, &another_user).unwrap();
+    let another_inserted_person = Person::create(&conn, &another_person).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL_community_agg".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       description: None,
       nsfw: false,
@@ -134,7 +114,7 @@ mod tests {
 
     let another_community = CommunityForm {
       name: "TIL_community_agg_2".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       description: None,
       nsfw: false,
@@ -156,25 +136,25 @@ mod tests {
 
     let another_inserted_community = Community::create(&conn, &another_community).unwrap();
 
-    let first_user_follow = CommunityFollowerForm {
+    let first_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       pending: false,
     };
 
-    CommunityFollower::follow(&conn, &first_user_follow).unwrap();
+    CommunityFollower::follow(&conn, &first_person_follow).unwrap();
 
-    let second_user_follow = CommunityFollowerForm {
+    let second_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id: another_inserted_user.id,
+      person_id: another_inserted_person.id,
       pending: false,
     };
 
-    CommunityFollower::follow(&conn, &second_user_follow).unwrap();
+    CommunityFollower::follow(&conn, &second_person_follow).unwrap();
 
     let another_community_follow = CommunityFollowerForm {
       community_id: another_inserted_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       pending: false,
     };
 
@@ -184,7 +164,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       removed: None,
       deleted: None,
@@ -205,7 +185,7 @@ mod tests {
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       post_id: inserted_post.id,
       removed: None,
       deleted: None,
@@ -221,7 +201,7 @@ mod tests {
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       post_id: inserted_post.id,
       removed: None,
       deleted: None,
@@ -250,12 +230,12 @@ mod tests {
     assert_eq!(0, another_community_aggs.comments);
 
     // Unfollow test
-    CommunityFollower::unfollow(&conn, &second_user_follow).unwrap();
+    CommunityFollower::unfollow(&conn, &second_person_follow).unwrap();
     let after_unfollow = CommunityAggregates::read(&conn, inserted_community.id).unwrap();
     assert_eq!(1, after_unfollow.subscribers);
 
     // Follow again just for the later tests
-    CommunityFollower::follow(&conn, &second_user_follow).unwrap();
+    CommunityFollower::follow(&conn, &second_person_follow).unwrap();
     let after_follow_again = CommunityAggregates::read(&conn, inserted_community.id).unwrap();
     assert_eq!(2, after_follow_again.subscribers);
 
@@ -265,14 +245,14 @@ mod tests {
     assert_eq!(0, after_parent_post_delete.comments);
     assert_eq!(0, after_parent_post_delete.posts);
 
-    // Remove the 2nd user
-    User_::delete(&conn, another_inserted_user.id).unwrap();
-    let after_user_delete = CommunityAggregates::read(&conn, inserted_community.id).unwrap();
-    assert_eq!(1, after_user_delete.subscribers);
+    // Remove the 2nd person
+    Person::delete(&conn, another_inserted_person.id).unwrap();
+    let after_person_delete = CommunityAggregates::read(&conn, inserted_community.id).unwrap();
+    assert_eq!(1, after_person_delete.subscribers);
 
     // This should delete all the associated rows, and fire triggers
-    let user_num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
-    assert_eq!(1, user_num_deleted);
+    let person_num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    assert_eq!(1, person_num_deleted);
 
     // Should be none found, since the creator was deleted
     let after_delete = CommunityAggregates::read(&conn, inserted_community.id);

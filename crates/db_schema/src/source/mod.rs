@@ -8,5 +8,6 @@ pub mod post;
 pub mod post_report;
 pub mod private_message;
 pub mod site;
-pub mod user;
-pub mod user_mention;
+pub mod person;
+pub mod person_mention;
+pub mod local_user;

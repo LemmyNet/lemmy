@@ -28,7 +28,7 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
 pub trait PasswordResetRequest_ {
   fn create_token(
     conn: &PgConnection,
-    from_user_id: i32,
+    from_local_user_id: i32,
     token: &str,
   ) -> Result<PasswordResetRequest, Error>;
   fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error>;
@@ -37,7 +37,7 @@ pub trait PasswordResetRequest_ {
 impl PasswordResetRequest_ for PasswordResetRequest {
   fn create_token(
     conn: &PgConnection,
-    from_user_id: i32,
+    from_local_user_id: i32,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();
@@ -45,7 +45,7 @@ impl PasswordResetRequest_ for PasswordResetRequest {
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
 
     let form = PasswordResetRequestForm {
-      user_id: from_user_id,
+      local_user_id: from_local_user_id,
       token_encrypted: token_hash,
     };
 
@@ -79,31 +79,21 @@ mod tests {
     ListingType,
     SortType,
   };
-  use lemmy_db_schema::source::{password_reset_request::PasswordResetRequest, user::*};
+  use lemmy_db_schema::source::{password_reset_request::PasswordResetRequest, person::*};
 
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "thommy prw".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
       banned: Some(false),
+      deleted: false,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
       local: true,
@@ -114,23 +104,23 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let token = "nope";
     let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create_token(&conn, inserted_user.id, token).unwrap();
+      PasswordResetRequest::create_token(&conn, inserted_person.id, token).unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
-      user_id: inserted_user.id,
+      local_user_id: inserted_person.id,
       token_encrypted: token_encrypted_.to_string(),
       published: inserted_password_reset_request.published,
     };
 
     let read_password_reset_request = PasswordResetRequest::read_from_token(&conn, token).unwrap();
-    let num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
+    let num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

@@ -69,7 +69,7 @@ pub struct CommentForm {
 #[table_name = "comment_like"]
 pub struct CommentLike {
   pub id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub comment_id: i32,
   pub post_id: i32, // TODO this is redundant
   pub score: i16,
@@ -79,7 +79,7 @@ pub struct CommentLike {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "comment_like"]
 pub struct CommentLikeForm {
-  pub user_id: i32,
+  pub person_id: i32,
   pub comment_id: i32,
   pub post_id: i32, // TODO this is redundant
   pub score: i16,
@@ -91,7 +91,7 @@ pub struct CommentLikeForm {
 pub struct CommentSaved {
   pub id: i32,
   pub comment_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub published: chrono::NaiveDateTime,
 }
 
@@ -99,5 +99,5 @@ pub struct CommentSaved {
 #[table_name = "comment_saved"]
 pub struct CommentSavedForm {
   pub comment_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
 }

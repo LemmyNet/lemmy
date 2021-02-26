@@ -104,7 +104,7 @@ async fn fetch_remote_community(
       for mod_ in creator_and_moderators {
         let community_moderator_form = CommunityModeratorForm {
           community_id,
-          user_id: mod_.id,
+          person_id: mod_.id,
         };
 
         CommunityModerator::join(conn, &community_moderator_form)?;

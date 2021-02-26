@@ -129,7 +129,7 @@ impl Perform for CreatePost {
     // They like their own post by default
     let like_form = PostLikeForm {
       post_id: inserted_post.id,
-      user_id: user.id,
+      person_id: user.id,
       score: 1,
     };
 
@@ -303,7 +303,7 @@ impl Perform for CreatePostLike {
 
     let like_form = PostLikeForm {
       post_id: data.post_id,
-      user_id: user.id,
+      person_id: user.id,
       score: data.score,
     };
 
@@ -534,7 +534,7 @@ impl Perform for RemovePost {
 
     // Mod tables
     let form = ModRemovePostForm {
-      mod_user_id: user.id,
+      mod_person_id: user.id,
       post_id: data.post_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -601,7 +601,7 @@ impl Perform for LockPost {
 
     // Mod tables
     let form = ModLockPostForm {
-      mod_user_id: user.id,
+      mod_person_id: user.id,
       post_id: data.post_id,
       locked: Some(locked),
     };
@@ -659,7 +659,7 @@ impl Perform for StickyPost {
 
     // Mod tables
     let form = ModStickyPostForm {
-      mod_user_id: user.id,
+      mod_person_id: user.id,
       post_id: data.post_id,
       stickied: Some(stickied),
     };
@@ -705,7 +705,7 @@ impl Perform for SavePost {
 
     let post_saved_form = PostSavedForm {
       post_id: data.post_id,
-      user_id: user.id,
+      person_id: user.id,
     };
 
     if data.save {

@@ -134,7 +134,7 @@ impl Perform for CreateComment {
     let like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id,
-      user_id: user.id,
+      person_id: user.id,
       score: 1,
     };
 
@@ -375,7 +375,7 @@ impl Perform for RemoveComment {
 
     // Mod tables
     let form = ModRemoveCommentForm {
-      mod_user_id: user.id,
+      mod_person_id: user.id,
       comment_id: data.comment_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -498,7 +498,7 @@ impl Perform for SaveComment {
 
     let comment_saved_form = CommentSavedForm {
       comment_id: data.comment_id,
-      user_id: user.id,
+      person_id: user.id,
     };
 
     if data.save {
@@ -559,7 +559,7 @@ impl Perform for CreateCommentLike {
     let like_form = CommentLikeForm {
       comment_id: data.comment_id,
       post_id: orig_comment.post.id,
-      user_id: user.id,
+      person_id: user.id,
       score: data.score,
     };
 

@@ -109,7 +109,7 @@ pub(crate) async fn receive_like_comment(
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
-    user_id: user.id,
+    person_id: user.id,
     score: 1,
   };
   let user_id = user.id;
@@ -154,7 +154,7 @@ pub(crate) async fn receive_dislike_comment(
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
-    user_id: user.id,
+    person_id: user.id,
     score: -1,
   };
   let user_id = user.id;

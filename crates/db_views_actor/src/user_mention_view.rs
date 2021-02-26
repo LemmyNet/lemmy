@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   },
   source::{
     comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    community::{Community, CommunityFollower, CommunitySafe, CommunityPersonBan},
     post::Post,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
     user_mention::UserMention,
@@ -55,7 +55,7 @@ type UserMentionViewTuple = (
   CommunitySafe,
   UserSafeAlias1,
   CommentAggregates,
-  Option<CommunityUserBan>,
+  Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
   Option<i16>,

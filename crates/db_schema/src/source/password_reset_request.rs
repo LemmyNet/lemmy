@@ -4,7 +4,7 @@ use crate::schema::password_reset_request;
 #[table_name = "password_reset_request"]
 pub struct PasswordResetRequest {
   pub id: i32,
-  pub user_id: i32,
+  pub local_user_id: i32,
   pub token_encrypted: String,
   pub published: chrono::NaiveDateTime,
 }
@@ -12,6 +12,6 @@ pub struct PasswordResetRequest {
 #[derive(Insertable, AsChangeset)]
 #[table_name = "password_reset_request"]
 pub struct PasswordResetRequestForm {
-  pub user_id: i32,
+  pub local_user_id: i32,
   pub token_encrypted: String,
 }

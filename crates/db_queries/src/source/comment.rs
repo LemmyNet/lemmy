@@ -166,17 +166,17 @@ impl Likeable<CommentLikeForm> for CommentLike {
     use lemmy_db_schema::schema::comment_like::dsl::*;
     insert_into(comment_like)
       .values(comment_like_form)
-      .on_conflict((comment_id, user_id))
+      .on_conflict((comment_id, person_id))
       .do_update()
       .set(comment_like_form)
       .get_result::<Self>(conn)
   }
-  fn remove(conn: &PgConnection, user_id: i32, comment_id: i32) -> Result<usize, Error> {
+  fn remove(conn: &PgConnection, person_id: i32, comment_id: i32) -> Result<usize, Error> {
     use lemmy_db_schema::schema::comment_like::dsl;
     diesel::delete(
       dsl::comment_like
         .filter(dsl::comment_id.eq(comment_id))
-        .filter(dsl::user_id.eq(user_id)),
+        .filter(dsl::person_id.eq(person_id)),
     )
     .execute(conn)
   }
@@ -197,7 +197,7 @@ impl Saveable<CommentSavedForm> for CommentSaved {
     diesel::delete(
       comment_saved
         .filter(comment_id.eq(comment_saved_form.comment_id))
-        .filter(user_id.eq(comment_saved_form.user_id)),
+        .filter(user_id.eq(comment_saved_form.person_id)),
     )
     .execute(conn)
   }
@@ -210,32 +210,22 @@ mod tests {
     comment::*,
     community::{Community, CommunityForm},
     post::*,
-    user::{UserForm, User_},
+    person::{PersonForm, Person},
   };
 
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "terry".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
       banned: Some(false),
+      deleted: false,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
       local: true,
@@ -246,13 +236,13 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_persod = Person::create(&conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "test community".to_string(),
       title: "nada".to_owned(),
       description: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_persod.id,
       removed: None,
       deleted: None,
       updated: None,
@@ -274,7 +264,7 @@ mod tests {
 
     let new_post = PostForm {
       name: "A test post".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_persod.id,
       url: None,
       body: None,
       community_id: inserted_community.id,
@@ -297,7 +287,7 @@ mod tests {
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_persod.id,
       post_id: inserted_post.id,
       removed: None,
       deleted: None,
@@ -314,7 +304,7 @@ mod tests {
     let expected_comment = Comment {
       id: inserted_comment.id,
       content: "A test comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_persod.id,
       post_id: inserted_post.id,
       removed: false,
       deleted: false,
@@ -328,7 +318,7 @@ mod tests {
 
     let child_comment_form = CommentForm {
       content: "A child comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_persod.id,
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
       removed: None,
@@ -346,7 +336,7 @@ mod tests {
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_persod.id,
       score: 1,
     };
 
@@ -356,7 +346,7 @@ mod tests {
       id: inserted_comment_like.id,
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_persod.id,
       published: inserted_comment_like.published,
       score: 1,
     };
@@ -364,7 +354,7 @@ mod tests {
     // Comment Saved
     let comment_saved_form = CommentSavedForm {
       comment_id: inserted_comment.id,
-      user_id: inserted_user.id,
+      person_id: inserted_persod.id,
     };
 
     let inserted_comment_saved = CommentSaved::save(&conn, &comment_saved_form).unwrap();
@@ -372,19 +362,19 @@ mod tests {
     let expected_comment_saved = CommentSaved {
       id: inserted_comment_saved.id,
       comment_id: inserted_comment.id,
-      user_id: inserted_user.id,
+      person_id: inserted_persod.id,
       published: inserted_comment_saved.published,
     };
 
     let read_comment = Comment::read(&conn, inserted_comment.id).unwrap();
     let updated_comment = Comment::update(&conn, inserted_comment.id, &comment_form).unwrap();
-    let like_removed = CommentLike::remove(&conn, inserted_user.id, inserted_comment.id).unwrap();
+    let like_removed = CommentLike::remove(&conn, inserted_persod.id, inserted_comment.id).unwrap();
     let saved_removed = CommentSaved::unsave(&conn, &comment_saved_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Comment::delete(&conn, inserted_child_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
-    User_::delete(&conn, inserted_user.id).unwrap();
+    Person::delete(&conn, inserted_persod.id).unwrap();
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);

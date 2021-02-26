@@ -62,7 +62,7 @@ impl ActorType for User_ {
 
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
-      user_id: self.id,
+      person_id: self.id,
       pending: true,
     };
     blocking(&context.pool(), move |conn| {

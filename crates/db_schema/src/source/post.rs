@@ -57,7 +57,7 @@ pub struct PostForm {
 pub struct PostLike {
   pub id: i32,
   pub post_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub score: i16,
   pub published: chrono::NaiveDateTime,
 }
@@ -66,7 +66,7 @@ pub struct PostLike {
 #[table_name = "post_like"]
 pub struct PostLikeForm {
   pub post_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub score: i16,
 }
 
@@ -76,7 +76,7 @@ pub struct PostLikeForm {
 pub struct PostSaved {
   pub id: i32,
   pub post_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub published: chrono::NaiveDateTime,
 }
 
@@ -84,7 +84,7 @@ pub struct PostSaved {
 #[table_name = "post_saved"]
 pub struct PostSavedForm {
   pub post_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -92,11 +92,8 @@ pub struct PostSavedForm {
 #[table_name = "post_read"]
 pub struct PostRead {
   pub id: i32,
-
   pub post_id: i32,
-
-  pub user_id: i32,
-
+  pub person_id: i32,
   pub published: chrono::NaiveDateTime,
 }
 
@@ -104,6 +101,5 @@ pub struct PostRead {
 #[table_name = "post_read"]
 pub struct PostReadForm {
   pub post_id: i32,
-
-  pub user_id: i32,
+  pub person_id: i32,
 }

@@ -278,7 +278,7 @@ impl Perform for Register {
     // Sign them up for main community no matter what
     let community_follower_form = CommunityFollowerForm {
       community_id: main_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_user.id,
       pending: false,
     };
 
@@ -291,7 +291,7 @@ impl Perform for Register {
     if no_admins {
       let community_moderator_form = CommunityModeratorForm {
         community_id: main_community.id,
-        user_id: inserted_user.id,
+        person_id: inserted_user.id,
       };
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -611,8 +611,8 @@ impl Perform for AddAdmin {
 
     // Mod tables
     let form = ModAddForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: user.id,
+      other_person_id: data.user_id,
       removed: Some(!data.added),
     };
 
@@ -693,8 +693,8 @@ impl Perform for BanUser {
     };
 
     let form = ModBanForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: user.id,
+      other_person_id: data.user_id,
       reason: data.reason.to_owned(),
       banned: Some(data.ban),
       expires,
@@ -989,7 +989,7 @@ impl Perform for PasswordChange {
     // Fetch the user_id from the token
     let token = data.token.clone();
     let user_id = blocking(context.pool(), move |conn| {
-      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.user_id)
+      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.local_user_id)
     })
     .await??;
 

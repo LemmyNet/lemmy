@@ -191,7 +191,7 @@ async fn handle_follow(
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
-    user_id: user.id,
+    person_id: user.id,
     pending: false,
   };
 
@@ -246,7 +246,7 @@ async fn handle_undo_follow(
   .await??;
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
-    user_id: user.id,
+    person_id: user.id,
     pending: false,
   };
 

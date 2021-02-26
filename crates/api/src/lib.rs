@@ -165,7 +165,7 @@ pub(crate) async fn collect_moderated_communities(
     Ok(vec![community_id])
   } else {
     let ids = blocking(pool, move |conn: &'_ _| {
-      CommunityModerator::get_user_moderated_communities(conn, user_id)
+      CommunityModerator::get_person_moderated_communities(conn, user_id)
     })
     .await??;
     Ok(ids)
