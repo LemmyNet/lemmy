@@ -1,12 +1,12 @@
 use crate::{
   location_info,
-  settings::{
-    captcha_config::CaptchaConfig,
-    database_config::DatabaseConfig,
-    email_config::EmailConfig,
-    federation_config::FederationConfig,
-    rate_limit_config::RateLimitConfig,
-    setup_config::SetupConfig,
+  settings::structs::{
+    CaptchaConfig,
+    DatabaseConfig,
+    EmailConfig,
+    FederationConfig,
+    RateLimitConfig,
+    SetupConfig,
   },
   LemmyError,
 };
@@ -22,12 +22,8 @@ use std::{
   sync::RwLock,
 };
 
-pub(crate) mod captcha_config;
-pub(crate) mod database_config;
-pub(crate) mod email_config;
-pub(crate) mod federation_config;
-pub(crate) mod rate_limit_config;
-pub(crate) mod setup_config;
+pub(crate) mod defaults;
+pub(crate) mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
 
