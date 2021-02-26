@@ -1,6 +1,5 @@
 use crate::{
   check_community_ban,
-  check_optional_url,
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_admin,
@@ -18,7 +17,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_queries::{
-  diesel_option_overwrite,
+  diesel_option_overwrite_to_url,
   source::{
     comment::Comment_,
     community::{CommunityModerator_, Community_},
@@ -155,11 +154,8 @@ impl Perform for CreateCommunity {
     }
 
     // Check to make sure the icon and banners are urls
-    let icon = diesel_option_overwrite(&data.icon);
-    let banner = diesel_option_overwrite(&data.banner);
-
-    check_optional_url(&icon)?;
-    check_optional_url(&banner)?;
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
@@ -260,11 +256,8 @@ impl Perform for EditCommunity {
     })
     .await??;
 
-    let icon = diesel_option_overwrite(&data.icon);
-    let banner = diesel_option_overwrite(&data.banner);
-
-    check_optional_url(&icon)?;
-    check_optional_url(&banner)?;
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     let community_form = CommunityForm {
       name: read_community.name,

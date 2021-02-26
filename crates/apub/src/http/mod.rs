@@ -46,12 +46,14 @@ pub async fn get_activity(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let settings = Settings::get();
-  let activity_id = format!(
+  let activity_id = url::Url::parse(&format!(
     "{}/activities/{}/{}",
     settings.get_protocol_and_hostname(),
     info.type_,
     info.id
-  );
+  ))
+  .unwrap()
+  .into();
   let activity = blocking(context.pool(), move |conn| {
     Activity::read_from_apub_id(&conn, &activity_id)
   })

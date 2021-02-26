@@ -1,4 +1,4 @@
-use crate::schema::activity;
+use crate::{schema::activity, Url};
 use serde_json::Value;
 use std::fmt::Debug;
 
@@ -10,7 +10,7 @@ pub struct Activity {
   pub local: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: Option<String>,
+  pub ap_id: Option<Url>,
   pub sensitive: Option<bool>,
 }
 
@@ -20,6 +20,6 @@ pub struct ActivityForm {
   pub data: Value,
   pub local: bool,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: String,
+  pub ap_id: Url,
   pub sensitive: bool,
 }

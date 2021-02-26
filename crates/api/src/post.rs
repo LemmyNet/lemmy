@@ -1,7 +1,6 @@
 use crate::{
   check_community_ban,
   check_downvotes_enabled,
-  check_optional_url,
   collect_moderated_communities,
   get_user_from_jwt,
   get_user_from_jwt_opt,
@@ -72,15 +71,14 @@ impl Perform for CreatePost {
 
     check_community_ban(user.id, data.community_id, context.pool()).await?;
 
-    check_optional_url(&Some(data.url.to_owned()))?;
-
     // Fetch Iframely and pictrs cached image
+    let data_url = data.url.as_ref();
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      fetch_iframely_and_pictrs_data(context.client(), data.url.to_owned()).await;
+      fetch_iframely_and_pictrs_data(context.client(), data_url).await;
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
-      url: data.url.to_owned(),
+      url: data_url.map(|u| u.to_owned().into()),
       body: data.body.to_owned(),
       community_id: data.community_id,
       creator_id: user.id,
@@ -93,7 +91,7 @@ impl Perform for CreatePost {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
+      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: None,
       local: true,
       published: None,
@@ -385,12 +383,13 @@ impl Perform for EditPost {
     }
 
     // Fetch Iframely and Pictrs cached image
+    let data_url = data.url.as_ref();
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      fetch_iframely_and_pictrs_data(context.client(), data.url.to_owned()).await;
+      fetch_iframely_and_pictrs_data(context.client(), data_url).await;
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
-      url: data.url.to_owned(),
+      url: data_url.map(|u| u.to_owned().into()),
       body: data.body.to_owned(),
       nsfw: data.nsfw,
       creator_id: orig_post.creator_id.to_owned(),
@@ -403,7 +402,7 @@ impl Perform for EditPost {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
+      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: Some(orig_post.ap_id),
       local: orig_post.local,
       published: None,

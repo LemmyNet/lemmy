@@ -8,7 +8,7 @@ use diesel::{
   serialize::{Output, ToSql},
   sql_types::Text,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
   fmt::{Display, Formatter},
   io::Write,
@@ -18,7 +18,7 @@ pub mod schema;
 pub mod source;
 
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Serialize, Debug, AsExpression, FromSqlRow)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug, AsExpression, FromSqlRow)]
 #[sql_type = "Text"]
 pub struct Url(url::Url);
 

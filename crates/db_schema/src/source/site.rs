@@ -1,4 +1,4 @@
-use crate::schema::site;
+use crate::{schema::site, Url};
 use serde::Serialize;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize)]
@@ -13,8 +13,8 @@ pub struct Site {
   pub enable_downvotes: bool,
   pub open_registration: bool,
   pub enable_nsfw: bool,
-  pub icon: Option<String>,
-  pub banner: Option<String>,
+  pub icon: Option<Url>,
+  pub banner: Option<Url>,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -28,6 +28,6 @@ pub struct SiteForm {
   pub open_registration: bool,
   pub enable_nsfw: bool,
   // when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
-  pub icon: Option<Option<String>>,
-  pub banner: Option<Option<String>>,
+  pub icon: Option<Option<Url>>,
+  pub banner: Option<Option<Url>>,
 }

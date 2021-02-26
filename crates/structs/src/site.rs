@@ -13,6 +13,7 @@ use lemmy_db_views_moderator::{
   mod_sticky_post_view::ModStickyPostView,
 };
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Deserialize, Debug)]
 pub struct Search {
@@ -60,8 +61,8 @@ pub struct GetModlogResponse {
 pub struct CreateSite {
   pub name: String,
   pub description: Option<String>,
-  pub icon: Option<String>,
-  pub banner: Option<String>,
+  pub icon: Option<Url>,
+  pub banner: Option<Url>,
   pub enable_downvotes: bool,
   pub open_registration: bool,
   pub enable_nsfw: bool,

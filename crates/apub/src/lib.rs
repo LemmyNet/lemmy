@@ -276,7 +276,7 @@ pub(crate) async fn insert_activity<T>(
 where
   T: Serialize + std::fmt::Debug + Send + 'static,
 {
-  let ap_id = ap_id.to_string();
+  let ap_id = ap_id.to_owned().into();
   blocking(pool, move |conn| {
     Activity::insert(conn, ap_id, &activity, local, sensitive)
   })

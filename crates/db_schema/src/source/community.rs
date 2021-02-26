@@ -22,8 +22,8 @@ pub struct Community {
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: chrono::NaiveDateTime,
-  pub icon: Option<String>,
-  pub banner: Option<String>,
+  pub icon: Option<Url>,
+  pub banner: Option<Url>,
   pub followers_url: Url,
   pub inbox_url: Url,
   pub shared_inbox_url: Option<Url>,
@@ -45,8 +45,8 @@ pub struct CommunitySafe {
   pub nsfw: bool,
   pub actor_id: Url,
   pub local: bool,
-  pub icon: Option<String>,
-  pub banner: Option<String>,
+  pub icon: Option<Url>,
+  pub banner: Option<Url>,
 }
 
 #[derive(Insertable, AsChangeset, Debug)]
@@ -66,8 +66,8 @@ pub struct CommunityForm {
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
-  pub icon: Option<Option<String>>,
-  pub banner: Option<Option<String>>,
+  pub icon: Option<Option<Url>>,
+  pub banner: Option<Option<Url>>,
   pub followers_url: Option<Url>,
   pub inbox_url: Option<Url>,
   pub shared_inbox_url: Option<Option<Url>>,

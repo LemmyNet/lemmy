@@ -1,4 +1,4 @@
-use crate::{schema::post_report, source::post::Post};
+use crate::{schema::post_report, source::post::Post, Url};
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -11,7 +11,7 @@ pub struct PostReport {
   pub creator_id: i32,
   pub post_id: i32,
   pub original_post_name: String,
-  pub original_post_url: Option<String>,
+  pub original_post_url: Option<Url>,
   pub original_post_body: Option<String>,
   pub reason: String,
   pub resolved: bool,
@@ -26,7 +26,7 @@ pub struct PostReportForm {
   pub creator_id: i32,
   pub post_id: i32,
   pub original_post_name: String,
-  pub original_post_url: Option<String>,
+  pub original_post_url: Option<Url>,
   pub original_post_body: Option<String>,
   pub reason: String,
 }

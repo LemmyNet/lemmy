@@ -9,7 +9,7 @@ use serde::Serialize;
 pub struct Post {
   pub id: i32,
   pub name: String,
-  pub url: Option<String>,
+  pub url: Option<Url>,
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
@@ -23,7 +23,7 @@ pub struct Post {
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
-  pub thumbnail_url: Option<String>,
+  pub thumbnail_url: Option<Url>,
   pub ap_id: Url,
   pub local: bool,
 }
@@ -32,7 +32,7 @@ pub struct Post {
 #[table_name = "post"]
 pub struct PostForm {
   pub name: String,
-  pub url: Option<String>,
+  pub url: Option<Url>,
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
@@ -46,7 +46,7 @@ pub struct PostForm {
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
-  pub thumbnail_url: Option<String>,
+  pub thumbnail_url: Option<Url>,
   pub ap_id: Option<Url>,
   pub local: bool,
 }

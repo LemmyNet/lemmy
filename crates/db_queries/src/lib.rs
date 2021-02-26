@@ -13,7 +13,6 @@ extern crate diesel_migrations;
 extern crate serial_test;
 
 use diesel::{result::Error, *};
-use lemmy_db_schema::Url;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
@@ -112,7 +111,10 @@ pub trait Reportable<T> {
 }
 
 pub trait ApubObject<T> {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error>
+  fn read_from_apub_id(
+    conn: &PgConnection,
+    object_id: &lemmy_db_schema::Url,
+  ) -> Result<Self, Error>
   where
     Self: Sized;
   fn upsert(conn: &PgConnection, user_form: &T) -> Result<Self, Error>
@@ -217,6 +219,22 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
     }
     None => None,
   }
+}
+
+pub fn diesel_option_overwrite_to_url(
+  opt: &Option<String>,
+) -> Result<Option<Option<lemmy_db_schema::Url>>, url::ParseError> {
+  Ok(match opt {
+    // An empty string is an erase
+    Some(unwrapped) => {
+      if !unwrapped.eq("") {
+        Some(Some(url::Url::parse(unwrapped)?.into()))
+      } else {
+        Some(None)
+      }
+    }
+    None => None,
+  })
 }
 
 embed_migrations!();

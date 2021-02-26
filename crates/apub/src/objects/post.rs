@@ -23,10 +23,13 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use anyhow::Context;
 use lemmy_db_queries::{Crud, DbPool};
-use lemmy_db_schema::source::{
-  community::Community,
-  post::{Post, PostForm},
-  user::User_,
+use lemmy_db_schema::{
+  self,
+  source::{
+    community::Community,
+    post::{Post, PostForm},
+    user::User_,
+  },
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{
@@ -70,16 +73,13 @@ impl ToApub for Post {
       set_content_and_source(&mut page, &body)?;
     }
 
-    // TODO: hacky code because we get self.url == Some("")
-    // https://github.com/LemmyNet/lemmy/issues/602
-    let url = self.url.as_ref().filter(|u| !u.is_empty());
-    if let Some(u) = url {
-      page.set_url(Url::parse(u)?);
+    if let Some(url) = &self.url {
+      page.set_url::<Url>(url.to_owned().into());
     }
 
     if let Some(thumbnail_url) = &self.thumbnail_url {
       let mut image = Image::new();
-      image.set_url(Url::parse(thumbnail_url)?);
+      image.set_url::<Url>(thumbnail_url.to_owned().into());
       page.set_image(image.into_any_base()?);
     }
 
@@ -146,7 +146,7 @@ impl FromApubToForm<PageExt> for PostForm {
 
     let community = get_to_community(page, context, request_counter).await?;
 
-    let thumbnail_url = match &page.inner.image() {
+    let thumbnail_url: Option<Url> = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(
         any_image
           .to_owned()
@@ -158,7 +158,7 @@ impl FromApubToForm<PageExt> for PostForm {
       .url()
       .context(location_info!())?
       .as_single_xsd_any_uri()
-      .map(|u| u.to_string()),
+      .map(|url| url.to_owned()),
       None => None,
     };
     let url = page
@@ -166,11 +166,11 @@ impl FromApubToForm<PageExt> for PostForm {
       .url()
       .map(|u| u.as_single_xsd_any_uri())
       .flatten()
-      .map(|s| s.to_string());
+      .map(|u| u.to_owned());
 
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
       if let Some(url) = &url {
-        fetch_iframely_and_pictrs_data(context.client(), Some(url.to_owned())).await
+        fetch_iframely_and_pictrs_data(context.client(), Some(url)).await
       } else {
         (None, None, None, thumbnail_url)
       };
@@ -192,7 +192,7 @@ impl FromApubToForm<PageExt> for PostForm {
     let body_slurs_removed = body.map(|b| remove_slurs(&b));
     Ok(PostForm {
       name,
-      url,
+      url: url.map(|u| u.into()),
       body: body_slurs_removed,
       creator_id: creator.id,
       community_id: community.id,
@@ -214,7 +214,7 @@ impl FromApubToForm<PageExt> for PostForm {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
+      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: Some(check_object_domain(page, expected_domain)?),
       local: false,
     })
