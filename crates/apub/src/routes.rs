@@ -31,9 +31,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       .or(guard::Header("Accept", APUB_JSON_CONTENT_TYPE_LONG));
     let header_guard_content_type =
       guard::Any(guard::Header("Content-Type", APUB_JSON_CONTENT_TYPE))
-        .or(guard::Header("Content-Type", APUB_JSON_CONTENT_TYPE_LONG))
-        // TODO: compatibility with previous lemmy versions, remove this later
-        .or(guard::Header("Content-Type", "application/json"));
+        .or(guard::Header("Content-Type", APUB_JSON_CONTENT_TYPE_LONG));
 
     cfg
       .service(

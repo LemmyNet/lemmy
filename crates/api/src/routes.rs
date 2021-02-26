@@ -23,11 +23,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/config", web::put().to(route_post::<SaveSiteConfig>)),
       )
       .service(
-        web::resource("/categories")
-          .wrap(rate_limit.message())
-          .route(web::get().to(route_get::<ListCategories>)),
-      )
-      .service(
         web::resource("/modlog")
           .wrap(rate_limit.message())
           .route(web::get().to(route_get::<GetModlog>)),

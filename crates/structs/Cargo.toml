@@ -7,6 +7,7 @@ edition = "2018"
 [lib]
 name = "lemmy_structs"
 path = "src/lib.rs"
+doctest = false
 
 [dependencies]
 lemmy_db_queries = { path = "../db_queries" }

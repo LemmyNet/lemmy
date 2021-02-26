@@ -379,8 +379,10 @@ impl User for User_ {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, source::user::*, ListingType, SortType};
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 

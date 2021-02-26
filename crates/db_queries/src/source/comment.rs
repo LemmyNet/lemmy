@@ -212,8 +212,10 @@ mod tests {
     post::*,
     user::{UserForm, User_},
   };
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -252,7 +254,6 @@ mod tests {
       name: "test community".to_string(),
       title: "nada".to_owned(),
       description: None,
-      category_id: 1,
       creator_id: inserted_user.id,
       removed: None,
       deleted: None,

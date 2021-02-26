@@ -19,7 +19,7 @@ use lemmy_db_views_actor::{
   community_view::CommunityView,
 };
 use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
-use lemmy_utils::{claims::Claims, settings::Settings, APIError, ConnectionId, LemmyError};
+use lemmy_utils::{claims::Claims, settings::Settings, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 use std::process::Command;
@@ -54,14 +54,14 @@ pub(crate) async fn is_mod_or_admin(
   })
   .await?;
   if !is_mod_or_admin {
-    return Err(APIError::err("not_a_mod_or_admin").into());
+    return Err(ApiError::err("not_a_mod_or_admin").into());
   }
   Ok(())
 }
 pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
   let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
   if !user.admin {
-    return Err(APIError::err("not_an_admin").into());
+    return Err(ApiError::err("not_an_admin").into());
   }
   Ok(())
 }
@@ -69,20 +69,20 @@ pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
 pub(crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
   match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
     Ok(post) => Ok(post),
-    Err(_e) => Err(APIError::err("couldnt_find_post").into()),
+    Err(_e) => Err(ApiError::err("couldnt_find_post").into()),
   }
 }
 
 pub(crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
-    Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
   let user_id = claims.id;
   let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
   // Check for a site ban
   if user.banned {
-    return Err(APIError::err("site_ban").into());
+    return Err(ApiError::err("site_ban").into());
   }
   Ok(user)
 }
@@ -103,13 +103,13 @@ pub(crate) async fn get_user_safe_settings_from_jwt(
 ) -> Result<UserSafeSettings, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
-    Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
   let user_id = claims.id;
   let user = blocking(pool, move |conn| UserSafeSettings::read(conn, user_id)).await??;
   // Check for a site ban
   if user.banned {
-    return Err(APIError::err("site_ban").into());
+    return Err(ApiError::err("site_ban").into());
   }
   Ok(user)
 }
@@ -131,7 +131,7 @@ pub(crate) async fn check_community_ban(
 ) -> Result<(), LemmyError> {
   let is_banned = move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
-    Err(APIError::err("community_ban").into())
+    Err(ApiError::err("community_ban").into())
   } else {
     Ok(())
   }
@@ -141,7 +141,7 @@ pub(crate) async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result
   if score == -1 {
     let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
     if !site.enable_downvotes {
-      return Err(APIError::err("downvotes_disabled").into());
+      return Err(ApiError::err("downvotes_disabled").into());
     }
   }
   Ok(())
@@ -175,7 +175,7 @@ pub(crate) async fn collect_moderated_communities(
 pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
   if let Some(Some(item)) = &item {
     if Url::parse(item).is_err() {
-      return Err(APIError::err("invalid_url").into());
+      return Err(ApiError::err("invalid_url").into());
     }
   }
   Ok(())
@@ -302,9 +302,6 @@ pub async fn match_websocket_operation(
     }
     UserOperation::TransferSite => {
       do_websocket_operation::<TransferSite>(context, id, op, data).await
-    }
-    UserOperation::ListCategories => {
-      do_websocket_operation::<ListCategories>(context, id, op, data).await
     }
 
     // Community ops

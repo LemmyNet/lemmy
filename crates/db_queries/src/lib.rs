@@ -9,6 +9,9 @@ extern crate lazy_static;
 #[macro_use]
 extern crate diesel_migrations;
 
+#[cfg(test)]
+extern crate serial_test;
+
 use diesel::{result::Error, *};
 use lemmy_db_schema::Url;
 use regex::Regex;
@@ -165,6 +168,7 @@ pub enum SortType {
   TopYear,
   TopAll,
   MostComments,
+  NewComments,
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone)]

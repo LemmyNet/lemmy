@@ -110,7 +110,8 @@ impl Activity_ for Activity {
           .sql(" AND activity.data -> 'object' ->> 'type' = 'Create'")
           .sql(" AND activity.data -> 'object' -> 'object' ->> 'type' = 'Page'")
           .sql(" AND activity.data ->> 'actor' = ")
-          .bind::<Text, _>(community_actor_id),
+          .bind::<Text, _>(community_actor_id)
+          .sql(" ORDER BY activity.published DESC"),
       )
       .limit(20)
       .get_results(conn)?;
@@ -132,8 +133,10 @@ mod tests {
     user::{UserForm, User_},
   };
   use serde_json::Value;
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 

@@ -15,7 +15,12 @@ use diesel::result::Error::NotFound;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_db_schema::source::community::Community;
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
+use lemmy_utils::{
+  location_info,
+  settings::Settings,
+  utils::{convert_datetime, markdown_to_html},
+  LemmyError,
+};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -114,11 +119,8 @@ where
     .set_media_type(mime_markdown()?);
   object.set_source(source.into_any_base()?);
 
-  // set `content` to markdown for compatibility with older Lemmy versions
-  // TODO: change this to HTML in a while
-  object.set_content(markdown_text);
-  object.set_media_type(mime_markdown()?);
-  //object.set_content(markdown_to_html(markdown_text));
+  object.set_content(markdown_to_html(markdown_text));
+  object.set_media_type(mime_html()?);
   Ok(())
 }
 
@@ -134,30 +136,26 @@ where
     .flatten()
     .map(|s| s.to_string());
   if content.is_some() {
-    let source = object.source();
-    // updated lemmy version, read markdown from `source.content`
-    if let Some(source) = source {
-      let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
-      check_is_markdown(source.media_type())?;
-      let source_content = source
-        .content()
-        .map(|s| s.as_single_xsd_string())
-        .flatten()
-        .context(location_info!())?
-        .to_string();
-      return Ok(Some(source_content));
-    }
-    // older lemmy version, read markdown from `content`
-    // TODO: remove this after a while
-    else {
-      return Ok(content);
-    }
+    let source = object.source().context(location_info!())?;
+    let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
+    check_is_markdown(source.media_type())?;
+    let source_content = source
+      .content()
+      .map(|s| s.as_single_xsd_string())
+      .flatten()
+      .context(location_info!())?
+      .to_string();
+    return Ok(Some(source_content));
   }
   Ok(None)
 }
 
-pub(in crate::objects) fn mime_markdown() -> Result<Mime, FromStrError> {
+fn mime_markdown() -> Result<Mime, FromStrError> {
   "text/markdown".parse()
+}
+
+fn mime_html() -> Result<Mime, FromStrError> {
+  "text/html".parse()
 }
 
 pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), LemmyError> {
@@ -207,6 +205,7 @@ where
 
 pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
   object: &T,
+  community_id: i32,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError>
@@ -219,8 +218,7 @@ where
     .as_single_xsd_any_uri()
     .context(location_info!())?;
   let user = get_or_fetch_and_upsert_user(user_id, context, request_counter).await?;
-  let community = get_to_community(object, context, request_counter).await?;
-  check_community_or_site_ban(&user, &community, context.pool()).await
+  check_community_or_site_ban(&user, community_id, context.pool()).await
 }
 
 pub(in crate::objects) async fn get_to_community<T, Kind>(

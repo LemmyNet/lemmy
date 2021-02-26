@@ -48,7 +48,14 @@ use lemmy_db_schema::source::site::Site;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
+use strum_macros::EnumString;
 use url::Url;
+
+#[derive(EnumString)]
+enum PageOrNote {
+  Page,
+  Note,
+}
 
 /// This file is for post/comment activities received by the community, and for post/comment
 ///       activities announced by the community and received by the user.
@@ -64,9 +71,13 @@ pub(in crate::inbox) async fn receive_create_for_community(
   verify_activity_domains_valid(&create, &expected_domain, true)?;
   is_addressed_to_public(&create)?;
 
-  match create.object().as_single_kind_str() {
-    Some("Page") => receive_create_post(create, context, request_counter).await,
-    Some("Note") => receive_create_comment(create, context, request_counter).await,
+  let kind = create
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok());
+  match kind {
+    Some(PageOrNote::Page) => receive_create_post(create, context, request_counter).await,
+    Some(PageOrNote::Note) => receive_create_comment(create, context, request_counter).await,
     _ => receive_unhandled_activity(create),
   }
 }
@@ -82,9 +93,13 @@ pub(in crate::inbox) async fn receive_update_for_community(
   verify_activity_domains_valid(&update, &expected_domain, true)?;
   is_addressed_to_public(&update)?;
 
-  match update.object().as_single_kind_str() {
-    Some("Page") => receive_update_post(update, context, request_counter).await,
-    Some("Note") => receive_update_comment(update, context, request_counter).await,
+  let kind = update
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok());
+  match kind {
+    Some(PageOrNote::Page) => receive_update_post(update, context, request_counter).await,
+    Some(PageOrNote::Note) => receive_update_comment(update, context, request_counter).await,
     _ => receive_unhandled_activity(update),
   }
 }
@@ -100,7 +115,10 @@ pub(in crate::inbox) async fn receive_like_for_community(
   verify_activity_domains_valid(&like, &expected_domain, false)?;
   is_addressed_to_public(&like)?;
 
-  let object_id = get_like_object_id(&like)?;
+  let object_id = like
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => receive_like_post(like, post, context, request_counter).await,
     PostOrComment::Comment(comment) => {
@@ -128,7 +146,10 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
   is_addressed_to_public(&dislike)?;
 
-  let object_id = get_like_object_id(&dislike)?;
+  let object_id = dislike
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_dislike_post(dislike, post, context, request_counter).await
@@ -201,6 +222,14 @@ pub(in crate::inbox) async fn receive_remove_for_community(
   }
 }
 
+#[derive(EnumString)]
+enum UndoableActivities {
+  Delete,
+  Remove,
+  Like,
+  Dislike,
+}
+
 /// A post/comment action being reverted (either a delete, remove, upvote or downvote)
 pub(in crate::inbox) async fn receive_undo_for_community(
   context: &LemmyContext,
@@ -212,13 +241,18 @@ pub(in crate::inbox) async fn receive_undo_for_community(
   verify_activity_domains_valid(&undo, &expected_domain.to_owned(), true)?;
   is_addressed_to_public(&undo)?;
 
-  match undo.object().as_single_kind_str() {
-    Some("Delete") => receive_undo_delete_for_community(context, undo, expected_domain).await,
-    Some("Remove") => receive_undo_remove_for_community(context, undo, expected_domain).await,
-    Some("Like") => {
+  use UndoableActivities::*;
+  match undo
+    .object()
+    .as_single_kind_str()
+    .and_then(|s| s.parse().ok())
+  {
+    Some(Delete) => receive_undo_delete_for_community(context, undo, expected_domain).await,
+    Some(Remove) => receive_undo_remove_for_community(context, undo, expected_domain).await,
+    Some(Like) => {
       receive_undo_like_for_community(context, undo, expected_domain, request_counter).await
     }
-    Some("Dislike") => {
+    Some(Dislike) => {
       receive_undo_dislike_for_community(context, undo, expected_domain, request_counter).await
     }
     _ => receive_unhandled_activity(undo),
@@ -285,7 +319,10 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
   verify_activity_domains_valid(&like, &expected_domain, false)?;
   is_addressed_to_public(&like)?;
 
-  let object_id = get_like_object_id(&like)?;
+  let object_id = like
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_undo_like_post(&like, post, context, request_counter).await
@@ -308,7 +345,10 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
   is_addressed_to_public(&dislike)?;
 
-  let object_id = get_like_object_id(&dislike)?;
+  let object_id = dislike
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_undo_dislike_post(&dislike, post, context, request_counter).await
@@ -333,27 +373,4 @@ async fn fetch_post_or_comment_by_id(
   }
 
   Err(NotFound.into())
-}
-
-fn get_like_object_id<Activity>(like_or_dislike: &Activity) -> Result<Url, LemmyError>
-where
-  Activity: ActorAndObjectRefExt,
-{
-  // TODO: For backwards compatibility with older Lemmy versions where like.object contains a full
-  //       post/comment. This can be removed after some time, using
-  //       `activity.oject().as_single_xsd_any_uri()` instead.
-  let object = like_or_dislike.object();
-  if let Some(xsd_uri) = object.as_single_xsd_any_uri() {
-    Ok(xsd_uri.to_owned())
-  } else {
-    Ok(
-      object
-        .to_owned()
-        .one()
-        .context(location_info!())?
-        .id()
-        .context(location_info!())?
-        .to_owned(),
-    )
-  }
 }

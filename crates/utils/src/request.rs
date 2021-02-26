@@ -187,21 +187,6 @@ async fn is_image_content_type(client: &Client, test: &str) -> Result<(), LemmyE
 
 #[cfg(test)]
 mod tests {
-  use crate::request::is_image_content_type;
-
-  #[test]
-  fn test_image() {
-    actix_rt::System::new("tset_image").block_on(async move {
-      let client = reqwest::Client::default();
-      assert!(is_image_content_type(&client, "https://1734811051.rsc.cdn77.org/data/images/full/365645/as-virus-kills-navajos-in-their-homes-tribal-women-provide-lifeline.jpg?w=600?w=650").await.is_ok());
-      assert!(is_image_content_type(&client,
-                                    "https://twitter.com/BenjaminNorton/status/1259922424272957440?s=20"
-      )
-        .await.is_err()
-      );
-    });
-  }
-
   // These helped with testing
   // #[test]
   // fn test_iframely() {

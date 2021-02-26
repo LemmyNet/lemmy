@@ -29,7 +29,6 @@ steps:
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
-      RUST_TEST_THREADS: 1
     commands:
       - sudo apt-get update
       - sudo apt-get -y install --no-install-recommends espeak postgresql-client
@@ -107,7 +106,6 @@ steps:
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
-      RUST_TEST_THREADS: 1
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends espeak postgresql-client libssl-dev pkg-config libpq-dev

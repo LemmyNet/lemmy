@@ -88,7 +88,6 @@ pub enum UserOperation {
   CreateCommunity,
   CreatePost,
   ListCommunities,
-  ListCategories,
   GetPost,
   GetCommunity,
   CreateComment,

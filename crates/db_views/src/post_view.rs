@@ -356,14 +356,19 @@ impl<'a> PostQueryBuilder<'a> {
     query = match self.sort {
       SortType::Active => query
         .then_order_by(
-          hot_rank(post_aggregates::score, post_aggregates::newest_comment_time).desc(),
+          hot_rank(
+            post_aggregates::score,
+            post_aggregates::newest_comment_time_necro,
+          )
+          .desc(),
         )
-        .then_order_by(post_aggregates::newest_comment_time.desc()),
+        .then_order_by(post_aggregates::newest_comment_time_necro.desc()),
       SortType::Hot => query
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::MostComments => query.then_order_by(post_aggregates::comments.desc()),
+      SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
       SortType::TopAll => query.then_order_by(post_aggregates::score.desc()),
       SortType::TopYear => query
         .filter(post::published.gt(now - 1.years()))
@@ -429,8 +434,10 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{community::*, post::*, user::*};
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -474,7 +481,6 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       creator_id: inserted_user.id,
-      category_id: 1,
       removed: None,
       deleted: None,
       updated: None,
@@ -609,7 +615,6 @@ mod tests {
         title: "nada".to_owned(),
         description: None,
         creator_id: inserted_user.id,
-        category_id: 1,
         updated: None,
         banner: None,
         published: inserted_community.published,
@@ -623,6 +628,7 @@ mod tests {
         downvotes: 0,
         stickied: false,
         published: agg.published,
+        newest_comment_time_necro: inserted_post.published,
         newest_comment_time: inserted_post.published,
       },
       subscribed: false,

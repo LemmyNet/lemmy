@@ -24,7 +24,7 @@ pub type ConnectionId = usize;
 pub type PostId = i32;
 pub type CommunityId = i32;
 pub type UserId = i32;
-pub type IPAddr = String;
+pub type IpAddr = String;
 
 #[macro_export]
 macro_rules! location_info {
@@ -40,13 +40,13 @@ macro_rules! location_info {
 
 #[derive(Debug, Error)]
 #[error("{{\"error\":\"{message}\"}}")]
-pub struct APIError {
+pub struct ApiError {
   pub message: String,
 }
 
-impl APIError {
+impl ApiError {
   pub fn err(msg: &str) -> Self {
-    APIError {
+    ApiError {
       message: msg.to_string(),
     }
   }

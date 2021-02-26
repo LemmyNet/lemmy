@@ -110,7 +110,9 @@ impl<'a> UserQueryBuilder<'a> {
       SortType::Active => query
         .order_by(user_aggregates::comment_score.desc())
         .then_order_by(user_::published.desc()),
-      SortType::New | SortType::MostComments => query.order_by(user_::published.desc()),
+      SortType::New | SortType::MostComments | SortType::NewComments => {
+        query.order_by(user_::published.desc())
+      }
       SortType::TopAll => query.order_by(user_aggregates::comment_score.desc()),
       SortType::TopYear => query
         .filter(user_::published.gt(now - 1.years()))

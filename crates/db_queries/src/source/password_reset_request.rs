@@ -80,8 +80,10 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{password_reset_request::PasswordResetRequest, user::*};
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 

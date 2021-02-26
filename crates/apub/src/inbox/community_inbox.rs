@@ -120,7 +120,7 @@ pub(crate) async fn community_receive_message(
     User_::read_from_apub_id(&conn, &actor_id.into())
   })
   .await??;
-  check_community_or_site_ban(&user, &to_community, context.pool()).await?;
+  check_community_or_site_ban(&user, to_community.id, context.pool()).await?;
 
   let any_base = activity.clone().into_any_base()?;
   let actor_url = actor.actor_id();
@@ -261,14 +261,13 @@ async fn handle_undo_follow(
 
 pub(crate) async fn check_community_or_site_ban(
   user: &User_,
-  community: &Community,
+  community_id: i32,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if user.banned {
     return Err(anyhow!("User is banned from site").into());
   }
   let user_id = user.id;
-  let community_id = community.id;
   let is_banned = move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
     return Err(anyhow!("User is banned from community").into());

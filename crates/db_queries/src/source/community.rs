@@ -24,7 +24,6 @@ mod safe_type {
     name,
     title,
     description,
-    category_id,
     creator_id,
     removed,
     published,
@@ -45,7 +44,6 @@ mod safe_type {
         name,
         title,
         description,
-        category_id,
         creator_id,
         removed,
         published,
@@ -342,8 +340,10 @@ mod tests {
     SortType,
   };
   use lemmy_db_schema::source::{community::*, user::*};
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -383,7 +383,6 @@ mod tests {
       creator_id: inserted_user.id,
       title: "nada".to_owned(),
       description: None,
-      category_id: 1,
       nsfw: false,
       removed: None,
       deleted: None,
@@ -409,7 +408,6 @@ mod tests {
       name: "TIL".into(),
       title: "nada".to_owned(),
       description: None,
-      category_id: 1,
       nsfw: false,
       removed: false,
       deleted: false,
