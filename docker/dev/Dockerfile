@@ -49,11 +49,11 @@ FROM alpine:3.12 as lemmy
 # Install libpq for postgres
 # DNS overrides are needed to work around IPv6 issues in some environments
 # see https://github.com/gliderlabs/docker-alpine/issues/307
-RUN printf "nameserver 208.67.222.222\nnameserver 8.8.4.4\nnameserver 1.1.1.1\nnameserver 9.9.9.9\nnameserver 8.8.8"> /etc/resolv.conf \
+RUN printf "nameserver 208.67.222.222\nnameserver 8.8.4.4\nnameserver 1.1.1.1\nnameserver 9.9.9.9\nnameserver 8.8.8.8" > /etc/resolv.conf \
       && apk add libpq
 
 # Install Espeak for captchas
-RUN printf "nameserver 208.67.222.222\nnameserver 8.8.4.4\nnameserver 1.1.1.1\nnameserver 9.9.9.9\nnameserver 8.8.8"> /etc/resolv.conf \
+RUN printf "nameserver 208.67.222.222\nnameserver 8.8.4.4\nnameserver 1.1.1.1\nnameserver 9.9.9.9\nnameserver 8.8.8.8" > /etc/resolv.conf \
       && apk add espeak
 
 RUN addgroup -g 1000 lemmy
