@@ -18,12 +18,12 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::user::{UserForm, User_},
 };
-use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,

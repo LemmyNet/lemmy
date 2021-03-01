@@ -1,6 +1,6 @@
 use crate::{get_user_from_jwt, Perform};
 use actix_web::web::Data;
-use lemmy_structs::websocket::*;
+use lemmy_api_structs::websocket::*;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{
   messages::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},

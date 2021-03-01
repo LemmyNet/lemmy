@@ -12,9 +12,9 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_db_schema::source::community::Community;
-use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,

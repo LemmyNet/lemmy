@@ -4,10 +4,10 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
+use lemmy_api_structs::{blocking, post::PostResponse};
 use lemmy_db_queries::{source::post::Post_, Likeable};
 use lemmy_db_schema::source::post::{Post, PostLike, PostLikeForm};
 use lemmy_db_views::post_view::PostView;
-use lemmy_structs::{blocking, post::PostResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
 

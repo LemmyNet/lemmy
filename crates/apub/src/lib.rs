@@ -24,6 +24,7 @@ use activitystreams::{
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
 use lemmy_db_schema::source::{
   activity::Activity,
@@ -33,7 +34,6 @@ use lemmy_db_schema::source::{
   private_message::PrivateMessage,
   user::User_,
 };
-use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;

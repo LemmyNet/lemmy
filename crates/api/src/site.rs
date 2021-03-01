@@ -9,6 +9,7 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
+use lemmy_api_structs::{blocking, site::*, user::Register};
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{diesel_option_overwrite, source::site::Site_, Crud, SearchType, SortType};
 use lemmy_db_schema::{
@@ -38,7 +39,6 @@ use lemmy_db_views_moderator::{
   mod_remove_post_view::ModRemovePostView,
   mod_sticky_post_view::ModStickyPostView,
 };
-use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,

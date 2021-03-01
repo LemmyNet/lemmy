@@ -8,11 +8,11 @@ use diesel::{
   PgConnection,
 };
 use lemmy_api::match_websocket_operation;
+use lemmy_api_structs::blocking;
 use lemmy_apub::activity_queue::create_activity_queue;
 use lemmy_db_queries::get_database_url_from_env;
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{code_migrations::run_advanced_migrations, scheduled_tasks};
-use lemmy_structs::blocking;
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   settings::structs::Settings,

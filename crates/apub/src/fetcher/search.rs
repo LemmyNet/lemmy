@@ -15,6 +15,7 @@ use crate::{
 };
 use activitystreams::base::BaseExt;
 use anyhow::{anyhow, Context};
+use lemmy_api_structs::{blocking, site::SearchResponse};
 use lemmy_db_queries::{
   source::{
     comment::Comment_,
@@ -34,7 +35,6 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views::{comment_view::CommentView, post_view::PostView};
 use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
-use lemmy_structs::{blocking, site::SearchResponse};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;

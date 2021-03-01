@@ -2,6 +2,7 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
   source::{community::Community_, user::User},
   ListingType,
@@ -14,7 +15,6 @@ use lemmy_db_views::{
   site_view::SiteView,
 };
 use lemmy_db_views_actor::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
-use lemmy_structs::blocking;
 use lemmy_utils::{
   claims::Claims,
   settings::structs::Settings,

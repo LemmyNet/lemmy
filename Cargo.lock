@@ -1734,13 +1734,13 @@ dependencies = [
  "http-signature-normalization-actix",
  "itertools",
  "lazy_static",
+ "lemmy_api_structs",
  "lemmy_apub",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
- "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
  "log",
@@ -1756,6 +1756,25 @@ dependencies = [
  "tokio 0.3.7",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "lemmy_api_structs"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "diesel",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
+ "lemmy_db_views_moderator",
+ "lemmy_utils",
+ "log",
+ "serde",
+ "serde_json",
+ "url",
 ]
 
 [[package]]
@@ -1782,11 +1801,11 @@ dependencies = [
  "http-signature-normalization-reqwest",
  "itertools",
  "lazy_static",
+ "lemmy_api_structs",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
- "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
  "log",
@@ -1884,11 +1903,11 @@ dependencies = [
  "chrono",
  "diesel",
  "lazy_static",
+ "lemmy_api_structs",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
- "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
  "log",
@@ -1916,6 +1935,7 @@ dependencies = [
  "env_logger",
  "http-signature-normalization-actix",
  "lemmy_api",
+ "lemmy_api_structs",
  "lemmy_apub",
  "lemmy_db_queries",
  "lemmy_db_schema",
@@ -1923,7 +1943,6 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_routes",
- "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
  "log",
@@ -1933,25 +1952,6 @@ dependencies = [
  "serde_json",
  "strum",
  "tokio 0.3.7",
- "url",
-]
-
-[[package]]
-name = "lemmy_structs"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "chrono",
- "diesel",
- "lemmy_db_queries",
- "lemmy_db_schema",
- "lemmy_db_views",
- "lemmy_db_views_actor",
- "lemmy_db_views_moderator",
- "lemmy_utils",
- "log",
- "serde",
- "serde_json",
  "url",
 ]
 
@@ -2000,9 +2000,9 @@ dependencies = [
  "background-jobs",
  "chrono",
  "diesel",
+ "lemmy_api_structs",
  "lemmy_db_queries",
  "lemmy_db_schema",
- "lemmy_structs",
  "lemmy_utils",
  "log",
  "rand 0.8.3",

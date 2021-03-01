@@ -4,13 +4,13 @@ use activitystreams::{
   base::ExtendsExt,
 };
 use anyhow::Context;
+use lemmy_api_structs::{blocking, comment::CommentResponse, send_local_notifs};
 use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentLike, CommentLikeForm},
   post::Post,
 };
 use lemmy_db_views::comment_view::CommentView;
-use lemmy_structs::{blocking, comment::CommentResponse, send_local_notifs};
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
 
