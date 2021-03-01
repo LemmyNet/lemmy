@@ -12,7 +12,7 @@ for ((i=0; i < times; i++)) ; do
     cargo clean
     echo "cargo build"
     start=$(date +%s.%N)
-    RUSTC_WRAPPER='' cargo +1.47.0 build -q
+    RUSTC_WRAPPER='' cargo build -q
     end=$(date +%s.%N)
     echo "Finished iteration $i after $(bc <<< "scale=0; $end - $start") seconds"
     duration=$(bc <<< "$duration + $end - $start")

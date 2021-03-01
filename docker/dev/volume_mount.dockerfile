@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM rust:1.47-buster as rust
+FROM rust:1.50-buster as rust
 
 ENV HOME=/home/root
 
