@@ -474,8 +474,8 @@ pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   Ok(base64)
 }
 
+/// Checks the password length
 pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
-  // Password length check
   if pass.len() > 60 {
     Err(ApiError::err("invalid_password").into())
   } else {
