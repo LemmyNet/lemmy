@@ -22,6 +22,7 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   self,
@@ -31,7 +32,6 @@ use lemmy_db_schema::{
     user::User_,
   },
 };
-use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   request::fetch_iframely_and_pictrs_data,

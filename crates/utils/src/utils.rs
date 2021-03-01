@@ -1,4 +1,4 @@
-use crate::{settings::Settings, ApiError};
+use crate::{settings::structs::Settings, ApiError};
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
@@ -85,7 +85,7 @@ pub struct MentionData {
 
 impl MentionData {
   pub fn is_local(&self) -> bool {
-    Settings::get().hostname.eq(&self.domain)
+    Settings::get().hostname().eq(&self.domain)
   }
   pub fn full_name(&self) -> String {
     format!("@{}@{}", &self.name, &self.domain)

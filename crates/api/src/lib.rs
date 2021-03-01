@@ -1,4 +1,13 @@
 use actix_web::{web, web::Data};
+use lemmy_api_structs::{
+  blocking,
+  comment::*,
+  community::*,
+  post::*,
+  site::*,
+  user::*,
+  websocket::*,
+};
 use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
@@ -18,8 +27,13 @@ use lemmy_db_views_actor::{
   community_user_ban_view::CommunityUserBanView,
   community_view::CommunityView,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
-use lemmy_utils::{claims::Claims, settings::Settings, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{
+  claims::Claims,
+  settings::structs::Settings,
+  ApiError,
+  ConnectionId,
+  LemmyError,
+};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 use std::process::Command;
@@ -175,7 +189,7 @@ pub(crate) async fn collect_moderated_communities(
 pub(crate) async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
-  if Settings::get().federation.enabled {
+  if Settings::get().federation().enabled {
     let distinct_communities = blocking(pool, move |conn| {
       Community::distinct_federated_communities(conn)
     })
@@ -189,8 +203,13 @@ pub(crate) async fn build_federated_instances(
       .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
       .collect::<Result<Vec<String>, LemmyError>>()?;
 
-    linked.extend_from_slice(&allowed);
-    linked.retain(|a| !blocked.contains(a) && !a.eq("") && !a.eq(&Settings::get().hostname));
+    if let Some(allowed) = allowed.as_ref() {
+      linked.extend_from_slice(allowed);
+    }
+
+    if let Some(blocked) = blocked.as_ref() {
+      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname()));
+    }
 
     // Sort and remove dupes
     linked.sort_unstable();

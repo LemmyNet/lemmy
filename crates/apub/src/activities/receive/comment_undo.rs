@@ -1,9 +1,9 @@
 use crate::activities::receive::get_actor_as_user;
 use activitystreams::activity::{Dislike, Like};
+use lemmy_api_structs::{blocking, comment::CommentResponse};
 use lemmy_db_queries::{source::comment::Comment_, Likeable};
 use lemmy_db_schema::source::comment::{Comment, CommentLike};
 use lemmy_db_views::comment_view::CommentView;
-use lemmy_structs::{blocking, comment::CommentResponse};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
 

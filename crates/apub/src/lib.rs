@@ -24,6 +24,7 @@ use activitystreams::{
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
 use lemmy_db_schema::source::{
   activity::Activity,
@@ -33,8 +34,7 @@ use lemmy_db_schema::source::{
   private_message::PrivateMessage,
   user::User_,
 };
-use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::net::IpAddr;
@@ -64,7 +64,7 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
 
-  if !settings.federation.enabled {
+  if !settings.federation().enabled {
     return if domain == local_instance {
       Ok(())
     } else {
@@ -88,22 +88,23 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
     return Err(anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id).into());
   }
 
-  let mut allowed_instances = Settings::get().get_allowed_instances();
+  let allowed_instances = Settings::get().get_allowed_instances();
   let blocked_instances = Settings::get().get_blocked_instances();
-  if allowed_instances.is_empty() && blocked_instances.is_empty() {
+
+  if allowed_instances.is_none() && blocked_instances.is_none() {
     Ok(())
-  } else if !allowed_instances.is_empty() {
+  } else if let Some(mut allowed) = allowed_instances {
     // need to allow this explicitly because apub receive might contain objects from our local
     // instance. split is needed to remove the port in our federation test setup.
-    allowed_instances.push(local_instance);
+    allowed.push(local_instance);
 
-    if allowed_instances.contains(&domain) {
+    if allowed.contains(&domain) {
       Ok(())
     } else {
       Err(anyhow!("{} not in federation allowlist", domain).into())
     }
-  } else if !blocked_instances.is_empty() {
-    if blocked_instances.contains(&domain) {
+  } else if let Some(blocked) = blocked_instances {
+    if blocked.contains(&domain) {
       Err(anyhow!("{} is in federation blocklist", domain).into())
     } else {
       Ok(())

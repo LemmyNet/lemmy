@@ -19,7 +19,7 @@ members = [
     "crates/db_views",
     "crates/db_views_actor",
     "crates/db_views_actor",
-    "crates/structs",
+    "crates/api_structs",
     "crates/websocket",
     "crates/routes"
 ]
@@ -33,7 +33,7 @@ lemmy_db_queries = { path = "./crates/db_queries" }
 lemmy_db_views = { path = "./crates/db_views" }
 lemmy_db_views_moderator = { path = "./crates/db_views_moderator" }
 lemmy_db_views_actor = { path = "./crates/db_views_actor" }
-lemmy_structs = { path = "./crates/structs" }
+lemmy_api_structs = { path = "crates/api_structs" }
 lemmy_websocket = { path = "./crates/websocket" }
 lemmy_routes = { path = "./crates/routes" }
 diesel = "1.4.5"

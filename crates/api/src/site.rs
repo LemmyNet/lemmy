@@ -9,6 +9,7 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
+use lemmy_api_structs::{blocking, site::*, user::Register};
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{
   diesel_option_overwrite_to_url,
@@ -44,10 +45,9 @@ use lemmy_db_views_moderator::{
   mod_remove_post_view::ModRemovePostView,
   mod_sticky_post_view::ModStickyPostView,
 };
-use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   version,
   ApiError,
@@ -251,7 +251,7 @@ impl Perform for GetSite {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
-        if let Some(setup) = Settings::get().setup.as_ref() {
+        if let Some(setup) = Settings::get().setup().as_ref() {
           let register = Register {
             username: setup.admin_username.to_owned(),
             email: setup.admin_email.to_owned(),

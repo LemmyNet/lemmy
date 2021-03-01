@@ -26,12 +26,12 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
+use lemmy_api_structs::{blocking, WebFingerResponse};
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post, user::User_};
-use lemmy_structs::{blocking, WebFingerResponse};
 use lemmy_utils::{
   request::{retry, RecvError},
-  settings::Settings,
+  settings::structs::Settings,
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };

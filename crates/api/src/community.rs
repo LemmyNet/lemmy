@@ -8,6 +8,7 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
+use lemmy_api_structs::{blocking, community::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -42,7 +43,6 @@ use lemmy_db_views_actor::{
   community_view::{CommunityQueryBuilder, CommunityView},
   user_view::UserViewSafe,
 };
-use lemmy_structs::{blocking, community::*};
 use lemmy_utils::{
   apub::generate_actor_keypair,
   location_info,
