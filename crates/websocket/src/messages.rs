@@ -1,6 +1,6 @@
 use crate::UserOperation;
 use actix::{prelude::*, Recipient};
-use lemmy_structs::{comment::CommentResponse, post::PostResponse};
+use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
 use lemmy_utils::{CommunityId, ConnectionId, IpAddr, PostId, UserId};
 use serde::{Deserialize, Serialize};
 

@@ -9,6 +9,7 @@ use crate::{
   Perform,
 };
 use actix_web::web::Data;
+use lemmy_api_structs::{blocking, post::*};
 use lemmy_apub::{generate_apub_endpoint, ApubLikeableType, ApubObjectType, EndpointType};
 use lemmy_db_queries::{
   source::post::Post_,
@@ -36,7 +37,6 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
 };
-use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
   request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, check_slurs_opt, is_valid_post_title},

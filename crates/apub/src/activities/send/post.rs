@@ -21,9 +21,9 @@ use activitystreams::{
   prelude::*,
   public,
 };
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, post::Post, user::User_};
-use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 

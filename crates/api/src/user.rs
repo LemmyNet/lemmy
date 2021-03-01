@@ -12,6 +12,7 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
+use lemmy_api_structs::{blocking, send_email_to_user, user::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -65,7 +66,6 @@ use lemmy_db_views_actor::{
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
   user_view::UserViewSafe,
 };
-use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{
   apub::generate_actor_keypair,
   claims::Claims,

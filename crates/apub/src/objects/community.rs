@@ -22,13 +22,13 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
-use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   utils::{check_slurs, check_slurs_opt, convert_datetime},

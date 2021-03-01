@@ -1,7 +1,6 @@
 [package]
 name = "lemmy_api"
 version = "0.1.0"
-authors = ["Felix Ableitner <me@nutomic.com>"]
 edition = "2018"
 
 [lib]
@@ -17,7 +16,7 @@ lemmy_db_schema = { path = "../db_schema" }
 lemmy_db_views = { path = "../db_views" }
 lemmy_db_views_moderator = { path = "../db_views_moderator" }
 lemmy_db_views_actor = { path = "../db_views_actor" }
-lemmy_structs = { path = "../structs" }
+lemmy_api_structs = { path = "../api_structs" }
 lemmy_websocket = { path = "../websocket" }
 diesel = "1.4.5"
 bcrypt = "0.9.0"

@@ -1,11 +1,10 @@
 [package]
-name = "lemmy_structs"
+name = "lemmy_api_structs"
 version = "0.1.0"
-authors = ["Felix Ableitner <me@nutomic.com>"]
 edition = "2018"
 
 [lib]
-name = "lemmy_structs"
+name = "lemmy_api_structs"
 path = "src/lib.rs"
 doctest = false
 
