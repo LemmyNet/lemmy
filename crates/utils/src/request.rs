@@ -145,14 +145,19 @@ pub async fn fetch_iframely_and_pictrs_data(
 
       // The full urls are necessary for federation
       let pictrs_thumbnail = if let Some(pictrs_hash) = pictrs_hash {
-        Some(
-          Url::parse(&format!(
-            "{}/pictrs/image/{}",
-            Settings::get().get_protocol_and_hostname(),
-            pictrs_hash
-          ))
-          .unwrap(),
-        )
+        let url = Url::parse(&format!(
+          "{}/pictrs/image/{}",
+          Settings::get().get_protocol_and_hostname(),
+          pictrs_hash
+        ));
+        match url {
+          Ok(parsed_url) => Some(parsed_url),
+          Err(e) => {
+            // This really shouldn't happen unless the settings or hash are malformed
+            error!("Unexpected error constructing pictrs thumbnail URL: {}", e);
+            None
+          }
+        }
       } else {
         None
       };

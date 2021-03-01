@@ -51,8 +51,7 @@ pub async fn get_activity(
     settings.get_protocol_and_hostname(),
     info.type_,
     info.id
-  ))
-  .unwrap()
+  ))?
   .into();
   let activity = blocking(context.pool(), move |conn| {
     Activity::read_from_apub_id(&conn, &activity_id)

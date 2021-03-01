@@ -45,7 +45,7 @@ actix-web = { version = "3.3.2", default-features = false, features = ["rustls"]
 log = "0.4.14"
 env_logger = "0.8.2"
 strum = "0.20.0"
-url = { version = "2.2.0", features = ["serde"] }
+url = { version = "2.2.1", features = ["serde"] }
 openssl = "0.10.32"
 http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
 tokio = "0.3.6"
