@@ -43,7 +43,7 @@ where
     }
   }
 
-  response.unwrap()
+  response.expect("retry http request")
 }
 
 #[derive(Deserialize, Debug)]

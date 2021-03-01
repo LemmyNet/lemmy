@@ -143,7 +143,14 @@ pub(crate) async fn user_receive_message(
   let actor_url = actor.actor_id();
   match kind {
     UserValidTypes::Accept => {
-      receive_accept(&context, any_base, actor, to_user.unwrap(), request_counter).await?;
+      receive_accept(
+        &context,
+        any_base,
+        actor,
+        to_user.expect("user provided"),
+        request_counter,
+      )
+      .await?;
     }
     UserValidTypes::Announce => {
       receive_announce(&context, any_base, actor, request_counter).await?
