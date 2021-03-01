@@ -15,7 +15,7 @@ use lemmy_server::{code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_structs::blocking;
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  settings::Settings,
+  settings::structs::Settings,
   LemmyError,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};

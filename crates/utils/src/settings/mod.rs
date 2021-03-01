@@ -6,6 +6,7 @@ use crate::{
     EmailConfig,
     FederationConfig,
     RateLimitConfig,
+    Settings,
     SetupConfig,
   },
   LemmyError,
@@ -13,56 +14,12 @@ use crate::{
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use merge::Merge;
-use serde::Deserialize;
-use std::{
-  env,
-  fs,
-  io::Error,
-  net::{IpAddr, Ipv4Addr},
-  sync::RwLock,
-};
+use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
 
 pub(crate) mod defaults;
-pub(crate) mod structs;
+pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
-
-#[derive(Debug, Deserialize, Clone, Merge)]
-pub struct Settings {
-  database: Option<DatabaseConfig>,
-  rate_limit: Option<RateLimitConfig>,
-  federation: Option<FederationConfig>,
-  hostname: Option<String>,
-  bind: Option<IpAddr>,
-  port: Option<u16>,
-  tls_enabled: Option<bool>,
-  jwt_secret: Option<String>,
-  pictrs_url: Option<String>,
-  iframely_url: Option<String>,
-  captcha: Option<CaptchaConfig>,
-  email: Option<EmailConfig>,
-  setup: Option<SetupConfig>,
-}
-
-impl Default for Settings {
-  fn default() -> Self {
-    Self {
-      database: Some(DatabaseConfig::default()),
-      rate_limit: Some(RateLimitConfig::default()),
-      federation: Some(FederationConfig::default()),
-      captcha: Some(CaptchaConfig::default()),
-      email: None,
-      setup: None,
-      hostname: None,
-      bind: Some(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
-      port: Some(8536),
-      tls_enabled: Some(true),
-      jwt_secret: Some("changeme".into()),
-      pictrs_url: Some("http://pictrs:8080".into()),
-      iframely_url: Some("http://iframely".into()),
-    }
-  }
-}
 
 lazy_static! {
   static ref SETTINGS: RwLock<Settings> = RwLock::new(match Settings::init() {

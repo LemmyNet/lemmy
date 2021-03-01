@@ -15,7 +15,7 @@ mod test;
 pub mod utils;
 pub mod version;
 
-use crate::settings::Settings;
+use crate::settings::structs::Settings;
 use http::StatusCode;
 use regex::Regex;
 use thiserror::Error;

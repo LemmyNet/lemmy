@@ -34,7 +34,7 @@ use lemmy_db_schema::source::{
   user::User_,
 };
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::net::IpAddr;

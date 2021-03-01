@@ -1,4 +1,4 @@
-use crate::{settings::Settings, LemmyError};
+use crate::{settings::structs::Settings, LemmyError};
 use anyhow::anyhow;
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};

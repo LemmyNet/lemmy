@@ -1,4 +1,4 @@
-use lemmy_utils::settings::Settings;
+use lemmy_utils::settings::structs::Settings;
 use url::{ParseError, Url};
 use uuid::Uuid;
 

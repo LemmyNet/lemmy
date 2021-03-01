@@ -1,4 +1,25 @@
-use crate::settings::{CaptchaConfig, DatabaseConfig, FederationConfig, RateLimitConfig};
+use crate::settings::{CaptchaConfig, DatabaseConfig, FederationConfig, RateLimitConfig, Settings};
+use std::net::{IpAddr, Ipv4Addr};
+
+impl Default for Settings {
+  fn default() -> Self {
+    Self {
+      database: Some(DatabaseConfig::default()),
+      rate_limit: Some(RateLimitConfig::default()),
+      federation: Some(FederationConfig::default()),
+      captcha: Some(CaptchaConfig::default()),
+      email: None,
+      setup: None,
+      hostname: None,
+      bind: Some(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
+      port: Some(8536),
+      tls_enabled: Some(true),
+      jwt_secret: Some("changeme".into()),
+      pictrs_url: Some("http://pictrs:8080".into()),
+      iframely_url: Some("http://iframely".into()),
+    }
+  }
+}
 
 impl Default for DatabaseConfig {
   fn default() -> Self {

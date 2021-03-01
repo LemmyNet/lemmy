@@ -1,4 +1,23 @@
+use merge::Merge;
 use serde::Deserialize;
+use std::net::IpAddr;
+
+#[derive(Debug, Deserialize, Clone, Merge)]
+pub struct Settings {
+  pub(crate) database: Option<DatabaseConfig>,
+  pub(crate) rate_limit: Option<RateLimitConfig>,
+  pub(crate) federation: Option<FederationConfig>,
+  pub(crate) hostname: Option<String>,
+  pub(crate) bind: Option<IpAddr>,
+  pub(crate) port: Option<u16>,
+  pub(crate) tls_enabled: Option<bool>,
+  pub(crate) jwt_secret: Option<String>,
+  pub(crate) pictrs_url: Option<String>,
+  pub(crate) iframely_url: Option<String>,
+  pub(crate) captcha: Option<CaptchaConfig>,
+  pub(crate) email: Option<EmailConfig>,
+  pub(crate) setup: Option<SetupConfig>,
+}
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct CaptchaConfig {

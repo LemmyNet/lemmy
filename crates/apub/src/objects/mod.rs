@@ -17,7 +17,7 @@ use lemmy_db_schema::source::community::Community;
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{convert_datetime, markdown_to_html},
   LemmyError,
 };

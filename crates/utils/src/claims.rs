@@ -1,4 +1,4 @@
-use crate::settings::Settings;
+use crate::settings::structs::Settings;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
