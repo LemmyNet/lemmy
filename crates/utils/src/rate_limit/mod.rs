@@ -1,5 +1,5 @@
 use crate::{
-  settings::{RateLimitConfig, Settings},
+  settings::structs::{RateLimitConfig, Settings},
   utils::get_ip,
   LemmyError,
 };
@@ -70,7 +70,7 @@ impl RateLimited {
   {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
-    let rate_limit: RateLimitConfig = Settings::get().rate_limit;
+    let rate_limit: RateLimitConfig = Settings::get().rate_limit();
 
     // before
     {

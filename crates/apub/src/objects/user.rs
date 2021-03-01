@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
   LemmyError,
 };
@@ -96,7 +96,7 @@ impl FromApub for User_ {
   ) -> Result<User_, LemmyError> {
     let user_id = person.id_unchecked().context(location_info!())?.to_owned();
     let domain = user_id.domain().context(location_info!())?;
-    if domain == Settings::get().hostname {
+    if domain == Settings::get().hostname() {
       let user = blocking(context.pool(), move |conn| {
         User_::read_from_apub_id(conn, &user_id.into())
       })

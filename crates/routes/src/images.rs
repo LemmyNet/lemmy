@@ -1,7 +1,7 @@
 use actix::clock::Duration;
 use actix_web::{body::BodyStream, http::StatusCode, *};
 use awc::Client;
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::Settings};
+use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings};
 use serde::{Deserialize, Serialize};
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
@@ -54,8 +54,10 @@ async fn upload(
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
-  let mut client_req =
-    client.request_from(format!("{}/image", Settings::get().pictrs_url), req.head());
+  let mut client_req = client.request_from(
+    format!("{}/image", Settings::get().pictrs_url()),
+    req.head(),
+  );
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
@@ -78,14 +80,14 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}/image/original/{}", Settings::get().pictrs_url, name,)
+    format!("{}/image/original/{}", Settings::get().pictrs_url(), name,)
   } else {
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
     let mut url = format!(
       "{}/image/process.{}?src={}",
-      Settings::get().pictrs_url,
+      Settings::get().pictrs_url(),
       format,
       name,
     );
@@ -134,7 +136,7 @@ async fn delete(
 
   let url = format!(
     "{}/image/delete/{}/{}",
-    Settings::get().pictrs_url,
+    Settings::get().pictrs_url(),
     &token,
     &file
   );

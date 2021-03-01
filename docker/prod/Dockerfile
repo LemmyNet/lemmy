@@ -56,7 +56,6 @@ RUN addgroup -g 1000 lemmy
 RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 
 # Copy resources
-COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
 COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
 
 RUN chown lemmy:lemmy /app/lemmy

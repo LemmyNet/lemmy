@@ -2,7 +2,7 @@ use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api_structs::blocking;
 use lemmy_db_views::site_view::SiteView;
-use lemmy_utils::{settings::Settings, version, LemmyError};
+use lemmy_utils::{settings::structs::Settings, version, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -31,7 +31,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
-  let protocols = if Settings::get().federation.enabled {
+  let protocols = if Settings::get().federation().enabled {
     vec!["activitypub".to_string()]
   } else {
     vec![]

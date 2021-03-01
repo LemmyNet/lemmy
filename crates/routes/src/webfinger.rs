@@ -4,7 +4,7 @@ use lemmy_api_structs::{blocking, WebFingerLink, WebFingerResponse};
 use lemmy_db_queries::source::{community::Community_, user::User};
 use lemmy_db_schema::source::{community::Community, user::User_};
 use lemmy_utils::{
-  settings::Settings,
+  settings::structs::Settings,
   LemmyError,
   WEBFINGER_COMMUNITY_REGEX,
   WEBFINGER_USER_REGEX,
@@ -18,7 +18,7 @@ struct Params {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation.enabled {
+  if Settings::get().federation().enabled {
     cfg.route(
       ".well-known/webfinger",
       web::get().to(get_webfinger_response),

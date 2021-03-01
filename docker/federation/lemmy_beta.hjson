@@ -1,0 +1,37 @@
+{
+  hostname: lemmy-beta:8551
+  port: 8551
+  tls_enabled: false
+  jwt_secret: changeme
+  setup: {
+    admin_username: lemmy_beta
+    admin_password: lemmy
+    site_name: lemmy-beta
+  }
+  database: {
+    database: lemmy
+    user: lemmy
+    password: password
+    host: postgres_beta
+    port: 5432
+    pool_size: 5
+  }
+  federation: {
+    enabled: true
+    allowed_instances: ["lemmy-alpha","lemmy-gamma","lemmy-delta","lemmy-epsilon"]
+  }
+  captcha: {
+    enabled: false
+    difficulty: medium
+  }
+  rate_limit: {
+    message: 180
+    message_per_second: 60
+    post: 99999
+    post_per_second: 600
+    register: 99999
+    register_per_second: 3600
+    image: 6
+    image_per_second: 3600
+  }
+}

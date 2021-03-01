@@ -126,6 +126,6 @@ pub struct SaveSiteConfig {
 #[derive(Serialize)]
 pub struct FederatedInstances {
   pub linked: Vec<String>,
-  pub allowed: Vec<String>,
-  pub blocked: Vec<String>,
+  pub allowed: Option<Vec<String>>,
+  pub blocked: Option<Vec<String>>,
 }

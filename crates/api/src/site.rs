@@ -41,7 +41,7 @@ use lemmy_db_views_moderator::{
 };
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   version,
   ApiError,
@@ -245,7 +245,7 @@ impl Perform for GetSite {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
-        if let Some(setup) = Settings::get().setup.as_ref() {
+        if let Some(setup) = Settings::get().setup().as_ref() {
           let register = Register {
             username: setup.admin_username.to_owned(),
             email: setup.admin_email.to_owned(),

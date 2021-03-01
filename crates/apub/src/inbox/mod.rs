@@ -19,7 +19,7 @@ use lemmy_db_queries::{
   DbPool,
 };
 use lemmy_db_schema::source::{activity::Activity, community::Community, user::User_};
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::fmt::Debug;
@@ -167,7 +167,7 @@ where
   let id = activity.id_unchecked().context(location_info!())?;
   let activity_domain = id.domain().context(location_info!())?;
 
-  if activity_domain == Settings::get().hostname {
+  if activity_domain == Settings::get().hostname() {
     return Err(
       anyhow!(
         "Error: received activity which was sent by local instance: {:?}",
