@@ -283,8 +283,8 @@ where
 }
 
 pub(crate) enum PostOrComment {
-  Comment(Comment),
-  Post(Post),
+  Comment(Box<Comment>),
+  Post(Box<Post>),
 }
 
 /// Tries to find a post or comment in the local database, without any network requests.
@@ -300,7 +300,7 @@ pub(crate) async fn find_post_or_comment_by_id(
   })
   .await?;
   if let Ok(p) = post {
-    return Ok(PostOrComment::Post(p));
+    return Ok(PostOrComment::Post(Box::new(p)));
   }
 
   let ap_id = apub_id.clone();
@@ -309,7 +309,7 @@ pub(crate) async fn find_post_or_comment_by_id(
   })
   .await?;
   if let Ok(c) = comment {
-    return Ok(PostOrComment::Comment(c));
+    return Ok(PostOrComment::Comment(Box::new(c)));
   }
 
   Err(NotFound.into())
@@ -330,8 +330,8 @@ pub(crate) async fn find_object_by_id(
   let ap_id = apub_id.clone();
   if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
     return Ok(match pc {
-      PostOrComment::Post(p) => Object::Post(p),
-      PostOrComment::Comment(c) => Object::Comment(c),
+      PostOrComment::Post(p) => Object::Post(*p),
+      PostOrComment::Comment(c) => Object::Comment(*c),
     });
   }
 
