@@ -6,7 +6,7 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use lemmy_structs::{comment::*, post::*};
+use lemmy_api_structs::{comment::*, post::*};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,

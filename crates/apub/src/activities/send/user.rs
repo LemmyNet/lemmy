@@ -13,12 +13,12 @@ use activitystreams::{
   base::{AnyBase, BaseExt, ExtendsExt},
   object::ObjectExt,
 };
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, DbPool, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
 };
-use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

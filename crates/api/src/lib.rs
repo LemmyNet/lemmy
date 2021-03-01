@@ -1,4 +1,13 @@
 use actix_web::{web, web::Data};
+use lemmy_api_structs::{
+  blocking,
+  comment::*,
+  community::*,
+  post::*,
+  site::*,
+  user::*,
+  websocket::*,
+};
 use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
@@ -18,7 +27,6 @@ use lemmy_db_views_actor::{
   community_user_ban_view::CommunityUserBanView,
   community_view::CommunityView,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_utils::{claims::Claims, settings::Settings, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;

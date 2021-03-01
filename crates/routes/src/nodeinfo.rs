@@ -1,7 +1,7 @@
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
+use lemmy_api_structs::blocking;
 use lemmy_db_views::site_view::SiteView;
-use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, version, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

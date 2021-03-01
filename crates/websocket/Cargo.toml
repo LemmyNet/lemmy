@@ -1,7 +1,6 @@
 [package]
 name = "lemmy_websocket"
 version = "0.1.0"
-authors = ["Felix Ableitner <me@nutomic.com>"]
 edition = "2018"
 
 [lib]
@@ -11,7 +10,7 @@ doctest = false
 
 [dependencies]
 lemmy_utils = { path = "../utils" }
-lemmy_structs = { path = "../structs" }
+lemmy_api_structs = { path = "../api_structs" }
 lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }
 reqwest = { version = "0.10.10", features = ["json"] }
