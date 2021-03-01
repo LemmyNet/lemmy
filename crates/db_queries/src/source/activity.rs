@@ -135,6 +135,7 @@ mod tests {
   };
   use serde_json::Value;
   use serial_test::serial;
+  use url::Url;
 
   #[test]
   #[serial]
