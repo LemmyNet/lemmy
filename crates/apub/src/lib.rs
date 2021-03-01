@@ -26,13 +26,16 @@ use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
-use lemmy_db_schema::source::{
-  activity::Activity,
-  comment::Comment,
-  community::Community,
-  post::Post,
-  private_message::PrivateMessage,
-  user::User_,
+use lemmy_db_schema::{
+  source::{
+    activity::Activity,
+    comment::Comment,
+    community::Community,
+    post::Post,
+    private_message::PrivateMessage,
+    user::User_,
+  },
+  DbUrl,
 };
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -216,7 +219,7 @@ pub enum EndpointType {
 pub fn generate_apub_endpoint(
   endpoint_type: EndpointType,
   name: &str,
-) -> Result<lemmy_db_schema::Url, ParseError> {
+) -> Result<DbUrl, ParseError> {
   let point = match endpoint_type {
     EndpointType::Community => "c",
     EndpointType::User => "u",
@@ -236,21 +239,15 @@ pub fn generate_apub_endpoint(
   )
 }
 
-pub fn generate_followers_url(
-  actor_id: &lemmy_db_schema::Url,
-) -> Result<lemmy_db_schema::Url, ParseError> {
+pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/followers", actor_id))?.into())
 }
 
-pub fn generate_inbox_url(
-  actor_id: &lemmy_db_schema::Url,
-) -> Result<lemmy_db_schema::Url, ParseError> {
+pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/inbox", actor_id))?.into())
 }
 
-pub fn generate_shared_inbox_url(
-  actor_id: &lemmy_db_schema::Url,
-) -> Result<lemmy_db_schema::Url, LemmyError> {
+pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   let actor_id = actor_id.clone().into_inner();
   let url = format!(
     "{}://{}{}/inbox",

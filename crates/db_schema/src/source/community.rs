@@ -1,6 +1,6 @@
 use crate::{
   schema::{community, community_follower, community_moderator, community_user_ban},
-  Url,
+  DbUrl,
 };
 use serde::Serialize;
 
@@ -17,16 +17,16 @@ pub struct Community {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
-  pub actor_id: Url,
+  pub actor_id: DbUrl,
   pub local: bool,
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: chrono::NaiveDateTime,
-  pub icon: Option<Url>,
-  pub banner: Option<Url>,
-  pub followers_url: Url,
-  pub inbox_url: Url,
-  pub shared_inbox_url: Option<Url>,
+  pub icon: Option<DbUrl>,
+  pub banner: Option<DbUrl>,
+  pub followers_url: DbUrl,
+  pub inbox_url: DbUrl,
+  pub shared_inbox_url: Option<DbUrl>,
 }
 
 /// A safe representation of community, without the sensitive info
@@ -43,10 +43,10 @@ pub struct CommunitySafe {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
-  pub actor_id: Url,
+  pub actor_id: DbUrl,
   pub local: bool,
-  pub icon: Option<Url>,
-  pub banner: Option<Url>,
+  pub icon: Option<DbUrl>,
+  pub banner: Option<DbUrl>,
 }
 
 #[derive(Insertable, AsChangeset, Debug)]
@@ -61,16 +61,16 @@ pub struct CommunityForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: bool,
-  pub actor_id: Option<Url>,
+  pub actor_id: Option<DbUrl>,
   pub local: bool,
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
-  pub icon: Option<Option<Url>>,
-  pub banner: Option<Option<Url>>,
-  pub followers_url: Option<Url>,
-  pub inbox_url: Option<Url>,
-  pub shared_inbox_url: Option<Option<Url>>,
+  pub icon: Option<Option<DbUrl>>,
+  pub banner: Option<Option<DbUrl>>,
+  pub followers_url: Option<DbUrl>,
+  pub inbox_url: Option<DbUrl>,
+  pub shared_inbox_url: Option<Option<DbUrl>>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

@@ -14,7 +14,7 @@ use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{source::community::Community, DbUrl};
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,
@@ -96,7 +96,7 @@ where
 pub(in crate::objects) fn check_object_domain<T, Kind>(
   apub: &T,
   expected_domain: Url,
-) -> Result<lemmy_db_schema::Url, LemmyError>
+) -> Result<DbUrl, LemmyError>
 where
   T: Base + AsBase<Kind>,
 {

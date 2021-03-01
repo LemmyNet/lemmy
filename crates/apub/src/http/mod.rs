@@ -7,6 +7,7 @@ use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 pub mod comment;
 pub mod community;
@@ -46,7 +47,7 @@ pub async fn get_activity(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let settings = Settings::get();
-  let activity_id = url::Url::parse(&format!(
+  let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",
     settings.get_protocol_and_hostname(),
     info.type_,

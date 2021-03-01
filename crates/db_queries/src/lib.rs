@@ -13,10 +13,12 @@ extern crate diesel_migrations;
 extern crate serial_test;
 
 use diesel::{result::Error, *};
+use lemmy_db_schema::DbUrl;
 use lemmy_utils::ApiError;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
+use url::Url;
 
 pub mod aggregates;
 pub mod source;
@@ -112,10 +114,7 @@ pub trait Reportable<T> {
 }
 
 pub trait ApubObject<T> {
-  fn read_from_apub_id(
-    conn: &PgConnection,
-    object_id: &lemmy_db_schema::Url,
-  ) -> Result<Self, Error>
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized;
   fn upsert(conn: &PgConnection, user_form: &T) -> Result<Self, Error>
@@ -224,11 +223,11 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
 
 pub fn diesel_option_overwrite_to_url(
   opt: &Option<String>,
-) -> Result<Option<Option<lemmy_db_schema::Url>>, ApiError> {
+) -> Result<Option<Option<DbUrl>>, ApiError> {
   match opt.as_ref().map(|s| s.as_str()) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
-    Some(str_url) => match url::Url::parse(str_url) {
+    Some(str_url) => match Url::parse(str_url) {
       Ok(url) => Ok(Some(Some(url.into()))),
       Err(_) => Err(ApiError::err("invalid_url")),
     },
@@ -269,7 +268,6 @@ pub mod functions {
 mod tests {
   use super::{fuzzy_search, *};
   use crate::is_email_regex;
-  use url::Url;
 
   #[test]
   fn test_fuzzy_search() {

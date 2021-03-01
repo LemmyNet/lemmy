@@ -13,6 +13,7 @@ use std::{
   fmt::{Display, Formatter},
   io::Write,
 };
+use url::Url;
 
 pub mod schema;
 pub mod source;
@@ -20,9 +21,9 @@ pub mod source;
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug, AsExpression, FromSqlRow)]
 #[sql_type = "Text"]
-pub struct Url(url::Url);
+pub struct DbUrl(Url);
 
-impl<DB: Backend> ToSql<Text, DB> for Url
+impl<DB: Backend> ToSql<Text, DB> for DbUrl
 where
   String: ToSql<Text, DB>,
 {
@@ -31,37 +32,37 @@ where
   }
 }
 
-impl<DB: Backend> FromSql<Text, DB> for Url
+impl<DB: Backend> FromSql<Text, DB> for DbUrl
 where
   String: FromSql<Text, DB>,
 {
   fn from_sql(bytes: Option<&DB::RawValue>) -> diesel::deserialize::Result<Self> {
     let str = String::from_sql(bytes)?;
-    Ok(Url(url::Url::parse(&str)?))
+    Ok(DbUrl(Url::parse(&str)?))
   }
 }
 
-impl Url {
-  pub fn into_inner(self) -> url::Url {
+impl DbUrl {
+  pub fn into_inner(self) -> Url {
     self.0
   }
 }
 
-impl Display for Url {
+impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     self.to_owned().into_inner().fmt(f)
   }
 }
 
-impl From<Url> for url::Url {
-  fn from(url: Url) -> Self {
+impl From<DbUrl> for Url {
+  fn from(url: DbUrl) -> Self {
     url.0
   }
 }
 
-impl From<url::Url> for Url {
-  fn from(url: url::Url) -> Self {
-    Url(url)
+impl From<Url> for DbUrl {
+  fn from(url: Url) -> Self {
+    DbUrl(url)
   }
 }
 
