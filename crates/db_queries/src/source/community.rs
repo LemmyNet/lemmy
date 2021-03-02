@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     CommunityUserBan,
     CommunityUserBanForm,
   },
-  Url,
+  DbUrl,
 };
 
 mod safe_type {
@@ -90,7 +90,7 @@ impl Crud<CommunityForm> for Community {
 }
 
 impl ApubObject<CommunityForm> for Community {
-  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &Url) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community
       .filter(actor_id.eq(for_actor_id))
@@ -131,7 +131,10 @@ pub trait Community_ {
     new_creator_id: i32,
   ) -> Result<Community, Error>;
   fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error>;
-  fn read_from_followers_url(conn: &PgConnection, followers_url: &Url) -> Result<Community, Error>;
+  fn read_from_followers_url(
+    conn: &PgConnection,
+    followers_url: &DbUrl,
+  ) -> Result<Community, Error>;
 }
 
 impl Community_ for Community {
@@ -194,7 +197,7 @@ impl Community_ for Community {
 
   fn read_from_followers_url(
     conn: &PgConnection,
-    followers_url_: &Url,
+    followers_url_: &DbUrl,
   ) -> Result<Community, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community

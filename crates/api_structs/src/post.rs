@@ -8,11 +8,12 @@ use lemmy_db_views_actor::{
   community_view::CommunityView,
 };
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Deserialize, Debug)]
 pub struct CreatePost {
   pub name: String,
-  pub url: Option<String>,
+  pub url: Option<Url>,
   pub body: Option<String>,
   pub nsfw: bool,
   pub community_id: i32,
@@ -66,7 +67,7 @@ pub struct CreatePostLike {
 pub struct EditPost {
   pub post_id: i32,
   pub name: String,
-  pub url: Option<String>,
+  pub url: Option<Url>,
   pub body: Option<String>,
   pub nsfw: bool,
   pub auth: String,

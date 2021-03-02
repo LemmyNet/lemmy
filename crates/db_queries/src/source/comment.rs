@@ -10,11 +10,11 @@ use lemmy_db_schema::{
     CommentSaved,
     CommentSavedForm,
   },
-  Url,
+  DbUrl,
 };
 
 pub trait Comment_ {
-  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: Url) -> Result<Comment, Error>;
+  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: DbUrl) -> Result<Comment, Error>;
   fn permadelete_for_creator(
     conn: &PgConnection,
     for_creator_id: i32,
@@ -43,7 +43,7 @@ pub trait Comment_ {
 }
 
 impl Comment_ for Comment {
-  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: Url) -> Result<Self, Error> {
+  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
 
     diesel::update(comment.find(comment_id))
@@ -145,7 +145,7 @@ impl Crud<CommentForm> for Comment {
 }
 
 impl ApubObject<CommentForm> for Comment {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }

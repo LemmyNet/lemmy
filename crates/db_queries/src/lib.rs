@@ -13,10 +13,12 @@ extern crate diesel_migrations;
 extern crate serial_test;
 
 use diesel::{result::Error, *};
-use lemmy_db_schema::Url;
+use lemmy_db_schema::DbUrl;
+use lemmy_utils::ApiError;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
+use url::Url;
 
 pub mod aggregates;
 pub mod source;
@@ -112,7 +114,7 @@ pub trait Reportable<T> {
 }
 
 pub trait ApubObject<T> {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error>
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized;
   fn upsert(conn: &PgConnection, user_form: &T) -> Result<Self, Error>
@@ -219,6 +221,20 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
   }
 }
 
+pub fn diesel_option_overwrite_to_url(
+  opt: &Option<String>,
+) -> Result<Option<Option<DbUrl>>, ApiError> {
+  match opt.as_ref().map(|s| s.as_str()) {
+    // An empty string is an erase
+    Some("") => Ok(Some(None)),
+    Some(str_url) => match Url::parse(str_url) {
+      Ok(url) => Ok(Some(Some(url.into()))),
+      Err(_) => Err(ApiError::err("invalid_url")),
+    },
+    None => Ok(None),
+  }
+}
+
 embed_migrations!();
 
 pub fn establish_unpooled_connection() -> PgConnection {
@@ -250,7 +266,7 @@ pub mod functions {
 
 #[cfg(test)]
 mod tests {
-  use super::fuzzy_search;
+  use super::{fuzzy_search, *};
   use crate::is_email_regex;
 
   #[test]
@@ -263,5 +279,33 @@ mod tests {
   fn test_email() {
     assert!(is_email_regex("gush@gmail.com"));
     assert!(!is_email_regex("nada_neutho"));
+  }
+
+  #[test]
+  fn test_diesel_option_overwrite() {
+    assert_eq!(diesel_option_overwrite(&None), None);
+    assert_eq!(diesel_option_overwrite(&Some("".to_string())), Some(None));
+    assert_eq!(
+      diesel_option_overwrite(&Some("test".to_string())),
+      Some(Some("test".to_string()))
+    );
+  }
+
+  #[test]
+  fn test_diesel_option_overwrite_to_url() {
+    assert!(matches!(diesel_option_overwrite_to_url(&None), Ok(None)));
+    assert!(matches!(
+      diesel_option_overwrite_to_url(&Some("".to_string())),
+      Ok(Some(None))
+    ));
+    assert!(matches!(
+      diesel_option_overwrite_to_url(&Some("invalid_url".to_string())),
+      Err(_)
+    ));
+    let example_url = "https://example.com";
+    assert!(matches!(
+      diesel_option_overwrite_to_url(&Some(example_url.to_string())),
+      Ok(Some(Some(url))) if url == Url::parse(&example_url).unwrap().into()
+    ));
   }
 }

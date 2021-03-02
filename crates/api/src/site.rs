@@ -11,7 +11,13 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_structs::{blocking, site::*, user::Register};
 use lemmy_apub::fetcher::search::search_by_apub_id;
-use lemmy_db_queries::{diesel_option_overwrite, source::site::Site_, Crud, SearchType, SortType};
+use lemmy_db_queries::{
+  diesel_option_overwrite_to_url,
+  source::site::Site_,
+  Crud,
+  SearchType,
+  SortType,
+};
 use lemmy_db_schema::{
   naive_now,
   source::{
@@ -157,8 +163,8 @@ impl Perform for CreateSite {
     let site_form = SiteForm {
       name: data.name.to_owned(),
       description: data.description.to_owned(),
-      icon: Some(data.icon.to_owned()),
-      banner: Some(data.banner.to_owned()),
+      icon: Some(data.icon.to_owned().map(|url| url.into())),
+      banner: Some(data.banner.to_owned().map(|url| url.into())),
       creator_id: user.id,
       enable_downvotes: data.enable_downvotes,
       open_registration: data.open_registration,
@@ -196,8 +202,8 @@ impl Perform for EditSite {
 
     let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
-    let icon = diesel_option_overwrite(&data.icon);
-    let banner = diesel_option_overwrite(&data.banner);
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),

@@ -186,15 +186,6 @@ pub(crate) async fn collect_moderated_communities(
   }
 }
 
-pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
-  if let Some(Some(item)) = &item {
-    if Url::parse(item).is_err() {
-      return Err(ApiError::err("invalid_url").into());
-    }
-  }
-  Ok(())
-}
-
 pub(crate) async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {

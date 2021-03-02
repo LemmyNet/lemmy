@@ -45,7 +45,7 @@ pub(crate) async fn is_activity_already_known(
   pool: &DbPool,
   activity_id: &Url,
 ) -> Result<bool, LemmyError> {
-  let activity_id = activity_id.to_string();
+  let activity_id = activity_id.to_owned().into();
   let existing = blocking(pool, move |conn| {
     Activity::read_from_apub_id(&conn, &activity_id)
   })

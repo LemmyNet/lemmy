@@ -120,9 +120,9 @@ pub(in crate::inbox) async fn receive_like_for_community(
     .as_single_xsd_any_uri()
     .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
-    PostOrComment::Post(post) => receive_like_post(like, post, context, request_counter).await,
+    PostOrComment::Post(post) => receive_like_post(like, *post, context, request_counter).await,
     PostOrComment::Comment(comment) => {
-      receive_like_comment(like, comment, context, request_counter).await
+      receive_like_comment(like, *comment, context, request_counter).await
     }
   }
 }
@@ -152,10 +152,10 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
     .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
-      receive_dislike_post(dislike, post, context, request_counter).await
+      receive_dislike_post(dislike, *post, context, request_counter).await
     }
     PostOrComment::Comment(comment) => {
-      receive_dislike_comment(dislike, comment, context, request_counter).await
+      receive_dislike_comment(dislike, *comment, context, request_counter).await
     }
   }
 }
@@ -177,8 +177,8 @@ pub(in crate::inbox) async fn receive_delete_for_community(
     .context(location_info!())?;
 
   match find_post_or_comment_by_id(context, object).await {
-    Ok(PostOrComment::Post(p)) => receive_delete_post(context, p).await,
-    Ok(PostOrComment::Comment(c)) => receive_delete_comment(context, c).await,
+    Ok(PostOrComment::Post(p)) => receive_delete_post(context, *p).await,
+    Ok(PostOrComment::Comment(c)) => receive_delete_comment(context, *c).await,
     // if we dont have the object, no need to do anything
     Err(_) => Ok(()),
   }
@@ -215,8 +215,8 @@ pub(in crate::inbox) async fn receive_remove_for_community(
   remove.id(community_id.domain().context(location_info!())?)?;
 
   match find_post_or_comment_by_id(context, object).await {
-    Ok(PostOrComment::Post(p)) => receive_remove_post(context, remove, p).await,
-    Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, remove, c).await,
+    Ok(PostOrComment::Post(p)) => receive_remove_post(context, remove, *p).await,
+    Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, remove, *c).await,
     // if we dont have the object, no need to do anything
     Err(_) => Ok(()),
   }
@@ -276,8 +276,8 @@ pub(in crate::inbox) async fn receive_undo_delete_for_community(
     .single_xsd_any_uri()
     .context(location_info!())?;
   match find_post_or_comment_by_id(context, object).await {
-    Ok(PostOrComment::Post(p)) => receive_undo_delete_post(context, p).await,
-    Ok(PostOrComment::Comment(c)) => receive_undo_delete_comment(context, c).await,
+    Ok(PostOrComment::Post(p)) => receive_undo_delete_post(context, *p).await,
+    Ok(PostOrComment::Comment(c)) => receive_undo_delete_comment(context, *c).await,
     // if we dont have the object, no need to do anything
     Err(_) => Ok(()),
   }
@@ -300,8 +300,8 @@ pub(in crate::inbox) async fn receive_undo_remove_for_community(
     .single_xsd_any_uri()
     .context(location_info!())?;
   match find_post_or_comment_by_id(context, object).await {
-    Ok(PostOrComment::Post(p)) => receive_undo_remove_post(context, p).await,
-    Ok(PostOrComment::Comment(c)) => receive_undo_remove_comment(context, c).await,
+    Ok(PostOrComment::Post(p)) => receive_undo_remove_post(context, *p).await,
+    Ok(PostOrComment::Comment(c)) => receive_undo_remove_comment(context, *c).await,
     // if we dont have the object, no need to do anything
     Err(_) => Ok(()),
   }
@@ -325,10 +325,10 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
     .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
-      receive_undo_like_post(&like, post, context, request_counter).await
+      receive_undo_like_post(&like, *post, context, request_counter).await
     }
     PostOrComment::Comment(comment) => {
-      receive_undo_like_comment(&like, comment, context, request_counter).await
+      receive_undo_like_comment(&like, *comment, context, request_counter).await
     }
   }
 }
@@ -351,10 +351,10 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
     .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
-      receive_undo_dislike_post(&dislike, post, context, request_counter).await
+      receive_undo_dislike_post(&dislike, *post, context, request_counter).await
     }
     PostOrComment::Comment(comment) => {
-      receive_undo_dislike_comment(&dislike, comment, context, request_counter).await
+      receive_undo_dislike_comment(&dislike, *comment, context, request_counter).await
     }
   }
 }
@@ -365,11 +365,11 @@ async fn fetch_post_or_comment_by_id(
   request_counter: &mut i32,
 ) -> Result<PostOrComment, LemmyError> {
   if let Ok(post) = get_or_fetch_and_insert_post(apub_id, context, request_counter).await {
-    return Ok(PostOrComment::Post(post));
+    return Ok(PostOrComment::Post(Box::new(post)));
   }
 
   if let Ok(comment) = get_or_fetch_and_insert_comment(apub_id, context, request_counter).await {
-    return Ok(PostOrComment::Comment(comment));
+    return Ok(PostOrComment::Comment(Box::new(comment)));
   }
 
   Err(NotFound.into())
