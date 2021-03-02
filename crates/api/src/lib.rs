@@ -186,15 +186,6 @@ pub(crate) async fn collect_moderated_communities(
   }
 }
 
-pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
-  if let Some(Some(item)) = &item {
-    if Url::parse(item).is_err() {
-      return Err(ApiError::err("invalid_url").into());
-    }
-  }
-  Ok(())
-}
-
 pub(crate) async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
@@ -472,6 +463,15 @@ pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   let base64 = base64::encode(bytes);
 
   Ok(base64)
+}
+
+/// Checks the password length
+pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
+  if pass.len() > 60 {
+    Err(ApiError::err("invalid_password").into())
+  } else {
+    Ok(())
+  }
 }
 
 #[cfg(test)]

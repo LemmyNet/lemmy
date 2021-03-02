@@ -32,7 +32,7 @@ rand = "0.8.3"
 strum = "0.20.0"
 strum_macros = "0.20.1"
 lazy_static = "1.4.0"
-url = { version = "2.2.0", features = ["serde"] }
+url = { version = "2.2.1", features = ["serde"] }
 percent-encoding = "2.1.0"
 openssl = "0.10.32"
 http = "0.2.3"

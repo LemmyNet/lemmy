@@ -73,13 +73,13 @@ impl ToApub for Community {
 
     if let Some(icon_url) = &self.icon {
       let mut image = Image::new();
-      image.set_url(Url::parse(icon_url)?);
+      image.set_url::<Url>(icon_url.to_owned().into());
       group.set_icon(image.into_any_base()?);
     }
 
     if let Some(banner_url) = &self.banner {
       let mut image = Image::new();
-      image.set_url(Url::parse(banner_url)?);
+      image.set_url::<Url>(banner_url.to_owned().into());
       group.set_image(image.into_any_base()?);
     }
 
@@ -173,7 +173,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
           .url()
           .context(location_info!())?
           .as_single_xsd_any_uri()
-          .map(|u| u.to_string()),
+          .map(|u| u.to_owned().into()),
       ),
       None => None,
     };
@@ -185,7 +185,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
           .url()
           .context(location_info!())?
           .as_single_xsd_any_uri()
-          .map(|u| u.to_string()),
+          .map(|u| u.to_owned().into()),
       ),
       None => None,
     };

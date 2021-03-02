@@ -50,13 +50,13 @@ impl ToApub for User_ {
 
     if let Some(avatar_url) = &self.avatar {
       let mut image = Image::new();
-      image.set_url(Url::parse(avatar_url)?);
+      image.set_url::<Url>(avatar_url.to_owned().into());
       person.set_icon(image.into_any_base()?);
     }
 
     if let Some(banner_url) = &self.banner {
       let mut image = Image::new();
-      image.set_url(Url::parse(banner_url)?);
+      image.set_url::<Url>(banner_url.to_owned().into());
       person.set_image(image.into_any_base()?);
     }
 
@@ -126,7 +126,7 @@ impl FromApubToForm<PersonExt> for UserForm {
           .url()
           .context(location_info!())?
           .as_single_xsd_any_uri()
-          .map(|u| u.to_string()),
+          .map(|url| url.to_owned()),
       ),
       None => None,
     };
@@ -139,7 +139,7 @@ impl FromApubToForm<PersonExt> for UserForm {
           .url()
           .context(location_info!())?
           .as_single_xsd_any_uri()
-          .map(|u| u.to_string()),
+          .map(|url| url.to_owned()),
       ),
       None => None,
     };
@@ -174,8 +174,8 @@ impl FromApubToForm<PersonExt> for UserForm {
       admin: false,
       banned: None,
       email: None,
-      avatar,
-      banner,
+      avatar: avatar.map(|o| o.map(|i| i.into())),
+      banner: banner.map(|o| o.map(|i| i.into())),
       published: person.inner.published().map(|u| u.to_owned().naive_local()),
       updated: person.updated().map(|u| u.to_owned().naive_local()),
       show_nsfw: false,

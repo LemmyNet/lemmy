@@ -1,6 +1,6 @@
 use crate::{ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{naive_now, source::private_message::*, Url};
+use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl};
 
 impl Crud<PrivateMessageForm> for PrivateMessage {
   fn read(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
@@ -28,7 +28,7 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
 }
 
 impl ApubObject<PrivateMessageForm> for PrivateMessage {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error>
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized,
   {
@@ -53,7 +53,7 @@ pub trait PrivateMessage_ {
   fn update_ap_id(
     conn: &PgConnection,
     private_message_id: i32,
-    apub_id: Url,
+    apub_id: DbUrl,
   ) -> Result<PrivateMessage, Error>;
   fn update_content(
     conn: &PgConnection,
@@ -80,7 +80,7 @@ impl PrivateMessage_ for PrivateMessage {
   fn update_ap_id(
     conn: &PgConnection,
     private_message_id: i32,
-    apub_id: Url,
+    apub_id: DbUrl,
   ) -> Result<PrivateMessage, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
 

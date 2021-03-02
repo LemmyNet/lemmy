@@ -1,10 +1,10 @@
 use crate::{
   captcha_espeak_wav_base64,
-  check_optional_url,
   collect_moderated_communities,
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_admin,
+  password_length_check,
   Perform,
 };
 use actix_web::web::Data;
@@ -23,6 +23,7 @@ use lemmy_apub::{
 };
 use lemmy_db_queries::{
   diesel_option_overwrite,
+  diesel_option_overwrite_to_url,
   source::{
     comment::Comment_,
     community::Community_,
@@ -144,10 +145,7 @@ impl Perform for Register {
       }
     }
 
-    // Password length check
-    if data.password.len() > 60 {
-      return Err(ApiError::err("invalid_password").into());
-    }
+    password_length_check(&data.password)?;
 
     // Make sure passwords match
     if data.password != data.password_verify {
@@ -366,16 +364,12 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let avatar = diesel_option_overwrite(&data.avatar);
-    let banner = diesel_option_overwrite(&data.banner);
+    let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
     let email = diesel_option_overwrite(&data.email);
     let bio = diesel_option_overwrite(&data.bio);
     let preferred_username = diesel_option_overwrite(&data.preferred_username);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
-
-    // Check to make sure the avatar and banners are urls
-    check_optional_url(&avatar)?;
-    check_optional_url(&banner)?;
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
@@ -394,6 +388,8 @@ impl Perform for SaveUserSettings {
       Some(new_password) => {
         match &data.new_password_verify {
           Some(new_password_verify) => {
+            password_length_check(&new_password)?;
+
             // Make sure passwords match
             if new_password != new_password_verify {
               return Err(ApiError::err("passwords_dont_match").into());
@@ -992,6 +988,8 @@ impl Perform for PasswordChange {
       PasswordResetRequest::read_from_token(conn, &token).map(|p| p.user_id)
     })
     .await??;
+
+    password_length_check(&data.password)?;
 
     // Make sure passwords match
     if data.password != data.password_verify {
