@@ -4,6 +4,7 @@ use crate::{
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_admin,
+  password_length_check,
   Perform,
 };
 use actix_web::web::Data;
@@ -144,10 +145,7 @@ impl Perform for Register {
       }
     }
 
-    // Password length check
-    if data.password.len() > 60 {
-      return Err(ApiError::err("invalid_password").into());
-    }
+    password_length_check(&data.password)?;
 
     // Make sure passwords match
     if data.password != data.password_verify {
@@ -390,6 +388,8 @@ impl Perform for SaveUserSettings {
       Some(new_password) => {
         match &data.new_password_verify {
           Some(new_password_verify) => {
+            password_length_check(&new_password)?;
+
             // Make sure passwords match
             if new_password != new_password_verify {
               return Err(ApiError::err("passwords_dont_match").into());
@@ -988,6 +988,8 @@ impl Perform for PasswordChange {
       PasswordResetRequest::read_from_token(conn, &token).map(|p| p.user_id)
     })
     .await??;
+
+    password_length_check(&data.password)?;
 
     // Make sure passwords match
     if data.password != data.password_verify {

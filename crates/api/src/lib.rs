@@ -465,6 +465,15 @@ pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   Ok(base64)
 }
 
+/// Checks the password length
+pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
+  if pass.len() > 60 {
+    Err(ApiError::err("invalid_password").into())
+  } else {
+    Ok(())
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::captcha_espeak_wav_base64;
