@@ -55,7 +55,7 @@ impl Settings {
 
   /// Returns the config as a struct.
   pub fn get() -> Self {
-    SETTINGS.read().unwrap().to_owned()
+    SETTINGS.read().expect("read config").to_owned()
   }
 
   pub fn get_database_url(&self) -> String {
@@ -116,18 +116,18 @@ impl Settings {
     )
   }
 
-  pub fn save_config_file(data: &str) -> Result<String, Error> {
+  pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
     fs::write(CONFIG_FILE, data)?;
 
     // Reload the new settings
     // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
-    let mut new_settings = SETTINGS.write().unwrap();
+    let mut new_settings = SETTINGS.write().expect("write config");
     *new_settings = match Settings::init() {
       Ok(c) => c,
       Err(e) => panic!("{}", e),
     };
 
-    Self::read_config_file()
+    Ok(Self::read_config_file()?)
   }
 
   pub fn database(&self) -> DatabaseConfig {
@@ -137,7 +137,7 @@ impl Settings {
     self.hostname.to_owned().unwrap_or_default()
   }
   pub fn bind(&self) -> IpAddr {
-    self.bind.unwrap()
+    self.bind.expect("return bind address")
   }
   pub fn port(&self) -> u16 {
     self.port.unwrap_or_default()

@@ -48,14 +48,14 @@ fn reindex_aggregates_tables(conn: &PgConnection) {
 fn reindex_table(conn: &PgConnection, table_name: &str) {
   info!("Reindexing table {} ...", table_name);
   let query = format!("reindex table concurrently {}", table_name);
-  sql_query(query).execute(conn).unwrap();
+  sql_query(query).execute(conn).expect("reindex table");
   info!("Done.");
 }
 
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &PgConnection) {
   info!("Clearing old activities...");
-  Activity::delete_olds(&conn).unwrap();
+  Activity::delete_olds(&conn).expect("clear old activities");
   info!("Done.");
 }
 
@@ -75,10 +75,14 @@ fn active_counts(conn: &PgConnection) {
       "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}'))",
       i.1, i.0
     );
-    sql_query(update_site_stmt).execute(conn).unwrap();
+    sql_query(update_site_stmt)
+      .execute(conn)
+      .expect("update site stats");
 
     let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
-    sql_query(update_community_stmt).execute(conn).unwrap();
+    sql_query(update_community_stmt)
+      .execute(conn)
+      .expect("update community stats");
   }
 
   info!("Done.");

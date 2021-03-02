@@ -231,13 +231,14 @@ pub fn establish_unpooled_connection() -> PgConnection {
   };
   let conn =
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
-  embedded_migrations::run(&conn).unwrap();
+  embedded_migrations::run(&conn).expect("load migrations");
   conn
 }
 
 lazy_static! {
   static ref EMAIL_REGEX: Regex =
-    Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
+    Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
+      .expect("compile email regex");
 }
 
 pub mod functions {

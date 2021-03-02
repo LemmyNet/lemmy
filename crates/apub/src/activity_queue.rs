@@ -223,7 +223,7 @@ where
   let hostname = Settings::get().get_hostname_without_port()?;
   let inboxes: Vec<&Url> = inboxes
     .iter()
-    .filter(|i| i.domain().unwrap() != hostname)
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
     .collect();
 
   let activity = activity.into_any_base()?;
