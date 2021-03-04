@@ -396,9 +396,6 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
       p.community.name
     );
 
-    // TODO: for category we should just put the name of the category, but then we would have
-    //       to read each community from the db
-
     // TODO add images
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
     p.creator.actor_id,
