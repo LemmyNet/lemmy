@@ -27,7 +27,6 @@ pub struct CreateCommunity {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub category_id: i32,
   pub nsfw: bool,
   pub auth: String,
 }
@@ -88,7 +87,6 @@ pub struct EditCommunity {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub category_id: i32,
   pub nsfw: bool,
   pub auth: String,
 }
