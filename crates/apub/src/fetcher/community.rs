@@ -1,10 +1,5 @@
 use crate::{
-  fetcher::{
-    fetch::fetch_remote_object,
-    get_or_fetch_and_upsert_user,
-    is_deleted,
-    should_refetch_actor,
-  },
+  fetcher::{fetch::fetch_remote_object, is_deleted, should_refetch_actor},
   inbox::user_inbox::receive_announce,
   objects::FromApub,
   GroupExt,
@@ -12,13 +7,12 @@ use crate::{
 use activitystreams::{
   actor::ApActorExt,
   collection::{CollectionExt, OrderedCollection},
-  object::ObjectExt,
 };
 use anyhow::Context;
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
-use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
+use lemmy_db_queries::{source::community::Community_, ApubObject};
+use lemmy_db_schema::source::community::Community;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
@@ -79,40 +73,6 @@ async fn fetch_remote_community(
   let group = group?;
   let community =
     Community::from_apub(&group, context, apub_id.to_owned(), recursion_counter).await?;
-
-  // Also add the community moderators too
-  let attributed_to = group.inner.attributed_to().context(location_info!())?;
-  let creator_and_moderator_uris: Vec<&Url> = attributed_to
-    .as_many()
-    .context(location_info!())?
-    .iter()
-    .map(|a| a.as_xsd_any_uri().context(""))
-    .collect::<Result<Vec<&Url>, anyhow::Error>>()?;
-
-  let mut creator_and_moderators = Vec::new();
-
-  for uri in creator_and_moderator_uris {
-    let c_or_m = get_or_fetch_and_upsert_user(uri, context, recursion_counter).await?;
-
-    creator_and_moderators.push(c_or_m);
-  }
-
-  // TODO: need to make this work to update mods of existing communities
-  if old_community.is_none() {
-    let community_id = community.id;
-    blocking(context.pool(), move |conn| {
-      for mod_ in creator_and_moderators {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id,
-          user_id: mod_.id,
-        };
-
-        CommunityModerator::join(conn, &community_moderator_form)?;
-      }
-      Ok(()) as Result<(), LemmyError>
-    })
-    .await??;
-  }
 
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {

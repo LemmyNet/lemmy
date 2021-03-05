@@ -23,10 +23,11 @@ use activitystreams::{
 use activitystreams_ext::Ext2;
 use anyhow::Context;
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::DbPool;
+use lemmy_db_queries::{DbPool, Joinable};
 use lemmy_db_schema::{
   naive_now,
-  source::community::{Community, CommunityForm},
+  source::community::{Community, CommunityForm, CommunityModerator, CommunityModeratorForm},
+  DbUrl,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{
@@ -51,18 +52,13 @@ impl ToApub for Community {
       CommunityModeratorView::for_community(&conn, id)
     })
     .await??;
-    let moderators: Vec<Url> = moderators
-      .into_iter()
-      .map(|m| m.moderator.actor_id.into_inner())
-      .collect();
 
     let mut group = ApObject::new(Group::new());
     group
       .set_many_contexts(lemmy_context()?)
       .set_id(self.actor_id.to_owned().into())
       .set_name(self.title.to_owned())
-      .set_published(convert_datetime(self.published))
-      .set_many_attributed_tos(moderators);
+      .set_published(convert_datetime(self.published));
 
     if let Some(u) = self.updated.to_owned() {
       group.set_updated(convert_datetime(u));
@@ -93,9 +89,14 @@ impl ToApub for Community {
         ..Default::default()
       });
 
+    let moderators: Vec<Url> = moderators
+      .into_iter()
+      .map(|m| m.moderator.actor_id.into_inner())
+      .collect();
+
     Ok(Ext2::new(
       ap_actor,
-      GroupExtension::new(self.nsfw)?,
+      GroupExtension::new(self.nsfw, moderators)?,
       self.get_public_key_ext()?,
     ))
   }
@@ -114,14 +115,57 @@ impl ToApub for Community {
 impl FromApub for Community {
   type ApubType = GroupExt;
 
-  /// Converts a `Group` to `Community`.
+  /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
-    get_object_from_apub(group, context, expected_domain, request_counter).await
+    let community: Community =
+      get_object_from_apub(group, context, expected_domain, request_counter).await?;
+
+    let new_moderators = get_community_moderators(group)?;
+    let community_id = community.id;
+    let current_moderators = blocking(context.pool(), move |conn| {
+      CommunityModeratorView::for_community(&conn, community_id)
+    })
+    .await??;
+    // Remove old mods from database which arent in the moderators collection anymore
+    for mod_user in &current_moderators {
+      if !new_moderators.contains(&&mod_user.moderator.actor_id.clone().into()) {
+        let community_moderator_form = CommunityModeratorForm {
+          community_id: mod_user.community.id,
+          user_id: mod_user.moderator.id,
+        };
+        blocking(context.pool(), move |conn| {
+          CommunityModerator::leave(conn, &community_moderator_form)
+        })
+        .await??;
+      }
+    }
+
+    // Add new mods to database which have been added to moderators collection
+    for mod_uri in new_moderators {
+      let mod_user = get_or_fetch_and_upsert_user(&mod_uri, context, request_counter).await?;
+      let current_mod_uris: Vec<DbUrl> = current_moderators
+        .clone()
+        .iter()
+        .map(|c| c.moderator.actor_id.clone())
+        .collect();
+      if !current_mod_uris.contains(&mod_user.actor_id) {
+        let community_moderator_form = CommunityModeratorForm {
+          community_id: community.id,
+          user_id: mod_user.id,
+        };
+        blocking(context.pool(), move |conn| {
+          CommunityModerator::join(conn, &community_moderator_form)
+        })
+        .await??;
+      }
+    }
+
+    Ok(community)
   }
 }
 
@@ -133,15 +177,8 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;
-    let creator_uri = creator_and_moderator_uris
-      .as_many()
-      .context(location_info!())?
-      .iter()
-      .next()
-      .context(location_info!())?
-      .as_xsd_any_uri()
-      .context(location_info!())?;
+    let moderator_uris = get_community_moderators(group)?;
+    let creator_uri = moderator_uris.first().context(location_info!())?;
 
     let creator = get_or_fetch_and_upsert_user(creator_uri, context, request_counter).await?;
     let name = group
@@ -224,5 +261,22 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       inbox_url: Some(group.inner.inbox()?.to_owned().into()),
       shared_inbox_url: Some(shared_inbox),
     })
+  }
+}
+
+fn get_community_moderators(group: &GroupExt) -> Result<Vec<&Url>, LemmyError> {
+  if let Some(moderators) = &group.ext_one.moderators {
+    Ok(
+      moderators
+        .items()
+        .map(|i| i.as_many())
+        .flatten()
+        .context(location_info!())?
+        .iter()
+        .filter_map(|i| i.as_xsd_any_uri())
+        .collect(),
+    )
+  } else {
+    Ok(vec![])
   }
 }

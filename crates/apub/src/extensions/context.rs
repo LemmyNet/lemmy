@@ -11,7 +11,8 @@ pub(crate) fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
     "comments_enabled": {
       "kind": "sc:Boolean",
       "id": "pt:commentsEnabled"
-    }
+    },
+    "moderators": "as:moderators"
   }))?;
   Ok(vec![AnyBase::from(context()), context_ext])
 }
