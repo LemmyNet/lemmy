@@ -296,7 +296,9 @@ pub async fn receive_announce(
       receive_dislike_for_community(context, inner_activity, &inner_id, request_counter).await
     }
     Some(Delete) => receive_delete_for_community(context, inner_activity, &inner_id).await,
-    Some(Remove) => receive_remove_for_community(context, inner_activity, &inner_id).await,
+    Some(Remove) => {
+      receive_remove_for_community(context, inner_activity, &inner_id, request_counter).await
+    }
     Some(Undo) => {
       receive_undo_for_community(context, inner_activity, &inner_id, request_counter).await
     }

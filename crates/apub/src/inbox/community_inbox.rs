@@ -8,10 +8,12 @@ use crate::{
     is_activity_already_known,
     is_addressed_to_public,
     receive_for_community::{
+      receive_add_for_community,
       receive_create_for_community,
       receive_delete_for_community,
       receive_dislike_for_community,
       receive_like_for_community,
+      receive_remove_for_community,
       receive_undo_for_community,
       receive_update_for_community,
     },
@@ -51,7 +53,8 @@ pub enum CommunityValidTypes {
   Like,    // upvote post or comment
   Dislike, // downvote post or comment
   Delete,  // post or comment deleted by creator
-  Remove,  // post or comment removed by mod or admin
+  Remove,  // post or comment removed by mod or admin, or mod removed from community
+  Add,     // mod added to community
 }
 
 pub type CommunityAcceptedActivities = ActorAndObject<CommunityValidTypes>;
@@ -160,10 +163,13 @@ pub(crate) async fn community_receive_message(
       receive_delete_for_community(context, any_base.clone(), &actor_url).await?;
       true
     }
+    CommunityValidTypes::Add => {
+      receive_add_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      true
+    }
     CommunityValidTypes::Remove => {
-      // TODO: we dont support remote mods, so this is ignored for now
-      //receive_remove_for_community(context, any_base.clone(), &user_url).await?
-      false
+      receive_remove_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      true
     }
   };
 

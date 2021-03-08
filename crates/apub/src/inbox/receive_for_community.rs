@@ -31,21 +31,32 @@ use crate::{
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
-  fetcher::objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+  fetcher::{
+    objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+    user::get_or_fetch_and_upsert_user,
+  },
   find_post_or_comment_by_id,
   inbox::is_addressed_to_public,
   PostOrComment,
 };
 use activitystreams::{
-  activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
+  activity::{ActorAndObjectRef, Add, Create, Delete, Dislike, Like, Remove, Undo, Update},
   base::AnyBase,
   prelude::*,
 };
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::site::Site;
+use lemmy_db_queries::{ApubObject, Crud, Joinable};
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityModerator, CommunityModeratorForm},
+    site::Site,
+    user::User_,
+  },
+  DbUrl,
+};
+use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use strum_macros::EnumString;
@@ -189,36 +200,59 @@ pub(in crate::inbox) async fn receive_remove_for_community(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: &Url,
+  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let remove = Remove::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&remove, &expected_domain, false)?;
   is_addressed_to_public(&remove)?;
 
-  let cc = remove
-    .cc()
-    .map(|c| c.as_many())
-    .flatten()
-    .context(location_info!())?;
-  let community_id = cc
-    .first()
-    .map(|c| c.as_xsd_any_uri())
-    .flatten()
-    .context(location_info!())?;
+  // Remove a moderator from community
+  if remove.target().is_some() {
+    let community = verify_actor_is_community_mod(&remove, context).await?;
 
-  let object = remove
-    .object()
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
+    let remove_mod = remove
+      .object()
+      .as_single_xsd_any_uri()
+      .context(location_info!())?;
+    let remove_mod = get_or_fetch_and_upsert_user(&remove_mod, context, request_counter).await?;
+    let form = CommunityModeratorForm {
+      community_id: community.id,
+      user_id: remove_mod.id,
+    };
+    blocking(context.pool(), move |conn| {
+      CommunityModerator::leave(conn, &form)
+    })
+    .await??;
+    Ok(())
+  }
+  // Remove a post or comment
+  else {
+    let cc = remove
+      .cc()
+      .map(|c| c.as_many())
+      .flatten()
+      .context(location_info!())?;
+    let community_id = cc
+      .first()
+      .map(|c| c.as_xsd_any_uri())
+      .flatten()
+      .context(location_info!())?;
 
-  // Ensure that remove activity comes from the same domain as the community
-  remove.id(community_id.domain().context(location_info!())?)?;
+    let object = remove
+      .object()
+      .to_owned()
+      .single_xsd_any_uri()
+      .context(location_info!())?;
 
-  match find_post_or_comment_by_id(context, object).await {
-    Ok(PostOrComment::Post(p)) => receive_remove_post(context, remove, *p).await,
-    Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, remove, *c).await,
-    // if we dont have the object, no need to do anything
-    Err(_) => Ok(()),
+    // Ensure that remove activity comes from the same domain as the community
+    remove.id(community_id.domain().context(location_info!())?)?;
+
+    match find_post_or_comment_by_id(context, object).await {
+      Ok(PostOrComment::Post(p)) => receive_remove_post(context, remove, *p).await,
+      Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, remove, *c).await,
+      // if we dont have the object, no need to do anything
+      Err(_) => Ok(()),
+    }
   }
 }
 
@@ -333,6 +367,34 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
   }
 }
 
+/// Add a new mod to the community (can only be done by an existing mod).
+pub(in crate::inbox) async fn receive_add_for_community(
+  context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: &Url,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let add = Add::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&add, &expected_domain, false)?;
+  is_addressed_to_public(&add)?;
+  let community = verify_actor_is_community_mod(&add, context).await?;
+
+  let new_mod = add
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
+  let new_mod = get_or_fetch_and_upsert_user(&new_mod, context, request_counter).await?;
+  let form = CommunityModeratorForm {
+    community_id: community.id,
+    user_id: new_mod.id,
+  };
+  blocking(context.pool(), move |conn| {
+    CommunityModerator::join(conn, &form)
+  })
+  .await??;
+  Ok(())
+}
+
 /// A post or comment downvote being reverted
 pub(in crate::inbox) async fn receive_undo_dislike_for_community(
   context: &LemmyContext,
@@ -373,4 +435,47 @@ async fn fetch_post_or_comment_by_id(
   }
 
   Err(NotFound.into())
+}
+
+async fn verify_actor_is_community_mod<T, Kind>(
+  activity: &T,
+  context: &LemmyContext,
+) -> Result<Community, LemmyError>
+where
+  T: ActorAndObjectRef + BaseExt<Kind>,
+{
+  // should be the moderators collection of a local community
+  // TODO: not compiling, seems to be a bug in activitystreams crate
+  let target = Url::parse("")?; //activity.target().as_single_xsd_any_uri().context(location_info!())?;
+                                // TODO: very hacky
+  let community_id: DbUrl = Url::parse(&target.to_string().replace("/moderators", ""))?.into();
+  let community = blocking(&context.pool(), move |conn| {
+    Community::read_from_apub_id(&conn, &community_id)
+  })
+  .await??;
+
+  let actor = activity
+    .actor()?
+    .as_single_xsd_any_uri()
+    .context(location_info!())?
+    .to_owned();
+  let actor = blocking(&context.pool(), move |conn| {
+    User_::read_from_apub_id(&conn, &actor.into())
+  })
+  .await??;
+
+  // Note: this will also return true for admins in addition to mods, but as we dont know about
+  //       remote admins, it doesnt make any difference.
+  let community_id = community.id;
+  let actor_id = actor.id;
+  let is_mod_or_admin = blocking(context.pool(), move |conn| {
+    CommunityView::is_mod_or_admin(conn, actor_id, community_id)
+  })
+  .await?;
+  if !is_mod_or_admin {
+    return Err(anyhow!("Not a mod").into());
+  }
+
+  // TODO: the function name doesnt make sense if we return the community
+  Ok(community)
 }
