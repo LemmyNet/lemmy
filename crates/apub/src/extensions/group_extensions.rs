@@ -1,7 +1,4 @@
-use activitystreams::{
-  collection::{CollectionExt, OrderedCollection},
-  unparsed::UnparsedMutExt,
-};
+use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -13,17 +10,14 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct GroupExtension {
   pub sensitive: Option<bool>,
-  pub moderators: Option<OrderedCollection>,
+  pub moderators: Option<Url>,
 }
 
 impl GroupExtension {
-  pub fn new(sensitive: bool, moderators: Vec<Url>) -> Result<GroupExtension, LemmyError> {
-    let mut mods = OrderedCollection::new();
-    mods.set_total_items(moderators.len() as u64);
-    mods.set_many_items(moderators);
+  pub fn new(sensitive: bool, moderators_url: Url) -> Result<GroupExtension, LemmyError> {
     Ok(GroupExtension {
       sensitive: Some(sensitive),
-      moderators: Some(mods),
+      moderators: Some(moderators_url),
     })
   }
 }

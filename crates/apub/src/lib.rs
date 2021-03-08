@@ -262,6 +262,10 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
+pub(crate) fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
+  Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
+}
+
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
 pub(crate) async fn insert_activity<T>(

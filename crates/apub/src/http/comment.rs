@@ -12,12 +12,12 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct CommentQuery {
+pub(crate) struct CommentQuery {
   comment_id: String,
 }
 
 /// Return the ActivityPub json representation of a local comment over HTTP.
-pub async fn get_apub_comment(
+pub(crate) async fn get_apub_comment(
   info: Path<CommentQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {

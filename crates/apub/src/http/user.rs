@@ -18,12 +18,12 @@ use serde::Deserialize;
 use url::Url;
 
 #[derive(Deserialize)]
-pub struct UserQuery {
+pub(crate) struct UserQuery {
   user_name: String,
 }
 
 /// Return the ActivityPub json representation of a local user over HTTP.
-pub async fn get_apub_user_http(
+pub(crate) async fn get_apub_user_http(
   info: web::Path<UserQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -43,7 +43,7 @@ pub async fn get_apub_user_http(
   }
 }
 
-pub async fn get_apub_user_outbox(
+pub(crate) async fn get_apub_user_outbox(
   info: web::Path<UserQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -61,7 +61,7 @@ pub async fn get_apub_user_outbox(
   Ok(create_apub_response(&collection))
 }
 
-pub async fn get_apub_user_inbox(
+pub(crate) async fn get_apub_user_inbox(
   info: web::Path<UserQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -72,7 +72,7 @@ pub async fn get_apub_user_inbox(
 
   let mut collection = OrderedCollection::new();
   collection
-    .set_id(format!("{}/inbox", user.actor_id.into_inner()).parse()?)
+    .set_id(user.inbox_url.into())
     .set_many_contexts(lemmy_context()?);
   Ok(create_apub_response(&collection))
 }

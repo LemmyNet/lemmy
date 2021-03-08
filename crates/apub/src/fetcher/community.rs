@@ -103,3 +103,27 @@ async fn fetch_community_outbox(
 
   Ok(())
 }
+
+pub(crate) async fn fetch_community_mods(
+  context: &LemmyContext,
+  group: &GroupExt,
+  recursion_counter: &mut i32,
+) -> Result<Vec<Url>, LemmyError> {
+  if let Some(mods_url) = &group.ext_one.moderators {
+    let mods =
+      fetch_remote_object::<OrderedCollection>(context.client(), mods_url, recursion_counter)
+        .await?;
+    let mods = mods
+      .items()
+      .map(|i| i.as_many())
+      .flatten()
+      .context(location_info!())?
+      .iter()
+      .filter_map(|i| i.as_xsd_any_uri())
+      .map(|u| u.to_owned())
+      .collect();
+    Ok(mods)
+  } else {
+    Ok(vec![])
+  }
+}

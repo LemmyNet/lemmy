@@ -1,6 +1,7 @@
 use crate::{
   extensions::{context::lemmy_context, group_extensions::GroupExtension},
-  fetcher::user::get_or_fetch_and_upsert_user,
+  fetcher::{community::fetch_community_mods, user::get_or_fetch_and_upsert_user},
+  generate_moderators_url,
   objects::{
     check_object_domain,
     create_tombstone,
@@ -42,17 +43,7 @@ use url::Url;
 impl ToApub for Community {
   type ApubType = GroupExt;
 
-  async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
-    // The attributed to, is an ordered vector with the creator actor_ids first,
-    // then the rest of the moderators
-    // TODO Technically the instance admins can mod the community, but lets
-    // ignore that for now
-    let id = self.id;
-    let moderators = blocking(pool, move |conn| {
-      CommunityModeratorView::for_community(&conn, id)
-    })
-    .await??;
-
+  async fn to_apub(&self, _pool: &DbPool) -> Result<GroupExt, LemmyError> {
     let mut group = ApObject::new(Group::new());
     group
       .set_many_contexts(lemmy_context()?)
@@ -89,14 +80,9 @@ impl ToApub for Community {
         ..Default::default()
       });
 
-    let moderators: Vec<Url> = moderators
-      .into_iter()
-      .map(|m| m.moderator.actor_id.into_inner())
-      .collect();
-
     Ok(Ext2::new(
       ap_actor,
-      GroupExtension::new(self.nsfw, moderators)?,
+      GroupExtension::new(self.nsfw, generate_moderators_url(&self.actor_id)?.into())?,
       self.get_public_key_ext()?,
     ))
   }
@@ -125,7 +111,7 @@ impl FromApub for Community {
     let community: Community =
       get_object_from_apub(group, context, expected_domain, request_counter).await?;
 
-    let new_moderators = get_community_moderators(group)?;
+    let new_moderators = fetch_community_mods(context, group, request_counter).await?;
     let community_id = community.id;
     let current_moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(&conn, community_id)
@@ -177,7 +163,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    let moderator_uris = get_community_moderators(group)?;
+    let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
     let creator_uri = moderator_uris.first().context(location_info!())?;
 
     let creator = get_or_fetch_and_upsert_user(creator_uri, context, request_counter).await?;
@@ -261,22 +247,5 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       inbox_url: Some(group.inner.inbox()?.to_owned().into()),
       shared_inbox_url: Some(shared_inbox),
     })
-  }
-}
-
-fn get_community_moderators(group: &GroupExt) -> Result<Vec<&Url>, LemmyError> {
-  if let Some(moderators) = &group.ext_one.moderators {
-    Ok(
-      moderators
-        .items()
-        .map(|i| i.as_many())
-        .flatten()
-        .context(location_info!())?
-        .iter()
-        .filter_map(|i| i.as_xsd_any_uri())
-        .collect(),
-    )
-  } else {
-    Ok(vec![])
   }
 }
