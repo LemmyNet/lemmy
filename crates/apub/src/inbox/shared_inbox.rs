@@ -36,6 +36,7 @@ pub enum ValidTypes {
   Undo,
   Remove,
   Announce,
+  Add,
 }
 
 // TODO: this isnt entirely correct, cause some of these receive are not ActorAndObject,

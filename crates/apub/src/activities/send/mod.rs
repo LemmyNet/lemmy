@@ -3,7 +3,7 @@ use url::{ParseError, Url};
 use uuid::Uuid;
 
 pub(crate) mod comment;
-pub(crate) mod community;
+pub mod community;
 pub(crate) mod post;
 pub(crate) mod private_message;
 pub(crate) mod user;

@@ -28,6 +28,7 @@ use crate::{
     is_addressed_to_local_user,
     is_addressed_to_public,
     receive_for_community::{
+      receive_add_for_community,
       receive_create_for_community,
       receive_delete_for_community,
       receive_dislike_for_community,
@@ -252,6 +253,7 @@ enum AnnouncableActivities {
   Delete,
   Remove,
   Undo,
+  Add,
 }
 
 /// Takes an announce and passes the inner activity to the appropriate handler.
@@ -301,6 +303,9 @@ pub async fn receive_announce(
     }
     Some(Undo) => {
       receive_undo_for_community(context, inner_activity, &inner_id, request_counter).await
+    }
+    Some(Add) => {
+      receive_add_for_community(context, inner_activity, &inner_id, request_counter).await
     }
     _ => receive_unhandled_activity(inner_activity),
   }

@@ -10,6 +10,7 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_structs::{blocking, community::*};
 use lemmy_apub::{
+  activities::send::community::{send_add_mod, send_remove_mod},
   generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
@@ -34,7 +35,7 @@ use lemmy_db_queries::{
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
+  source::{comment::Comment, community::*, moderator::*, post::Post, site::*, user::User_},
 };
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_db_views_actor::{
@@ -699,16 +700,16 @@ impl Perform for AddModToCommunity {
     let data: &AddModToCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let community_moderator_form = CommunityModeratorForm {
-      community_id: data.community_id,
-      user_id: data.user_id,
-    };
-
     let community_id = data.community_id;
 
     // Verify that only mods or admins can add mod
     is_mod_or_admin(context.pool(), user.id, community_id).await?;
 
+    // Update in local database
+    let community_moderator_form = CommunityModeratorForm {
+      community_id: data.community_id,
+      user_id: data.user_id,
+    };
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       if blocking(context.pool(), join).await?.is_err() {
@@ -733,6 +734,25 @@ impl Perform for AddModToCommunity {
     })
     .await??;
 
+    // Send to federated instances
+    let updated_mod_id = data.user_id;
+    let updated_mod = blocking(context.pool(), move |conn| {
+      User_::read(conn, updated_mod_id)
+    })
+    .await??;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    dbg!(data.added);
+    if data.added {
+      send_add_mod(user, updated_mod, community, context).await?;
+    } else {
+      send_remove_mod(user, updated_mod, community, context).await?;
+    }
+
+    // Note: in case a remote mod is added, this returns the old moderators list, it will only get
+    //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
     let community_id = data.community_id;
     let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
@@ -740,18 +760,18 @@ impl Perform for AddModToCommunity {
     .await??;
 
     let res = AddModToCommunityResponse { moderators };
-
     context.chat_server().do_send(SendCommunityRoomMessage {
       op: UserOperation::AddModToCommunity,
       response: res.clone(),
       community_id,
       websocket_id,
     });
-
     Ok(res)
   }
 }
 
+// TODO: we dont do anything for federation here, it should be updated the next time the community
+//       gets fetched. i hope we can get rid of the community creator role soon.
 #[async_trait::async_trait(?Send)]
 impl Perform for TransferCommunity {
   type Response = GetCommunityResponse;

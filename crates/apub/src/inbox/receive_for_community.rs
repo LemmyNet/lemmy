@@ -37,6 +37,7 @@ use crate::{
   },
   find_post_or_comment_by_id,
   inbox::is_addressed_to_public,
+  ActorType,
   PostOrComment,
 };
 use activitystreams::{
@@ -58,7 +59,7 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::{ApubObject, Crud, Joinable};
+use lemmy_db_queries::{source::community::CommunityModerator_, ApubObject, Crud, Joinable};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
@@ -213,7 +214,7 @@ pub(in crate::inbox) async fn receive_remove_for_community(
   expected_domain: &Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let remove = Remove::from_any_base(activity)?.context(location_info!())?;
+  let remove = Remove::from_any_base(activity.to_owned())?.context(location_info!())?;
   verify_activity_domains_valid(&remove, &expected_domain, false)?;
   is_addressed_to_public(&remove)?;
 
@@ -234,6 +235,8 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       CommunityModerator::leave(conn, &form)
     })
     .await??;
+    community.send_announce(activity, context).await?;
+    // TODO: send websocket notification about removed mod
     Ok(())
   }
   // Remove a post or comment
@@ -385,7 +388,7 @@ pub(in crate::inbox) async fn receive_add_for_community(
   expected_domain: &Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let add = Add::from_any_base(activity)?.context(location_info!())?;
+  let add = Add::from_any_base(activity.to_owned())?.context(location_info!())?;
   verify_activity_domains_valid(&add, &expected_domain, false)?;
   is_addressed_to_public(&add)?;
   let community = verify_actor_is_community_mod(&add, context).await?;
@@ -395,14 +398,28 @@ pub(in crate::inbox) async fn receive_add_for_community(
     .as_single_xsd_any_uri()
     .context(location_info!())?;
   let new_mod = get_or_fetch_and_upsert_user(&new_mod, context, request_counter).await?;
-  let form = CommunityModeratorForm {
-    community_id: community.id,
-    user_id: new_mod.id,
-  };
-  blocking(context.pool(), move |conn| {
-    CommunityModerator::join(conn, &form)
+
+  // If we had to refetch the community while parsing the activity, then the new mod has already
+  // been added. Skip it here as it would result in a duplicate key error.
+  let new_mod_id = new_mod.id;
+  let moderated_communities = blocking(context.pool(), move |conn| {
+    CommunityModerator::get_user_moderated_communities(conn, new_mod_id)
   })
   .await??;
+  if moderated_communities.contains(&community.id) {
+    let form = CommunityModeratorForm {
+      community_id: community.id,
+      user_id: new_mod.id,
+    };
+    blocking(context.pool(), move |conn| {
+      CommunityModerator::join(conn, &form)
+    })
+    .await??;
+  }
+  if community.local {
+    community.send_announce(activity, context).await?;
+  }
+  // TODO: send websocket notification about added mod
   Ok(())
 }
 
@@ -458,7 +475,7 @@ where
   // should be the moderators collection of a local community
   let target = activity
     .target()
-    .map(|t| t.as_single_xsd_string())
+    .map(|t| t.as_single_xsd_any_uri())
     .flatten()
     .context(location_info!())?;
   // TODO: very hacky, we should probably store the moderators url in db

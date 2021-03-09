@@ -1,19 +1,22 @@
 use crate::{
   activities::send::generate_activity_id,
-  activity_queue::{send_activity_single_dest, send_to_community_followers},
+  activity_queue::{send_activity_single_dest, send_to_community, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
   fetcher::user::get_or_fetch_and_upsert_user,
+  generate_moderators_url,
   ActorType,
 };
 use activitystreams::{
   activity::{
-    kind::{AcceptType, AnnounceType, DeleteType, LikeType, RemoveType, UndoType},
+    kind::{AcceptType, AddType, AnnounceType, DeleteType, LikeType, RemoveType, UndoType},
     Accept,
     ActorAndObjectRefExt,
+    Add,
     Announce,
     Delete,
     Follow,
+    OptTargetRefExt,
     Remove,
     Undo,
   },
@@ -25,7 +28,7 @@ use anyhow::Context;
 use itertools::Itertools;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::DbPool;
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::source::{community::Community, user::User_};
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -201,4 +204,56 @@ impl ActorType for Community {
 
     Ok(inboxes)
   }
+}
+
+pub async fn send_add_mod(
+  actor: User_,
+  added_mod: User_,
+  community: Community,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  let mut add = Add::new(
+    actor.actor_id.clone().into_inner(),
+    added_mod.actor_id.into_inner(),
+  );
+  add
+    .set_many_contexts(lemmy_context()?)
+    .set_id(generate_activity_id(AddType::Add)?)
+    .set_many_tos(vec![community.actor_id.to_owned().into_inner(), public()])
+    .set_target(generate_moderators_url(&community.actor_id)?.into_inner());
+
+  if community.local {
+    community
+      .send_announce(add.into_any_base()?, context)
+      .await?;
+  } else {
+    send_to_community(add, &actor, &community, context).await?;
+  }
+  Ok(())
+}
+
+pub async fn send_remove_mod(
+  actor: User_,
+  removed_mod: User_,
+  community: Community,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  let mut remove = Remove::new(
+    actor.actor_id.clone().into_inner(),
+    removed_mod.actor_id.into_inner(),
+  );
+  remove
+    .set_many_contexts(lemmy_context()?)
+    .set_id(generate_activity_id(RemoveType::Remove)?)
+    .set_many_tos(vec![community.actor_id.to_owned().into_inner(), public()])
+    .set_target(generate_moderators_url(&community.actor_id)?.into_inner());
+
+  if community.local {
+    community
+      .send_announce(remove.into_any_base()?, context)
+      .await?;
+  } else {
+    send_to_community(remove, &actor, &community, context).await?;
+  }
+  Ok(())
 }
