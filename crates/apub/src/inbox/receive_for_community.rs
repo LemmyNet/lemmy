@@ -40,7 +40,18 @@ use crate::{
   PostOrComment,
 };
 use activitystreams::{
-  activity::{ActorAndObjectRef, Add, Create, Delete, Dislike, Like, Remove, Undo, Update},
+  activity::{
+    ActorAndObjectRef,
+    Add,
+    Create,
+    Delete,
+    Dislike,
+    Like,
+    OptTargetRef,
+    Remove,
+    Undo,
+    Update,
+  },
   base::AnyBase,
   prelude::*,
 };
@@ -442,12 +453,15 @@ async fn verify_actor_is_community_mod<T, Kind>(
   context: &LemmyContext,
 ) -> Result<Community, LemmyError>
 where
-  T: ActorAndObjectRef + BaseExt<Kind>,
+  T: ActorAndObjectRef + BaseExt<Kind> + OptTargetRef,
 {
   // should be the moderators collection of a local community
-  // TODO: not compiling, seems to be a bug in activitystreams crate
-  let target = Url::parse("")?; //activity.target().as_single_xsd_any_uri().context(location_info!())?;
-                                // TODO: very hacky
+  let target = activity
+    .target()
+    .map(|t| t.as_single_xsd_string())
+    .flatten()
+    .context(location_info!())?;
+  // TODO: very hacky, we should probably store the moderators url in db
   let community_id: DbUrl = Url::parse(&target.to_string().replace("/moderators", ""))?.into();
   let community = blocking(&context.pool(), move |conn| {
     Community::read_from_apub_id(&conn, &community_id)

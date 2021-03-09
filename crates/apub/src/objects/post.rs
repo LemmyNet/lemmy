@@ -178,10 +178,9 @@ impl FromApubToForm<PageExt> for PostForm {
     let name = page
       .inner
       .name()
-      .map(|s| s.map(|s2| s2.to_owned()))
       // The following is for compatibility with lemmy v0.9.9 and older
       // TODO: remove it after some time (along with the map above)
-      .or_else(|| page.inner.summary().map(|s| s.to_owned()))
+      .or_else(|| page.inner.summary())
       .context(location_info!())?
       .as_single_xsd_string()
       .context(location_info!())?

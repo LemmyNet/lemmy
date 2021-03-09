@@ -132,19 +132,17 @@ where
 {
   let content = object
     .content()
-    .map(|s| s.as_single_xsd_string())
-    .flatten()
-    .map(|s| s.to_string());
+    .map(|s| s.as_single_xsd_string().map(|s2| s2.to_string()))
+    .flatten();
   if content.is_some() {
     let source = object.source().context(location_info!())?;
     let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
     check_is_markdown(source.media_type())?;
     let source_content = source
       .content()
-      .map(|s| s.as_single_xsd_string())
+      .map(|s| s.as_single_xsd_string().map(|s2| s2.to_string()))
       .flatten()
-      .context(location_info!())?
-      .to_string();
+      .context(location_info!())?;
     return Ok(Some(source_content));
   }
   Ok(None)
