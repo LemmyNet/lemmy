@@ -45,6 +45,7 @@ services:
     volumes:
       - ./volumes/pictrs:/mnt
     restart: always
+    mem_limit: 200m
 
   iframely:
     image: dogbin/iframely:latest
