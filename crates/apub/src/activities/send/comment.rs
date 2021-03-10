@@ -2,7 +2,7 @@ use crate::{
   activities::send::generate_activity_id,
   activity_queue::{send_comment_mentions, send_to_community},
   extensions::context::lemmy_context,
-  fetcher::user::get_or_fetch_and_upsert_user,
+  fetcher::person::get_or_fetch_and_upsert_person,
   objects::ToApub,
   ActorType,
   ApubLikeableType,
@@ -26,12 +26,12 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
+use lemmy_api_structs::{blocking, WebFingerResponse};
 use lemmy_db_queries::{Crud, DbPool};
-use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post, user::User_};
-use lemmy_structs::{blocking, WebFingerResponse};
+use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post, person::Person};
 use lemmy_utils::{
   request::{retry, RecvError},
-  settings::Settings,
+  settings::structs::Settings,
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };
@@ -44,8 +44,8 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Comment {
   /// Send out information about a newly created comment, to the followers of the community and
-  /// mentioned users.
-  async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  /// mentioned persons.
+  async fn send_create(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let note = self.to_apub(context.pool()).await?;
 
     let post_id = self.post_id;
@@ -77,8 +77,8 @@ impl ApubObjectType for Comment {
   }
 
   /// Send out information about an edited post, to the followers of the community and mentioned
-  /// users.
-  async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  /// persons.
+  async fn send_update(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let note = self.to_apub(context.pool()).await?;
 
     let post_id = self.post_id;
@@ -109,7 +109,7 @@ impl ApubObjectType for Comment {
     Ok(())
   }
 
-  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_delete(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -135,7 +135,7 @@ impl ApubObjectType for Comment {
 
   async fn send_undo_delete(
     &self,
-    creator: &User_,
+    creator: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let post_id = self.post_id;
@@ -173,7 +173,7 @@ impl ApubObjectType for Comment {
     Ok(())
   }
 
-  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_remove(&self, mod_: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -197,7 +197,7 @@ impl ApubObjectType for Comment {
     Ok(())
   }
 
-  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_undo_remove(&self, mod_: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -236,7 +236,7 @@ impl ApubObjectType for Comment {
 
 #[async_trait::async_trait(?Send)]
 impl ApubLikeableType for Comment {
-  async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_like(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -260,7 +260,7 @@ impl ApubLikeableType for Comment {
     Ok(())
   }
 
-  async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_dislike(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -286,7 +286,7 @@ impl ApubLikeableType for Comment {
 
   async fn send_undo_like(
     &self,
-    creator: &User_,
+    creator: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let post_id = self.post_id;
@@ -342,7 +342,7 @@ impl MentionsAndAddresses {
 
 /// This takes a comment, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
-/// Addresses are the users / addresses that go in the cc field.
+/// Addresses are the persons / addresses that go in the cc field.
 async fn collect_non_local_mentions(
   comment: &Comment,
   community: &Community,
@@ -356,7 +356,7 @@ async fn collect_non_local_mentions(
   // Add the mention tag
   let mut tags = Vec::new();
 
-  // Get the user IDs for any mentions
+  // Get the person IDs for any mentions
   let mentions = scrape_text_for_mentions(&comment.content)
     .into_iter()
     // Filter only the non-local ones
@@ -369,8 +369,8 @@ async fn collect_non_local_mentions(
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
 
-      let mention_user = get_or_fetch_and_upsert_user(&actor_id, context, &mut 0).await?;
-      inboxes.push(mention_user.get_shared_inbox_or_inbox_url());
+      let mention_person = get_or_fetch_and_upsert_person(&actor_id, context, &mut 0).await?;
+      inboxes.push(mention_person.get_shared_inbox_or_inbox_url());
 
       let mut mention_tag = Mention::new();
       mention_tag.set_href(actor_id).set_name(mention.full_name());
@@ -387,9 +387,9 @@ async fn collect_non_local_mentions(
   })
 }
 
-/// Returns the apub ID of the user this comment is responding to. Meaning, in case this is a
+/// Returns the apub ID of the person this comment is responding to. Meaning, in case this is a
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
-async fn get_comment_parent_creator(pool: &DbPool, comment: &Comment) -> Result<User_, LemmyError> {
+async fn get_comment_parent_creator(pool: &DbPool, comment: &Comment) -> Result<Person, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
     let parent_comment =
       blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
@@ -399,10 +399,10 @@ async fn get_comment_parent_creator(pool: &DbPool, comment: &Comment) -> Result<
     let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
     parent_post.creator_id
   };
-  Ok(blocking(pool, move |conn| User_::read(conn, parent_creator_id)).await??)
+  Ok(blocking(pool, move |conn| Person::read(conn, parent_creator_id)).await??)
 }
 
-/// Turns a user id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
+/// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
 async fn fetch_webfinger_url(mention: &MentionData, client: &Client) -> Result<Url, LemmyError> {
   let fetch_url = format!(

@@ -11,7 +11,7 @@ create table local_user (
   id serial primary key,
   person_id int references person on update cascade on delete cascade not null,
   password_encrypted text not null,
-  email text,
+  email text unique,
   admin boolean default false not null,
   show_nsfw boolean default false not null,
   theme character varying(20) default 'darkly'::character varying not null,

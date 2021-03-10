@@ -2,7 +2,7 @@ use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
-  user_view::UserViewSafe,
+  person_view::PersonViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,6 @@ pub struct CreateCommunity {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub category_id: i32,
   pub nsfw: bool,
   pub auth: String,
 }
@@ -54,7 +53,7 @@ pub struct ListCommunitiesResponse {
 #[derive(Deserialize, Clone)]
 pub struct BanFromCommunity {
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub ban: bool,
   pub remove_data: bool,
   pub reason: Option<String>,
@@ -64,14 +63,14 @@ pub struct BanFromCommunity {
 
 #[derive(Serialize, Clone)]
 pub struct BanFromCommunityResponse {
-  pub user_view: UserViewSafe,
+  pub person_view: PersonViewSafe,
   pub banned: bool,
 }
 
 #[derive(Deserialize)]
 pub struct AddModToCommunity {
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub added: bool,
   pub auth: String,
 }
@@ -88,7 +87,6 @@ pub struct EditCommunity {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub category_id: i32,
   pub nsfw: bool,
   pub auth: String,
 }
@@ -129,6 +127,6 @@ pub struct GetFollowedCommunitiesResponse {
 #[derive(Deserialize)]
 pub struct TransferCommunity {
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub auth: String,
 }

@@ -21,16 +21,16 @@ use activitystreams::{
   prelude::*,
   public,
 };
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{community::Community, post::Post, user::User_};
-use lemmy_structs::blocking;
+use lemmy_db_schema::source::{community::Community, post::Post, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Post {
   /// Send out information about a newly created post, to the followers of the community.
-  async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_create(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let page = self.to_apub(context.pool()).await?;
 
     let community_id = self.community_id;
@@ -54,7 +54,7 @@ impl ApubObjectType for Post {
   }
 
   /// Send out information about an edited post, to the followers of the community.
-  async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_update(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let page = self.to_apub(context.pool()).await?;
 
     let community_id = self.community_id;
@@ -77,7 +77,7 @@ impl ApubObjectType for Post {
     Ok(())
   }
 
-  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_delete(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
@@ -100,7 +100,7 @@ impl ApubObjectType for Post {
 
   async fn send_undo_delete(
     &self,
-    creator: &User_,
+    creator: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_id = self.community_id;
@@ -134,7 +134,7 @@ impl ApubObjectType for Post {
     Ok(())
   }
 
-  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_remove(&self, mod_: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
@@ -155,7 +155,7 @@ impl ApubObjectType for Post {
     Ok(())
   }
 
-  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_undo_remove(&self, mod_: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
@@ -190,7 +190,7 @@ impl ApubObjectType for Post {
 
 #[async_trait::async_trait(?Send)]
 impl ApubLikeableType for Post {
-  async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_like(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
@@ -211,7 +211,7 @@ impl ApubLikeableType for Post {
     Ok(())
   }
 
-  async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_dislike(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
@@ -234,7 +234,7 @@ impl ApubLikeableType for Post {
 
   async fn send_undo_like(
     &self,
-    creator: &User_,
+    creator: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_id = self.community_id;

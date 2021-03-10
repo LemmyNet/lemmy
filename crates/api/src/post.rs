@@ -1,14 +1,14 @@
 use crate::{
   check_community_ban,
   check_downvotes_enabled,
-  check_optional_url,
   collect_moderated_communities,
-  get_user_from_jwt,
-  get_user_from_jwt_opt,
+  get_local_user_view_from_jwt,
+  get_local_user_view_from_jwt_opt,
   is_mod_or_admin,
   Perform,
 };
 use actix_web::web::Data;
+use lemmy_api_structs::{blocking, post::*};
 use lemmy_apub::{generate_apub_endpoint, ApubLikeableType, ApubObjectType, EndpointType};
 use lemmy_db_queries::{
   source::post::Post_,
@@ -36,7 +36,6 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
 };
-use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
   request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, check_slurs_opt, is_valid_post_title},
@@ -61,7 +60,7 @@ impl Perform for CreatePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.body)?;
@@ -70,20 +69,19 @@ impl Perform for CreatePost {
       return Err(ApiError::err("invalid_post_title").into());
     }
 
-    check_community_ban(user.id, data.community_id, context.pool()).await?;
-
-    check_optional_url(&Some(data.url.to_owned()))?;
+    check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
 
     // Fetch Iframely and pictrs cached image
+    let data_url = data.url.as_ref();
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      fetch_iframely_and_pictrs_data(context.client(), data.url.to_owned()).await;
+      fetch_iframely_and_pictrs_data(context.client(), data_url).await;
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
-      url: data.url.to_owned(),
+      url: data_url.map(|u| u.to_owned().into()),
       body: data.body.to_owned(),
       community_id: data.community_id,
-      creator_id: user.id,
+      creator_id: local_user_view.person.id,
       removed: None,
       deleted: None,
       nsfw: data.nsfw,
@@ -93,7 +91,7 @@ impl Perform for CreatePost {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
+      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: None,
       local: true,
       published: None,
@@ -124,12 +122,12 @@ impl Perform for CreatePost {
       Err(_e) => return Err(ApiError::err("couldnt_create_post").into()),
     };
 
-    updated_post.send_create(&user, context).await?;
+    updated_post.send_create(&local_user_view.person, context).await?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
       post_id: inserted_post.id,
-      person_id: user.id,
+      person_id: local_user_view.person.id,
       score: 1,
     };
 
@@ -138,12 +136,12 @@ impl Perform for CreatePost {
       return Err(ApiError::err("couldnt_like_post").into());
     }
 
-    updated_post.send_like(&user, context).await?;
+    updated_post.send_like(&local_user_view.person, context).await?;
 
     // Refetch the view
     let inserted_post_id = inserted_post.id;
     let post_view = match blocking(context.pool(), move |conn| {
-      PostView::read(conn, inserted_post_id, Some(user.id))
+      PostView::read(conn, inserted_post_id, Some(local_user_view.person.id))
     })
     .await?
     {
@@ -173,12 +171,12 @@ impl Perform for GetPost {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = &self;
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
-    let user_id = user.map(|u| u.id);
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
     let post_view = match blocking(context.pool(), move |conn| {
-      PostView::read(conn, id, user_id)
+      PostView::read(conn, id, person_id)
     })
     .await?
     {
@@ -189,7 +187,7 @@ impl Perform for GetPost {
     let id = data.id;
     let comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
-        .my_user_id(user_id)
+        .my_person_id(person_id)
         .post_id(id)
         .limit(9999)
         .list()
@@ -204,7 +202,7 @@ impl Perform for GetPost {
 
     // Necessary for the sidebar
     let community_view = match blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, user_id)
+      CommunityView::read(conn, community_id, person_id)
     })
     .await?
     {
@@ -239,15 +237,15 @@ impl Perform for GetPosts {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = &self;
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let user_id = match &user {
-      Some(user) => Some(user.id),
+    let person_id = match &local_user_view {
+      Some(uv) => Some(uv.person.id),
       None => None,
     };
 
-    let show_nsfw = match &user {
-      Some(user) => user.show_nsfw,
+    let show_nsfw = match &local_user_view {
+      Some(uv) => uv.local_user.show_nsfw,
       None => false,
     };
 
@@ -265,7 +263,7 @@ impl Perform for GetPosts {
         .show_nsfw(show_nsfw)
         .community_id(community_id)
         .community_name(community_name)
-        .my_user_id(user_id)
+        .my_person_id(person_id)
         .page(page)
         .limit(limit)
         .list()
@@ -290,7 +288,7 @@ impl Perform for CreatePostLike {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled
     check_downvotes_enabled(data.score, context.pool()).await?;
@@ -299,18 +297,18 @@ impl Perform for CreatePostLike {
     let post_id = data.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(user.id, post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
 
     let like_form = PostLikeForm {
       post_id: data.post_id,
-      person_id: user.id,
+      person_id: local_user_view.person.id,
       score: data.score,
     };
 
     // Remove any likes first
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     blocking(context.pool(), move |conn| {
-      PostLike::remove(conn, user_id, post_id)
+      PostLike::remove(conn, person_id, post_id)
     })
     .await??;
 
@@ -324,18 +322,18 @@ impl Perform for CreatePostLike {
       }
 
       if like_form.score == 1 {
-        post.send_like(&user, context).await?;
+        post.send_like(&local_user_view.person, context).await?;
       } else if like_form.score == -1 {
-        post.send_dislike(&user, context).await?;
+        post.send_dislike(&local_user_view.person, context).await?;
       }
     } else {
-      post.send_undo_like(&user, context).await?;
+      post.send_undo_like(&local_user_view.person, context).await?;
     }
 
     let post_id = data.post_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let post_view = match blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user_id))
+      PostView::read(conn, post_id, Some(person_id))
     })
     .await?
     {
@@ -365,7 +363,7 @@ impl Perform for EditPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.body)?;
@@ -377,20 +375,21 @@ impl Perform for EditPost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can edit
-    if !Post::is_post_creator(user.id, orig_post.creator_id) {
+    if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
       return Err(ApiError::err("no_post_edit_allowed").into());
     }
 
     // Fetch Iframely and Pictrs cached image
+    let data_url = data.url.as_ref();
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      fetch_iframely_and_pictrs_data(context.client(), data.url.to_owned()).await;
+      fetch_iframely_and_pictrs_data(context.client(), data_url).await;
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
-      url: data.url.to_owned(),
+      url: data_url.map(|u| u.to_owned().into()),
       body: data.body.to_owned(),
       nsfw: data.nsfw,
       creator_id: orig_post.creator_id.to_owned(),
@@ -403,7 +402,7 @@ impl Perform for EditPost {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
+      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: Some(orig_post.ap_id),
       local: orig_post.local,
       published: None,
@@ -428,11 +427,11 @@ impl Perform for EditPost {
     };
 
     // Send apub update
-    updated_post.send_update(&user, context).await?;
+    updated_post.send_update(&local_user_view.person, context).await?;
 
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user.id))
+      PostView::read(conn, post_id, Some(local_user_view.person.id))
     })
     .await??;
 
@@ -458,15 +457,15 @@ impl Perform for DeletePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &DeletePost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can delete
-    if !Post::is_post_creator(user.id, orig_post.creator_id) {
+    if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
       return Err(ApiError::err("no_post_edit_allowed").into());
     }
 
@@ -480,15 +479,15 @@ impl Perform for DeletePost {
 
     // apub updates
     if deleted {
-      updated_post.send_delete(&user, context).await?;
+      updated_post.send_delete(&local_user_view.person, context).await?;
     } else {
-      updated_post.send_undo_delete(&user, context).await?;
+      updated_post.send_undo_delete(&local_user_view.person, context).await?;
     }
 
     // Refetch the post
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user.id))
+      PostView::read(conn, post_id, Some(local_user_view.person.id))
     })
     .await??;
 
@@ -514,15 +513,15 @@ impl Perform for RemovePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &RemovePost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
 
     // Verify that only the mods can remove
-    is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
+    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_post.community_id).await?;
 
     // Update the post
     let post_id = data.post_id;
@@ -534,7 +533,7 @@ impl Perform for RemovePost {
 
     // Mod tables
     let form = ModRemovePostForm {
-      mod_person_id: user.id,
+      mod_person_id: local_user_view.person.id,
       post_id: data.post_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -546,16 +545,16 @@ impl Perform for RemovePost {
 
     // apub updates
     if removed {
-      updated_post.send_remove(&user, context).await?;
+      updated_post.send_remove(&local_user_view.person, context).await?;
     } else {
-      updated_post.send_undo_remove(&user, context).await?;
+      updated_post.send_undo_remove(&local_user_view.person, context).await?;
     }
 
     // Refetch the post
     let post_id = data.post_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user_id))
+      PostView::read(conn, post_id, Some(person_id))
     })
     .await??;
 
@@ -581,15 +580,15 @@ impl Perform for LockPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &LockPost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
 
     // Verify that only the mods can lock
-    is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
+    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_post.community_id).await?;
 
     // Update the post
     let post_id = data.post_id;
@@ -601,19 +600,19 @@ impl Perform for LockPost {
 
     // Mod tables
     let form = ModLockPostForm {
-      mod_person_id: user.id,
+      mod_person_id: local_user_view.person.id,
       post_id: data.post_id,
       locked: Some(locked),
     };
     blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
 
     // apub updates
-    updated_post.send_update(&user, context).await?;
+    updated_post.send_update(&local_user_view.person, context).await?;
 
     // Refetch the post
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user.id))
+      PostView::read(conn, post_id, Some(local_user_view.person.id))
     })
     .await??;
 
@@ -639,15 +638,15 @@ impl Perform for StickyPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &StickyPost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
 
     // Verify that only the mods can sticky
-    is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
+    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_post.community_id).await?;
 
     // Update the post
     let post_id = data.post_id;
@@ -659,7 +658,7 @@ impl Perform for StickyPost {
 
     // Mod tables
     let form = ModStickyPostForm {
-      mod_person_id: user.id,
+      mod_person_id: local_user_view.person.id,
       post_id: data.post_id,
       stickied: Some(stickied),
     };
@@ -670,12 +669,12 @@ impl Perform for StickyPost {
 
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
-    updated_post.send_update(&user, context).await?;
+    updated_post.send_update(&local_user_view.person, context).await?;
 
     // Refetch the post
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user.id))
+      PostView::read(conn, post_id, Some(local_user_view.person.id))
     })
     .await??;
 
@@ -701,11 +700,11 @@ impl Perform for SavePost {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &SavePost = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_saved_form = PostSavedForm {
       post_id: data.post_id,
-      person_id: user.id,
+      person_id: local_user_view.person.id,
     };
 
     if data.save {
@@ -721,9 +720,9 @@ impl Perform for SavePost {
     }
 
     let post_id = data.post_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(user_id))
+      PostView::read(conn, post_id, Some(person_id))
     })
     .await??;
 
@@ -742,7 +741,7 @@ impl Perform for CreatePostReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CreatePostReportResponse, LemmyError> {
     let data: &CreatePostReport = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // check size of report and check for whitespace
     let reason = data.reason.trim();
@@ -753,17 +752,17 @@ impl Perform for CreatePostReport {
       return Err(ApiError::err("report_too_long").into());
     }
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
       PostView::read(&conn, post_id, None)
     })
     .await??;
 
-    check_community_ban(user_id, post_view.community.id, context.pool()).await?;
+    check_community_ban(person_id, post_view.community.id, context.pool()).await?;
 
     let report_form = PostReportForm {
-      creator_id: user_id,
+      creator_id: person_id,
       post_id,
       original_post_name: post_view.post.name,
       original_post_url: post_view.post.url,
@@ -785,7 +784,7 @@ impl Perform for CreatePostReport {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::CreatePostReport,
       response: res.clone(),
-      recipient_id: user.id,
+      recipient_id: local_user_view.person.id,
       websocket_id,
     });
 
@@ -811,7 +810,7 @@ impl Perform for ResolvePostReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<ResolvePostReportResponse, LemmyError> {
     let data: &ResolvePostReport = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let report_id = data.report_id;
     let report = blocking(context.pool(), move |conn| {
@@ -819,15 +818,15 @@ impl Perform for ResolvePostReport {
     })
     .await??;
 
-    let user_id = user.id;
-    is_mod_or_admin(context.pool(), user_id, report.community.id).await?;
+    let person_id = local_user_view.person.id;
+    is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
 
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
       if resolved {
-        PostReport::resolve(conn, report_id, user_id)
+        PostReport::resolve(conn, report_id, person_id)
       } else {
-        PostReport::unresolve(conn, report_id, user_id)
+        PostReport::unresolve(conn, report_id, person_id)
       }
     };
 
@@ -863,12 +862,12 @@ impl Perform for ListPostReports {
     websocket_id: Option<ConnectionId>,
   ) -> Result<ListPostReportsResponse, LemmyError> {
     let data: &ListPostReports = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_id = data.community;
     let community_ids =
-      collect_moderated_communities(user_id, community_id, context.pool()).await?;
+      collect_moderated_communities(person_id, community_id, context.pool()).await?;
 
     let page = data.page;
     let limit = data.limit;
@@ -886,7 +885,7 @@ impl Perform for ListPostReports {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::ListPostReports,
       response: res.clone(),
-      recipient_id: user.id,
+      recipient_id: local_user_view.person.id,
       websocket_id,
     });
 

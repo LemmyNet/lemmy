@@ -1,7 +1,7 @@
 use crate::{
   activities::receive::verify_activity_domains_valid,
   check_is_apub_id_valid,
-  fetcher::user::get_or_fetch_and_upsert_user,
+  fetcher::person::get_or_fetch_and_upsert_person,
   inbox::get_activity_to_and_cc,
   objects::FromApub,
   NoteExt,
@@ -13,10 +13,10 @@ use activitystreams::{
   public,
 };
 use anyhow::{anyhow, Context};
+use lemmy_api_structs::{blocking, person::PrivateMessageResponse};
 use lemmy_db_queries::source::private_message::PrivateMessage_;
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::private_message_view::PrivateMessageView;
-use lemmy_structs::{blocking, user::PrivateMessageResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
 use url::Url;
@@ -181,19 +181,19 @@ where
 {
   let to_and_cc = get_activity_to_and_cc(activity);
   if to_and_cc.len() != 1 {
-    return Err(anyhow!("Private message can only be addressed to one user").into());
+    return Err(anyhow!("Private message can only be addressed to one person").into());
   }
   if to_and_cc.contains(&public()) {
     return Err(anyhow!("Private message cant be public").into());
   }
-  let user_id = activity
+  let person_id = activity
     .actor()?
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  check_is_apub_id_valid(&user_id)?;
-  // check that the sender is a user, not a community
-  get_or_fetch_and_upsert_user(&user_id, &context, request_counter).await?;
+  check_is_apub_id_valid(&person_id)?;
+  // check that the sender is a person, not a community
+  get_or_fetch_and_upsert_person(&person_id, &context, request_counter).await?;
 
   Ok(())
 }

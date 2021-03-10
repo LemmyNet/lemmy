@@ -1,11 +1,11 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, mod_add_community, user_, user_alias_1},
+  schema::{community, mod_add_community, person, person_alias_1},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModAddCommunity,
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
+    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
   },
 };
 use serde::Serialize;
@@ -13,35 +13,35 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct ModAddCommunityView {
   pub mod_add_community: ModAddCommunity,
-  pub moderator: UserSafe,
+  pub moderator: PersonSafe,
   pub community: CommunitySafe,
-  pub modded_user: UserSafeAlias1,
+  pub modded_person: PersonSafeAlias1,
 }
 
-type ModAddCommunityViewTuple = (ModAddCommunity, UserSafe, CommunitySafe, UserSafeAlias1);
+type ModAddCommunityViewTuple = (ModAddCommunity, PersonSafe, CommunitySafe, PersonSafeAlias1);
 
 impl ModAddCommunityView {
   pub fn list(
     conn: &PgConnection,
     community_id: Option<i32>,
-    mod_user_id: Option<i32>,
+    mod_person_id: Option<i32>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
     let mut query = mod_add_community::table
-      .inner_join(user_::table.on(mod_add_community::mod_user_id.eq(user_::id)))
+      .inner_join(person::table.on(mod_add_community::mod_person_id.eq(person::id)))
       .inner_join(community::table)
-      .inner_join(user_alias_1::table.on(mod_add_community::other_user_id.eq(user_alias_1::id)))
+      .inner_join(person_alias_1::table.on(mod_add_community::other_person_id.eq(person_alias_1::id)))
       .select((
         mod_add_community::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         Community::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
       ))
       .into_boxed();
 
-    if let Some(mod_user_id) = mod_user_id {
-      query = query.filter(mod_add_community::mod_user_id.eq(mod_user_id));
+    if let Some(mod_person_id) = mod_person_id {
+      query = query.filter(mod_add_community::mod_person_id.eq(mod_person_id));
     };
 
     if let Some(community_id) = community_id {
@@ -69,7 +69,7 @@ impl ViewToVec for ModAddCommunityView {
         mod_add_community: a.0.to_owned(),
         moderator: a.1.to_owned(),
         community: a.2.to_owned(),
-        modded_user: a.3.to_owned(),
+        modded_person: a.3.to_owned(),
       })
       .collect::<Vec<Self>>()
   }

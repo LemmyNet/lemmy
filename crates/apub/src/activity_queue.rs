@@ -21,8 +21,8 @@ use background_jobs::{
 };
 use itertools::Itertools;
 use lemmy_db_queries::DbPool;
-use lemmy_db_schema::source::{community::Community, user::User_};
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_db_schema::source::{community::Community, person::Person};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{debug, warn};
 use reqwest::Client;
@@ -88,7 +88,7 @@ where
     .await?
     .iter()
     .unique()
-    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname))
+    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
     .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
     .map(|inbox| inbox.to_owned())
     .collect();
@@ -112,7 +112,7 @@ where
   Ok(())
 }
 
-/// Sends an activity from a local user to a remote community.
+/// Sends an activity from a local person to a remote community.
 ///
 /// * `activity` the activity to send
 /// * `creator` the creator of the activity
@@ -120,7 +120,7 @@ where
 ///
 pub(crate) async fn send_to_community<T, Kind>(
   activity: T,
-  creator: &User_,
+  creator: &Person,
   community: &Community,
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
@@ -157,13 +157,13 @@ where
   Ok(())
 }
 
-/// Sends notification to any users mentioned in a comment
+/// Sends notification to any persons mentioned in a comment
 ///
-/// * `creator` user who created the comment
-/// * `mentions` list of inboxes of users which are mentioned in the comment
+/// * `creator` person who created the comment
+/// * `mentions` list of inboxes of persons which are mentioned in the comment
 /// * `activity` either a `Create/Note` or `Update/Note`
 pub(crate) async fn send_comment_mentions<T, Kind>(
-  creator: &User_,
+  creator: &Person,
   mentions: Vec<Url>,
   activity: T,
   context: &LemmyContext,
@@ -215,7 +215,7 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if !Settings::get().federation.enabled || inboxes.is_empty() {
+  if !Settings::get().federation().enabled || inboxes.is_empty() {
     return Ok(());
   }
 
@@ -223,7 +223,7 @@ where
   let hostname = Settings::get().get_hostname_without_port()?;
   let inboxes: Vec<&Url> = inboxes
     .iter()
-    .filter(|i| i.domain().unwrap() != hostname)
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
     .collect();
 
   let activity = activity.into_any_base()?;

@@ -1,11 +1,11 @@
-use crate::fetcher::user::get_or_fetch_and_upsert_user;
+use crate::fetcher::person::get_or_fetch_and_upsert_person;
 use activitystreams::{
   activity::{ActorAndObjectRef, ActorAndObjectRefExt},
   base::{AsBase, BaseExt},
   error::DomainError,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db_schema::source::user::User_;
+use lemmy_db_schema::source::person::Person;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
@@ -28,18 +28,18 @@ where
   Err(anyhow!("Activity not supported").into())
 }
 
-/// Reads the actor field of an activity and returns the corresponding `User_`.
-pub(crate) async fn get_actor_as_user<T, A>(
+/// Reads the actor field of an activity and returns the corresponding `Person`.
+pub(crate) async fn get_actor_as_person<T, A>(
   activity: &T,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<User_, LemmyError>
+) -> Result<Person, LemmyError>
 where
   T: AsBase<A> + ActorAndObjectRef,
 {
   let actor = activity.actor()?;
-  let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_user(&user_uri, context, request_counter).await
+  let person_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
+  get_or_fetch_and_upsert_person(&person_uri, context, request_counter).await
 }
 
 /// Ensure that the ID of an incoming activity comes from the same domain as the actor. Optionally

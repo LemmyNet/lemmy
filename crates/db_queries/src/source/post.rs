@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     PostSaved,
     PostSavedForm,
   },
-  Url,
+  DbUrl,
 };
 
 impl Crud<PostForm> for Post {
@@ -42,7 +42,7 @@ impl Crud<PostForm> for Post {
 pub trait Post_ {
   //fn read(conn: &PgConnection, post_id: i32) -> Result<Post, Error>;
   fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Post>, Error>;
-  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: Url) -> Result<Post, Error>;
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: DbUrl) -> Result<Post, Error>;
   fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Post>, Error>;
   fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Post, Error>;
   fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Post, Error>;
@@ -68,7 +68,7 @@ impl Post_ for Post {
       .load::<Self>(conn)
   }
 
-  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: Url) -> Result<Self, Error> {
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
@@ -147,7 +147,7 @@ impl Post_ for Post {
 }
 
 impl ApubObject<PostForm> for Post {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
@@ -226,13 +226,15 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::post::*, ListingType, SortType};
+  use crate::{establish_unpooled_connection, source::post::*};
   use lemmy_db_schema::source::{
     community::{Community, CommunityForm},
     person::*,
   };
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -241,13 +243,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,

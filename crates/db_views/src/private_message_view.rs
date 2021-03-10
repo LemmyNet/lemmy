@@ -1,10 +1,10 @@
 use diesel::{pg::Pg, result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{private_message, user_, user_alias_1},
+  schema::{private_message, person, person_alias_1},
   source::{
     private_message::PrivateMessage,
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
+    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
   },
 };
 use log::debug;
@@ -13,23 +13,23 @@ use serde::Serialize;
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
-  pub creator: UserSafe,
-  pub recipient: UserSafeAlias1,
+  pub creator: PersonSafe,
+  pub recipient: PersonSafeAlias1,
 }
 
-type PrivateMessageViewTuple = (PrivateMessage, UserSafe, UserSafeAlias1);
+type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafeAlias1);
 
 impl PrivateMessageView {
   pub fn read(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
     let (private_message, creator, recipient) = private_message::table
       .find(private_message_id)
-      .inner_join(user_::table.on(private_message::creator_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(private_message::recipient_id.eq(user_alias_1::id)))
+      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
+      .inner_join(person_alias_1::table.on(private_message::recipient_id.eq(person_alias_1::id)))
       .order_by(private_message::published.desc())
       .select((
         private_message::all_columns,
-        User_::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
       ))
       .first::<PrivateMessageViewTuple>(conn)?;
 
@@ -77,12 +77,12 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
 
   pub fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
     let mut query = private_message::table
-      .inner_join(user_::table.on(private_message::creator_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(private_message::recipient_id.eq(user_alias_1::id)))
+      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
+      .inner_join(person_alias_1::table.on(private_message::recipient_id.eq(person_alias_1::id)))
       .select((
         private_message::all_columns,
-        User_::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
       ))
       .into_boxed();
 

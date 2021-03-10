@@ -7,17 +7,17 @@ use crate::{
     inbox_verify_http_signature,
     is_activity_already_known,
     is_addressed_to_community_followers,
-    is_addressed_to_local_user,
-    user_inbox::{user_receive_message, UserAcceptedActivities},
+    is_addressed_to_local_person,
+    person_inbox::{person_receive_message, PersonAcceptedActivities},
   },
   insert_activity,
 };
 use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::source::community::Community;
-use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -69,9 +69,9 @@ pub async fn shared_inbox(
   let mut res: Option<HttpResponse> = None;
   let to_and_cc = get_activity_to_and_cc(&activity);
   // Handle community first, so in case the sender is banned by the community, it will error out.
-  // If we handled the user receive first, the activity would be inserted to the database before the
+  // If we handled the person receive first, the activity would be inserted to the database before the
   // community could check for bans.
-  // Note that an activity can be addressed to a community and to a user (or multiple users) at the
+  // Note that an activity can be addressed to a community and to a person (or multiple persons) at the
   // same time. In this case we still only handle it once, to avoid duplicate websocket
   // notifications.
   let community = extract_local_community_from_destinations(&to_and_cc, context.pool()).await?;
@@ -88,13 +88,13 @@ pub async fn shared_inbox(
       )
       .await?,
     );
-  } else if is_addressed_to_local_user(&to_and_cc, context.pool()).await? {
-    let user_activity = UserAcceptedActivities::from_any_base(activity_any_base.clone())?
+  } else if is_addressed_to_local_person(&to_and_cc, context.pool()).await? {
+    let person_activity = PersonAcceptedActivities::from_any_base(activity_any_base.clone())?
       .context(location_info!())?;
-    // `to_user` is only used for follow activities (which we dont receive here), so no need to pass
+    // `to_person` is only used for follow activities (which we dont receive here), so no need to pass
     // it in
-    user_receive_message(
-      user_activity,
+    person_receive_message(
+      person_activity,
       None,
       actor.as_ref(),
       &context,
@@ -105,11 +105,11 @@ pub async fn shared_inbox(
     .await?
     .is_some()
   {
-    let user_activity = UserAcceptedActivities::from_any_base(activity_any_base.clone())?
+    let person_activity = PersonAcceptedActivities::from_any_base(activity_any_base.clone())?
       .context(location_info!())?;
     res = Some(
-      user_receive_message(
-        user_activity,
+      person_receive_message(
+        person_activity,
         None,
         actor.as_ref(),
         &context,

@@ -53,4 +53,4 @@ services:
     volumes:
       - ./iframely.config.local.js:/iframely/config.local.js:ro
     restart: always
-    mem_limit: 100m
+    mem_limit: 200m

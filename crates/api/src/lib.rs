@@ -1,9 +1,19 @@
 use actix_web::{web, web::Data};
+use lemmy_api_structs::{
+  blocking,
+  comment::*,
+  community::*,
+  post::*,
+  site::*,
+  person::*,
+  websocket::*,
+};
 use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     site::Site_,
-    user::UserSafeSettings_,
+    local_user::LocalUserSettings_,
+    local_user::LocalUser_,
   },
   Crud,
   DbPool,
@@ -12,14 +22,22 @@ use lemmy_db_schema::source::{
   community::{Community, CommunityModerator},
   post::Post,
   site::Site,
-  user::{UserSafeSettings, User_},
+  person::{Person, PersonSafe},
+  local_user::LocalUserSettings,
+  local_user::LocalUser,
 };
 use lemmy_db_views_actor::{
-  community_user_ban_view::CommunityUserBanView,
+  community_person_ban_view::CommunityPersonBanView,
   community_view::CommunityView,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
-use lemmy_utils::{claims::Claims, settings::Settings, ApiError, ConnectionId, LemmyError};
+use lemmy_db_views::local_user_view::{LocalUserView, LocalUserSettingsView};
+use lemmy_utils::{
+  claims::Claims,
+  settings::structs::Settings,
+  ApiError,
+  ConnectionId,
+  LemmyError,
+};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 use std::process::Command;
@@ -46,11 +64,11 @@ pub trait Perform {
 
 pub(crate) async fn is_mod_or_admin(
   pool: &DbPool,
-  user_id: i32,
+  person_id: i32,
   community_id: i32,
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = blocking(pool, move |conn| {
-    CommunityView::is_mod_or_admin(conn, user_id, community_id)
+    CommunityView::is_mod_or_admin(conn, person_id, community_id)
   })
   .await?;
   if !is_mod_or_admin {
@@ -58,9 +76,18 @@ pub(crate) async fn is_mod_or_admin(
   }
   Ok(())
 }
-pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
-  let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
-  if !user.admin {
+
+// TODO this probably isn't necessary anymore
+// pub async fn is_admin(pool: &DbPool, person_id: i32) -> Result<(), LemmyError> {
+//   let user = blocking(pool, move |conn| LocalUser::read(conn, person_id)).await??;
+//   if !user.admin {
+//     return Err(ApiError::err("not_an_admin").into());
+//   }
+//   Ok(())
+// }
+
+pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
+  if !local_user_view.local_user.admin {
     return Err(ApiError::err("not_an_admin").into());
   }
   Ok(())
@@ -73,63 +100,60 @@ pub(crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyE
   }
 }
 
-pub(crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_, LemmyError> {
+pub(crate) async fn get_local_user_view_from_jwt(jwt: &str, pool: &DbPool) -> Result<LocalUserView, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let user_id = claims.id;
-  let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+  let person_id = claims.id;
+  let local_user_view = blocking(pool, move |conn| LocalUserView::read(conn, person_id)).await??;
   // Check for a site ban
-  if user.banned {
+  if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
   }
-  Ok(user)
+  Ok(local_user_view)
 }
 
-pub(crate) async fn get_user_from_jwt_opt(
+pub(crate) async fn get_local_user_view_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
-) -> Result<Option<User_>, LemmyError> {
+) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
-    Some(jwt) => Ok(Some(get_user_from_jwt(jwt, pool).await?)),
+    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool).await?)),
     None => Ok(None),
   }
 }
 
-pub(crate) async fn get_user_safe_settings_from_jwt(
-  jwt: &str,
-  pool: &DbPool,
-) -> Result<UserSafeSettings, LemmyError> {
+pub(crate) async fn get_local_user_settings_view_from_jwt(jwt: &str, pool: &DbPool) -> Result<LocalUserSettingsView, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let user_id = claims.id;
-  let user = blocking(pool, move |conn| UserSafeSettings::read(conn, user_id)).await??;
+  let person_id = claims.id;
+  let local_user_view = blocking(pool, move |conn| LocalUserSettingsView::read(conn, person_id)).await??;
   // Check for a site ban
-  if user.banned {
+  if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
   }
-  Ok(user)
+  Ok(local_user_view)
 }
 
-pub(crate) async fn get_user_safe_settings_from_jwt_opt(
+pub(crate) async fn get_local_user_settings_view_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
-) -> Result<Option<UserSafeSettings>, LemmyError> {
+) -> Result<Option<LocalUserSettingsView>, LemmyError> {
   match jwt {
-    Some(jwt) => Ok(Some(get_user_safe_settings_from_jwt(jwt, pool).await?)),
+    Some(jwt) => Ok(Some(get_local_user_settings_view_from_jwt(jwt, pool).await?)),
     None => Ok(None),
   }
 }
 
 pub(crate) async fn check_community_ban(
-  user_id: i32,
+  person_id: i32,
   community_id: i32,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let is_banned = move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+  let is_banned = move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
     Err(ApiError::err("community_ban").into())
   } else {
@@ -172,19 +196,10 @@ pub(crate) async fn collect_moderated_communities(
   }
 }
 
-pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
-  if let Some(Some(item)) = &item {
-    if Url::parse(item).is_err() {
-      return Err(ApiError::err("invalid_url").into());
-    }
-  }
-  Ok(())
-}
-
 pub(crate) async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
-  if Settings::get().federation.enabled {
+  if Settings::get().federation().enabled {
     let distinct_communities = blocking(pool, move |conn| {
       Community::distinct_federated_communities(conn)
     })
@@ -198,8 +213,13 @@ pub(crate) async fn build_federated_instances(
       .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
       .collect::<Result<Vec<String>, LemmyError>>()?;
 
-    linked.extend_from_slice(&allowed);
-    linked.retain(|a| !blocked.contains(a) && !a.eq("") && !a.eq(&Settings::get().hostname));
+    if let Some(allowed) = allowed.as_ref() {
+      linked.extend_from_slice(allowed);
+    }
+
+    if let Some(blocked) = blocked.as_ref() {
+      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname()));
+    }
 
     // Sort and remove dupes
     linked.sort_unstable();
@@ -226,17 +246,17 @@ pub async fn match_websocket_operation(
     UserOperation::Login => do_websocket_operation::<Login>(context, id, op, data).await,
     UserOperation::Register => do_websocket_operation::<Register>(context, id, op, data).await,
     UserOperation::GetCaptcha => do_websocket_operation::<GetCaptcha>(context, id, op, data).await,
-    UserOperation::GetUserDetails => {
-      do_websocket_operation::<GetUserDetails>(context, id, op, data).await
+    UserOperation::GetPersonDetails => {
+      do_websocket_operation::<GetPersonDetails>(context, id, op, data).await
     }
     UserOperation::GetReplies => do_websocket_operation::<GetReplies>(context, id, op, data).await,
     UserOperation::AddAdmin => do_websocket_operation::<AddAdmin>(context, id, op, data).await,
-    UserOperation::BanUser => do_websocket_operation::<BanUser>(context, id, op, data).await,
-    UserOperation::GetUserMentions => {
-      do_websocket_operation::<GetUserMentions>(context, id, op, data).await
+    UserOperation::BanPerson => do_websocket_operation::<BanPerson>(context, id, op, data).await,
+    UserOperation::GetPersonMentions => {
+      do_websocket_operation::<GetPersonMentions>(context, id, op, data).await
     }
-    UserOperation::MarkUserMentionAsRead => {
-      do_websocket_operation::<MarkUserMentionAsRead>(context, id, op, data).await
+    UserOperation::MarkPersonMentionAsRead => {
+      do_websocket_operation::<MarkPersonMentionAsRead>(context, id, op, data).await
     }
     UserOperation::MarkAllAsRead => {
       do_websocket_operation::<MarkAllAsRead>(context, id, op, data).await
@@ -453,6 +473,15 @@ pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   let base64 = base64::encode(bytes);
 
   Ok(base64)
+}
+
+/// Checks the password length
+pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
+  if pass.len() > 60 {
+    Err(ApiError::err("invalid_password").into())
+  } else {
+    Ok(())
+  }
 }
 
 #[cfg(test)]

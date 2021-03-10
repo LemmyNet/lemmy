@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:experimental
-FROM rust:1.47-buster as rust
+
+# Warning: this will not pick up migrations unless there are code changes
+FROM rust:1.50-buster as rust
 
 ENV HOME=/home/root
 

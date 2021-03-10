@@ -12,14 +12,14 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
   source::{activity::Activity_, community::Community_},
   ApubObject,
   DbPool,
 };
-use lemmy_db_schema::source::{activity::Activity, community::Community, user::User_};
-use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_db_schema::source::{activity::Activity, community::Community, person::Person};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::fmt::Debug;
@@ -28,7 +28,7 @@ use url::Url;
 pub mod community_inbox;
 mod receive_for_community;
 pub mod shared_inbox;
-pub mod user_inbox;
+pub mod person_inbox;
 
 pub(crate) fn get_activity_id<T, Kind>(activity: &T, creator_uri: &Url) -> Result<Url, LemmyError>
 where
@@ -45,7 +45,7 @@ pub(crate) async fn is_activity_already_known(
   pool: &DbPool,
   activity_id: &Url,
 ) -> Result<bool, LemmyError> {
-  let activity_id = activity_id.to_string();
+  let activity_id = activity_id.to_owned().into();
   let existing = blocking(pool, move |conn| {
     Activity::read_from_apub_id(&conn, &activity_id)
   })
@@ -119,17 +119,17 @@ where
 }
 
 /// Returns true if `to_and_cc` contains at least one local user.
-pub(crate) async fn is_addressed_to_local_user(
+pub(crate) async fn is_addressed_to_local_person(
   to_and_cc: &[Url],
   pool: &DbPool,
 ) -> Result<bool, LemmyError> {
   for url in to_and_cc {
     let url = url.to_owned();
-    let user = blocking(&pool, move |conn| {
-      User_::read_from_apub_id(&conn, &url.into())
+    let person = blocking(&pool, move |conn| {
+      Person::read_from_apub_id(&conn, &url.into())
     })
     .await?;
-    if let Ok(u) = user {
+    if let Ok(u) = person {
       if u.local {
         return Ok(true);
       }
@@ -167,7 +167,7 @@ where
   let id = activity.id_unchecked().context(location_info!())?;
   let activity_domain = id.domain().context(location_info!())?;
 
-  if activity_domain == Settings::get().hostname {
+  if activity_domain == Settings::get().hostname() {
     return Err(
       anyhow!(
         "Error: received activity which was sent by local instance: {:?}",

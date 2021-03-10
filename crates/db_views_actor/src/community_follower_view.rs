@@ -1,10 +1,10 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, community_follower, user_},
+  schema::{community, community_follower, person},
   source::{
     community::{Community, CommunitySafe},
-    user::{UserSafe, User_},
+    person::{PersonSafe, Person},
   },
 };
 use serde::Serialize;
@@ -12,17 +12,17 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct CommunityFollowerView {
   pub community: CommunitySafe,
-  pub follower: UserSafe,
+  pub follower: PersonSafe,
 }
 
-type CommunityFollowerViewTuple = (CommunitySafe, UserSafe);
+type CommunityFollowerViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityFollowerView {
   pub fn for_community(conn: &PgConnection, community_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
-      .inner_join(user_::table)
-      .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
+      .inner_join(person::table)
+      .select((Community::safe_columns_tuple(), Person::safe_columns_tuple()))
       .filter(community_follower::community_id.eq(community_id))
       .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
@@ -30,12 +30,12 @@ impl CommunityFollowerView {
     Ok(Self::from_tuple_to_vec(res))
   }
 
-  pub fn for_user(conn: &PgConnection, user_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_person(conn: &PgConnection, person_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
-      .inner_join(user_::table)
-      .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
-      .filter(community_follower::user_id.eq(user_id))
+      .inner_join(person::table)
+      .select((Community::safe_columns_tuple(), Person::safe_columns_tuple()))
+      .filter(community_follower::person_id.eq(person_id))
       .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 

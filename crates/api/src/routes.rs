@@ -1,6 +1,6 @@
 use crate::Perform;
 use actix_web::{error::ErrorBadRequest, *};
-use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*, websocket::*};
+use lemmy_api_structs::{comment::*, community::*, post::*, site::*, person::*, websocket::*};
 use lemmy_utils::rate_limit::RateLimit;
 use lemmy_websocket::{routes::chat_route, LemmyContext};
 use serde::Deserialize;
@@ -137,11 +137,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       .service(
         web::scope("/user")
           .wrap(rate_limit.message())
-          .route("", web::get().to(route_get::<GetUserDetails>))
-          .route("/mention", web::get().to(route_get::<GetUserMentions>))
+          .route("", web::get().to(route_get::<GetPersonDetails>))
+          .route("/mention", web::get().to(route_get::<GetPersonMentions>))
           .route(
             "/mention/mark_as_read",
-            web::post().to(route_post::<MarkUserMentionAsRead>),
+            web::post().to(route_post::<MarkPersonMentionAsRead>),
           )
           .route("/replies", web::get().to(route_get::<GetReplies>))
           .route(
@@ -150,7 +150,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/join", web::post().to(route_post::<UserJoin>))
           // Admin action. I don't like that it's in /user
-          .route("/ban", web::post().to(route_post::<BanUser>))
+          .route("/ban", web::post().to(route_post::<BanPerson>))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(route_post::<Login>))
           .route("/get_captcha", web::get().to(route_get::<GetCaptcha>))

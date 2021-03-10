@@ -2,20 +2,25 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
-  source::{community::Community_, user::User},
+  source::{community::Community_, person::Person_},
   ListingType,
   SortType,
 };
-use lemmy_db_schema::source::{community::Community, user::User_};
+use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
   post_view::{PostQueryBuilder, PostView},
   site_view::SiteView,
 };
-use lemmy_db_views_actor::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
-use lemmy_structs::blocking;
-use lemmy_utils::{claims::Claims, settings::Settings, utils::markdown_to_html, LemmyError};
+use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
+use lemmy_utils::{
+  claims::Claims,
+  settings::structs::Settings,
+  utils::markdown_to_html,
+  LemmyError,
+};
 use lemmy_websocket::LemmyContext;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -162,13 +167,12 @@ fn get_feed_user(
   user_name: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let user = User_::find_by_username(&conn, &user_name)?;
-  let user_url = user.get_profile_url(&Settings::get().hostname);
+  let person = Person::find_by_name(&conn, &user_name)?;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::All)
     .sort(sort_type)
-    .creator_id(user.id)
+    .creator_id(person.id)
     .list()?;
 
   let items = create_post_items(posts)?;
@@ -176,8 +180,8 @@ fn get_feed_user(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - {}", site_view.site.name, user.name))
-    .link(user_url)
+    .title(&format!("{} - {}", site_view.site.name, person.name))
+    .link(person.actor_id.to_string())
     .items(items);
 
   Ok(channel_builder)
@@ -219,11 +223,11 @@ fn get_feed_front(
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let user_id = Claims::decode(&jwt)?.claims.id;
+  let person_id = Claims::decode(&jwt)?.claims.id;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::Subscribed)
-    .my_user_id(user_id)
+    .my_person_id(person_id)
     .sort(sort_type)
     .list()?;
 
@@ -245,19 +249,19 @@ fn get_feed_front(
 
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let user_id = Claims::decode(&jwt)?.claims.id;
+  let person_id = Claims::decode(&jwt)?.claims.id;
 
   let sort = SortType::New;
 
   let replies = CommentQueryBuilder::create(&conn)
-    .recipient_id(user_id)
-    .my_user_id(user_id)
+    .recipient_id(person_id)
+    .my_person_id(person_id)
     .sort(&sort)
     .list()?;
 
-  let mentions = UserMentionQueryBuilder::create(&conn)
-    .recipient_id(user_id)
-    .my_user_id(user_id)
+  let mentions = PersonMentionQueryBuilder::create(&conn)
+    .recipient_id(person_id)
+    .my_person_id(person_id)
     .sort(&sort)
     .list()?;
 
@@ -282,7 +286,7 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 
 fn create_reply_and_mention_items(
   replies: Vec<CommentView>,
-  mentions: Vec<UserMentionView>,
+  mentions: Vec<PersonMentionView>,
 ) -> Result<Vec<Item>, LemmyError> {
   let mut reply_items: Vec<Item> = replies
     .iter()
@@ -390,9 +394,6 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
       Settings::get().get_protocol_and_hostname(),
       p.community.name
     );
-
-    // TODO: for category we should just put the name of the category, but then we would have
-    //       to read each community from the db
 
     // TODO add images
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",

@@ -1,11 +1,11 @@
 use crate::{
   fetcher::{
     fetch::fetch_remote_object,
-    get_or_fetch_and_upsert_user,
+    get_or_fetch_and_upsert_person,
     is_deleted,
     should_refetch_actor,
   },
-  inbox::user_inbox::receive_announce,
+  inbox::person_inbox::receive_announce,
   objects::FromApub,
   GroupExt,
 };
@@ -16,9 +16,9 @@ use activitystreams::{
 };
 use anyhow::Context;
 use diesel::result::Error::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
 use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
-use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
@@ -92,7 +92,7 @@ async fn fetch_remote_community(
   let mut creator_and_moderators = Vec::new();
 
   for uri in creator_and_moderator_uris {
-    let c_or_m = get_or_fetch_and_upsert_user(uri, context, recursion_counter).await?;
+    let c_or_m = get_or_fetch_and_upsert_person(uri, context, recursion_counter).await?;
 
     creator_and_moderators.push(c_or_m);
   }

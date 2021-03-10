@@ -1,13 +1,12 @@
-use crate::{is_email_regex, ApubObject, Crud, ToSafeSettings};
-use bcrypt::{hash, DEFAULT_COST};
+use crate::{is_email_regex, ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
   schema::person::dsl::*,
   source::person::{PersonForm, Person},
-  Url,
+  DbUrl,
 };
-use lemmy_utils::settings::Settings;
+use lemmy_utils::settings::structs::Settings;
 
 mod safe_type {
   use crate::ToSafe;
@@ -24,7 +23,6 @@ mod safe_type {
   actor_id,
   bio,
   local,
-  last_refreshed_at,
   banner,
   deleted,
   inbox_url,
@@ -45,7 +43,6 @@ mod safe_type {
         actor_id,
         bio,
         local,
-        last_refreshed_at,
         banner,
         deleted,
         inbox_url,
@@ -70,7 +67,6 @@ mod safe_type_alias_1 {
         actor_id,
         bio,
         local,
-        last_refreshed_at,
         banner,
         deleted,
         inbox_url,
@@ -91,7 +87,6 @@ mod safe_type_alias_1 {
         actor_id,
         bio,
         local,
-        last_refreshed_at,
         banner,
         deleted,
         inbox_url,
@@ -116,7 +111,6 @@ mod safe_type_alias_2 {
         actor_id,
         bio,
         local,
-        last_refreshed_at,
         banner,
         deleted,
         inbox_url,
@@ -137,7 +131,6 @@ mod safe_type_alias_2 {
         actor_id,
         bio,
         local,
-        last_refreshed_at,
         banner,
         deleted,
         inbox_url,
@@ -168,7 +161,7 @@ impl Crud<PersonForm> for Person {
 }
 
 impl ApubObject<PersonForm> for Person {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &Url) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::person::dsl::*;
     person
       .filter(deleted.eq(false))
@@ -187,58 +180,18 @@ impl ApubObject<PersonForm> for Person {
 }
 
 pub trait Person_ {
-  fn register(conn: &PgConnection, form: &PersonForm) -> Result<Person, Error>;
-  fn update_password(conn: &PgConnection, person_id: i32, new_password: &str)
-    -> Result<Person, Error>;
-  fn read_from_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error>;
-  fn add_admin(conn: &PgConnection, person_id: i32, added: bool) -> Result<Person, Error>;
   fn ban_person(conn: &PgConnection, person_id: i32, ban: bool) -> Result<Person, Error>;
-  fn find_by_email_or_name(
-    conn: &PgConnection,
-    name_or_email: &str,
-  ) -> Result<Person, Error>;
+  // TODO
+  // fn find_by_email_or_name(
+  //   conn: &PgConnection,
+  //   name_or_email: &str,
+  // ) -> Result<Person, Error>;
   fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
-  fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Person, Error>;
-  fn get_profile_url(&self, hostname: &str) -> String;
   fn mark_as_updated(conn: &PgConnection, person_id: i32) -> Result<Person, Error>;
   fn delete_account(conn: &PgConnection, person_id: i32) -> Result<Person, Error>;
 }
 
 impl Person_ for Person {
-  fn register(conn: &PgConnection, form: &PersonForm) -> Result<Self, Error> {
-    let mut edited_person = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
-    edited_person.password_encrypted = password_hash;
-
-    Self::create(&conn, &edited_person)
-  }
-
-  // TODO do more individual updates like these
-  fn update_password(conn: &PgConnection, person_id: i32, new_password: &str) -> Result<Self, Error> {
-    let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
-
-    diesel::update(person.find(person_id))
-      .set((
-        password_encrypted.eq(password_hash),
-        updated.eq(naive_now()),
-      ))
-      .get_result::<Self>(conn)
-  }
-
-  fn read_from_name(conn: &PgConnection, from_name: &str) -> Result<Self, Error> {
-    person
-      .filter(local.eq(true))
-      .filter(deleted.eq(false))
-      .filter(name.eq(from_name))
-      .first::<Self>(conn)
-  }
-
-  fn add_admin(conn: &PgConnection, person_id: i32, added: bool) -> Result<Self, Error> {
-    diesel::update(person.find(person_id))
-      .set(admin.eq(added))
-      .get_result::<Self>(conn)
-  }
 
   fn ban_person(conn: &PgConnection, person_id: i32, ban: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
@@ -246,40 +199,24 @@ impl Person_ for Person {
       .get_result::<Self>(conn)
   }
 
-  fn find_by_email_or_name(
-    conn: &PgConnection,
-    name_or_email: &str,
-  ) -> Result<Self, Error> {
-    if is_email_regex(name_or_email) {
-      Self::find_by_email(conn, name_or_email)
-    } else {
-      Self::find_by_name(conn, name_or_email)
-    }
-  }
+  // TODO this needs to get moved to aggregates i think
+  // fn find_by_email_or_name(
+  //   conn: &PgConnection,
+  //   name_or_email: &str,
+  // ) -> Result<Self, Error> {
+  //   if is_email_regex(name_or_email) {
+  //     Self::find_by_email(conn, name_or_email)
+  //   } else {
+  //     Self::find_by_name(conn, name_or_email)
+  //   }
+  // }
 
-  fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error> {
+  fn find_by_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
     person
       .filter(deleted.eq(false))
       .filter(local.eq(true))
-      .filter(name.ilike(name))
+      .filter(name.ilike(from_name))
       .first::<Person>(conn)
-  }
-
-  fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Person, Error> {
-    person
-      .filter(deleted.eq(false))
-      .filter(local.eq(true))
-      .filter(email.eq(from_email))
-      .first::<Person>(conn)
-  }
-
-  fn get_profile_url(&self, hostname: &str) -> String {
-    format!(
-      "{}://{}/u/{}",
-      Settings::get().get_protocol_string(),
-      hostname,
-      self.name
-    )
   }
 
   fn mark_as_updated(conn: &PgConnection, person_id: i32) -> Result<Person, Error> {
@@ -289,11 +226,19 @@ impl Person_ for Person {
   }
 
   fn delete_account(conn: &PgConnection, person_id: i32) -> Result<Person, Error> {
+    use lemmy_db_schema::schema::local_user;
+
+    // Set the local user info to none
+    diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
+      .set((
+        local_user::email.eq::<Option<String>>(None),
+        local_user::matrix_user_id.eq::<Option<String>>(None),
+      ))
+      .execute(conn)?;
+
     diesel::update(person.find(person_id))
       .set((
         preferred_username.eq::<Option<String>>(None),
-        email.eq::<Option<String>>(None),
-        matrix_user_id.eq::<Option<String>>(None),
         bio.eq::<Option<String>>(None),
         deleted.eq(true),
         updated.eq(naive_now()),
@@ -304,7 +249,7 @@ impl Person_ for Person {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::person::*, ListingType, SortType};
+  use crate::{establish_unpooled_connection, source::person::*};
 
   #[test]
   fn test_crud() {
@@ -315,13 +260,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -347,7 +292,6 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: inserted_person.published,
-      deleted: false,
       inbox_url: inserted_person.inbox_url.to_owned(),
       shared_inbox_url: None,
     };

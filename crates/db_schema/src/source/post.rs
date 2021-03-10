@@ -1,6 +1,6 @@
 use crate::{
   schema::{post, post_like, post_read, post_saved},
-  Url,
+  DbUrl,
 };
 use serde::Serialize;
 
@@ -9,7 +9,7 @@ use serde::Serialize;
 pub struct Post {
   pub id: i32,
   pub name: String,
-  pub url: Option<String>,
+  pub url: Option<DbUrl>,
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
@@ -23,8 +23,8 @@ pub struct Post {
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
-  pub thumbnail_url: Option<String>,
-  pub ap_id: Url,
+  pub thumbnail_url: Option<DbUrl>,
+  pub ap_id: DbUrl,
   pub local: bool,
 }
 
@@ -32,7 +32,7 @@ pub struct Post {
 #[table_name = "post"]
 pub struct PostForm {
   pub name: String,
-  pub url: Option<String>,
+  pub url: Option<DbUrl>,
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
@@ -46,8 +46,8 @@ pub struct PostForm {
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
-  pub thumbnail_url: Option<String>,
-  pub ap_id: Option<Url>,
+  pub thumbnail_url: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   pub local: bool,
 }
 

@@ -73,7 +73,7 @@ impl PersonMention_ for PersonMention {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, Crud, ListingType, SortType};
+  use crate::{establish_unpooled_connection, Crud};
   use lemmy_db_schema::source::{
     comment::*,
     community::{Community, CommunityForm},
@@ -81,8 +81,10 @@ mod tests {
     person::*,
     person_mention::*,
   };
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -91,13 +93,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -112,13 +114,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,

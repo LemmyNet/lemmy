@@ -1,17 +1,18 @@
 use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::{body::Body, web, HttpResponse};
 use http::StatusCode;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::source::activity::Activity_;
 use lemmy_db_schema::source::activity::Activity;
-use lemmy_structs::blocking;
-use lemmy_utils::{settings::Settings, LemmyError};
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 pub mod comment;
 pub mod community;
 pub mod post;
-pub mod user;
+pub mod person;
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
 /// headers.
@@ -46,12 +47,13 @@ pub async fn get_activity(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let settings = Settings::get();
-  let activity_id = format!(
+  let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",
     settings.get_protocol_and_hostname(),
     info.type_,
     info.id
-  );
+  ))?
+  .into();
   let activity = blocking(context.pool(), move |conn| {
     Activity::read_from_apub_id(&conn, &activity_id)
   })

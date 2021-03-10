@@ -28,8 +28,6 @@ mod tests {
     establish_unpooled_connection,
     Crud,
     Likeable,
-    ListingType,
-    SortType,
   };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
@@ -37,8 +35,10 @@ mod tests {
     post::{Post, PostForm, PostLike, PostLikeForm},
     person::{PersonForm, Person},
   };
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -47,13 +47,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -68,13 +68,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,

@@ -37,16 +37,6 @@ pub struct LocalUserForm {
   pub matrix_user_id: Option<Option<String>>,
 }
 
-/// A safe local user view, without settings, password, or email
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "local_user"]
-pub struct LocalUserSafe {
-  pub id: i32,                                  
-  pub person_id: i32,                          
-  pub admin: bool,                              
-  pub matrix_user_id: Option<String>,           
-}
-
 /// A local user view that removes password encrypted
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "local_user"]

@@ -2,13 +2,13 @@ pub(crate) mod community;
 mod fetch;
 pub(crate) mod objects;
 pub mod search;
-pub(crate) mod user;
+pub(crate) mod person;
 
 use crate::{
   fetcher::{
     community::get_or_fetch_and_upsert_community,
     fetch::FetchError,
-    user::get_or_fetch_and_upsert_user,
+    person::get_or_fetch_and_upsert_person,
   },
   ActorType,
 };
@@ -37,8 +37,8 @@ where
   false
 }
 
-/// Get a remote actor from its apub ID (either a user or a community). Thin wrapper around
-/// `get_or_fetch_and_upsert_user()` and `get_or_fetch_and_upsert_community()`.
+/// Get a remote actor from its apub ID (either a person or a community). Thin wrapper around
+/// `get_or_fetch_and_upsert_person()` and `get_or_fetch_and_upsert_community()`.
 ///
 /// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
 /// Otherwise it is fetched from the remote instance, stored and returned.
@@ -50,7 +50,7 @@ pub(crate) async fn get_or_fetch_and_upsert_actor(
   let community = get_or_fetch_and_upsert_community(apub_id, context, recursion_counter).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
-    Err(_) => Box::new(get_or_fetch_and_upsert_user(apub_id, context, recursion_counter).await?),
+    Err(_) => Box::new(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?),
   };
   Ok(actor)
 }

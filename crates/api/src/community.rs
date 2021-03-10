@@ -1,14 +1,14 @@
 use crate::{
   check_community_ban,
-  check_optional_url,
-  get_user_from_jwt,
-  get_user_from_jwt_opt,
+  get_local_user_view_from_jwt,
+  get_local_user_view_from_jwt_opt,
   is_admin,
   is_mod_or_admin,
   Perform,
 };
 use actix_web::web::Data;
 use anyhow::Context;
+use lemmy_api_structs::{blocking, community::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -18,7 +18,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_queries::{
-  diesel_option_overwrite,
+  diesel_option_overwrite_to_url,
   source::{
     comment::Comment_,
     community::{CommunityModerator_, Community_},
@@ -41,9 +41,8 @@ use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
   community_view::{CommunityQueryBuilder, CommunityView},
-  user_view::UserViewSafe,
+  person_view::PersonViewSafe,
 };
-use lemmy_structs::{blocking, community::*};
 use lemmy_utils::{
   apub::generate_actor_keypair,
   location_info,
@@ -69,8 +68,8 @@ impl Perform for GetCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = &self;
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
-    let user_id = user.map(|u| u.id);
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = match data.id {
       Some(id) => id,
@@ -89,7 +88,7 @@ impl Perform for GetCommunity {
     };
 
     let community_view = match blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, user_id)
+      CommunityView::read(conn, community_id, person_id)
     })
     .await?
     {
@@ -133,7 +132,7 @@ impl Perform for CreateCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs(&data.title)?;
@@ -155,11 +154,8 @@ impl Perform for CreateCommunity {
     }
 
     // Check to make sure the icon and banners are urls
-    let icon = diesel_option_overwrite(&data.icon);
-    let banner = diesel_option_overwrite(&data.banner);
-
-    check_optional_url(&icon)?;
-    check_optional_url(&banner)?;
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
@@ -170,7 +166,7 @@ impl Perform for CreateCommunity {
       description: data.description.to_owned(),
       icon,
       banner,
-      creator_id: user.id,
+      creator_id: local_user_view.person.id,
       removed: None,
       deleted: None,
       nsfw: data.nsfw,
@@ -198,7 +194,7 @@ impl Perform for CreateCommunity {
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
-      person_id: user.id,
+      person_id: local_user_view.person.id,
     };
 
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -209,7 +205,7 @@ impl Perform for CreateCommunity {
     // Follow your own community
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
-      person_id: user.id,
+      person_id: local_user_view.person.id,
       pending: false,
     };
 
@@ -218,9 +214,9 @@ impl Perform for CreateCommunity {
       return Err(ApiError::err("community_follower_already_exists").into());
     }
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, inserted_community.id, Some(user_id))
+      CommunityView::read(conn, inserted_community.id, Some(person_id))
     })
     .await??;
 
@@ -238,7 +234,7 @@ impl Perform for EditCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &EditCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.title)?;
     check_slurs_opt(&data.description)?;
@@ -250,7 +246,7 @@ impl Perform for EditCommunity {
         .map(|v| v.into_iter().map(|m| m.moderator.id).collect())
     })
     .await??;
-    if !mods.contains(&user.id) {
+    if !mods.contains(&local_user_view.person.id) {
       return Err(ApiError::err("not_a_moderator").into());
     }
 
@@ -260,11 +256,8 @@ impl Perform for EditCommunity {
     })
     .await??;
 
-    let icon = diesel_option_overwrite(&data.icon);
-    let banner = diesel_option_overwrite(&data.banner);
-
-    check_optional_url(&icon)?;
-    check_optional_url(&banner)?;
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     let community_form = CommunityForm {
       name: read_community.name,
@@ -302,9 +295,9 @@ impl Perform for EditCommunity {
     // process for communities and users
 
     let community_id = data.community_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(user_id))
+      CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
 
@@ -326,7 +319,7 @@ impl Perform for DeleteCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &DeleteCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Verify its the creator (only a creator can delete the community)
     let community_id = data.community_id;
@@ -334,7 +327,7 @@ impl Perform for DeleteCommunity {
       Community::read(conn, community_id)
     })
     .await??;
-    if read_community.creator_id != user.id {
+    if read_community.creator_id != local_user_view.person.id {
       return Err(ApiError::err("no_community_edit_allowed").into());
     }
 
@@ -358,9 +351,9 @@ impl Perform for DeleteCommunity {
     }
 
     let community_id = data.community_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(user_id))
+      CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
 
@@ -382,10 +375,10 @@ impl Perform for RemoveCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &RemoveCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Verify its an admin (only an admin can remove a community)
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     // Do the remove
     let community_id = data.community_id;
@@ -405,7 +398,7 @@ impl Perform for RemoveCommunity {
       None => None,
     };
     let form = ModRemoveCommunityForm {
-      mod_person_id: user.id,
+      mod_person_id: local_user_view.person.id,
       community_id: data.community_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -424,9 +417,9 @@ impl Perform for RemoveCommunity {
     }
 
     let community_id = data.community_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(user_id))
+      CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
 
@@ -448,15 +441,16 @@ impl Perform for ListCommunities {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = &self;
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let user_id = match &user {
-      Some(user) => Some(user.id),
+    let person_id = match &local_user_view {
+      Some(uv) => Some(uv.person.id),
       None => None,
     };
 
-    let show_nsfw = match &user {
-      Some(user) => user.show_nsfw,
+    // Don't show NSFW by default
+    let show_nsfw = match &local_user_view {
+      Some(uv) => uv.local_user.show_nsfw,
       None => false,
     };
 
@@ -470,7 +464,7 @@ impl Perform for ListCommunities {
         .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
-        .my_user_id(user_id)
+        .my_person_id(person_id)
         .page(page)
         .limit(limit)
         .list()
@@ -492,7 +486,7 @@ impl Perform for FollowCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
     let community = blocking(context.pool(), move |conn| {
@@ -501,13 +495,13 @@ impl Perform for FollowCommunity {
     .await??;
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
-      person_id: user.id,
+      person_id: local_user_view.person.id,
       pending: false,
     };
 
     if community.local {
       if data.follow {
-        check_community_ban(user.id, community_id, context.pool()).await?;
+        check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
 
         let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
         if blocking(context.pool(), follow).await?.is_err() {
@@ -523,9 +517,9 @@ impl Perform for FollowCommunity {
     } else if data.follow {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
-      user.send_follow(&community.actor_id(), context).await?;
+      local_user_view.person.send_follow(&community.actor_id(), context).await?;
     } else {
-      user.send_unfollow(&community.actor_id(), context).await?;
+      local_user_view.person.send_unfollow(&community.actor_id(), context).await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(context.pool(), unfollow).await?.is_err() {
         return Err(ApiError::err("community_follower_already_exists").into());
@@ -533,9 +527,9 @@ impl Perform for FollowCommunity {
     }
 
     let community_id = data.community_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(user_id))
+      CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
 
@@ -560,11 +554,11 @@ impl Perform for GetFollowedCommunities {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
     let data: &GetFollowedCommunities = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let communities = match blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_user(conn, user_id)
+      CommunityFollowerView::for_person(conn, person_id)
     })
     .await?
     {
@@ -587,17 +581,17 @@ impl Perform for BanFromCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
-    let banned_user_id = data.user_id;
+    let banned_person_id = data.person_id;
 
     // Verify that only mods or admins can ban
-    is_mod_or_admin(context.pool(), user.id, community_id).await?;
+    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,
-      person_id: data.user_id,
+      person_id: data.person_id,
     };
 
     if data.ban {
@@ -609,7 +603,7 @@ impl Perform for BanFromCommunity {
       // Also unsubscribe them from the community, if they are subscribed
       let community_follower_form = CommunityFollowerForm {
         community_id: data.community_id,
-        person_id: banned_user_id,
+        person_id: banned_person_id,
         pending: false,
       };
       blocking(context.pool(), move |conn: &'_ _| {
@@ -628,7 +622,7 @@ impl Perform for BanFromCommunity {
     if data.remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_user_id, Some(community_id), true)
+        Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)
       })
       .await??;
 
@@ -636,7 +630,7 @@ impl Perform for BanFromCommunity {
       // TODO Diesel doesn't allow updates with joins, so this has to be a loop
       let comments = blocking(context.pool(), move |conn| {
         CommentQueryBuilder::create(conn)
-          .creator_id(banned_user_id)
+          .creator_id(banned_person_id)
           .community_id(community_id)
           .limit(std::i64::MAX)
           .list()
@@ -660,8 +654,8 @@ impl Perform for BanFromCommunity {
     };
 
     let form = ModBanFromCommunityForm {
-      mod_person_id: user.id,
-      other_person_id: data.user_id,
+      mod_person_id: local_user_view.person.id,
+      other_person_id: data.person_id,
       community_id: data.community_id,
       reason: data.reason.to_owned(),
       banned: Some(data.ban),
@@ -672,14 +666,14 @@ impl Perform for BanFromCommunity {
     })
     .await??;
 
-    let user_id = data.user_id;
-    let user_view = blocking(context.pool(), move |conn| {
-      UserViewSafe::read(conn, user_id)
+    let person_id = data.person_id;
+    let person_view = blocking(context.pool(), move |conn| {
+      PersonViewSafe::read(conn, person_id)
     })
     .await??;
 
     let res = BanFromCommunityResponse {
-      user_view,
+      person_view,
       banned: data.ban,
     };
 
@@ -704,17 +698,17 @@ impl Perform for AddModToCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: data.community_id,
-      person_id: data.user_id,
+      person_id: data.person_id,
     };
 
     let community_id = data.community_id;
 
     // Verify that only mods or admins can add mod
-    is_mod_or_admin(context.pool(), user.id, community_id).await?;
+    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
 
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -730,8 +724,8 @@ impl Perform for AddModToCommunity {
 
     // Mod tables
     let form = ModAddCommunityForm {
-      mod_person_id: user.id,
-      other_person_id: data.user_id,
+      mod_person_id: local_user_view.person.id,
+      other_person_id: data.person_id,
       community_id: data.community_id,
       removed: Some(!data.added),
     };
@@ -769,7 +763,7 @@ impl Perform for TransferCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
     let read_community = blocking(context.pool(), move |conn| {
@@ -782,25 +776,25 @@ impl Perform for TransferCommunity {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
 
     // Making sure the creator, if an admin, is at the top
     let creator_index = admins
       .iter()
-      .position(|r| r.user.id == site_creator_id)
+      .position(|r| r.person.id == site_creator_id)
       .context(location_info!())?;
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
+    let creator_person = admins.remove(creator_index);
+    admins.insert(0, creator_person);
 
     // Make sure user is the creator, or an admin
-    if user.id != read_community.creator_id
-      && !admins.iter().map(|a| a.user.id).any(|x| x == user.id)
+    if local_user_view.person.id != read_community.creator_id
+      && !admins.iter().map(|a| a.person.id).any(|x| x == local_user_view.person.id)
     {
       return Err(ApiError::err("not_an_admin").into());
     }
 
     let community_id = data.community_id;
-    let new_creator = data.user_id;
+    let new_creator = data.person_id;
     let update = move |conn: &'_ _| Community::update_creator(conn, community_id, new_creator);
     if blocking(context.pool(), update).await?.is_err() {
       return Err(ApiError::err("couldnt_update_community").into());
@@ -814,10 +808,10 @@ impl Perform for TransferCommunity {
     .await??;
     let creator_index = community_mods
       .iter()
-      .position(|r| r.moderator.id == data.user_id)
+      .position(|r| r.moderator.id == data.person_id)
       .context(location_info!())?;
-    let creator_user = community_mods.remove(creator_index);
-    community_mods.insert(0, creator_user);
+    let creator_person = community_mods.remove(creator_index);
+    community_mods.insert(0, creator_person);
 
     let community_id = data.community_id;
     blocking(context.pool(), move |conn| {
@@ -840,8 +834,8 @@ impl Perform for TransferCommunity {
 
     // Mod tables
     let form = ModAddCommunityForm {
-      mod_person_id: user.id,
-      other_person_id: data.user_id,
+      mod_person_id: local_user_view.person.id,
+      other_person_id: data.person_id,
       community_id: data.community_id,
       removed: Some(false),
     };
@@ -851,9 +845,9 @@ impl Perform for TransferCommunity {
     .await??;
 
     let community_id = data.community_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_view = match blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(user_id))
+      CommunityView::read(conn, community_id, Some(person_id))
     })
     .await?
     {
@@ -886,7 +880,7 @@ fn send_community_websocket(
   websocket_id: Option<ConnectionId>,
   op: UserOperation,
 ) {
-  // Strip out the user id and subscribed when sending to others
+  // Strip out the person id and subscribed when sending to others
   let mut res_sent = res.clone();
   res_sent.community_view.subscribed = false;
 

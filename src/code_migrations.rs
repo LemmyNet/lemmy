@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     user::{UserForm, User_},
   },
 };
-use lemmy_utils::{apub::generate_actor_keypair, settings::Settings, LemmyError};
+use lemmy_utils::{apub::generate_actor_keypair, settings::structs::Settings, LemmyError};
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
@@ -72,7 +72,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       lang: cuser.lang.to_owned(),
       show_avatars: cuser.show_avatars,
       send_notifications_to_email: cuser.send_notifications_to_email,
-      actor_id: Some(generate_apub_endpoint(EndpointType::User, &cuser.name)?),
+      actor_id: Some(generate_apub_endpoint(EndpointType::Person, &cuser.name)?),
       bio: Some(cuser.bio.to_owned()),
       local: cuser.local,
       private_key: Some(keypair.private_key),

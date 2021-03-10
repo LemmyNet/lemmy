@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     CommunityPersonBan,
     CommunityPersonBanForm,
   },
-  Url,
+  DbUrl,
 };
 
 mod safe_type {
@@ -90,7 +90,7 @@ impl Crud<CommunityForm> for Community {
 }
 
 impl ApubObject<CommunityForm> for Community {
-  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &Url) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community
       .filter(actor_id.eq(for_actor_id))
@@ -131,7 +131,10 @@ pub trait Community_ {
     new_creator_id: i32,
   ) -> Result<Community, Error>;
   fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error>;
-  fn read_from_followers_url(conn: &PgConnection, followers_url: &Url) -> Result<Community, Error>;
+  fn read_from_followers_url(
+    conn: &PgConnection,
+    followers_url: &DbUrl,
+  ) -> Result<Community, Error>;
 }
 
 impl Community_ for Community {
@@ -194,7 +197,7 @@ impl Community_ for Community {
 
   fn read_from_followers_url(
     conn: &PgConnection,
-    followers_url_: &Url,
+    followers_url_: &DbUrl,
   ) -> Result<Community, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community
@@ -287,12 +290,12 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     use lemmy_db_schema::schema::community_follower::dsl::*;
     insert_into(community_follower)
       .values(community_follower_form)
-      .on_conflict((community_id, user_id))
+      .on_conflict((community_id, person_id))
       .do_update()
       .set(community_follower_form)
       .get_result::<Self>(conn)
   }
-  fn follow_accepted(conn: &PgConnection, community_id_: i32, user_id_: i32) -> Result<Self, Error>
+  fn follow_accepted(conn: &PgConnection, community_id_: i32, person_id_: i32) -> Result<Self, Error>
   where
     Self: Sized,
   {
@@ -300,7 +303,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     diesel::update(
       community_follower
         .filter(community_id.eq(community_id_))
-        .filter(user_id.eq(user_id_)),
+        .filter(person_id.eq(person_id_)),
     )
     .set(pending.eq(true))
     .get_result::<Self>(conn)
@@ -313,7 +316,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     diesel::delete(
       community_follower
         .filter(community_id.eq(&community_follower_form.community_id))
-        .filter(user_id.eq(&community_follower_form.person_id)),
+        .filter(person_id.eq(&community_follower_form.person_id)),
     )
     .execute(conn)
   }
@@ -336,12 +339,12 @@ mod tests {
     Crud,
     Followable,
     Joinable,
-    ListingType,
-    SortType,
   };
   use lemmy_db_schema::source::{community::*, person::*};
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
@@ -350,13 +353,13 @@ mod tests {
       preferred_username: None,
       avatar: None,
       banner: None,
-      banned: Some(false),
-      deleted: false,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
