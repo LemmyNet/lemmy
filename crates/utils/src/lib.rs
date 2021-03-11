@@ -87,7 +87,7 @@ lazy_static! {
     Settings::get().hostname()
   ))
   .expect("compile webfinger regex");
-  pub static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
+  pub static ref WEBFINGER_USERNAME_REGEX: Regex = Regex::new(&format!(
     "^acct:([a-z0-9_]{{3, 20}})@{}$",
     Settings::get().hostname()
   ))

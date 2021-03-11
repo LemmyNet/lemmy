@@ -192,7 +192,6 @@ impl Person_ for Person {
       .get_result::<Self>(conn)
   }
 
-  // TODO is this used?
   fn find_by_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
     person
       .filter(deleted.eq(false))

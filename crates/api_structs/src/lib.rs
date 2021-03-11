@@ -90,7 +90,7 @@ fn do_send_local_notifs(
       // TODO
       // At some point, make it so you can't tag the parent creator either
       // This can cause two notifications, one for reply and the other for mention
-      recipient_ids.push(mention_user_view.person.id);
+      recipient_ids.push(mention_user_view.local_user.id);
 
       let user_mention_form = PersonMentionForm {
         recipient_id: mention_user_view.person.id,
@@ -102,7 +102,7 @@ fn do_send_local_notifs(
       // Let the uniqueness handle this fail
       PersonMention::create(&conn, &user_mention_form).ok();
 
-      // Send an email to those users that have notifications on
+      // Send an email to those local users that have notifications on
       if do_send_email && mention_user_view.local_user.send_notifications_to_email {
         send_email_to_user(
           mention_user_view,
@@ -121,7 +121,7 @@ fn do_send_local_notifs(
         if parent_comment.creator_id != person.id {
           if let Ok(parent_user_view) = LocalUserView::read_person(&conn, parent_comment.creator_id)
           {
-            recipient_ids.push(parent_user_view.person.id);
+            recipient_ids.push(parent_user_view.local_user.id);
 
             if do_send_email && parent_user_view.local_user.send_notifications_to_email {
               send_email_to_user(
@@ -139,7 +139,7 @@ fn do_send_local_notifs(
     None => {
       if post.creator_id != person.id {
         if let Ok(parent_user_view) = LocalUserView::read_person(&conn, post.creator_id) {
-          recipient_ids.push(parent_user_view.person.id);
+          recipient_ids.push(parent_user_view.local_user.id);
 
           if do_send_email && parent_user_view.local_user.send_notifications_to_email {
             send_email_to_user(

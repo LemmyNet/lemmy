@@ -21,8 +21,7 @@ impl Perform for UserJoin {
 
     if let Some(ws_id) = websocket_id {
       context.chat_server().do_send(JoinUserRoom {
-        // TODO this should probably be the local_user_id
-        user_id: local_user_view.person.id,
+        local_user_id: local_user_view.local_user.id,
         id: ws_id,
       });
     }

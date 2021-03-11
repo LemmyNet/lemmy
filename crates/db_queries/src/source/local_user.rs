@@ -1,9 +1,9 @@
-use crate::{Crud, ToSafeSettings};
+use crate::Crud;
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   schema::local_user::dsl::*,
-  source::local_user::{LocalUser, LocalUserForm, LocalUserSettings},
+  source::local_user::{LocalUser, LocalUserForm},
 };
 
 mod safe_type {
@@ -70,7 +70,6 @@ pub trait LocalUser_ {
     new_password: &str,
   ) -> Result<LocalUser, Error>;
   fn add_admin(conn: &PgConnection, local_user_id: i32, added: bool) -> Result<LocalUser, Error>;
-  fn find_by_person(conn: &PgConnection, from_person_id: i32) -> Result<LocalUser, Error>;
 }
 
 impl LocalUser_ for LocalUser {
@@ -83,7 +82,6 @@ impl LocalUser_ for LocalUser {
     Self::create(&conn, &edited_user)
   }
 
-  // TODO do more individual updates like these
   fn update_password(
     conn: &PgConnection,
     local_user_id: i32,
@@ -96,18 +94,10 @@ impl LocalUser_ for LocalUser {
       .get_result::<Self>(conn)
   }
 
-  // TODO is this used?
   fn add_admin(conn: &PgConnection, local_user_id: i32, added: bool) -> Result<Self, Error> {
     diesel::update(local_user.find(local_user_id))
       .set(admin.eq(added))
       .get_result::<Self>(conn)
-  }
-
-  // TODO is this used?
-  fn find_by_person(conn: &PgConnection, for_person_id: i32) -> Result<LocalUser, Error> {
-    local_user
-      .filter(person_id.eq(for_person_id))
-      .first::<LocalUser>(conn)
   }
 }
 
@@ -127,20 +117,5 @@ impl Crud<LocalUserForm> for LocalUser {
     diesel::update(local_user.find(local_user_id))
       .set(form)
       .get_result::<Self>(conn)
-  }
-}
-
-// TODO is this used?
-pub trait LocalUserSettings_ {
-  fn read(conn: &PgConnection, user_id: i32) -> Result<LocalUserSettings, Error>;
-}
-
-// TODO is this used?
-impl LocalUserSettings_ for LocalUserSettings {
-  fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
-    local_user
-      .select(LocalUser::safe_settings_columns_tuple())
-      .find(user_id)
-      .first::<Self>(conn)
   }
 }

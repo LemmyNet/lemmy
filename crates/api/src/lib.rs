@@ -103,11 +103,9 @@ pub(crate) async fn get_local_user_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let person_id = claims.id;
-  let local_user_view = blocking(pool, move |conn| {
-    LocalUserView::read_person(conn, person_id)
-  })
-  .await??;
+  let local_user_id = claims.id;
+  let local_user_view =
+    blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
   // Check for a site ban
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
@@ -133,9 +131,9 @@ pub(crate) async fn get_local_user_settings_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let person_id = claims.id;
+  let local_user_id = claims.id;
   let local_user_view = blocking(pool, move |conn| {
-    LocalUserSettingsView::read(conn, person_id)
+    LocalUserSettingsView::read(conn, local_user_id)
   })
   .await??;
   // Check for a site ban
@@ -185,21 +183,21 @@ pub(crate) async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result
 /// or if a community_id is supplied validates the user is a moderator
 /// of that community and returns the community id in a vec
 ///
-/// * `user_id` - the user id of the moderator
+/// * `person_id` - the person id of the moderator
 /// * `community_id` - optional community id to check for moderator privileges
 /// * `pool` - the diesel db pool
 pub(crate) async fn collect_moderated_communities(
-  user_id: i32,
+  person_id: i32,
   community_id: Option<i32>,
   pool: &DbPool,
 ) -> Result<Vec<i32>, LemmyError> {
   if let Some(community_id) = community_id {
     // if the user provides a community_id, just check for mod/admin privileges
-    is_mod_or_admin(pool, user_id, community_id).await?;
+    is_mod_or_admin(pool, person_id, community_id).await?;
     Ok(vec![community_id])
   } else {
     let ids = blocking(pool, move |conn: &'_ _| {
-      CommunityModerator::get_person_moderated_communities(conn, user_id)
+      CommunityModerator::get_person_moderated_communities(conn, person_id)
     })
     .await??;
     Ok(ids)

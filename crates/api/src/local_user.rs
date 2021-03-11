@@ -129,7 +129,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.person.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(local_user_view.local_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -243,7 +243,7 @@ impl Perform for Register {
       send_notifications_to_email: Some(false),
     };
 
-    match blocking(context.pool(), move |conn| {
+    let inserted_local_user = match blocking(context.pool(), move |conn| {
       LocalUser::register(conn, &local_user_form)
     })
     .await?
@@ -332,7 +332,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_person.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(inserted_local_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -479,7 +479,7 @@ impl Perform for SaveUserSettings {
       Person::update(conn, person_id, &person_form)
     })
     .await?;
-    let updated_person: Person = match person_res {
+    let _updated_person: Person = match person_res {
       Ok(p) => p,
       Err(_) => {
         return Err(ApiError::err("user_already_exists").into());
@@ -505,8 +505,8 @@ impl Perform for SaveUserSettings {
       LocalUser::update(conn, local_user_id, &local_user_form)
     })
     .await?;
-    match local_user_res {
-      Ok(user) => user,
+    let updated_local_user = match local_user_res {
+      Ok(u) => u,
       Err(e) => {
         let err_type = if e.to_string()
           == "duplicate key value violates unique constraint \"local_user_email_key\""
@@ -522,7 +522,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_person.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id, Settings::get().hostname())?,
     })
   }
 }

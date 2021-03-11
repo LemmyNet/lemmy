@@ -155,7 +155,7 @@ impl Handler<JoinUserRoom> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: JoinUserRoom, _: &mut Context<Self>) {
-    self.join_user_room(msg.user_id, msg.id).ok();
+    self.join_user_room(msg.local_user_id, msg.id).ok();
   }
 }
 

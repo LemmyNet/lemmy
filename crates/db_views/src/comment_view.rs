@@ -367,7 +367,7 @@ impl<'a> CommentQueryBuilder<'a> {
 
     query = match self.listing_type {
       // ListingType::Subscribed => query.filter(community_follower::subscribed.eq(true)),
-      ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::user_id.eq(user_id_join)),
+      ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
       ListingType::Local => query.filter(community::local.eq(true)),
       _ => query,
     };

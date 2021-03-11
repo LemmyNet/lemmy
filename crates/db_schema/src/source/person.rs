@@ -26,7 +26,7 @@ pub struct Person {
   pub shared_inbox_url: Option<DbUrl>,
 }
 
-/// A safe representation of user, without the sensitive info
+/// A safe representation of person, without the sensitive info
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person"]
 pub struct PersonSafe {

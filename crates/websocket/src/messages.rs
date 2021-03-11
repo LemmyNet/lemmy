@@ -91,7 +91,7 @@ pub struct SendComment {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct JoinUserRoom {
-  pub user_id: UserId,
+  pub local_user_id: UserId,
   pub id: ConnectionId,
 }
 
