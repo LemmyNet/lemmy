@@ -238,7 +238,7 @@ mod tests {
     let conn = establish_unpooled_connection();
 
     let new_person = PersonForm {
-      name: "thommy".into(),
+      name: "holly".into(),
       preferred_username: None,
       avatar: None,
       banner: None,
@@ -260,7 +260,7 @@ mod tests {
 
     let expected_person = Person {
       id: inserted_person.id,
-      name: "thommy".into(),
+      name: "holly".into(),
       preferred_username: None,
       avatar: None,
       banner: None,
