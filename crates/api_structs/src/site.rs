@@ -1,4 +1,9 @@
-use lemmy_db_views::{comment_view::CommentView, post_view::PostView, site_view::SiteView, local_user_view::LocalUserSettingsView};
+use lemmy_db_views::{
+  comment_view::CommentView,
+  local_user_view::LocalUserSettingsView,
+  post_view::PostView,
+  site_view::SiteView,
+};
 use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};
 use lemmy_db_views_moderator::{
   mod_add_community_view::ModAddCommunityView,

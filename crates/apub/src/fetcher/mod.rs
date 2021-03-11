@@ -1,8 +1,8 @@
 pub(crate) mod community;
 mod fetch;
 pub(crate) mod objects;
-pub mod search;
 pub(crate) mod person;
+pub mod search;
 
 use crate::{
   fetcher::{

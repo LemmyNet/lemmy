@@ -77,9 +77,9 @@ mod tests {
   use lemmy_db_schema::source::{
     comment::*,
     community::{Community, CommunityForm},
-    post::*,
     person::*,
     person_mention::*,
+    post::*,
   };
   use serial_test::serial;
 

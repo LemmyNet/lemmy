@@ -1,6 +1,6 @@
 use crate::Perform;
 use actix_web::{error::ErrorBadRequest, *};
-use lemmy_api_structs::{comment::*, community::*, post::*, site::*, person::*, websocket::*};
+use lemmy_api_structs::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
 use lemmy_utils::rate_limit::RateLimit;
 use lemmy_websocket::{routes::chat_route, LemmyContext};
 use serde::Deserialize;

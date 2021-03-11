@@ -17,17 +17,17 @@ use lemmy_db_schema::{
     community,
     community_follower,
     community_person_ban,
-    post,
     person,
     person_alias_1,
     person_mention,
+    post,
   },
   source::{
     comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunitySafe, CommunityPersonBan},
-    post::Post,
-    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
+    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     person_mention::PersonMention,
+    post::Post,
   },
 };
 use serde::Serialize;

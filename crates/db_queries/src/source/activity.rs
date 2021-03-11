@@ -122,13 +122,10 @@ impl Activity_ for Activity {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::{
-    establish_unpooled_connection,
-    source::activity::Activity_,
-  };
+  use crate::{establish_unpooled_connection, source::activity::Activity_};
   use lemmy_db_schema::source::{
     activity::{Activity, ActivityForm},
-    person::{PersonForm, Person},
+    person::{Person, PersonForm},
   };
   use serde_json::Value;
   use serial_test::serial;

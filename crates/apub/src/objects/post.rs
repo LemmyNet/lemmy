@@ -28,8 +28,8 @@ use lemmy_db_schema::{
   self,
   source::{
     community::Community,
-    post::{Post, PostForm},
     person::Person,
+    post::{Post, PostForm},
   },
 };
 use lemmy_utils::{
@@ -142,7 +142,8 @@ impl FromApubToForm<PageExt> for PostForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
+    let creator =
+      get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
 
     let community = get_to_community(page, context, request_counter).await?;
 

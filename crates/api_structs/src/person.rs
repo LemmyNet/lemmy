@@ -45,11 +45,11 @@ pub struct CaptchaResponse {
 
 #[derive(Deserialize)]
 pub struct SaveUserSettings {
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
+  pub show_nsfw: Option<bool>,
+  pub theme: Option<String>,
+  pub default_sort_type: Option<i16>,
+  pub default_listing_type: Option<i16>,
+  pub lang: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,
   pub preferred_username: Option<String>,
@@ -59,8 +59,8 @@ pub struct SaveUserSettings {
   pub new_password: Option<String>,
   pub new_password_verify: Option<String>,
   pub old_password: Option<String>,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
+  pub show_avatars: Option<bool>,
+  pub send_notifications_to_email: Option<bool>,
   pub auth: String,
 }
 
@@ -107,7 +107,7 @@ pub struct MarkAllAsRead {
 
 #[derive(Deserialize)]
 pub struct AddAdmin {
-  pub person_id: i32,
+  pub local_user_id: i32,
   pub added: bool,
   pub auth: String,
 }

@@ -25,8 +25,8 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentForm},
-  post::Post,
   person::Person,
+  post::Post,
 };
 use lemmy_utils::{
   location_info,
@@ -135,7 +135,8 @@ impl FromApubToForm<NoteExt> for CommentForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
+    let creator =
+      get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
 
     let mut in_reply_tos = note
       .in_reply_to()

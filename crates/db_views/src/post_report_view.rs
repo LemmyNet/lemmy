@@ -1,12 +1,12 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, post, post_report, person, person_alias_1, person_alias_2},
+  schema::{community, person, person_alias_1, person_alias_2, post, post_report},
   source::{
     community::{Community, CommunitySafe},
+    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
     post_report::PostReport,
-    person::{PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2, Person},
   },
 };
 use serde::Serialize;
@@ -41,7 +41,9 @@ impl PostReportView {
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
       .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
-      .left_join(person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())))
+      .left_join(
+        person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
+      )
       .select((
         post_report::all_columns,
         post::all_columns,
@@ -126,7 +128,9 @@ impl<'a> PostReportQueryBuilder<'a> {
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
       .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
-      .left_join(person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())))
+      .left_join(
+        person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
+      )
       .select((
         post_report::all_columns,
         post::all_columns,

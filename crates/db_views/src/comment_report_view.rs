@@ -1,13 +1,13 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{comment, comment_report, community, post, person, person_alias_1, person_alias_2},
+  schema::{comment, comment_report, community, person, person_alias_1, person_alias_2, post},
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::{Community, CommunitySafe},
+    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
-    person::{PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2, Person},
   },
 };
 use serde::Serialize;

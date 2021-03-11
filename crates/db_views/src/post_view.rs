@@ -15,17 +15,17 @@ use lemmy_db_schema::{
     community,
     community_follower,
     community_person_ban,
+    person,
     post,
     post_aggregates,
     post_like,
     post_read,
     post_saved,
-    person,
   },
   source::{
-    community::{Community, CommunityFollower, CommunitySafe, CommunityPersonBan},
+    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    person::{Person, PersonSafe},
     post::{Post, PostRead, PostSaved},
-    person::{PersonSafe, Person},
   },
 };
 use log::debug;
@@ -433,7 +433,7 @@ mod tests {
     ListingType,
     SortType,
   };
-  use lemmy_db_schema::source::{community::*, post::*, person::*};
+  use lemmy_db_schema::source::{community::*, person::*, post::*};
   use serial_test::serial;
 
   #[test]
@@ -638,11 +638,17 @@ mod tests {
       expected_post_listing_with_user,
       read_post_listings_with_person[0]
     );
-    assert_eq!(expected_post_listing_with_user, read_post_listing_with_person);
+    assert_eq!(
+      expected_post_listing_with_user,
+      read_post_listing_with_person
+    );
     assert_eq!(1, read_post_listings_with_person.len());
 
     // Without the user
-    assert_eq!(expected_post_listing_no_person, read_post_listings_no_person[0]);
+    assert_eq!(
+      expected_post_listing_no_person,
+      read_post_listings_no_person[0]
+    );
     assert_eq!(expected_post_listing_no_person, read_post_listing_no_person);
     assert_eq!(1, read_post_listings_no_person.len());
 

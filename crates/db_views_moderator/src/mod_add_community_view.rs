@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunitySafe},
     moderator::ModAddCommunity,
-    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
 };
 use serde::Serialize;
@@ -31,7 +31,9 @@ impl ModAddCommunityView {
     let mut query = mod_add_community::table
       .inner_join(person::table.on(mod_add_community::mod_person_id.eq(person::id)))
       .inner_join(community::table)
-      .inner_join(person_alias_1::table.on(mod_add_community::other_person_id.eq(person_alias_1::id)))
+      .inner_join(
+        person_alias_1::table.on(mod_add_community::other_person_id.eq(person_alias_1::id)),
+      )
       .select((
         mod_add_community::all_columns,
         Person::safe_columns_tuple(),

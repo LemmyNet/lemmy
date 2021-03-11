@@ -1,14 +1,15 @@
 use crate::{
   build_federated_instances,
+  get_local_user_settings_view_from_jwt,
+  get_local_user_settings_view_from_jwt_opt,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
-  get_local_user_settings_view_from_jwt_opt,
   is_admin,
   Perform,
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_api_structs::{blocking, site::*, person::Register};
+use lemmy_api_structs::{blocking, person::Register, site::*};
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{
   diesel_option_overwrite_to_url,
@@ -536,13 +537,15 @@ impl Perform for TransferSite {
     let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
     let federated_instances = build_federated_instances(context.pool()).await?;
 
+    let my_user = Some(get_local_user_settings_view_from_jwt(&data.auth, context.pool()).await?);
+
     Ok(GetSiteResponse {
       site_view: Some(site_view),
       admins,
       banned,
       online: 0,
       version: version::VERSION.to_string(),
-      my_user: Some(local_user_view),
+      my_user,
       federated_instances,
     })
   }
@@ -582,7 +585,6 @@ impl Perform for SaveSiteConfig {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    let person_id = local_user_view.person.id;
     is_admin(&local_user_view)?;
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem

@@ -1,10 +1,10 @@
 use diesel::{pg::Pg, result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{private_message, person, person_alias_1},
+  schema::{person, person_alias_1, private_message},
   source::{
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     private_message::PrivateMessage,
-    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
   },
 };
 use log::debug;

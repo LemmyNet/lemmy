@@ -33,8 +33,15 @@ pub(crate) async fn receive_create_comment(
   // Its much easier to scrape them from the comment body, since the API has to do that
   // anyway.
   let mentions = scrape_text_for_mentions(&comment.content);
-  let recipient_ids =
-    send_local_notifs(mentions, comment.clone(), person, post, context.pool(), true).await?;
+  let recipient_ids = send_local_notifs(
+    mentions,
+    comment.clone(),
+    person,
+    post,
+    context.pool(),
+    true,
+  )
+  .await?;
 
   // Refetch the view
   let comment_view = blocking(context.pool(), move |conn| {

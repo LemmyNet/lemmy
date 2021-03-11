@@ -295,7 +295,11 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
       .set(community_follower_form)
       .get_result::<Self>(conn)
   }
-  fn follow_accepted(conn: &PgConnection, community_id_: i32, person_id_: i32) -> Result<Self, Error>
+  fn follow_accepted(
+    conn: &PgConnection,
+    community_id_: i32,
+    person_id_: i32,
+  ) -> Result<Self, Error>
   where
     Self: Sized,
   {
@@ -333,13 +337,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    establish_unpooled_connection,
-    Bannable,
-    Crud,
-    Followable,
-    Joinable,
-  };
+  use crate::{establish_unpooled_connection, Bannable, Crud, Followable, Joinable};
   use lemmy_db_schema::source::{community::*, person::*};
   use serial_test::serial;
 
@@ -438,7 +436,8 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_community_moderator = CommunityModerator::join(&conn, &community_moderator_form).unwrap();
+    let inserted_community_moderator =
+      CommunityModerator::join(&conn, &community_moderator_form).unwrap();
 
     let expected_community_moderator = CommunityModerator {
       id: inserted_community_moderator.id,

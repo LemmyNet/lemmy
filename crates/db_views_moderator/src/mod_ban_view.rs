@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   schema::{mod_ban, person, person_alias_1},
   source::{
     moderator::ModBan,
-    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
 };
 use serde::Serialize;

@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunitySafe},
     moderator::ModBanFromCommunity,
-    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
 };
 use serde::Serialize;
@@ -18,7 +18,12 @@ pub struct ModBanFromCommunityView {
   pub banned_person: PersonSafeAlias1,
 }
 
-type ModBanFromCommunityViewTuple = (ModBanFromCommunity, PersonSafe, CommunitySafe, PersonSafeAlias1);
+type ModBanFromCommunityViewTuple = (
+  ModBanFromCommunity,
+  PersonSafe,
+  CommunitySafe,
+  PersonSafeAlias1,
+);
 
 impl ModBanFromCommunityView {
   pub fn list(

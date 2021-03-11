@@ -139,12 +139,8 @@ impl PrivateMessage_ for PrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    establish_unpooled_connection,
-    source::private_message::PrivateMessage_,
-    Crud,
-  };
-  use lemmy_db_schema::source::{private_message::*, person::*};
+  use crate::{establish_unpooled_connection, source::private_message::PrivateMessage_, Crud};
+  use lemmy_db_schema::source::{person::*, private_message::*};
   use serial_test::serial;
 
   #[test]

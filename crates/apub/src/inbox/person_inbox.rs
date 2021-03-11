@@ -52,8 +52,8 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::person::Person_, ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
-  private_message::PrivateMessage,
   person::Person,
+  private_message::PrivateMessage,
 };
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;

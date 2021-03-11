@@ -2,9 +2,9 @@ use crate::{
   check_community_ban,
   check_downvotes_enabled,
   collect_moderated_communities,
-  get_post,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
+  get_post,
   is_mod_or_admin,
   Perform,
 };
@@ -115,7 +115,9 @@ impl Perform for CreateComment {
         Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
       };
 
-    updated_comment.send_create(&local_user_view.person, context).await?;
+    updated_comment
+      .send_create(&local_user_view.person, context)
+      .await?;
 
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
@@ -143,7 +145,9 @@ impl Perform for CreateComment {
       return Err(ApiError::err("couldnt_like_comment").into());
     }
 
-    updated_comment.send_like(&local_user_view.person, context).await?;
+    updated_comment
+      .send_like(&local_user_view.person, context)
+      .await?;
 
     let person_id = local_user_view.person.id;
     let mut comment_view = blocking(context.pool(), move |conn| {
@@ -201,7 +205,12 @@ impl Perform for EditComment {
     })
     .await??;
 
-    check_community_ban(local_user_view.person.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
@@ -221,7 +230,9 @@ impl Perform for EditComment {
     };
 
     // Send the apub update
-    updated_comment.send_update(&local_user_view.person, context).await?;
+    updated_comment
+      .send_update(&local_user_view.person, context)
+      .await?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();
@@ -277,7 +288,12 @@ impl Perform for DeleteComment {
     })
     .await??;
 
-    check_community_ban(local_user_view.person.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the creator can delete
     if local_user_view.person.id != orig_comment.creator.id {
@@ -297,9 +313,13 @@ impl Perform for DeleteComment {
 
     // Send the apub message
     if deleted {
-      updated_comment.send_delete(&local_user_view.person, context).await?;
+      updated_comment
+        .send_delete(&local_user_view.person, context)
+        .await?;
     } else {
-      updated_comment.send_undo_delete(&local_user_view.person, context).await?;
+      updated_comment
+        .send_undo_delete(&local_user_view.person, context)
+        .await?;
     }
 
     // Refetch it
@@ -357,10 +377,20 @@ impl Perform for RemoveComment {
     })
     .await??;
 
-    check_community_ban(local_user_view.person.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only a mod or admin can remove
-    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_comment.community.id).await?;
+    is_mod_or_admin(
+      context.pool(),
+      local_user_view.person.id,
+      orig_comment.community.id,
+    )
+    .await?;
 
     // Do the remove
     let removed = data.removed;
@@ -387,9 +417,13 @@ impl Perform for RemoveComment {
 
     // Send the apub message
     if removed {
-      updated_comment.send_remove(&local_user_view.person, context).await?;
+      updated_comment
+        .send_remove(&local_user_view.person, context)
+        .await?;
     } else {
-      updated_comment.send_undo_remove(&local_user_view.person, context).await?;
+      updated_comment
+        .send_undo_remove(&local_user_view.person, context)
+        .await?;
     }
 
     // Refetch it
@@ -448,7 +482,12 @@ impl Perform for MarkCommentAsRead {
     })
     .await??;
 
-    check_community_ban(local_user_view.person.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the recipient can mark as read
     if local_user_view.person.id != orig_comment.get_recipient_id() {
@@ -551,7 +590,12 @@ impl Perform for CreateCommentLike {
     })
     .await??;
 
-    check_community_ban(local_user_view.person.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Add parent user to recipients
     recipient_ids.push(orig_comment.get_recipient_id());
@@ -583,10 +627,14 @@ impl Perform for CreateCommentLike {
       if like_form.score == 1 {
         comment.send_like(&local_user_view.person, context).await?;
       } else if like_form.score == -1 {
-        comment.send_dislike(&local_user_view.person, context).await?;
+        comment
+          .send_dislike(&local_user_view.person, context)
+          .await?;
       }
     } else {
-      comment.send_undo_like(&local_user_view.person, context).await?;
+      comment
+        .send_undo_like(&local_user_view.person, context)
+        .await?;
     }
 
     // Have to refetch the comment to get the current state

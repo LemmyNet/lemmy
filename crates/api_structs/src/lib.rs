@@ -1,17 +1,17 @@
 pub mod comment;
 pub mod community;
+pub mod person;
 pub mod post;
 pub mod site;
-pub mod person;
 pub mod websocket;
 
 use diesel::PgConnection;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::Comment,
-  post::Post,
   person::Person,
   person_mention::{PersonMention, PersonMentionForm},
+  post::Post,
 };
 use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_utils::{email::send_email, settings::structs::Settings, utils::MentionData, LemmyError};
@@ -119,11 +119,17 @@ fn do_send_local_notifs(
     Some(parent_id) => {
       if let Ok(parent_comment) = Comment::read(&conn, parent_id) {
         if parent_comment.creator_id != person.id {
-          if let Ok(parent_user_view) = LocalUserView::read(&conn, parent_comment.creator_id) {
+          if let Ok(parent_user_view) = LocalUserView::read_person(&conn, parent_comment.creator_id)
+          {
             recipient_ids.push(parent_user_view.person.id);
 
             if do_send_email && parent_user_view.local_user.send_notifications_to_email {
-              send_email_to_user(parent_user_view, "Reply from", "Comment Reply", &comment.content)
+              send_email_to_user(
+                parent_user_view,
+                "Reply from",
+                "Comment Reply",
+                &comment.content,
+              )
             }
           }
         }
@@ -132,11 +138,16 @@ fn do_send_local_notifs(
     // Its a post
     None => {
       if post.creator_id != person.id {
-        if let Ok(parent_user_view) = LocalUserView::read(&conn, post.creator_id) {
+        if let Ok(parent_user_view) = LocalUserView::read_person(&conn, post.creator_id) {
           recipient_ids.push(parent_user_view.person.id);
 
           if do_send_email && parent_user_view.local_user.send_notifications_to_email {
-            send_email_to_user(parent_user_view, "Reply from", "Post Reply", &comment.content)
+            send_email_to_user(
+              parent_user_view,
+              "Reply from",
+              "Post Reply",
+              &comment.content,
+            )
           }
         }
       }
@@ -145,7 +156,12 @@ fn do_send_local_notifs(
   recipient_ids
 }
 
-pub fn send_email_to_user(local_user_view: LocalUserView, subject_text: &str, body_text: &str, comment_content: &str) {
+pub fn send_email_to_user(
+  local_user_view: LocalUserView,
+  subject_text: &str,
+  body_text: &str,
+  comment_content: &str,
+) {
   if local_user_view.person.banned {
     return;
   }

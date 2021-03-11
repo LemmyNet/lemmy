@@ -23,7 +23,7 @@ use activitystreams::{
 };
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{community::Community, post::Post, person::Person};
+use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
@@ -155,7 +155,11 @@ impl ApubObjectType for Post {
     Ok(())
   }
 
-  async fn send_undo_remove(&self, mod_: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_undo_remove(
+    &self,
+    mod_: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)

@@ -1,32 +1,31 @@
-use crate::{is_email_regex, ApubObject, Crud};
+use crate::{ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
   schema::person::dsl::*,
-  source::person::{PersonForm, Person},
+  source::person::{Person, PersonForm},
   DbUrl,
 };
-use lemmy_utils::settings::structs::Settings;
 
 mod safe_type {
   use crate::ToSafe;
   use lemmy_db_schema::{schema::person::columns::*, source::person::Person};
 
   type Columns = (
-  id,
-  name,
-  preferred_username,
-  avatar,
-  banned,
-  published,
-  updated,
-  actor_id,
-  bio,
-  local,
-  banner,
-  deleted,
-  inbox_url,
-  shared_inbox_url,
+    id,
+    name,
+    preferred_username,
+    avatar,
+    banned,
+    published,
+    updated,
+    actor_id,
+    bio,
+    local,
+    banner,
+    deleted,
+    inbox_url,
+    shared_inbox_url,
   );
 
   impl ToSafe for Person {
@@ -57,20 +56,20 @@ mod safe_type_alias_1 {
   use lemmy_db_schema::{schema::person_alias_1::columns::*, source::person::PersonAlias1};
 
   type Columns = (
-        id,
-        name,
-        preferred_username,
-        avatar,
-        banned,
-        published,
-        updated,
-        actor_id,
-        bio,
-        local,
-        banner,
-        deleted,
-        inbox_url,
-        shared_inbox_url,
+    id,
+    name,
+    preferred_username,
+    avatar,
+    banned,
+    published,
+    updated,
+    actor_id,
+    bio,
+    local,
+    banner,
+    deleted,
+    inbox_url,
+    shared_inbox_url,
   );
 
   impl ToSafe for PersonAlias1 {
@@ -101,20 +100,20 @@ mod safe_type_alias_2 {
   use lemmy_db_schema::{schema::person_alias_2::columns::*, source::person::PersonAlias2};
 
   type Columns = (
-        id,
-        name,
-        preferred_username,
-        avatar,
-        banned,
-        published,
-        updated,
-        actor_id,
-        bio,
-        local,
-        banner,
-        deleted,
-        inbox_url,
-        shared_inbox_url,
+    id,
+    name,
+    preferred_username,
+    avatar,
+    banned,
+    published,
+    updated,
+    actor_id,
+    bio,
+    local,
+    banner,
+    deleted,
+    inbox_url,
+    shared_inbox_url,
   );
 
   impl ToSafe for PersonAlias2 {
@@ -181,36 +180,19 @@ impl ApubObject<PersonForm> for Person {
 
 pub trait Person_ {
   fn ban_person(conn: &PgConnection, person_id: i32, ban: bool) -> Result<Person, Error>;
-  // TODO
-  // fn find_by_email_or_name(
-  //   conn: &PgConnection,
-  //   name_or_email: &str,
-  // ) -> Result<Person, Error>;
   fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
   fn mark_as_updated(conn: &PgConnection, person_id: i32) -> Result<Person, Error>;
   fn delete_account(conn: &PgConnection, person_id: i32) -> Result<Person, Error>;
 }
 
 impl Person_ for Person {
-
   fn ban_person(conn: &PgConnection, person_id: i32, ban: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(banned.eq(ban))
       .get_result::<Self>(conn)
   }
 
-  // TODO this needs to get moved to aggregates i think
-  // fn find_by_email_or_name(
-  //   conn: &PgConnection,
-  //   name_or_email: &str,
-  // ) -> Result<Self, Error> {
-  //   if is_email_regex(name_or_email) {
-  //     Self::find_by_email(conn, name_or_email)
-  //   } else {
-  //     Self::find_by_name(conn, name_or_email)
-  //   }
-  // }
-
+  // TODO is this used?
   fn find_by_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
     person
       .filter(deleted.eq(false))

@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   schema::{community, community_aggregates, community_follower, person},
   source::{
     community::{Community, CommunityFollower, CommunitySafe},
-    person::{PersonSafe, Person},
+    person::{Person, PersonSafe},
   },
 };
 use serde::Serialize;
@@ -78,8 +78,9 @@ impl CommunityView {
       &mut CommunityModeratorView::for_community(conn, community_id)
         .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?,
     );
-    mods_and_admins
-      .append(&mut PersonViewSafe::admins(conn).map(|v| v.into_iter().map(|a| a.person.id).collect())?);
+    mods_and_admins.append(
+      &mut PersonViewSafe::admins(conn).map(|v| v.into_iter().map(|a| a.person.id).collect())?,
+    );
     Ok(mods_and_admins)
   }
 

@@ -20,15 +20,15 @@ use lemmy_db_schema::{
     community,
     community_follower,
     community_person_ban,
-    post,
     person,
     person_alias_1,
+    post,
   },
   source::{
     comment::{Comment, CommentAlias1, CommentSaved},
-    community::{Community, CommunityFollower, CommunitySafe, CommunityPersonBan},
+    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     post::Post,
-    person::{PersonAlias1, PersonSafe, PersonSafeAlias1, Person},
   },
 };
 use serde::Serialize;
@@ -440,7 +440,7 @@ mod tests {
     Crud,
     Likeable,
   };
-  use lemmy_db_schema::source::{comment::*, community::*, post::*, person::*};
+  use lemmy_db_schema::source::{comment::*, community::*, person::*, post::*};
   use serial_test::serial;
 
   #[test]
@@ -646,7 +646,10 @@ mod tests {
     Community::delete(&conn, inserted_community.id).unwrap();
     Person::delete(&conn, inserted_person.id).unwrap();
 
-    assert_eq!(expected_comment_view_no_person, read_comment_views_no_person[0]);
+    assert_eq!(
+      expected_comment_view_no_person,
+      read_comment_views_no_person[0]
+    );
     assert_eq!(
       expected_comment_view_with_person,
       read_comment_views_with_person[0]

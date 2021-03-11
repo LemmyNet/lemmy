@@ -11,8 +11,8 @@ use url::Url;
 
 pub mod comment;
 pub mod community;
-pub mod post;
 pub mod person;
+pub mod post;
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
 /// headers.

@@ -36,8 +36,8 @@ mod tests {
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
+    person::{Person, PersonForm},
     post::{Post, PostForm},
-    person::{PersonForm, Person},
   };
   use serial_test::serial;
 

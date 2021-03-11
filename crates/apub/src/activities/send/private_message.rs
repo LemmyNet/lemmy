@@ -18,7 +18,7 @@ use activitystreams::{
 };
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{private_message::PrivateMessage, person::Person};
+use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
@@ -29,7 +29,8 @@ impl ApubObjectType for PrivateMessage {
     let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut create = Create::new(
       creator.actor_id.to_owned().into_inner(),
@@ -50,7 +51,8 @@ impl ApubObjectType for PrivateMessage {
     let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut update = Update::new(
       creator.actor_id.to_owned().into_inner(),
@@ -67,7 +69,8 @@ impl ApubObjectType for PrivateMessage {
 
   async fn send_delete(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(
       creator.actor_id.to_owned().into_inner(),
@@ -88,7 +91,8 @@ impl ApubObjectType for PrivateMessage {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(
       creator.actor_id.to_owned().into_inner(),

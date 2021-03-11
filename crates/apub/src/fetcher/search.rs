@@ -20,18 +20,18 @@ use lemmy_db_queries::{
   source::{
     comment::Comment_,
     community::Community_,
+    person::Person_,
     post::Post_,
     private_message::PrivateMessage_,
-    person::Person_,
   },
   SearchType,
 };
 use lemmy_db_schema::source::{
   comment::Comment,
   community::Community,
+  person::Person,
   post::Post,
   private_message::PrivateMessage,
-  person::Person,
 };
 use lemmy_db_views::{comment_view::CommentView, post_view::PostView};
 use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};

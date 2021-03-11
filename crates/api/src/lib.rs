@@ -3,17 +3,15 @@ use lemmy_api_structs::{
   blocking,
   comment::*,
   community::*,
+  person::*,
   post::*,
   site::*,
-  person::*,
   websocket::*,
 };
 use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     site::Site_,
-    local_user::LocalUserSettings_,
-    local_user::LocalUser_,
   },
   Crud,
   DbPool,
@@ -22,15 +20,12 @@ use lemmy_db_schema::source::{
   community::{Community, CommunityModerator},
   post::Post,
   site::Site,
-  person::{Person, PersonSafe},
-  local_user::LocalUserSettings,
-  local_user::LocalUser,
 };
+use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
 use lemmy_db_views_actor::{
   community_person_ban_view::CommunityPersonBanView,
   community_view::CommunityView,
 };
-use lemmy_db_views::local_user_view::{LocalUserView, LocalUserSettingsView};
 use lemmy_utils::{
   claims::Claims,
   settings::structs::Settings,
@@ -45,10 +40,10 @@ use url::Url;
 
 pub mod comment;
 pub mod community;
+pub mod local_user;
 pub mod post;
 pub mod routes;
 pub mod site;
-pub mod user;
 pub mod websocket;
 
 #[async_trait::async_trait(?Send)]
@@ -100,13 +95,19 @@ pub(crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyE
   }
 }
 
-pub(crate) async fn get_local_user_view_from_jwt(jwt: &str, pool: &DbPool) -> Result<LocalUserView, LemmyError> {
+pub(crate) async fn get_local_user_view_from_jwt(
+  jwt: &str,
+  pool: &DbPool,
+) -> Result<LocalUserView, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
   let person_id = claims.id;
-  let local_user_view = blocking(pool, move |conn| LocalUserView::read(conn, person_id)).await??;
+  let local_user_view = blocking(pool, move |conn| {
+    LocalUserView::read_person(conn, person_id)
+  })
+  .await??;
   // Check for a site ban
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
@@ -124,13 +125,19 @@ pub(crate) async fn get_local_user_view_from_jwt_opt(
   }
 }
 
-pub(crate) async fn get_local_user_settings_view_from_jwt(jwt: &str, pool: &DbPool) -> Result<LocalUserSettingsView, LemmyError> {
+pub(crate) async fn get_local_user_settings_view_from_jwt(
+  jwt: &str,
+  pool: &DbPool,
+) -> Result<LocalUserSettingsView, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
   let person_id = claims.id;
-  let local_user_view = blocking(pool, move |conn| LocalUserSettingsView::read(conn, person_id)).await??;
+  let local_user_view = blocking(pool, move |conn| {
+    LocalUserSettingsView::read(conn, person_id)
+  })
+  .await??;
   // Check for a site ban
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
@@ -143,7 +150,9 @@ pub(crate) async fn get_local_user_settings_view_from_jwt_opt(
   pool: &DbPool,
 ) -> Result<Option<LocalUserSettingsView>, LemmyError> {
   match jwt {
-    Some(jwt) => Ok(Some(get_local_user_settings_view_from_jwt(jwt, pool).await?)),
+    Some(jwt) => Ok(Some(
+      get_local_user_settings_view_from_jwt(jwt, pool).await?,
+    )),
     None => Ok(None),
   }
 }
@@ -153,7 +162,8 @@ pub(crate) async fn check_community_ban(
   community_id: i32,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let is_banned = move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
+  let is_banned =
+    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
     Err(ApiError::err("community_ban").into())
   } else {

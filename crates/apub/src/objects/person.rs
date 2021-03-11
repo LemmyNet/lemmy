@@ -22,7 +22,7 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::{
   naive_now,
-  source::person::{PersonForm, Person as DbPerson},
+  source::person::{Person as DbPerson, PersonForm},
 };
 use lemmy_utils::{
   location_info,
@@ -105,7 +105,10 @@ impl FromApub for DbPerson {
     } else {
       let person_form =
         PersonForm::from_apub(person, context, expected_domain, request_counter).await?;
-      let person = blocking(context.pool(), move |conn| DbPerson::upsert(conn, &person_form)).await??;
+      let person = blocking(context.pool(), move |conn| {
+        DbPerson::upsert(conn, &person_form)
+      })
+      .await??;
       Ok(person)
     }
   }

@@ -122,7 +122,9 @@ impl Perform for CreatePost {
       Err(_e) => return Err(ApiError::err("couldnt_create_post").into()),
     };
 
-    updated_post.send_create(&local_user_view.person, context).await?;
+    updated_post
+      .send_create(&local_user_view.person, context)
+      .await?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
@@ -136,7 +138,9 @@ impl Perform for CreatePost {
       return Err(ApiError::err("couldnt_like_post").into());
     }
 
-    updated_post.send_like(&local_user_view.person, context).await?;
+    updated_post
+      .send_like(&local_user_view.person, context)
+      .await?;
 
     // Refetch the view
     let inserted_post_id = inserted_post.id;
@@ -327,7 +331,9 @@ impl Perform for CreatePostLike {
         post.send_dislike(&local_user_view.person, context).await?;
       }
     } else {
-      post.send_undo_like(&local_user_view.person, context).await?;
+      post
+        .send_undo_like(&local_user_view.person, context)
+        .await?;
     }
 
     let post_id = data.post_id;
@@ -375,7 +381,12 @@ impl Perform for EditPost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -427,7 +438,9 @@ impl Perform for EditPost {
     };
 
     // Send apub update
-    updated_post.send_update(&local_user_view.person, context).await?;
+    updated_post
+      .send_update(&local_user_view.person, context)
+      .await?;
 
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
@@ -462,7 +475,12 @@ impl Perform for DeletePost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -479,9 +497,13 @@ impl Perform for DeletePost {
 
     // apub updates
     if deleted {
-      updated_post.send_delete(&local_user_view.person, context).await?;
+      updated_post
+        .send_delete(&local_user_view.person, context)
+        .await?;
     } else {
-      updated_post.send_undo_delete(&local_user_view.person, context).await?;
+      updated_post
+        .send_undo_delete(&local_user_view.person, context)
+        .await?;
     }
 
     // Refetch the post
@@ -518,10 +540,20 @@ impl Perform for RemovePost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the mods can remove
-    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_post.community_id).await?;
+    is_mod_or_admin(
+      context.pool(),
+      local_user_view.person.id,
+      orig_post.community_id,
+    )
+    .await?;
 
     // Update the post
     let post_id = data.post_id;
@@ -545,9 +577,13 @@ impl Perform for RemovePost {
 
     // apub updates
     if removed {
-      updated_post.send_remove(&local_user_view.person, context).await?;
+      updated_post
+        .send_remove(&local_user_view.person, context)
+        .await?;
     } else {
-      updated_post.send_undo_remove(&local_user_view.person, context).await?;
+      updated_post
+        .send_undo_remove(&local_user_view.person, context)
+        .await?;
     }
 
     // Refetch the post
@@ -585,10 +621,20 @@ impl Perform for LockPost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the mods can lock
-    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_post.community_id).await?;
+    is_mod_or_admin(
+      context.pool(),
+      local_user_view.person.id,
+      orig_post.community_id,
+    )
+    .await?;
 
     // Update the post
     let post_id = data.post_id;
@@ -607,7 +653,9 @@ impl Perform for LockPost {
     blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
 
     // apub updates
-    updated_post.send_update(&local_user_view.person, context).await?;
+    updated_post
+      .send_update(&local_user_view.person, context)
+      .await?;
 
     // Refetch the post
     let post_id = data.post_id;
@@ -643,10 +691,20 @@ impl Perform for StickyPost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the mods can sticky
-    is_mod_or_admin(context.pool(), local_user_view.person.id, orig_post.community_id).await?;
+    is_mod_or_admin(
+      context.pool(),
+      local_user_view.person.id,
+      orig_post.community_id,
+    )
+    .await?;
 
     // Update the post
     let post_id = data.post_id;
@@ -669,7 +727,9 @@ impl Perform for StickyPost {
 
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
-    updated_post.send_update(&local_user_view.person, context).await?;
+    updated_post
+      .send_update(&local_user_view.person, context)
+      .await?;
 
     // Refetch the post
     let post_id = data.post_id;

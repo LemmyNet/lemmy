@@ -268,7 +268,8 @@ pub(crate) async fn check_community_or_site_ban(
     return Err(anyhow!("Person is banned from site").into());
   }
   let person_id = person.id;
-  let is_banned = move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
+  let is_banned =
+    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
     return Err(anyhow!("Person is banned from community").into());
   }

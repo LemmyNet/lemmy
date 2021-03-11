@@ -9,8 +9,8 @@ use lemmy_db_queries::{
   ViewToVec,
 };
 use lemmy_db_schema::{
-  schema::{person, person_aggregates, local_user},
-  source::person::{PersonSafe, Person},
+  schema::{local_user, person, person_aggregates},
+  source::person::{Person, PersonSafe},
 };
 use serde::Serialize;
 

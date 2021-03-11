@@ -22,8 +22,8 @@ use anyhow::Context;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
-  private_message::{PrivateMessage, PrivateMessageForm},
   person::Person,
+  private_message::{PrivateMessage, PrivateMessageForm},
 };
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -97,7 +97,8 @@ impl FromApubToForm<NoteExt> for PrivateMessageForm {
       .single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_person(&creator_actor_id, context, request_counter).await?;
+    let creator =
+      get_or_fetch_and_upsert_person(&creator_actor_id, context, request_counter).await?;
     let recipient_actor_id = note
       .to()
       .context(location_info!())?

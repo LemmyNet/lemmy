@@ -28,7 +28,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_api_structs::{blocking, WebFingerResponse};
 use lemmy_db_queries::{Crud, DbPool};
-use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post, person::Person};
+use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::{
   request::{retry, RecvError},
   settings::structs::Settings,
@@ -197,7 +197,11 @@ impl ApubObjectType for Comment {
     Ok(())
   }
 
-  async fn send_undo_remove(&self, mod_: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_undo_remove(
+    &self,
+    mod_: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -389,7 +393,10 @@ async fn collect_non_local_mentions(
 
 /// Returns the apub ID of the person this comment is responding to. Meaning, in case this is a
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
-async fn get_comment_parent_creator(pool: &DbPool, comment: &Comment) -> Result<Person, LemmyError> {
+async fn get_comment_parent_creator(
+  pool: &DbPool,
+  comment: &Comment,
+) -> Result<Person, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
     let parent_comment =
       blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;

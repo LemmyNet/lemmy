@@ -1,12 +1,12 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, mod_lock_post, post, person},
+  schema::{community, mod_lock_post, person, post},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModLockPost,
+    person::{Person, PersonSafe},
     post::Post,
-    person::{PersonSafe, Person},
   },
 };
 use serde::Serialize;

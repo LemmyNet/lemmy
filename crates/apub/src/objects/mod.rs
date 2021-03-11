@@ -26,9 +26,9 @@ use url::Url;
 
 pub(crate) mod comment;
 pub(crate) mod community;
+pub(crate) mod person;
 pub(crate) mod post;
 pub(crate) mod private_message;
-pub(crate) mod person;
 
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]

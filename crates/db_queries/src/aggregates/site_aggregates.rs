@@ -25,17 +25,13 @@ impl SiteAggregates {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    aggregates::site_aggregates::SiteAggregates,
-    establish_unpooled_connection,
-    Crud,
-  };
+  use crate::{aggregates::site_aggregates::SiteAggregates, establish_unpooled_connection, Crud};
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     community::{Community, CommunityForm},
+    person::{Person, PersonForm},
     post::{Post, PostForm},
     site::{Site, SiteForm},
-    person::{PersonForm, Person},
   };
   use serial_test::serial;
 

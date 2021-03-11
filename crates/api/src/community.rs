@@ -517,9 +517,15 @@ impl Perform for FollowCommunity {
     } else if data.follow {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
-      local_user_view.person.send_follow(&community.actor_id(), context).await?;
+      local_user_view
+        .person
+        .send_follow(&community.actor_id(), context)
+        .await?;
     } else {
-      local_user_view.person.send_unfollow(&community.actor_id(), context).await?;
+      local_user_view
+        .person
+        .send_unfollow(&community.actor_id(), context)
+        .await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(context.pool(), unfollow).await?.is_err() {
         return Err(ApiError::err("community_follower_already_exists").into());
@@ -788,7 +794,10 @@ impl Perform for TransferCommunity {
 
     // Make sure user is the creator, or an admin
     if local_user_view.person.id != read_community.creator_id
-      && !admins.iter().map(|a| a.person.id).any(|x| x == local_user_view.person.id)
+      && !admins
+        .iter()
+        .map(|a| a.person.id)
+        .any(|x| x == local_user_view.person.id)
     {
       return Err(ApiError::err("not_an_admin").into());
     }

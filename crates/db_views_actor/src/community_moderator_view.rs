@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   schema::{community, community_moderator, person},
   source::{
     community::{Community, CommunitySafe},
-    person::{PersonSafe, Person},
+    person::{Person, PersonSafe},
   },
 };
 use serde::Serialize;
@@ -22,7 +22,10 @@ impl CommunityModeratorView {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
-      .select((Community::safe_columns_tuple(), Person::safe_columns_tuple()))
+      .select((
+        Community::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+      ))
       .filter(community_moderator::community_id.eq(community_id))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;
@@ -34,7 +37,10 @@ impl CommunityModeratorView {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
-      .select((Community::safe_columns_tuple(), Person::safe_columns_tuple()))
+      .select((
+        Community::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+      ))
       .filter(community_moderator::person_id.eq(person_id))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;

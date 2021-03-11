@@ -26,9 +26,9 @@ use std::fmt::Debug;
 use url::Url;
 
 pub mod community_inbox;
+pub mod person_inbox;
 mod receive_for_community;
 pub mod shared_inbox;
-pub mod person_inbox;
 
 pub(crate) fn get_activity_id<T, Kind>(activity: &T, creator_uri: &Url) -> Result<Url, LemmyError>
 where

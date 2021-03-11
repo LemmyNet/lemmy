@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   schema::{community, community_person_ban, person},
   source::{
     community::{Community, CommunitySafe},
-    person::{PersonSafe, Person},
+    person::{Person, PersonSafe},
   },
 };
 use serde::Serialize;
@@ -24,7 +24,10 @@ impl CommunityPersonBanView {
     let (community, person) = community_person_ban::table
       .inner_join(community::table)
       .inner_join(person::table)
-      .select((Community::safe_columns_tuple(), Person::safe_columns_tuple()))
+      .select((
+        Community::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+      ))
       .filter(community_person_ban::community_id.eq(from_community_id))
       .filter(community_person_ban::person_id.eq(from_person_id))
       .order_by(community_person_ban::published)

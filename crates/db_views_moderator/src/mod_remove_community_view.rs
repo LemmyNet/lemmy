@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunitySafe},
     moderator::ModRemoveCommunity,
-    person::{PersonSafe, Person},
+    person::{Person, PersonSafe},
   },
 };
 use serde::Serialize;

@@ -32,8 +32,8 @@ mod tests {
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
     community::{Community, CommunityForm},
+    person::{Person, PersonForm},
     post::{Post, PostForm, PostLike, PostLikeForm},
-    person::{PersonForm, Person},
   };
   use serial_test::serial;
 
@@ -189,7 +189,8 @@ mod tests {
 
     let _inserted_child_comment_like = CommentLike::like(&conn, &child_comment_like).unwrap();
 
-    let person_aggregates_before_delete = PersonAggregates::read(&conn, inserted_person.id).unwrap();
+    let person_aggregates_before_delete =
+      PersonAggregates::read(&conn, inserted_person.id).unwrap();
 
     assert_eq!(1, person_aggregates_before_delete.post_count);
     assert_eq!(1, person_aggregates_before_delete.post_score);

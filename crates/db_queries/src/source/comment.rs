@@ -209,8 +209,8 @@ mod tests {
   use lemmy_db_schema::source::{
     comment::*,
     community::{Community, CommunityForm},
+    person::{Person, PersonForm},
     post::*,
-    person::{PersonForm, Person},
   };
   use serial_test::serial;
 
