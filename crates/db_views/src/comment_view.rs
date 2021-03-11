@@ -449,7 +449,7 @@ mod tests {
     let conn = establish_unpooled_connection();
 
     let new_person = PersonForm {
-      name: "thommy".into(),
+      name: "timmy".into(),
       preferred_username: None,
       avatar: None,
       banner: None,
