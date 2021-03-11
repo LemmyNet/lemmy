@@ -744,7 +744,6 @@ impl Perform for AddModToCommunity {
       Community::read(conn, community_id)
     })
     .await??;
-    dbg!(data.added);
     if data.added {
       send_add_mod(user, updated_mod, community, context).await?;
     } else {
