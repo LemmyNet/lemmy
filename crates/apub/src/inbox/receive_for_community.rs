@@ -112,12 +112,35 @@ pub(in crate::inbox) async fn receive_create_for_community(
 pub(in crate::inbox) async fn receive_update_for_community(
   context: &LemmyContext,
   activity: AnyBase,
+  announce: Option<Announce>,
   expected_domain: &Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, &expected_domain, true)?;
   verify_is_addressed_to_public(&update)?;
+
+  // Check that actor is the creator (or a mod)
+  let actor = update
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let actor = get_or_fetch_and_upsert_user(&actor, context, request_counter).await?;
+  let object_id = update
+    .object()
+    .as_one()
+    .map(|o| o.id())
+    .flatten()
+    .context(location_info!())?;
+  let original_author = match find_post_or_comment_by_id(context, object_id.to_owned()).await? {
+    PostOrComment::Post(p) => p.creator_id,
+    PostOrComment::Comment(c) => c.creator_id,
+  };
+  if actor.id != original_author {
+    let community = extract_community_from_cc(&update, context).await?;
+    verify_mod_activity(&update, announce, &community, context).await?;
+  }
 
   let kind = update
     .object()
@@ -522,7 +545,7 @@ async fn verify_mod_activity<T, Kind>(
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
-  T: ActorAndObjectRef + OptTargetRef + BaseExt<Kind>,
+  T: ActorAndObjectRef + BaseExt<Kind>,
 {
   // Remove was sent by community to user, we just check that it came from the right domain
   if let Some(announce) = announce {
@@ -535,6 +558,7 @@ where
 
   Ok(())
 }
+
 fn verify_add_remove_moderator_target<T, Kind>(
   activity: &T,
   community: &Community,

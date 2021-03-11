@@ -289,7 +289,14 @@ pub async fn receive_announce(
       receive_create_for_community(context, inner_activity, &inner_id, request_counter).await
     }
     Some(Update) => {
-      receive_update_for_community(context, inner_activity, &inner_id, request_counter).await
+      receive_update_for_community(
+        context,
+        inner_activity,
+        Some(announce),
+        &inner_id,
+        request_counter,
+      )
+      .await
     }
     Some(Like) => {
       receive_like_for_community(context, inner_activity, &inner_id, request_counter).await

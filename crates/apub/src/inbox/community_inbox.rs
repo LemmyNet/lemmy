@@ -148,7 +148,8 @@ pub(crate) async fn community_receive_message(
       true
     }
     CommunityValidTypes::Update => {
-      receive_update_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      receive_update_for_community(context, any_base.clone(), None, &actor_url, request_counter)
+        .await?;
       true
     }
     CommunityValidTypes::Like => {

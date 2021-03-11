@@ -87,7 +87,7 @@ services:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
 
   lemmy-gamma-ui:
-    image: dessalines/lemmy-ui:0.9.9
+    image: lemmy-ui:test
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-gamma:8561
       - LEMMY_EXTERNAL_HOST=localhost:8561
