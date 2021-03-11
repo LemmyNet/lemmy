@@ -36,7 +36,8 @@ use crate::{
     user::get_or_fetch_and_upsert_user,
   },
   find_post_or_comment_by_id,
-  inbox::is_addressed_to_public,
+  generate_moderators_url,
+  inbox::verify_is_addressed_to_public,
   ActorType,
   PostOrComment,
 };
@@ -44,6 +45,7 @@ use activitystreams::{
   activity::{
     ActorAndObjectRef,
     Add,
+    Announce,
     Create,
     Delete,
     Dislike,
@@ -54,6 +56,7 @@ use activitystreams::{
     Update,
   },
   base::AnyBase,
+  object::AsObject,
   prelude::*,
 };
 use anyhow::{anyhow, Context};
@@ -92,7 +95,7 @@ pub(in crate::inbox) async fn receive_create_for_community(
 ) -> Result<(), LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&create, &expected_domain, true)?;
-  is_addressed_to_public(&create)?;
+  verify_is_addressed_to_public(&create)?;
 
   let kind = create
     .object()
@@ -114,7 +117,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
 ) -> Result<(), LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, &expected_domain, true)?;
-  is_addressed_to_public(&update)?;
+  verify_is_addressed_to_public(&update)?;
 
   let kind = update
     .object()
@@ -136,7 +139,7 @@ pub(in crate::inbox) async fn receive_like_for_community(
 ) -> Result<(), LemmyError> {
   let like = Like::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&like, &expected_domain, false)?;
-  is_addressed_to_public(&like)?;
+  verify_is_addressed_to_public(&like)?;
 
   let object_id = like
     .object()
@@ -167,7 +170,7 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
 
   let dislike = Dislike::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
-  is_addressed_to_public(&dislike)?;
+  verify_is_addressed_to_public(&dislike)?;
 
   let object_id = dislike
     .object()
@@ -191,7 +194,7 @@ pub(in crate::inbox) async fn receive_delete_for_community(
 ) -> Result<(), LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&delete, &expected_domain, true)?;
-  is_addressed_to_public(&delete)?;
+  verify_is_addressed_to_public(&delete)?;
 
   let object = delete
     .object()
@@ -210,18 +213,18 @@ pub(in crate::inbox) async fn receive_delete_for_community(
 /// A post or comment being removed by a mod/admin
 pub(in crate::inbox) async fn receive_remove_for_community(
   context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: &Url,
+  remove_any_base: AnyBase,
+  announce: Option<Announce>,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let remove = Remove::from_any_base(activity.to_owned())?.context(location_info!())?;
-  verify_activity_domains_valid(&remove, &expected_domain, false)?;
-  is_addressed_to_public(&remove)?;
+  let remove = Remove::from_any_base(remove_any_base.to_owned())?.context(location_info!())?;
+  let community = extract_community_from_cc(&remove, context).await?;
 
-  // Remove a moderator from community
+  verify_mod_activity(&remove, announce, &community, context).await?;
+  verify_is_addressed_to_public(&remove)?;
+  verify_actor_is_community_mod(&remove, &community, context).await?;
+
   if remove.target().is_some() {
-    let community = verify_actor_is_community_mod(&remove, context).await?;
-
     let remove_mod = remove
       .object()
       .as_single_xsd_any_uri()
@@ -235,31 +238,17 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       CommunityModerator::leave(conn, &form)
     })
     .await??;
-    community.send_announce(activity, context).await?;
+    community.send_announce(remove_any_base, context).await?;
     // TODO: send websocket notification about removed mod
     Ok(())
   }
   // Remove a post or comment
   else {
-    let cc = remove
-      .cc()
-      .map(|c| c.as_many())
-      .flatten()
-      .context(location_info!())?;
-    let community_id = cc
-      .first()
-      .map(|c| c.as_xsd_any_uri())
-      .flatten()
-      .context(location_info!())?;
-
     let object = remove
       .object()
       .to_owned()
       .single_xsd_any_uri()
       .context(location_info!())?;
-
-    // Ensure that remove activity comes from the same domain as the community
-    remove.id(community_id.domain().context(location_info!())?)?;
 
     match find_post_or_comment_by_id(context, object).await {
       Ok(PostOrComment::Post(p)) => receive_remove_post(context, remove, *p).await,
@@ -287,7 +276,7 @@ pub(in crate::inbox) async fn receive_undo_for_community(
 ) -> Result<(), LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&undo, &expected_domain.to_owned(), true)?;
-  is_addressed_to_public(&undo)?;
+  verify_is_addressed_to_public(&undo)?;
 
   use UndoableActivities::*;
   match undo
@@ -316,7 +305,7 @@ pub(in crate::inbox) async fn receive_undo_delete_for_community(
   let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   verify_activity_domains_valid(&delete, &expected_domain, true)?;
-  is_addressed_to_public(&delete)?;
+  verify_is_addressed_to_public(&delete)?;
 
   let object = delete
     .object()
@@ -340,7 +329,7 @@ pub(in crate::inbox) async fn receive_undo_remove_for_community(
   let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   verify_activity_domains_valid(&remove, &expected_domain, false)?;
-  is_addressed_to_public(&remove)?;
+  verify_is_addressed_to_public(&remove)?;
 
   let object = remove
     .object()
@@ -365,7 +354,7 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
   let like = Like::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   verify_activity_domains_valid(&like, &expected_domain, false)?;
-  is_addressed_to_public(&like)?;
+  verify_is_addressed_to_public(&like)?;
 
   let object_id = like
     .object()
@@ -384,14 +373,17 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
 /// Add a new mod to the community (can only be done by an existing mod).
 pub(in crate::inbox) async fn receive_add_for_community(
   context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: &Url,
+  add_any_base: AnyBase,
+  announce: Option<Announce>,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let add = Add::from_any_base(activity.to_owned())?.context(location_info!())?;
-  verify_activity_domains_valid(&add, &expected_domain, false)?;
-  is_addressed_to_public(&add)?;
-  let community = verify_actor_is_community_mod(&add, context).await?;
+  let add = Add::from_any_base(add_any_base.to_owned())?.context(location_info!())?;
+  let community = extract_community_from_cc(&add, context).await?;
+
+  verify_mod_activity(&add, announce, &community, context).await?;
+  verify_is_addressed_to_public(&add)?;
+  verify_actor_is_community_mod(&add, &community, context).await?;
+  verify_add_remove_moderator_target(&add, &community)?;
 
   let new_mod = add
     .object()
@@ -417,7 +409,7 @@ pub(in crate::inbox) async fn receive_add_for_community(
     .await??;
   }
   if community.local {
-    community.send_announce(activity, context).await?;
+    community.send_announce(add_any_base, context).await?;
   }
   // TODO: send websocket notification about added mod
   Ok(())
@@ -433,7 +425,7 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
-  is_addressed_to_public(&dislike)?;
+  verify_is_addressed_to_public(&dislike)?;
 
   let object_id = dislike
     .object()
@@ -465,26 +457,39 @@ async fn fetch_post_or_comment_by_id(
   Err(NotFound.into())
 }
 
-async fn verify_actor_is_community_mod<T, Kind>(
+async fn extract_community_from_cc<T, Kind>(
   activity: &T,
   context: &LemmyContext,
 ) -> Result<Community, LemmyError>
 where
-  T: ActorAndObjectRef + BaseExt<Kind> + OptTargetRef,
+  T: AsObject<Kind>,
 {
-  // should be the moderators collection of a local community
-  let target = activity
-    .target()
-    .map(|t| t.as_single_xsd_any_uri())
+  let cc = activity
+    .cc()
+    .map(|c| c.as_many())
     .flatten()
     .context(location_info!())?;
-  // TODO: very hacky, we should probably store the moderators url in db
-  let community_id: DbUrl = Url::parse(&target.to_string().replace("/moderators", ""))?.into();
+  let community_id = cc
+    .first()
+    .map(|c| c.as_xsd_any_uri())
+    .flatten()
+    .context(location_info!())?;
+  let community_id: DbUrl = community_id.to_owned().into();
   let community = blocking(&context.pool(), move |conn| {
     Community::read_from_apub_id(&conn, &community_id)
   })
   .await??;
+  Ok(community)
+}
 
+async fn verify_actor_is_community_mod<T, Kind>(
+  activity: &T,
+  community: &Community,
+  context: &LemmyContext,
+) -> Result<(), LemmyError>
+where
+  T: ActorAndObjectRef + BaseExt<Kind>,
+{
   let actor = activity
     .actor()?
     .as_single_xsd_any_uri()
@@ -507,6 +512,43 @@ where
     return Err(anyhow!("Not a mod").into());
   }
 
-  // TODO: the function name doesnt make sense if we return the community
-  Ok(community)
+  Ok(())
+}
+
+async fn verify_mod_activity<T, Kind>(
+  mod_action: &T,
+  announce: Option<Announce>,
+  community: &Community,
+  context: &LemmyContext,
+) -> Result<(), LemmyError>
+where
+  T: ActorAndObjectRef + OptTargetRef + BaseExt<Kind>,
+{
+  // Remove was sent by community to user, we just check that it came from the right domain
+  if let Some(announce) = announce {
+    verify_activity_domains_valid(&announce, &community.actor_id.to_owned().into(), false)?;
+  }
+  // Remove was sent by a remote mod to community, check that they are actually mod
+  else {
+    verify_actor_is_community_mod(mod_action, community, context).await?;
+  }
+
+  Ok(())
+}
+fn verify_add_remove_moderator_target<T, Kind>(
+  activity: &T,
+  community: &Community,
+) -> Result<(), LemmyError>
+where
+  T: ActorAndObjectRef + BaseExt<Kind> + OptTargetRef,
+{
+  let target = activity
+    .target()
+    .map(|t| t.as_single_xsd_any_uri())
+    .flatten()
+    .context(location_info!())?;
+  if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
+    return Err(anyhow!("Unkown target url").into());
+  }
+  Ok(())
 }

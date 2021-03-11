@@ -1,4 +1,7 @@
-use crate::{activities::receive::verify_activity_domains_valid, inbox::is_addressed_to_public};
+use crate::{
+  activities::receive::verify_activity_domains_valid,
+  inbox::verify_is_addressed_to_public,
+};
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Delete, Remove, Undo},
   base::{AnyBase, ExtendsExt},
@@ -47,7 +50,7 @@ pub(crate) async fn receive_remove_community(
 ) -> Result<(), LemmyError> {
   let remove = Remove::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&remove, expected_domain, true)?;
-  is_addressed_to_public(&remove)?;
+  verify_is_addressed_to_public(&remove)?;
 
   let community_uri = remove
     .object()
@@ -89,11 +92,11 @@ pub(crate) async fn receive_undo_delete_community(
   community: Community,
   expected_domain: &Url,
 ) -> Result<(), LemmyError> {
-  is_addressed_to_public(&undo)?;
+  verify_is_addressed_to_public(&undo)?;
   let inner = undo.object().to_owned().one().context(location_info!())?;
   let delete = Delete::from_any_base(inner)?.context(location_info!())?;
   verify_activity_domains_valid(&delete, expected_domain, true)?;
-  is_addressed_to_public(&delete)?;
+  verify_is_addressed_to_public(&delete)?;
 
   let deleted_community = blocking(context.pool(), move |conn| {
     Community::update_deleted(conn, community.id, false)
@@ -124,12 +127,12 @@ pub(crate) async fn receive_undo_remove_community(
   undo: Undo,
   expected_domain: &Url,
 ) -> Result<(), LemmyError> {
-  is_addressed_to_public(&undo)?;
+  verify_is_addressed_to_public(&undo)?;
 
   let inner = undo.object().to_owned().one().context(location_info!())?;
   let remove = Remove::from_any_base(inner)?.context(location_info!())?;
   verify_activity_domains_valid(&remove, &expected_domain, true)?;
-  is_addressed_to_public(&remove)?;
+  verify_is_addressed_to_public(&remove)?;
 
   let community_uri = remove
     .object()

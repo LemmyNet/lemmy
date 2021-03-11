@@ -84,7 +84,7 @@ where
   to_and_cc
 }
 
-pub(crate) fn is_addressed_to_public<T, Kind>(activity: &T) -> Result<(), LemmyError>
+pub(crate) fn verify_is_addressed_to_public<T, Kind>(activity: &T) -> Result<(), LemmyError>
 where
   T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
 {

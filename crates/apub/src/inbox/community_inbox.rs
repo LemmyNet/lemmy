@@ -6,7 +6,6 @@ use crate::{
     get_activity_to_and_cc,
     inbox_verify_http_signature,
     is_activity_already_known,
-    is_addressed_to_public,
     receive_for_community::{
       receive_add_for_community,
       receive_create_for_community,
@@ -17,6 +16,7 @@ use crate::{
       receive_undo_for_community,
       receive_update_for_community,
     },
+    verify_is_addressed_to_public,
   },
   insert_activity,
   ActorType,
@@ -164,18 +164,18 @@ pub(crate) async fn community_receive_message(
       true
     }
     CommunityValidTypes::Add => {
-      receive_add_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      receive_add_for_community(context, any_base.clone(), None, request_counter).await?;
       true
     }
     CommunityValidTypes::Remove => {
-      receive_remove_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      receive_remove_for_community(context, any_base.clone(), None, request_counter).await?;
       true
     }
   };
 
   if do_announce {
     // Check again that the activity is public, just to be sure
-    is_addressed_to_public(&activity)?;
+    verify_is_addressed_to_public(&activity)?;
     to_community
       .send_announce(activity.into_any_base()?, context)
       .await?;

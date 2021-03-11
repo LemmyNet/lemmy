@@ -219,7 +219,8 @@ pub async fn send_add_mod(
   add
     .set_many_contexts(lemmy_context()?)
     .set_id(generate_activity_id(AddType::Add)?)
-    .set_many_tos(vec![community.actor_id.to_owned().into_inner(), public()])
+    .set_to(public())
+    .set_many_ccs(vec![community.actor_id()])
     .set_target(generate_moderators_url(&community.actor_id)?.into_inner());
 
   if community.local {
@@ -245,7 +246,8 @@ pub async fn send_remove_mod(
   remove
     .set_many_contexts(lemmy_context()?)
     .set_id(generate_activity_id(RemoveType::Remove)?)
-    .set_many_tos(vec![community.actor_id.to_owned().into_inner(), public()])
+    .set_to(public())
+    .set_many_ccs(vec![community.actor_id()])
     .set_target(generate_moderators_url(&community.actor_id)?.into_inner());
 
   if community.local {
