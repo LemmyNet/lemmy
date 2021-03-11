@@ -26,7 +26,7 @@ use std::fmt::Debug;
 use url::Url;
 
 pub mod community_inbox;
-mod receive_for_community;
+pub(crate) mod receive_for_community;
 pub mod shared_inbox;
 pub mod user_inbox;
 

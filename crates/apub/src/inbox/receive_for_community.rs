@@ -139,7 +139,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
   };
   if actor.id != original_author {
     let community = extract_community_from_cc(&update, context).await?;
-    verify_mod_activity(&update, announce, &community, context).await?;
+    verify_mod_activity(&update, announce.to_owned(), &community, context).await?;
   }
 
   let kind = update
@@ -147,7 +147,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
     .as_single_kind_str()
     .and_then(|s| s.parse().ok());
   match kind {
-    Some(PageOrNote::Page) => receive_update_post(update, context, request_counter).await,
+    Some(PageOrNote::Page) => receive_update_post(update, announce, context, request_counter).await,
     Some(PageOrNote::Note) => receive_update_comment(update, context, request_counter).await,
     _ => receive_unhandled_activity(update),
   }
@@ -538,7 +538,7 @@ where
   Ok(())
 }
 
-async fn verify_mod_activity<T, Kind>(
+pub(crate) async fn verify_mod_activity<T, Kind>(
   mod_action: &T,
   announce: Option<Announce>,
   community: &Community,

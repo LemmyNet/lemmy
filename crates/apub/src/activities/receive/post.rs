@@ -1,12 +1,24 @@
-use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, PageExt};
+use crate::{
+  activities::receive::get_actor_as_user,
+  inbox::receive_for_community::verify_mod_activity,
+  objects::FromApub,
+  ActorType,
+  PageExt,
+};
 use activitystreams::{
-  activity::{Create, Dislike, Like, Remove, Update},
+  activity::{Announce, Create, Dislike, Like, Remove, Update},
   prelude::*,
 };
 use anyhow::Context;
 use lemmy_api_structs::{blocking, post::PostResponse};
-use lemmy_db_queries::{source::post::Post_, Likeable};
-use lemmy_db_schema::source::post::{Post, PostLike, PostLikeForm};
+use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, Likeable};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    post::{Post, PostLike, PostLikeForm},
+  },
+  DbUrl,
+};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
@@ -42,12 +54,34 @@ pub(crate) async fn receive_create_post(
 
 pub(crate) async fn receive_update_post(
   update: Update,
+  announce: Option<Announce>,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&update, context, request_counter).await?;
   let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
+
+  let post_id: DbUrl = page
+    .id_unchecked()
+    .context(location_info!())?
+    .to_owned()
+    .into();
+  let old_post = blocking(context.pool(), move |conn| {
+    Post::read_from_apub_id(conn, &post_id)
+  })
+  .await??;
+
+  // If sticked or locked state was changed, make sure the actor is a mod
+  let stickied = page.ext_one.stickied.context(location_info!())?;
+  let locked = !page.ext_one.comments_enabled.context(location_info!())?;
+  if stickied != old_post.stickied || locked != old_post.locked {
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, old_post.community_id)
+    })
+    .await??;
+    verify_mod_activity(&update, announce, &community, context).await?;
+  }
 
   let post = Post::from_apub(&page, context, user.actor_id(), request_counter).await?;
 
