@@ -1141,21 +1141,6 @@ impl Perform for CreatePrivateMessage {
       .send_create(&local_user_view.person, context)
       .await?;
 
-    // Send notifications to the recipient
-    let recipient_id = data.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
-    })
-    .await??;
-    if recipient.local_user.send_notifications_to_email {
-      send_email_to_user(
-        recipient,
-        "Private Message from",
-        "Private Message",
-        &content_slurs_removed,
-      );
-    }
-
     let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, inserted_private_message.id)
     })
@@ -1165,12 +1150,30 @@ impl Perform for CreatePrivateMessage {
       private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::CreatePrivateMessage,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = data.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      if local_recipient.local_user.send_notifications_to_email {
+        send_email_to_user(
+          &local_recipient,
+          "Private Message from",
+          "Private Message",
+          &content_slurs_removed,
+        );
+      }
+
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::CreatePrivateMessage,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1220,18 +1223,26 @@ impl Perform for EditPrivateMessage {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = private_message_view.recipient.id;
 
     let res = PrivateMessageResponse {
       private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::EditPrivateMessage,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = orig_private_message.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::EditPrivateMessage,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1287,18 +1298,26 @@ impl Perform for DeletePrivateMessage {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = private_message_view.recipient.id;
 
     let res = PrivateMessageResponse {
       private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::DeletePrivateMessage,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = orig_private_message.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::DeletePrivateMessage,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1339,24 +1358,31 @@ impl Perform for MarkPrivateMessageAsRead {
     };
 
     // No need to send an apub update
-
     let private_message_id = data.private_message_id;
     let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = private_message_view.recipient.id;
 
     let res = PrivateMessageResponse {
       private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::MarkPrivateMessageAsRead,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = orig_private_message.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::MarkPrivateMessageAsRead,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1441,7 +1467,7 @@ impl Perform for GetReportCount {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::GetReportCount,
       response: res.clone(),
-      recipient_id: local_user_view.person.id,
+      local_recipient_id: local_user_view.person.id,
       websocket_id,
     });
 

@@ -50,7 +50,7 @@ pub struct SendAllMessage<Response> {
 pub struct SendUserRoomMessage<Response> {
   pub op: UserOperation,
   pub response: Response,
-  pub recipient_id: LocalUserId,
+  pub local_recipient_id: LocalUserId,
   pub websocket_id: Option<ConnectionId>,
 }
 

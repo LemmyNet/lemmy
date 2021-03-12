@@ -754,7 +754,7 @@ impl Perform for CreateCommentReport {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::CreateCommentReport,
       response: res.clone(),
-      recipient_id: local_user_view.person.id,
+      local_recipient_id: local_user_view.person.id,
       websocket_id,
     });
 
@@ -856,7 +856,7 @@ impl Perform for ListCommentReports {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::ListCommentReports,
       response: res.clone(),
-      recipient_id: local_user_view.person.id,
+      local_recipient_id: local_user_view.person.id,
       websocket_id,
     });
 

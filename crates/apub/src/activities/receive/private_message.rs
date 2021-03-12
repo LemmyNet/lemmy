@@ -16,7 +16,7 @@ use anyhow::{anyhow, Context};
 use lemmy_api_structs::{blocking, person::PrivateMessageResponse};
 use lemmy_db_queries::source::private_message::PrivateMessage_;
 use lemmy_db_schema::source::private_message::PrivateMessage;
-use lemmy_db_views::private_message_view::PrivateMessageView;
+use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
 use url::Url;
@@ -50,12 +50,19 @@ pub(crate) async fn receive_create_private_message(
     private_message_view: message,
   };
 
+  // Send notifications to the local recipient, if one exists
   let recipient_id = res.private_message_view.recipient.id;
+  let local_recipient_id = blocking(context.pool(), move |conn| {
+    LocalUserView::read_person(conn, recipient_id)
+  })
+  .await??
+  .local_user
+  .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::CreatePrivateMessage,
     response: res,
-    recipient_id,
+    local_recipient_id,
     websocket_id: None,
   });
 
@@ -91,11 +98,17 @@ pub(crate) async fn receive_update_private_message(
   };
 
   let recipient_id = res.private_message_view.recipient.id;
+  let local_recipient_id = blocking(context.pool(), move |conn| {
+    LocalUserView::read_person(conn, recipient_id)
+  })
+  .await??
+  .local_user
+  .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,
-    recipient_id,
+    local_recipient_id,
     websocket_id: None,
   });
 
@@ -123,11 +136,19 @@ pub(crate) async fn receive_delete_private_message(
   let res = PrivateMessageResponse {
     private_message_view: message,
   };
+
   let recipient_id = res.private_message_view.recipient.id;
+  let local_recipient_id = blocking(context.pool(), move |conn| {
+    LocalUserView::read_person(conn, recipient_id)
+  })
+  .await??
+  .local_user
+  .id;
+
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,
-    recipient_id,
+    local_recipient_id,
     websocket_id: None,
   });
 
@@ -160,11 +181,19 @@ pub(crate) async fn receive_undo_delete_private_message(
   let res = PrivateMessageResponse {
     private_message_view: message,
   };
+
   let recipient_id = res.private_message_view.recipient.id;
+  let local_recipient_id = blocking(context.pool(), move |conn| {
+    LocalUserView::read_person(conn, recipient_id)
+  })
+  .await??
+  .local_user
+  .id;
+
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,
-    recipient_id,
+    local_recipient_id,
     websocket_id: None,
   });
 

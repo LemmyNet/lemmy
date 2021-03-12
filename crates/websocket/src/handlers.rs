@@ -102,7 +102,12 @@ where
 
   fn handle(&mut self, msg: SendUserRoomMessage<Response>, _: &mut Context<Self>) {
     self
-      .send_user_room_message(&msg.op, &msg.response, msg.recipient_id, msg.websocket_id)
+      .send_user_room_message(
+        &msg.op,
+        &msg.response,
+        msg.local_recipient_id,
+        msg.websocket_id,
+      )
       .ok();
   }
 }

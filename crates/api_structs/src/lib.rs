@@ -105,7 +105,7 @@ fn do_send_local_notifs(
       // Send an email to those local users that have notifications on
       if do_send_email && mention_user_view.local_user.send_notifications_to_email {
         send_email_to_user(
-          mention_user_view,
+          &mention_user_view,
           "Mentioned by",
           "Person Mention",
           &comment.content,
@@ -125,7 +125,7 @@ fn do_send_local_notifs(
 
             if do_send_email && parent_user_view.local_user.send_notifications_to_email {
               send_email_to_user(
-                parent_user_view,
+                &parent_user_view,
                 "Reply from",
                 "Comment Reply",
                 &comment.content,
@@ -143,7 +143,7 @@ fn do_send_local_notifs(
 
           if do_send_email && parent_user_view.local_user.send_notifications_to_email {
             send_email_to_user(
-              parent_user_view,
+              &parent_user_view,
               "Reply from",
               "Post Reply",
               &comment.content,
@@ -157,7 +157,7 @@ fn do_send_local_notifs(
 }
 
 pub fn send_email_to_user(
-  local_user_view: LocalUserView,
+  local_user_view: &LocalUserView,
   subject_text: &str,
   body_text: &str,
   comment_content: &str,
@@ -166,7 +166,7 @@ pub fn send_email_to_user(
     return;
   }
 
-  if let Some(user_email) = local_user_view.local_user.email {
+  if let Some(user_email) = &local_user_view.local_user.email {
     let subject = &format!(
       "{} - {} {}",
       subject_text,
