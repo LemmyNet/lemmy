@@ -105,7 +105,7 @@ impl FromApub for Community {
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
     let community: Community =
@@ -160,9 +160,10 @@ impl FromApubToForm<GroupExt> for CommunityForm {
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
+    let expected_domain = expected_domain.expect("expected_domain must be set for community");
     let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
     let creator_uri = moderator_uris.first().context(location_info!())?;
 

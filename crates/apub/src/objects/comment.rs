@@ -97,7 +97,7 @@ impl FromApub for Comment {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
     let comment: Comment =
@@ -126,9 +126,10 @@ impl FromApubToForm<NoteExt> for CommentForm {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<CommentForm, LemmyError> {
+    let expected_domain = expected_domain.expect("expected_domain must be set for comment");
     let creator_actor_id = &note
       .attributed_to()
       .context(location_info!())?

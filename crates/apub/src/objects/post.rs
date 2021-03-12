@@ -1,4 +1,5 @@
 use crate::{
+  check_is_apub_id_valid,
   extensions::{context::lemmy_context, page_extension::PageExtension},
   fetcher::user::get_or_fetch_and_upsert_user,
   objects::{
@@ -115,7 +116,7 @@ impl FromApub for Post {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Post, LemmyError> {
     let post: Post = get_object_from_apub(page, context, expected_domain, request_counter).await?;
@@ -130,9 +131,17 @@ impl FromApubToForm<PageExt> for PostForm {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<PostForm, LemmyError> {
+    let ap_id = match expected_domain {
+      Some(e) => check_object_domain(page, e)?,
+      None => {
+        let id = page.id_unchecked().context(location_info!())?;
+        check_is_apub_id_valid(id)?;
+        id.to_owned().into()
+      }
+    };
     let ext = &page.ext_one;
     let creator_actor_id = page
       .inner
@@ -187,6 +196,11 @@ impl FromApubToForm<PageExt> for PostForm {
       .to_string();
     let body = get_source_markdown_value(page)?;
 
+    // TODO: expected_domain is wrong in this case, because it simply takes the domain of the actor
+    //       maybe we need to take id_unchecked() if the activity is from community to user?
+    //       why did this work before? -> i dont think it did?
+    //       -> try to make expected_domain optional and set it null if it is a mod action
+
     check_slurs(&name)?;
     let body_slurs_removed = body.map(|b| remove_slurs(&b));
     Ok(PostForm {
@@ -214,7 +228,7 @@ impl FromApubToForm<PageExt> for PostForm {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(check_object_domain(page, expected_domain)?),
+      ap_id: Some(ap_id),
       local: false,
     })
   }

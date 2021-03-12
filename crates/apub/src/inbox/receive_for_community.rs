@@ -117,7 +117,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&update, &expected_domain, true)?;
+  verify_activity_domains_valid(&update, &expected_domain, false)?;
   verify_is_addressed_to_public(&update)?;
   verify_modification_actor_instance(&update, &announce, context).await?;
 
@@ -402,7 +402,7 @@ pub(in crate::inbox) async fn receive_add_for_community(
     CommunityModerator::get_user_moderated_communities(conn, new_mod_id)
   })
   .await??;
-  if moderated_communities.contains(&community.id) {
+  if !moderated_communities.contains(&community.id) {
     let form = CommunityModeratorForm {
       community_id: community.id,
       user_id: new_mod.id,
@@ -575,6 +575,9 @@ where
 
 /// For activities like Update, Delete or Undo, check that the actor is from the same instance
 /// as the original object itself (or is a remote mod).
+///
+/// Note: This is only needed for mod actions. Normal user actions (edit post, undo vote etc) are
+///       already verified with `expected_domain`, so this serves as an additional check.
 async fn verify_modification_actor_instance<T, Kind>(
   activity: &T,
   announce: &Option<Announce>,

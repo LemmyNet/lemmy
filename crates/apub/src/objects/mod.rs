@@ -45,11 +45,11 @@ pub(crate) trait FromApub {
   ///
   /// * `apub` The object to read from
   /// * `context` LemmyContext which holds DB pool, HTTP client etc
-  /// * `expected_domain` Domain where the object was received from
+  /// * `expected_domain` Domain where the object was received from. None in case of mod action.
   async fn from_apub(
     apub: &Self::ApubType,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
@@ -61,7 +61,7 @@ pub(in crate::objects) trait FromApubToForm<ApubType> {
   async fn from_apub(
     apub: &ApubType,
     context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
@@ -173,7 +173,7 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
 pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
   from: &From,
   context: &LemmyContext,
-  expected_domain: Url,
+  expected_domain: Option<Url>,
   request_counter: &mut i32,
 ) -> Result<To, LemmyError>
 where

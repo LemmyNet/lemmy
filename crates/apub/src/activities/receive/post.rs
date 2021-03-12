@@ -32,7 +32,7 @@ pub(crate) async fn receive_create_post(
   let page = PageExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = Post::from_apub(&page, context, user.actor_id(), request_counter).await?;
+  let post = Post::from_apub(&page, context, Some(user.actor_id()), request_counter).await?;
 
   // Refetch the view
   let post_id = post.id;
@@ -72,6 +72,7 @@ pub(crate) async fn receive_update_post(
   })
   .await??;
 
+  let mut expected_domain = Some(user.actor_id());
   // If sticked or locked state was changed, make sure the actor is a mod
   let stickied = page.ext_one.stickied.context(location_info!())?;
   let locked = !page.ext_one.comments_enabled.context(location_info!())?;
@@ -81,9 +82,10 @@ pub(crate) async fn receive_update_post(
     })
     .await??;
     verify_mod_activity(&update, announce, &community, context).await?;
+    expected_domain = None;
   }
 
-  let post = Post::from_apub(&page, context, user.actor_id(), request_counter).await?;
+  let post = Post::from_apub(&page, context, expected_domain, request_counter).await?;
 
   let post_id = post.id;
   // Refetch the view
