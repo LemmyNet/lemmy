@@ -8,7 +8,7 @@ import {
   getSite,
 } from './shared';
 import {
-  UserViewSafe,
+  PersonViewSafe,
   SaveUserSettings,
   SortType,
   ListingType,
@@ -17,14 +17,14 @@ import {
 let auth: string;
 let apShortname: string;
 
-function assertUserFederation(userOne: UserViewSafe, userTwo: UserViewSafe) {
-  expect(userOne.user.name).toBe(userTwo.user.name);
-  expect(userOne.user.preferred_username).toBe(userTwo.user.preferred_username);
-  expect(userOne.user.bio).toBe(userTwo.user.bio);
-  expect(userOne.user.actor_id).toBe(userTwo.user.actor_id);
-  expect(userOne.user.avatar).toBe(userTwo.user.avatar);
-  expect(userOne.user.banner).toBe(userTwo.user.banner);
-  expect(userOne.user.published).toBe(userTwo.user.published);
+function assertUserFederation(userOne: PersonViewSafe, userTwo: PersonViewSafe) {
+  expect(userOne.person.name).toBe(userTwo.person.name);
+  expect(userOne.person.preferred_username).toBe(userTwo.person.preferred_username);
+  expect(userOne.person.bio).toBe(userTwo.person.bio);
+  expect(userOne.person.actor_id).toBe(userTwo.person.actor_id);
+  expect(userOne.person.avatar).toBe(userTwo.person.avatar);
+  expect(userOne.person.banner).toBe(userTwo.person.banner);
+  expect(userOne.person.published).toBe(userTwo.person.published);
 }
 
 test('Create user', async () => {
@@ -34,7 +34,7 @@ test('Create user', async () => {
 
   let site = await getSite(alpha, auth);
   expect(site.my_user).toBeDefined();
-  apShortname = `@${site.my_user.name}@lemmy-alpha:8541`;
+  apShortname = `@${site.my_user.person.name}@lemmy-alpha:8541`;
 });
 
 test('Set some user settings, check that they are federated', async () => {
