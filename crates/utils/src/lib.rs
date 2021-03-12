@@ -23,7 +23,7 @@ use thiserror::Error;
 pub type ConnectionId = usize;
 pub type PostId = i32;
 pub type CommunityId = i32;
-pub type UserId = i32;
+pub type LocalUserId = i32;
 pub type IpAddr = String;
 
 #[macro_export]

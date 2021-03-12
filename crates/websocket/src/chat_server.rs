@@ -15,8 +15,8 @@ use lemmy_utils::{
   ConnectionId,
   IpAddr,
   LemmyError,
+  LocalUserId,
   PostId,
-  UserId,
 };
 use rand::rngs::ThreadRng;
 use reqwest::Client;
@@ -51,7 +51,7 @@ pub struct ChatServer {
 
   /// A map from user id to its connection ID for joined users. Remember a user can have multiple
   /// sessions (IE clients)
-  pub(super) user_rooms: HashMap<UserId, HashSet<ConnectionId>>,
+  pub(super) user_rooms: HashMap<LocalUserId, HashSet<ConnectionId>>,
 
   pub(super) rng: ThreadRng,
 
@@ -185,7 +185,11 @@ impl ChatServer {
     Ok(())
   }
 
-  pub fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) -> Result<(), LemmyError> {
+  pub fn join_user_room(
+    &mut self,
+    user_id: LocalUserId,
+    id: ConnectionId,
+  ) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.user_rooms.values_mut() {
       sessions.remove(&id);
@@ -302,7 +306,7 @@ impl ChatServer {
     &self,
     op: &UserOperation,
     response: &Response,
-    recipient_id: UserId,
+    recipient_id: LocalUserId,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError>
   where
