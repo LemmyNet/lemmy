@@ -161,7 +161,7 @@ pub(crate) async fn community_receive_message(
       true
     }
     CommunityValidTypes::Delete => {
-      receive_delete_for_community(context, any_base.clone(), &actor_url).await?;
+      receive_delete_for_community(context, any_base.clone(), None, &actor_url).await?;
       true
     }
     CommunityValidTypes::Add => {
@@ -228,7 +228,7 @@ async fn handle_undo(
     handle_undo_follow(any_base, actor_url, to_community, &context).await?;
     Ok(false)
   } else {
-    receive_undo_for_community(context, any_base, &actor_url, request_counter).await?;
+    receive_undo_for_community(context, any_base, None, &actor_url, request_counter).await?;
     Ok(true)
   }
 }

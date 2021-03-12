@@ -119,28 +119,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, &expected_domain, true)?;
   verify_is_addressed_to_public(&update)?;
-
-  // Check that actor is the creator (or a mod)
-  let actor = update
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let actor = get_or_fetch_and_upsert_user(&actor, context, request_counter).await?;
-  let object_id = update
-    .object()
-    .as_one()
-    .map(|o| o.id())
-    .flatten()
-    .context(location_info!())?;
-  let original_author = match find_post_or_comment_by_id(context, object_id.to_owned()).await? {
-    PostOrComment::Post(p) => p.creator_id,
-    PostOrComment::Comment(c) => c.creator_id,
-  };
-  if actor.id != original_author {
-    let community = extract_community_from_cc(&update, context).await?;
-    verify_mod_activity(&update, announce.to_owned(), &community, context).await?;
-  }
+  verify_modification_actor_instance(&update, &announce, context).await?;
 
   let kind = update
     .object()
@@ -213,11 +192,13 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
 pub(in crate::inbox) async fn receive_delete_for_community(
   context: &LemmyContext,
   activity: AnyBase,
+  announce: Option<Announce>,
   expected_domain: &Url,
 ) -> Result<(), LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&delete, &expected_domain, true)?;
   verify_is_addressed_to_public(&delete)?;
+  verify_modification_actor_instance(&delete, &announce, context).await?;
 
   let object = delete
     .object()
@@ -245,7 +226,6 @@ pub(in crate::inbox) async fn receive_remove_for_community(
 
   verify_mod_activity(&remove, announce, &community, context).await?;
   verify_is_addressed_to_public(&remove)?;
-  verify_actor_is_community_mod(&remove, &community, context).await?;
 
   if remove.target().is_some() {
     let remove_mod = remove
@@ -294,12 +274,14 @@ enum UndoableActivities {
 pub(in crate::inbox) async fn receive_undo_for_community(
   context: &LemmyContext,
   activity: AnyBase,
+  announce: Option<Announce>,
   expected_domain: &Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&undo, &expected_domain.to_owned(), true)?;
   verify_is_addressed_to_public(&undo)?;
+  verify_modification_actor_instance(&undo, &announce, context).await?;
 
   use UndoableActivities::*;
   match undo
@@ -405,7 +387,6 @@ pub(in crate::inbox) async fn receive_add_for_community(
 
   verify_mod_activity(&add, announce, &community, context).await?;
   verify_is_addressed_to_public(&add)?;
-  verify_actor_is_community_mod(&add, &community, context).await?;
   verify_add_remove_moderator_target(&add, &community)?;
 
   let new_mod = add
@@ -480,6 +461,7 @@ async fn fetch_post_or_comment_by_id(
   Err(NotFound.into())
 }
 
+/// Searches the activity's cc field for a Community ID, and returns the community.
 async fn extract_community_from_cc<T, Kind>(
   activity: &T,
   context: &LemmyContext,
@@ -505,6 +487,12 @@ where
   Ok(community)
 }
 
+/// Checks that a moderation activity was sent by a user who is listed as mod for the community.
+/// This is only used in the case of remote mods, as local mod actions don't go through the
+/// community inbox.
+///
+/// This method should only be used for activities received by the community, not for activities
+/// used by community followers.
 async fn verify_actor_is_community_mod<T, Kind>(
   activity: &T,
   community: &Community,
@@ -538,6 +526,16 @@ where
   Ok(())
 }
 
+/// This method behaves differently, depending if it is called via community inbox (activity
+/// received by community from a remote user), or via user inbox (activity received by user from
+/// community). We distinguish the cases by checking if the activity is wrapper in an announce
+/// (only true when sent from user to community).
+///
+/// In the first case, we check that the actor is listed as community mod. In the second case, we
+/// only check that the announce comes from the same domain as the activity. We trust the
+/// community's instance to have validated the inner activity correctly. We can't do this validation
+/// here, because we don't know who the instance admins are. Plus this allows for compatibility with
+/// software that uses different rules for mod actions.
 pub(crate) async fn verify_mod_activity<T, Kind>(
   mod_action: &T,
   announce: Option<Announce>,
@@ -547,18 +545,16 @@ pub(crate) async fn verify_mod_activity<T, Kind>(
 where
   T: ActorAndObjectRef + BaseExt<Kind>,
 {
-  // Remove was sent by community to user, we just check that it came from the right domain
-  if let Some(announce) = announce {
-    verify_activity_domains_valid(&announce, &community.actor_id.to_owned().into(), false)?;
-  }
-  // Remove was sent by a remote mod to community, check that they are actually mod
-  else {
-    verify_actor_is_community_mod(mod_action, community, context).await?;
+  match announce {
+    None => verify_actor_is_community_mod(mod_action, community, context).await?,
+    Some(a) => verify_activity_domains_valid(&a, &community.actor_id.to_owned().into(), false)?,
   }
 
   Ok(())
 }
 
+/// For Add/Remove community moderator activities, check that the target field actually contains
+/// /c/community/moderators. Any different values are unsupported.
 fn verify_add_remove_moderator_target<T, Kind>(
   activity: &T,
   community: &Community,
@@ -574,5 +570,38 @@ where
   if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
     return Err(anyhow!("Unkown target url").into());
   }
+  Ok(())
+}
+
+/// For activities like Update, Delete or Undo, check that the actor is from the same instance
+/// as the original object itself (or is a remote mod).
+async fn verify_modification_actor_instance<T, Kind>(
+  activity: &T,
+  announce: &Option<Announce>,
+  context: &LemmyContext,
+) -> Result<(), LemmyError>
+where
+  T: ActorAndObjectRef + BaseExt<Kind> + AsObject<Kind>,
+{
+  let actor_id = activity
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let object_id = activity
+    .object()
+    .as_one()
+    .map(|o| o.id())
+    .flatten()
+    .context(location_info!())?;
+  let original_id = match find_post_or_comment_by_id(context, object_id.to_owned()).await? {
+    PostOrComment::Post(p) => p.ap_id.into_inner(),
+    PostOrComment::Comment(c) => c.ap_id.into_inner(),
+  };
+  if actor_id.domain() != original_id.domain() {
+    let community = extract_community_from_cc(activity, context).await?;
+    verify_mod_activity(activity, announce.to_owned(), &community, context).await?;
+  }
+
   Ok(())
 }
