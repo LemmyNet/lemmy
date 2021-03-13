@@ -490,7 +490,7 @@ pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 
 #[cfg(test)]
 mod tests {
-  use crate::{captcha_espeak_wav_base64, get_user_from_jwt};
+  use crate::{captcha_espeak_wav_base64, get_user_from_jwt, get_user_safe_settings_from_jwt};
   use lemmy_db_queries::{
     establish_pooled_connection,
     source::user::User,
@@ -558,13 +558,21 @@ mod tests {
       .await
       .expect("User should be decoded");
 
+    get_user_safe_settings_from_jwt(&jwt_token, &conn)
+      .await
+      .expect("User should be decoded");
+
     std::thread::sleep(std::time::Duration::from_secs(1));
 
     User_::update_password(&conn.get().unwrap(), inserted_user.id, &"password111").unwrap();
 
-    let jwt_decode_res = get_user_from_jwt(&jwt_token, &conn).await;
+    get_user_from_jwt(&jwt_token, &conn)
+      .await
+      .expect_err("JWT decode should fail after password change");
 
-    jwt_decode_res.expect_err("JWT decode should fail after password change");
+    get_user_safe_settings_from_jwt(&jwt_token, &conn)
+      .await
+      .expect_err("JWT decode should fail after password change");
   }
 
   #[test]
