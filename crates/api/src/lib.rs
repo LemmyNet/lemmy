@@ -132,7 +132,7 @@ pub(crate) async fn get_user_safe_settings_from_jwt(
   }
   // if user's token was issued before user's password reset.
   let user_validation_time = user.validator_time.timestamp_millis() / 1000;
-  if user_validation_time >= claims.iat {
+  if user_validation_time > claims.iat {
     return Err(ApiError::err("not_logged_in").into());
   }
   Ok(user)
