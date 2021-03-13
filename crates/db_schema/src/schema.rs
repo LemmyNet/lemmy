@@ -408,6 +408,7 @@ table! {
         deleted -> Bool,
         inbox_url -> Text,
         shared_inbox_url -> Nullable<Text>,
+        validator_time -> Timestamp,
     }
 }
 

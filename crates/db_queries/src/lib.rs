@@ -235,6 +235,33 @@ pub fn establish_unpooled_connection() -> PgConnection {
   conn
 }
 
+pub fn establish_pooled_connection(
+) -> diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>> {
+  use diesel::r2d2::{ConnectionManager, Pool};
+
+  // Set up the r2d2 connection pool
+  let db_url = match get_database_url_from_env() {
+    Ok(url) => url,
+    Err(e) => panic!(
+      "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
+      e
+    ),
+  };
+
+  let manager = ConnectionManager::<PgConnection>::new(&db_url);
+  let pool = Pool::builder()
+    .max_size(1)
+    .build(manager)
+    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+
+  let conn = pool.get().unwrap();
+
+  // Run the migrations from code
+  embedded_migrations::run(&conn).unwrap();
+
+  pool
+}
+
 lazy_static! {
   static ref EMAIL_REGEX: Regex =
     Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
