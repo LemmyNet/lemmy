@@ -1,6 +1,6 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, sql_types::Text, *};
-use lemmy_db_schema::{source::activity::*, Url};
+use lemmy_db_schema::{source::activity::*, DbUrl};
 use log::debug;
 use serde::Serialize;
 use serde_json::Value;
@@ -41,7 +41,7 @@ impl Crud<ActivityForm> for Activity {
 pub trait Activity_ {
   fn insert<T>(
     conn: &PgConnection,
-    ap_id: String,
+    ap_id: DbUrl,
     data: &T,
     local: bool,
     sensitive: bool,
@@ -49,20 +49,20 @@ pub trait Activity_ {
   where
     T: Serialize + Debug;
 
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error>;
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Activity, Error>;
   fn delete_olds(conn: &PgConnection) -> Result<usize, Error>;
 
   /// Returns up to 20 activities of type `Announce/Create/Page` from the community
   fn read_community_outbox(
     conn: &PgConnection,
-    community_actor_id: &Url,
+    community_actor_id: &DbUrl,
   ) -> Result<Vec<Value>, Error>;
 }
 
 impl Activity_ for Activity {
   fn insert<T>(
     conn: &PgConnection,
-    ap_id: String,
+    ap_id: DbUrl,
     data: &T,
     local: bool,
     sensitive: bool,
@@ -88,7 +88,7 @@ impl Activity_ for Activity {
     }
   }
 
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Activity, Error> {
     use lemmy_db_schema::schema::activity::dsl::*;
     activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
@@ -100,7 +100,7 @@ impl Activity_ for Activity {
 
   fn read_community_outbox(
     conn: &PgConnection,
-    community_actor_id: &Url,
+    community_actor_id: &DbUrl,
   ) -> Result<Vec<Value>, Error> {
     use lemmy_db_schema::schema::activity::dsl::*;
     let res: Vec<Value> = activity
@@ -121,6 +121,7 @@ impl Activity_ for Activity {
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::{
     establish_unpooled_connection,
     source::activity::Activity_,
@@ -134,6 +135,7 @@ mod tests {
   };
   use serde_json::Value;
   use serial_test::serial;
+  use url::Url;
 
   #[test]
   #[serial]
@@ -171,8 +173,11 @@ mod tests {
 
     let inserted_creator = User_::create(&conn, &creator_form).unwrap();
 
-    let ap_id =
-      "https://enterprise.lemmy.ml/activities/delete/f1b5d57c-80f8-4e03-a615-688d552e946c";
+    let ap_id: DbUrl = Url::parse(
+      "https://enterprise.lemmy.ml/activities/delete/f1b5d57c-80f8-4e03-a615-688d552e946c",
+    )
+    .unwrap()
+    .into();
     let test_json: Value = serde_json::from_str(
       r#"{
     "@context": "https://www.w3.org/ns/activitystreams",
@@ -188,7 +193,7 @@ mod tests {
     )
     .unwrap();
     let activity_form = ActivityForm {
-      ap_id: ap_id.to_string(),
+      ap_id: ap_id.clone(),
       data: test_json.to_owned(),
       local: true,
       sensitive: false,
@@ -198,7 +203,7 @@ mod tests {
     let inserted_activity = Activity::create(&conn, &activity_form).unwrap();
 
     let expected_activity = Activity {
-      ap_id: Some(ap_id.to_string()),
+      ap_id: Some(ap_id.clone()),
       id: inserted_activity.id,
       data: test_json,
       local: true,
@@ -208,7 +213,7 @@ mod tests {
     };
 
     let read_activity = Activity::read(&conn, inserted_activity.id).unwrap();
-    let read_activity_by_apub_id = Activity::read_from_apub_id(&conn, ap_id).unwrap();
+    let read_activity_by_apub_id = Activity::read_from_apub_id(&conn, &ap_id).unwrap();
     User_::delete(&conn, inserted_creator.id).unwrap();
     Activity::delete(&conn, inserted_activity.id).unwrap();
 

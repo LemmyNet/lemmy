@@ -22,7 +22,7 @@ use background_jobs::{
 use itertools::Itertools;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::{community::Community, user::User_};
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{debug, warn};
 use reqwest::Client;
@@ -88,7 +88,7 @@ where
     .await?
     .iter()
     .unique()
-    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname))
+    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
     .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
     .map(|inbox| inbox.to_owned())
     .collect();
@@ -215,7 +215,7 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if !Settings::get().federation.enabled || inboxes.is_empty() {
+  if !Settings::get().federation().enabled || inboxes.is_empty() {
     return Ok(());
   }
 
@@ -223,7 +223,7 @@ where
   let hostname = Settings::get().get_hostname_without_port()?;
   let inboxes: Vec<&Url> = inboxes
     .iter()
-    .filter(|i| i.domain().unwrap() != hostname)
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
     .collect();
 
   let activity = activity.into_any_base()?;

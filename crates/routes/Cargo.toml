@@ -13,7 +13,7 @@ lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_views = { path = "../db_views" }
 lemmy_db_views_actor = { path = "../db_views_actor" }
 lemmy_db_schema = { path = "../db_schema" }
-lemmy_structs = { path = "../structs" }
+lemmy_api_structs = { path = "../api_structs" }
 diesel = "1.4.5"
 actix = "0.10.0"
 actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
@@ -25,6 +25,6 @@ chrono = { version = "0.4.19", features = ["serde"] }
 rss = "1.10.0"
 serde = { version = "1.0.123", features = ["derive"] }
 awc = { version = "2.0.3", default-features = false }
-url = { version = "2.2.0", features = ["serde"] }
+url = { version = "2.2.1", features = ["serde"] }
 strum = "0.20.0"
 lazy_static = "1.4.0"

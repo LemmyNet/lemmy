@@ -1,7 +1,6 @@
 [package]
 name = "lemmy_apub"
 version = "0.1.0"
-authors = ["Felix Ableitner <me@nutomic.com>"]
 edition = "2018"
 
 [lib]
@@ -15,7 +14,7 @@ lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }
 lemmy_db_views = { path = "../db_views" }
 lemmy_db_views_actor = { path = "../db_views_actor" }
-lemmy_structs = { path = "../structs" }
+lemmy_api_structs = { path = "../api_structs" }
 lemmy_websocket = { path = "../websocket" }
 diesel = "1.4.5"
 activitystreams = "0.7.0-alpha.10"
@@ -33,7 +32,7 @@ rand = "0.8.3"
 strum = "0.20.0"
 strum_macros = "0.20.1"
 lazy_static = "1.4.0"
-url = { version = "2.2.0", features = ["serde"] }
+url = { version = "2.2.1", features = ["serde"] }
 percent-encoding = "2.1.0"
 openssl = "0.10.32"
 http = "0.2.3"

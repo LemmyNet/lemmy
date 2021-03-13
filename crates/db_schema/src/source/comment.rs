@@ -1,7 +1,7 @@
 use crate::{
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
-  Url,
+  DbUrl,
 };
 use serde::Serialize;
 
@@ -26,7 +26,7 @@ pub struct Comment {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
-  pub ap_id: Url,
+  pub ap_id: DbUrl,
   pub local: bool,
 }
 
@@ -44,7 +44,7 @@ pub struct CommentAlias1 {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
-  pub ap_id: Url,
+  pub ap_id: DbUrl,
   pub local: bool,
 }
 
@@ -60,7 +60,7 @@ pub struct CommentForm {
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
-  pub ap_id: Option<Url>,
+  pub ap_id: Option<DbUrl>,
   pub local: bool,
 }
 

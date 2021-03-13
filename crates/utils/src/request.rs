@@ -1,4 +1,4 @@
-use crate::{settings::Settings, LemmyError};
+use crate::{settings::structs::Settings, LemmyError};
 use anyhow::anyhow;
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -6,6 +6,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::future::Future;
 use thiserror::Error;
+use url::Url;
 
 #[derive(Clone, Debug, Error)]
 #[error("Error sending request, {0}")]
@@ -43,22 +44,22 @@ where
     }
   }
 
-  response.unwrap()
+  response.expect("retry http request")
 }
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct IframelyResponse {
   title: Option<String>,
   description: Option<String>,
-  thumbnail_url: Option<String>,
+  thumbnail_url: Option<Url>,
   html: Option<String>,
 }
 
 pub(crate) async fn fetch_iframely(
   client: &Client,
-  url: &str,
+  url: &Url,
 ) -> Result<IframelyResponse, LemmyError> {
-  let fetch_url = format!("{}/oembed?url={}", Settings::get().iframely_url, url);
+  let fetch_url = format!("{}/oembed?url={}", Settings::get().iframely_url(), url);
 
   let response = retry(|| client.get(&fetch_url).send()).await?;
 
@@ -83,14 +84,14 @@ pub(crate) struct PictrsFile {
 
 pub(crate) async fn fetch_pictrs(
   client: &Client,
-  image_url: &str,
+  image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
   is_image_content_type(client, image_url).await?;
 
   let fetch_url = format!(
     "{}/image/download?url={}",
-    Settings::get().pictrs_url,
-    utf8_percent_encode(image_url, NON_ALPHANUMERIC) // TODO this might not be needed
+    Settings::get().pictrs_url(),
+    utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
   );
 
   let response = retry(|| client.get(&fetch_url).send()).await?;
@@ -109,13 +110,8 @@ pub(crate) async fn fetch_pictrs(
 
 pub async fn fetch_iframely_and_pictrs_data(
   client: &Client,
-  url: Option<String>,
-) -> (
-  Option<String>,
-  Option<String>,
-  Option<String>,
-  Option<String>,
-) {
+  url: Option<&Url>,
+) -> (Option<String>, Option<String>, Option<String>, Option<Url>) {
   match &url {
     Some(url) => {
       // Fetch iframely data
@@ -149,11 +145,19 @@ pub async fn fetch_iframely_and_pictrs_data(
 
       // The full urls are necessary for federation
       let pictrs_thumbnail = if let Some(pictrs_hash) = pictrs_hash {
-        Some(format!(
+        let url = Url::parse(&format!(
           "{}/pictrs/image/{}",
           Settings::get().get_protocol_and_hostname(),
           pictrs_hash
-        ))
+        ));
+        match url {
+          Ok(parsed_url) => Some(parsed_url),
+          Err(e) => {
+            // This really shouldn't happen unless the settings or hash are malformed
+            error!("Unexpected error constructing pictrs thumbnail URL: {}", e);
+            None
+          }
+        }
       } else {
         None
       };
@@ -169,9 +173,8 @@ pub async fn fetch_iframely_and_pictrs_data(
   }
 }
 
-async fn is_image_content_type(client: &Client, test: &str) -> Result<(), LemmyError> {
-  let response = retry(|| client.get(test).send()).await?;
-
+async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyError> {
+  let response = retry(|| client.get(test.to_owned()).send()).await?;
   if response
     .headers()
     .get("Content-Type")

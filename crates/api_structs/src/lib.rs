@@ -13,7 +13,7 @@ use lemmy_db_schema::source::{
   user::User_,
   user_mention::{UserMention, UserMentionForm},
 };
-use lemmy_utils::{email::send_email, settings::Settings, utils::MentionData, LemmyError};
+use lemmy_utils::{email::send_email, settings::structs::Settings, utils::MentionData, LemmyError};
 use log::error;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -152,7 +152,7 @@ pub fn send_email_to_user(user: User_, subject_text: &str, body_text: &str, comm
     let subject = &format!(
       "{} - {} {}",
       subject_text,
-      Settings::get().hostname,
+      Settings::get().hostname(),
       user.name,
     );
     let html = &format!(

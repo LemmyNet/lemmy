@@ -9,6 +9,7 @@ use crate::{
   Perform,
 };
 use actix_web::web::Data;
+use lemmy_api_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_apub::{generate_apub_endpoint, ApubLikeableType, ApubObjectType, EndpointType};
 use lemmy_db_queries::{
   source::comment::Comment_,
@@ -24,7 +25,6 @@ use lemmy_db_views::{
   comment_report_view::{CommentReportQueryBuilder, CommentReportView},
   comment_view::{CommentQueryBuilder, CommentView},
 };
-use lemmy_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
   ApiError,

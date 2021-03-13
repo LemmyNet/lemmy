@@ -48,13 +48,13 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::user::User, ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
   private_message::PrivateMessage,
   user::User_,
 };
-use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
@@ -143,7 +143,14 @@ pub(crate) async fn user_receive_message(
   let actor_url = actor.actor_id();
   match kind {
     UserValidTypes::Accept => {
-      receive_accept(&context, any_base, actor, to_user.unwrap(), request_counter).await?;
+      receive_accept(
+        &context,
+        any_base,
+        actor,
+        to_user.expect("user provided"),
+        request_counter,
+      )
+      .await?;
     }
     UserValidTypes::Announce => {
       receive_announce(&context, any_base, actor, request_counter).await?

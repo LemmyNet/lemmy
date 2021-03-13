@@ -2,6 +2,7 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
   source::{community::Community_, user::User},
   ListingType,
@@ -14,8 +15,12 @@ use lemmy_db_views::{
   site_view::SiteView,
 };
 use lemmy_db_views_actor::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
-use lemmy_structs::blocking;
-use lemmy_utils::{claims::Claims, settings::Settings, utils::markdown_to_html, LemmyError};
+use lemmy_utils::{
+  claims::Claims,
+  settings::structs::Settings,
+  utils::markdown_to_html,
+  LemmyError,
+};
 use lemmy_websocket::LemmyContext;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -163,7 +168,7 @@ fn get_feed_user(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
-  let user_url = user.get_profile_url(&Settings::get().hostname);
+  let user_url = user.get_profile_url(&Settings::get().hostname());
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::All)
@@ -390,9 +395,6 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
       Settings::get().get_protocol_and_hostname(),
       p.community.name
     );
-
-    // TODO: for category we should just put the name of the category, but then we would have
-    //       to read each community from the db
 
     // TODO add images
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",

@@ -16,9 +16,9 @@ use activitystreams::{
 };
 use anyhow::Context;
 use diesel::result::Error::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
 use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
-use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;

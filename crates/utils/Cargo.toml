@@ -10,7 +10,6 @@ doctest = false
 
 [dependencies]
 regex = "1.4.3"
-config = { version = "0.10.1", default-features = false, features = ["hjson"] }
 chrono = { version = "0.4.19", features = ["serde"] }
 lettre = "0.10.0-alpha.5"
 log = "0.4.14"
@@ -23,7 +22,7 @@ thiserror = "1.0.23"
 comrak = { version = "0.9.0", default-features = false }
 lazy_static = "1.4.0"
 openssl = "0.10.32"
-url = { version = "2.2.0", features = ["serde"] }
+url = { version = "2.2.1", features = ["serde"] }
 actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
 actix-rt = { version = "1.1.1", default-features = false }
 anyhow = "1.0.38"
@@ -35,3 +34,6 @@ futures = "0.3.12"
 diesel = "1.4.5"
 http = "0.2.3"
 jsonwebtoken = "7.2.0"
+deser-hjson = "0.1.12"
+merge = "0.1.0"
+envy = "0.4.2"

@@ -12,12 +12,12 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
-use lemmy_db_schema::source::community::Community;
-use lemmy_structs::blocking;
+use lemmy_db_schema::{source::community::Community, DbUrl};
 use lemmy_utils::{
   location_info,
-  settings::Settings,
+  settings::structs::Settings,
   utils::{convert_datetime, markdown_to_html},
   LemmyError,
 };
@@ -96,7 +96,7 @@ where
 pub(in crate::objects) fn check_object_domain<T, Kind>(
   apub: &T,
   expected_domain: Url,
-) -> Result<lemmy_db_schema::Url, LemmyError>
+) -> Result<DbUrl, LemmyError>
 where
   T: Base + AsBase<Kind>,
 {
@@ -187,7 +187,7 @@ where
   let domain = object_id.domain().context(location_info!())?;
 
   // if its a local object, return it directly from the database
-  if Settings::get().hostname == domain {
+  if Settings::get().hostname() == domain {
     let object = blocking(context.pool(), move |conn| {
       To::read_from_apub_id(conn, &object_id.into())
     })

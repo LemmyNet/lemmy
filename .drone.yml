@@ -9,7 +9,7 @@ platform:
 steps:
 
   - name: chown repo
-    image: ekidd/rust-musl-builder:1.47.0
+    image: ekidd/rust-musl-builder:1.50.0
     user: root
     commands:
       - chown 1000:1000 . -R
@@ -20,12 +20,13 @@ steps:
       - /root/.cargo/bin/cargo fmt -- --check
 
   - name: cargo clippy
-    image: ekidd/rust-musl-builder:1.47.0
+    image: ekidd/rust-musl-builder:1.50.0
     commands:
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
+      - cargo clippy --workspace -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: ekidd/rust-musl-builder:1.47.0
+    image: ekidd/rust-musl-builder:1.50.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
@@ -35,7 +36,7 @@ steps:
       - cargo test --workspace --no-fail-fast
 
   - name: cargo build
-    image: ekidd/rust-musl-builder:1.47.0
+    image: ekidd/rust-musl-builder:1.50.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
@@ -102,7 +103,7 @@ platform:
 steps:
 
   - name: cargo test
-    image: rust:1.47-slim-buster
+    image: rust:1.50-slim-buster
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
@@ -114,7 +115,7 @@ steps:
 
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
   - name: cargo build
-    image: rust:1.47-slim-buster
+    image: rust:1.50-slim-buster
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev

@@ -12,14 +12,14 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
   source::{activity::Activity_, community::Community_},
   ApubObject,
   DbPool,
 };
 use lemmy_db_schema::source::{activity::Activity, community::Community, user::User_};
-use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::fmt::Debug;
@@ -45,7 +45,7 @@ pub(crate) async fn is_activity_already_known(
   pool: &DbPool,
   activity_id: &Url,
 ) -> Result<bool, LemmyError> {
-  let activity_id = activity_id.to_string();
+  let activity_id = activity_id.to_owned().into();
   let existing = blocking(pool, move |conn| {
     Activity::read_from_apub_id(&conn, &activity_id)
   })
@@ -167,7 +167,7 @@ where
   let id = activity.id_unchecked().context(location_info!())?;
   let activity_domain = id.domain().context(location_info!())?;
 
-  if activity_domain == Settings::get().hostname {
+  if activity_domain == Settings::get().hostname() {
     return Err(
       anyhow!(
         "Error: received activity which was sent by local instance: {:?}",
