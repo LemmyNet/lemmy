@@ -68,7 +68,6 @@ pub async fn send_local_notifs(
   Ok(ids)
 }
 
-// TODO should this really use person_ids as recipient ids? or local_user_ids ?
 fn do_send_local_notifs(
   conn: &PgConnection,
   mentions: &[MentionData],
@@ -85,7 +84,6 @@ fn do_send_local_notifs(
     .filter(|m| m.is_local() && m.name.ne(&person.name))
     .collect::<Vec<&MentionData>>()
   {
-    // TODO do a local user fetch
     if let Ok(mention_user_view) = LocalUserView::read_from_name(&conn, &mention.name) {
       // TODO
       // At some point, make it so you can't tag the parent creator either

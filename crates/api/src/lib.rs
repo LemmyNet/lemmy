@@ -72,15 +72,6 @@ pub(crate) async fn is_mod_or_admin(
   Ok(())
 }
 
-// TODO this probably isn't necessary anymore
-// pub async fn is_admin(pool: &DbPool, person_id: i32) -> Result<(), LemmyError> {
-//   let user = blocking(pool, move |conn| LocalUser::read(conn, person_id)).await??;
-//   if !user.admin {
-//     return Err(ApiError::err("not_an_admin").into());
-//   }
-//   Ok(())
-// }
-
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.admin {
     return Err(ApiError::err("not_an_admin").into());
