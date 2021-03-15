@@ -69,7 +69,7 @@ pub trait LocalUser_ {
     local_user_id: i32,
     new_password: &str,
   ) -> Result<LocalUser, Error>;
-  fn add_admin(conn: &PgConnection, local_user_id: i32, added: bool) -> Result<LocalUser, Error>;
+  fn add_admin(conn: &PgConnection, person_id: i32, added: bool) -> Result<LocalUser, Error>;
 }
 
 impl LocalUser_ for LocalUser {
@@ -94,8 +94,8 @@ impl LocalUser_ for LocalUser {
       .get_result::<Self>(conn)
   }
 
-  fn add_admin(conn: &PgConnection, local_user_id: i32, added: bool) -> Result<Self, Error> {
-    diesel::update(local_user.find(local_user_id))
+  fn add_admin(conn: &PgConnection, for_person_id: i32, added: bool) -> Result<Self, Error> {
+    diesel::update(local_user.filter(person_id.eq(for_person_id)))
       .set(admin.eq(added))
       .get_result::<Self>(conn)
   }

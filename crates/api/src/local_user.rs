@@ -650,9 +650,9 @@ impl Perform for AddAdmin {
     is_admin(&local_user_view)?;
 
     let added = data.added;
-    let added_local_user_id = data.local_user_id;
+    let added_person_id = data.person_id;
     let added_admin = match blocking(context.pool(), move |conn| {
-      LocalUser::add_admin(conn, added_local_user_id, added)
+      LocalUser::add_admin(conn, added_person_id, added)
     })
     .await?
     {

@@ -103,7 +103,7 @@ pub(crate) async fn get_local_user_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let local_user_id = claims.id;
+  let local_user_id = claims.local_user_id;
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
   // Check for a site ban
@@ -131,7 +131,7 @@ pub(crate) async fn get_local_user_settings_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let local_user_id = claims.id;
+  let local_user_id = claims.local_user_id;
   let local_user_view = blocking(pool, move |conn| {
     LocalUserSettingsView::read(conn, local_user_id)
   })

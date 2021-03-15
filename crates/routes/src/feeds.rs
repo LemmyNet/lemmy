@@ -5,10 +5,11 @@ use diesel::PgConnection;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
   source::{community::Community_, person::Person_},
+  Crud,
   ListingType,
   SortType,
 };
-use lemmy_db_schema::source::{community::Community, person::Person};
+use lemmy_db_schema::source::{community::Community, local_user::LocalUser, person::Person};
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
   post_view::{PostQueryBuilder, PostView},
@@ -223,7 +224,8 @@ fn get_feed_front(
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let person_id = Claims::decode(&jwt)?.claims.id;
+  let local_user_id = Claims::decode(&jwt)?.claims.local_user_id;
+  let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::Subscribed)
@@ -249,7 +251,8 @@ fn get_feed_front(
 
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let person_id = Claims::decode(&jwt)?.claims.id;
+  let local_user_id = Claims::decode(&jwt)?.claims.local_user_id;
+  let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let sort = SortType::New;
 

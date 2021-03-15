@@ -107,7 +107,7 @@ pub struct MarkAllAsRead {
 
 #[derive(Deserialize)]
 pub struct AddAdmin {
-  pub local_user_id: i32,
+  pub person_id: i32,
   pub added: bool,
   pub auth: String,
 }

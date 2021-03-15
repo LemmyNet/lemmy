@@ -6,7 +6,7 @@ type Jwt = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-  pub id: i32,
+  pub local_user_id: i32,
   pub iss: String,
 }
 
@@ -25,7 +25,7 @@ impl Claims {
 
   pub fn jwt(local_user_id: i32, hostname: String) -> Result<Jwt, jsonwebtoken::errors::Error> {
     let my_claims = Claims {
-      id: local_user_id,
+      local_user_id,
       iss: hostname,
     };
     encode(
