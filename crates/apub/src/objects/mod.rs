@@ -46,11 +46,13 @@ pub(crate) trait FromApub {
   /// * `apub` The object to read from
   /// * `context` LemmyContext which holds DB pool, HTTP client etc
   /// * `expected_domain` Domain where the object was received from. None in case of mod action.
+  /// * `is_mod_action` True if the object was sent in a mod activity, ignore `expected_domain` in this case
   async fn from_apub(
     apub: &Self::ApubType,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -61,8 +63,9 @@ pub(in crate::objects) trait FromApubToForm<ApubType> {
   async fn from_apub(
     apub: &ApubType,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -173,8 +176,9 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
 pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
   from: &From,
   context: &LemmyContext,
-  expected_domain: Option<Url>,
+  expected_domain: Url,
   request_counter: &mut i32,
+  is_mod_action: bool,
 ) -> Result<To, LemmyError>
 where
   From: BaseExt<Kind>,
@@ -194,7 +198,14 @@ where
   }
   // otherwise parse and insert, assuring that it comes from the right domain
   else {
-    let to_form = ToForm::from_apub(&from, context, expected_domain, request_counter).await?;
+    let to_form = ToForm::from_apub(
+      &from,
+      context,
+      expected_domain,
+      request_counter,
+      is_mod_action,
+    )
+    .await?;
 
     let to = blocking(context.pool(), move |conn| To::upsert(conn, &to_form)).await??;
     Ok(to)

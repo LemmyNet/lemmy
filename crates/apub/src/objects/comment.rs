@@ -97,11 +97,18 @@ impl FromApub for Comment {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<Comment, LemmyError> {
-    let comment: Comment =
-      get_object_from_apub(note, context, expected_domain, request_counter).await?;
+    let comment: Comment = get_object_from_apub(
+      note,
+      context,
+      expected_domain,
+      request_counter,
+      is_mod_action,
+    )
+    .await?;
 
     let post_id = comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -126,10 +133,10 @@ impl FromApubToForm<NoteExt> for CommentForm {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    _is_mod_action: bool,
   ) -> Result<CommentForm, LemmyError> {
-    let expected_domain = expected_domain.expect("expected_domain must be set for comment");
     let creator_actor_id = &note
       .attributed_to()
       .context(location_info!())?

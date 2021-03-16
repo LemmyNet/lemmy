@@ -91,8 +91,9 @@ impl FromApub for User_ {
   async fn from_apub(
     person: &PersonExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<User_, LemmyError> {
     let user_id = person.id_unchecked().context(location_info!())?.to_owned();
     let domain = user_id.domain().context(location_info!())?;
@@ -103,8 +104,14 @@ impl FromApub for User_ {
       .await??;
       Ok(user)
     } else {
-      let user_form =
-        UserForm::from_apub(person, context, expected_domain, request_counter).await?;
+      let user_form = UserForm::from_apub(
+        person,
+        context,
+        expected_domain,
+        request_counter,
+        is_mod_action,
+      )
+      .await?;
       let user = blocking(context.pool(), move |conn| User_::upsert(conn, &user_form)).await??;
       Ok(user)
     }
@@ -116,10 +123,10 @@ impl FromApubToForm<PersonExt> for UserForm {
   async fn from_apub(
     person: &PersonExt,
     _context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     _request_counter: &mut i32,
+    _is_mod_action: bool,
   ) -> Result<Self, LemmyError> {
-    let expected_domain = expected_domain.expect("expected_domain must be set for user");
     let avatar = match person.icon() {
       Some(any_image) => Some(
         Image::from_any_base(any_image.as_one().context(location_info!())?.clone())?

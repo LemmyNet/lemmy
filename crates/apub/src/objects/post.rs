@@ -116,10 +116,18 @@ impl FromApub for Post {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<Post, LemmyError> {
-    let post: Post = get_object_from_apub(page, context, expected_domain, request_counter).await?;
+    let post: Post = get_object_from_apub(
+      page,
+      context,
+      expected_domain,
+      request_counter,
+      is_mod_action,
+    )
+    .await?;
     check_object_for_community_or_site_ban(page, post.community_id, context, request_counter)
       .await?;
     Ok(post)
@@ -131,16 +139,16 @@ impl FromApubToForm<PageExt> for PostForm {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<PostForm, LemmyError> {
-    let ap_id = match expected_domain {
-      Some(e) => check_object_domain(page, e)?,
-      None => {
-        let id = page.id_unchecked().context(location_info!())?;
-        check_is_apub_id_valid(id)?;
-        id.to_owned().into()
-      }
+    let ap_id = if is_mod_action {
+      let id = page.id_unchecked().context(location_info!())?;
+      check_is_apub_id_valid(id)?;
+      id.to_owned().into()
+    } else {
+      check_object_domain(page, expected_domain)?
     };
     let ext = &page.ext_one;
     let creator_actor_id = page

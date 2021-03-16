@@ -33,8 +33,9 @@ pub(crate) async fn get_or_fetch_and_insert_post(
       let post = Post::from_apub(
         &page,
         context,
-        Some(post_ap_id.to_owned()),
+        post_ap_id.to_owned(),
         recursion_counter,
+        false,
       )
       .await?;
 
@@ -71,8 +72,9 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       let comment = Comment::from_apub(
         &comment,
         context,
-        Some(comment_ap_id.to_owned()),
+        comment_ap_id.to_owned(),
         recursion_counter,
+        false,
       )
       .await?;
 

@@ -147,13 +147,13 @@ async fn build_response(
       ];
     }
     SearchAcceptedObjects::Page(p) => {
-      let p = Post::from_apub(&p, context, Some(query_url), recursion_counter).await?;
+      let p = Post::from_apub(&p, context, query_url, recursion_counter, false).await?;
 
       response.posts =
         vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
     }
     SearchAcceptedObjects::Comment(c) => {
-      let c = Comment::from_apub(&c, context, Some(query_url), recursion_counter).await?;
+      let c = Comment::from_apub(&c, context, query_url, recursion_counter, false).await?;
 
       response.comments = vec![
         blocking(context.pool(), move |conn| {

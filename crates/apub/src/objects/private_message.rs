@@ -75,10 +75,18 @@ impl FromApub for PrivateMessage {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    is_mod_action: bool,
   ) -> Result<PrivateMessage, LemmyError> {
-    get_object_from_apub(note, context, expected_domain, request_counter).await
+    get_object_from_apub(
+      note,
+      context,
+      expected_domain,
+      request_counter,
+      is_mod_action,
+    )
+    .await
   }
 }
 
@@ -87,10 +95,10 @@ impl FromApubToForm<NoteExt> for PrivateMessageForm {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
+    _is_mod_action: bool,
   ) -> Result<PrivateMessageForm, LemmyError> {
-    let expected_domain = expected_domain.expect("expected_domain must be set for private message");
     let creator_actor_id = note
       .attributed_to()
       .context(location_info!())?

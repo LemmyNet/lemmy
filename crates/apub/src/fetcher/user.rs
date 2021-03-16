@@ -49,8 +49,9 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
       let user = User_::from_apub(
         &person?,
         context,
-        Some(apub_id.to_owned()),
+        apub_id.to_owned(),
         recursion_counter,
+        false,
       )
       .await?;
 
@@ -71,8 +72,9 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
       let user = User_::from_apub(
         &person,
         context,
-        Some(apub_id.to_owned()),
+        apub_id.to_owned(),
         recursion_counter,
+        false,
       )
       .await?;
 

@@ -71,8 +71,14 @@ async fn fetch_remote_community(
   }
 
   let group = group?;
-  let community =
-    Community::from_apub(&group, context, Some(apub_id.to_owned()), recursion_counter).await?;
+  let community = Community::from_apub(
+    &group,
+    context,
+    apub_id.to_owned(),
+    recursion_counter,
+    false,
+  )
+  .await?;
 
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {
