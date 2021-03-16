@@ -1,6 +1,5 @@
 use crate::{
   activities::receive::{
-    comment::{receive_create_comment, receive_update_comment},
     community::{
       receive_delete_community,
       receive_remove_community,
@@ -335,11 +334,7 @@ async fn receive_create(
 ) -> Result<(), LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&create, &expected_domain, true)?;
-  if verify_is_addressed_to_public(&create).is_ok() {
-    receive_create_comment(create, context, request_counter).await
-  } else {
-    receive_create_private_message(&context, create, expected_domain, request_counter).await
-  }
+  receive_create_private_message(&context, create, expected_domain, request_counter).await
 }
 
 async fn receive_update(
@@ -350,11 +345,7 @@ async fn receive_update(
 ) -> Result<(), LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, &expected_domain, true)?;
-  if verify_is_addressed_to_public(&update).is_ok() {
-    receive_update_comment(update, context, request_counter).await
-  } else {
-    receive_update_private_message(&context, update, expected_domain, request_counter).await
-  }
+  receive_update_private_message(&context, update, expected_domain, request_counter).await
 }
 
 async fn receive_delete(

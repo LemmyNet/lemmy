@@ -281,7 +281,6 @@ pub(in crate::inbox) async fn receive_undo_for_community(
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&undo, &expected_domain.to_owned(), true)?;
   verify_is_addressed_to_public(&undo)?;
-  verify_modification_actor_instance(&undo, &announce, context).await?;
 
   use UndoableActivities::*;
   match undo
@@ -290,7 +289,9 @@ pub(in crate::inbox) async fn receive_undo_for_community(
     .and_then(|s| s.parse().ok())
   {
     Some(Delete) => receive_undo_delete_for_community(context, undo, expected_domain).await,
-    Some(Remove) => receive_undo_remove_for_community(context, undo, expected_domain).await,
+    Some(Remove) => {
+      receive_undo_remove_for_community(context, undo, announce, expected_domain).await
+    }
     Some(Like) => {
       receive_undo_like_for_community(context, undo, expected_domain, request_counter).await
     }
@@ -329,12 +330,14 @@ pub(in crate::inbox) async fn receive_undo_delete_for_community(
 pub(in crate::inbox) async fn receive_undo_remove_for_community(
   context: &LemmyContext,
   undo: Undo,
+  announce: Option<Announce>,
   expected_domain: &Url,
 ) -> Result<(), LemmyError> {
   let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   verify_activity_domains_valid(&remove, &expected_domain, false)?;
   verify_is_addressed_to_public(&remove)?;
+  verify_undo_remove_actor_instance(&undo, &remove, &announce, context).await?;
 
   let object = remove
     .object()
@@ -573,7 +576,7 @@ where
   Ok(())
 }
 
-/// For activities like Update, Delete or Undo, check that the actor is from the same instance
+/// For activities like Update, Delete or Remove, check that the actor is from the same instance
 /// as the original object itself (or is a remote mod).
 ///
 /// Note: This is only needed for mod actions. Normal user actions (edit post, undo vote etc) are
@@ -604,6 +607,24 @@ where
   if actor_id.domain() != original_id.domain() {
     let community = extract_community_from_cc(activity, context).await?;
     verify_mod_activity(activity, announce.to_owned(), &community, context).await?;
+  }
+
+  Ok(())
+}
+
+pub(crate) async fn verify_undo_remove_actor_instance<T, Kind>(
+  undo: &Undo,
+  inner: &T,
+  announce: &Option<Announce>,
+  context: &LemmyContext,
+) -> Result<(), LemmyError>
+where
+  T: ActorAndObjectRef + BaseExt<Kind> + AsObject<Kind>,
+{
+  if announce.is_none() {
+    let community = extract_community_from_cc(undo, context).await?;
+    verify_mod_activity(undo, announce.to_owned(), &community, context).await?;
+    verify_mod_activity(inner, announce.to_owned(), &community, context).await?;
   }
 
   Ok(())
