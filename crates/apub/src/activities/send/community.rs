@@ -6,6 +6,7 @@ use crate::{
   fetcher::user::get_or_fetch_and_upsert_user,
   generate_moderators_url,
   ActorType,
+  CommunityType,
 };
 use activitystreams::{
   activity::{
@@ -56,23 +57,10 @@ impl ActorType for Community {
       .unwrap_or_else(|| self.inbox_url.to_owned())
       .into()
   }
+}
 
-  async fn send_follow(
-    &self,
-    _follow_actor_id: &Url,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_unfollow(
-    &self,
-    _follow_actor_id: &Url,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
+#[async_trait::async_trait(?Send)]
+impl CommunityType for Community {
   /// As a local community, accept the follow request from a remote user.
   async fn send_accept_follow(
     &self,
@@ -177,7 +165,7 @@ impl ActorType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.actor_id()]);
 
     send_to_community_followers(announce, self, context).await?;
 
@@ -204,58 +192,46 @@ impl ActorType for Community {
 
     Ok(inboxes)
   }
-}
 
-pub async fn send_add_mod(
-  actor: User_,
-  added_mod: User_,
-  community: Community,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
-  let mut add = Add::new(
-    actor.actor_id.clone().into_inner(),
-    added_mod.actor_id.into_inner(),
-  );
-  add
-    .set_many_contexts(lemmy_context()?)
-    .set_id(generate_activity_id(AddType::Add)?)
-    .set_to(public())
-    .set_many_ccs(vec![community.actor_id()])
-    .set_target(generate_moderators_url(&community.actor_id)?.into_inner());
+  async fn send_add_mod(
+    &self,
+    actor: &User_,
+    added_mod: User_,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let mut add = Add::new(
+      actor.actor_id.clone().into_inner(),
+      added_mod.actor_id.into_inner(),
+    );
+    add
+      .set_many_contexts(lemmy_context()?)
+      .set_id(generate_activity_id(AddType::Add)?)
+      .set_to(public())
+      .set_many_ccs(vec![self.actor_id()])
+      .set_target(generate_moderators_url(&self.actor_id)?.into_inner());
 
-  if community.local {
-    community
-      .send_announce(add.into_any_base()?, context)
-      .await?;
-  } else {
-    send_to_community(add, &actor, &community, context).await?;
+    send_to_community(add, actor, self, context).await?;
+    Ok(())
   }
-  Ok(())
-}
 
-pub async fn send_remove_mod(
-  actor: User_,
-  removed_mod: User_,
-  community: Community,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
-  let mut remove = Remove::new(
-    actor.actor_id.clone().into_inner(),
-    removed_mod.actor_id.into_inner(),
-  );
-  remove
-    .set_many_contexts(lemmy_context()?)
-    .set_id(generate_activity_id(RemoveType::Remove)?)
-    .set_to(public())
-    .set_many_ccs(vec![community.actor_id()])
-    .set_target(generate_moderators_url(&community.actor_id)?.into_inner());
+  async fn send_remove_mod(
+    &self,
+    actor: &User_,
+    removed_mod: User_,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let mut remove = Remove::new(
+      actor.actor_id.clone().into_inner(),
+      removed_mod.actor_id.into_inner(),
+    );
+    remove
+      .set_many_contexts(lemmy_context()?)
+      .set_id(generate_activity_id(RemoveType::Remove)?)
+      .set_to(public())
+      .set_many_ccs(vec![self.actor_id()])
+      .set_target(generate_moderators_url(&self.actor_id)?.into_inner());
 
-  if community.local {
-    community
-      .send_announce(remove.into_any_base()?, context)
-      .await?;
-  } else {
-    send_to_community(remove, &actor, &community, context).await?;
+    send_to_community(remove, &actor, self, context).await?;
+    Ok(())
   }
-  Ok(())
 }

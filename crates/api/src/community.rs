@@ -10,13 +10,14 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_structs::{blocking, community::*};
 use lemmy_apub::{
-  activities::send::community::{send_add_mod, send_remove_mod},
   generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
   generate_shared_inbox_url,
   ActorType,
+  CommunityType,
   EndpointType,
+  UserType,
 };
 use lemmy_db_queries::{
   diesel_option_overwrite_to_url,
@@ -745,9 +746,11 @@ impl Perform for AddModToCommunity {
     })
     .await??;
     if data.added {
-      send_add_mod(user, updated_mod, community, context).await?;
+      community.send_add_mod(&user, updated_mod, context).await?;
     } else {
-      send_remove_mod(user, updated_mod, community, context).await?;
+      community
+        .send_remove_mod(&user, updated_mod, context)
+        .await?;
     }
 
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get

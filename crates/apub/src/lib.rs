@@ -152,38 +152,6 @@ pub trait ActorType {
   fn public_key(&self) -> Option<String>;
   fn private_key(&self) -> Option<String>;
 
-  async fn send_follow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_unfollow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  async fn send_accept_follow(
-    &self,
-    follow: Follow,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_announce(
-    &self,
-    activity: AnyBase,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
-
   fn get_shared_inbox_or_inbox_url(&self) -> Url;
 
   /// Outbox URL is not generally used by Lemmy, so it can be generated on the fly (but only for
@@ -205,6 +173,55 @@ pub trait ActorType {
       .to_ext(),
     )
   }
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait CommunityType {
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
+  async fn send_accept_follow(
+    &self,
+    follow: Follow,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+
+  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+
+  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+
+  async fn send_announce(
+    &self,
+    activity: AnyBase,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+
+  async fn send_add_mod(
+    &self,
+    actor: &User_,
+    added_mod: User_,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_remove_mod(
+    &self,
+    actor: &User_,
+    removed_mod: User_,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait UserType {
+  async fn send_follow(
+    &self,
+    follow_actor_id: &Url,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_unfollow(
+    &self,
+    follow_actor_id: &Url,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
 }
 
 pub enum EndpointType {
@@ -319,6 +336,7 @@ pub(crate) async fn find_post_or_comment_by_id(
   Err(NotFound.into())
 }
 
+#[derive(Debug)]
 pub(crate) enum Object {
   Comment(Comment),
   Post(Post),

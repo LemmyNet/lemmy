@@ -41,7 +41,7 @@ use crate::{
   ActorType,
 };
 use activitystreams::{
-  activity::{Accept, ActorAndObject, Announce, Create, Delete, Follow, Undo, Update},
+  activity::{Accept, ActorAndObject, Announce, Create, Delete, Follow, Remove, Undo, Update},
   base::AnyBase,
   prelude::*,
 };
@@ -165,7 +165,7 @@ pub(crate) async fn user_receive_message(
       receive_delete(context, any_base, &actor_url, request_counter).await?
     }
     UserValidTypes::Undo => receive_undo(context, any_base, &actor_url, request_counter).await?,
-    UserValidTypes::Remove => receive_remove_community(&context, any_base, &actor_url).await?,
+    UserValidTypes::Remove => receive_remove(context, any_base, &actor_url).await?,
   };
 
   // TODO: would be logical to move websocket notification code here
@@ -370,13 +370,31 @@ async fn receive_delete(
   }
 }
 
+async fn receive_remove(
+  context: &LemmyContext,
+  any_base: AnyBase,
+  expected_domain: &Url,
+) -> Result<(), LemmyError> {
+  let remove = Remove::from_any_base(any_base.clone())?.context(location_info!())?;
+  verify_activity_domains_valid(&remove, expected_domain, true)?;
+  let object_uri = remove
+    .object()
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_apub_id(conn, &object_uri.into())
+  })
+  .await??;
+  receive_remove_community(&context, community).await
+}
+
 async fn receive_undo(
   context: &LemmyContext,
   any_base: AnyBase,
   expected_domain: &Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  use CommunityOrPrivateMessage::*;
   let undo = Undo::from_any_base(any_base)?.context(location_info!())?;
   verify_activity_domains_valid(&undo, expected_domain, true)?;
 
@@ -391,15 +409,28 @@ async fn receive_undo(
         .to_owned()
         .single_xsd_any_uri()
         .context(location_info!())?;
+      use CommunityOrPrivateMessage::*;
       match find_community_or_private_message_by_id(context, object_uri).await? {
-        Community(c) => receive_undo_delete_community(context, undo, c, expected_domain).await,
+        Community(c) => receive_undo_delete_community(context, c).await,
         PrivateMessage(p) => {
           receive_undo_delete_private_message(context, undo, expected_domain, p, request_counter)
             .await
         }
       }
     }
-    Some("Remove") => receive_undo_remove_community(context, undo, expected_domain).await,
+    Some("Remove") => {
+      let remove = Remove::from_any_base(inner_activity)?.context(location_info!())?;
+      let object_uri = remove
+        .object()
+        .to_owned()
+        .single_xsd_any_uri()
+        .context(location_info!())?;
+      let community = blocking(context.pool(), move |conn| {
+        Community::read_from_apub_id(conn, &object_uri.into())
+      })
+      .await??;
+      receive_undo_remove_community(context, community).await
+    }
     _ => receive_unhandled_activity(undo),
   }
 }

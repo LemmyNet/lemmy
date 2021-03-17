@@ -3,6 +3,7 @@ use crate::{
   activity_queue::send_activity_single_dest,
   extensions::context::lemmy_context,
   ActorType,
+  UserType,
 };
 use activitystreams::{
   activity::{
@@ -10,11 +11,11 @@ use activitystreams::{
     Follow,
     Undo,
   },
-  base::{AnyBase, BaseExt, ExtendsExt},
+  base::{BaseExt, ExtendsExt},
   object::ObjectExt,
 };
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::{ApubObject, DbPool, Followable};
+use lemmy_db_queries::{ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
@@ -47,7 +48,10 @@ impl ActorType for User_ {
       .unwrap_or_else(|| self.inbox_url.to_owned())
       .into()
   }
+}
 
+#[async_trait::async_trait(?Send)]
+impl UserType for User_ {
   /// As a given local user, send out a follow request to a remote community.
   async fn send_follow(
     &self,
@@ -109,41 +113,5 @@ impl ActorType for User_ {
 
     send_activity_single_dest(undo, self, community.inbox_url.into(), context).await?;
     Ok(())
-  }
-
-  async fn send_accept_follow(
-    &self,
-    _follow: Follow,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_delete(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_undo_delete(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_remove(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_undo_remove(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_announce(
-    &self,
-    _activity: AnyBase,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn get_follower_inboxes(&self, _pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
-    unimplemented!()
   }
 }

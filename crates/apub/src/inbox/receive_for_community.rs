@@ -35,10 +35,13 @@ use crate::{
     objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     user::get_or_fetch_and_upsert_user,
   },
+  find_object_by_id,
   find_post_or_comment_by_id,
   generate_moderators_url,
   inbox::verify_is_addressed_to_public,
   ActorType,
+  CommunityType,
+  Object,
   PostOrComment,
 };
 use activitystreams::{
@@ -254,8 +257,8 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       .context(location_info!())?;
 
     match find_post_or_comment_by_id(context, object).await {
-      Ok(PostOrComment::Post(p)) => receive_remove_post(context, remove, *p).await,
-      Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, remove, *c).await,
+      Ok(PostOrComment::Post(p)) => receive_remove_post(context, *p).await,
+      Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, *c).await,
       // if we dont have the object, no need to do anything
       Err(_) => Ok(()),
     }
@@ -600,9 +603,12 @@ where
     .map(|o| o.id())
     .flatten()
     .context(location_info!())?;
-  let original_id = match find_post_or_comment_by_id(context, object_id.to_owned()).await? {
-    PostOrComment::Post(p) => p.ap_id.into_inner(),
-    PostOrComment::Comment(c) => c.ap_id.into_inner(),
+  let original_id = match find_object_by_id(context, object_id.to_owned()).await? {
+    Object::Post(p) => p.ap_id.into_inner(),
+    Object::Comment(c) => c.ap_id.into_inner(),
+    Object::Community(c) => c.actor_id(),
+    Object::User(u) => u.actor_id(),
+    Object::PrivateMessage(p) => p.ap_id.into_inner(),
   };
   if actor_id.domain() != original_id.domain() {
     let community = extract_community_from_cc(activity, context).await?;

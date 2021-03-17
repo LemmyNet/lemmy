@@ -3,6 +3,7 @@ use crate::{
   extensions::signatures::sign_and_send,
   insert_activity,
   ActorType,
+  CommunityType,
   APUB_JSON_CONTENT_TYPE,
 };
 use activitystreams::{

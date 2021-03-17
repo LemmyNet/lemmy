@@ -20,6 +20,7 @@ use crate::{
   },
   insert_activity,
   ActorType,
+  CommunityType,
 };
 use activitystreams::{
   activity::{kind::FollowType, ActorAndObject, Follow, Undo},

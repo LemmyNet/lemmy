@@ -1,6 +1,6 @@
 use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, NoteExt};
 use activitystreams::{
-  activity::{ActorAndObjectRefExt, Create, Dislike, Like, Remove, Update},
+  activity::{ActorAndObjectRefExt, Create, Dislike, Like, Update},
   base::ExtendsExt,
 };
 use anyhow::Context;
@@ -221,7 +221,6 @@ pub(crate) async fn receive_delete_comment(
 
 pub(crate) async fn receive_remove_comment(
   context: &LemmyContext,
-  _remove: Remove,
   comment: Comment,
 ) -> Result<(), LemmyError> {
   let removed_comment = blocking(context.pool(), move |conn| {

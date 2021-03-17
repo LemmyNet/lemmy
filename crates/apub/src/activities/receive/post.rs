@@ -6,7 +6,7 @@ use crate::{
   PageExt,
 };
 use activitystreams::{
-  activity::{Announce, Create, Dislike, Like, Remove, Update},
+  activity::{Announce, Create, Dislike, Like, Update},
   prelude::*,
 };
 use anyhow::Context;
@@ -216,7 +216,6 @@ pub(crate) async fn receive_delete_post(
 
 pub(crate) async fn receive_remove_post(
   context: &LemmyContext,
-  _remove: Remove,
   post: Post,
 ) -> Result<(), LemmyError> {
   let removed_post = blocking(context.pool(), move |conn| {
