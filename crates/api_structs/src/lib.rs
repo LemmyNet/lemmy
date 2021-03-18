@@ -101,7 +101,7 @@ fn do_send_local_notifs(
       PersonMention::create(&conn, &user_mention_form).ok();
 
       // Send an email to those local users that have notifications on
-      if do_send_email && mention_user_view.local_user.send_notifications_to_email {
+      if do_send_email {
         send_email_to_user(
           &mention_user_view,
           "Mentioned by",
@@ -121,7 +121,7 @@ fn do_send_local_notifs(
           {
             recipient_ids.push(parent_user_view.local_user.id);
 
-            if do_send_email && parent_user_view.local_user.send_notifications_to_email {
+            if do_send_email {
               send_email_to_user(
                 &parent_user_view,
                 "Reply from",
@@ -139,7 +139,7 @@ fn do_send_local_notifs(
         if let Ok(parent_user_view) = LocalUserView::read_person(&conn, post.creator_id) {
           recipient_ids.push(parent_user_view.local_user.id);
 
-          if do_send_email && parent_user_view.local_user.send_notifications_to_email {
+          if do_send_email {
             send_email_to_user(
               &parent_user_view,
               "Reply from",
@@ -160,7 +160,7 @@ pub fn send_email_to_user(
   body_text: &str,
   comment_content: &str,
 ) {
-  if local_user_view.person.banned {
+  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 

@@ -1157,14 +1157,12 @@ impl Perform for CreatePrivateMessage {
     })
     .await?
     {
-      if local_recipient.local_user.send_notifications_to_email {
-        send_email_to_user(
-          &local_recipient,
-          "Private Message from",
-          "Private Message",
-          &content_slurs_removed,
-        );
-      }
+      send_email_to_user(
+        &local_recipient,
+        "Private Message from",
+        "Private Message",
+        &content_slurs_removed,
+      );
 
       let local_recipient_id = local_recipient.local_user.id;
       context.chat_server().do_send(SendUserRoomMessage {
