@@ -165,7 +165,7 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
       .set_to(public())
-      .set_many_ccs(vec![self.actor_id()]);
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
 
     send_to_community_followers(announce, self, context).await?;
 

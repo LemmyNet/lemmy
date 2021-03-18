@@ -107,14 +107,14 @@ impl FromApub for Community {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    is_mod_action: bool,
+    mod_action_allowed: bool,
   ) -> Result<Community, LemmyError> {
     let community: Community = get_object_from_apub(
       group,
       context,
       expected_domain,
       request_counter,
-      is_mod_action,
+      mod_action_allowed,
     )
     .await?;
 
@@ -169,7 +169,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    _is_mod_action: bool,
+    _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
     let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
     let creator_uri = moderator_uris.first().context(location_info!())?;

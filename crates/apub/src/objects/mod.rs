@@ -46,13 +46,13 @@ pub(crate) trait FromApub {
   /// * `apub` The object to read from
   /// * `context` LemmyContext which holds DB pool, HTTP client etc
   /// * `expected_domain` Domain where the object was received from. None in case of mod action.
-  /// * `is_mod_action` True if the object was sent in a mod activity, ignore `expected_domain` in this case
+  /// * `mod_action_allowed` True if the object can be a mod activity, ignore `expected_domain` in this case
   async fn from_apub(
     apub: &Self::ApubType,
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    is_mod_action: bool,
+    mod_action_allowed: bool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -65,7 +65,7 @@ pub(in crate::objects) trait FromApubToForm<ApubType> {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    is_mod_action: bool,
+    mod_action_allowed: bool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;

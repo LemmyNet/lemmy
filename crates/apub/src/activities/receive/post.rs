@@ -75,14 +75,17 @@ pub(crate) async fn receive_update_post(
   // If sticked or locked state was changed, make sure the actor is a mod
   let stickied = page.ext_one.stickied.context(location_info!())?;
   let locked = !page.ext_one.comments_enabled.context(location_info!())?;
-  let mut is_mod_action = false;
+  let mut mod_action_allowed = false;
   if stickied != old_post.stickied || locked != old_post.locked {
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, old_post.community_id)
     })
     .await??;
-    verify_mod_activity(&update, announce, &community, context).await?;
-    is_mod_action = true;
+    // Only check mod status if the community is local, otherwise we trust that it was sent correctly.
+    if community.local {
+      verify_mod_activity(&update, announce, &community, context).await?;
+    }
+    mod_action_allowed = true;
   }
 
   let post = Post::from_apub(
@@ -90,7 +93,7 @@ pub(crate) async fn receive_update_post(
     context,
     user.actor_id(),
     request_counter,
-    is_mod_action,
+    mod_action_allowed,
   )
   .await?;
 

@@ -118,14 +118,14 @@ impl FromApub for Post {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    is_mod_action: bool,
+    mod_action_allowed: bool,
   ) -> Result<Post, LemmyError> {
     let post: Post = get_object_from_apub(
       page,
       context,
       expected_domain,
       request_counter,
-      is_mod_action,
+      mod_action_allowed,
     )
     .await?;
     check_object_for_community_or_site_ban(page, post.community_id, context, request_counter)
@@ -141,9 +141,9 @@ impl FromApubToForm<PageExt> for PostForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    is_mod_action: bool,
+    mod_action_allowed: bool,
   ) -> Result<PostForm, LemmyError> {
-    let ap_id = if is_mod_action {
+    let ap_id = if mod_action_allowed {
       let id = page.id_unchecked().context(location_info!())?;
       check_is_apub_id_valid(id)?;
       id.to_owned().into()

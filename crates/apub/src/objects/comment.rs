@@ -99,14 +99,14 @@ impl FromApub for Comment {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    is_mod_action: bool,
+    mod_action_allowed: bool,
   ) -> Result<Comment, LemmyError> {
     let comment: Comment = get_object_from_apub(
       note,
       context,
       expected_domain,
       request_counter,
-      is_mod_action,
+      mod_action_allowed,
     )
     .await?;
 
@@ -135,7 +135,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-    _is_mod_action: bool,
+    _mod_action_allowed: bool,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note
       .attributed_to()
