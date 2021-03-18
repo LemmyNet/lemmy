@@ -6,7 +6,7 @@ use actix_web::{body::Body, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_db_schema::{source::comment::Comment, CommentId};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -21,7 +21,7 @@ pub async fn get_apub_comment(
   info: Path<CommentQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let id = info.comment_id.parse::<i32>()?;
+  let id = CommentId(info.comment_id.parse::<i32>()?);
   let comment = blocking(context.pool(), move |conn| Comment::read(conn, id)).await??;
   if !comment.local {
     return Err(NotFound.into());

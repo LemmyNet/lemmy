@@ -6,6 +6,8 @@ use lemmy_db_schema::{
     community::{Community, CommunitySafe},
     person::{Person, PersonSafe},
   },
+  CommunityId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -18,8 +20,8 @@ pub struct CommunityPersonBanView {
 impl CommunityPersonBanView {
   pub fn get(
     conn: &PgConnection,
-    from_person_id: i32,
-    from_community_id: i32,
+    from_person_id: PersonId,
+    from_community_id: CommunityId,
   ) -> Result<Self, Error> {
     let (community, person) = community_person_ban::table
       .inner_join(community::table)

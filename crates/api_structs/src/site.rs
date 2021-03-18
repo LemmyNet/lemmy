@@ -1,3 +1,4 @@
+use lemmy_db_schema::{CommunityId, PersonId};
 use lemmy_db_views::{
   comment_view::CommentView,
   local_user_view::LocalUserSettingsView,
@@ -23,7 +24,7 @@ use url::Url;
 pub struct Search {
   pub q: String,
   pub type_: String,
-  pub community_id: Option<i32>,
+  pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub sort: String,
   pub page: Option<i64>,
@@ -42,8 +43,8 @@ pub struct SearchResponse {
 
 #[derive(Deserialize)]
 pub struct GetModlog {
-  pub mod_person_id: Option<i32>,
-  pub community_id: Option<i32>,
+  pub mod_person_id: Option<PersonId>,
+  pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -108,7 +109,7 @@ pub struct GetSiteResponse {
 
 #[derive(Deserialize)]
 pub struct TransferSite {
-  pub person_id: i32,
+  pub person_id: PersonId,
   pub auth: String,
 }
 

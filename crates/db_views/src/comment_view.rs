@@ -30,6 +30,10 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     post::Post,
   },
+  CommentId,
+  CommunityId,
+  PersonId,
+  PostId,
 };
 use serde::Serialize;
 
@@ -64,11 +68,11 @@ type CommentViewTuple = (
 impl CommentView {
   pub fn read(
     conn: &PgConnection,
-    comment_id: i32,
-    my_person_id: Option<i32>,
+    comment_id: CommentId,
+    my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
       comment,
@@ -158,7 +162,7 @@ impl CommentView {
 
   /// Gets the recipient person id.
   /// If there is no parent comment, its the post creator
-  pub fn get_recipient_id(&self) -> i32 {
+  pub fn get_recipient_id(&self) -> PersonId {
     match &self.recipient {
       Some(parent_commenter) => parent_commenter.id,
       None => self.post.creator_id,
@@ -170,12 +174,12 @@ pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
   listing_type: ListingType,
   sort: &'a SortType,
-  community_id: Option<i32>,
+  community_id: Option<CommunityId>,
   community_name: Option<String>,
-  post_id: Option<i32>,
-  creator_id: Option<i32>,
-  recipient_id: Option<i32>,
-  my_person_id: Option<i32>,
+  post_id: Option<PostId>,
+  creator_id: Option<PersonId>,
+  recipient_id: Option<PersonId>,
+  my_person_id: Option<PersonId>,
   search_term: Option<String>,
   saved_only: bool,
   unread_only: bool,
@@ -213,27 +217,27 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn post_id<T: MaybeOptional<i32>>(mut self, post_id: T) -> Self {
+  pub fn post_id<T: MaybeOptional<PostId>>(mut self, post_id: T) -> Self {
     self.post_id = post_id.get_optional();
     self
   }
 
-  pub fn creator_id<T: MaybeOptional<i32>>(mut self, creator_id: T) -> Self {
+  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
     self.creator_id = creator_id.get_optional();
     self
   }
 
-  pub fn recipient_id<T: MaybeOptional<i32>>(mut self, recipient_id: T) -> Self {
+  pub fn recipient_id<T: MaybeOptional<PersonId>>(mut self, recipient_id: T) -> Self {
     self.recipient_id = recipient_id.get_optional();
     self
   }
 
-  pub fn community_id<T: MaybeOptional<i32>>(mut self, community_id: T) -> Self {
+  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
     self.community_id = community_id.get_optional();
     self
   }
 
-  pub fn my_person_id<T: MaybeOptional<i32>>(mut self, my_person_id: T) -> Self {
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
     self.my_person_id = my_person_id.get_optional();
     self
   }
@@ -272,7 +276,7 @@ impl<'a> CommentQueryBuilder<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
     let mut query = comment::table
       .inner_join(person::table)

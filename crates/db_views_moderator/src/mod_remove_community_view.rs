@@ -7,6 +7,7 @@ use lemmy_db_schema::{
     moderator::ModRemoveCommunity,
     person::{Person, PersonSafe},
   },
+  PersonId,
 };
 use serde::Serialize;
 
@@ -22,7 +23,7 @@ type ModRemoveCommunityTuple = (ModRemoveCommunity, PersonSafe, CommunitySafe);
 impl ModRemoveCommunityView {
   pub fn list(
     conn: &PgConnection,
-    mod_person_id: Option<i32>,
+    mod_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {

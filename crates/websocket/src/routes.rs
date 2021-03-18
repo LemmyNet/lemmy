@@ -6,7 +6,7 @@ use crate::{
 use actix::prelude::*;
 use actix_web::*;
 use actix_web_actors::ws;
-use lemmy_utils::utils::get_ip;
+use lemmy_utils::{utils::get_ip, ConnectionId, IpAddr};
 use log::{debug, error, info};
 use std::time::{Duration, Instant};
 
@@ -36,8 +36,8 @@ pub async fn chat_route(
 struct WsSession {
   cs_addr: Addr<ChatServer>,
   /// unique session id
-  id: usize,
-  ip: String,
+  id: ConnectionId,
+  ip: IpAddr,
   /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
   /// otherwise we drop connection.
   hb: Instant,

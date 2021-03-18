@@ -55,6 +55,7 @@ use lemmy_db_schema::{
     private_message::*,
     site::*,
   },
+  CommunityId,
 };
 use lemmy_db_views::{
   comment_report_view::CommentReportView,
@@ -129,7 +130,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.local_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(local_user_view.local_user.id.0, Settings::get().hostname())?,
     })
   }
 }
@@ -271,39 +272,42 @@ impl Perform for Register {
     let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
-    let main_community =
-      match blocking(context.pool(), move |conn| Community::read(conn, 2)).await? {
-        Ok(c) => c,
-        Err(_e) => {
-          let default_community_name = "main";
-          let actor_id = generate_apub_endpoint(EndpointType::Community, default_community_name)?;
-          let community_form = CommunityForm {
-            name: default_community_name.to_string(),
-            title: "The Default Community".to_string(),
-            description: Some("The Default Community".to_string()),
-            nsfw: false,
-            creator_id: inserted_person.id,
-            removed: None,
-            deleted: None,
-            updated: None,
-            actor_id: Some(actor_id.to_owned()),
-            local: true,
-            private_key: Some(main_community_keypair.private_key),
-            public_key: Some(main_community_keypair.public_key),
-            last_refreshed_at: None,
-            published: None,
-            icon: None,
-            banner: None,
-            followers_url: Some(generate_followers_url(&actor_id)?),
-            inbox_url: Some(generate_inbox_url(&actor_id)?),
-            shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
-          };
-          blocking(context.pool(), move |conn| {
-            Community::create(conn, &community_form)
-          })
-          .await??
-        }
-      };
+    let main_community = match blocking(context.pool(), move |conn| {
+      Community::read(conn, CommunityId(2))
+    })
+    .await?
+    {
+      Ok(c) => c,
+      Err(_e) => {
+        let default_community_name = "main";
+        let actor_id = generate_apub_endpoint(EndpointType::Community, default_community_name)?;
+        let community_form = CommunityForm {
+          name: default_community_name.to_string(),
+          title: "The Default Community".to_string(),
+          description: Some("The Default Community".to_string()),
+          nsfw: false,
+          creator_id: inserted_person.id,
+          removed: None,
+          deleted: None,
+          updated: None,
+          actor_id: Some(actor_id.to_owned()),
+          local: true,
+          private_key: Some(main_community_keypair.private_key),
+          public_key: Some(main_community_keypair.public_key),
+          last_refreshed_at: None,
+          published: None,
+          icon: None,
+          banner: None,
+          followers_url: Some(generate_followers_url(&actor_id)?),
+          inbox_url: Some(generate_inbox_url(&actor_id)?),
+          shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
+        };
+        blocking(context.pool(), move |conn| {
+          Community::create(conn, &community_form)
+        })
+        .await??
+      }
+    };
 
     // Sign them up for main community no matter what
     let community_follower_form = CommunityFollowerForm {
@@ -332,7 +336,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_local_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(inserted_local_user.id.0, Settings::get().hostname())?,
     })
   }
 }
@@ -522,7 +526,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id.0, Settings::get().hostname())?,
     })
   }
 }
@@ -1074,7 +1078,7 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id.0, Settings::get().hostname())?,
     })
   }
 }
@@ -1465,7 +1469,7 @@ impl Perform for GetReportCount {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::GetReportCount,
       response: res.clone(),
-      local_recipient_id: local_user_view.person.id,
+      local_recipient_id: local_user_view.local_user.id,
       websocket_id,
     });
 

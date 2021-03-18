@@ -35,6 +35,7 @@ use lemmy_db_queries::{
 use lemmy_db_schema::{
   naive_now,
   source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
+  PersonId,
 };
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_db_views_actor::{
@@ -241,7 +242,7 @@ impl Perform for EditCommunity {
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
-    let mods: Vec<i32> = blocking(context.pool(), move |conn| {
+    let mods: Vec<PersonId> = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
         .map(|v| v.into_iter().map(|m| m.moderator.id).collect())
     })

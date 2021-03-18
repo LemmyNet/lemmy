@@ -1,3 +1,4 @@
+use lemmy_db_schema::{CommunityId, PersonId};
 use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
@@ -8,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct GetCommunity {
-  pub id: Option<i32>,
+  pub id: Option<CommunityId>,
   pub name: Option<String>,
   pub auth: Option<String>,
 }
@@ -52,8 +53,8 @@ pub struct ListCommunitiesResponse {
 
 #[derive(Deserialize, Clone)]
 pub struct BanFromCommunity {
-  pub community_id: i32,
-  pub person_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub ban: bool,
   pub remove_data: bool,
   pub reason: Option<String>,
@@ -69,8 +70,8 @@ pub struct BanFromCommunityResponse {
 
 #[derive(Deserialize)]
 pub struct AddModToCommunity {
-  pub community_id: i32,
-  pub person_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub added: bool,
   pub auth: String,
 }
@@ -82,7 +83,7 @@ pub struct AddModToCommunityResponse {
 
 #[derive(Deserialize)]
 pub struct EditCommunity {
-  pub community_id: i32,
+  pub community_id: CommunityId,
   pub title: String,
   pub description: Option<String>,
   pub icon: Option<String>,
@@ -93,14 +94,14 @@ pub struct EditCommunity {
 
 #[derive(Deserialize)]
 pub struct DeleteCommunity {
-  pub community_id: i32,
+  pub community_id: CommunityId,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct RemoveCommunity {
-  pub community_id: i32,
+  pub community_id: CommunityId,
   pub removed: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
@@ -109,7 +110,7 @@ pub struct RemoveCommunity {
 
 #[derive(Deserialize)]
 pub struct FollowCommunity {
-  pub community_id: i32,
+  pub community_id: CommunityId,
   pub follow: bool,
   pub auth: String,
 }
@@ -126,7 +127,7 @@ pub struct GetFollowedCommunitiesResponse {
 
 #[derive(Deserialize)]
 pub struct TransferCommunity {
-  pub community_id: i32,
-  pub person_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub auth: String,
 }

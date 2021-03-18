@@ -9,6 +9,7 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
   },
+  CommunityId,
 };
 use serde::Serialize;
 
@@ -76,7 +77,10 @@ impl CommentReportView {
   /// * `community_ids` - a Vec<i32> of community_ids to get a count for
   /// TODO this eq_any is a bad way to do this, would be better to join to communitymoderator
   /// for a person id
-  pub fn get_report_count(conn: &PgConnection, community_ids: &[i32]) -> Result<i64, Error> {
+  pub fn get_report_count(
+    conn: &PgConnection,
+    community_ids: &[CommunityId],
+  ) -> Result<i64, Error> {
     use diesel::dsl::*;
     comment_report::table
       .inner_join(comment::table)
@@ -93,7 +97,7 @@ impl CommentReportView {
 
 pub struct CommentReportQueryBuilder<'a> {
   conn: &'a PgConnection,
-  community_ids: Option<Vec<i32>>, // TODO bad way to do this
+  community_ids: Option<Vec<CommunityId>>, // TODO bad way to do this
   page: Option<i64>,
   limit: Option<i64>,
   resolved: Option<bool>,
@@ -110,7 +114,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
     }
   }
 
-  pub fn community_ids<T: MaybeOptional<Vec<i32>>>(mut self, community_ids: T) -> Self {
+  pub fn community_ids<T: MaybeOptional<Vec<CommunityId>>>(mut self, community_ids: T) -> Self {
     self.community_ids = community_ids.get_optional();
     self
   }

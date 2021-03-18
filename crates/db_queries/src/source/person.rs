@@ -5,6 +5,7 @@ use lemmy_db_schema::{
   schema::person::dsl::*,
   source::person::{Person, PersonForm},
   DbUrl,
+  PersonId,
 };
 
 mod safe_type {
@@ -139,20 +140,20 @@ mod safe_type_alias_2 {
   }
 }
 
-impl Crud<PersonForm> for Person {
-  fn read(conn: &PgConnection, person_id: i32) -> Result<Self, Error> {
+impl Crud<PersonForm, PersonId> for Person {
+  fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     person
       .filter(deleted.eq(false))
       .find(person_id)
       .first::<Self>(conn)
   }
-  fn delete(conn: &PgConnection, person_id: i32) -> Result<usize, Error> {
+  fn delete(conn: &PgConnection, person_id: PersonId) -> Result<usize, Error> {
     diesel::delete(person.find(person_id)).execute(conn)
   }
   fn create(conn: &PgConnection, form: &PersonForm) -> Result<Self, Error> {
     insert_into(person).values(form).get_result::<Self>(conn)
   }
-  fn update(conn: &PgConnection, person_id: i32, form: &PersonForm) -> Result<Self, Error> {
+  fn update(conn: &PgConnection, person_id: PersonId, form: &PersonForm) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -179,14 +180,14 @@ impl ApubObject<PersonForm> for Person {
 }
 
 pub trait Person_ {
-  fn ban_person(conn: &PgConnection, person_id: i32, ban: bool) -> Result<Person, Error>;
+  fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Person, Error>;
   fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
-  fn mark_as_updated(conn: &PgConnection, person_id: i32) -> Result<Person, Error>;
-  fn delete_account(conn: &PgConnection, person_id: i32) -> Result<Person, Error>;
+  fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
+  fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
 }
 
 impl Person_ for Person {
-  fn ban_person(conn: &PgConnection, person_id: i32, ban: bool) -> Result<Self, Error> {
+  fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(banned.eq(ban))
       .get_result::<Self>(conn)
@@ -200,13 +201,13 @@ impl Person_ for Person {
       .first::<Person>(conn)
   }
 
-  fn mark_as_updated(conn: &PgConnection, person_id: i32) -> Result<Person, Error> {
+  fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
     diesel::update(person.find(person_id))
       .set((last_refreshed_at.eq(naive_now()),))
       .get_result::<Self>(conn)
   }
 
-  fn delete_account(conn: &PgConnection, person_id: i32) -> Result<Person, Error> {
+  fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
     use lemmy_db_schema::schema::local_user;
 
     // Set the local user info to none

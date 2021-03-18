@@ -1,6 +1,6 @@
 use crate::Reportable;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{naive_now, source::post_report::*};
+use lemmy_db_schema::{naive_now, source::post_report::*, PersonId};
 
 impl Reportable<PostReportForm> for PostReport {
   /// creates a post report and returns it
@@ -19,7 +19,11 @@ impl Reportable<PostReportForm> for PostReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
-  fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
+  fn resolve(
+    conn: &PgConnection,
+    report_id: i32,
+    by_resolver_id: PersonId,
+  ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::post_report::dsl::*;
     update(post_report.find(report_id))
       .set((
@@ -35,7 +39,11 @@ impl Reportable<PostReportForm> for PostReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
-  fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
+  fn unresolve(
+    conn: &PgConnection,
+    report_id: i32,
+    by_resolver_id: PersonId,
+  ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::post_report::dsl::*;
     update(post_report.find(report_id))
       .set((

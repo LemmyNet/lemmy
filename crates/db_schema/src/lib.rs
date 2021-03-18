@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate diesel;
 
+#[macro_use]
+extern crate diesel_derive_newtype;
+
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
@@ -10,6 +13,7 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+  fmt,
   fmt::{Display, Formatter},
   io::Write,
 };
@@ -17,6 +21,45 @@ use url::Url;
 
 pub mod schema;
 pub mod source;
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct PostId(pub i32);
+
+impl fmt::Display for PostId {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct PersonId(pub i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct CommentId(pub i32);
+
+impl fmt::Display for CommentId {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct CommunityId(pub i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct LocalUserId(pub i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct PrivateMessageId(i32);
+
+impl fmt::Display for PrivateMessageId {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+pub struct PersonMentionId(i32);
 
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug, AsExpression, FromSqlRow)]

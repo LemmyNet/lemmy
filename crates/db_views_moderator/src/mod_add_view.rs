@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     moderator::ModAdd,
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
+  PersonId,
 };
 use serde::Serialize;
 
@@ -21,7 +22,7 @@ type ModAddViewTuple = (ModAdd, PersonSafe, PersonSafeAlias1);
 impl ModAddView {
   pub fn list(
     conn: &PgConnection,
-    mod_person_id: Option<i32>,
+    mod_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {

@@ -16,10 +16,16 @@ use lemmy_db_queries::{
   Crud,
   DbPool,
 };
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator},
-  post::Post,
-  site::Site,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityModerator},
+    post::Post,
+    site::Site,
+  },
+  CommunityId,
+  LocalUserId,
+  PersonId,
+  PostId,
 };
 use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
 use lemmy_db_views_actor::{
@@ -59,8 +65,8 @@ pub trait Perform {
 
 pub(crate) async fn is_mod_or_admin(
   pool: &DbPool,
-  person_id: i32,
-  community_id: i32,
+  person_id: PersonId,
+  community_id: CommunityId,
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = blocking(pool, move |conn| {
     CommunityView::is_mod_or_admin(conn, person_id, community_id)
@@ -79,7 +85,7 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   Ok(())
 }
 
-pub(crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
+pub(crate) async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
     Ok(post) => Ok(post),
     Err(_e) => Err(ApiError::err("couldnt_find_post").into()),
@@ -94,7 +100,7 @@ pub(crate) async fn get_local_user_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let local_user_id = claims.local_user_id;
+  let local_user_id = LocalUserId(claims.local_user_id);
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
   // Check for a site ban
@@ -122,7 +128,7 @@ pub(crate) async fn get_local_user_settings_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let local_user_id = claims.local_user_id;
+  let local_user_id = LocalUserId(claims.local_user_id);
   let local_user_view = blocking(pool, move |conn| {
     LocalUserSettingsView::read(conn, local_user_id)
   })
@@ -147,8 +153,8 @@ pub(crate) async fn get_local_user_settings_view_from_jwt_opt(
 }
 
 pub(crate) async fn check_community_ban(
-  person_id: i32,
-  community_id: i32,
+  person_id: PersonId,
+  community_id: CommunityId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   let is_banned =
@@ -178,10 +184,10 @@ pub(crate) async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result
 /// * `community_id` - optional community id to check for moderator privileges
 /// * `pool` - the diesel db pool
 pub(crate) async fn collect_moderated_communities(
-  person_id: i32,
-  community_id: Option<i32>,
+  person_id: PersonId,
+  community_id: Option<CommunityId>,
   pool: &DbPool,
-) -> Result<Vec<i32>, LemmyError> {
+) -> Result<Vec<CommunityId>, LemmyError> {
   if let Some(community_id) = community_id {
     // if the user provides a community_id, just check for mod/admin privileges
     is_mod_or_admin(pool, person_id, community_id).await?;

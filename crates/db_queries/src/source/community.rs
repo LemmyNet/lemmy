@@ -12,7 +12,9 @@ use lemmy_db_schema::{
     CommunityPersonBan,
     CommunityPersonBanForm,
   },
+  CommunityId,
   DbUrl,
+  PersonId,
 };
 
 mod safe_type {
@@ -59,13 +61,13 @@ mod safe_type {
   }
 }
 
-impl Crud<CommunityForm> for Community {
-  fn read(conn: &PgConnection, community_id: i32) -> Result<Self, Error> {
+impl Crud<CommunityForm, CommunityId> for Community {
+  fn read(conn: &PgConnection, community_id: CommunityId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community.find(community_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, community_id: i32) -> Result<usize, Error> {
+  fn delete(conn: &PgConnection, community_id: CommunityId) -> Result<usize, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     diesel::delete(community.find(community_id)).execute(conn)
   }
@@ -79,7 +81,7 @@ impl Crud<CommunityForm> for Community {
 
   fn update(
     conn: &PgConnection,
-    community_id: i32,
+    community_id: CommunityId,
     new_community: &CommunityForm,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
@@ -112,23 +114,23 @@ pub trait Community_ {
   fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error>;
   fn update_deleted(
     conn: &PgConnection,
-    community_id: i32,
+    community_id: CommunityId,
     new_deleted: bool,
   ) -> Result<Community, Error>;
   fn update_removed(
     conn: &PgConnection,
-    community_id: i32,
+    community_id: CommunityId,
     new_removed: bool,
   ) -> Result<Community, Error>;
   fn update_removed_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
+    for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Community>, Error>;
   fn update_creator(
     conn: &PgConnection,
-    community_id: i32,
-    new_creator_id: i32,
+    community_id: CommunityId,
+    new_creator_id: PersonId,
   ) -> Result<Community, Error>;
   fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error>;
   fn read_from_followers_url(
@@ -148,7 +150,7 @@ impl Community_ for Community {
 
   fn update_deleted(
     conn: &PgConnection,
-    community_id: i32,
+    community_id: CommunityId,
     new_deleted: bool,
   ) -> Result<Community, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
@@ -159,7 +161,7 @@ impl Community_ for Community {
 
   fn update_removed(
     conn: &PgConnection,
-    community_id: i32,
+    community_id: CommunityId,
     new_removed: bool,
   ) -> Result<Community, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
@@ -170,7 +172,7 @@ impl Community_ for Community {
 
   fn update_removed_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
+    for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Community>, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
@@ -181,8 +183,8 @@ impl Community_ for Community {
 
   fn update_creator(
     conn: &PgConnection,
-    community_id: i32,
-    new_creator_id: i32,
+    community_id: CommunityId,
+    new_creator_id: PersonId,
   ) -> Result<Community, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     diesel::update(community.find(community_id))
@@ -232,28 +234,34 @@ impl Joinable<CommunityModeratorForm> for CommunityModerator {
 }
 
 pub trait CommunityModerator_ {
-  fn delete_for_community(conn: &PgConnection, for_community_id: i32) -> Result<usize, Error>;
+  fn delete_for_community(
+    conn: &PgConnection,
+    for_community_id: CommunityId,
+  ) -> Result<usize, Error>;
   fn get_person_moderated_communities(
     conn: &PgConnection,
-    for_person_id: i32,
-  ) -> Result<Vec<i32>, Error>;
+    for_person_id: PersonId,
+  ) -> Result<Vec<CommunityId>, Error>;
 }
 
 impl CommunityModerator_ for CommunityModerator {
-  fn delete_for_community(conn: &PgConnection, for_community_id: i32) -> Result<usize, Error> {
+  fn delete_for_community(
+    conn: &PgConnection,
+    for_community_id: CommunityId,
+  ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::*;
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(conn)
   }
 
   fn get_person_moderated_communities(
     conn: &PgConnection,
-    for_person_id: i32,
-  ) -> Result<Vec<i32>, Error> {
+    for_person_id: PersonId,
+  ) -> Result<Vec<CommunityId>, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::*;
     community_moderator
       .filter(person_id.eq(for_person_id))
       .select(community_id)
-      .load::<i32>(conn)
+      .load::<CommunityId>(conn)
   }
 }
 
@@ -297,8 +305,8 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
   }
   fn follow_accepted(
     conn: &PgConnection,
-    community_id_: i32,
-    person_id_: i32,
+    community_id_: CommunityId,
+    person_id_: PersonId,
   ) -> Result<Self, Error>
   where
     Self: Sized,
@@ -326,7 +334,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
   }
   // TODO: this function name only makes sense if you call it with a remote community. for a local
   //       community, it will also return true if only remote followers exist
-  fn has_local_followers(conn: &PgConnection, community_id_: i32) -> Result<bool, Error> {
+  fn has_local_followers(conn: &PgConnection, community_id_: CommunityId) -> Result<bool, Error> {
     use lemmy_db_schema::schema::community_follower::dsl::*;
     diesel::select(exists(
       community_follower.filter(community_id.eq(community_id_)),

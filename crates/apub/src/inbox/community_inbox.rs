@@ -28,9 +28,12 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::community::Community_, ApubObject, DbPool, Followable};
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityFollower, CommunityFollowerForm},
+    person::Person,
+  },
+  CommunityId,
 };
 use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
 use lemmy_utils::{location_info, LemmyError};
@@ -261,7 +264,7 @@ async fn handle_undo_follow(
 
 pub(crate) async fn check_community_or_site_ban(
   person: &Person,
-  community_id: i32,
+  community_id: CommunityId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if person.banned {

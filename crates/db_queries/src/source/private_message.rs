@@ -1,9 +1,9 @@
 use crate::{ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl};
+use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl, PersonId, PrivateMessageId};
 
-impl Crud<PrivateMessageForm> for PrivateMessage {
-  fn read(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
+impl Crud<PrivateMessageForm, PrivateMessageId> for PrivateMessage {
+  fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
     private_message.find(private_message_id).first::<Self>(conn)
   }
@@ -17,7 +17,7 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
 
   fn update(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     private_message_form: &PrivateMessageForm,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
@@ -52,34 +52,34 @@ impl ApubObject<PrivateMessageForm> for PrivateMessage {
 pub trait PrivateMessage_ {
   fn update_ap_id(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     apub_id: DbUrl,
   ) -> Result<PrivateMessage, Error>;
   fn update_content(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     new_content: &str,
   ) -> Result<PrivateMessage, Error>;
   fn update_deleted(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     new_deleted: bool,
   ) -> Result<PrivateMessage, Error>;
   fn update_read(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     new_read: bool,
   ) -> Result<PrivateMessage, Error>;
   fn mark_all_as_read(
     conn: &PgConnection,
-    for_recipient_id: i32,
+    for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error>;
 }
 
 impl PrivateMessage_ for PrivateMessage {
   fn update_ap_id(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     apub_id: DbUrl,
   ) -> Result<PrivateMessage, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
@@ -91,7 +91,7 @@ impl PrivateMessage_ for PrivateMessage {
 
   fn update_content(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     new_content: &str,
   ) -> Result<PrivateMessage, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
@@ -102,7 +102,7 @@ impl PrivateMessage_ for PrivateMessage {
 
   fn update_deleted(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     new_deleted: bool,
   ) -> Result<PrivateMessage, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
@@ -113,7 +113,7 @@ impl PrivateMessage_ for PrivateMessage {
 
   fn update_read(
     conn: &PgConnection,
-    private_message_id: i32,
+    private_message_id: PrivateMessageId,
     new_read: bool,
   ) -> Result<PrivateMessage, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
@@ -124,7 +124,7 @@ impl PrivateMessage_ for PrivateMessage {
 
   fn mark_all_as_read(
     conn: &PgConnection,
-    for_recipient_id: i32,
+    for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(
