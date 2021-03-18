@@ -21,7 +21,13 @@ steps:
 
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.50.0
+    environment:
+      CARGO_HOME: /drone/src/.cargo
     commands:
+      - whoami
+      - ls -la ~/.cargo
+      - mv ~/.cargo .
+      - ls -la .cargo
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
 
@@ -31,6 +37,7 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
+      CARGO_HOME: /drone/src/.cargo
     commands:
       - sudo apt-get update
       - sudo apt-get -y install --no-install-recommends espeak postgresql-client
@@ -38,6 +45,8 @@ steps:
 
   - name: cargo build
     image: ekidd/rust-musl-builder:1.50.0
+    environment:
+      CARGO_HOME: /drone/src/.cargo
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
@@ -109,6 +118,7 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
+      CARGO_HOME: /drone/src/.cargo
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends espeak postgresql-client libssl-dev pkg-config libpq-dev
@@ -118,6 +128,8 @@ steps:
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
   - name: cargo build
     image: rust:1.50-slim-buster
+    environment:
+      CARGO_HOME: /drone/src/.cargo
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
