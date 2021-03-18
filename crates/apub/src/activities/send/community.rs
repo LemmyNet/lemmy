@@ -4,6 +4,7 @@ use crate::{
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
   fetcher::person::get_or_fetch_and_upsert_person,
+  insert_activity,
   ActorType,
 };
 use activitystreams::{
@@ -27,7 +28,7 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
-use lemmy_utils::{location_info, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -164,11 +165,20 @@ impl ActorType for Community {
 
   /// Wraps an activity sent to the community in an announce, and then sends the announce to all
   /// community followers.
+  ///
+  /// If we are announcing a local activity, it hasn't been stored in the database yet, and we need
+  /// to do it here, so that it can be fetched by ID. Remote activities are inserted into DB in the
+  /// inbox.
   async fn send_announce(
     &self,
     activity: AnyBase,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
+    let inner_id = activity.id().context(location_info!())?;
+    if inner_id.domain() == Some(&Settings::get().get_hostname_without_port()?) {
+      insert_activity(inner_id, activity.clone(), true, false, context.pool()).await?;
+    }
+
     let mut announce = Announce::new(self.actor_id.to_owned().into_inner(), activity);
     announce
       .set_many_contexts(lemmy_context()?)
