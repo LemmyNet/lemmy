@@ -116,7 +116,9 @@ fn do_send_local_notifs(
   match comment.parent_id {
     Some(parent_id) => {
       if let Ok(parent_comment) = Comment::read(&conn, parent_id) {
+        // Don't send a notif to yourself
         if parent_comment.creator_id != person.id {
+          // Get the parent commenter local_user
           if let Ok(parent_user_view) = LocalUserView::read_person(&conn, parent_comment.creator_id)
           {
             recipient_ids.push(parent_user_view.local_user.id);
