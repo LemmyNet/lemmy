@@ -26,7 +26,7 @@ steps:
     commands:
       - whoami
       - ls -la ~/.cargo
-      - cp ~/.cargo .
+      - mv ~/.cargo .
       - ls -la .cargo
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
