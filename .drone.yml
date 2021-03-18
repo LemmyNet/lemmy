@@ -44,6 +44,7 @@ steps:
       CARGO_HOME: /drone/src/.cargo
     commands:
       - cargo build
+      - find target
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
   - name: run federation tests
