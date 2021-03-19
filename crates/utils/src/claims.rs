@@ -1,4 +1,5 @@
 use crate::settings::structs::Settings;
+use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +31,7 @@ impl Claims {
     let my_claims = Claims {
       sub: local_user_id,
       iss: Settings::get().hostname(),
-      iat: chrono::Utc::now().timestamp_millis() / 1000,
+      iat: Utc::now().timestamp(),
     };
     encode(
       &Header::default(),

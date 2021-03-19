@@ -118,7 +118,7 @@ pub(crate) fn check_validator_time(
   validator_time: &chrono::NaiveDateTime,
   claims: &Claims,
 ) -> Result<(), LemmyError> {
-  let user_validation_time = validator_time.timestamp_millis() / 1000;
+  let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
     Err(ApiError::err("not_logged_in").into())
   } else {
