@@ -6,8 +6,14 @@ type Jwt = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
+  /// User id, for backward compatibility with client apps.
+  /// Claim [sub](Claims::sub) is used in server-side checks.
   pub id: i32,
+  /// User id, standard claim by RFC 7519.
+  pub sub: i32,
   pub iss: String,
+  /// Time when this token was issued as UNIX-timestamp in seconds
+  pub iat: i64,
 }
 
 impl Claims {
@@ -26,7 +32,9 @@ impl Claims {
   pub fn jwt(user_id: i32, hostname: String) -> Result<Jwt, jsonwebtoken::errors::Error> {
     let my_claims = Claims {
       id: user_id,
+      sub: user_id,
       iss: hostname,
+      iat: chrono::Utc::now().timestamp_millis() / 1000,
     };
     encode(
       &Header::default(),

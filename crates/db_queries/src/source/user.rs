@@ -173,6 +173,7 @@ mod safe_settings_type {
     last_refreshed_at,
     banner,
     deleted,
+    validator_time,
   );
 
   impl ToSafeSettings for User_ {
@@ -202,6 +203,7 @@ mod safe_settings_type {
         last_refreshed_at,
         banner,
         deleted,
+        validator_time,
       )
     }
   }
@@ -296,6 +298,7 @@ impl User for User_ {
       .set((
         password_encrypted.eq(password_hash),
         updated.eq(naive_now()),
+        validator_time.eq(naive_now()),
       ))
       .get_result::<Self>(conn)
   }
@@ -446,6 +449,7 @@ mod tests {
       deleted: false,
       inbox_url: inserted_user.inbox_url.to_owned(),
       shared_inbox_url: None,
+      validator_time: inserted_user.published,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

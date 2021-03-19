@@ -36,7 +36,7 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
-use std::process::Command;
+use std::{env, process::Command};
 use url::Url;
 
 pub mod comment;
@@ -98,6 +98,11 @@ pub(crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_,
   if user.banned {
     return Err(ApiError::err("site_ban").into());
   }
+  // if user's token was issued before user's password reset.
+  let user_validation_time = user.validator_time.timestamp_millis() / 1000;
+  if user_validation_time > claims.iat {
+    return Err(ApiError::err("not_logged_in").into());
+  }
   Ok(user)
 }
 
@@ -124,6 +129,11 @@ pub(crate) async fn get_user_safe_settings_from_jwt(
   // Check for a site ban
   if user.banned {
     return Err(ApiError::err("site_ban").into());
+  }
+  // if user's token was issued before user's password reset.
+  let user_validation_time = user.validator_time.timestamp_millis() / 1000;
+  if user_validation_time > claims.iat {
+    return Err(ApiError::err("not_logged_in").into());
   }
   Ok(user)
 }
@@ -444,7 +454,11 @@ pub(crate) fn captcha_espeak_wav_base64(captcha: &str) -> Result<String, LemmyEr
 pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   // Make a temp file path
   let uuid = uuid::Uuid::new_v4().to_string();
-  let file_path = format!("/tmp/lemmy_espeak_{}.wav", &uuid);
+  let file_path = format!(
+    "{}/lemmy_espeak_{}.wav",
+    env::temp_dir().to_string_lossy(),
+    &uuid
+  );
 
   // Write the wav file
   Command::new("espeak")
@@ -476,7 +490,90 @@ pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 
 #[cfg(test)]
 mod tests {
-  use crate::captcha_espeak_wav_base64;
+  use crate::{captcha_espeak_wav_base64, get_user_from_jwt, get_user_safe_settings_from_jwt};
+  use lemmy_db_queries::{
+    establish_pooled_connection,
+    source::user::User,
+    Crud,
+    ListingType,
+    SortType,
+  };
+  use lemmy_db_schema::source::user::{UserForm, User_};
+  use lemmy_utils::claims::Claims;
+  use std::{
+    env::{current_dir, set_current_dir},
+    path::PathBuf,
+  };
+
+  #[actix_rt::test]
+  async fn test_should_not_validate_user_token_after_password_change() {
+    struct CwdGuard(PathBuf);
+    impl Drop for CwdGuard {
+      fn drop(&mut self) {
+        let _ = set_current_dir(&self.0);
+      }
+    }
+
+    let _dir_bkp = CwdGuard(current_dir().unwrap());
+
+    // so configs could be read
+    let _ = set_current_dir("../..");
+
+    let conn = establish_pooled_connection();
+
+    let new_user = UserForm {
+      name: "user_df342sgf".into(),
+      preferred_username: None,
+      password_encrypted: "nope".into(),
+      email: None,
+      matrix_user_id: None,
+      avatar: None,
+      banner: None,
+      admin: false,
+      banned: Some(false),
+      published: None,
+      updated: None,
+      show_nsfw: false,
+      theme: "browser".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
+      actor_id: None,
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
+    };
+
+    let inserted_user: User_ = User_::create(&conn.get().unwrap(), &new_user).unwrap();
+
+    let jwt_token = Claims::jwt(inserted_user.id, String::from("my-host.com")).unwrap();
+
+    get_user_from_jwt(&jwt_token, &conn)
+      .await
+      .expect("User should be decoded");
+
+    get_user_safe_settings_from_jwt(&jwt_token, &conn)
+      .await
+      .expect("User should be decoded");
+
+    std::thread::sleep(std::time::Duration::from_secs(1));
+
+    User_::update_password(&conn.get().unwrap(), inserted_user.id, &"password111").unwrap();
+
+    get_user_from_jwt(&jwt_token, &conn)
+      .await
+      .expect_err("JWT decode should fail after password change");
+
+    get_user_safe_settings_from_jwt(&jwt_token, &conn)
+      .await
+      .expect_err("JWT decode should fail after password change");
+  }
 
   #[test]
   fn test_espeak() {

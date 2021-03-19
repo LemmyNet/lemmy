@@ -1,0 +1,1 @@
+ALTER TABLE user_ ADD COLUMN validator_time timestamp not null default now();

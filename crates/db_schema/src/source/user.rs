@@ -35,6 +35,7 @@ pub struct User_ {
   pub deleted: bool,
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
+  pub validator_time: chrono::NaiveDateTime,
 }
 
 /// A safe representation of user, without the sensitive info
@@ -86,6 +87,7 @@ pub struct UserSafeSettings {
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub banner: Option<DbUrl>,
   pub deleted: bool,
+  pub validator_time: chrono::NaiveDateTime,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
