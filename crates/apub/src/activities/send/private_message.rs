@@ -18,18 +18,19 @@ use activitystreams::{
 };
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{private_message::PrivateMessage, user::User_};
+use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for PrivateMessage {
   /// Send out information about a newly created private message
-  async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_create(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut create = Create::new(
       creator.actor_id.to_owned().into_inner(),
@@ -46,11 +47,12 @@ impl ApubObjectType for PrivateMessage {
   }
 
   /// Send out information about an edited private message, to the followers of the community.
-  async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_update(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut update = Update::new(
       creator.actor_id.to_owned().into_inner(),
@@ -65,9 +67,10 @@ impl ApubObjectType for PrivateMessage {
     Ok(())
   }
 
-  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_delete(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(
       creator.actor_id.to_owned().into_inner(),
@@ -84,11 +87,12 @@ impl ApubObjectType for PrivateMessage {
 
   async fn send_undo_delete(
     &self,
-    creator: &User_,
+    creator: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = self.recipient_id;
-    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(
       creator.actor_id.to_owned().into_inner(),
@@ -113,13 +117,13 @@ impl ApubObjectType for PrivateMessage {
     Ok(())
   }
 
-  async fn send_remove(&self, _mod_: &User_, _context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_remove(&self, _mod_: &Person, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
   async fn send_undo_remove(
     &self,
-    _mod_: &User_,
+    _mod_: &Person,
     _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()

@@ -4,17 +4,21 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{
-  source::{community::Community_, user::User},
+  source::{community::Community_, person::Person_},
+  Crud,
   ListingType,
   SortType,
 };
-use lemmy_db_schema::source::{community::Community, user::User_};
+use lemmy_db_schema::{
+  source::{community::Community, local_user::LocalUser, person::Person},
+  LocalUserId,
+};
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
   post_view::{PostQueryBuilder, PostView},
   site_view::SiteView,
 };
-use lemmy_db_views_actor::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
+use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
 use lemmy_utils::{
   claims::Claims,
   settings::structs::Settings,
@@ -167,13 +171,12 @@ fn get_feed_user(
   user_name: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let user = User_::find_by_username(&conn, &user_name)?;
-  let user_url = user.get_profile_url(&Settings::get().hostname());
+  let person = Person::find_by_name(&conn, &user_name)?;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::All)
     .sort(sort_type)
-    .creator_id(user.id)
+    .creator_id(person.id)
     .list()?;
 
   let items = create_post_items(posts)?;
@@ -181,8 +184,8 @@ fn get_feed_user(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - {}", site_view.site.name, user.name))
-    .link(user_url)
+    .title(&format!("{} - {}", site_view.site.name, person.name))
+    .link(person.actor_id.to_string())
     .items(items);
 
   Ok(channel_builder)
@@ -224,11 +227,12 @@ fn get_feed_front(
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let user_id = Claims::decode(&jwt)?.claims.id;
+  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.local_user_id);
+  let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::Subscribed)
-    .my_user_id(user_id)
+    .my_person_id(person_id)
     .sort(sort_type)
     .list()?;
 
@@ -250,19 +254,20 @@ fn get_feed_front(
 
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let user_id = Claims::decode(&jwt)?.claims.id;
+  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.local_user_id);
+  let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let sort = SortType::New;
 
   let replies = CommentQueryBuilder::create(&conn)
-    .recipient_id(user_id)
-    .my_user_id(user_id)
+    .recipient_id(person_id)
+    .my_person_id(person_id)
     .sort(&sort)
     .list()?;
 
-  let mentions = UserMentionQueryBuilder::create(&conn)
-    .recipient_id(user_id)
-    .my_user_id(user_id)
+  let mentions = PersonMentionQueryBuilder::create(&conn)
+    .recipient_id(person_id)
+    .my_person_id(person_id)
     .sort(&sort)
     .list()?;
 
@@ -287,7 +292,7 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 
 fn create_reply_and_mention_items(
   replies: Vec<CommentView>,
-  mentions: Vec<UserMentionView>,
+  mentions: Vec<PersonMentionView>,
 ) -> Result<Vec<Item>, LemmyError> {
   let mut reply_items: Vec<Item> = replies
     .iter()

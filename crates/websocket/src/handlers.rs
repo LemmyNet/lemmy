@@ -4,6 +4,7 @@ use crate::{
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
 use lemmy_db_schema::naive_now;
+use lemmy_utils::ConnectionId;
 use log::{error, info};
 use rand::Rng;
 use serde::Serialize;
@@ -19,7 +20,7 @@ impl Actor for ChatServer {
 ///
 /// Register new session and assign unique id to this session
 impl Handler<Connect> for ChatServer {
-  type Result = usize;
+  type Result = ConnectionId;
 
   fn handle(&mut self, msg: Connect, _ctx: &mut Context<Self>) -> Self::Result {
     // register session with random id
@@ -102,7 +103,12 @@ where
 
   fn handle(&mut self, msg: SendUserRoomMessage<Response>, _: &mut Context<Self>) {
     self
-      .send_user_room_message(&msg.op, &msg.response, msg.recipient_id, msg.websocket_id)
+      .send_user_room_message(
+        &msg.op,
+        &msg.response,
+        msg.local_recipient_id,
+        msg.websocket_id,
+      )
       .ok();
   }
 }
@@ -155,7 +161,7 @@ impl Handler<JoinUserRoom> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: JoinUserRoom, _: &mut Context<Self>) {
-    self.join_user_room(msg.user_id, msg.id).ok();
+    self.join_user_room(msg.local_user_id, msg.id).ok();
   }
 }
 

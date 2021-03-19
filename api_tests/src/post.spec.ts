@@ -20,10 +20,10 @@ import {
   getPost,
   unfollowRemotes,
   searchForUser,
-  banUserFromSite,
+  banPersonFromSite,
   searchPostLocal,
-  banUserFromCommunity,
   followCommunity,
+  banPersonFromCommunity,
 } from './shared';
 import { PostView, CommunityView } from 'lemmy-js-client';
 
@@ -309,7 +309,7 @@ test('Enforce site ban for federated user', async () => {
   expect(alphaUser).toBeDefined();
 
   // ban alpha from beta site
-  let banAlpha = await banUserFromSite(beta, alphaUser.user.id, true);
+  let banAlpha = await banPersonFromSite(beta, alphaUser.person.id, true);
   expect(banAlpha.banned).toBe(true);
 
   // Alpha makes post on beta
@@ -325,7 +325,7 @@ test('Enforce site ban for federated user', async () => {
   expect(betaPost).toBeUndefined();
 
   // Unban alpha
-  let unBanAlpha = await banUserFromSite(beta, alphaUser.user.id, false);
+  let unBanAlpha = await banPersonFromSite(beta, alphaUser.person.id, false);
   expect(unBanAlpha.banned).toBe(false);
 });
 
@@ -336,8 +336,8 @@ test('Enforce community ban for federated user', async () => {
   expect(alphaUser).toBeDefined();
 
   // ban alpha from beta site
-  await banUserFromCommunity(beta, alphaUser.user.id, 2, false);
-  let banAlpha = await banUserFromCommunity(beta, alphaUser.user.id, 2, true);
+  await banPersonFromCommunity(beta, alphaUser.person.id, 2, false);
+  let banAlpha = await banPersonFromCommunity(beta, alphaUser.person.id, 2, true);
   expect(banAlpha.banned).toBe(true);
 
   // Alpha makes post on beta
@@ -353,9 +353,9 @@ test('Enforce community ban for federated user', async () => {
   expect(betaPost).toBeUndefined();
 
   // Unban alpha
-  let unBanAlpha = await banUserFromCommunity(
+  let unBanAlpha = await banPersonFromCommunity(
     beta,
-    alphaUser.user.id,
+    alphaUser.person.id,
     2,
     false
   );

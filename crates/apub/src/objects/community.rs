@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, group_extensions::GroupExtension},
-  fetcher::{community::fetch_community_mods, user::get_or_fetch_and_upsert_user},
+  fetcher::{community::fetch_community_mods, person::get_or_fetch_and_upsert_person},
   generate_moderators_url,
   objects::{
     check_object_domain,
@@ -129,7 +129,7 @@ impl FromApub for Community {
       if !new_moderators.contains(&&mod_user.moderator.actor_id.clone().into()) {
         let community_moderator_form = CommunityModeratorForm {
           community_id: mod_user.community.id,
-          user_id: mod_user.moderator.id,
+          person_id: mod_user.moderator.id,
         };
         blocking(context.pool(), move |conn| {
           CommunityModerator::leave(conn, &community_moderator_form)
@@ -140,7 +140,7 @@ impl FromApub for Community {
 
     // Add new mods to database which have been added to moderators collection
     for mod_uri in new_moderators {
-      let mod_user = get_or_fetch_and_upsert_user(&mod_uri, context, request_counter).await?;
+      let mod_user = get_or_fetch_and_upsert_person(&mod_uri, context, request_counter).await?;
       let current_mod_uris: Vec<DbUrl> = current_moderators
         .clone()
         .iter()
@@ -149,7 +149,7 @@ impl FromApub for Community {
       if !current_mod_uris.contains(&mod_user.actor_id) {
         let community_moderator_form = CommunityModeratorForm {
           community_id: community.id,
-          user_id: mod_user.id,
+          person_id: mod_user.id,
         };
         blocking(context.pool(), move |conn| {
           CommunityModerator::join(conn, &community_moderator_form)
@@ -174,7 +174,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
     let creator_uri = moderator_uris.first().context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_uri, context, request_counter).await?;
+    let creator = get_or_fetch_and_upsert_person(creator_uri, context, request_counter).await?;
     let name = group
       .inner
       .preferred_username()

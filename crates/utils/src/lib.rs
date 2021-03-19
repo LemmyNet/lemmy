@@ -18,13 +18,19 @@ pub mod version;
 use crate::settings::structs::Settings;
 use http::StatusCode;
 use regex::Regex;
+use std::fmt;
 use thiserror::Error;
 
 pub type ConnectionId = usize;
-pub type PostId = i32;
-pub type CommunityId = i32;
-pub type UserId = i32;
-pub type IpAddr = String;
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct IpAddr(pub String);
+
+impl fmt::Display for IpAddr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
 
 #[macro_export]
 macro_rules! location_info {
@@ -87,7 +93,7 @@ lazy_static! {
     Settings::get().hostname()
   ))
   .expect("compile webfinger regex");
-  pub static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
+  pub static ref WEBFINGER_USERNAME_REGEX: Regex = Regex::new(&format!(
     "^acct:([a-z0-9_]{{3, 20}})@{}$",
     Settings::get().hostname()
   ))

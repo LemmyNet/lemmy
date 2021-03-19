@@ -19,29 +19,33 @@ use lemmy_db_schema::{
     comment_saved,
     community,
     community_follower,
-    community_user_ban,
+    community_person_ban,
+    person,
+    person_alias_1,
     post,
-    user_,
-    user_alias_1,
   },
   source::{
     comment::{Comment, CommentAlias1, CommentSaved},
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     post::Post,
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
+  CommentId,
+  CommunityId,
+  PersonId,
+  PostId,
 };
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct CommentView {
   pub comment: Comment,
-  pub creator: UserSafe,
-  pub recipient: Option<UserSafeAlias1>, // Left joins to comment and user
+  pub creator: PersonSafe,
+  pub recipient: Option<PersonSafeAlias1>, // Left joins to comment and person
   pub post: Post,
   pub community: CommunitySafe,
   pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityUserBan
+  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub subscribed: bool,                    // Left join to CommunityFollower
   pub saved: bool,                         // Left join to CommentSaved
   pub my_vote: Option<i16>,                // Left join to CommentLike
@@ -49,13 +53,13 @@ pub struct CommentView {
 
 type CommentViewTuple = (
   Comment,
-  UserSafe,
+  PersonSafe,
   Option<CommentAlias1>,
-  Option<UserSafeAlias1>,
+  Option<PersonSafeAlias1>,
   Post,
   CommunitySafe,
   CommentAggregates,
-  Option<CommunityUserBan>,
+  Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
   Option<i16>,
@@ -64,11 +68,11 @@ type CommentViewTuple = (
 impl CommentView {
   pub fn read(
     conn: &PgConnection,
-    comment_id: i32,
-    my_user_id: Option<i32>,
+    comment_id: CommentId,
+    my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let user_id_join = my_user_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
       comment,
@@ -84,59 +88,59 @@ impl CommentView {
       comment_like,
     ) = comment::table
       .find(comment_id)
-      .inner_join(user_::table)
+      .inner_join(person::table)
       // recipient here
       .left_join(comment_alias_1::table.on(comment_alias_1::id.nullable().eq(comment::parent_id)))
-      .left_join(user_alias_1::table.on(user_alias_1::id.eq(comment_alias_1::creator_id)))
+      .left_join(person_alias_1::table.on(person_alias_1::id.eq(comment_alias_1::creator_id)))
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(comment_aggregates::table)
       .left_join(
-        community_user_ban::table.on(
+        community_person_ban::table.on(
           community::id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(comment::creator_id)),
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
+            .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_saved::table.on(
           comment::id
             .eq(comment_saved::comment_id)
-            .and(comment_saved::user_id.eq(user_id_join)),
+            .and(comment_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
-            .and(comment_like::user_id.eq(user_id_join)),
+            .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
       .select((
         comment::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         comment_alias_1::all_columns.nullable(),
-        UserAlias1::safe_columns_tuple().nullable(),
+        PersonAlias1::safe_columns_tuple().nullable(),
         post::all_columns,
         Community::safe_columns_tuple(),
         comment_aggregates::all_columns,
-        community_user_ban::all_columns.nullable(),
+        community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
         comment_saved::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
       .first::<CommentViewTuple>(conn)?;
 
-    // If a user is given, then my_vote, if None, should be 0, not null
-    // Necessary to differentiate between other user's votes
-    let my_vote = if my_user_id.is_some() && comment_like.is_none() {
+    // If a person is given, then my_vote, if None, should be 0, not null
+    // Necessary to differentiate between other person's votes
+    let my_vote = if my_person_id.is_some() && comment_like.is_none() {
       Some(0)
     } else {
       comment_like
@@ -156,9 +160,9 @@ impl CommentView {
     })
   }
 
-  /// Gets the recipient user id.
+  /// Gets the recipient person id.
   /// If there is no parent comment, its the post creator
-  pub fn get_recipient_id(&self) -> i32 {
+  pub fn get_recipient_id(&self) -> PersonId {
     match &self.recipient {
       Some(parent_commenter) => parent_commenter.id,
       None => self.post.creator_id,
@@ -170,12 +174,12 @@ pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
   listing_type: ListingType,
   sort: &'a SortType,
-  community_id: Option<i32>,
+  community_id: Option<CommunityId>,
   community_name: Option<String>,
-  post_id: Option<i32>,
-  creator_id: Option<i32>,
-  recipient_id: Option<i32>,
-  my_user_id: Option<i32>,
+  post_id: Option<PostId>,
+  creator_id: Option<PersonId>,
+  recipient_id: Option<PersonId>,
+  my_person_id: Option<PersonId>,
   search_term: Option<String>,
   saved_only: bool,
   unread_only: bool,
@@ -194,7 +198,7 @@ impl<'a> CommentQueryBuilder<'a> {
       post_id: None,
       creator_id: None,
       recipient_id: None,
-      my_user_id: None,
+      my_person_id: None,
       search_term: None,
       saved_only: false,
       unread_only: false,
@@ -213,28 +217,28 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn post_id<T: MaybeOptional<i32>>(mut self, post_id: T) -> Self {
+  pub fn post_id<T: MaybeOptional<PostId>>(mut self, post_id: T) -> Self {
     self.post_id = post_id.get_optional();
     self
   }
 
-  pub fn creator_id<T: MaybeOptional<i32>>(mut self, creator_id: T) -> Self {
+  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
     self.creator_id = creator_id.get_optional();
     self
   }
 
-  pub fn recipient_id<T: MaybeOptional<i32>>(mut self, recipient_id: T) -> Self {
+  pub fn recipient_id<T: MaybeOptional<PersonId>>(mut self, recipient_id: T) -> Self {
     self.recipient_id = recipient_id.get_optional();
     self
   }
 
-  pub fn community_id<T: MaybeOptional<i32>>(mut self, community_id: T) -> Self {
+  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
     self.community_id = community_id.get_optional();
     self
   }
 
-  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
-    self.my_user_id = my_user_id.get_optional();
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
+    self.my_person_id = my_person_id.get_optional();
     self
   }
 
@@ -272,53 +276,53 @@ impl<'a> CommentQueryBuilder<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let user_id_join = self.my_user_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
     let mut query = comment::table
-      .inner_join(user_::table)
+      .inner_join(person::table)
       // recipient here
       .left_join(comment_alias_1::table.on(comment_alias_1::id.nullable().eq(comment::parent_id)))
-      .left_join(user_alias_1::table.on(user_alias_1::id.eq(comment_alias_1::creator_id)))
+      .left_join(person_alias_1::table.on(person_alias_1::id.eq(comment_alias_1::creator_id)))
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(comment_aggregates::table)
       .left_join(
-        community_user_ban::table.on(
+        community_person_ban::table.on(
           community::id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(comment::creator_id)),
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
+            .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_saved::table.on(
           comment::id
             .eq(comment_saved::comment_id)
-            .and(comment_saved::user_id.eq(user_id_join)),
+            .and(comment_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
-            .and(comment_like::user_id.eq(user_id_join)),
+            .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
       .select((
         comment::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         comment_alias_1::all_columns.nullable(),
-        UserAlias1::safe_columns_tuple().nullable(),
+        PersonAlias1::safe_columns_tuple().nullable(),
         post::all_columns,
         Community::safe_columns_tuple(),
         comment_aggregates::all_columns,
-        community_user_ban::all_columns.nullable(),
+        community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
         comment_saved::all_columns.nullable(),
         comment_like::score.nullable(),
@@ -329,7 +333,7 @@ impl<'a> CommentQueryBuilder<'a> {
     if let Some(recipient_id) = self.recipient_id {
       query = query
         // TODO needs lots of testing
-        .filter(user_alias_1::id.eq(recipient_id)) // Gets the comment replies
+        .filter(person_alias_1::id.eq(recipient_id)) // Gets the comment replies
         .or_filter(
           comment::parent_id
             .is_null()
@@ -367,7 +371,7 @@ impl<'a> CommentQueryBuilder<'a> {
 
     query = match self.listing_type {
       // ListingType::Subscribed => query.filter(community_follower::subscribed.eq(true)),
-      ListingType::Subscribed => query.filter(community_follower::user_id.is_not_null()), // TODO could be this: and(community_follower::user_id.eq(user_id_join)),
+      ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
       ListingType::Local => query.filter(community::local.eq(true)),
       _ => query,
     };
@@ -439,10 +443,8 @@ mod tests {
     establish_unpooled_connection,
     Crud,
     Likeable,
-    ListingType,
-    SortType,
   };
-  use lemmy_db_schema::source::{comment::*, community::*, post::*, user::*};
+  use lemmy_db_schema::source::{comment::*, community::*, person::*, post::*};
   use serial_test::serial;
 
   #[test]
@@ -450,28 +452,18 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "timmy".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -479,13 +471,13 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "test community 5".to_string(),
       title: "nada".to_owned(),
       description: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       removed: None,
       deleted: None,
       updated: None,
@@ -507,7 +499,7 @@ mod tests {
 
     let new_post = PostForm {
       name: "A test post 2".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       url: None,
       body: None,
       community_id: inserted_community.id,
@@ -530,7 +522,7 @@ mod tests {
 
     let comment_form = CommentForm {
       content: "A test comment 32".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       post_id: inserted_post.id,
       parent_id: None,
       removed: None,
@@ -547,7 +539,7 @@ mod tests {
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       score: 1,
     };
 
@@ -555,7 +547,7 @@ mod tests {
 
     let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
 
-    let expected_comment_view_no_user = CommentView {
+    let expected_comment_view_no_person = CommentView {
       creator_banned_from_community: false,
       my_vote: None,
       subscribed: false,
@@ -563,7 +555,7 @@ mod tests {
       comment: Comment {
         id: inserted_comment.id,
         content: "A test comment 32".into(),
-        creator_id: inserted_user.id,
+        creator_id: inserted_person.id,
         post_id: inserted_post.id,
         parent_id: None,
         removed: false,
@@ -574,29 +566,27 @@ mod tests {
         updated: None,
         local: true,
       },
-      creator: UserSafe {
-        id: inserted_user.id,
+      creator: PersonSafe {
+        id: inserted_person.id,
         name: "timmy".into(),
         preferred_username: None,
-        published: inserted_user.published,
+        published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_user.actor_id.to_owned(),
+        actor_id: inserted_person.actor_id.to_owned(),
         local: true,
         banned: false,
         deleted: false,
         bio: None,
         banner: None,
-        admin: false,
         updated: None,
-        matrix_user_id: None,
-        inbox_url: inserted_user.inbox_url.to_owned(),
+        inbox_url: inserted_person.inbox_url.to_owned(),
         shared_inbox_url: None,
       },
       recipient: None,
       post: Post {
         id: inserted_post.id,
         name: inserted_post.name.to_owned(),
-        creator_id: inserted_user.id,
+        creator_id: inserted_person.id,
         url: None,
         body: None,
         published: inserted_post.published,
@@ -625,7 +615,7 @@ mod tests {
         local: true,
         title: "nada".to_owned(),
         description: None,
-        creator_id: inserted_user.id,
+        creator_id: inserted_person.id,
         updated: None,
         banner: None,
         published: inserted_community.published,
@@ -640,30 +630,33 @@ mod tests {
       },
     };
 
-    let mut expected_comment_view_with_user = expected_comment_view_no_user.to_owned();
-    expected_comment_view_with_user.my_vote = Some(1);
+    let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
+    expected_comment_view_with_person.my_vote = Some(1);
 
-    let read_comment_views_no_user = CommentQueryBuilder::create(&conn)
+    let read_comment_views_no_person = CommentQueryBuilder::create(&conn)
       .post_id(inserted_post.id)
       .list()
       .unwrap();
 
-    let read_comment_views_with_user = CommentQueryBuilder::create(&conn)
+    let read_comment_views_with_person = CommentQueryBuilder::create(&conn)
       .post_id(inserted_post.id)
-      .my_user_id(inserted_user.id)
+      .my_person_id(inserted_person.id)
       .list()
       .unwrap();
 
-    let like_removed = CommentLike::remove(&conn, inserted_user.id, inserted_comment.id).unwrap();
+    let like_removed = CommentLike::remove(&conn, inserted_person.id, inserted_comment.id).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
-    User_::delete(&conn, inserted_user.id).unwrap();
+    Person::delete(&conn, inserted_person.id).unwrap();
 
-    assert_eq!(expected_comment_view_no_user, read_comment_views_no_user[0]);
     assert_eq!(
-      expected_comment_view_with_user,
-      read_comment_views_with_user[0]
+      expected_comment_view_no_person,
+      read_comment_views_no_person[0]
+    );
+    assert_eq!(
+      expected_comment_view_with_person,
+      read_comment_views_with_person[0]
     );
     assert_eq!(1, num_deleted);
     assert_eq!(1, like_removed);

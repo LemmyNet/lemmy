@@ -1,6 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
+  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   inbox::community_inbox::check_community_or_site_ban,
 };
 use activitystreams::{
@@ -14,7 +14,7 @@ use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
-use lemmy_db_schema::{source::community::Community, DbUrl};
+use lemmy_db_schema::{source::community::Community, CommunityId, DbUrl};
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,
@@ -26,9 +26,9 @@ use url::Url;
 
 pub(crate) mod comment;
 pub(crate) mod community;
+pub(crate) mod person;
 pub(crate) mod post;
 pub(crate) mod private_message;
-pub(crate) mod user;
 
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
@@ -173,7 +173,7 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
 /// Converts an ActivityPub object (eg `Note`) to a database object (eg `Comment`). If an object
 /// with the same ActivityPub ID already exists in the database, it is returned directly. Otherwise
 /// the apub object is parsed, inserted and returned.
-pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
+pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm, IdType>(
   from: &From,
   context: &LemmyContext,
   expected_domain: Url,
@@ -182,7 +182,7 @@ pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
 ) -> Result<To, LemmyError>
 where
   From: BaseExt<Kind>,
-  To: ApubObject<ToForm> + Crud<ToForm> + Send + 'static,
+  To: ApubObject<ToForm> + Crud<ToForm, IdType> + Send + 'static,
   ToForm: FromApubToForm<From> + Send + 'static,
 {
   let object_id = from.id_unchecked().context(location_info!())?.to_owned();
@@ -214,20 +214,20 @@ where
 
 pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
   object: &T,
-  community_id: i32,
+  community_id: CommunityId,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError>
 where
   T: ObjectExt<Kind>,
 {
-  let user_id = object
+  let person_id = object
     .attributed_to()
     .context(location_info!())?
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  let user = get_or_fetch_and_upsert_user(user_id, context, request_counter).await?;
-  check_community_or_site_ban(&user, community_id, context.pool()).await
+  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
+  check_community_or_site_ban(&person, community_id, context.pool()).await
 }
 
 pub(in crate::objects) async fn get_to_community<T, Kind>(

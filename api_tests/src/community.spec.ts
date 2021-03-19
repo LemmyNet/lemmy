@@ -33,9 +33,6 @@ function assertCommunityFederation(
   );
   expect(communityOne.creator.actor_id).toBe(communityTwo.creator.actor_id);
   expect(communityOne.community.nsfw).toBe(communityTwo.community.nsfw);
-  expect(communityOne.community.category_id).toBe(
-    communityTwo.community.category_id
-  );
   expect(communityOne.community.removed).toBe(communityTwo.community.removed);
   expect(communityOne.community.deleted).toBe(communityTwo.community.deleted);
 }

@@ -1,18 +1,21 @@
 use crate::{
   schema::{post, post_like, post_read, post_saved},
+  CommunityId,
   DbUrl,
+  PersonId,
+  PostId,
 };
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "post"]
 pub struct Post {
-  pub id: i32,
+  pub id: PostId,
   pub name: String,
   pub url: Option<DbUrl>,
   pub body: Option<String>,
-  pub creator_id: i32,
-  pub community_id: i32,
+  pub creator_id: PersonId,
+  pub community_id: CommunityId,
   pub removed: bool,
   pub locked: bool,
   pub published: chrono::NaiveDateTime,
@@ -34,8 +37,8 @@ pub struct PostForm {
   pub name: String,
   pub url: Option<DbUrl>,
   pub body: Option<String>,
-  pub creator_id: i32,
-  pub community_id: i32,
+  pub creator_id: PersonId,
+  pub community_id: CommunityId,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
@@ -56,8 +59,8 @@ pub struct PostForm {
 #[table_name = "post_like"]
 pub struct PostLike {
   pub id: i32,
-  pub post_id: i32,
-  pub user_id: i32,
+  pub post_id: PostId,
+  pub person_id: PersonId,
   pub score: i16,
   pub published: chrono::NaiveDateTime,
 }
@@ -65,8 +68,8 @@ pub struct PostLike {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "post_like"]
 pub struct PostLikeForm {
-  pub post_id: i32,
-  pub user_id: i32,
+  pub post_id: PostId,
+  pub person_id: PersonId,
   pub score: i16,
 }
 
@@ -75,16 +78,16 @@ pub struct PostLikeForm {
 #[table_name = "post_saved"]
 pub struct PostSaved {
   pub id: i32,
-  pub post_id: i32,
-  pub user_id: i32,
+  pub post_id: PostId,
+  pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset)]
 #[table_name = "post_saved"]
 pub struct PostSavedForm {
-  pub post_id: i32,
-  pub user_id: i32,
+  pub post_id: PostId,
+  pub person_id: PersonId,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -92,18 +95,14 @@ pub struct PostSavedForm {
 #[table_name = "post_read"]
 pub struct PostRead {
   pub id: i32,
-
-  pub post_id: i32,
-
-  pub user_id: i32,
-
+  pub post_id: PostId,
+  pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset)]
 #[table_name = "post_read"]
 pub struct PostReadForm {
-  pub post_id: i32,
-
-  pub user_id: i32,
+  pub post_id: PostId,
+  pub person_id: PersonId,
 }

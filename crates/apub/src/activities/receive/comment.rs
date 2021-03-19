@@ -1,4 +1,4 @@
-use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, NoteExt};
+use crate::{activities::receive::get_actor_as_person, objects::FromApub, ActorType, NoteExt};
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Dislike, Like, Update},
   base::ExtendsExt,
@@ -19,11 +19,12 @@ pub(crate) async fn receive_create_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&create, context, request_counter).await?;
+  let person = get_actor_as_person(&create, context, request_counter).await?;
   let note = NoteExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment = Comment::from_apub(&note, context, user.actor_id(), request_counter, false).await?;
+  let comment =
+    Comment::from_apub(&note, context, person.actor_id(), request_counter, false).await?;
 
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -33,8 +34,15 @@ pub(crate) async fn receive_create_comment(
   // Its much easier to scrape them from the comment body, since the API has to do that
   // anyway.
   let mentions = scrape_text_for_mentions(&comment.content);
-  let recipient_ids =
-    send_local_notifs(mentions, comment.clone(), &user, post, context.pool(), true).await?;
+  let recipient_ids = send_local_notifs(
+    mentions,
+    comment.clone(),
+    person,
+    post,
+    context.pool(),
+    true,
+  )
+  .await?;
 
   // Refetch the view
   let comment_view = blocking(context.pool(), move |conn| {
@@ -64,9 +72,10 @@ pub(crate) async fn receive_update_comment(
 ) -> Result<(), LemmyError> {
   let note = NoteExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  let user = get_actor_as_user(&update, context, request_counter).await?;
+  let person = get_actor_as_person(&update, context, request_counter).await?;
 
-  let comment = Comment::from_apub(&note, context, user.actor_id(), request_counter, false).await?;
+  let comment =
+    Comment::from_apub(&note, context, person.actor_id(), request_counter, false).await?;
 
   let comment_id = comment.id;
   let post_id = comment.post_id;
@@ -74,7 +83,7 @@ pub(crate) async fn receive_update_comment(
 
   let mentions = scrape_text_for_mentions(&comment.content);
   let recipient_ids =
-    send_local_notifs(mentions, comment, &user, post, context.pool(), false).await?;
+    send_local_notifs(mentions, comment, person, post, context.pool(), false).await?;
 
   // Refetch the view
   let comment_view = blocking(context.pool(), move |conn| {
@@ -103,18 +112,18 @@ pub(crate) async fn receive_like_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&like, context, request_counter).await?;
+  let person = get_actor_as_person(&like, context, request_counter).await?;
 
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
-    user_id: user.id,
+    person_id: person.id,
     score: 1,
   };
-  let user_id = user.id;
+  let person_id = person.id;
   blocking(context.pool(), move |conn| {
-    CommentLike::remove(conn, user_id, comment_id)?;
+    CommentLike::remove(conn, person_id, comment_id)?;
     CommentLike::like(conn, &like_form)
   })
   .await??;
@@ -148,18 +157,18 @@ pub(crate) async fn receive_dislike_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&dislike, context, request_counter).await?;
+  let person = get_actor_as_person(&dislike, context, request_counter).await?;
 
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
-    user_id: user.id,
+    person_id: person.id,
     score: -1,
   };
-  let user_id = user.id;
+  let person_id = person.id;
   blocking(context.pool(), move |conn| {
-    CommentLike::remove(conn, user_id, comment_id)?;
+    CommentLike::remove(conn, person_id, comment_id)?;
     CommentLike::like(conn, &like_form)
   })
   .await??;

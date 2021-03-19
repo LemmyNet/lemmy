@@ -7,16 +7,14 @@ use diesel::{
   PgConnection,
 };
 use lemmy_api_structs::{comment::*, post::*};
+use lemmy_db_schema::{CommunityId, LocalUserId, PostId};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,
   ApiError,
-  CommunityId,
   ConnectionId,
   IpAddr,
   LemmyError,
-  PostId,
-  UserId,
 };
 use rand::rngs::ThreadRng;
 use reqwest::Client;
@@ -51,7 +49,7 @@ pub struct ChatServer {
 
   /// A map from user id to its connection ID for joined users. Remember a user can have multiple
   /// sessions (IE clients)
-  pub(super) user_rooms: HashMap<UserId, HashSet<ConnectionId>>,
+  pub(super) user_rooms: HashMap<LocalUserId, HashSet<ConnectionId>>,
 
   pub(super) rng: ThreadRng,
 
@@ -185,7 +183,11 @@ impl ChatServer {
     Ok(())
   }
 
-  pub fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) -> Result<(), LemmyError> {
+  pub fn join_user_room(
+    &mut self,
+    user_id: LocalUserId,
+    id: ConnectionId,
+  ) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.user_rooms.values_mut() {
       sessions.remove(&id);
@@ -302,7 +304,7 @@ impl ChatServer {
     &self,
     op: &UserOperation,
     response: &Response,
-    recipient_id: UserId,
+    recipient_id: LocalUserId,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError>
   where
@@ -345,7 +347,12 @@ impl ChatServer {
     )?;
 
     // Send it to the community too
-    self.send_community_room_message(user_operation, &comment_post_sent, 0, websocket_id)?;
+    self.send_community_room_message(
+      user_operation,
+      &comment_post_sent,
+      CommunityId(0),
+      websocket_id,
+    )?;
     self.send_community_room_message(
       user_operation,
       &comment_post_sent,
@@ -379,7 +386,7 @@ impl ChatServer {
     post_sent.post_view.my_vote = None;
 
     // Send it to /c/all and that community
-    self.send_community_room_message(user_operation, &post_sent, 0, websocket_id)?;
+    self.send_community_room_message(user_operation, &post_sent, CommunityId(0), websocket_id)?;
     self.send_community_room_message(user_operation, &post_sent, community_id, websocket_id)?;
 
     // Send it to the post room
@@ -408,7 +415,7 @@ impl ChatServer {
 
     let ip: IpAddr = match self.sessions.get(&msg.id) {
       Some(info) => info.ip.to_owned(),
-      None => "blank_ip".to_string(),
+      None => IpAddr("blank_ip".to_string()),
     };
 
     let context = LemmyContext {

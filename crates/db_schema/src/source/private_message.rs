@@ -1,12 +1,12 @@
-use crate::{schema::private_message, DbUrl};
+use crate::{schema::private_message, DbUrl, PersonId, PrivateMessageId};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "private_message"]
 pub struct PrivateMessage {
-  pub id: i32,
-  pub creator_id: i32,
-  pub recipient_id: i32,
+  pub id: PrivateMessageId,
+  pub creator_id: PersonId,
+  pub recipient_id: PersonId,
   pub content: String,
   pub deleted: bool,
   pub read: bool,
@@ -19,8 +19,8 @@ pub struct PrivateMessage {
 #[derive(Insertable, AsChangeset)]
 #[table_name = "private_message"]
 pub struct PrivateMessageForm {
-  pub creator_id: i32,
-  pub recipient_id: i32,
+  pub creator_id: PersonId,
+  pub recipient_id: PersonId,
   pub content: String,
   pub deleted: Option<bool>,
   pub read: Option<bool>,

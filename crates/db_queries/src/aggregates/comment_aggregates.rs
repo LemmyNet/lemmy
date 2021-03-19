@@ -1,12 +1,12 @@
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::comment_aggregates;
+use lemmy_db_schema::{schema::comment_aggregates, CommentId};
 use serde::Serialize;
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]
 #[table_name = "comment_aggregates"]
 pub struct CommentAggregates {
   pub id: i32,
-  pub comment_id: i32,
+  pub comment_id: CommentId,
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
@@ -14,7 +14,7 @@ pub struct CommentAggregates {
 }
 
 impl CommentAggregates {
-  pub fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, comment_id: CommentId) -> Result<Self, Error> {
     comment_aggregates::table
       .filter(comment_aggregates::comment_id.eq(comment_id))
       .first::<Self>(conn)
@@ -28,14 +28,12 @@ mod tests {
     establish_unpooled_connection,
     Crud,
     Likeable,
-    ListingType,
-    SortType,
   };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
     community::{Community, CommunityForm},
+    person::{Person, PersonForm},
     post::{Post, PostForm},
-    user::{UserForm, User_},
   };
   use serial_test::serial;
 
@@ -44,28 +42,18 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "thommy_comment_agg".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -73,30 +61,20 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
-    let another_user = UserForm {
+    let another_person = PersonForm {
       name: "jerry_comment_agg".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -104,11 +82,11 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let another_inserted_user = User_::create(&conn, &another_user).unwrap();
+    let another_inserted_person = Person::create(&conn, &another_person).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL_comment_agg".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       description: None,
       nsfw: false,
@@ -134,7 +112,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       removed: None,
       deleted: None,
@@ -155,7 +133,7 @@ mod tests {
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       post_id: inserted_post.id,
       removed: None,
       deleted: None,
@@ -171,7 +149,7 @@ mod tests {
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       post_id: inserted_post.id,
       removed: None,
       deleted: None,
@@ -188,7 +166,7 @@ mod tests {
     let comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       score: 1,
     };
 
@@ -200,11 +178,11 @@ mod tests {
     assert_eq!(1, comment_aggs_before_delete.upvotes);
     assert_eq!(0, comment_aggs_before_delete.downvotes);
 
-    // Add a post dislike from the other user
+    // Add a post dislike from the other person
     let comment_dislike = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      user_id: another_inserted_user.id,
+      person_id: another_inserted_person.id,
       score: -1,
     };
 
@@ -217,7 +195,7 @@ mod tests {
     assert_eq!(1, comment_aggs_after_dislike.downvotes);
 
     // Remove the first comment like
-    CommentLike::remove(&conn, inserted_user.id, inserted_comment.id).unwrap();
+    CommentLike::remove(&conn, inserted_person.id, inserted_comment.id).unwrap();
     let after_like_remove = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
     assert_eq!(-1, after_like_remove.score);
     assert_eq!(0, after_like_remove.upvotes);
@@ -231,8 +209,8 @@ mod tests {
     assert!(after_delete.is_err());
 
     // This should delete all the associated rows, and fire triggers
-    User_::delete(&conn, another_inserted_user.id).unwrap();
-    let user_num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
-    assert_eq!(1, user_num_deleted);
+    Person::delete(&conn, another_inserted_person.id).unwrap();
+    let person_num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    assert_eq!(1, person_num_deleted);
   }
 }

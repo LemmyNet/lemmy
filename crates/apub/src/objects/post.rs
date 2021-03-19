@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   extensions::{context::lemmy_context, page_extension::PageExtension},
-  fetcher::user::get_or_fetch_and_upsert_user,
+  fetcher::person::get_or_fetch_and_upsert_person,
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
@@ -29,8 +29,8 @@ use lemmy_db_schema::{
   self,
   source::{
     community::Community,
+    person::Person,
     post::{Post, PostForm},
-    user::User_,
   },
 };
 use lemmy_utils::{
@@ -51,7 +51,7 @@ impl ToApub for Post {
     let mut page = ApObject::new(Page::new());
 
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
+    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
 
     let community_id = self.community_id;
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
@@ -159,7 +159,8 @@ impl FromApubToForm<PageExt> for PostForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context, request_counter).await?;
+    let creator =
+      get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
 
     let community = get_to_community(page, context, request_counter).await?;
 

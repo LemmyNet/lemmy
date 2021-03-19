@@ -1,14 +1,15 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{comment, comment_report, community, post, user_, user_alias_1, user_alias_2},
+  schema::{comment, comment_report, community, person, person_alias_1, person_alias_2, post},
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::{Community, CommunitySafe},
+    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
-    user::{UserAlias1, UserAlias2, UserSafe, UserSafeAlias1, UserSafeAlias2, User_},
   },
+  CommunityId,
 };
 use serde::Serialize;
 
@@ -18,9 +19,9 @@ pub struct CommentReportView {
   pub comment: Comment,
   pub post: Post,
   pub community: CommunitySafe,
-  pub creator: UserSafe,
-  pub comment_creator: UserSafeAlias1,
-  pub resolver: Option<UserSafeAlias2>,
+  pub creator: PersonSafe,
+  pub comment_creator: PersonSafeAlias1,
+  pub resolver: Option<PersonSafeAlias2>,
 }
 
 type CommentReportViewTuple = (
@@ -28,9 +29,9 @@ type CommentReportViewTuple = (
   Comment,
   Post,
   CommunitySafe,
-  UserSafe,
-  UserSafeAlias1,
-  Option<UserSafeAlias2>,
+  PersonSafe,
+  PersonSafeAlias1,
+  Option<PersonSafeAlias2>,
 );
 
 impl CommentReportView {
@@ -44,19 +45,19 @@ impl CommentReportView {
         .inner_join(comment::table)
         .inner_join(post::table.on(comment::post_id.eq(post::id)))
         .inner_join(community::table.on(post::community_id.eq(community::id)))
-        .inner_join(user_::table.on(comment_report::creator_id.eq(user_::id)))
-        .inner_join(user_alias_1::table.on(post::creator_id.eq(user_alias_1::id)))
+        .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
+        .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
         .left_join(
-          user_alias_2::table.on(comment_report::resolver_id.eq(user_alias_2::id.nullable())),
+          person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
         )
         .select((
           comment_report::all_columns,
           comment::all_columns,
           post::all_columns,
           Community::safe_columns_tuple(),
-          User_::safe_columns_tuple(),
-          UserAlias1::safe_columns_tuple(),
-          UserAlias2::safe_columns_tuple().nullable(),
+          Person::safe_columns_tuple(),
+          PersonAlias1::safe_columns_tuple(),
+          PersonAlias2::safe_columns_tuple().nullable(),
         ))
         .first::<CommentReportViewTuple>(conn)?;
 
@@ -75,8 +76,11 @@ impl CommentReportView {
   ///
   /// * `community_ids` - a Vec<i32> of community_ids to get a count for
   /// TODO this eq_any is a bad way to do this, would be better to join to communitymoderator
-  /// for a user id
-  pub fn get_report_count(conn: &PgConnection, community_ids: &[i32]) -> Result<i64, Error> {
+  /// for a person id
+  pub fn get_report_count(
+    conn: &PgConnection,
+    community_ids: &[CommunityId],
+  ) -> Result<i64, Error> {
     use diesel::dsl::*;
     comment_report::table
       .inner_join(comment::table)
@@ -93,7 +97,7 @@ impl CommentReportView {
 
 pub struct CommentReportQueryBuilder<'a> {
   conn: &'a PgConnection,
-  community_ids: Option<Vec<i32>>, // TODO bad way to do this
+  community_ids: Option<Vec<CommunityId>>, // TODO bad way to do this
   page: Option<i64>,
   limit: Option<i64>,
   resolved: Option<bool>,
@@ -110,7 +114,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
     }
   }
 
-  pub fn community_ids<T: MaybeOptional<Vec<i32>>>(mut self, community_ids: T) -> Self {
+  pub fn community_ids<T: MaybeOptional<Vec<CommunityId>>>(mut self, community_ids: T) -> Self {
     self.community_ids = community_ids.get_optional();
     self
   }
@@ -135,19 +139,19 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(user_::table.on(comment_report::creator_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(post::creator_id.eq(user_alias_1::id)))
+      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
+      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
       .left_join(
-        user_alias_2::table.on(comment_report::resolver_id.eq(user_alias_2::id.nullable())),
+        person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
       )
       .select((
         comment_report::all_columns,
         comment::all_columns,
         post::all_columns,
         Community::safe_columns_tuple(),
-        User_::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
-        UserAlias2::safe_columns_tuple().nullable(),
+        Person::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
+        PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .into_boxed();
 

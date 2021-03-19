@@ -14,19 +14,22 @@ use lemmy_db_schema::{
   schema::{
     community,
     community_follower,
-    community_user_ban,
+    community_person_ban,
+    person,
     post,
     post_aggregates,
     post_like,
     post_read,
     post_saved,
-    user_,
   },
   source::{
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    person::{Person, PersonSafe},
     post::{Post, PostRead, PostSaved},
-    user::{UserSafe, User_},
   },
+  CommunityId,
+  PersonId,
+  PostId,
 };
 use log::debug;
 use serde::Serialize;
@@ -34,9 +37,9 @@ use serde::Serialize;
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct PostView {
   pub post: Post,
-  pub creator: UserSafe,
+  pub creator: PersonSafe,
   pub community: CommunitySafe,
-  pub creator_banned_from_community: bool, // Left Join to CommunityUserBan
+  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub counts: PostAggregates,
   pub subscribed: bool,     // Left join to CommunityFollower
   pub saved: bool,          // Left join to PostSaved
@@ -46,9 +49,9 @@ pub struct PostView {
 
 type PostViewTuple = (
   Post,
-  UserSafe,
+  PersonSafe,
   CommunitySafe,
-  Option<CommunityUserBan>,
+  Option<CommunityPersonBan>,
   PostAggregates,
   Option<CommunityFollower>,
   Option<PostSaved>,
@@ -57,9 +60,13 @@ type PostViewTuple = (
 );
 
 impl PostView {
-  pub fn read(conn: &PgConnection, post_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(
+    conn: &PgConnection,
+    post_id: PostId,
+    my_person_id: Option<PersonId>,
+  ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let user_id_join = my_user_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
       post,
@@ -73,13 +80,13 @@ impl PostView {
       post_like,
     ) = post::table
       .find(post_id)
-      .inner_join(user_::table)
+      .inner_join(person::table)
       .inner_join(community::table)
       .left_join(
-        community_user_ban::table.on(
+        community_person_ban::table.on(
           post::community_id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(post::creator_id)),
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -87,35 +94,35 @@ impl PostView {
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
+            .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_saved::table.on(
           post::id
             .eq(post_saved::post_id)
-            .and(post_saved::user_id.eq(user_id_join)),
+            .and(post_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_read::table.on(
           post::id
             .eq(post_read::post_id)
-            .and(post_read::user_id.eq(user_id_join)),
+            .and(post_read::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_like::table.on(
           post::id
             .eq(post_like::post_id)
-            .and(post_like::user_id.eq(user_id_join)),
+            .and(post_like::person_id.eq(person_id_join)),
         ),
       )
       .select((
         post::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         Community::safe_columns_tuple(),
-        community_user_ban::all_columns.nullable(),
+        community_person_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
         post_saved::all_columns.nullable(),
@@ -124,9 +131,9 @@ impl PostView {
       ))
       .first::<PostViewTuple>(conn)?;
 
-    // If a user is given, then my_vote, if None, should be 0, not null
-    // Necessary to differentiate between other user's votes
-    let my_vote = if my_user_id.is_some() && post_like.is_none() {
+    // If a person is given, then my_vote, if None, should be 0, not null
+    // Necessary to differentiate between other person's votes
+    let my_vote = if my_person_id.is_some() && post_like.is_none() {
       Some(0)
     } else {
       post_like
@@ -150,10 +157,10 @@ pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
   listing_type: &'a ListingType,
   sort: &'a SortType,
-  creator_id: Option<i32>,
-  community_id: Option<i32>,
+  creator_id: Option<PersonId>,
+  community_id: Option<CommunityId>,
   community_name: Option<String>,
-  my_user_id: Option<i32>,
+  my_person_id: Option<PersonId>,
   search_term: Option<String>,
   url_search: Option<String>,
   show_nsfw: bool,
@@ -172,7 +179,7 @@ impl<'a> PostQueryBuilder<'a> {
       creator_id: None,
       community_id: None,
       community_name: None,
-      my_user_id: None,
+      my_person_id: None,
       search_term: None,
       url_search: None,
       show_nsfw: true,
@@ -193,13 +200,13 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn community_id<T: MaybeOptional<i32>>(mut self, community_id: T) -> Self {
+  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
     self.community_id = community_id.get_optional();
     self
   }
 
-  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
-    self.my_user_id = my_user_id.get_optional();
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
+    self.my_person_id = my_person_id.get_optional();
     self
   }
 
@@ -208,7 +215,7 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn creator_id<T: MaybeOptional<i32>>(mut self, creator_id: T) -> Self {
+  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
     self.creator_id = creator_id.get_optional();
     self
   }
@@ -247,16 +254,16 @@ impl<'a> PostQueryBuilder<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let user_id_join = self.my_user_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
     let mut query = post::table
-      .inner_join(user_::table)
+      .inner_join(person::table)
       .inner_join(community::table)
       .left_join(
-        community_user_ban::table.on(
+        community_person_ban::table.on(
           post::community_id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(community::creator_id)),
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(community::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -264,35 +271,35 @@ impl<'a> PostQueryBuilder<'a> {
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
+            .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_saved::table.on(
           post::id
             .eq(post_saved::post_id)
-            .and(post_saved::user_id.eq(user_id_join)),
+            .and(post_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_read::table.on(
           post::id
             .eq(post_read::post_id)
-            .and(post_read::user_id.eq(user_id_join)),
+            .and(post_read::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_like::table.on(
           post::id
             .eq(post_like::post_id)
-            .and(post_like::user_id.eq(user_id_join)),
+            .and(post_like::person_id.eq(person_id_join)),
         ),
       )
       .select((
         post::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         Community::safe_columns_tuple(),
-        community_user_ban::all_columns.nullable(),
+        community_person_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
         post_saved::all_columns.nullable(),
@@ -302,7 +309,7 @@ impl<'a> PostQueryBuilder<'a> {
       .into_boxed();
 
     query = match self.listing_type {
-      ListingType::Subscribed => query.filter(community_follower::user_id.is_not_null()), // TODO could be this: and(community_follower::user_id.eq(user_id_join)),
+      ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
       ListingType::Local => query.filter(community::local.eq(true)),
       _ => query,
     };
@@ -333,7 +340,7 @@ impl<'a> PostQueryBuilder<'a> {
       );
     }
 
-    // If its for a specific user, show the removed / deleted
+    // If its for a specific person, show the removed / deleted
     if let Some(creator_id) = self.creator_id {
       query = query.filter(post::creator_id.eq(creator_id));
     }
@@ -433,7 +440,7 @@ mod tests {
     ListingType,
     SortType,
   };
-  use lemmy_db_schema::source::{community::*, post::*, user::*};
+  use lemmy_db_schema::source::{community::*, person::*, post::*};
   use serial_test::serial;
 
   #[test]
@@ -441,32 +448,22 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let user_name = "tegan".to_string();
+    let person_name = "tegan".to_string();
     let community_name = "test_community_3".to_string();
     let post_name = "test post 3".to_string();
 
-    let new_user = UserForm {
-      name: user_name.to_owned(),
+    let new_person = PersonForm {
+      name: person_name.to_owned(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      admin: false,
-      banned: Some(false),
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -474,13 +471,13 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: community_name.to_owned(),
       title: "nada".to_owned(),
       description: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       removed: None,
       deleted: None,
       updated: None,
@@ -504,7 +501,7 @@ mod tests {
       name: post_name.to_owned(),
       url: None,
       body: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       removed: None,
       deleted: None,
@@ -525,7 +522,7 @@ mod tests {
 
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       score: 1,
     };
 
@@ -534,38 +531,38 @@ mod tests {
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       published: inserted_post_like.published,
       score: 1,
     };
 
-    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
+    let read_post_listings_with_person = PostQueryBuilder::create(&conn)
       .listing_type(&ListingType::Community)
       .sort(&SortType::New)
       .community_id(inserted_community.id)
-      .my_user_id(inserted_user.id)
+      .my_person_id(inserted_person.id)
       .list()
       .unwrap();
 
-    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
+    let read_post_listings_no_person = PostQueryBuilder::create(&conn)
       .listing_type(&ListingType::Community)
       .sort(&SortType::New)
       .community_id(inserted_community.id)
       .list()
       .unwrap();
 
-    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_user =
-      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+    let read_post_listing_no_person = PostView::read(&conn, inserted_post.id, None).unwrap();
+    let read_post_listing_with_person =
+      PostView::read(&conn, inserted_post.id, Some(inserted_person.id)).unwrap();
 
     let agg = PostAggregates::read(&conn, inserted_post.id).unwrap();
 
-    // the non user version
-    let expected_post_listing_no_user = PostView {
+    // the non person version
+    let expected_post_listing_no_person = PostView {
       post: Post {
         id: inserted_post.id,
         name: post_name,
-        creator_id: inserted_user.id,
+        creator_id: inserted_person.id,
         url: None,
         body: None,
         published: inserted_post.published,
@@ -584,22 +581,20 @@ mod tests {
         local: true,
       },
       my_vote: None,
-      creator: UserSafe {
-        id: inserted_user.id,
-        name: user_name,
+      creator: PersonSafe {
+        id: inserted_person.id,
+        name: person_name,
         preferred_username: None,
-        published: inserted_user.published,
+        published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_user.actor_id.to_owned(),
+        actor_id: inserted_person.actor_id.to_owned(),
         local: true,
         banned: false,
         deleted: false,
         bio: None,
         banner: None,
-        admin: false,
         updated: None,
-        matrix_user_id: None,
-        inbox_url: inserted_user.inbox_url.to_owned(),
+        inbox_url: inserted_person.inbox_url.to_owned(),
         shared_inbox_url: None,
       },
       creator_banned_from_community: false,
@@ -614,7 +609,7 @@ mod tests {
         local: true,
         title: "nada".to_owned(),
         description: None,
-        creator_id: inserted_user.id,
+        creator_id: inserted_person.id,
         updated: None,
         banner: None,
         published: inserted_community.published,
@@ -637,26 +632,32 @@ mod tests {
     };
 
     // TODO More needs to be added here
-    let mut expected_post_listing_with_user = expected_post_listing_no_user.to_owned();
+    let mut expected_post_listing_with_user = expected_post_listing_no_person.to_owned();
     expected_post_listing_with_user.my_vote = Some(1);
 
-    let like_removed = PostLike::remove(&conn, inserted_user.id, inserted_post.id).unwrap();
+    let like_removed = PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
-    User_::delete(&conn, inserted_user.id).unwrap();
+    Person::delete(&conn, inserted_person.id).unwrap();
 
     // The with user
     assert_eq!(
       expected_post_listing_with_user,
-      read_post_listings_with_user[0]
+      read_post_listings_with_person[0]
     );
-    assert_eq!(expected_post_listing_with_user, read_post_listing_with_user);
-    assert_eq!(1, read_post_listings_with_user.len());
+    assert_eq!(
+      expected_post_listing_with_user,
+      read_post_listing_with_person
+    );
+    assert_eq!(1, read_post_listings_with_person.len());
 
     // Without the user
-    assert_eq!(expected_post_listing_no_user, read_post_listings_no_user[0]);
-    assert_eq!(expected_post_listing_no_user, read_post_listing_no_user);
-    assert_eq!(1, read_post_listings_no_user.len());
+    assert_eq!(
+      expected_post_listing_no_person,
+      read_post_listings_no_person[0]
+    );
+    assert_eq!(expected_post_listing_no_person, read_post_listing_no_person);
+    assert_eq!(1, read_post_listings_no_person.len());
 
     // assert_eq!(expected_post, inserted_post);
     // assert_eq!(expected_post, updated_post);

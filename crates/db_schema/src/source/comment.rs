@@ -1,7 +1,10 @@
 use crate::{
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
+  CommentId,
   DbUrl,
+  PersonId,
+  PostId,
 };
 use serde::Serialize;
 
@@ -16,10 +19,10 @@ use serde::Serialize;
 #[belongs_to(Post)]
 #[table_name = "comment"]
 pub struct Comment {
-  pub id: i32,
-  pub creator_id: i32,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
+  pub id: CommentId,
+  pub creator_id: PersonId,
+  pub post_id: PostId,
+  pub parent_id: Option<CommentId>,
   pub content: String,
   pub removed: bool,
   pub read: bool, // Whether the recipient has read the comment or not
@@ -34,10 +37,10 @@ pub struct Comment {
 #[belongs_to(Post)]
 #[table_name = "comment_alias_1"]
 pub struct CommentAlias1 {
-  pub id: i32,
-  pub creator_id: i32,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
+  pub id: CommentId,
+  pub creator_id: PersonId,
+  pub post_id: PostId,
+  pub parent_id: Option<CommentId>,
   pub content: String,
   pub removed: bool,
   pub read: bool, // Whether the recipient has read the comment or not
@@ -51,9 +54,9 @@ pub struct CommentAlias1 {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "comment"]
 pub struct CommentForm {
-  pub creator_id: i32,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
+  pub creator_id: PersonId,
+  pub post_id: PostId,
+  pub parent_id: Option<CommentId>,
   pub content: String,
   pub removed: Option<bool>,
   pub read: Option<bool>,
@@ -69,9 +72,9 @@ pub struct CommentForm {
 #[table_name = "comment_like"]
 pub struct CommentLike {
   pub id: i32,
-  pub user_id: i32,
-  pub comment_id: i32,
-  pub post_id: i32, // TODO this is redundant
+  pub person_id: PersonId,
+  pub comment_id: CommentId,
+  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
   pub published: chrono::NaiveDateTime,
 }
@@ -79,9 +82,9 @@ pub struct CommentLike {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "comment_like"]
 pub struct CommentLikeForm {
-  pub user_id: i32,
-  pub comment_id: i32,
-  pub post_id: i32, // TODO this is redundant
+  pub person_id: PersonId,
+  pub comment_id: CommentId,
+  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
 }
 
@@ -90,14 +93,14 @@ pub struct CommentLikeForm {
 #[table_name = "comment_saved"]
 pub struct CommentSaved {
   pub id: i32,
-  pub comment_id: i32,
-  pub user_id: i32,
+  pub comment_id: CommentId,
+  pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset)]
 #[table_name = "comment_saved"]
 pub struct CommentSavedForm {
-  pub comment_id: i32,
-  pub user_id: i32,
+  pub comment_id: CommentId,
+  pub person_id: PersonId,
 }

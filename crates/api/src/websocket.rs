@@ -1,4 +1,4 @@
-use crate::{get_user_from_jwt, Perform};
+use crate::{get_local_user_view_from_jwt, Perform};
 use actix_web::web::Data;
 use lemmy_api_structs::websocket::*;
 use lemmy_utils::{ConnectionId, LemmyError};
@@ -17,11 +17,11 @@ impl Perform for UserJoin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<UserJoinResponse, LemmyError> {
     let data: &UserJoin = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     if let Some(ws_id) = websocket_id {
       context.chat_server().do_send(JoinUserRoom {
-        user_id: user.id,
+        local_user_id: local_user_view.local_user.id,
         id: ws_id,
       });
     }

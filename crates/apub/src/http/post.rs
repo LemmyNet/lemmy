@@ -6,7 +6,7 @@ use actix_web::{body::Body, web, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::post::Post;
+use lemmy_db_schema::{source::post::Post, PostId};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -21,7 +21,7 @@ pub(crate) async fn get_apub_post(
   info: web::Path<PostQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let id = info.post_id.parse::<i32>()?;
+  let id = PostId(info.post_id.parse::<i32>()?);
   let post = blocking(context.pool(), move |conn| Post::read(conn, id)).await??;
   if !post.local {
     return Err(NotFound.into());

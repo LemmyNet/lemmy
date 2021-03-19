@@ -33,7 +33,7 @@ use crate::{
   },
   fetcher::{
     objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-    user::get_or_fetch_and_upsert_user,
+    person::get_or_fetch_and_upsert_person,
   },
   find_object_by_id,
   find_post_or_comment_by_id,
@@ -69,8 +69,8 @@ use lemmy_db_queries::{source::community::CommunityModerator_, ApubObject, Crud,
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
+    person::Person,
     site::Site,
-    user::User_,
   },
   DbUrl,
 };
@@ -87,7 +87,7 @@ enum PageOrNote {
 }
 
 /// This file is for post/comment activities received by the community, and for post/comment
-///       activities announced by the community and received by the user.
+///       activities announced by the community and received by the person.
 
 /// A post or comment being created
 pub(in crate::inbox) async fn receive_create_for_community(
@@ -235,10 +235,10 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       .object()
       .as_single_xsd_any_uri()
       .context(location_info!())?;
-    let remove_mod = get_or_fetch_and_upsert_user(&remove_mod, context, request_counter).await?;
+    let remove_mod = get_or_fetch_and_upsert_person(&remove_mod, context, request_counter).await?;
     let form = CommunityModeratorForm {
       community_id: community.id,
-      user_id: remove_mod.id,
+      person_id: remove_mod.id,
     };
     blocking(context.pool(), move |conn| {
       CommunityModerator::leave(conn, &form)
@@ -399,19 +399,19 @@ pub(in crate::inbox) async fn receive_add_for_community(
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  let new_mod = get_or_fetch_and_upsert_user(&new_mod, context, request_counter).await?;
+  let new_mod = get_or_fetch_and_upsert_person(&new_mod, context, request_counter).await?;
 
   // If we had to refetch the community while parsing the activity, then the new mod has already
   // been added. Skip it here as it would result in a duplicate key error.
   let new_mod_id = new_mod.id;
   let moderated_communities = blocking(context.pool(), move |conn| {
-    CommunityModerator::get_user_moderated_communities(conn, new_mod_id)
+    CommunityModerator::get_person_moderated_communities(conn, new_mod_id)
   })
   .await??;
   if !moderated_communities.contains(&community.id) {
     let form = CommunityModeratorForm {
       community_id: community.id,
-      user_id: new_mod.id,
+      person_id: new_mod.id,
     };
     blocking(context.pool(), move |conn| {
       CommunityModerator::join(conn, &form)
@@ -513,7 +513,7 @@ where
     .context(location_info!())?
     .to_owned();
   let actor = blocking(&context.pool(), move |conn| {
-    User_::read_from_apub_id(&conn, &actor.into())
+    Person::read_from_apub_id(&conn, &actor.into())
   })
   .await??;
 
@@ -607,7 +607,7 @@ where
     Object::Post(p) => p.ap_id.into_inner(),
     Object::Comment(c) => c.ap_id.into_inner(),
     Object::Community(c) => c.actor_id(),
-    Object::User(u) => u.actor_id(),
+    Object::Person(p) => p.actor_id(),
     Object::PrivateMessage(p) => p.ap_id.into_inner(),
   };
   if actor_id.domain() != original_id.domain() {

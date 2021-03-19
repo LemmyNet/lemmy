@@ -1,5 +1,5 @@
 use crate::{
-  activities::receive::get_actor_as_user,
+  activities::receive::get_actor_as_person,
   inbox::receive_for_community::verify_mod_activity,
   objects::FromApub,
   ActorType,
@@ -28,11 +28,11 @@ pub(crate) async fn receive_create_post(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&create, context, request_counter).await?;
+  let person = get_actor_as_person(&create, context, request_counter).await?;
   let page = PageExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = Post::from_apub(&page, context, user.actor_id(), request_counter, false).await?;
+  let post = Post::from_apub(&page, context, person.actor_id(), request_counter, false).await?;
 
   // Refetch the view
   let post_id = post.id;
@@ -58,7 +58,7 @@ pub(crate) async fn receive_update_post(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&update, context, request_counter).await?;
+  let person = get_actor_as_person(&update, context, request_counter).await?;
   let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -91,7 +91,7 @@ pub(crate) async fn receive_update_post(
   let post = Post::from_apub(
     &page,
     context,
-    user.actor_id(),
+    person.actor_id(),
     request_counter,
     mod_action_allowed,
   )
@@ -121,17 +121,17 @@ pub(crate) async fn receive_like_post(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&like, context, request_counter).await?;
+  let person = get_actor_as_person(&like, context, request_counter).await?;
 
   let post_id = post.id;
   let like_form = PostLikeForm {
     post_id,
-    user_id: user.id,
+    person_id: person.id,
     score: 1,
   };
-  let user_id = user.id;
+  let person_id = person.id;
   blocking(context.pool(), move |conn| {
-    PostLike::remove(conn, user_id, post_id)?;
+    PostLike::remove(conn, person_id, post_id)?;
     PostLike::like(conn, &like_form)
   })
   .await??;
@@ -159,17 +159,17 @@ pub(crate) async fn receive_dislike_post(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(&dislike, context, request_counter).await?;
+  let person = get_actor_as_person(&dislike, context, request_counter).await?;
 
   let post_id = post.id;
   let like_form = PostLikeForm {
     post_id,
-    user_id: user.id,
+    person_id: person.id,
     score: -1,
   };
-  let user_id = user.id;
+  let person_id = person.id;
   blocking(context.pool(), move |conn| {
-    PostLike::remove(conn, user_id, post_id)?;
+    PostLike::remove(conn, person_id, post_id)?;
     PostLike::like(conn, &like_form)
   })
   .await??;

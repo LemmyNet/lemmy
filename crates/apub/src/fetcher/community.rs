@@ -1,6 +1,6 @@
 use crate::{
   fetcher::{fetch::fetch_remote_object, is_deleted, should_refetch_actor},
-  inbox::user_inbox::receive_announce,
+  inbox::person_inbox::receive_announce,
   objects::FromApub,
   GroupExt,
 };

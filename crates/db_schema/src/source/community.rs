@@ -1,17 +1,19 @@
 use crate::{
-  schema::{community, community_follower, community_moderator, community_user_ban},
+  schema::{community, community_follower, community_moderator, community_person_ban},
+  CommunityId,
   DbUrl,
+  PersonId,
 };
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "community"]
 pub struct Community {
-  pub id: i32,
+  pub id: CommunityId,
   pub name: String,
   pub title: String,
   pub description: Option<String>,
-  pub creator_id: i32,
+  pub creator_id: PersonId,
   pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
@@ -33,11 +35,11 @@ pub struct Community {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "community"]
 pub struct CommunitySafe {
-  pub id: i32,
+  pub id: CommunityId,
   pub name: String,
   pub title: String,
   pub description: Option<String>,
-  pub creator_id: i32,
+  pub creator_id: PersonId,
   pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
@@ -55,7 +57,7 @@ pub struct CommunityForm {
   pub name: String,
   pub title: String,
   pub description: Option<String>,
-  pub creator_id: i32,
+  pub creator_id: PersonId,
   pub removed: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
@@ -78,33 +80,33 @@ pub struct CommunityForm {
 #[table_name = "community_moderator"]
 pub struct CommunityModerator {
   pub id: i32,
-  pub community_id: i32,
-  pub user_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "community_moderator"]
 pub struct CommunityModeratorForm {
-  pub community_id: i32,
-  pub user_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
 #[belongs_to(Community)]
-#[table_name = "community_user_ban"]
-pub struct CommunityUserBan {
+#[table_name = "community_person_ban"]
+pub struct CommunityPersonBan {
   pub id: i32,
-  pub community_id: i32,
-  pub user_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "community_user_ban"]
-pub struct CommunityUserBanForm {
-  pub community_id: i32,
-  pub user_id: i32,
+#[table_name = "community_person_ban"]
+pub struct CommunityPersonBanForm {
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -112,8 +114,8 @@ pub struct CommunityUserBanForm {
 #[table_name = "community_follower"]
 pub struct CommunityFollower {
   pub id: i32,
-  pub community_id: i32,
-  pub user_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
   pub pending: Option<bool>,
 }
@@ -121,7 +123,7 @@ pub struct CommunityFollower {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "community_follower"]
 pub struct CommunityFollowerForm {
-  pub community_id: i32,
-  pub user_id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
   pub pending: bool,
 }

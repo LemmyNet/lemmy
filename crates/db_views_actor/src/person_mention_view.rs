@@ -16,62 +16,64 @@ use lemmy_db_schema::{
     comment_saved,
     community,
     community_follower,
-    community_user_ban,
+    community_person_ban,
+    person,
+    person_alias_1,
+    person_mention,
     post,
-    user_,
-    user_alias_1,
-    user_mention,
   },
   source::{
     comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person_mention::PersonMention,
     post::Post,
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
-    user_mention::UserMention,
   },
+  PersonId,
+  PersonMentionId,
 };
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct UserMentionView {
-  pub user_mention: UserMention,
+pub struct PersonMentionView {
+  pub person_mention: PersonMention,
   pub comment: Comment,
-  pub creator: UserSafe,
+  pub creator: PersonSafe,
   pub post: Post,
   pub community: CommunitySafe,
-  pub recipient: UserSafeAlias1,
+  pub recipient: PersonSafeAlias1,
   pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityUserBan
+  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub subscribed: bool,                    // Left join to CommunityFollower
   pub saved: bool,                         // Left join to CommentSaved
   pub my_vote: Option<i16>,                // Left join to CommentLike
 }
 
-type UserMentionViewTuple = (
-  UserMention,
+type PersonMentionViewTuple = (
+  PersonMention,
   Comment,
-  UserSafe,
+  PersonSafe,
   Post,
   CommunitySafe,
-  UserSafeAlias1,
+  PersonSafeAlias1,
   CommentAggregates,
-  Option<CommunityUserBan>,
+  Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
   Option<i16>,
 );
 
-impl UserMentionView {
+impl PersonMentionView {
   pub fn read(
     conn: &PgConnection,
-    user_mention_id: i32,
-    my_user_id: Option<i32>,
+    person_mention_id: PersonMentionId,
+    my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let user_id_join = my_user_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
-      user_mention,
+      person_mention,
       comment,
       creator,
       post,
@@ -82,59 +84,59 @@ impl UserMentionView {
       subscribed,
       saved,
       my_vote,
-    ) = user_mention::table
-      .find(user_mention_id)
+    ) = person_mention::table
+      .find(person_mention_id)
       .inner_join(comment::table)
-      .inner_join(user_::table.on(comment::creator_id.eq(user_::id)))
+      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(user_alias_1::table)
+      .inner_join(person_alias_1::table)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(
-        community_user_ban::table.on(
+        community_person_ban::table.on(
           community::id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(comment::creator_id)),
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
+            .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_saved::table.on(
           comment::id
             .eq(comment_saved::comment_id)
-            .and(comment_saved::user_id.eq(user_id_join)),
+            .and(comment_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
-            .and(comment_like::user_id.eq(user_id_join)),
+            .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
       .select((
-        user_mention::all_columns,
+        person_mention::all_columns,
         comment::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         post::all_columns,
         Community::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
         comment_aggregates::all_columns,
-        community_user_ban::all_columns.nullable(),
+        community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
         comment_saved::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<UserMentionViewTuple>(conn)?;
+      .first::<PersonMentionViewTuple>(conn)?;
 
-    Ok(UserMentionView {
-      user_mention,
+    Ok(PersonMentionView {
+      person_mention,
       comment,
       creator,
       post,
@@ -149,21 +151,21 @@ impl UserMentionView {
   }
 }
 
-pub struct UserMentionQueryBuilder<'a> {
+pub struct PersonMentionQueryBuilder<'a> {
   conn: &'a PgConnection,
-  my_user_id: Option<i32>,
-  recipient_id: Option<i32>,
+  my_person_id: Option<PersonId>,
+  recipient_id: Option<PersonId>,
   sort: &'a SortType,
   unread_only: bool,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<'a> UserMentionQueryBuilder<'a> {
+impl<'a> PersonMentionQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    UserMentionQueryBuilder {
+    PersonMentionQueryBuilder {
       conn,
-      my_user_id: None,
+      my_person_id: None,
       recipient_id: None,
       sort: &SortType::New,
       unread_only: false,
@@ -182,13 +184,13 @@ impl<'a> UserMentionQueryBuilder<'a> {
     self
   }
 
-  pub fn recipient_id<T: MaybeOptional<i32>>(mut self, recipient_id: T) -> Self {
+  pub fn recipient_id<T: MaybeOptional<PersonId>>(mut self, recipient_id: T) -> Self {
     self.recipient_id = recipient_id.get_optional();
     self
   }
 
-  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
-    self.my_user_id = my_user_id.get_optional();
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
+    self.my_person_id = my_person_id.get_optional();
     self
   }
 
@@ -202,56 +204,56 @@ impl<'a> UserMentionQueryBuilder<'a> {
     self
   }
 
-  pub fn list(self) -> Result<Vec<UserMentionView>, Error> {
+  pub fn list(self) -> Result<Vec<PersonMentionView>, Error> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let user_id_join = self.my_user_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
-    let mut query = user_mention::table
+    let mut query = person_mention::table
       .inner_join(comment::table)
-      .inner_join(user_::table.on(comment::creator_id.eq(user_::id)))
+      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(user_alias_1::table)
+      .inner_join(person_alias_1::table)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(
-        community_user_ban::table.on(
+        community_person_ban::table.on(
           community::id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(comment::creator_id)),
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
+            .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_saved::table.on(
           comment::id
             .eq(comment_saved::comment_id)
-            .and(comment_saved::user_id.eq(user_id_join)),
+            .and(comment_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
-            .and(comment_like::user_id.eq(user_id_join)),
+            .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
       .select((
-        user_mention::all_columns,
+        person_mention::all_columns,
         comment::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         post::all_columns,
         Community::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
         comment_aggregates::all_columns,
-        community_user_ban::all_columns.nullable(),
+        community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
         comment_saved::all_columns.nullable(),
         comment_like::score.nullable(),
@@ -259,11 +261,11 @@ impl<'a> UserMentionQueryBuilder<'a> {
       .into_boxed();
 
     if let Some(recipient_id) = self.recipient_id {
-      query = query.filter(user_mention::recipient_id.eq(recipient_id));
+      query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
     if self.unread_only {
-      query = query.filter(user_mention::read.eq(false));
+      query = query.filter(person_mention::read.eq(false));
     }
 
     query = match self.sort {
@@ -293,19 +295,19 @@ impl<'a> UserMentionQueryBuilder<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<UserMentionViewTuple>(self.conn)?;
+      .load::<PersonMentionViewTuple>(self.conn)?;
 
-    Ok(UserMentionView::from_tuple_to_vec(res))
+    Ok(PersonMentionView::from_tuple_to_vec(res))
   }
 }
 
-impl ViewToVec for UserMentionView {
-  type DbTuple = UserMentionViewTuple;
+impl ViewToVec for PersonMentionView {
+  type DbTuple = PersonMentionViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
       .iter()
       .map(|a| Self {
-        user_mention: a.0.to_owned(),
+        person_mention: a.0.to_owned(),
         comment: a.1.to_owned(),
         creator: a.2.to_owned(),
         post: a.3.to_owned(),

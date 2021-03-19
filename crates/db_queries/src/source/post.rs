@@ -12,16 +12,19 @@ use lemmy_db_schema::{
     PostSaved,
     PostSavedForm,
   },
+  CommunityId,
   DbUrl,
+  PersonId,
+  PostId,
 };
 
-impl Crud<PostForm> for Post {
-  fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+impl Crud<PostForm, PostId> for Post {
+  fn read(conn: &PgConnection, post_id: PostId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     post.find(post_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
+  fn delete(conn: &PgConnection, post_id: PostId) -> Result<usize, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::delete(post.find(post_id)).execute(conn)
   }
@@ -31,7 +34,7 @@ impl Crud<PostForm> for Post {
     insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
+  fn update(conn: &PgConnection, post_id: PostId, new_post: &PostForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
@@ -41,24 +44,39 @@ impl Crud<PostForm> for Post {
 
 pub trait Post_ {
   //fn read(conn: &PgConnection, post_id: i32) -> Result<Post, Error>;
-  fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Post>, Error>;
-  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: DbUrl) -> Result<Post, Error>;
-  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Post>, Error>;
-  fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Post, Error>;
-  fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Post, Error>;
+  fn list_for_community(
+    conn: &PgConnection,
+    the_community_id: CommunityId,
+  ) -> Result<Vec<Post>, Error>;
+  fn update_ap_id(conn: &PgConnection, post_id: PostId, apub_id: DbUrl) -> Result<Post, Error>;
+  fn permadelete_for_creator(
+    conn: &PgConnection,
+    for_creator_id: PersonId,
+  ) -> Result<Vec<Post>, Error>;
+  fn update_deleted(conn: &PgConnection, post_id: PostId, new_deleted: bool)
+    -> Result<Post, Error>;
+  fn update_removed(conn: &PgConnection, post_id: PostId, new_removed: bool)
+    -> Result<Post, Error>;
   fn update_removed_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
-    for_community_id: Option<i32>,
+    for_creator_id: PersonId,
+    for_community_id: Option<CommunityId>,
     new_removed: bool,
   ) -> Result<Vec<Post>, Error>;
-  fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Post, Error>;
-  fn update_stickied(conn: &PgConnection, post_id: i32, new_stickied: bool) -> Result<Post, Error>;
-  fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool;
+  fn update_locked(conn: &PgConnection, post_id: PostId, new_locked: bool) -> Result<Post, Error>;
+  fn update_stickied(
+    conn: &PgConnection,
+    post_id: PostId,
+    new_stickied: bool,
+  ) -> Result<Post, Error>;
+  fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool;
 }
 
 impl Post_ for Post {
-  fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Self>, Error> {
+  fn list_for_community(
+    conn: &PgConnection,
+    the_community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
@@ -68,7 +86,7 @@ impl Post_ for Post {
       .load::<Self>(conn)
   }
 
-  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: DbUrl) -> Result<Self, Error> {
+  fn update_ap_id(conn: &PgConnection, post_id: PostId, apub_id: DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
@@ -76,7 +94,10 @@ impl Post_ for Post {
       .get_result::<Self>(conn)
   }
 
-  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+  fn permadelete_for_creator(
+    conn: &PgConnection,
+    for_creator_id: PersonId,
+  ) -> Result<Vec<Self>, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     let perma_deleted = "*Permananently Deleted*";
@@ -93,14 +114,22 @@ impl Post_ for Post {
       .get_results::<Self>(conn)
   }
 
-  fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Self, Error> {
+  fn update_deleted(
+    conn: &PgConnection,
+    post_id: PostId,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Self, Error> {
+  fn update_removed(
+    conn: &PgConnection,
+    post_id: PostId,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
@@ -109,8 +138,8 @@ impl Post_ for Post {
 
   fn update_removed_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
-    for_community_id: Option<i32>,
+    for_creator_id: PersonId,
+    for_community_id: Option<CommunityId>,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
@@ -127,22 +156,26 @@ impl Post_ for Post {
       .get_results::<Self>(conn)
   }
 
-  fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {
+  fn update_locked(conn: &PgConnection, post_id: PostId, new_locked: bool) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(locked.eq(new_locked))
       .get_result::<Self>(conn)
   }
 
-  fn update_stickied(conn: &PgConnection, post_id: i32, new_stickied: bool) -> Result<Self, Error> {
+  fn update_stickied(
+    conn: &PgConnection,
+    post_id: PostId,
+    new_stickied: bool,
+  ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(stickied.eq(new_stickied))
       .get_result::<Self>(conn)
   }
 
-  fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
-    user_id == post_creator_id
+  fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool {
+    person_id == post_creator_id
   }
 }
 
@@ -163,22 +196,22 @@ impl ApubObject<PostForm> for Post {
   }
 }
 
-impl Likeable<PostLikeForm> for PostLike {
+impl Likeable<PostLikeForm, PostId> for PostLike {
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
-      .on_conflict((post_id, user_id))
+      .on_conflict((post_id, person_id))
       .do_update()
       .set(post_like_form)
       .get_result::<Self>(conn)
   }
-  fn remove(conn: &PgConnection, user_id: i32, post_id: i32) -> Result<usize, Error> {
+  fn remove(conn: &PgConnection, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
     use lemmy_db_schema::schema::post_like::dsl;
     diesel::delete(
       dsl::post_like
         .filter(dsl::post_id.eq(post_id))
-        .filter(dsl::user_id.eq(user_id)),
+        .filter(dsl::person_id.eq(person_id)),
     )
     .execute(conn)
   }
@@ -189,7 +222,7 @@ impl Saveable<PostSavedForm> for PostSaved {
     use lemmy_db_schema::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
-      .on_conflict((post_id, user_id))
+      .on_conflict((post_id, person_id))
       .do_update()
       .set(post_saved_form)
       .get_result::<Self>(conn)
@@ -199,7 +232,7 @@ impl Saveable<PostSavedForm> for PostSaved {
     diesel::delete(
       post_saved
         .filter(post_id.eq(post_saved_form.post_id))
-        .filter(user_id.eq(post_saved_form.user_id)),
+        .filter(person_id.eq(post_saved_form.person_id)),
     )
     .execute(conn)
   }
@@ -218,7 +251,7 @@ impl Readable<PostReadForm> for PostRead {
     diesel::delete(
       post_read
         .filter(post_id.eq(post_read_form.post_id))
-        .filter(user_id.eq(post_read_form.user_id)),
+        .filter(person_id.eq(post_read_form.person_id)),
     )
     .execute(conn)
   }
@@ -226,10 +259,10 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::post::*, ListingType, SortType};
+  use crate::{establish_unpooled_connection, source::post::*};
   use lemmy_db_schema::source::{
     community::{Community, CommunityForm},
-    user::*,
+    person::*,
   };
   use serial_test::serial;
 
@@ -238,28 +271,18 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "jim".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -267,13 +290,13 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "test community_3".to_string(),
       title: "nada".to_owned(),
       description: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       removed: None,
       deleted: None,
       updated: None,
@@ -297,7 +320,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       removed: None,
       deleted: None,
@@ -321,7 +344,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       published: inserted_post.published,
       removed: false,
@@ -341,7 +364,7 @@ mod tests {
     // Post Like
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       score: 1,
     };
 
@@ -350,7 +373,7 @@ mod tests {
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       published: inserted_post_like.published,
       score: 1,
     };
@@ -358,7 +381,7 @@ mod tests {
     // Post Save
     let post_saved_form = PostSavedForm {
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
     };
 
     let inserted_post_saved = PostSaved::save(&conn, &post_saved_form).unwrap();
@@ -366,14 +389,14 @@ mod tests {
     let expected_post_saved = PostSaved {
       id: inserted_post_saved.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       published: inserted_post_saved.published,
     };
 
     // Post Read
     let post_read_form = PostReadForm {
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
     };
 
     let inserted_post_read = PostRead::mark_as_read(&conn, &post_read_form).unwrap();
@@ -381,18 +404,18 @@ mod tests {
     let expected_post_read = PostRead {
       id: inserted_post_read.id,
       post_id: inserted_post.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       published: inserted_post_read.published,
     };
 
     let read_post = Post::read(&conn, inserted_post.id).unwrap();
     let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
-    let like_removed = PostLike::remove(&conn, inserted_user.id, inserted_post.id).unwrap();
+    let like_removed = PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
     let saved_removed = PostSaved::unsave(&conn, &post_saved_form).unwrap();
     let read_removed = PostRead::mark_as_unread(&conn, &post_read_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
-    User_::delete(&conn, inserted_user.id).unwrap();
+    Person::delete(&conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);

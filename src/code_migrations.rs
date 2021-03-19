@@ -19,9 +19,9 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::{Community, CommunityForm},
+    person::{Person, PersonForm},
     post::Post,
     private_message::PrivateMessage,
-    user::{UserForm, User_},
   },
 };
 use lemmy_utils::{apub::generate_actor_keypair, settings::structs::Settings, LemmyError};
@@ -40,52 +40,42 @@ pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::user_::dsl::*;
+  use lemmy_db_schema::schema::person::dsl::*;
 
   info!("Running user_updates_2020_04_02");
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
-  let incorrect_users = user_
+  let incorrect_persons = person
     .filter(actor_id.like("http://changeme_%"))
     .filter(local.eq(true))
-    .load::<User_>(conn)?;
+    .load::<Person>(conn)?;
 
-  for cuser in &incorrect_users {
+  for cperson in &incorrect_persons {
     let keypair = generate_actor_keypair()?;
 
-    let form = UserForm {
-      name: cuser.name.to_owned(),
-      email: Some(cuser.email.to_owned()),
-      matrix_user_id: Some(cuser.matrix_user_id.to_owned()),
-      avatar: Some(cuser.avatar.to_owned()),
-      banner: Some(cuser.banner.to_owned()),
-      password_encrypted: cuser.password_encrypted.to_owned(),
-      preferred_username: Some(cuser.preferred_username.to_owned()),
-      published: Some(cuser.published),
+    let form = PersonForm {
+      name: cperson.name.to_owned(),
+      avatar: None,
+      banner: None,
+      preferred_username: None,
+      published: None,
       updated: None,
-      admin: cuser.admin,
-      banned: Some(cuser.banned),
-      show_nsfw: cuser.show_nsfw,
-      theme: cuser.theme.to_owned(),
-      default_sort_type: cuser.default_sort_type,
-      default_listing_type: cuser.default_listing_type,
-      lang: cuser.lang.to_owned(),
-      show_avatars: cuser.show_avatars,
-      send_notifications_to_email: cuser.send_notifications_to_email,
-      actor_id: Some(generate_apub_endpoint(EndpointType::User, &cuser.name)?),
-      bio: Some(cuser.bio.to_owned()),
-      local: cuser.local,
-      private_key: Some(keypair.private_key),
-      public_key: Some(keypair.public_key),
+      banned: None,
+      deleted: None,
+      actor_id: Some(generate_apub_endpoint(EndpointType::Person, &cperson.name)?),
+      bio: None,
+      local: None,
+      private_key: Some(Some(keypair.private_key)),
+      public_key: Some(Some(keypair.public_key)),
       last_refreshed_at: Some(naive_now()),
       inbox_url: None,
       shared_inbox_url: None,
     };
 
-    User_::update(&conn, cuser.id, &form)?;
+    Person::update(&conn, cperson.id, &form)?;
   }
 
-  info!("{} user rows updated.", incorrect_users.len());
+  info!("{} person rows updated.", incorrect_persons.len());
 
   Ok(())
 }
@@ -231,20 +221,20 @@ fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), Lemm
 fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   info!("Running apub_columns_2021_02_02");
   {
-    use lemmy_db_schema::schema::user_::dsl::*;
-    let users = user_
+    use lemmy_db_schema::schema::person::dsl::*;
+    let persons = person
       .filter(inbox_url.like("http://changeme_%"))
-      .load::<User_>(conn)?;
+      .load::<Person>(conn)?;
 
-    for u in &users {
-      let inbox_url_ = generate_inbox_url(&u.actor_id)?;
-      let shared_inbox_url_ = generate_shared_inbox_url(&u.actor_id)?;
-      diesel::update(user_.find(u.id))
+    for p in &persons {
+      let inbox_url_ = generate_inbox_url(&p.actor_id)?;
+      let shared_inbox_url_ = generate_shared_inbox_url(&p.actor_id)?;
+      diesel::update(person.find(p.id))
         .set((
           inbox_url.eq(inbox_url_),
           shared_inbox_url.eq(shared_inbox_url_),
         ))
-        .get_result::<User_>(conn)?;
+        .get_result::<Person>(conn)?;
     }
   }
 

@@ -1,7 +1,8 @@
 use crate::UserOperation;
 use actix::{prelude::*, Recipient};
 use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
-use lemmy_utils::{CommunityId, ConnectionId, IpAddr, PostId, UserId};
+use lemmy_db_schema::{CommunityId, LocalUserId, PostId};
+use lemmy_utils::{ConnectionId, IpAddr};
 use serde::{Deserialize, Serialize};
 
 /// Chat server sends this messages to session
@@ -50,7 +51,7 @@ pub struct SendAllMessage<Response> {
 pub struct SendUserRoomMessage<Response> {
   pub op: UserOperation,
   pub response: Response,
-  pub recipient_id: UserId,
+  pub local_recipient_id: LocalUserId,
   pub websocket_id: Option<ConnectionId>,
 }
 
@@ -91,7 +92,7 @@ pub struct SendComment {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct JoinUserRoom {
-  pub user_id: UserId,
+  pub local_user_id: LocalUserId,
   pub id: ConnectionId,
 }
 

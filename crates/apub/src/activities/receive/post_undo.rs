@@ -1,4 +1,4 @@
-use crate::activities::receive::get_actor_as_user;
+use crate::activities::receive::get_actor_as_person;
 use activitystreams::activity::{Dislike, Like};
 use lemmy_api_structs::{blocking, post::PostResponse};
 use lemmy_db_queries::{source::post::Post_, Likeable};
@@ -13,12 +13,12 @@ pub(crate) async fn receive_undo_like_post(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(like, context, request_counter).await?;
+  let person = get_actor_as_person(like, context, request_counter).await?;
 
   let post_id = post.id;
-  let user_id = user.id;
+  let person_id = person.id;
   blocking(context.pool(), move |conn| {
-    PostLike::remove(conn, user_id, post_id)
+    PostLike::remove(conn, person_id, post_id)
   })
   .await??;
 
@@ -45,12 +45,12 @@ pub(crate) async fn receive_undo_dislike_post(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let user = get_actor_as_user(dislike, context, request_counter).await?;
+  let person = get_actor_as_person(dislike, context, request_counter).await?;
 
   let post_id = post.id;
-  let user_id = user.id;
+  let person_id = person.id;
   blocking(context.pool(), move |conn| {
-    PostLike::remove(conn, user_id, post_id)
+    PostLike::remove(conn, person_id, post_id)
   })
   .await??;
 
