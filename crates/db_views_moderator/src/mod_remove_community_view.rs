@@ -1,11 +1,11 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, mod_remove_community, user_},
+  schema::{community, mod_remove_community, person},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModRemoveCommunity,
-    user::{UserSafe, User_},
+    person::{Person, PersonSafe},
   },
 };
 use serde::Serialize;
@@ -13,31 +13,31 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct ModRemoveCommunityView {
   pub mod_remove_community: ModRemoveCommunity,
-  pub moderator: UserSafe,
+  pub moderator: PersonSafe,
   pub community: CommunitySafe,
 }
 
-type ModRemoveCommunityTuple = (ModRemoveCommunity, UserSafe, CommunitySafe);
+type ModRemoveCommunityTuple = (ModRemoveCommunity, PersonSafe, CommunitySafe);
 
 impl ModRemoveCommunityView {
   pub fn list(
     conn: &PgConnection,
-    mod_user_id: Option<i32>,
+    mod_person_id: Option<i32>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
     let mut query = mod_remove_community::table
-      .inner_join(user_::table)
+      .inner_join(person::table)
       .inner_join(community::table)
       .select((
         mod_remove_community::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         Community::safe_columns_tuple(),
       ))
       .into_boxed();
 
-    if let Some(mod_user_id) = mod_user_id {
-      query = query.filter(mod_remove_community::mod_user_id.eq(mod_user_id));
+    if let Some(mod_person_id) = mod_person_id {
+      query = query.filter(mod_remove_community::mod_person_id.eq(mod_person_id));
     };
 
     let (limit, offset) = limit_and_offset(page, limit);

@@ -23,7 +23,7 @@ use thiserror::Error;
 pub type ConnectionId = usize;
 pub type PostId = i32;
 pub type CommunityId = i32;
-pub type UserId = i32;
+pub type LocalUserId = i32;
 pub type IpAddr = String;
 
 #[macro_export]
@@ -87,7 +87,7 @@ lazy_static! {
     Settings::get().hostname()
   ))
   .expect("compile webfinger regex");
-  pub static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
+  pub static ref WEBFINGER_USERNAME_REGEX: Regex = Regex::new(&format!(
     "^acct:([a-z0-9_]{{3, 20}})@{}$",
     Settings::get().hostname()
   ))

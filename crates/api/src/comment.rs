@@ -2,9 +2,9 @@ use crate::{
   check_community_ban,
   check_downvotes_enabled,
   collect_moderated_communities,
+  get_local_user_view_from_jwt,
+  get_local_user_view_from_jwt_opt,
   get_post,
-  get_user_from_jwt,
-  get_user_from_jwt_opt,
   is_mod_or_admin,
   Perform,
 };
@@ -48,7 +48,7 @@ impl Perform for CreateComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
@@ -56,7 +56,7 @@ impl Perform for CreateComment {
     let post_id = data.post_id;
     let post = get_post(post_id, context.pool()).await?;
 
-    check_community_ban(user.id, post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
 
     // Check if post is locked, no new comments
     if post.locked {
@@ -80,7 +80,7 @@ impl Perform for CreateComment {
       content: content_slurs_removed,
       parent_id: data.parent_id.to_owned(),
       post_id: data.post_id,
-      creator_id: user.id,
+      creator_id: local_user_view.person.id,
       removed: None,
       deleted: None,
       read: None,
@@ -115,7 +115,9 @@ impl Perform for CreateComment {
         Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
       };
 
-    updated_comment.send_create(&user, context).await?;
+    updated_comment
+      .send_create(&local_user_view.person, context)
+      .await?;
 
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
@@ -123,7 +125,7 @@ impl Perform for CreateComment {
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment.clone(),
-      &user,
+      local_user_view.person.clone(),
       post,
       context.pool(),
       true,
@@ -134,7 +136,7 @@ impl Perform for CreateComment {
     let like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id,
-      user_id: user.id,
+      person_id: local_user_view.person.id,
       score: 1,
     };
 
@@ -143,17 +145,19 @@ impl Perform for CreateComment {
       return Err(ApiError::err("couldnt_like_comment").into());
     }
 
-    updated_comment.send_like(&user, context).await?;
+    updated_comment
+      .send_like(&local_user_view.person, context)
+      .await?;
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let mut comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, inserted_comment.id, Some(user_id))
+      CommentView::read(&conn, inserted_comment.id, Some(person_id))
     })
     .await??;
 
     // If its a comment to yourself, mark it as read
     let comment_id = comment_view.comment.id;
-    if user.id == comment_view.get_recipient_id() {
+    if local_user_view.person.id == comment_view.get_recipient_id() {
       match blocking(context.pool(), move |conn| {
         Comment::update_read(conn, comment_id, true)
       })
@@ -193,7 +197,7 @@ impl Perform for EditComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -201,10 +205,15 @@ impl Perform for EditComment {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the creator can edit
-    if user.id != orig_comment.creator.id {
+    if local_user_view.person.id != orig_comment.creator.id {
       return Err(ApiError::err("no_comment_edit_allowed").into());
     }
 
@@ -221,7 +230,9 @@ impl Perform for EditComment {
     };
 
     // Send the apub update
-    updated_comment.send_update(&user, context).await?;
+    updated_comment
+      .send_update(&local_user_view.person, context)
+      .await?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();
@@ -229,7 +240,7 @@ impl Perform for EditComment {
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment,
-      &user,
+      local_user_view.person.clone(),
       orig_comment.post,
       context.pool(),
       false,
@@ -237,9 +248,9 @@ impl Perform for EditComment {
     .await?;
 
     let comment_id = data.comment_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
 
@@ -269,7 +280,7 @@ impl Perform for DeleteComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &DeleteComment = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -277,10 +288,15 @@ impl Perform for DeleteComment {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the creator can delete
-    if user.id != orig_comment.creator.id {
+    if local_user_view.person.id != orig_comment.creator.id {
       return Err(ApiError::err("no_comment_edit_allowed").into());
     }
 
@@ -297,16 +313,20 @@ impl Perform for DeleteComment {
 
     // Send the apub message
     if deleted {
-      updated_comment.send_delete(&user, context).await?;
+      updated_comment
+        .send_delete(&local_user_view.person, context)
+        .await?;
     } else {
-      updated_comment.send_undo_delete(&user, context).await?;
+      updated_comment
+        .send_undo_delete(&local_user_view.person, context)
+        .await?;
     }
 
     // Refetch it
     let comment_id = data.comment_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
 
@@ -316,7 +336,7 @@ impl Perform for DeleteComment {
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment,
-      &user,
+      local_user_view.person.clone(),
       comment_view_2.post,
       context.pool(),
       false,
@@ -349,7 +369,7 @@ impl Perform for RemoveComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &RemoveComment = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -357,10 +377,20 @@ impl Perform for RemoveComment {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only a mod or admin can remove
-    is_mod_or_admin(context.pool(), user.id, orig_comment.community.id).await?;
+    is_mod_or_admin(
+      context.pool(),
+      local_user_view.person.id,
+      orig_comment.community.id,
+    )
+    .await?;
 
     // Do the remove
     let removed = data.removed;
@@ -375,7 +405,7 @@ impl Perform for RemoveComment {
 
     // Mod tables
     let form = ModRemoveCommentForm {
-      mod_user_id: user.id,
+      mod_person_id: local_user_view.person.id,
       comment_id: data.comment_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -387,16 +417,20 @@ impl Perform for RemoveComment {
 
     // Send the apub message
     if removed {
-      updated_comment.send_remove(&user, context).await?;
+      updated_comment
+        .send_remove(&local_user_view.person, context)
+        .await?;
     } else {
-      updated_comment.send_undo_remove(&user, context).await?;
+      updated_comment
+        .send_undo_remove(&local_user_view.person, context)
+        .await?;
     }
 
     // Refetch it
     let comment_id = data.comment_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
 
@@ -407,7 +441,7 @@ impl Perform for RemoveComment {
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment,
-      &user,
+      local_user_view.person.clone(),
       comment_view_2.post,
       context.pool(),
       false,
@@ -440,7 +474,7 @@ impl Perform for MarkCommentAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &MarkCommentAsRead = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -448,10 +482,15 @@ impl Perform for MarkCommentAsRead {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Verify that only the recipient can mark as read
-    if user.id != orig_comment.get_recipient_id() {
+    if local_user_view.person.id != orig_comment.get_recipient_id() {
       return Err(ApiError::err("no_comment_edit_allowed").into());
     }
 
@@ -468,9 +507,9 @@ impl Perform for MarkCommentAsRead {
 
     // Refetch it
     let comment_id = data.comment_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
 
@@ -494,11 +533,11 @@ impl Perform for SaveComment {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &SaveComment = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_saved_form = CommentSavedForm {
       comment_id: data.comment_id,
-      user_id: user.id,
+      person_id: local_user_view.person.id,
     };
 
     if data.save {
@@ -514,9 +553,9 @@ impl Perform for SaveComment {
     }
 
     let comment_id = data.comment_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
 
@@ -538,7 +577,7 @@ impl Perform for CreateCommentLike {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateCommentLike = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let mut recipient_ids = Vec::new();
 
@@ -551,7 +590,12 @@ impl Perform for CreateCommentLike {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_comment.community.id,
+      context.pool(),
+    )
+    .await?;
 
     // Add parent user to recipients
     recipient_ids.push(orig_comment.get_recipient_id());
@@ -559,14 +603,14 @@ impl Perform for CreateCommentLike {
     let like_form = CommentLikeForm {
       comment_id: data.comment_id,
       post_id: orig_comment.post.id,
-      user_id: user.id,
+      person_id: local_user_view.person.id,
       score: data.score,
     };
 
     // Remove any likes first
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     blocking(context.pool(), move |conn| {
-      CommentLike::remove(conn, user_id, comment_id)
+      CommentLike::remove(conn, person_id, comment_id)
     })
     .await??;
 
@@ -581,19 +625,23 @@ impl Perform for CreateCommentLike {
       }
 
       if like_form.score == 1 {
-        comment.send_like(&user, context).await?;
+        comment.send_like(&local_user_view.person, context).await?;
       } else if like_form.score == -1 {
-        comment.send_dislike(&user, context).await?;
+        comment
+          .send_dislike(&local_user_view.person, context)
+          .await?;
       }
     } else {
-      comment.send_undo_like(&user, context).await?;
+      comment
+        .send_undo_like(&local_user_view.person, context)
+        .await?;
     }
 
     // Have to refetch the comment to get the current state
     let comment_id = data.comment_id;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let liked_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
 
@@ -623,8 +671,8 @@ impl Perform for GetComments {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = &self;
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
-    let user_id = user.map(|u| u.id);
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let person_id = local_user_view.map(|u| u.person.id);
 
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
@@ -639,7 +687,7 @@ impl Perform for GetComments {
         .sort(&sort)
         .community_id(community_id)
         .community_name(community_name)
-        .my_user_id(user_id)
+        .my_person_id(person_id)
         .page(page)
         .limit(limit)
         .list()
@@ -665,7 +713,7 @@ impl Perform for CreateCommentReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CreateCommentReportResponse, LemmyError> {
     let data: &CreateCommentReport = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // check size of report and check for whitespace
     let reason = data.reason.trim();
@@ -676,17 +724,17 @@ impl Perform for CreateCommentReport {
       return Err(ApiError::err("report_too_long").into());
     }
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;
     let comment_view = blocking(context.pool(), move |conn| {
       CommentView::read(&conn, comment_id, None)
     })
     .await??;
 
-    check_community_ban(user_id, comment_view.community.id, context.pool()).await?;
+    check_community_ban(person_id, comment_view.community.id, context.pool()).await?;
 
     let report_form = CommentReportForm {
-      creator_id: user_id,
+      creator_id: person_id,
       comment_id,
       original_comment_text: comment_view.comment.content,
       reason: data.reason.to_owned(),
@@ -706,7 +754,7 @@ impl Perform for CreateCommentReport {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::CreateCommentReport,
       response: res.clone(),
-      recipient_id: user.id,
+      local_recipient_id: local_user_view.person.id,
       websocket_id,
     });
 
@@ -732,7 +780,7 @@ impl Perform for ResolveCommentReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveCommentReportResponse, LemmyError> {
     let data: &ResolveCommentReport = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let report_id = data.report_id;
     let report = blocking(context.pool(), move |conn| {
@@ -740,15 +788,15 @@ impl Perform for ResolveCommentReport {
     })
     .await??;
 
-    let user_id = user.id;
-    is_mod_or_admin(context.pool(), user_id, report.community.id).await?;
+    let person_id = local_user_view.person.id;
+    is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
 
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
       if resolved {
-        CommentReport::resolve(conn, report_id, user_id)
+        CommentReport::resolve(conn, report_id, person_id)
       } else {
-        CommentReport::unresolve(conn, report_id, user_id)
+        CommentReport::unresolve(conn, report_id, person_id)
       }
     };
 
@@ -785,12 +833,12 @@ impl Perform for ListCommentReports {
     websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommentReportsResponse, LemmyError> {
     let data: &ListCommentReports = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_id = data.community;
     let community_ids =
-      collect_moderated_communities(user_id, community_id, context.pool()).await?;
+      collect_moderated_communities(person_id, community_id, context.pool()).await?;
 
     let page = data.page;
     let limit = data.limit;
@@ -808,7 +856,7 @@ impl Perform for ListCommentReports {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::ListCommentReports,
       response: res.clone(),
-      recipient_id: user.id,
+      local_recipient_id: local_user_view.person.id,
       websocket_id,
     });
 

@@ -4,9 +4,9 @@ use uuid::Uuid;
 
 pub(crate) mod comment;
 pub(crate) mod community;
+pub(crate) mod person;
 pub(crate) mod post;
 pub(crate) mod private_message;
-pub(crate) mod user;
 
 /// Generate a unique ID for an activity, in the format:
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`

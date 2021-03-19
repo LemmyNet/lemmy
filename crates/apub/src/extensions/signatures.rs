@@ -95,7 +95,7 @@ pub(crate) fn verify_signature(
   }
 }
 
-/// Extension for actor public key, which is needed on user and community for HTTP signatures.
+/// Extension for actor public key, which is needed on person and community for HTTP signatures.
 ///
 /// Taken from: https://docs.rs/activitystreams/0.5.0-alpha.17/activitystreams/ext/index.html
 #[derive(Clone, Debug, Deserialize, Serialize)]

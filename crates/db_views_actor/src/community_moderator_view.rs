@@ -1,10 +1,10 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, community_moderator, user_},
+  schema::{community, community_moderator, person},
   source::{
     community::{Community, CommunitySafe},
-    user::{UserSafe, User_},
+    person::{Person, PersonSafe},
   },
 };
 use serde::Serialize;
@@ -12,17 +12,20 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct CommunityModeratorView {
   pub community: CommunitySafe,
-  pub moderator: UserSafe,
+  pub moderator: PersonSafe,
 }
 
-type CommunityModeratorViewTuple = (CommunitySafe, UserSafe);
+type CommunityModeratorViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityModeratorView {
   pub fn for_community(conn: &PgConnection, community_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
-      .inner_join(user_::table)
-      .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
+      .inner_join(person::table)
+      .select((
+        Community::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+      ))
       .filter(community_moderator::community_id.eq(community_id))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;
@@ -30,12 +33,15 @@ impl CommunityModeratorView {
     Ok(Self::from_tuple_to_vec(res))
   }
 
-  pub fn for_user(conn: &PgConnection, user_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_person(conn: &PgConnection, person_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
-      .inner_join(user_::table)
-      .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
-      .filter(community_moderator::user_id.eq(user_id))
+      .inner_join(person::table)
+      .select((
+        Community::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+      ))
+      .filter(community_moderator::person_id.eq(person_id))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;
 

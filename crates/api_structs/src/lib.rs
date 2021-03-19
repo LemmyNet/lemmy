@@ -1,18 +1,19 @@
 pub mod comment;
 pub mod community;
+pub mod person;
 pub mod post;
 pub mod site;
-pub mod user;
 pub mod websocket;
 
 use diesel::PgConnection;
-use lemmy_db_queries::{source::user::User, Crud, DbPool};
+use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::Comment,
+  person::Person,
+  person_mention::{PersonMention, PersonMentionForm},
   post::Post,
-  user::User_,
-  user_mention::{UserMention, UserMentionForm},
 };
+use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_utils::{email::send_email, settings::structs::Settings, utils::MentionData, LemmyError};
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -54,14 +55,13 @@ where
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   comment: Comment,
-  user: &User_,
+  person: Person,
   post: Post,
   pool: &DbPool,
   do_send_email: bool,
 ) -> Result<Vec<i32>, LemmyError> {
-  let user2 = user.clone();
   let ids = blocking(pool, move |conn| {
-    do_send_local_notifs(conn, &mentions, &comment, &user2, &post, do_send_email)
+    do_send_local_notifs(conn, &mentions, &comment, &person, &post, do_send_email)
   })
   .await?;
 
@@ -72,7 +72,7 @@ fn do_send_local_notifs(
   conn: &PgConnection,
   mentions: &[MentionData],
   comment: &Comment,
-  user: &User_,
+  person: &Person,
   post: &Post,
   do_send_email: bool,
 ) -> Vec<i32> {
@@ -81,31 +81,31 @@ fn do_send_local_notifs(
   // Send the local mentions
   for mention in mentions
     .iter()
-    .filter(|m| m.is_local() && m.name.ne(&user.name))
+    .filter(|m| m.is_local() && m.name.ne(&person.name))
     .collect::<Vec<&MentionData>>()
   {
-    if let Ok(mention_user) = User_::read_from_name(&conn, &mention.name) {
+    if let Ok(mention_user_view) = LocalUserView::read_from_name(&conn, &mention.name) {
       // TODO
       // At some point, make it so you can't tag the parent creator either
       // This can cause two notifications, one for reply and the other for mention
-      recipient_ids.push(mention_user.id);
+      recipient_ids.push(mention_user_view.local_user.id);
 
-      let user_mention_form = UserMentionForm {
-        recipient_id: mention_user.id,
+      let user_mention_form = PersonMentionForm {
+        recipient_id: mention_user_view.person.id,
         comment_id: comment.id,
         read: None,
       };
 
       // Allow this to fail softly, since comment edits might re-update or replace it
       // Let the uniqueness handle this fail
-      let _ = UserMention::create(&conn, &user_mention_form);
+      PersonMention::create(&conn, &user_mention_form).ok();
 
-      // Send an email to those users that have notifications on
-      if do_send_email && mention_user.send_notifications_to_email {
+      // Send an email to those local users that have notifications on
+      if do_send_email {
         send_email_to_user(
-          mention_user,
+          &mention_user_view,
           "Mentioned by",
-          "User Mention",
+          "Person Mention",
           &comment.content,
         )
       }
@@ -116,12 +116,20 @@ fn do_send_local_notifs(
   match comment.parent_id {
     Some(parent_id) => {
       if let Ok(parent_comment) = Comment::read(&conn, parent_id) {
-        if parent_comment.creator_id != user.id {
-          if let Ok(parent_user) = User_::read(&conn, parent_comment.creator_id) {
-            recipient_ids.push(parent_user.id);
+        // Don't send a notif to yourself
+        if parent_comment.creator_id != person.id {
+          // Get the parent commenter local_user
+          if let Ok(parent_user_view) = LocalUserView::read_person(&conn, parent_comment.creator_id)
+          {
+            recipient_ids.push(parent_user_view.local_user.id);
 
-            if do_send_email && parent_user.send_notifications_to_email {
-              send_email_to_user(parent_user, "Reply from", "Comment Reply", &comment.content)
+            if do_send_email {
+              send_email_to_user(
+                &parent_user_view,
+                "Reply from",
+                "Comment Reply",
+                &comment.content,
+              )
             }
           }
         }
@@ -129,12 +137,17 @@ fn do_send_local_notifs(
     }
     // Its a post
     None => {
-      if post.creator_id != user.id {
-        if let Ok(parent_user) = User_::read(&conn, post.creator_id) {
-          recipient_ids.push(parent_user.id);
+      if post.creator_id != person.id {
+        if let Ok(parent_user_view) = LocalUserView::read_person(&conn, post.creator_id) {
+          recipient_ids.push(parent_user_view.local_user.id);
 
-          if do_send_email && parent_user.send_notifications_to_email {
-            send_email_to_user(parent_user, "Reply from", "Post Reply", &comment.content)
+          if do_send_email {
+            send_email_to_user(
+              &parent_user_view,
+              "Reply from",
+              "Post Reply",
+              &comment.content,
+            )
           }
         }
       }
@@ -143,26 +156,31 @@ fn do_send_local_notifs(
   recipient_ids
 }
 
-pub fn send_email_to_user(user: User_, subject_text: &str, body_text: &str, comment_content: &str) {
-  if user.banned {
+pub fn send_email_to_user(
+  local_user_view: &LocalUserView,
+  subject_text: &str,
+  body_text: &str,
+  comment_content: &str,
+) {
+  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 
-  if let Some(user_email) = user.email {
+  if let Some(user_email) = &local_user_view.local_user.email {
     let subject = &format!(
       "{} - {} {}",
       subject_text,
       Settings::get().hostname(),
-      user.name,
+      local_user_view.person.name,
     );
     let html = &format!(
       "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
       body_text,
-      user.name,
+      local_user_view.person.name,
       comment_content,
       Settings::get().get_protocol_and_hostname()
     );
-    match send_email(subject, &user_email, &user.name, html) {
+    match send_email(subject, &user_email, &local_user_view.person.name, html) {
       Ok(_o) => _o,
       Err(e) => error!("{}", e),
     };

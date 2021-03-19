@@ -31,9 +31,9 @@ use lemmy_db_schema::{
     activity::Activity,
     comment::Comment,
     community::Community,
+    person::Person as DbPerson,
     post::Post,
     private_message::PrivateMessage,
-    user::User_,
   },
   DbUrl,
 };
@@ -45,7 +45,7 @@ use url::{ParseError, Url};
 
 /// Activitystreams type for community
 type GroupExt = Ext2<ApActor<ApObject<Group>>, GroupExtension, PublicKeyExtension>;
-/// Activitystreams type for user
+/// Activitystreams type for person
 type PersonExt = Ext1<ApActor<ApObject<Person>>, PublicKeyExtension>;
 /// Activitystreams type for post
 type PageExt = Ext1<ApObject<Page>, PageExtension>;
@@ -121,27 +121,41 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
 /// and actors in Lemmy.
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
-  async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_create(&self, creator: &DbPerson, context: &LemmyContext)
+    -> Result<(), LemmyError>;
+  async fn send_update(&self, creator: &DbPerson, context: &LemmyContext)
+    -> Result<(), LemmyError>;
+  async fn send_delete(&self, creator: &DbPerson, context: &LemmyContext)
+    -> Result<(), LemmyError>;
   async fn send_undo_delete(
     &self,
-    creator: &User_,
+    creator: &DbPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
-  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_remove(&self, mod_: &DbPerson, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_remove(
+    &self,
+    mod_: &DbPerson,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]
 pub trait ApubLikeableType {
-  async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_like(&self, creator: &User_, context: &LemmyContext)
-    -> Result<(), LemmyError>;
+  async fn send_like(&self, creator: &DbPerson, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_dislike(
+    &self,
+    creator: &DbPerson,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_like(
+    &self,
+    creator: &DbPerson,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
 }
 
-/// Common methods provided by ActivityPub actors (community and user). Not all methods are
+/// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
 #[async_trait::async_trait(?Send)]
 pub trait ActorType {
@@ -209,7 +223,7 @@ pub trait ActorType {
 
 pub enum EndpointType {
   Community,
-  User,
+  Person,
   Post,
   Comment,
   PrivateMessage,
@@ -222,7 +236,7 @@ pub fn generate_apub_endpoint(
 ) -> Result<DbUrl, ParseError> {
   let point = match endpoint_type {
     EndpointType::Community => "c",
-    EndpointType::User => "u",
+    EndpointType::Person => "u",
     EndpointType::Post => "post",
     EndpointType::Comment => "comment",
     EndpointType::PrivateMessage => "private_message",
@@ -316,11 +330,11 @@ pub(crate) async fn find_post_or_comment_by_id(
 }
 
 pub(crate) enum Object {
-  Comment(Comment),
-  Post(Post),
-  Community(Community),
-  User(User_),
-  PrivateMessage(PrivateMessage),
+  Comment(Box<Comment>),
+  Post(Box<Post>),
+  Community(Box<Community>),
+  Person(Box<DbPerson>),
+  PrivateMessage(Box<PrivateMessage>),
 }
 
 pub(crate) async fn find_object_by_id(
@@ -330,18 +344,18 @@ pub(crate) async fn find_object_by_id(
   let ap_id = apub_id.clone();
   if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
     return Ok(match pc {
-      PostOrComment::Post(p) => Object::Post(*p),
-      PostOrComment::Comment(c) => Object::Comment(*c),
+      PostOrComment::Post(p) => Object::Post(Box::new(*p)),
+      PostOrComment::Comment(c) => Object::Comment(Box::new(*c)),
     });
   }
 
   let ap_id = apub_id.clone();
-  let user = blocking(context.pool(), move |conn| {
-    User_::read_from_apub_id(conn, &ap_id.into())
+  let person = blocking(context.pool(), move |conn| {
+    DbPerson::read_from_apub_id(conn, &ap_id.into())
   })
   .await?;
-  if let Ok(u) = user {
-    return Ok(Object::User(u));
+  if let Ok(u) = person {
+    return Ok(Object::Person(Box::new(u)));
   }
 
   let ap_id = apub_id.clone();
@@ -350,7 +364,7 @@ pub(crate) async fn find_object_by_id(
   })
   .await?;
   if let Ok(c) = community {
-    return Ok(Object::Community(c));
+    return Ok(Object::Community(Box::new(c)));
   }
 
   let private_message = blocking(context.pool(), move |conn| {
@@ -358,7 +372,7 @@ pub(crate) async fn find_object_by_id(
   })
   .await?;
   if let Ok(pm) = private_message {
-    return Ok(Object::PrivateMessage(pm));
+    return Ok(Object::PrivateMessage(Box::new(pm)));
   }
 
   Err(NotFound.into())

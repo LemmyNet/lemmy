@@ -1,12 +1,12 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, post, post_report, user_, user_alias_1, user_alias_2},
+  schema::{community, person, person_alias_1, person_alias_2, post, post_report},
   source::{
     community::{Community, CommunitySafe},
+    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
     post_report::PostReport,
-    user::{UserAlias1, UserAlias2, UserSafe, UserSafeAlias1, UserSafeAlias2, User_},
   },
 };
 use serde::Serialize;
@@ -16,18 +16,18 @@ pub struct PostReportView {
   pub post_report: PostReport,
   pub post: Post,
   pub community: CommunitySafe,
-  pub creator: UserSafe,
-  pub post_creator: UserSafeAlias1,
-  pub resolver: Option<UserSafeAlias2>,
+  pub creator: PersonSafe,
+  pub post_creator: PersonSafeAlias1,
+  pub resolver: Option<PersonSafeAlias2>,
 }
 
 type PostReportViewTuple = (
   PostReport,
   Post,
   CommunitySafe,
-  UserSafe,
-  UserSafeAlias1,
-  Option<UserSafeAlias2>,
+  PersonSafe,
+  PersonSafeAlias1,
+  Option<PersonSafeAlias2>,
 );
 
 impl PostReportView {
@@ -39,16 +39,18 @@ impl PostReportView {
       .find(report_id)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(user_::table.on(post_report::creator_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(post::creator_id.eq(user_alias_1::id)))
-      .left_join(user_alias_2::table.on(post_report::resolver_id.eq(user_alias_2::id.nullable())))
+      .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
+      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .left_join(
+        person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
+      )
       .select((
         post_report::all_columns,
         post::all_columns,
         Community::safe_columns_tuple(),
-        User_::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
-        UserAlias2::safe_columns_tuple().nullable(),
+        Person::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
+        PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .first::<PostReportViewTuple>(conn)?;
 
@@ -66,7 +68,7 @@ impl PostReportView {
   ///
   /// * `community_ids` - a Vec<i32> of community_ids to get a count for
   /// TODO this eq_any is a bad way to do this, would be better to join to communitymoderator
-  /// for a user id
+  /// for a person id
   pub fn get_report_count(conn: &PgConnection, community_ids: &[i32]) -> Result<i64, Error> {
     use diesel::dsl::*;
     post_report::table
@@ -124,16 +126,18 @@ impl<'a> PostReportQueryBuilder<'a> {
     let mut query = post_report::table
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(user_::table.on(post_report::creator_id.eq(user_::id)))
-      .inner_join(user_alias_1::table.on(post::creator_id.eq(user_alias_1::id)))
-      .left_join(user_alias_2::table.on(post_report::resolver_id.eq(user_alias_2::id.nullable())))
+      .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
+      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .left_join(
+        person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
+      )
       .select((
         post_report::all_columns,
         post::all_columns,
         Community::safe_columns_tuple(),
-        User_::safe_columns_tuple(),
-        UserAlias1::safe_columns_tuple(),
-        UserAlias2::safe_columns_tuple().nullable(),
+        Person::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
+        PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .into_boxed();
 

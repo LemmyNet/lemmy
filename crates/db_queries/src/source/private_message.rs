@@ -139,14 +139,8 @@ impl PrivateMessage_ for PrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    establish_unpooled_connection,
-    source::private_message::PrivateMessage_,
-    Crud,
-    ListingType,
-    SortType,
-  };
-  use lemmy_db_schema::source::{private_message::*, user::*};
+  use crate::{establish_unpooled_connection, source::private_message::PrivateMessage_, Crud};
+  use lemmy_db_schema::source::{person::*, private_message::*};
   use serial_test::serial;
 
   #[test]
@@ -154,28 +148,18 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let creator_form = UserForm {
+    let creator_form = PersonForm {
       name: "creator_pm".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -183,30 +167,20 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_creator = User_::create(&conn, &creator_form).unwrap();
+    let inserted_creator = Person::create(&conn, &creator_form).unwrap();
 
-    let recipient_form = UserForm {
+    let recipient_form = PersonForm {
       name: "recipient_pm".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -214,7 +188,7 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_recipient = User_::create(&conn, &recipient_form).unwrap();
+    let inserted_recipient = Person::create(&conn, &recipient_form).unwrap();
 
     let private_message_form = PrivateMessageForm {
       content: "A test private message".into(),
@@ -250,8 +224,8 @@ mod tests {
       PrivateMessage::update_deleted(&conn, inserted_private_message.id, true).unwrap();
     let marked_read_private_message =
       PrivateMessage::update_read(&conn, inserted_private_message.id, true).unwrap();
-    User_::delete(&conn, inserted_creator.id).unwrap();
-    User_::delete(&conn, inserted_recipient.id).unwrap();
+    Person::delete(&conn, inserted_creator.id).unwrap();
+    Person::delete(&conn, inserted_recipient.id).unwrap();
 
     assert_eq!(expected_private_message, read_private_message);
     assert_eq!(expected_private_message, updated_private_message);

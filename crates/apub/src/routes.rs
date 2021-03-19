@@ -8,10 +8,14 @@ use crate::{
       get_apub_community_outbox,
     },
     get_activity,
+    person::{get_apub_person_http, get_apub_person_inbox, get_apub_person_outbox},
     post::get_apub_post,
-    user::{get_apub_user_http, get_apub_user_inbox, get_apub_user_outbox},
   },
-  inbox::{community_inbox::community_inbox, shared_inbox::shared_inbox, user_inbox::user_inbox},
+  inbox::{
+    community_inbox::community_inbox,
+    person_inbox::person_inbox,
+    shared_inbox::shared_inbox,
+  },
   APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::*;
@@ -53,9 +57,12 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             "/c/{community_name}/inbox",
             web::get().to(get_apub_community_inbox),
           )
-          .route("/u/{user_name}", web::get().to(get_apub_user_http))
-          .route("/u/{user_name}/outbox", web::get().to(get_apub_user_outbox))
-          .route("/u/{user_name}/inbox", web::get().to(get_apub_user_inbox))
+          .route("/u/{user_name}", web::get().to(get_apub_person_http))
+          .route(
+            "/u/{user_name}/outbox",
+            web::get().to(get_apub_person_outbox),
+          )
+          .route("/u/{user_name}/inbox", web::get().to(get_apub_person_inbox))
           .route("/post/{post_id}", web::get().to(get_apub_post))
           .route("/comment/{comment_id}", web::get().to(get_apub_comment))
           .route("/activities/{type_}/{id}", web::get().to(get_activity)),
@@ -66,7 +73,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
           .wrap(digest_verifier)
           .guard(header_guard_content_type)
           .route("/c/{community_name}/inbox", web::post().to(community_inbox))
-          .route("/u/{user_name}/inbox", web::post().to(user_inbox))
+          .route("/u/{user_name}/inbox", web::post().to(person_inbox))
           .route("/inbox", web::post().to(shared_inbox)),
       );
   }

@@ -1,15 +1,15 @@
 use crate::{
   build_federated_instances,
-  get_user_from_jwt,
-  get_user_from_jwt_opt,
-  get_user_safe_settings_from_jwt,
-  get_user_safe_settings_from_jwt_opt,
+  get_local_user_settings_view_from_jwt,
+  get_local_user_settings_view_from_jwt_opt,
+  get_local_user_view_from_jwt,
+  get_local_user_view_from_jwt_opt,
   is_admin,
   Perform,
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_api_structs::{blocking, site::*, user::Register};
+use lemmy_api_structs::{blocking, person::Register, site::*};
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{
   diesel_option_overwrite_to_url,
@@ -32,7 +32,7 @@ use lemmy_db_views::{
 };
 use lemmy_db_views_actor::{
   community_view::CommunityQueryBuilder,
-  user_view::{UserQueryBuilder, UserViewSafe},
+  person_view::{PersonQueryBuilder, PersonViewSafe},
 };
 use lemmy_db_views_moderator::{
   mod_add_community_view::ModAddCommunityView,
@@ -74,36 +74,36 @@ impl Perform for GetModlog {
     let data: &GetModlog = &self;
 
     let community_id = data.community_id;
-    let mod_user_id = data.mod_user_id;
+    let mod_person_id = data.mod_person_id;
     let page = data.page;
     let limit = data.limit;
     let removed_posts = blocking(context.pool(), move |conn| {
-      ModRemovePostView::list(conn, community_id, mod_user_id, page, limit)
+      ModRemovePostView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
     let locked_posts = blocking(context.pool(), move |conn| {
-      ModLockPostView::list(conn, community_id, mod_user_id, page, limit)
+      ModLockPostView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
     let stickied_posts = blocking(context.pool(), move |conn| {
-      ModStickyPostView::list(conn, community_id, mod_user_id, page, limit)
+      ModStickyPostView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
     let removed_comments = blocking(context.pool(), move |conn| {
-      ModRemoveCommentView::list(conn, community_id, mod_user_id, page, limit)
+      ModRemoveCommentView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
     let banned_from_community = blocking(context.pool(), move |conn| {
-      ModBanFromCommunityView::list(conn, community_id, mod_user_id, page, limit)
+      ModBanFromCommunityView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
     let added_to_community = blocking(context.pool(), move |conn| {
-      ModAddCommunityView::list(conn, community_id, mod_user_id, page, limit)
+      ModAddCommunityView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
@@ -111,9 +111,9 @@ impl Perform for GetModlog {
     let (removed_communities, banned, added) = if data.community_id.is_none() {
       blocking(context.pool(), move |conn| {
         Ok((
-          ModRemoveCommunityView::list(conn, mod_user_id, page, limit)?,
-          ModBanView::list(conn, mod_user_id, page, limit)?,
-          ModAddView::list(conn, mod_user_id, page, limit)?,
+          ModRemoveCommunityView::list(conn, mod_person_id, page, limit)?,
+          ModBanView::list(conn, mod_person_id, page, limit)?,
+          ModAddView::list(conn, mod_person_id, page, limit)?,
         )) as Result<_, LemmyError>
       })
       .await??
@@ -152,20 +152,20 @@ impl Perform for CreateSite {
       return Err(ApiError::err("site_already_exists").into());
     };
 
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.description)?;
 
     // Make sure user is an admin
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
       description: data.description.to_owned(),
       icon: Some(data.icon.to_owned().map(|url| url.into())),
       banner: Some(data.banner.to_owned().map(|url| url.into())),
-      creator_id: user.id,
+      creator_id: local_user_view.person.id,
       enable_downvotes: data.enable_downvotes,
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
@@ -192,13 +192,13 @@ impl Perform for EditSite {
     websocket_id: Option<ConnectionId>,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &EditSite = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.description)?;
 
     // Make sure user is an admin
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
@@ -283,20 +283,20 @@ impl Perform for GetSite {
       }
     };
 
-    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
       let site_creator_id = site_view.creator.id;
       // TODO investigate why this is sometimes coming back null
       // Maybe user_.admin isn't being set to true?
-      if let Some(creator_index) = admins.iter().position(|r| r.user.id == site_creator_id) {
-        let creator_user = admins.remove(creator_index);
-        admins.insert(0, creator_user);
+      if let Some(creator_index) = admins.iter().position(|r| r.person.id == site_creator_id) {
+        let creator_person = admins.remove(creator_index);
+        admins.insert(0, creator_person);
       }
     }
 
-    let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
 
     let online = context
       .chat_server()
@@ -304,7 +304,7 @@ impl Perform for GetSite {
       .await
       .unwrap_or(1);
 
-    let my_user = get_user_safe_settings_from_jwt_opt(&data.auth, context.pool()).await?;
+    let my_user = get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?;
     let federated_instances = build_federated_instances(context.pool()).await?;
 
     Ok(GetSiteResponse {
@@ -335,8 +335,8 @@ impl Perform for Search {
       Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
     }
 
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
-    let user_id = user.map(|u| u.id);
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let person_id = local_user_view.map(|u| u.person.id);
 
     let type_ = SearchType::from_str(&data.type_)?;
 
@@ -361,7 +361,7 @@ impl Perform for Search {
             .show_nsfw(true)
             .community_id(community_id)
             .community_name(community_name)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -374,7 +374,7 @@ impl Perform for Search {
           CommentQueryBuilder::create(&conn)
             .sort(&sort)
             .search_term(q)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .page(page)
             .limit(limit)
             .list()
@@ -386,7 +386,7 @@ impl Perform for Search {
           CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .page(page)
             .limit(limit)
             .list()
@@ -395,7 +395,7 @@ impl Perform for Search {
       }
       SearchType::Users => {
         users = blocking(context.pool(), move |conn| {
-          UserQueryBuilder::create(conn)
+          PersonQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
@@ -411,7 +411,7 @@ impl Perform for Search {
             .show_nsfw(true)
             .community_id(community_id)
             .community_name(community_name)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -426,7 +426,7 @@ impl Perform for Search {
           CommentQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .page(page)
             .limit(limit)
             .list()
@@ -440,7 +440,7 @@ impl Perform for Search {
           CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .page(page)
             .limit(limit)
             .list()
@@ -451,7 +451,7 @@ impl Perform for Search {
         let sort = SortType::from_str(&data.sort)?;
 
         users = blocking(context.pool(), move |conn| {
-          UserQueryBuilder::create(conn)
+          PersonQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
@@ -465,7 +465,7 @@ impl Perform for Search {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .my_user_id(user_id)
+            .my_person_id(person_id)
             .community_id(community_id)
             .community_name(community_name)
             .url_search(q)
@@ -498,18 +498,18 @@ impl Perform for TransferSite {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = &self;
-    let user = get_user_safe_settings_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
     // Make sure user is the creator
-    if read_site.creator_id != user.id {
+    if read_site.creator_id != local_user_view.person.id {
       return Err(ApiError::err("not_an_admin").into());
     }
 
-    let new_creator_id = data.user_id;
+    let new_creator_id = data.person_id;
     let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
     if blocking(context.pool(), transfer_site).await?.is_err() {
       return Err(ApiError::err("couldnt_update_site").into());
@@ -517,8 +517,8 @@ impl Perform for TransferSite {
 
     // Mod tables
     let form = ModAddForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: local_user_view.person.id,
+      other_person_id: data.person_id,
       removed: Some(false),
     };
 
@@ -526,16 +526,18 @@ impl Perform for TransferSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.user.id == site_view.creator.id)
+      .position(|r| r.person.id == site_view.creator.id)
       .context(location_info!())?;
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
+    let creator_person = admins.remove(creator_index);
+    admins.insert(0, creator_person);
 
-    let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
     let federated_instances = build_federated_instances(context.pool()).await?;
+
+    let my_user = Some(get_local_user_settings_view_from_jwt(&data.auth, context.pool()).await?);
 
     Ok(GetSiteResponse {
       site_view: Some(site_view),
@@ -543,7 +545,7 @@ impl Perform for TransferSite {
       banned,
       online: 0,
       version: version::VERSION.to_string(),
-      my_user: Some(user),
+      my_user,
       federated_instances,
     })
   }
@@ -559,10 +561,10 @@ impl Perform for GetSiteConfig {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &GetSiteConfig = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     let config_hjson = Settings::read_config_file()?;
 
@@ -580,11 +582,10 @@ impl Perform for SaveSiteConfig {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &SaveSiteConfig = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    let user_id = user.id;
-    is_admin(context.pool(), user_id).await?;
+    is_admin(&local_user_view)?;
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = match Settings::save_config_file(&data.config_hjson) {

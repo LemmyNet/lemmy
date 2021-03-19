@@ -22,7 +22,7 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::{
   naive_now,
-  source::user::{UserForm, User_},
+  source::person::{Person as DbPerson, PersonForm},
 };
 use lemmy_utils::{
   location_info,
@@ -34,7 +34,7 @@ use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
-impl ToApub for User_ {
+impl ToApub for DbPerson {
   type ApubType = PersonExt;
 
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
@@ -85,7 +85,7 @@ impl ToApub for User_ {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for User_ {
+impl FromApub for DbPerson {
   type ApubType = PersonExt;
 
   async fn from_apub(
@@ -93,26 +93,29 @@ impl FromApub for User_ {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
-  ) -> Result<User_, LemmyError> {
-    let user_id = person.id_unchecked().context(location_info!())?.to_owned();
-    let domain = user_id.domain().context(location_info!())?;
+  ) -> Result<DbPerson, LemmyError> {
+    let person_id = person.id_unchecked().context(location_info!())?.to_owned();
+    let domain = person_id.domain().context(location_info!())?;
     if domain == Settings::get().hostname() {
-      let user = blocking(context.pool(), move |conn| {
-        User_::read_from_apub_id(conn, &user_id.into())
+      let person = blocking(context.pool(), move |conn| {
+        DbPerson::read_from_apub_id(conn, &person_id.into())
       })
       .await??;
-      Ok(user)
+      Ok(person)
     } else {
-      let user_form =
-        UserForm::from_apub(person, context, expected_domain, request_counter).await?;
-      let user = blocking(context.pool(), move |conn| User_::upsert(conn, &user_form)).await??;
-      Ok(user)
+      let person_form =
+        PersonForm::from_apub(person, context, expected_domain, request_counter).await?;
+      let person = blocking(context.pool(), move |conn| {
+        DbPerson::upsert(conn, &person_form)
+      })
+      .await??;
+      Ok(person)
     }
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApubToForm<PersonExt> for UserForm {
+impl FromApubToForm<PersonExt> for PersonForm {
   async fn from_apub(
     person: &PersonExt,
     _context: &LemmyContext,
@@ -167,30 +170,20 @@ impl FromApubToForm<PersonExt> for UserForm {
     check_slurs_opt(&preferred_username)?;
     check_slurs_opt(&bio)?;
 
-    Ok(UserForm {
+    Ok(PersonForm {
       name,
       preferred_username: Some(preferred_username),
-      password_encrypted: "".to_string(),
-      admin: false,
       banned: None,
-      email: None,
+      deleted: None,
       avatar: avatar.map(|o| o.map(|i| i.into())),
       banner: banner.map(|o| o.map(|i| i.into())),
       published: person.inner.published().map(|u| u.to_owned().naive_local()),
       updated: person.updated().map(|u| u.to_owned().naive_local()),
-      show_nsfw: false,
-      theme: "".to_string(),
-      default_sort_type: 0,
-      default_listing_type: 0,
-      lang: "".to_string(),
-      show_avatars: false,
-      send_notifications_to_email: false,
-      matrix_user_id: None,
       actor_id: Some(check_object_domain(person, expected_domain)?),
       bio: Some(bio),
-      local: false,
+      local: Some(false),
       private_key: None,
-      public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),
+      public_key: Some(Some(person.ext_one.public_key.to_owned().public_key_pem)),
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(person.inner.inbox()?.to_owned().into()),
       shared_inbox_url: Some(shared_inbox),

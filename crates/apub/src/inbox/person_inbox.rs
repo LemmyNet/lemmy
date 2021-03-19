@@ -25,7 +25,7 @@ use crate::{
     inbox_verify_http_signature,
     is_activity_already_known,
     is_addressed_to_community_followers,
-    is_addressed_to_local_user,
+    is_addressed_to_local_person,
     is_addressed_to_public,
     receive_for_community::{
       receive_create_for_community,
@@ -49,11 +49,11 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::{source::user::User, ApubObject, Followable};
+use lemmy_db_queries::{source::person::Person_, ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
+  person::Person,
   private_message::PrivateMessage,
-  user::User_,
 };
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -63,10 +63,10 @@ use std::fmt::Debug;
 use strum_macros::EnumString;
 use url::Url;
 
-/// Allowed activities for user inbox.
+/// Allowed activities for person inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-pub enum UserValidTypes {
+pub enum PersonValidTypes {
   Accept,   // community accepted our follow request
   Create,   // create private message
   Update,   // edit private message
@@ -76,12 +76,12 @@ pub enum UserValidTypes {
   Announce, // post, comment or vote in community
 }
 
-pub type UserAcceptedActivities = ActorAndObject<UserValidTypes>;
+pub type PersonAcceptedActivities = ActorAndObject<PersonValidTypes>;
 
-/// Handler for all incoming activities to user inboxes.
-pub async fn user_inbox(
+/// Handler for all incoming activities to person inboxes.
+pub async fn person_inbox(
   request: HttpRequest,
-  input: web::Json<UserAcceptedActivities>,
+  input: web::Json<PersonAcceptedActivities>,
   path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
@@ -98,29 +98,29 @@ pub async fn user_inbox(
 
   // Check if the activity is actually meant for us
   let username = path.into_inner();
-  let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_name(&conn, &username)
+  let person = blocking(&context.pool(), move |conn| {
+    Person::find_by_name(&conn, &username)
   })
   .await??;
   let to_and_cc = get_activity_to_and_cc(&activity);
   // TODO: we should also accept activities that are sent to community followers
-  if !to_and_cc.contains(&&user.actor_id()) {
-    return Err(anyhow!("Activity delivered to wrong user").into());
+  if !to_and_cc.contains(&&person.actor_id()) {
+    return Err(anyhow!("Activity delivered to wrong person").into());
   }
 
   assert_activity_not_local(&activity)?;
   insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
 
   debug!(
-    "User {} received activity {:?} from {}",
-    user.name,
+    "Person {} received activity {:?} from {}",
+    person.name,
     &activity.id_unchecked(),
     &actor.actor_id()
   );
 
-  user_receive_message(
+  person_receive_message(
     activity.clone(),
-    Some(user.clone()),
+    Some(person.clone()),
     actor.as_ref(),
     &context,
     request_counter,
@@ -129,43 +129,43 @@ pub async fn user_inbox(
 }
 
 /// Receives Accept/Follow, Announce, private messages and community (undo) remove, (undo) delete
-pub(crate) async fn user_receive_message(
-  activity: UserAcceptedActivities,
-  to_user: Option<User_>,
+pub(crate) async fn person_receive_message(
+  activity: PersonAcceptedActivities,
+  to_person: Option<Person>,
   actor: &dyn ActorType,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  is_for_user_inbox(context, &activity).await?;
+  is_for_person_inbox(context, &activity).await?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let actor_url = actor.actor_id();
   match kind {
-    UserValidTypes::Accept => {
+    PersonValidTypes::Accept => {
       receive_accept(
         &context,
         any_base,
         actor,
-        to_user.expect("user provided"),
+        to_person.expect("person provided"),
         request_counter,
       )
       .await?;
     }
-    UserValidTypes::Announce => {
+    PersonValidTypes::Announce => {
       receive_announce(&context, any_base, actor, request_counter).await?
     }
-    UserValidTypes::Create => {
+    PersonValidTypes::Create => {
       receive_create(&context, any_base, actor_url, request_counter).await?
     }
-    UserValidTypes::Update => {
+    PersonValidTypes::Update => {
       receive_update(&context, any_base, actor_url, request_counter).await?
     }
-    UserValidTypes::Delete => {
+    PersonValidTypes::Delete => {
       receive_delete(context, any_base, &actor_url, request_counter).await?
     }
-    UserValidTypes::Undo => receive_undo(context, any_base, &actor_url, request_counter).await?,
-    UserValidTypes::Remove => receive_remove_community(&context, any_base, &actor_url).await?,
+    PersonValidTypes::Undo => receive_undo(context, any_base, &actor_url, request_counter).await?,
+    PersonValidTypes::Remove => receive_remove_community(&context, any_base, &actor_url).await?,
   };
 
   // TODO: would be logical to move websocket notification code here
@@ -173,16 +173,16 @@ pub(crate) async fn user_receive_message(
   Ok(HttpResponse::Ok().finish())
 }
 
-/// Returns true if the activity is addressed directly to one or more local users, or if it is
-/// addressed to the followers collection of a remote community, and at least one local user follows
+/// Returns true if the activity is addressed directly to one or more local persons, or if it is
+/// addressed to the followers collection of a remote community, and at least one local person follows
 /// it.
-async fn is_for_user_inbox(
+async fn is_for_person_inbox(
   context: &LemmyContext,
-  activity: &UserAcceptedActivities,
+  activity: &PersonAcceptedActivities,
 ) -> Result<(), LemmyError> {
   let to_and_cc = get_activity_to_and_cc(activity);
-  // Check if it is addressed directly to any local user
-  if is_addressed_to_local_user(&to_and_cc, context.pool()).await? {
+  // Check if it is addressed directly to any local person
+  if is_addressed_to_local_person(&to_and_cc, context.pool()).await? {
     return Ok(());
   }
 
@@ -205,7 +205,7 @@ async fn is_for_user_inbox(
     }
   }
 
-  Err(anyhow!("Not addressed for any local user").into())
+  Err(anyhow!("Not addressed for any local person").into())
 }
 
 /// Handle accepted follows.
@@ -213,7 +213,7 @@ async fn receive_accept(
   context: &LemmyContext,
   activity: AnyBase,
   actor: &dyn ActorType,
-  user: User_,
+  person: Person,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let accept = Accept::from_any_base(activity)?.context(location_info!())?;
@@ -221,7 +221,7 @@ async fn receive_accept(
 
   let object = accept.object().to_owned().one().context(location_info!())?;
   let follow = Follow::from_any_base(object)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &user.actor_id(), false)?;
+  verify_activity_domains_valid(&follow, &person.actor_id(), false)?;
 
   let community_uri = accept
     .actor()?
@@ -233,10 +233,10 @@ async fn receive_accept(
     get_or_fetch_and_upsert_community(&community_uri, context, request_counter).await?;
 
   let community_id = community.id;
-  let user_id = user.id;
+  let person_id = person.id;
   // This will throw an error if no follow was requested
   blocking(&context.pool(), move |conn| {
-    CommunityFollower::follow_accepted(conn, community_id, user_id)
+    CommunityFollower::follow_accepted(conn, community_id, person_id)
   })
   .await??;
 

@@ -1,8 +1,8 @@
 use crate::{
   captcha_espeak_wav_base64,
   collect_moderated_communities,
-  get_user_from_jwt,
-  get_user_from_jwt_opt,
+  get_local_user_view_from_jwt,
+  get_local_user_view_from_jwt_opt,
   is_admin,
   password_length_check,
   Perform,
@@ -12,7 +12,7 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_api_structs::{blocking, send_email_to_user, user::*};
+use lemmy_api_structs::{blocking, person::*, send_email_to_user};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -27,12 +27,13 @@ use lemmy_db_queries::{
   source::{
     comment::Comment_,
     community::Community_,
+    local_user::LocalUser_,
     password_reset_request::PasswordResetRequest_,
+    person::Person_,
+    person_mention::PersonMention_,
     post::Post_,
     private_message::PrivateMessage_,
     site::Site_,
-    user::User,
-    user_mention::UserMention_,
   },
   Crud,
   Followable,
@@ -45,18 +46,20 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::*,
+    local_user::{LocalUser, LocalUserForm},
     moderator::*,
     password_reset_request::*,
+    person::*,
+    person_mention::*,
     post::Post,
     private_message::*,
     site::*,
-    user::*,
-    user_mention::*,
   },
 };
 use lemmy_db_views::{
   comment_report_view::CommentReportView,
   comment_view::CommentQueryBuilder,
+  local_user_view::LocalUserView,
   post_report_view::PostReportView,
   post_view::PostQueryBuilder,
   private_message_view::{PrivateMessageQueryBuilder, PrivateMessageView},
@@ -64,8 +67,8 @@ use lemmy_db_views::{
 use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
-  user_mention_view::{UserMentionQueryBuilder, UserMentionView},
-  user_view::UserViewSafe,
+  person_mention_view::{PersonMentionQueryBuilder, PersonMentionView},
+  person_view::PersonViewSafe,
 };
 use lemmy_utils::{
   apub::generate_actor_keypair,
@@ -105,24 +108,28 @@ impl Perform for Login {
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let user = match blocking(context.pool(), move |conn| {
-      User_::find_by_email_or_username(conn, &username_or_email)
+    let local_user_view = match blocking(context.pool(), move |conn| {
+      LocalUserView::find_by_email_or_name(conn, &username_or_email)
     })
     .await?
     {
-      Ok(user) => user,
+      Ok(uv) => uv,
       Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
     };
 
     // Verify the password
-    let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
+    let valid: bool = verify(
+      &data.password,
+      &local_user_view.local_user.password_encrypted,
+    )
+    .unwrap_or(false);
     if !valid {
       return Err(ApiError::err("password_incorrect").into());
     }
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(local_user_view.local_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -154,7 +161,7 @@ impl Perform for Register {
 
     // Check if there are admins. False if admins exist
     let no_admins = blocking(context.pool(), move |conn| {
-      UserViewSafe::admins(conn).map(|a| a.is_empty())
+      PersonViewSafe::admins(conn).map(|a| a.is_empty())
     })
     .await??;
 
@@ -180,57 +187,82 @@ impl Perform for Register {
 
     check_slurs(&data.username)?;
 
-    let user_keypair = generate_actor_keypair()?;
+    let actor_keypair = generate_actor_keypair()?;
     if !is_valid_username(&data.username) {
       return Err(ApiError::err("invalid_username").into());
     }
-    let user_actor_id = generate_apub_endpoint(EndpointType::User, &data.username)?;
+    let actor_id = generate_apub_endpoint(EndpointType::Person, &data.username)?;
 
-    // Register the new user
-    let user_form = UserForm {
+    // We have to create both a person, and local_user
+
+    // Register the new person
+    let person_form = PersonForm {
       name: data.username.to_owned(),
-      email: Some(data.email.to_owned()),
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      password_encrypted: data.password.to_owned(),
       preferred_username: None,
       published: None,
       updated: None,
-      admin: no_admins,
-      banned: Some(false),
-      show_nsfw: data.show_nsfw,
-      theme: "browser".into(),
-      default_sort_type: SortType::Active as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
-      actor_id: Some(user_actor_id.clone()),
+      banned: None,
+      deleted: None,
+      actor_id: Some(actor_id.clone()),
       bio: None,
-      local: true,
-      private_key: Some(user_keypair.private_key),
-      public_key: Some(user_keypair.public_key),
+      local: Some(true),
+      private_key: Some(Some(actor_keypair.private_key)),
+      public_key: Some(Some(actor_keypair.public_key)),
       last_refreshed_at: None,
-      inbox_url: Some(generate_inbox_url(&user_actor_id)?),
-      shared_inbox_url: Some(Some(generate_shared_inbox_url(&user_actor_id)?)),
+      inbox_url: Some(generate_inbox_url(&actor_id)?),
+      shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
     };
 
-    // Create the user
-    let inserted_user = match blocking(context.pool(), move |conn| {
-      User_::register(conn, &user_form)
+    // insert the person
+    let inserted_person = match blocking(context.pool(), move |conn| {
+      Person::create(conn, &person_form)
     })
     .await?
     {
-      Ok(user) => user,
+      Ok(u) => u,
+      Err(_) => {
+        return Err(ApiError::err("user_already_exists").into());
+      }
+    };
+
+    // Create the local user
+    let local_user_form = LocalUserForm {
+      person_id: inserted_person.id,
+      email: Some(data.email.to_owned()),
+      matrix_user_id: None,
+      password_encrypted: data.password.to_owned(),
+      admin: Some(no_admins),
+      show_nsfw: Some(data.show_nsfw),
+      theme: Some("browser".into()),
+      default_sort_type: Some(SortType::Active as i16),
+      default_listing_type: Some(ListingType::Subscribed as i16),
+      lang: Some("browser".into()),
+      show_avatars: Some(true),
+      send_notifications_to_email: Some(false),
+    };
+
+    let inserted_local_user = match blocking(context.pool(), move |conn| {
+      LocalUser::register(conn, &local_user_form)
+    })
+    .await?
+    {
+      Ok(lu) => lu,
       Err(e) => {
         let err_type = if e.to_string()
-          == "duplicate key value violates unique constraint \"user__email_key\""
+          == "duplicate key value violates unique constraint \"local_user_email_key\""
         {
           "email_already_exists"
         } else {
           "user_already_exists"
         };
+
+        // If the local user creation errored, then delete that person
+        blocking(context.pool(), move |conn| {
+          Person::delete(&conn, inserted_person.id)
+        })
+        .await??;
 
         return Err(ApiError::err(err_type).into());
       }
@@ -250,7 +282,7 @@ impl Perform for Register {
             title: "The Default Community".to_string(),
             description: Some("The Default Community".to_string()),
             nsfw: false,
-            creator_id: inserted_user.id,
+            creator_id: inserted_person.id,
             removed: None,
             deleted: None,
             updated: None,
@@ -276,7 +308,7 @@ impl Perform for Register {
     // Sign them up for main community no matter what
     let community_follower_form = CommunityFollowerForm {
       community_id: main_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       pending: false,
     };
 
@@ -289,7 +321,7 @@ impl Perform for Register {
     if no_admins {
       let community_moderator_form = CommunityModeratorForm {
         community_id: main_community.id,
-        user_id: inserted_user.id,
+        person_id: inserted_person.id,
       };
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -300,7 +332,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(inserted_local_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -362,7 +394,7 @@ impl Perform for SaveUserSettings {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -383,7 +415,8 @@ impl Perform for SaveUserSettings {
       }
     }
 
-    let user_id = user.id;
+    let local_user_id = local_user_view.local_user.id;
+    let person_id = local_user_view.person.id;
     let password_encrypted = match &data.new_password {
       Some(new_password) => {
         match &data.new_password_verify {
@@ -398,13 +431,15 @@ impl Perform for SaveUserSettings {
             // Check the old password
             match &data.old_password {
               Some(old_password) => {
-                let valid: bool = verify(old_password, &user.password_encrypted).unwrap_or(false);
+                let valid: bool =
+                  verify(old_password, &local_user_view.local_user.password_encrypted)
+                    .unwrap_or(false);
                 if !valid {
                   return Err(ApiError::err("password_incorrect").into());
                 }
                 let new_password = new_password.to_owned();
                 let user = blocking(context.pool(), move |conn| {
-                  User_::update_password(conn, user_id, &new_password)
+                  LocalUser::update_password(conn, local_user_id, &new_password)
                 })
                 .await??;
                 user.password_encrypted
@@ -415,25 +450,48 @@ impl Perform for SaveUserSettings {
           None => return Err(ApiError::err("passwords_dont_match").into()),
         }
       }
-      None => user.password_encrypted,
+      None => local_user_view.local_user.password_encrypted,
     };
 
     let default_listing_type = data.default_listing_type;
     let default_sort_type = data.default_sort_type;
 
-    let user_form = UserForm {
-      name: user.name,
-      email,
-      matrix_user_id,
+    let person_form = PersonForm {
+      name: local_user_view.person.name,
       avatar,
       banner,
       inbox_url: None,
-      password_encrypted,
       preferred_username,
-      published: Some(user.published),
+      published: None,
       updated: Some(naive_now()),
-      admin: user.admin,
-      banned: Some(user.banned),
+      banned: None,
+      deleted: None,
+      actor_id: None,
+      bio,
+      local: None,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+      shared_inbox_url: None,
+    };
+
+    let person_res = blocking(context.pool(), move |conn| {
+      Person::update(conn, person_id, &person_form)
+    })
+    .await?;
+    let _updated_person: Person = match person_res {
+      Ok(p) => p,
+      Err(_) => {
+        return Err(ApiError::err("user_already_exists").into());
+      }
+    };
+
+    let local_user_form = LocalUserForm {
+      person_id,
+      email,
+      matrix_user_id,
+      password_encrypted,
+      admin: None,
       show_nsfw: data.show_nsfw,
       theme: data.theme.to_owned(),
       default_sort_type,
@@ -441,24 +499,17 @@ impl Perform for SaveUserSettings {
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
       send_notifications_to_email: data.send_notifications_to_email,
-      actor_id: Some(user.actor_id),
-      bio,
-      local: user.local,
-      private_key: user.private_key,
-      public_key: user.public_key,
-      last_refreshed_at: None,
-      shared_inbox_url: None,
     };
 
-    let res = blocking(context.pool(), move |conn| {
-      User_::update(conn, user_id, &user_form)
+    let local_user_res = blocking(context.pool(), move |conn| {
+      LocalUser::update(conn, local_user_id, &local_user_form)
     })
     .await?;
-    let updated_user: User_ = match res {
-      Ok(user) => user,
+    let updated_local_user = match local_user_res {
+      Ok(u) => u,
       Err(e) => {
         let err_type = if e.to_string()
-          == "duplicate key value violates unique constraint \"user__email_key\""
+          == "duplicate key value violates unique constraint \"local_user_email_key\""
         {
           "email_already_exists"
         } else {
@@ -471,25 +522,25 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id, Settings::get().hostname())?,
     })
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for GetUserDetails {
-  type Response = GetUserDetailsResponse;
+impl Perform for GetPersonDetails {
+  type Response = GetPersonDetailsResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetUserDetailsResponse, LemmyError> {
-    let data: &GetUserDetails = &self;
-    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
+  ) -> Result<GetPersonDetailsResponse, LemmyError> {
+    let data: &GetPersonDetails = &self;
+    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let show_nsfw = match &user {
-      Some(user) => user.show_nsfw,
+    let show_nsfw = match &local_user_view {
+      Some(uv) => uv.local_user.show_nsfw,
       None => false,
     };
 
@@ -499,26 +550,26 @@ impl Perform for GetUserDetails {
       .username
       .to_owned()
       .unwrap_or_else(|| "admin".to_string());
-    let user_details_id = match data.user_id {
+    let person_details_id = match data.person_id {
       Some(id) => id,
       None => {
-        let user = blocking(context.pool(), move |conn| {
-          User_::read_from_name(conn, &username)
+        let person = blocking(context.pool(), move |conn| {
+          Person::find_by_name(conn, &username)
         })
         .await?;
-        match user {
-          Ok(user) => user.id,
+        match person {
+          Ok(p) => p.id,
           Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
         }
       }
     };
 
-    let user_id = user.map(|u| u.id);
+    let person_id = local_user_view.map(|uv| uv.person.id);
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let user_view = blocking(context.pool(), move |conn| {
-      UserViewSafe::read(conn, user_details_id)
+    let person_view = blocking(context.pool(), move |conn| {
+      PersonViewSafe::read(conn, person_details_id)
     })
     .await??;
 
@@ -533,12 +584,12 @@ impl Perform for GetUserDetails {
         .show_nsfw(show_nsfw)
         .saved_only(saved_only)
         .community_id(community_id)
-        .my_user_id(user_id)
+        .my_person_id(person_id)
         .page(page)
         .limit(limit);
 
       let mut comments_query = CommentQueryBuilder::create(conn)
-        .my_user_id(user_id)
+        .my_person_id(person_id)
         .sort(&sort)
         .saved_only(saved_only)
         .page(page)
@@ -547,8 +598,8 @@ impl Perform for GetUserDetails {
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
       if !saved_only {
-        posts_query = posts_query.creator_id(user_details_id);
-        comments_query = comments_query.creator_id(user_details_id);
+        posts_query = posts_query.creator_id(person_details_id);
+        comments_query = comments_query.creator_id(person_details_id);
       }
 
       let posts = posts_query.list()?;
@@ -559,22 +610,22 @@ impl Perform for GetUserDetails {
     .await??;
 
     let mut follows = vec![];
-    if let Some(uid) = user_id {
-      if uid == user_details_id {
+    if let Some(pid) = person_id {
+      if pid == person_details_id {
         follows = blocking(context.pool(), move |conn| {
-          CommunityFollowerView::for_user(conn, user_details_id)
+          CommunityFollowerView::for_person(conn, person_details_id)
         })
         .await??;
       }
     };
     let moderates = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_user(conn, user_details_id)
+      CommunityModeratorView::for_person(conn, person_details_id)
     })
     .await??;
 
     // Return the jwt
-    Ok(GetUserDetailsResponse {
-      user_view,
+    Ok(GetPersonDetailsResponse {
+      person_view,
       follows,
       moderates,
       comments,
@@ -593,22 +644,28 @@ impl Perform for AddAdmin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddAdminResponse, LemmyError> {
     let data: &AddAdmin = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Make sure user is an admin
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     let added = data.added;
-    let added_user_id = data.user_id;
-    let add_admin = move |conn: &'_ _| User_::add_admin(conn, added_user_id, added);
-    if blocking(context.pool(), add_admin).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_user").into());
-    }
+    let added_person_id = data.person_id;
+    let added_admin = match blocking(context.pool(), move |conn| {
+      LocalUser::add_admin(conn, added_person_id, added)
+    })
+    .await?
+    {
+      Ok(a) => a,
+      Err(_) => {
+        return Err(ApiError::err("couldnt_update_user").into());
+      }
+    };
 
     // Mod tables
     let form = ModAddForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: local_user_view.person.id,
+      other_person_id: added_admin.person_id,
       removed: Some(!data.added),
     };
 
@@ -619,13 +676,13 @@ impl Perform for AddAdmin {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.user.id == site_creator_id)
+      .position(|r| r.person.id == site_creator_id)
       .context(location_info!())?;
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
+    let creator_person = admins.remove(creator_index);
+    admins.insert(0, creator_person);
 
     let res = AddAdminResponse { admins };
 
@@ -640,24 +697,24 @@ impl Perform for AddAdmin {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for BanUser {
-  type Response = BanUserResponse;
+impl Perform for BanPerson {
+  type Response = BanPersonResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
-  ) -> Result<BanUserResponse, LemmyError> {
-    let data: &BanUser = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+  ) -> Result<BanPersonResponse, LemmyError> {
+    let data: &BanPerson = &self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Make sure user is an admin
-    is_admin(context.pool(), user.id).await?;
+    is_admin(&local_user_view)?;
 
     let ban = data.ban;
-    let banned_user_id = data.user_id;
-    let ban_user = move |conn: &'_ _| User_::ban_user(conn, banned_user_id, ban);
-    if blocking(context.pool(), ban_user).await?.is_err() {
+    let banned_person_id = data.person_id;
+    let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban);
+    if blocking(context.pool(), ban_person).await?.is_err() {
       return Err(ApiError::err("couldnt_update_user").into());
     }
 
@@ -665,19 +722,19 @@ impl Perform for BanUser {
     if data.remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_user_id, None, true)
+        Post::update_removed_for_creator(conn, banned_person_id, None, true)
       })
       .await??;
 
       // Communities
       blocking(context.pool(), move |conn: &'_ _| {
-        Community::update_removed_for_creator(conn, banned_user_id, true)
+        Community::update_removed_for_creator(conn, banned_person_id, true)
       })
       .await??;
 
       // Comments
       blocking(context.pool(), move |conn: &'_ _| {
-        Comment::update_removed_for_creator(conn, banned_user_id, true)
+        Comment::update_removed_for_creator(conn, banned_person_id, true)
       })
       .await??;
     }
@@ -689,8 +746,8 @@ impl Perform for BanUser {
     };
 
     let form = ModBanForm {
-      mod_user_id: user.id,
-      other_user_id: data.user_id,
+      mod_person_id: local_user_view.person.id,
+      other_person_id: data.person_id,
       reason: data.reason.to_owned(),
       banned: Some(data.ban),
       expires,
@@ -698,19 +755,19 @@ impl Perform for BanUser {
 
     blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
 
-    let user_id = data.user_id;
-    let user_view = blocking(context.pool(), move |conn| {
-      UserViewSafe::read(conn, user_id)
+    let person_id = data.person_id;
+    let person_view = blocking(context.pool(), move |conn| {
+      PersonViewSafe::read(conn, person_id)
     })
     .await??;
 
-    let res = BanUserResponse {
-      user_view,
+    let res = BanPersonResponse {
+      person_view,
       banned: data.ban,
     };
 
     context.chat_server().do_send(SendAllMessage {
-      op: UserOperation::BanUser,
+      op: UserOperation::BanPerson,
       response: res.clone(),
       websocket_id,
     });
@@ -729,20 +786,20 @@ impl Perform for GetReplies {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &GetReplies = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let sort = SortType::from_str(&data.sort)?;
 
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let replies = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .sort(&sort)
         .unread_only(unread_only)
-        .recipient_id(user_id)
-        .my_user_id(user_id)
+        .recipient_id(person_id)
+        .my_person_id(person_id)
         .page(page)
         .limit(limit)
         .list()
@@ -754,27 +811,27 @@ impl Perform for GetReplies {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for GetUserMentions {
-  type Response = GetUserMentionsResponse;
+impl Perform for GetPersonMentions {
+  type Response = GetPersonMentionsResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetUserMentionsResponse, LemmyError> {
-    let data: &GetUserMentions = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+  ) -> Result<GetPersonMentionsResponse, LemmyError> {
+    let data: &GetPersonMentions = &self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let sort = SortType::from_str(&data.sort)?;
 
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let mentions = blocking(context.pool(), move |conn| {
-      UserMentionQueryBuilder::create(conn)
-        .recipient_id(user_id)
-        .my_user_id(user_id)
+      PersonMentionQueryBuilder::create(conn)
+        .recipient_id(person_id)
+        .my_person_id(person_id)
         .sort(&sort)
         .unread_only(unread_only)
         .page(page)
@@ -783,47 +840,50 @@ impl Perform for GetUserMentions {
     })
     .await??;
 
-    Ok(GetUserMentionsResponse { mentions })
+    Ok(GetPersonMentionsResponse { mentions })
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for MarkUserMentionAsRead {
-  type Response = UserMentionResponse;
+impl Perform for MarkPersonMentionAsRead {
+  type Response = PersonMentionResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<UserMentionResponse, LemmyError> {
-    let data: &MarkUserMentionAsRead = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+  ) -> Result<PersonMentionResponse, LemmyError> {
+    let data: &MarkPersonMentionAsRead = &self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_mention_id = data.user_mention_id;
-    let read_user_mention = blocking(context.pool(), move |conn| {
-      UserMention::read(conn, user_mention_id)
+    let person_mention_id = data.person_mention_id;
+    let read_person_mention = blocking(context.pool(), move |conn| {
+      PersonMention::read(conn, person_mention_id)
     })
     .await??;
 
-    if user.id != read_user_mention.recipient_id {
+    if local_user_view.person.id != read_person_mention.recipient_id {
       return Err(ApiError::err("couldnt_update_comment").into());
     }
 
-    let user_mention_id = read_user_mention.id;
+    let person_mention_id = read_person_mention.id;
     let read = data.read;
-    let update_mention = move |conn: &'_ _| UserMention::update_read(conn, user_mention_id, read);
+    let update_mention =
+      move |conn: &'_ _| PersonMention::update_read(conn, person_mention_id, read);
     if blocking(context.pool(), update_mention).await?.is_err() {
       return Err(ApiError::err("couldnt_update_comment").into());
     };
 
-    let user_mention_id = read_user_mention.id;
-    let user_id = user.id;
-    let user_mention_view = blocking(context.pool(), move |conn| {
-      UserMentionView::read(conn, user_mention_id, Some(user_id))
+    let person_mention_id = read_person_mention.id;
+    let person_id = local_user_view.person.id;
+    let person_mention_view = blocking(context.pool(), move |conn| {
+      PersonMentionView::read(conn, person_mention_id, Some(person_id))
     })
     .await??;
 
-    Ok(UserMentionResponse { user_mention_view })
+    Ok(PersonMentionResponse {
+      person_mention_view,
+    })
   }
 }
 
@@ -837,13 +897,13 @@ impl Perform for MarkAllAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &MarkAllAsRead = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let replies = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
-        .my_user_id(user_id)
-        .recipient_id(user_id)
+        .my_person_id(person_id)
+        .recipient_id(person_id)
         .unread_only(true)
         .page(1)
         .limit(999)
@@ -863,8 +923,9 @@ impl Perform for MarkAllAsRead {
     }
 
     // Mark all user mentions as read
-    let update_user_mentions = move |conn: &'_ _| UserMention::mark_all_as_read(conn, user_id);
-    if blocking(context.pool(), update_user_mentions)
+    let update_person_mentions =
+      move |conn: &'_ _| PersonMention::mark_all_as_read(conn, person_id);
+    if blocking(context.pool(), update_person_mentions)
       .await?
       .is_err()
     {
@@ -872,7 +933,7 @@ impl Perform for MarkAllAsRead {
     }
 
     // Mark all private_messages as read
-    let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, user_id);
+    let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, person_id);
     if blocking(context.pool(), update_pm).await?.is_err() {
       return Err(ApiError::err("couldnt_update_private_message").into());
     }
@@ -891,29 +952,33 @@ impl Perform for DeleteAccount {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &DeleteAccount = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Verify the password
-    let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
+    let valid: bool = verify(
+      &data.password,
+      &local_user_view.local_user.password_encrypted,
+    )
+    .unwrap_or(false);
     if !valid {
       return Err(ApiError::err("password_incorrect").into());
     }
 
     // Comments
-    let user_id = user.id;
-    let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, user_id);
+    let person_id = local_user_view.person.id;
+    let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
     if blocking(context.pool(), permadelete).await?.is_err() {
       return Err(ApiError::err("couldnt_update_comment").into());
     }
 
     // Posts
-    let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, user_id);
+    let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
     if blocking(context.pool(), permadelete).await?.is_err() {
       return Err(ApiError::err("couldnt_update_post").into());
     }
 
     blocking(context.pool(), move |conn| {
-      User_::delete_account(conn, user_id)
+      Person::delete_account(conn, person_id)
     })
     .await??;
 
@@ -936,12 +1001,12 @@ impl Perform for PasswordReset {
 
     // Fetch that email
     let email = data.email.clone();
-    let user = match blocking(context.pool(), move |conn| {
-      User_::find_by_email(conn, &email)
+    let local_user_view = match blocking(context.pool(), move |conn| {
+      LocalUserView::find_by_email(conn, &email)
     })
     .await?
     {
-      Ok(user) => user,
+      Ok(lu) => lu,
       Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
     };
 
@@ -950,19 +1015,19 @@ impl Perform for PasswordReset {
 
     // Insert the row
     let token2 = token.clone();
-    let user_id = user.id;
+    let local_user_id = local_user_view.local_user.id;
     blocking(context.pool(), move |conn| {
-      PasswordResetRequest::create_token(conn, user_id, &token2)
+      PasswordResetRequest::create_token(conn, local_user_id, &token2)
     })
     .await??;
 
     // Email the pure token to the user.
     // TODO no i18n support here.
-    let user_email = &user.email.expect("email");
-    let subject = &format!("Password reset for {}", user.name);
+    let email = &local_user_view.local_user.email.expect("email");
+    let subject = &format!("Password reset for {}", local_user_view.person.name);
     let hostname = &Settings::get().get_protocol_and_hostname();
-    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", user.name, hostname, &token);
-    match send_email(subject, user_email, &user.name, html) {
+    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, hostname, &token);
+    match send_email(subject, email, &local_user_view.person.name, html) {
       Ok(_o) => _o,
       Err(_e) => return Err(ApiError::err(&_e).into()),
     };
@@ -984,8 +1049,8 @@ impl Perform for PasswordChange {
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let user_id = blocking(context.pool(), move |conn| {
-      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.user_id)
+    let local_user_id = blocking(context.pool(), move |conn| {
+      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.local_user_id)
     })
     .await??;
 
@@ -998,18 +1063,18 @@ impl Perform for PasswordChange {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_user = match blocking(context.pool(), move |conn| {
-      User_::update_password(conn, user_id, &password)
+    let updated_local_user = match blocking(context.pool(), move |conn| {
+      LocalUser::update_password(conn, local_user_id, &password)
     })
     .await?
     {
-      Ok(user) => user,
+      Ok(u) => u,
       Err(_e) => return Err(ApiError::err("couldnt_update_user").into()),
     };
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_user.id, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id, Settings::get().hostname())?,
     })
   }
 }
@@ -1024,13 +1089,13 @@ impl Perform for CreatePrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &CreatePrivateMessage = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
     let private_message_form = PrivateMessageForm {
       content: content_slurs_removed.to_owned(),
-      creator_id: user.id,
+      creator_id: local_user_view.person.id,
       recipient_id: data.recipient_id,
       deleted: None,
       read: None,
@@ -1072,36 +1137,41 @@ impl Perform for CreatePrivateMessage {
       Err(_e) => return Err(ApiError::err("couldnt_create_private_message").into()),
     };
 
-    updated_private_message.send_create(&user, context).await?;
+    updated_private_message
+      .send_create(&local_user_view.person, context)
+      .await?;
 
-    // Send notifications to the recipient
-    let recipient_id = data.recipient_id;
-    let recipient_user =
-      blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
-    if recipient_user.send_notifications_to_email {
-      send_email_to_user(
-        recipient_user,
-        "Private Message from",
-        "Private Message",
-        &content_slurs_removed,
-      );
-    }
-
-    let message = blocking(context.pool(), move |conn| {
+    let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, inserted_private_message.id)
     })
     .await??;
 
     let res = PrivateMessageResponse {
-      private_message_view: message,
+      private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::CreatePrivateMessage,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = data.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      send_email_to_user(
+        &local_recipient,
+        "Private Message from",
+        "Private Message",
+        &content_slurs_removed,
+      );
+
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::CreatePrivateMessage,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1117,7 +1187,7 @@ impl Perform for EditPrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &EditPrivateMessage = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
     let private_message_id = data.private_message_id;
@@ -1125,7 +1195,7 @@ impl Perform for EditPrivateMessage {
       PrivateMessage::read(conn, private_message_id)
     })
     .await??;
-    if user.id != orig_private_message.creator_id {
+    if local_user_view.person.id != orig_private_message.creator_id {
       return Err(ApiError::err("no_private_message_edit_allowed").into());
     }
 
@@ -1142,25 +1212,35 @@ impl Perform for EditPrivateMessage {
     };
 
     // Send the apub update
-    updated_private_message.send_update(&user, context).await?;
+    updated_private_message
+      .send_update(&local_user_view.person, context)
+      .await?;
 
     let private_message_id = data.private_message_id;
-    let message = blocking(context.pool(), move |conn| {
+    let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = message.recipient.id;
 
     let res = PrivateMessageResponse {
-      private_message_view: message,
+      private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::EditPrivateMessage,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = orig_private_message.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::EditPrivateMessage,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1176,7 +1256,7 @@ impl Perform for DeletePrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &DeletePrivateMessage = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
     let private_message_id = data.private_message_id;
@@ -1184,7 +1264,7 @@ impl Perform for DeletePrivateMessage {
       PrivateMessage::read(conn, private_message_id)
     })
     .await??;
-    if user.id != orig_private_message.creator_id {
+    if local_user_view.person.id != orig_private_message.creator_id {
       return Err(ApiError::err("no_private_message_edit_allowed").into());
     }
 
@@ -1202,30 +1282,40 @@ impl Perform for DeletePrivateMessage {
 
     // Send the apub update
     if data.deleted {
-      updated_private_message.send_delete(&user, context).await?;
+      updated_private_message
+        .send_delete(&local_user_view.person, context)
+        .await?;
     } else {
       updated_private_message
-        .send_undo_delete(&user, context)
+        .send_undo_delete(&local_user_view.person, context)
         .await?;
     }
 
     let private_message_id = data.private_message_id;
-    let message = blocking(context.pool(), move |conn| {
+    let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = message.recipient.id;
 
     let res = PrivateMessageResponse {
-      private_message_view: message,
+      private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::DeletePrivateMessage,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = orig_private_message.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::DeletePrivateMessage,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1241,7 +1331,7 @@ impl Perform for MarkPrivateMessageAsRead {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &MarkPrivateMessageAsRead = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
     let private_message_id = data.private_message_id;
@@ -1249,7 +1339,7 @@ impl Perform for MarkPrivateMessageAsRead {
       PrivateMessage::read(conn, private_message_id)
     })
     .await??;
-    if user.id != orig_private_message.recipient_id {
+    if local_user_view.person.id != orig_private_message.recipient_id {
       return Err(ApiError::err("couldnt_update_private_message").into());
     }
 
@@ -1266,24 +1356,31 @@ impl Perform for MarkPrivateMessageAsRead {
     };
 
     // No need to send an apub update
-
     let private_message_id = data.private_message_id;
-    let message = blocking(context.pool(), move |conn| {
+    let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
-    let recipient_id = message.recipient.id;
 
     let res = PrivateMessageResponse {
-      private_message_view: message,
+      private_message_view,
     };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::MarkPrivateMessageAsRead,
-      response: res.clone(),
-      recipient_id,
-      websocket_id,
-    });
+    // Send notifications to the local recipient, if one exists
+    let recipient_id = orig_private_message.recipient_id;
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      let local_recipient_id = local_recipient.local_user.id;
+      context.chat_server().do_send(SendUserRoomMessage {
+        op: UserOperation::MarkPrivateMessageAsRead,
+        response: res.clone(),
+        local_recipient_id,
+        websocket_id,
+      });
+    }
 
     Ok(res)
   }
@@ -1299,14 +1396,14 @@ impl Perform for GetPrivateMessages {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
     let data: &GetPrivateMessages = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-    let user_id = user.id;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let person_id = local_user_view.person.id;
 
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
     let messages = blocking(context.pool(), move |conn| {
-      PrivateMessageQueryBuilder::create(&conn, user_id)
+      PrivateMessageQueryBuilder::create(&conn, person_id)
         .page(page)
         .limit(limit)
         .unread_only(unread_only)
@@ -1330,12 +1427,12 @@ impl Perform for GetReportCount {
     websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
     let data: &GetReportCount = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
+    let person_id = local_user_view.person.id;
     let community_id = data.community;
     let community_ids =
-      collect_moderated_communities(user_id, community_id, context.pool()).await?;
+      collect_moderated_communities(person_id, community_id, context.pool()).await?;
 
     let res = {
       if community_ids.is_empty() {
@@ -1368,7 +1465,7 @@ impl Perform for GetReportCount {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::GetReportCount,
       response: res.clone(),
-      recipient_id: user.id,
+      local_recipient_id: local_user_view.person.id,
       websocket_id,
     });
 

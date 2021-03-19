@@ -1,11 +1,11 @@
 use crate::{
   fetcher::{
     fetch::fetch_remote_object,
-    get_or_fetch_and_upsert_user,
+    get_or_fetch_and_upsert_person,
     is_deleted,
     should_refetch_actor,
   },
-  inbox::user_inbox::receive_announce,
+  inbox::person_inbox::receive_announce,
   objects::FromApub,
   GroupExt,
 };
@@ -92,7 +92,7 @@ async fn fetch_remote_community(
   let mut creator_and_moderators = Vec::new();
 
   for uri in creator_and_moderator_uris {
-    let c_or_m = get_or_fetch_and_upsert_user(uri, context, recursion_counter).await?;
+    let c_or_m = get_or_fetch_and_upsert_person(uri, context, recursion_counter).await?;
 
     creator_and_moderators.push(c_or_m);
   }
@@ -104,7 +104,7 @@ async fn fetch_remote_community(
       for mod_ in creator_and_moderators {
         let community_moderator_form = CommunityModeratorForm {
           community_id,
-          user_id: mod_.id,
+          person_id: mod_.id,
         };
 
         CommunityModerator::join(conn, &community_moderator_form)?;

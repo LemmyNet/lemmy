@@ -122,16 +122,10 @@ impl Activity_ for Activity {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::{
-    establish_unpooled_connection,
-    source::activity::Activity_,
-    Crud,
-    ListingType,
-    SortType,
-  };
+  use crate::{establish_unpooled_connection, source::activity::Activity_};
   use lemmy_db_schema::source::{
     activity::{Activity, ActivityForm},
-    user::{UserForm, User_},
+    person::{Person, PersonForm},
   };
   use serde_json::Value;
   use serial_test::serial;
@@ -142,28 +136,18 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let creator_form = UserForm {
+    let creator_form = PersonForm {
       name: "activity_creator_pm".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -171,7 +155,7 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_creator = User_::create(&conn, &creator_form).unwrap();
+    let inserted_creator = Person::create(&conn, &creator_form).unwrap();
 
     let ap_id: DbUrl = Url::parse(
       "https://enterprise.lemmy.ml/activities/delete/f1b5d57c-80f8-4e03-a615-688d552e946c",
@@ -214,7 +198,7 @@ mod tests {
 
     let read_activity = Activity::read(&conn, inserted_activity.id).unwrap();
     let read_activity_by_apub_id = Activity::read_from_apub_id(&conn, &ap_id).unwrap();
-    User_::delete(&conn, inserted_creator.id).unwrap();
+    Person::delete(&conn, inserted_creator.id).unwrap();
     Activity::delete(&conn, inserted_activity.id).unwrap();
 
     assert_eq!(expected_activity, read_activity);

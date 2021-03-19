@@ -17,14 +17,14 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, DbPool, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
-  user::User_,
+  person::Person,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
-impl ActorType for User_ {
+impl ActorType for Person {
   fn is_local(&self) -> bool {
     self.local
   }
@@ -48,7 +48,7 @@ impl ActorType for User_ {
       .into()
   }
 
-  /// As a given local user, send out a follow request to a remote community.
+  /// As a given local person, send out a follow request to a remote community.
   async fn send_follow(
     &self,
     follow_actor_id: &Url,
@@ -62,7 +62,7 @@ impl ActorType for User_ {
 
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
-      user_id: self.id,
+      person_id: self.id,
       pending: true,
     };
     blocking(&context.pool(), move |conn| {

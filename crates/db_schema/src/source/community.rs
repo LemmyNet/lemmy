@@ -1,5 +1,5 @@
 use crate::{
-  schema::{community, community_follower, community_moderator, community_user_ban},
+  schema::{community, community_follower, community_moderator, community_person_ban},
   DbUrl,
 };
 use serde::Serialize;
@@ -79,7 +79,7 @@ pub struct CommunityForm {
 pub struct CommunityModerator {
   pub id: i32,
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub published: chrono::NaiveDateTime,
 }
 
@@ -87,24 +87,24 @@ pub struct CommunityModerator {
 #[table_name = "community_moderator"]
 pub struct CommunityModeratorForm {
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
 #[belongs_to(Community)]
-#[table_name = "community_user_ban"]
-pub struct CommunityUserBan {
+#[table_name = "community_person_ban"]
+pub struct CommunityPersonBan {
   pub id: i32,
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "community_user_ban"]
-pub struct CommunityUserBanForm {
+#[table_name = "community_person_ban"]
+pub struct CommunityPersonBanForm {
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -113,7 +113,7 @@ pub struct CommunityUserBanForm {
 pub struct CommunityFollower {
   pub id: i32,
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub published: chrono::NaiveDateTime,
   pub pending: Option<bool>,
 }
@@ -122,6 +122,6 @@ pub struct CommunityFollower {
 #[table_name = "community_follower"]
 pub struct CommunityFollowerForm {
   pub community_id: i32,
-  pub user_id: i32,
+  pub person_id: i32,
   pub pending: bool,
 }

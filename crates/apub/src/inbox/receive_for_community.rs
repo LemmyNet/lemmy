@@ -58,7 +58,7 @@ enum PageOrNote {
 }
 
 /// This file is for post/comment activities received by the community, and for post/comment
-///       activities announced by the community and received by the user.
+///       activities announced by the community and received by the person.
 
 /// A post or comment being created
 pub(in crate::inbox) async fn receive_create_for_community(

@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, group_extensions::GroupExtension},
-  fetcher::user::get_or_fetch_and_upsert_user,
+  fetcher::person::get_or_fetch_and_upsert_person,
   objects::{
     check_object_domain,
     create_tombstone,
@@ -143,7 +143,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       .as_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_uri, context, request_counter).await?;
+    let creator = get_or_fetch_and_upsert_person(creator_uri, context, request_counter).await?;
     let name = group
       .inner
       .preferred_username()

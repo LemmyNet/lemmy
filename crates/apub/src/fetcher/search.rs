@@ -2,7 +2,7 @@ use crate::{
   fetcher::{
     fetch::fetch_remote_object,
     get_or_fetch_and_upsert_community,
-    get_or_fetch_and_upsert_user,
+    get_or_fetch_and_upsert_person,
     is_deleted,
   },
   find_object_by_id,
@@ -20,21 +20,21 @@ use lemmy_db_queries::{
   source::{
     comment::Comment_,
     community::Community_,
+    person::Person_,
     post::Post_,
     private_message::PrivateMessage_,
-    user::User,
   },
   SearchType,
 };
 use lemmy_db_schema::source::{
   comment::Comment,
   community::Community,
+  person::Person,
   post::Post,
   private_message::PrivateMessage,
-  user::User_,
 };
 use lemmy_db_views::{comment_view::CommentView, post_view::PostView};
-use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
+use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
@@ -66,7 +66,7 @@ pub async fn search_by_apub_id(
     debug!("Search for {}", query);
     let split = query.split('@').collect::<Vec<&str>>();
 
-    // User type will look like ['', username, instance]
+    // Person type will look like ['', username, instance]
     // Community will look like [!community, instance]
     let (name, instance) = if split.len() == 3 {
       (format!("/u/{}", split[1]), split[2])
@@ -122,13 +122,13 @@ async fn build_response(
 
   match fetch_response {
     SearchAcceptedObjects::Person(p) => {
-      let user_uri = p.inner.id(domain)?.context("person has no id")?;
+      let person_uri = p.inner.id(domain)?.context("person has no id")?;
 
-      let user = get_or_fetch_and_upsert_user(&user_uri, context, recursion_counter).await?;
+      let person = get_or_fetch_and_upsert_person(&person_uri, context, recursion_counter).await?;
 
       response.users = vec![
         blocking(context.pool(), move |conn| {
-          UserViewSafe::read(conn, user.id)
+          PersonViewSafe::read(conn, person.id)
         })
         .await??,
       ];
@@ -182,10 +182,10 @@ async fn delete_object_locally(query_url: &Url, context: &LemmyContext) -> Resul
       })
       .await??;
     }
-    Object::User(u) => {
+    Object::Person(u) => {
       // TODO: implement update_deleted() for user, move it to ApubObject trait
       blocking(context.pool(), move |conn| {
-        User_::delete_account(conn, u.id)
+        Person::delete_account(conn, u.id)
       })
       .await??;
     }

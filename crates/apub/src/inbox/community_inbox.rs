@@ -30,9 +30,9 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{source::community::Community_, ApubObject, DbPool, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
-  user::User_,
+  person::Person,
 };
-use lemmy_db_views_actor::community_user_ban_view::CommunityUserBanView;
+use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
@@ -44,8 +44,8 @@ use url::Url;
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum CommunityValidTypes {
-  Follow,  // follow request from a user
-  Undo,    // unfollow from a user
+  Follow,  // follow request from a person
+  Undo,    // unfollow from a person
   Create,  // create post or comment
   Update,  // update post or comment
   Like,    // upvote post or comment
@@ -113,21 +113,21 @@ pub(crate) async fn community_receive_message(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  // Only users can send activities to the community, so we can get the actor as user
+  // Only persons can send activities to the community, so we can get the actor as person
   // unconditionally.
   let actor_id = actor.actor_id();
-  let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_apub_id(&conn, &actor_id.into())
+  let person = blocking(&context.pool(), move |conn| {
+    Person::read_from_apub_id(&conn, &actor_id.into())
   })
   .await??;
-  check_community_or_site_ban(&user, to_community.id, context.pool()).await?;
+  check_community_or_site_ban(&person, to_community.id, context.pool()).await?;
 
   let any_base = activity.clone().into_any_base()?;
   let actor_url = actor.actor_id();
   let activity_kind = activity.kind().context(location_info!())?;
   let do_announce = match activity_kind {
     CommunityValidTypes::Follow => {
-      handle_follow(any_base.clone(), user, &to_community, &context).await?;
+      handle_follow(any_base.clone(), person, &to_community, &context).await?;
       false
     }
     CommunityValidTypes::Undo => {
@@ -162,7 +162,7 @@ pub(crate) async fn community_receive_message(
     }
     CommunityValidTypes::Remove => {
       // TODO: we dont support remote mods, so this is ignored for now
-      //receive_remove_for_community(context, any_base.clone(), &user_url).await?
+      //receive_remove_for_community(context, any_base.clone(), &person_url).await?
       false
     }
   };
@@ -178,20 +178,20 @@ pub(crate) async fn community_receive_message(
   Ok(HttpResponse::Ok().finish())
 }
 
-/// Handle a follow request from a remote user, adding the user as follower and returning an
+/// Handle a follow request from a remote person, adding the person as follower and returning an
 /// Accept activity.
 async fn handle_follow(
   activity: AnyBase,
-  user: User_,
+  person: Person,
   community: &Community,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let follow = Follow::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &user.actor_id(), false)?;
+  verify_activity_domains_valid(&follow, &person.actor_id(), false)?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
-    user_id: user.id,
+    person_id: person.id,
     pending: false,
   };
 
@@ -226,27 +226,27 @@ async fn handle_undo(
   }
 }
 
-/// Handle `Undo/Follow` from a user, removing the user from followers list.
+/// Handle `Undo/Follow` from a person, removing the person from followers list.
 async fn handle_undo_follow(
   activity: AnyBase,
-  user_url: Url,
+  person_url: Url,
   community: &Community,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&undo, &user_url, true)?;
+  verify_activity_domains_valid(&undo, &person_url, true)?;
 
   let object = undo.object().to_owned().one().context(location_info!())?;
   let follow = Follow::from_any_base(object)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &user_url, false)?;
+  verify_activity_domains_valid(&follow, &person_url, false)?;
 
-  let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_apub_id(&conn, &user_url.into())
+  let person = blocking(&context.pool(), move |conn| {
+    Person::read_from_apub_id(&conn, &person_url.into())
   })
   .await??;
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
-    user_id: user.id,
+    person_id: person.id,
     pending: false,
   };
 
@@ -260,17 +260,18 @@ async fn handle_undo_follow(
 }
 
 pub(crate) async fn check_community_or_site_ban(
-  user: &User_,
+  person: &Person,
   community_id: i32,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  if user.banned {
-    return Err(anyhow!("User is banned from site").into());
+  if person.banned {
+    return Err(anyhow!("Person is banned from site").into());
   }
-  let user_id = user.id;
-  let is_banned = move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+  let person_id = person.id;
+  let is_banned =
+    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
-    return Err(anyhow!("User is banned from community").into());
+    return Err(anyhow!("Person is banned from community").into());
   }
 
   Ok(())

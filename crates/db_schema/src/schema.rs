@@ -41,7 +41,7 @@ table! {
 table! {
     comment_like (id) {
         id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         comment_id -> Int4,
         post_id -> Int4,
         score -> Int2,
@@ -67,7 +67,7 @@ table! {
     comment_saved (id) {
         id -> Int4,
         comment_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         published -> Timestamp,
     }
 }
@@ -89,11 +89,11 @@ table! {
         private_key -> Nullable<Text>,
         public_key -> Nullable<Text>,
         last_refreshed_at -> Timestamp,
-        icon -> Nullable<Text>,
-        banner -> Nullable<Text>,
-        followers_url -> Text,
-        inbox_url -> Text,
-        shared_inbox_url -> Nullable<Text>,
+        icon -> Nullable<Varchar>,
+        banner -> Nullable<Varchar>,
+        followers_url -> Varchar,
+        inbox_url -> Varchar,
+        shared_inbox_url -> Nullable<Varchar>,
     }
 }
 
@@ -116,7 +116,7 @@ table! {
     community_follower (id) {
         id -> Int4,
         community_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         published -> Timestamp,
         pending -> Nullable<Bool>,
     }
@@ -126,25 +126,43 @@ table! {
     community_moderator (id) {
         id -> Int4,
         community_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         published -> Timestamp,
     }
 }
 
 table! {
-    community_user_ban (id) {
+    community_person_ban (id) {
         id -> Int4,
         community_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         published -> Timestamp,
+    }
+}
+
+table! {
+    local_user (id) {
+        id -> Int4,
+        person_id -> Int4,
+        password_encrypted -> Text,
+        email -> Nullable<Text>,
+        admin -> Bool,
+        show_nsfw -> Bool,
+        theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
+        lang -> Varchar,
+        show_avatars -> Bool,
+        send_notifications_to_email -> Bool,
+        matrix_user_id -> Nullable<Text>,
     }
 }
 
 table! {
     mod_add (id) {
         id -> Int4,
-        mod_user_id -> Int4,
-        other_user_id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
         removed -> Nullable<Bool>,
         when_ -> Timestamp,
     }
@@ -153,8 +171,8 @@ table! {
 table! {
     mod_add_community (id) {
         id -> Int4,
-        mod_user_id -> Int4,
-        other_user_id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
         community_id -> Int4,
         removed -> Nullable<Bool>,
         when_ -> Timestamp,
@@ -164,8 +182,8 @@ table! {
 table! {
     mod_ban (id) {
         id -> Int4,
-        mod_user_id -> Int4,
-        other_user_id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
         reason -> Nullable<Text>,
         banned -> Nullable<Bool>,
         expires -> Nullable<Timestamp>,
@@ -176,8 +194,8 @@ table! {
 table! {
     mod_ban_from_community (id) {
         id -> Int4,
-        mod_user_id -> Int4,
-        other_user_id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
         community_id -> Int4,
         reason -> Nullable<Text>,
         banned -> Nullable<Bool>,
@@ -189,7 +207,7 @@ table! {
 table! {
     mod_lock_post (id) {
         id -> Int4,
-        mod_user_id -> Int4,
+        mod_person_id -> Int4,
         post_id -> Int4,
         locked -> Nullable<Bool>,
         when_ -> Timestamp,
@@ -199,7 +217,7 @@ table! {
 table! {
     mod_remove_comment (id) {
         id -> Int4,
-        mod_user_id -> Int4,
+        mod_person_id -> Int4,
         comment_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Nullable<Bool>,
@@ -210,7 +228,7 @@ table! {
 table! {
     mod_remove_community (id) {
         id -> Int4,
-        mod_user_id -> Int4,
+        mod_person_id -> Int4,
         community_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Nullable<Bool>,
@@ -222,7 +240,7 @@ table! {
 table! {
     mod_remove_post (id) {
         id -> Int4,
-        mod_user_id -> Int4,
+        mod_person_id -> Int4,
         post_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Nullable<Bool>,
@@ -233,7 +251,7 @@ table! {
 table! {
     mod_sticky_post (id) {
         id -> Int4,
-        mod_user_id -> Int4,
+        mod_person_id -> Int4,
         post_id -> Int4,
         stickied -> Nullable<Bool>,
         when_ -> Timestamp,
@@ -243,8 +261,59 @@ table! {
 table! {
     password_reset_request (id) {
         id -> Int4,
-        user_id -> Int4,
         token_encrypted -> Text,
+        published -> Timestamp,
+        local_user_id -> Int4,
+    }
+}
+
+table! {
+    person (id) {
+        id -> Int4,
+        name -> Varchar,
+        preferred_username -> Nullable<Varchar>,
+        avatar -> Nullable<Varchar>,
+        banned -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        actor_id -> Varchar,
+        bio -> Nullable<Text>,
+        local -> Bool,
+        private_key -> Nullable<Text>,
+        public_key -> Nullable<Text>,
+        last_refreshed_at -> Timestamp,
+        banner -> Nullable<Varchar>,
+        deleted -> Bool,
+        inbox_url -> Varchar,
+        shared_inbox_url -> Nullable<Varchar>,
+    }
+}
+
+table! {
+    person_aggregates (id) {
+        id -> Int4,
+        person_id -> Int4,
+        post_count -> Int8,
+        post_score -> Int8,
+        comment_count -> Int8,
+        comment_score -> Int8,
+    }
+}
+
+table! {
+    person_ban (id) {
+        id -> Int4,
+        person_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+table! {
+    person_mention (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Int4,
+        read -> Bool,
         published -> Timestamp,
     }
 }
@@ -253,7 +322,7 @@ table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
-        url -> Nullable<Text>,
+        url -> Nullable<Varchar>,
         body -> Nullable<Text>,
         creator_id -> Int4,
         community_id -> Int4,
@@ -292,7 +361,7 @@ table! {
     post_like (id) {
         id -> Int4,
         post_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         score -> Int2,
         published -> Timestamp,
     }
@@ -302,7 +371,7 @@ table! {
     post_read (id) {
         id -> Int4,
         post_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         published -> Timestamp,
     }
 }
@@ -327,7 +396,7 @@ table! {
     post_saved (id) {
         id -> Int4,
         post_id -> Int4,
-        user_id -> Int4,
+        person_id -> Int4,
         published -> Timestamp,
     }
 }
@@ -358,8 +427,8 @@ table! {
         enable_downvotes -> Bool,
         open_registration -> Bool,
         enable_nsfw -> Bool,
-        icon -> Nullable<Text>,
-        banner -> Nullable<Text>,
+        icon -> Nullable<Varchar>,
+        banner -> Nullable<Varchar>,
     }
 }
 
@@ -375,68 +444,6 @@ table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-    }
-}
-
-table! {
-    user_ (id) {
-        id -> Int4,
-        name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
-        password_encrypted -> Text,
-        email -> Nullable<Text>,
-        avatar -> Nullable<Text>,
-        admin -> Bool,
-        banned -> Bool,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
-        show_nsfw -> Bool,
-        theme -> Varchar,
-        default_sort_type -> Int2,
-        default_listing_type -> Int2,
-        lang -> Varchar,
-        show_avatars -> Bool,
-        send_notifications_to_email -> Bool,
-        matrix_user_id -> Nullable<Text>,
-        actor_id -> Varchar,
-        bio -> Nullable<Text>,
-        local -> Bool,
-        private_key -> Nullable<Text>,
-        public_key -> Nullable<Text>,
-        last_refreshed_at -> Timestamp,
-        banner -> Nullable<Text>,
-        deleted -> Bool,
-        inbox_url -> Text,
-        shared_inbox_url -> Nullable<Text>,
-    }
-}
-
-table! {
-    user_aggregates (id) {
-        id -> Int4,
-        user_id -> Int4,
-        post_count -> Int8,
-        post_score -> Int8,
-        comment_count -> Int8,
-        comment_score -> Int8,
-    }
-}
-
-table! {
-    user_ban (id) {
-        id -> Int4,
-        user_id -> Int4,
-        published -> Timestamp,
-    }
-}
-
-table! {
-    user_mention (id) {
-        id -> Int4,
-        recipient_id -> Int4,
-        comment_id -> Int4,
-        read -> Bool,
-        published -> Timestamp,
     }
 }
 
@@ -459,122 +466,105 @@ table! {
 }
 
 table! {
-    user_alias_1 (id) {
+    person_alias_1 (id) {
         id -> Int4,
         name -> Varchar,
         preferred_username -> Nullable<Varchar>,
-        password_encrypted -> Text,
-        email -> Nullable<Text>,
-        avatar -> Nullable<Text>,
-        admin -> Bool,
+        avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
-        show_nsfw -> Bool,
-        theme -> Varchar,
-        default_sort_type -> Int2,
-        default_listing_type -> Int2,
-        lang -> Varchar,
-        show_avatars -> Bool,
-        send_notifications_to_email -> Bool,
-        matrix_user_id -> Nullable<Text>,
         actor_id -> Varchar,
         bio -> Nullable<Text>,
         local -> Bool,
         private_key -> Nullable<Text>,
         public_key -> Nullable<Text>,
         last_refreshed_at -> Timestamp,
-        banner -> Nullable<Text>,
+        banner -> Nullable<Varchar>,
         deleted -> Bool,
+        inbox_url -> Varchar,
+        shared_inbox_url -> Nullable<Varchar>,
     }
 }
 
 table! {
-    user_alias_2 (id) {
+    person_alias_2 (id) {
         id -> Int4,
         name -> Varchar,
         preferred_username -> Nullable<Varchar>,
-        password_encrypted -> Text,
-        email -> Nullable<Text>,
-        avatar -> Nullable<Text>,
-        admin -> Bool,
+        avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
-        show_nsfw -> Bool,
-        theme -> Varchar,
-        default_sort_type -> Int2,
-        default_listing_type -> Int2,
-        lang -> Varchar,
-        show_avatars -> Bool,
-        send_notifications_to_email -> Bool,
-        matrix_user_id -> Nullable<Text>,
         actor_id -> Varchar,
         bio -> Nullable<Text>,
         local -> Bool,
         private_key -> Nullable<Text>,
         public_key -> Nullable<Text>,
         last_refreshed_at -> Timestamp,
-        banner -> Nullable<Text>,
+        banner -> Nullable<Varchar>,
         deleted -> Bool,
+        inbox_url -> Varchar,
+        shared_inbox_url -> Nullable<Varchar>,
     }
 }
 
-joinable!(comment_alias_1 -> user_alias_1 (creator_id));
+joinable!(comment_alias_1 -> person_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
-joinable!(user_mention -> user_alias_1 (recipient_id));
-joinable!(post -> user_alias_1 (creator_id));
-joinable!(comment -> user_alias_1 (creator_id));
+joinable!(person_mention -> person_alias_1 (recipient_id));
+joinable!(post -> person_alias_1 (creator_id));
+joinable!(comment -> person_alias_1 (creator_id));
 
-joinable!(post_report -> user_alias_2 (resolver_id));
-joinable!(comment_report -> user_alias_2 (resolver_id));
+joinable!(post_report -> person_alias_2 (resolver_id));
+joinable!(comment_report -> person_alias_2 (resolver_id));
 
+joinable!(comment -> person (creator_id));
 joinable!(comment -> post (post_id));
-joinable!(comment -> user_ (creator_id));
 joinable!(comment_aggregates -> comment (comment_id));
 joinable!(comment_like -> comment (comment_id));
+joinable!(comment_like -> person (person_id));
 joinable!(comment_like -> post (post_id));
-joinable!(comment_like -> user_ (user_id));
 joinable!(comment_report -> comment (comment_id));
 joinable!(comment_saved -> comment (comment_id));
-joinable!(comment_saved -> user_ (user_id));
-joinable!(community -> user_ (creator_id));
+joinable!(comment_saved -> person (person_id));
+joinable!(community -> person (creator_id));
 joinable!(community_aggregates -> community (community_id));
 joinable!(community_follower -> community (community_id));
-joinable!(community_follower -> user_ (user_id));
+joinable!(community_follower -> person (person_id));
 joinable!(community_moderator -> community (community_id));
-joinable!(community_moderator -> user_ (user_id));
-joinable!(community_user_ban -> community (community_id));
-joinable!(community_user_ban -> user_ (user_id));
+joinable!(community_moderator -> person (person_id));
+joinable!(community_person_ban -> community (community_id));
+joinable!(community_person_ban -> person (person_id));
+joinable!(local_user -> person (person_id));
 joinable!(mod_add_community -> community (community_id));
 joinable!(mod_ban_from_community -> community (community_id));
+joinable!(mod_lock_post -> person (mod_person_id));
 joinable!(mod_lock_post -> post (post_id));
-joinable!(mod_lock_post -> user_ (mod_user_id));
 joinable!(mod_remove_comment -> comment (comment_id));
-joinable!(mod_remove_comment -> user_ (mod_user_id));
+joinable!(mod_remove_comment -> person (mod_person_id));
 joinable!(mod_remove_community -> community (community_id));
-joinable!(mod_remove_community -> user_ (mod_user_id));
+joinable!(mod_remove_community -> person (mod_person_id));
+joinable!(mod_remove_post -> person (mod_person_id));
 joinable!(mod_remove_post -> post (post_id));
-joinable!(mod_remove_post -> user_ (mod_user_id));
+joinable!(mod_sticky_post -> person (mod_person_id));
 joinable!(mod_sticky_post -> post (post_id));
-joinable!(mod_sticky_post -> user_ (mod_user_id));
-joinable!(password_reset_request -> user_ (user_id));
+joinable!(password_reset_request -> local_user (local_user_id));
+joinable!(person_aggregates -> person (person_id));
+joinable!(person_ban -> person (person_id));
+joinable!(person_mention -> comment (comment_id));
+joinable!(person_mention -> person (recipient_id));
 joinable!(post -> community (community_id));
-joinable!(post -> user_ (creator_id));
+joinable!(post -> person (creator_id));
 joinable!(post_aggregates -> post (post_id));
+joinable!(post_like -> person (person_id));
 joinable!(post_like -> post (post_id));
-joinable!(post_like -> user_ (user_id));
+joinable!(post_read -> person (person_id));
 joinable!(post_read -> post (post_id));
-joinable!(post_read -> user_ (user_id));
 joinable!(post_report -> post (post_id));
+joinable!(post_saved -> person (person_id));
 joinable!(post_saved -> post (post_id));
-joinable!(post_saved -> user_ (user_id));
-joinable!(site -> user_ (creator_id));
+joinable!(site -> person (creator_id));
 joinable!(site_aggregates -> site (site_id));
-joinable!(user_aggregates -> user_ (user_id));
-joinable!(user_ban -> user_ (user_id));
-joinable!(user_mention -> comment (comment_id));
-joinable!(user_mention -> user_ (recipient_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -587,7 +577,8 @@ allow_tables_to_appear_in_same_query!(
   community_aggregates,
   community_follower,
   community_moderator,
-  community_user_ban,
+  community_person_ban,
+  local_user,
   mod_add,
   mod_add_community,
   mod_ban,
@@ -598,6 +589,10 @@ allow_tables_to_appear_in_same_query!(
   mod_remove_post,
   mod_sticky_post,
   password_reset_request,
+  person,
+  person_aggregates,
+  person_ban,
+  person_mention,
   post,
   post_aggregates,
   post_like,
@@ -607,11 +602,7 @@ allow_tables_to_appear_in_same_query!(
   private_message,
   site,
   site_aggregates,
-  user_,
-  user_aggregates,
-  user_ban,
-  user_mention,
   comment_alias_1,
-  user_alias_1,
-  user_alias_2,
+  person_alias_1,
+  person_alias_2,
 );

@@ -102,7 +102,12 @@ where
 
   fn handle(&mut self, msg: SendUserRoomMessage<Response>, _: &mut Context<Self>) {
     self
-      .send_user_room_message(&msg.op, &msg.response, msg.recipient_id, msg.websocket_id)
+      .send_user_room_message(
+        &msg.op,
+        &msg.response,
+        msg.local_recipient_id,
+        msg.websocket_id,
+      )
       .ok();
   }
 }
@@ -155,7 +160,7 @@ impl Handler<JoinUserRoom> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: JoinUserRoom, _: &mut Context<Self>) {
-    self.join_user_room(msg.user_id, msg.id).ok();
+    self.join_user_room(msg.local_user_id, msg.id).ok();
   }
 }
 

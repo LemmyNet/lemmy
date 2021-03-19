@@ -9,8 +9,8 @@ use lemmy_db_schema::{
     CommunityForm,
     CommunityModerator,
     CommunityModeratorForm,
-    CommunityUserBan,
-    CommunityUserBanForm,
+    CommunityPersonBan,
+    CommunityPersonBanForm,
   },
   DbUrl,
 };
@@ -209,23 +209,23 @@ impl Community_ for Community {
 impl Joinable<CommunityModeratorForm> for CommunityModerator {
   fn join(
     conn: &PgConnection,
-    community_user_form: &CommunityModeratorForm,
+    community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::*;
     insert_into(community_moderator)
-      .values(community_user_form)
+      .values(community_moderator_form)
       .get_result::<Self>(conn)
   }
 
   fn leave(
     conn: &PgConnection,
-    community_user_form: &CommunityModeratorForm,
+    community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::*;
     diesel::delete(
       community_moderator
-        .filter(community_id.eq(community_user_form.community_id))
-        .filter(user_id.eq(community_user_form.user_id)),
+        .filter(community_id.eq(community_moderator_form.community_id))
+        .filter(person_id.eq(community_moderator_form.person_id)),
     )
     .execute(conn)
   }
@@ -233,9 +233,9 @@ impl Joinable<CommunityModeratorForm> for CommunityModerator {
 
 pub trait CommunityModerator_ {
   fn delete_for_community(conn: &PgConnection, for_community_id: i32) -> Result<usize, Error>;
-  fn get_user_moderated_communities(
+  fn get_person_moderated_communities(
     conn: &PgConnection,
-    for_user_id: i32,
+    for_person_id: i32,
   ) -> Result<Vec<i32>, Error>;
 }
 
@@ -245,38 +245,38 @@ impl CommunityModerator_ for CommunityModerator {
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(conn)
   }
 
-  fn get_user_moderated_communities(
+  fn get_person_moderated_communities(
     conn: &PgConnection,
-    for_user_id: i32,
+    for_person_id: i32,
   ) -> Result<Vec<i32>, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::*;
     community_moderator
-      .filter(user_id.eq(for_user_id))
+      .filter(person_id.eq(for_person_id))
       .select(community_id)
       .load::<i32>(conn)
   }
 }
 
-impl Bannable<CommunityUserBanForm> for CommunityUserBan {
+impl Bannable<CommunityPersonBanForm> for CommunityPersonBan {
   fn ban(
     conn: &PgConnection,
-    community_user_ban_form: &CommunityUserBanForm,
+    community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community_user_ban::dsl::*;
-    insert_into(community_user_ban)
-      .values(community_user_ban_form)
+    use lemmy_db_schema::schema::community_person_ban::dsl::*;
+    insert_into(community_person_ban)
+      .values(community_person_ban_form)
       .get_result::<Self>(conn)
   }
 
   fn unban(
     conn: &PgConnection,
-    community_user_ban_form: &CommunityUserBanForm,
+    community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community_user_ban::dsl::*;
+    use lemmy_db_schema::schema::community_person_ban::dsl::*;
     diesel::delete(
-      community_user_ban
-        .filter(community_id.eq(community_user_ban_form.community_id))
-        .filter(user_id.eq(community_user_ban_form.user_id)),
+      community_person_ban
+        .filter(community_id.eq(community_person_ban_form.community_id))
+        .filter(person_id.eq(community_person_ban_form.person_id)),
     )
     .execute(conn)
   }
@@ -290,12 +290,16 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     use lemmy_db_schema::schema::community_follower::dsl::*;
     insert_into(community_follower)
       .values(community_follower_form)
-      .on_conflict((community_id, user_id))
+      .on_conflict((community_id, person_id))
       .do_update()
       .set(community_follower_form)
       .get_result::<Self>(conn)
   }
-  fn follow_accepted(conn: &PgConnection, community_id_: i32, user_id_: i32) -> Result<Self, Error>
+  fn follow_accepted(
+    conn: &PgConnection,
+    community_id_: i32,
+    person_id_: i32,
+  ) -> Result<Self, Error>
   where
     Self: Sized,
   {
@@ -303,7 +307,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     diesel::update(
       community_follower
         .filter(community_id.eq(community_id_))
-        .filter(user_id.eq(user_id_)),
+        .filter(person_id.eq(person_id_)),
     )
     .set(pending.eq(true))
     .get_result::<Self>(conn)
@@ -316,7 +320,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     diesel::delete(
       community_follower
         .filter(community_id.eq(&community_follower_form.community_id))
-        .filter(user_id.eq(&community_follower_form.user_id)),
+        .filter(person_id.eq(&community_follower_form.person_id)),
     )
     .execute(conn)
   }
@@ -333,16 +337,8 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    establish_unpooled_connection,
-    Bannable,
-    Crud,
-    Followable,
-    Joinable,
-    ListingType,
-    SortType,
-  };
-  use lemmy_db_schema::source::{community::*, user::*};
+  use crate::{establish_unpooled_connection, Bannable, Crud, Followable, Joinable};
+  use lemmy_db_schema::source::{community::*, person::*};
   use serial_test::serial;
 
   #[test]
@@ -350,28 +346,18 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
 
-    let new_user = UserForm {
+    let new_person = PersonForm {
       name: "bobbee".into(),
       preferred_username: None,
-      password_encrypted: "nope".into(),
-      email: None,
-      matrix_user_id: None,
       avatar: None,
       banner: None,
-      admin: false,
-      banned: Some(false),
+      banned: None,
+      deleted: None,
       published: None,
       updated: None,
-      show_nsfw: false,
-      theme: "browser".into(),
-      default_sort_type: SortType::Hot as i16,
-      default_listing_type: ListingType::Subscribed as i16,
-      lang: "browser".into(),
-      show_avatars: true,
-      send_notifications_to_email: false,
       actor_id: None,
       bio: None,
-      local: true,
+      local: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -379,11 +365,11 @@ mod tests {
       shared_inbox_url: None,
     };
 
-    let inserted_user = User_::create(&conn, &new_user).unwrap();
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL".into(),
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       description: None,
       nsfw: false,
@@ -407,7 +393,7 @@ mod tests {
 
     let expected_community = Community {
       id: inserted_community.id,
-      creator_id: inserted_user.id,
+      creator_id: inserted_person.id,
       name: "TIL".into(),
       title: "nada".to_owned(),
       description: None,
@@ -430,7 +416,7 @@ mod tests {
 
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       pending: false,
     };
 
@@ -440,55 +426,56 @@ mod tests {
     let expected_community_follower = CommunityFollower {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
       pending: Some(false),
       published: inserted_community_follower.published,
     };
 
-    let community_user_form = CommunityModeratorForm {
+    let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
     };
 
-    let inserted_community_user = CommunityModerator::join(&conn, &community_user_form).unwrap();
+    let inserted_community_moderator =
+      CommunityModerator::join(&conn, &community_moderator_form).unwrap();
 
-    let expected_community_user = CommunityModerator {
-      id: inserted_community_user.id,
+    let expected_community_moderator = CommunityModerator {
+      id: inserted_community_moderator.id,
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
-      published: inserted_community_user.published,
+      person_id: inserted_person.id,
+      published: inserted_community_moderator.published,
     };
 
-    let community_user_ban_form = CommunityUserBanForm {
+    let community_person_ban_form = CommunityPersonBanForm {
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
+      person_id: inserted_person.id,
     };
 
-    let inserted_community_user_ban =
-      CommunityUserBan::ban(&conn, &community_user_ban_form).unwrap();
+    let inserted_community_person_ban =
+      CommunityPersonBan::ban(&conn, &community_person_ban_form).unwrap();
 
-    let expected_community_user_ban = CommunityUserBan {
-      id: inserted_community_user_ban.id,
+    let expected_community_person_ban = CommunityPersonBan {
+      id: inserted_community_person_ban.id,
       community_id: inserted_community.id,
-      user_id: inserted_user.id,
-      published: inserted_community_user_ban.published,
+      person_id: inserted_person.id,
+      published: inserted_community_person_ban.published,
     };
 
     let read_community = Community::read(&conn, inserted_community.id).unwrap();
     let updated_community =
       Community::update(&conn, inserted_community.id, &new_community).unwrap();
     let ignored_community = CommunityFollower::unfollow(&conn, &community_follower_form).unwrap();
-    let left_community = CommunityModerator::leave(&conn, &community_user_form).unwrap();
-    let unban = CommunityUserBan::unban(&conn, &community_user_ban_form).unwrap();
+    let left_community = CommunityModerator::leave(&conn, &community_moderator_form).unwrap();
+    let unban = CommunityPersonBan::unban(&conn, &community_person_ban_form).unwrap();
     let num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
-    User_::delete(&conn, inserted_user.id).unwrap();
+    Person::delete(&conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, inserted_community);
     assert_eq!(expected_community, updated_community);
     assert_eq!(expected_community_follower, inserted_community_follower);
-    assert_eq!(expected_community_user, inserted_community_user);
-    assert_eq!(expected_community_user_ban, inserted_community_user_ban);
+    assert_eq!(expected_community_moderator, inserted_community_moderator);
+    assert_eq!(expected_community_person_ban, inserted_community_person_ban);
     assert_eq!(1, ignored_community);
     assert_eq!(1, left_community);
     assert_eq!(1, unban);

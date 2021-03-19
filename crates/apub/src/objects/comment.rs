@@ -6,7 +6,7 @@ use crate::{
     check_object_for_community_or_site_ban,
     create_tombstone,
     get_object_from_apub,
-    get_or_fetch_and_upsert_user,
+    get_or_fetch_and_upsert_person,
     get_source_markdown_value,
     set_content_and_source,
     FromApub,
@@ -25,8 +25,8 @@ use lemmy_api_structs::blocking;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentForm},
+  person::Person,
   post::Post,
-  user::User_,
 };
 use lemmy_utils::{
   location_info,
@@ -44,7 +44,7 @@ impl ToApub for Comment {
     let mut comment = ApObject::new(Note::new());
 
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
+    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
 
     let post_id = self.post_id;
     let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
@@ -135,7 +135,8 @@ impl FromApubToForm<NoteExt> for CommentForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context, request_counter).await?;
+    let creator =
+      get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
 
     let mut in_reply_tos = note
       .in_reply_to()

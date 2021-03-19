@@ -1,6 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
+  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   inbox::community_inbox::check_community_or_site_ban,
 };
 use activitystreams::{
@@ -26,9 +26,9 @@ use url::Url;
 
 pub(crate) mod comment;
 pub(crate) mod community;
+pub(crate) mod person;
 pub(crate) mod post;
 pub(crate) mod private_message;
-pub(crate) mod user;
 
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
@@ -212,13 +212,13 @@ pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
 where
   T: ObjectExt<Kind>,
 {
-  let user_id = object
+  let person_id = object
     .attributed_to()
     .context(location_info!())?
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  let user = get_or_fetch_and_upsert_user(user_id, context, request_counter).await?;
-  check_community_or_site_ban(&user, community_id, context.pool()).await
+  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
+  check_community_or_site_ban(&person, community_id, context.pool()).await
 }
 
 pub(in crate::objects) async fn get_to_community<T, Kind>(

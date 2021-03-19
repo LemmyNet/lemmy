@@ -47,7 +47,7 @@ pub trait Followable<T> {
   fn follow(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where
     Self: Sized;
-  fn follow_accepted(conn: &PgConnection, community_id: i32, user_id: i32) -> Result<Self, Error>
+  fn follow_accepted(conn: &PgConnection, community_id: i32, person_id: i32) -> Result<Self, Error>
   where
     Self: Sized;
   fn unfollow(conn: &PgConnection, form: &T) -> Result<usize, Error>
@@ -69,7 +69,7 @@ pub trait Likeable<T> {
   fn like(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where
     Self: Sized;
-  fn remove(conn: &PgConnection, user_id: i32, item_id: i32) -> Result<usize, Error>
+  fn remove(conn: &PgConnection, person_id: i32, item_id: i32) -> Result<usize, Error>
   where
     Self: Sized;
 }

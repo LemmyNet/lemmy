@@ -6,8 +6,8 @@ use lemmy_db_views::{
 use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
-  user_mention_view::UserMentionView,
-  user_view::UserViewSafe,
+  person_mention_view::PersonMentionView,
+  person_view::PersonViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -45,11 +45,11 @@ pub struct CaptchaResponse {
 
 #[derive(Deserialize)]
 pub struct SaveUserSettings {
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
+  pub show_nsfw: Option<bool>,
+  pub theme: Option<String>,
+  pub default_sort_type: Option<i16>,
+  pub default_listing_type: Option<i16>,
+  pub lang: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,
   pub preferred_username: Option<String>,
@@ -59,8 +59,8 @@ pub struct SaveUserSettings {
   pub new_password: Option<String>,
   pub new_password_verify: Option<String>,
   pub old_password: Option<String>,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
+  pub show_avatars: Option<bool>,
+  pub send_notifications_to_email: Option<bool>,
   pub auth: String,
 }
 
@@ -70,8 +70,8 @@ pub struct LoginResponse {
 }
 
 #[derive(Deserialize)]
-pub struct GetUserDetails {
-  pub user_id: Option<i32>,
+pub struct GetPersonDetails {
+  pub person_id: Option<i32>,
   pub username: Option<String>,
   pub sort: String,
   pub page: Option<i64>,
@@ -82,8 +82,8 @@ pub struct GetUserDetails {
 }
 
 #[derive(Serialize)]
-pub struct GetUserDetailsResponse {
-  pub user_view: UserViewSafe,
+pub struct GetPersonDetailsResponse {
+  pub person_view: PersonViewSafe,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub comments: Vec<CommentView>,
@@ -96,8 +96,8 @@ pub struct GetRepliesResponse {
 }
 
 #[derive(Serialize)]
-pub struct GetUserMentionsResponse {
-  pub mentions: Vec<UserMentionView>,
+pub struct GetPersonMentionsResponse {
+  pub mentions: Vec<PersonMentionView>,
 }
 
 #[derive(Deserialize)]
@@ -107,19 +107,19 @@ pub struct MarkAllAsRead {
 
 #[derive(Deserialize)]
 pub struct AddAdmin {
-  pub user_id: i32,
+  pub person_id: i32,
   pub added: bool,
   pub auth: String,
 }
 
 #[derive(Serialize, Clone)]
 pub struct AddAdminResponse {
-  pub admins: Vec<UserViewSafe>,
+  pub admins: Vec<PersonViewSafe>,
 }
 
 #[derive(Deserialize)]
-pub struct BanUser {
-  pub user_id: i32,
+pub struct BanPerson {
+  pub person_id: i32,
   pub ban: bool,
   pub remove_data: bool,
   pub reason: Option<String>,
@@ -128,8 +128,8 @@ pub struct BanUser {
 }
 
 #[derive(Serialize, Clone)]
-pub struct BanUserResponse {
-  pub user_view: UserViewSafe,
+pub struct BanPersonResponse {
+  pub person_view: PersonViewSafe,
   pub banned: bool,
 }
 
@@ -143,7 +143,7 @@ pub struct GetReplies {
 }
 
 #[derive(Deserialize)]
-pub struct GetUserMentions {
+pub struct GetPersonMentions {
   pub sort: String,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -152,15 +152,15 @@ pub struct GetUserMentions {
 }
 
 #[derive(Deserialize)]
-pub struct MarkUserMentionAsRead {
-  pub user_mention_id: i32,
+pub struct MarkPersonMentionAsRead {
+  pub person_mention_id: i32,
   pub read: bool,
   pub auth: String,
 }
 
 #[derive(Serialize, Clone)]
-pub struct UserMentionResponse {
-  pub user_mention_view: UserMentionView,
+pub struct PersonMentionResponse {
+  pub person_mention_view: PersonMentionView,
 }
 
 #[derive(Deserialize)]

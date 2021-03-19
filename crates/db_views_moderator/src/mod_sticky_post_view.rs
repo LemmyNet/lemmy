@@ -1,12 +1,12 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, mod_sticky_post, post, user_},
+  schema::{community, mod_sticky_post, person, post},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModStickyPost,
+    person::{Person, PersonSafe},
     post::Post,
-    user::{UserSafe, User_},
   },
 };
 use serde::Serialize;
@@ -14,28 +14,28 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct ModStickyPostView {
   pub mod_sticky_post: ModStickyPost,
-  pub moderator: UserSafe,
+  pub moderator: PersonSafe,
   pub post: Post,
   pub community: CommunitySafe,
 }
 
-type ModStickyPostViewTuple = (ModStickyPost, UserSafe, Post, CommunitySafe);
+type ModStickyPostViewTuple = (ModStickyPost, PersonSafe, Post, CommunitySafe);
 
 impl ModStickyPostView {
   pub fn list(
     conn: &PgConnection,
     community_id: Option<i32>,
-    mod_user_id: Option<i32>,
+    mod_person_id: Option<i32>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
     let mut query = mod_sticky_post::table
-      .inner_join(user_::table)
+      .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .select((
         mod_sticky_post::all_columns,
-        User_::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
         post::all_columns,
         Community::safe_columns_tuple(),
       ))
@@ -45,8 +45,8 @@ impl ModStickyPostView {
       query = query.filter(post::community_id.eq(community_id));
     };
 
-    if let Some(mod_user_id) = mod_user_id {
-      query = query.filter(mod_sticky_post::mod_user_id.eq(mod_user_id));
+    if let Some(mod_person_id) = mod_person_id {
+      query = query.filter(mod_sticky_post::mod_person_id.eq(mod_person_id));
     };
 
     let (limit, offset) = limit_and_offset(page, limit);

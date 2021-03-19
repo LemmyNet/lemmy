@@ -25,7 +25,7 @@ import {
   CreateCommunity,
   DeleteCommunity,
   RemoveCommunity,
-  GetUserMentions,
+  GetPersonMentions,
   CreateCommentLike,
   CreatePostLike,
   EditPrivateMessage,
@@ -36,15 +36,15 @@ import {
   GetPost,
   PrivateMessageResponse,
   PrivateMessagesResponse,
-  GetUserMentionsResponse,
+  GetPersonMentionsResponse,
   SaveUserSettings,
   SortType,
   ListingType,
   GetSiteResponse,
   SearchType,
   LemmyHttp,
-  BanUserResponse,
-  BanUser,
+  BanPersonResponse,
+  BanPerson,
   BanFromCommunity,
   BanFromCommunityResponse,
   Post,
@@ -289,32 +289,32 @@ export async function searchForUser(
   return api.client.search(form);
 }
 
-export async function banUserFromSite(
+export async function banPersonFromSite(
   api: API,
-  user_id: number,
+  person_id: number,
   ban: boolean
-): Promise<BanUserResponse> {
+): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let form: BanUser = {
-    user_id,
+  let form: BanPerson = {
+    person_id,
     ban,
     remove_data: false,
     auth: api.auth,
   };
-  return api.client.banUser(form);
+  return api.client.banPerson(form);
 }
 
-export async function banUserFromCommunity(
+export async function banPersonFromCommunity(
   api: API,
-  user_id: number,
+  person_id: number,
   community_id: number,
   ban: boolean
 ): Promise<BanFromCommunityResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
   let form: BanFromCommunity = {
-    user_id,
+    person_id,
     community_id,
     remove_data: false,
     ban,
@@ -413,13 +413,13 @@ export async function removeComment(
   return api.client.removeComment(form);
 }
 
-export async function getMentions(api: API): Promise<GetUserMentionsResponse> {
-  let form: GetUserMentions = {
+export async function getMentions(api: API): Promise<GetPersonMentionsResponse> {
+  let form: GetPersonMentions = {
     sort: SortType.New,
     unread_only: false,
     auth: api.auth,
   };
-  return api.client.getUserMentions(form);
+  return api.client.getPersonMentions(form);
 }
 
 export async function likeComment(
@@ -448,7 +448,6 @@ export async function createCommunity(
     description,
     icon,
     banner,
-    category_id: 1,
     nsfw: false,
     auth: api.auth,
   };

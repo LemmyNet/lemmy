@@ -3,7 +3,7 @@ use crate::{
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::user::get_or_fetch_and_upsert_user,
+  fetcher::person::get_or_fetch_and_upsert_person,
   insert_activity,
   ActorType,
 };
@@ -71,7 +71,7 @@ impl ActorType for Community {
     unimplemented!()
   }
 
-  /// As a local community, accept the follow request from a remote user.
+  /// As a local community, accept the follow request from a remote person.
   async fn send_accept_follow(
     &self,
     follow: Follow,
@@ -81,7 +81,7 @@ impl ActorType for Community {
       .actor()?
       .as_single_xsd_any_uri()
       .context(location_info!())?;
-    let user = get_or_fetch_and_upsert_user(actor_uri, context, &mut 0).await?;
+    let person = get_or_fetch_and_upsert_person(actor_uri, context, &mut 0).await?;
 
     let mut accept = Accept::new(
       self.actor_id.to_owned().into_inner(),
@@ -90,9 +90,9 @@ impl ActorType for Community {
     accept
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AcceptType::Accept)?)
-      .set_to(user.actor_id());
+      .set_to(person.actor_id());
 
-    send_activity_single_dest(accept, self, user.inbox_url.into(), context).await?;
+    send_activity_single_dest(accept, self, person.inbox_url.into(), context).await?;
     Ok(())
   }
 

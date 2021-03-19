@@ -1,6 +1,10 @@
-use lemmy_db_schema::source::user::UserSafeSettings;
-use lemmy_db_views::{comment_view::CommentView, post_view::PostView, site_view::SiteView};
-use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
+use lemmy_db_views::{
+  comment_view::CommentView,
+  local_user_view::LocalUserSettingsView,
+  post_view::PostView,
+  site_view::SiteView,
+};
+use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};
 use lemmy_db_views_moderator::{
   mod_add_community_view::ModAddCommunityView,
   mod_add_view::ModAddView,
@@ -33,12 +37,12 @@ pub struct SearchResponse {
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub communities: Vec<CommunityView>,
-  pub users: Vec<UserViewSafe>,
+  pub users: Vec<PersonViewSafe>,
 }
 
 #[derive(Deserialize)]
 pub struct GetModlog {
-  pub mod_user_id: Option<i32>,
+  pub mod_person_id: Option<i32>,
   pub community_id: Option<i32>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -94,17 +98,17 @@ pub struct SiteResponse {
 #[derive(Serialize)]
 pub struct GetSiteResponse {
   pub site_view: Option<SiteView>, // Because the site might not be set up yet
-  pub admins: Vec<UserViewSafe>,
-  pub banned: Vec<UserViewSafe>,
+  pub admins: Vec<PersonViewSafe>,
+  pub banned: Vec<PersonViewSafe>,
   pub online: usize,
   pub version: String,
-  pub my_user: Option<UserSafeSettings>,
+  pub my_user: Option<LocalUserSettingsView>,
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
 }
 
 #[derive(Deserialize)]
 pub struct TransferSite {
-  pub user_id: i32,
+  pub person_id: i32,
   pub auth: String,
 }
 

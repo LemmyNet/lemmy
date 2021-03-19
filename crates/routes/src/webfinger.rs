@@ -1,13 +1,13 @@
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
 use lemmy_api_structs::{blocking, WebFingerLink, WebFingerResponse};
-use lemmy_db_queries::source::{community::Community_, user::User};
-use lemmy_db_schema::source::{community::Community, user::User_};
+use lemmy_db_queries::source::{community::Community_, person::Person_};
+use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{
   settings::structs::Settings,
   LemmyError,
   WEBFINGER_COMMUNITY_REGEX,
-  WEBFINGER_USER_REGEX,
+  WEBFINGER_USERNAME_REGEX,
 };
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -41,7 +41,7 @@ async fn get_webfinger_response(
     .map(|c| c.get(1))
     .flatten();
 
-  let user_regex_parsed = WEBFINGER_USER_REGEX
+  let username_regex_parsed = WEBFINGER_USERNAME_REGEX
     .captures(&info.resource)
     .map(|c| c.get(1))
     .flatten();
@@ -55,11 +55,11 @@ async fn get_webfinger_response(
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
     .actor_id
-  } else if let Some(user_name) = user_regex_parsed {
-    let user_name = user_name.as_str().to_owned();
-    // Make sure the requested user exists.
+  } else if let Some(person_name) = username_regex_parsed {
+    let person_name = person_name.as_str().to_owned();
+    // Make sure the requested person exists.
     blocking(context.pool(), move |conn| {
-      User_::read_from_name(conn, &user_name)
+      Person::find_by_name(conn, &person_name)
     })
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
