@@ -29,11 +29,7 @@ services:
       - ./volumes/pictrs_alpha:/mnt
 
   lemmy-alpha-ui:
-<<<<<<< HEAD
-    image: lemmy-ui:test
-=======
     image: dessalines/lemmy-ui:0.10.0-rc.5
->>>>>>> main
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
       - LEMMY_EXTERNAL_HOST=localhost:8541
@@ -62,11 +58,7 @@ services:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
 
   lemmy-beta-ui:
-<<<<<<< HEAD
-    image: lemmy-ui:test
-=======
     image: dessalines/lemmy-ui:0.10.0-rc.5
->>>>>>> main
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-beta:8551
       - LEMMY_EXTERNAL_HOST=localhost:8551
@@ -95,11 +87,7 @@ services:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
 
   lemmy-gamma-ui:
-<<<<<<< HEAD
-    image: lemmy-ui:test
-=======
     image: dessalines/lemmy-ui:0.10.0-rc.5
->>>>>>> main
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-gamma:8561
       - LEMMY_EXTERNAL_HOST=localhost:8561
