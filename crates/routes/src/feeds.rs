@@ -227,7 +227,7 @@ fn get_feed_front(
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.local_user_id);
+  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.sub);
   let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let posts = PostQueryBuilder::create(&conn)
@@ -254,7 +254,7 @@ fn get_feed_front(
 
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.local_user_id);
+  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.sub);
   let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let sort = SortType::New;

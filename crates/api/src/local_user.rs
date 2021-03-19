@@ -130,7 +130,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.local_user.id.0, Settings::get().hostname())?,
+      jwt: Claims::jwt(local_user_view.local_user.id.0)?,
     })
   }
 }
@@ -336,7 +336,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_local_user.id.0, Settings::get().hostname())?,
+      jwt: Claims::jwt(inserted_local_user.id.0)?,
     })
   }
 }
@@ -526,7 +526,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id.0)?,
     })
   }
 }
@@ -1078,7 +1078,7 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, Settings::get().hostname())?,
+      jwt: Claims::jwt(updated_local_user.id.0)?,
     })
   }
 }

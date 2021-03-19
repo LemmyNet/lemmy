@@ -17,6 +17,7 @@ pub struct LocalUser {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub matrix_user_id: Option<String>,
+  pub validator_time: chrono::NaiveDateTime,
 }
 
 // TODO redo these, check table defaults
@@ -53,4 +54,5 @@ pub struct LocalUserSettings {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub matrix_user_id: Option<String>,
+  pub validator_time: chrono::NaiveDateTime,
 }

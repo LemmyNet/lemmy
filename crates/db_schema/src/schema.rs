@@ -155,6 +155,7 @@ table! {
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         matrix_user_id -> Nullable<Text>,
+        validator_time -> Timestamp,
     }
 }
 

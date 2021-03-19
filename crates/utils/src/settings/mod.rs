@@ -24,7 +24,7 @@ static CONFIG_FILE: &str = "config/config.hjson";
 lazy_static! {
   static ref SETTINGS: RwLock<Settings> = RwLock::new(match Settings::init() {
     Ok(c) => c,
-    Err(e) => panic!("{}", e),
+    Err(_) => Settings::default(),
   });
 }
 

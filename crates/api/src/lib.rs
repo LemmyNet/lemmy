@@ -41,7 +41,7 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
-use std::process::Command;
+use std::{env, process::Command};
 use url::Url;
 
 pub mod comment;
@@ -100,14 +100,30 @@ pub(crate) async fn get_local_user_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let local_user_id = LocalUserId(claims.local_user_id);
+  let local_user_id = LocalUserId(claims.sub);
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
   // Check for a site ban
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
   }
+
+  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
+
   Ok(local_user_view)
+}
+
+/// Checks if user's token was issued before user's password reset.
+pub(crate) fn check_validator_time(
+  validator_time: &chrono::NaiveDateTime,
+  claims: &Claims,
+) -> Result<(), LemmyError> {
+  let user_validation_time = validator_time.timestamp_millis() / 1000;
+  if user_validation_time > claims.iat {
+    Err(ApiError::err("not_logged_in").into())
+  } else {
+    Ok(())
+  }
 }
 
 pub(crate) async fn get_local_user_view_from_jwt_opt(
@@ -128,7 +144,7 @@ pub(crate) async fn get_local_user_settings_view_from_jwt(
     Ok(claims) => claims.claims,
     Err(_e) => return Err(ApiError::err("not_logged_in").into()),
   };
-  let local_user_id = LocalUserId(claims.local_user_id);
+  let local_user_id = LocalUserId(claims.sub);
   let local_user_view = blocking(pool, move |conn| {
     LocalUserSettingsView::read(conn, local_user_id)
   })
@@ -137,6 +153,9 @@ pub(crate) async fn get_local_user_settings_view_from_jwt(
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
   }
+
+  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
+
   Ok(local_user_view)
 }
 
@@ -459,7 +478,11 @@ pub(crate) fn captcha_espeak_wav_base64(captcha: &str) -> Result<String, LemmyEr
 pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   // Make a temp file path
   let uuid = uuid::Uuid::new_v4().to_string();
-  let file_path = format!("/tmp/lemmy_espeak_{}.wav", &uuid);
+  let file_path = format!(
+    "{}/lemmy_espeak_{}.wav",
+    env::temp_dir().to_string_lossy(),
+    &uuid
+  );
 
   // Write the wav file
   Command::new("espeak")
@@ -491,7 +514,70 @@ pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 
 #[cfg(test)]
 mod tests {
-  use crate::captcha_espeak_wav_base64;
+  use crate::{captcha_espeak_wav_base64, check_validator_time};
+  use lemmy_db_queries::{establish_unpooled_connection, source::local_user::LocalUser_, Crud};
+  use lemmy_db_schema::source::{
+    local_user::{LocalUser, LocalUserForm},
+    person::{Person, PersonForm},
+  };
+  use lemmy_utils::claims::Claims;
+
+  #[test]
+  fn test_should_not_validate_user_token_after_password_change() {
+    let conn = establish_unpooled_connection();
+
+    let new_person = PersonForm {
+      name: "Gerry9812".into(),
+      preferred_username: None,
+      avatar: None,
+      banner: None,
+      banned: None,
+      deleted: None,
+      published: None,
+      updated: None,
+      actor_id: None,
+      bio: None,
+      local: None,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+      inbox_url: None,
+      shared_inbox_url: None,
+    };
+
+    let inserted_person = Person::create(&conn, &new_person).unwrap();
+
+    let local_user_form = LocalUserForm {
+      person_id: inserted_person.id,
+      email: None,
+      matrix_user_id: None,
+      password_encrypted: "123456".to_string(),
+      admin: None,
+      show_nsfw: None,
+      theme: None,
+      default_sort_type: None,
+      default_listing_type: None,
+      lang: None,
+      show_avatars: None,
+      send_notifications_to_email: None,
+    };
+
+    let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();
+
+    let jwt = Claims::jwt(inserted_local_user.id.0).unwrap();
+    let claims = Claims::decode(&jwt).unwrap().claims;
+    let check = check_validator_time(&inserted_local_user.validator_time, &claims);
+    assert!(check.is_ok());
+
+    // The check should fail, since the validator time is now newer than the jwt issue time
+    let updated_local_user =
+      LocalUser::update_password(&conn, inserted_local_user.id, &"password111").unwrap();
+    let check_after = check_validator_time(&updated_local_user.validator_time, &claims);
+    assert!(check_after.is_err());
+
+    let num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    assert_eq!(1, num_deleted);
+  }
 
   #[test]
   fn test_espeak() {
