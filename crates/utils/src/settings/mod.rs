@@ -13,6 +13,7 @@ use crate::{
 };
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
+use log::warn;
 use merge::Merge;
 use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
 
@@ -24,7 +25,13 @@ static CONFIG_FILE: &str = "config/config.hjson";
 lazy_static! {
   static ref SETTINGS: RwLock<Settings> = RwLock::new(match Settings::init() {
     Ok(c) => c,
-    Err(e) => panic!("{}", e),
+    Err(e) => {
+      warn!(
+        "Couldn't load settings file, using default settings.\n{}",
+        e
+      );
+      Settings::default()
+    }
   });
 }
 

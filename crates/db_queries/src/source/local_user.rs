@@ -2,25 +2,12 @@ use crate::Crud;
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
+  naive_now,
   schema::local_user::dsl::*,
   source::local_user::{LocalUser, LocalUserForm},
   LocalUserId,
   PersonId,
 };
-
-mod safe_type {
-  use crate::ToSafe;
-  use lemmy_db_schema::{schema::local_user::columns::*, source::local_user::LocalUser};
-
-  type Columns = (id, person_id, admin, matrix_user_id);
-
-  impl ToSafe for LocalUser {
-    type SafeColumns = Columns;
-    fn safe_columns_tuple() -> Self::SafeColumns {
-      (id, person_id, admin, matrix_user_id)
-    }
-  }
-}
 
 mod safe_settings_type {
   use crate::ToSafeSettings;
@@ -39,6 +26,7 @@ mod safe_settings_type {
     show_avatars,
     send_notifications_to_email,
     matrix_user_id,
+    validator_time,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -59,6 +47,7 @@ mod safe_settings_type {
         show_avatars,
         send_notifications_to_email,
         matrix_user_id,
+        validator_time,
       )
     }
   }
@@ -92,7 +81,10 @@ impl LocalUser_ for LocalUser {
     let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
 
     diesel::update(local_user.find(local_user_id))
-      .set((password_encrypted.eq(password_hash),))
+      .set((
+        password_encrypted.eq(password_hash),
+        validator_time.eq(naive_now()),
+      ))
       .get_result::<Self>(conn)
   }
 
