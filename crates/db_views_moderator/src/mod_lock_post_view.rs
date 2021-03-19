@@ -8,6 +8,8 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
     post::Post,
   },
+  CommunityId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -24,8 +26,8 @@ type ModLockPostViewTuple = (ModLockPost, PersonSafe, Post, CommunitySafe);
 impl ModLockPostView {
   pub fn list(
     conn: &PgConnection,
-    community_id: Option<i32>,
-    mod_person_id: Option<i32>,
+    community_id: Option<CommunityId>,
+    mod_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {

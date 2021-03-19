@@ -20,10 +20,14 @@ use lemmy_db_queries::{
   Saveable,
   SortType,
 };
-use lemmy_db_schema::source::{comment::*, comment_report::*, moderator::*};
+use lemmy_db_schema::{
+  source::{comment::*, comment_report::*, moderator::*},
+  LocalUserId,
+};
 use lemmy_db_views::{
   comment_report_view::{CommentReportQueryBuilder, CommentReportView},
   comment_view::{CommentQueryBuilder, CommentView},
+  local_user_view::LocalUserView,
 };
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
@@ -579,7 +583,7 @@ impl Perform for CreateCommentLike {
     let data: &CreateCommentLike = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let mut recipient_ids = Vec::new();
+    let mut recipient_ids = Vec::<LocalUserId>::new();
 
     // Don't do a downvote if site has downvotes disabled
     check_downvotes_enabled(data.score, context.pool()).await?;
@@ -598,7 +602,14 @@ impl Perform for CreateCommentLike {
     .await?;
 
     // Add parent user to recipients
-    recipient_ids.push(orig_comment.get_recipient_id());
+    let recipient_id = orig_comment.get_recipient_id();
+    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+      LocalUserView::read_person(conn, recipient_id)
+    })
+    .await?
+    {
+      recipient_ids.push(local_recipient.local_user.id);
+    }
 
     let like_form = CommentLikeForm {
       comment_id: data.comment_id,
@@ -754,7 +765,7 @@ impl Perform for CreateCommentReport {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::CreateCommentReport,
       response: res.clone(),
-      local_recipient_id: local_user_view.person.id,
+      local_recipient_id: local_user_view.local_user.id,
       websocket_id,
     });
 
@@ -856,7 +867,7 @@ impl Perform for ListCommentReports {
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::ListCommentReports,
       response: res.clone(),
-      local_recipient_id: local_user_view.person.id,
+      local_recipient_id: local_user_view.local_user.id,
       websocket_id,
     });
 

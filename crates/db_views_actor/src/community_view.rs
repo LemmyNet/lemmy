@@ -17,6 +17,8 @@ use lemmy_db_schema::{
     community::{Community, CommunityFollower, CommunitySafe},
     person::{Person, PersonSafe},
   },
+  CommunityId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -38,11 +40,11 @@ type CommunityViewTuple = (
 impl CommunityView {
   pub fn read(
     conn: &PgConnection,
-    community_id: i32,
-    my_person_id: Option<i32>,
+    community_id: CommunityId,
+    my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (community, creator, counts, follower) = community::table
       .find(community_id)
@@ -72,8 +74,11 @@ impl CommunityView {
   }
 
   // TODO: this function is only used by is_mod_or_admin() below, can probably be merged
-  fn community_mods_and_admins(conn: &PgConnection, community_id: i32) -> Result<Vec<i32>, Error> {
-    let mut mods_and_admins: Vec<i32> = Vec::new();
+  fn community_mods_and_admins(
+    conn: &PgConnection,
+    community_id: CommunityId,
+  ) -> Result<Vec<PersonId>, Error> {
+    let mut mods_and_admins: Vec<PersonId> = Vec::new();
     mods_and_admins.append(
       &mut CommunityModeratorView::for_community(conn, community_id)
         .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?,
@@ -84,7 +89,11 @@ impl CommunityView {
     Ok(mods_and_admins)
   }
 
-  pub fn is_mod_or_admin(conn: &PgConnection, person_id: i32, community_id: i32) -> bool {
+  pub fn is_mod_or_admin(
+    conn: &PgConnection,
+    person_id: PersonId,
+    community_id: CommunityId,
+  ) -> bool {
     Self::community_mods_and_admins(conn, community_id)
       .unwrap_or_default()
       .contains(&person_id)
@@ -95,7 +104,7 @@ pub struct CommunityQueryBuilder<'a> {
   conn: &'a PgConnection,
   listing_type: &'a ListingType,
   sort: &'a SortType,
-  my_person_id: Option<i32>,
+  my_person_id: Option<PersonId>,
   show_nsfw: bool,
   search_term: Option<String>,
   page: Option<i64>,
@@ -136,7 +145,7 @@ impl<'a> CommunityQueryBuilder<'a> {
     self
   }
 
-  pub fn my_person_id<T: MaybeOptional<i32>>(mut self, my_person_id: T) -> Self {
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
     self.my_person_id = my_person_id.get_optional();
     self
   }
@@ -153,7 +162,7 @@ impl<'a> CommunityQueryBuilder<'a> {
 
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
     let mut query = community::table
       .inner_join(person::table)

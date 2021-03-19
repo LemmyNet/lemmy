@@ -1,8 +1,8 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{naive_now, source::site::*};
+use lemmy_db_schema::{naive_now, source::site::*, PersonId};
 
-impl Crud<SiteForm> for Site {
+impl Crud<SiteForm, i32> for Site {
   fn read(conn: &PgConnection, _site_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::site::dsl::*;
     site.first::<Self>(conn)
@@ -26,12 +26,12 @@ impl Crud<SiteForm> for Site {
 }
 
 pub trait Site_ {
-  fn transfer(conn: &PgConnection, new_creator_id: i32) -> Result<Site, Error>;
+  fn transfer(conn: &PgConnection, new_creator_id: PersonId) -> Result<Site, Error>;
   fn read_simple(conn: &PgConnection) -> Result<Site, Error>;
 }
 
 impl Site_ for Site {
-  fn transfer(conn: &PgConnection, new_creator_id: i32) -> Result<Site, Error> {
+  fn transfer(conn: &PgConnection, new_creator_id: PersonId) -> Result<Site, Error> {
     use lemmy_db_schema::schema::site::dsl::*;
     diesel::update(site.find(1))
       .set((creator_id.eq(new_creator_id), updated.eq(naive_now())))

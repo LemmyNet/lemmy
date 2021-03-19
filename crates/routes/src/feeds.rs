@@ -9,7 +9,10 @@ use lemmy_db_queries::{
   ListingType,
   SortType,
 };
-use lemmy_db_schema::source::{community::Community, local_user::LocalUser, person::Person};
+use lemmy_db_schema::{
+  source::{community::Community, local_user::LocalUser, person::Person},
+  LocalUserId,
+};
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
   post_view::{PostQueryBuilder, PostView},
@@ -224,7 +227,7 @@ fn get_feed_front(
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let local_user_id = Claims::decode(&jwt)?.claims.local_user_id;
+  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.local_user_id);
   let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let posts = PostQueryBuilder::create(&conn)
@@ -251,7 +254,7 @@ fn get_feed_front(
 
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
-  let local_user_id = Claims::decode(&jwt)?.claims.local_user_id;
+  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.local_user_id);
   let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
 
   let sort = SortType::New;

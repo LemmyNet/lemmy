@@ -11,6 +11,7 @@ use lemmy_db_queries::{
 use lemmy_db_schema::{
   schema::{local_user, person, person_aggregates},
   source::person::{Person, PersonSafe},
+  PersonId,
 };
 use serde::Serialize;
 
@@ -23,9 +24,9 @@ pub struct PersonViewSafe {
 type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
 
 impl PersonViewSafe {
-  pub fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     let (person, counts) = person::table
-      .find(id)
+      .find(person_id)
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
       .first::<PersonViewSafeTuple>(conn)?;

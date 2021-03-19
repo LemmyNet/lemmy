@@ -16,6 +16,7 @@ pub struct Login {
   pub username_or_email: String,
   pub password: String,
 }
+use lemmy_db_schema::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
 
 #[derive(Deserialize)]
 pub struct Register {
@@ -71,12 +72,12 @@ pub struct LoginResponse {
 
 #[derive(Deserialize)]
 pub struct GetPersonDetails {
-  pub person_id: Option<i32>,
+  pub person_id: Option<PersonId>,
   pub username: Option<String>,
   pub sort: String,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub community_id: Option<i32>,
+  pub community_id: Option<CommunityId>,
   pub saved_only: bool,
   pub auth: Option<String>,
 }
@@ -107,7 +108,7 @@ pub struct MarkAllAsRead {
 
 #[derive(Deserialize)]
 pub struct AddAdmin {
-  pub person_id: i32,
+  pub person_id: PersonId,
   pub added: bool,
   pub auth: String,
 }
@@ -119,7 +120,7 @@ pub struct AddAdminResponse {
 
 #[derive(Deserialize)]
 pub struct BanPerson {
-  pub person_id: i32,
+  pub person_id: PersonId,
   pub ban: bool,
   pub remove_data: bool,
   pub reason: Option<String>,
@@ -153,7 +154,7 @@ pub struct GetPersonMentions {
 
 #[derive(Deserialize)]
 pub struct MarkPersonMentionAsRead {
-  pub person_mention_id: i32,
+  pub person_mention_id: PersonMentionId,
   pub read: bool,
   pub auth: String,
 }
@@ -187,27 +188,27 @@ pub struct PasswordChange {
 #[derive(Deserialize)]
 pub struct CreatePrivateMessage {
   pub content: String,
-  pub recipient_id: i32,
+  pub recipient_id: PersonId,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct EditPrivateMessage {
-  pub private_message_id: i32,
+  pub private_message_id: PrivateMessageId,
   pub content: String,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct DeletePrivateMessage {
-  pub private_message_id: i32,
+  pub private_message_id: PrivateMessageId,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct MarkPrivateMessageAsRead {
-  pub private_message_id: i32,
+  pub private_message_id: PrivateMessageId,
   pub read: bool,
   pub auth: String,
 }
@@ -232,13 +233,13 @@ pub struct PrivateMessageResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetReportCount {
-  pub community: Option<i32>,
+  pub community: Option<CommunityId>,
   pub auth: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetReportCountResponse {
-  pub community: Option<i32>,
+  pub community: Option<CommunityId>,
   pub comment_reports: i64,
   pub post_reports: i64,
 }

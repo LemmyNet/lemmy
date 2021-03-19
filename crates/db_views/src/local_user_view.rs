@@ -6,6 +6,8 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe},
   },
+  LocalUserId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -19,7 +21,7 @@ pub struct LocalUserView {
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
 impl LocalUserView {
-  pub fn read(conn: &PgConnection, local_user_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .find(local_user_id)
       .inner_join(person::table)
@@ -37,7 +39,7 @@ impl LocalUserView {
     })
   }
 
-  pub fn read_person(conn: &PgConnection, person_id: i32) -> Result<Self, Error> {
+  pub fn read_person(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .filter(person::id.eq(person_id))
       .inner_join(person::table)
@@ -125,7 +127,7 @@ pub struct LocalUserSettingsView {
 type LocalUserSettingsViewTuple = (LocalUserSettings, PersonSafe, PersonAggregates);
 
 impl LocalUserSettingsView {
-  pub fn read(conn: &PgConnection, local_user_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .find(local_user_id)
       .inner_join(person::table)

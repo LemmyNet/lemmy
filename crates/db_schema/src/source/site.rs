@@ -1,4 +1,4 @@
-use crate::{schema::site, DbUrl};
+use crate::{schema::site, DbUrl, PersonId};
 use serde::Serialize;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize)]
@@ -7,7 +7,7 @@ pub struct Site {
   pub id: i32,
   pub name: String,
   pub description: Option<String>,
-  pub creator_id: i32,
+  pub creator_id: PersonId,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub enable_downvotes: bool,
@@ -22,7 +22,7 @@ pub struct Site {
 pub struct SiteForm {
   pub name: String,
   pub description: Option<String>,
-  pub creator_id: i32,
+  pub creator_id: PersonId,
   pub updated: Option<chrono::NaiveDateTime>,
   pub enable_downvotes: bool,
   pub open_registration: bool,

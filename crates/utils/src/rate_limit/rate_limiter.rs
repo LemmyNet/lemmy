@@ -32,7 +32,7 @@ impl Default for RateLimiter {
 }
 
 impl RateLimiter {
-  fn insert_ip(&mut self, ip: &str) {
+  fn insert_ip(&mut self, ip: &IpAddr) {
     for rate_limit_type in RateLimitType::iter() {
       if self.buckets.get(&rate_limit_type).is_none() {
         self.buckets.insert(rate_limit_type, HashMap::new());
@@ -41,7 +41,7 @@ impl RateLimiter {
       if let Some(bucket) = self.buckets.get_mut(&rate_limit_type) {
         if bucket.get(ip).is_none() {
           bucket.insert(
-            ip.to_string(),
+            ip.clone(),
             RateLimitBucket {
               last_checked: SystemTime::now(),
               allowance: -2f64,
@@ -56,7 +56,7 @@ impl RateLimiter {
   pub(super) fn check_rate_limit_full(
     &mut self,
     type_: RateLimitType,
-    ip: &str,
+    ip: &IpAddr,
     rate: i32,
     per: i32,
     check_only: bool,

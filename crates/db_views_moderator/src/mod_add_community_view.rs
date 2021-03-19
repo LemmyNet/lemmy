@@ -7,6 +7,8 @@ use lemmy_db_schema::{
     moderator::ModAddCommunity,
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
+  CommunityId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -23,8 +25,8 @@ type ModAddCommunityViewTuple = (ModAddCommunity, PersonSafe, CommunitySafe, Per
 impl ModAddCommunityView {
   pub fn list(
     conn: &PgConnection,
-    community_id: Option<i32>,
-    mod_person_id: Option<i32>,
+    community_id: Option<CommunityId>,
+    mod_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {

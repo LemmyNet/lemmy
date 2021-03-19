@@ -27,6 +27,9 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
     post::{Post, PostRead, PostSaved},
   },
+  CommunityId,
+  PersonId,
+  PostId,
 };
 use log::debug;
 use serde::Serialize;
@@ -57,9 +60,13 @@ type PostViewTuple = (
 );
 
 impl PostView {
-  pub fn read(conn: &PgConnection, post_id: i32, my_person_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(
+    conn: &PgConnection,
+    post_id: PostId,
+    my_person_id: Option<PersonId>,
+  ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
       post,
@@ -150,10 +157,10 @@ pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
   listing_type: &'a ListingType,
   sort: &'a SortType,
-  creator_id: Option<i32>,
-  community_id: Option<i32>,
+  creator_id: Option<PersonId>,
+  community_id: Option<CommunityId>,
   community_name: Option<String>,
-  my_person_id: Option<i32>,
+  my_person_id: Option<PersonId>,
   search_term: Option<String>,
   url_search: Option<String>,
   show_nsfw: bool,
@@ -193,12 +200,12 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn community_id<T: MaybeOptional<i32>>(mut self, community_id: T) -> Self {
+  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
     self.community_id = community_id.get_optional();
     self
   }
 
-  pub fn my_person_id<T: MaybeOptional<i32>>(mut self, my_person_id: T) -> Self {
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
     self.my_person_id = my_person_id.get_optional();
     self
   }
@@ -208,7 +215,7 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn creator_id<T: MaybeOptional<i32>>(mut self, creator_id: T) -> Self {
+  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
     self.creator_id = creator_id.get_optional();
     self
   }
@@ -247,7 +254,7 @@ impl<'a> PostQueryBuilder<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
     let mut query = post::table
       .inner_join(person::table)

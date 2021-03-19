@@ -1,11 +1,11 @@
-use crate::schema::local_user;
+use crate::{schema::local_user, LocalUserId, PersonId};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "local_user"]
 pub struct LocalUser {
-  pub id: i32,
-  pub person_id: i32,
+  pub id: LocalUserId,
+  pub person_id: PersonId,
   pub password_encrypted: String,
   pub email: Option<String>,
   pub admin: bool,
@@ -23,7 +23,7 @@ pub struct LocalUser {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "local_user"]
 pub struct LocalUserForm {
-  pub person_id: i32,
+  pub person_id: PersonId,
   pub password_encrypted: String,
   pub email: Option<Option<String>>,
   pub admin: Option<bool>,
@@ -41,8 +41,8 @@ pub struct LocalUserForm {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "local_user"]
 pub struct LocalUserSettings {
-  pub id: i32,
-  pub person_id: i32,
+  pub id: LocalUserId,
+  pub person_id: PersonId,
   pub email: Option<String>,
   pub admin: bool,
   pub show_nsfw: bool,

@@ -1,9 +1,13 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, PgConnection, *};
-use lemmy_db_schema::{schema::password_reset_request::dsl::*, source::password_reset_request::*};
+use lemmy_db_schema::{
+  schema::password_reset_request::dsl::*,
+  source::password_reset_request::*,
+  LocalUserId,
+};
 use sha2::{Digest, Sha256};
 
-impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
+impl Crud<PasswordResetRequestForm, i32> for PasswordResetRequest {
   fn read(conn: &PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
     password_reset_request
       .find(password_reset_request_id)
@@ -28,7 +32,7 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
 pub trait PasswordResetRequest_ {
   fn create_token(
     conn: &PgConnection,
-    from_local_user_id: i32,
+    from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error>;
   fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error>;
@@ -37,7 +41,7 @@ pub trait PasswordResetRequest_ {
 impl PasswordResetRequest_ for PasswordResetRequest {
   fn create_token(
     conn: &PgConnection,
-    from_local_user_id: i32,
+    from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();

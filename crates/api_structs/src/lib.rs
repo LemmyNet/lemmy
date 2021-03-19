@@ -7,11 +7,14 @@ pub mod websocket;
 
 use diesel::PgConnection;
 use lemmy_db_queries::{Crud, DbPool};
-use lemmy_db_schema::source::{
-  comment::Comment,
-  person::Person,
-  person_mention::{PersonMention, PersonMentionForm},
-  post::Post,
+use lemmy_db_schema::{
+  source::{
+    comment::Comment,
+    person::Person,
+    person_mention::{PersonMention, PersonMentionForm},
+    post::Post,
+  },
+  LocalUserId,
 };
 use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_utils::{email::send_email, settings::structs::Settings, utils::MentionData, LemmyError};
@@ -59,7 +62,7 @@ pub async fn send_local_notifs(
   post: Post,
   pool: &DbPool,
   do_send_email: bool,
-) -> Result<Vec<i32>, LemmyError> {
+) -> Result<Vec<LocalUserId>, LemmyError> {
   let ids = blocking(pool, move |conn| {
     do_send_local_notifs(conn, &mentions, &comment, &person, &post, do_send_email)
   })
@@ -75,7 +78,7 @@ fn do_send_local_notifs(
   person: &Person,
   post: &Post,
   do_send_email: bool,
-) -> Vec<i32> {
+) -> Vec<LocalUserId> {
   let mut recipient_ids = Vec::new();
 
   // Send the local mentions

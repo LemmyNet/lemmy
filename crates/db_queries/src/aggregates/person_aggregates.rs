@@ -1,12 +1,12 @@
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::person_aggregates;
+use lemmy_db_schema::{schema::person_aggregates, PersonId};
 use serde::Serialize;
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]
 #[table_name = "person_aggregates"]
 pub struct PersonAggregates {
   pub id: i32,
-  pub person_id: i32,
+  pub person_id: PersonId,
   pub post_count: i64,
   pub post_score: i64,
   pub comment_count: i64,
@@ -14,7 +14,7 @@ pub struct PersonAggregates {
 }
 
 impl PersonAggregates {
-  pub fn read(conn: &PgConnection, person_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
       .first::<Self>(conn)

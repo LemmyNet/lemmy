@@ -1,13 +1,14 @@
 use crate::{
   schema::{person, person_alias_1, person_alias_2},
   DbUrl,
+  PersonId,
 };
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person"]
 pub struct Person {
-  pub id: i32,
+  pub id: PersonId,
   pub name: String,
   pub preferred_username: Option<String>,
   pub avatar: Option<DbUrl>,
@@ -30,7 +31,7 @@ pub struct Person {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person"]
 pub struct PersonSafe {
-  pub id: i32,
+  pub id: PersonId,
   pub name: String,
   pub preferred_username: Option<String>,
   pub avatar: Option<DbUrl>,
@@ -49,7 +50,7 @@ pub struct PersonSafe {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person_alias_1"]
 pub struct PersonAlias1 {
-  pub id: i32,
+  pub id: PersonId,
   pub name: String,
   pub preferred_username: Option<String>,
   pub avatar: Option<DbUrl>,
@@ -71,7 +72,7 @@ pub struct PersonAlias1 {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person_alias_1"]
 pub struct PersonSafeAlias1 {
-  pub id: i32,
+  pub id: PersonId,
   pub name: String,
   pub preferred_username: Option<String>,
   pub avatar: Option<DbUrl>,
@@ -90,7 +91,7 @@ pub struct PersonSafeAlias1 {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person_alias_2"]
 pub struct PersonAlias2 {
-  pub id: i32,
+  pub id: PersonId,
   pub name: String,
   pub preferred_username: Option<String>,
   pub avatar: Option<DbUrl>,
@@ -112,7 +113,7 @@ pub struct PersonAlias2 {
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person_alias_1"]
 pub struct PersonSafeAlias2 {
-  pub id: i32,
+  pub id: PersonId,
   pub name: String,
   pub preferred_username: Option<String>,
   pub avatar: Option<DbUrl>,

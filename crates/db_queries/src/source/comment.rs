@@ -10,40 +10,54 @@ use lemmy_db_schema::{
     CommentSaved,
     CommentSavedForm,
   },
+  CommentId,
   DbUrl,
+  PersonId,
 };
 
 pub trait Comment_ {
-  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: DbUrl) -> Result<Comment, Error>;
+  fn update_ap_id(
+    conn: &PgConnection,
+    comment_id: CommentId,
+    apub_id: DbUrl,
+  ) -> Result<Comment, Error>;
   fn permadelete_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
+    for_creator_id: PersonId,
   ) -> Result<Vec<Comment>, Error>;
   fn update_deleted(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     new_deleted: bool,
   ) -> Result<Comment, Error>;
   fn update_removed(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     new_removed: bool,
   ) -> Result<Comment, Error>;
   fn update_removed_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
+    for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Comment>, Error>;
-  fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Comment, Error>;
+  fn update_read(
+    conn: &PgConnection,
+    comment_id: CommentId,
+    new_read: bool,
+  ) -> Result<Comment, Error>;
   fn update_content(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     new_content: &str,
   ) -> Result<Comment, Error>;
 }
 
 impl Comment_ for Comment {
-  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: DbUrl) -> Result<Self, Error> {
+  fn update_ap_id(
+    conn: &PgConnection,
+    comment_id: CommentId,
+    apub_id: DbUrl,
+  ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
 
     diesel::update(comment.find(comment_id))
@@ -51,7 +65,10 @@ impl Comment_ for Comment {
       .get_result::<Self>(conn)
   }
 
-  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+  fn permadelete_for_creator(
+    conn: &PgConnection,
+    for_creator_id: PersonId,
+  ) -> Result<Vec<Self>, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((
@@ -64,7 +81,7 @@ impl Comment_ for Comment {
 
   fn update_deleted(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     new_deleted: bool,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
@@ -75,7 +92,7 @@ impl Comment_ for Comment {
 
   fn update_removed(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     new_removed: bool,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
@@ -86,7 +103,7 @@ impl Comment_ for Comment {
 
   fn update_removed_for_creator(
     conn: &PgConnection,
-    for_creator_id: i32,
+    for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
@@ -95,7 +112,11 @@ impl Comment_ for Comment {
       .get_results::<Self>(conn)
   }
 
-  fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
+  fn update_read(
+    conn: &PgConnection,
+    comment_id: CommentId,
+    new_read: bool,
+  ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(read.eq(new_read))
@@ -104,7 +125,7 @@ impl Comment_ for Comment {
 
   fn update_content(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     new_content: &str,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
@@ -114,13 +135,13 @@ impl Comment_ for Comment {
   }
 }
 
-impl Crud<CommentForm> for Comment {
-  fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+impl Crud<CommentForm, CommentId> for Comment {
+  fn read(conn: &PgConnection, comment_id: CommentId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.find(comment_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, comment_id: i32) -> Result<usize, Error> {
+  fn delete(conn: &PgConnection, comment_id: CommentId) -> Result<usize, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     diesel::delete(comment.find(comment_id)).execute(conn)
   }
@@ -134,7 +155,7 @@ impl Crud<CommentForm> for Comment {
 
   fn update(
     conn: &PgConnection,
-    comment_id: i32,
+    comment_id: CommentId,
     comment_form: &CommentForm,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
@@ -161,7 +182,7 @@ impl ApubObject<CommentForm> for Comment {
   }
 }
 
-impl Likeable<CommentLikeForm> for CommentLike {
+impl Likeable<CommentLikeForm, CommentId> for CommentLike {
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment_like::dsl::*;
     insert_into(comment_like)
@@ -171,7 +192,11 @@ impl Likeable<CommentLikeForm> for CommentLike {
       .set(comment_like_form)
       .get_result::<Self>(conn)
   }
-  fn remove(conn: &PgConnection, person_id: i32, comment_id: i32) -> Result<usize, Error> {
+  fn remove(
+    conn: &PgConnection,
+    person_id: PersonId,
+    comment_id: CommentId,
+  ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::comment_like::dsl;
     diesel::delete(
       dsl::comment_like

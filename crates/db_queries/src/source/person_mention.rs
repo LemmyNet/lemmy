@@ -1,9 +1,9 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::source::person_mention::*;
+use lemmy_db_schema::{source::person_mention::*, PersonId, PersonMentionId};
 
-impl Crud<PersonMentionForm> for PersonMention {
-  fn read(conn: &PgConnection, person_mention_id: i32) -> Result<Self, Error> {
+impl Crud<PersonMentionForm, PersonMentionId> for PersonMention {
+  fn read(conn: &PgConnection, person_mention_id: PersonMentionId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::person_mention::dsl::*;
     person_mention.find(person_mention_id).first::<Self>(conn)
   }
@@ -22,7 +22,7 @@ impl Crud<PersonMentionForm> for PersonMention {
 
   fn update(
     conn: &PgConnection,
-    person_mention_id: i32,
+    person_mention_id: PersonMentionId,
     person_mention_form: &PersonMentionForm,
   ) -> Result<Self, Error> {
     use lemmy_db_schema::schema::person_mention::dsl::*;
@@ -35,19 +35,19 @@ impl Crud<PersonMentionForm> for PersonMention {
 pub trait PersonMention_ {
   fn update_read(
     conn: &PgConnection,
-    person_mention_id: i32,
+    person_mention_id: PersonMentionId,
     new_read: bool,
   ) -> Result<PersonMention, Error>;
   fn mark_all_as_read(
     conn: &PgConnection,
-    for_recipient_id: i32,
+    for_recipient_id: PersonId,
   ) -> Result<Vec<PersonMention>, Error>;
 }
 
 impl PersonMention_ for PersonMention {
   fn update_read(
     conn: &PgConnection,
-    person_mention_id: i32,
+    person_mention_id: PersonMentionId,
     new_read: bool,
   ) -> Result<PersonMention, Error> {
     use lemmy_db_schema::schema::person_mention::dsl::*;
@@ -58,7 +58,7 @@ impl PersonMention_ for PersonMention {
 
   fn mark_all_as_read(
     conn: &PgConnection,
-    for_recipient_id: i32,
+    for_recipient_id: PersonId,
   ) -> Result<Vec<PersonMention>, Error> {
     use lemmy_db_schema::schema::person_mention::dsl::*;
     diesel::update(

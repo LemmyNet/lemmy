@@ -6,6 +6,8 @@ use lemmy_db_schema::{
     community::{Community, CommunitySafe},
     person::{Person, PersonSafe},
   },
+  CommunityId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -18,7 +20,7 @@ pub struct CommunityModeratorView {
 type CommunityModeratorViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityModeratorView {
-  pub fn for_community(conn: &PgConnection, community_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_community(conn: &PgConnection, community_id: CommunityId) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -33,7 +35,7 @@ impl CommunityModeratorView {
     Ok(Self::from_tuple_to_vec(res))
   }
 
-  pub fn for_person(conn: &PgConnection, person_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_person(conn: &PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)

@@ -3,6 +3,7 @@ use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
   source::comment_report::{CommentReport, CommentReportForm},
+  PersonId,
 };
 
 impl Reportable<CommentReportForm> for CommentReport {
@@ -22,7 +23,11 @@ impl Reportable<CommentReportForm> for CommentReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
-  fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
+  fn resolve(
+    conn: &PgConnection,
+    report_id: i32,
+    by_resolver_id: PersonId,
+  ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
       .set((
@@ -38,7 +43,11 @@ impl Reportable<CommentReportForm> for CommentReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
-  fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
+  fn unresolve(
+    conn: &PgConnection,
+    report_id: i32,
+    by_resolver_id: PersonId,
+  ) -> Result<usize, Error> {
     use lemmy_db_schema::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
       .set((

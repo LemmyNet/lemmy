@@ -4,6 +4,8 @@ use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   schema::local_user::dsl::*,
   source::local_user::{LocalUser, LocalUserForm},
+  LocalUserId,
+  PersonId,
 };
 
 mod safe_type {
@@ -66,10 +68,10 @@ pub trait LocalUser_ {
   fn register(conn: &PgConnection, form: &LocalUserForm) -> Result<LocalUser, Error>;
   fn update_password(
     conn: &PgConnection,
-    local_user_id: i32,
+    local_user_id: LocalUserId,
     new_password: &str,
   ) -> Result<LocalUser, Error>;
-  fn add_admin(conn: &PgConnection, person_id: i32, added: bool) -> Result<LocalUser, Error>;
+  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<LocalUser, Error>;
 }
 
 impl LocalUser_ for LocalUser {
@@ -84,7 +86,7 @@ impl LocalUser_ for LocalUser {
 
   fn update_password(
     conn: &PgConnection,
-    local_user_id: i32,
+    local_user_id: LocalUserId,
     new_password: &str,
   ) -> Result<Self, Error> {
     let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
@@ -94,18 +96,18 @@ impl LocalUser_ for LocalUser {
       .get_result::<Self>(conn)
   }
 
-  fn add_admin(conn: &PgConnection, for_person_id: i32, added: bool) -> Result<Self, Error> {
+  fn add_admin(conn: &PgConnection, for_person_id: PersonId, added: bool) -> Result<Self, Error> {
     diesel::update(local_user.filter(person_id.eq(for_person_id)))
       .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 }
 
-impl Crud<LocalUserForm> for LocalUser {
-  fn read(conn: &PgConnection, local_user_id: i32) -> Result<Self, Error> {
+impl Crud<LocalUserForm, LocalUserId> for LocalUser {
+  fn read(conn: &PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
     local_user.find(local_user_id).first::<Self>(conn)
   }
-  fn delete(conn: &PgConnection, local_user_id: i32) -> Result<usize, Error> {
+  fn delete(conn: &PgConnection, local_user_id: LocalUserId) -> Result<usize, Error> {
     diesel::delete(local_user.find(local_user_id)).execute(conn)
   }
   fn create(conn: &PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
@@ -113,7 +115,11 @@ impl Crud<LocalUserForm> for LocalUser {
       .values(form)
       .get_result::<Self>(conn)
   }
-  fn update(conn: &PgConnection, local_user_id: i32, form: &LocalUserForm) -> Result<Self, Error> {
+  fn update(
+    conn: &PgConnection,
+    local_user_id: LocalUserId,
+    form: &LocalUserForm,
+  ) -> Result<Self, Error> {
     diesel::update(local_user.find(local_user_id))
       .set(form)
       .get_result::<Self>(conn)

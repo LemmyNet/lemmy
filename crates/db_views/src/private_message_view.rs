@@ -6,6 +6,8 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     private_message::PrivateMessage,
   },
+  PersonId,
+  PrivateMessageId,
 };
 use log::debug;
 use serde::Serialize;
@@ -20,7 +22,7 @@ pub struct PrivateMessageView {
 type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafeAlias1);
 
 impl PrivateMessageView {
-  pub fn read(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
     let (private_message, creator, recipient) = private_message::table
       .find(private_message_id)
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
@@ -43,14 +45,14 @@ impl PrivateMessageView {
 
 pub struct PrivateMessageQueryBuilder<'a> {
   conn: &'a PgConnection,
-  recipient_id: i32,
+  recipient_id: PersonId,
   unread_only: bool,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
 impl<'a> PrivateMessageQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, recipient_id: i32) -> Self {
+  pub fn create(conn: &'a PgConnection, recipient_id: PersonId) -> Self {
     PrivateMessageQueryBuilder {
       conn,
       recipient_id,

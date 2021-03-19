@@ -1,3 +1,4 @@
+use lemmy_db_schema::{CommunityId, PostId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
@@ -12,7 +13,7 @@ pub struct UserJoinResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct CommunityJoin {
-  pub community_id: i32,
+  pub community_id: CommunityId,
 }
 
 #[derive(Serialize, Clone)]
@@ -22,7 +23,7 @@ pub struct CommunityJoinResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct ModJoin {
-  pub community_id: i32,
+  pub community_id: CommunityId,
 }
 
 #[derive(Serialize, Clone)]
@@ -32,7 +33,7 @@ pub struct ModJoinResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct PostJoin {
-  pub post_id: i32,
+  pub post_id: PostId,
 }
 
 #[derive(Serialize, Clone)]

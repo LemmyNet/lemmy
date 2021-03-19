@@ -1,6 +1,7 @@
 use crate::{
   settings::structs::{RateLimitConfig, Settings},
   utils::get_ip,
+  IpAddr,
   LemmyError,
 };
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
@@ -62,7 +63,7 @@ impl RateLimit {
 impl RateLimited {
   pub async fn wrap<T, E>(
     self,
-    ip_addr: String,
+    ip_addr: IpAddr,
     fut: impl Future<Output = Result<T, E>>,
   ) -> Result<T, E>
   where

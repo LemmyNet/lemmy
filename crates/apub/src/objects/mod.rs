@@ -14,7 +14,7 @@ use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
-use lemmy_db_schema::{source::community::Community, DbUrl};
+use lemmy_db_schema::{source::community::Community, CommunityId, DbUrl};
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,
@@ -172,7 +172,7 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
 /// Converts an ActivityPub object (eg `Note`) to a database object (eg `Comment`). If an object
 /// with the same ActivityPub ID already exists in the database, it is returned directly. Otherwise
 /// the apub object is parsed, inserted and returned.
-pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
+pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm, IdType>(
   from: &From,
   context: &LemmyContext,
   expected_domain: Url,
@@ -180,7 +180,7 @@ pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
 ) -> Result<To, LemmyError>
 where
   From: BaseExt<Kind>,
-  To: ApubObject<ToForm> + Crud<ToForm> + Send + 'static,
+  To: ApubObject<ToForm> + Crud<ToForm, IdType> + Send + 'static,
   ToForm: FromApubToForm<From> + Send + 'static,
 {
   let object_id = from.id_unchecked().context(location_info!())?.to_owned();
@@ -205,7 +205,7 @@ where
 
 pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
   object: &T,
-  community_id: i32,
+  community_id: CommunityId,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError>

@@ -23,10 +23,13 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::{Crud, DbPool};
-use lemmy_db_schema::source::{
-  comment::{Comment, CommentForm},
-  person::Person,
-  post::Post,
+use lemmy_db_schema::{
+  source::{
+    comment::{Comment, CommentForm},
+    person::Person,
+    post::Post,
+  },
+  CommentId,
 };
 use lemmy_utils::{
   location_info,
@@ -153,7 +156,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively
-    let parent_id: Option<i32> = match in_reply_tos.next() {
+    let parent_id: Option<CommentId> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri?;
         let parent_comment =

@@ -4,6 +4,7 @@ use crate::{
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
 use lemmy_db_schema::naive_now;
+use lemmy_utils::ConnectionId;
 use log::{error, info};
 use rand::Rng;
 use serde::Serialize;
@@ -19,7 +20,7 @@ impl Actor for ChatServer {
 ///
 /// Register new session and assign unique id to this session
 impl Handler<Connect> for ChatServer {
-  type Result = usize;
+  type Result = ConnectionId;
 
   fn handle(&mut self, msg: Connect, _ctx: &mut Context<Self>) -> Self::Result {
     // register session with random id

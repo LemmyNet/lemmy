@@ -29,6 +29,8 @@ use lemmy_db_schema::{
     person_mention::PersonMention,
     post::Post,
   },
+  PersonId,
+  PersonMentionId,
 };
 use serde::Serialize;
 
@@ -64,11 +66,11 @@ type PersonMentionViewTuple = (
 impl PersonMentionView {
   pub fn read(
     conn: &PgConnection,
-    person_mention_id: i32,
-    my_person_id: Option<i32>,
+    person_mention_id: PersonMentionId,
+    my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(-1);
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
       person_mention,
@@ -151,8 +153,8 @@ impl PersonMentionView {
 
 pub struct PersonMentionQueryBuilder<'a> {
   conn: &'a PgConnection,
-  my_person_id: Option<i32>,
-  recipient_id: Option<i32>,
+  my_person_id: Option<PersonId>,
+  recipient_id: Option<PersonId>,
   sort: &'a SortType,
   unread_only: bool,
   page: Option<i64>,
@@ -182,12 +184,12 @@ impl<'a> PersonMentionQueryBuilder<'a> {
     self
   }
 
-  pub fn recipient_id<T: MaybeOptional<i32>>(mut self, recipient_id: T) -> Self {
+  pub fn recipient_id<T: MaybeOptional<PersonId>>(mut self, recipient_id: T) -> Self {
     self.recipient_id = recipient_id.get_optional();
     self
   }
 
-  pub fn my_person_id<T: MaybeOptional<i32>>(mut self, my_person_id: T) -> Self {
+  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
     self.my_person_id = my_person_id.get_optional();
     self
   }
@@ -206,7 +208,7 @@ impl<'a> PersonMentionQueryBuilder<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(-1);
+    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
     let mut query = person_mention::table
       .inner_join(comment::table)
