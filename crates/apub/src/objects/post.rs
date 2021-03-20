@@ -217,7 +217,7 @@ impl FromApubToForm<PageExt> for PostForm {
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: Some(check_object_domain(page, expected_domain)?),
-      local: false,
+      local: Some(false),
     })
   }
 }

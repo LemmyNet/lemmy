@@ -74,7 +74,7 @@ impl Activity_ for Activity {
     let activity_form = ActivityForm {
       ap_id,
       data: serde_json::to_value(&data)?,
-      local,
+      local: Some(local),
       sensitive,
       updated: None,
     };
@@ -138,22 +138,7 @@ mod tests {
 
     let creator_form = PersonForm {
       name: "activity_creator_pm".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     let inserted_creator = Person::create(&conn, &creator_form).unwrap();
@@ -180,7 +165,7 @@ mod tests {
     let activity_form = ActivityForm {
       ap_id: ap_id.clone(),
       data: test_json.to_owned(),
-      local: true,
+      local: Some(true),
       sensitive: false,
       updated: None,
     };

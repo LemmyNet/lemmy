@@ -356,22 +356,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "bobbee".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -380,22 +365,7 @@ mod tests {
       name: "TIL".into(),
       creator_id: inserted_person.id,
       title: "nada".to_owned(),
-      description: None,
-      nsfw: false,
-      removed: None,
-      deleted: None,
-      updated: None,
-      actor_id: None,
-      local: true,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      published: None,
-      icon: None,
-      banner: None,
-      followers_url: None,
-      inbox_url: None,
-      shared_inbox_url: None,
+      ..CommunityForm::default()
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();

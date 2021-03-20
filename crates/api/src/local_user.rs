@@ -199,22 +199,12 @@ impl Perform for Register {
     // Register the new person
     let person_form = PersonForm {
       name: data.username.to_owned(),
-      avatar: None,
-      banner: None,
-      preferred_username: None,
-      published: None,
-      updated: None,
-      banned: None,
-      deleted: None,
       actor_id: Some(actor_id.clone()),
-      bio: None,
-      local: Some(true),
       private_key: Some(Some(actor_keypair.private_key)),
       public_key: Some(Some(actor_keypair.public_key)),
-      last_refreshed_at: None,
       inbox_url: Some(generate_inbox_url(&actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     // insert the person
@@ -285,22 +275,14 @@ impl Perform for Register {
           name: default_community_name.to_string(),
           title: "The Default Community".to_string(),
           description: Some("The Default Community".to_string()),
-          nsfw: false,
           creator_id: inserted_person.id,
-          removed: None,
-          deleted: None,
-          updated: None,
           actor_id: Some(actor_id.to_owned()),
-          local: true,
           private_key: Some(main_community_keypair.private_key),
           public_key: Some(main_community_keypair.public_key),
-          last_refreshed_at: None,
-          published: None,
-          icon: None,
-          banner: None,
           followers_url: Some(generate_followers_url(&actor_id)?),
           inbox_url: Some(generate_inbox_url(&actor_id)?),
           shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
+          ..CommunityForm::default()
         };
         blocking(context.pool(), move |conn| {
           Community::create(conn, &community_form)
@@ -1101,12 +1083,7 @@ impl Perform for CreatePrivateMessage {
       content: content_slurs_removed.to_owned(),
       creator_id: local_user_view.person.id,
       recipient_id: data.recipient_id,
-      deleted: None,
-      read: None,
-      updated: None,
-      ap_id: None,
-      local: true,
-      published: None,
+      ..PrivateMessageForm::default()
     };
 
     let inserted_private_message = match blocking(context.pool(), move |conn| {

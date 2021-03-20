@@ -121,7 +121,7 @@ impl FromApubToForm<NoteExt> for PrivateMessageForm {
       deleted: None,
       read: None,
       ap_id: Some(check_object_domain(note, expected_domain)?),
-      local: false,
+      local: Some(false),
     })
   }
 }

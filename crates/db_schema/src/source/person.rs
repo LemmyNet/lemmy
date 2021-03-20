@@ -135,7 +135,7 @@ pub struct PersonSafeAlias2 {
   pub matrix_user_id: Option<String>,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset, Clone, Default)]
 #[table_name = "person"]
 pub struct PersonForm {
   pub name: String,

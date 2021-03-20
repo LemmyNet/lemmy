@@ -150,44 +150,14 @@ mod tests {
 
     let creator_form = PersonForm {
       name: "creator_pm".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     let inserted_creator = Person::create(&conn, &creator_form).unwrap();
 
     let recipient_form = PersonForm {
       name: "recipient_pm".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     let inserted_recipient = Person::create(&conn, &recipient_form).unwrap();
@@ -196,12 +166,7 @@ mod tests {
       content: "A test private message".into(),
       creator_id: inserted_creator.id,
       recipient_id: inserted_recipient.id,
-      deleted: None,
-      read: None,
-      published: None,
-      updated: None,
-      ap_id: None,
-      local: true,
+      ..PrivateMessageForm::default()
     };
 
     let inserted_private_message = PrivateMessage::create(&conn, &private_message_form).unwrap();

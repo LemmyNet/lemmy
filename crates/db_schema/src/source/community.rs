@@ -51,7 +51,7 @@ pub struct CommunitySafe {
   pub banner: Option<DbUrl>,
 }
 
-#[derive(Insertable, AsChangeset, Debug)]
+#[derive(Insertable, AsChangeset, Debug, Default)]
 #[table_name = "community"]
 pub struct CommunityForm {
   pub name: String,
@@ -62,9 +62,9 @@ pub struct CommunityForm {
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
-  pub nsfw: bool,
+  pub nsfw: Option<bool>,
   pub actor_id: Option<DbUrl>,
-  pub local: bool,
+  pub local: Option<bool>,
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,

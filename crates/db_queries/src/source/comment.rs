@@ -246,22 +246,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "terry".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -269,23 +254,8 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community".to_string(),
       title: "nada".to_owned(),
-      description: None,
       creator_id: inserted_person.id,
-      removed: None,
-      deleted: None,
-      updated: None,
-      nsfw: false,
-      actor_id: None,
-      local: true,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      published: None,
-      banner: None,
-      icon: None,
-      inbox_url: None,
-      shared_inbox_url: None,
-      followers_url: None,
+      ..CommunityForm::default()
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -293,22 +263,8 @@ mod tests {
     let new_post = PostForm {
       name: "A test post".into(),
       creator_id: inserted_person.id,
-      url: None,
-      body: None,
       community_id: inserted_community.id,
-      removed: None,
-      deleted: None,
-      locked: None,
-      stickied: None,
-      updated: None,
-      nsfw: false,
-      embed_title: None,
-      embed_description: None,
-      embed_html: None,
-      thumbnail_url: None,
-      ap_id: None,
-      local: true,
-      published: None,
+      ..PostForm::default()
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -317,14 +273,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      removed: None,
-      deleted: None,
-      read: None,
-      parent_id: None,
-      published: None,
-      updated: None,
-      ap_id: None,
-      local: true,
+      ..CommentForm::default()
     };
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
@@ -349,13 +298,7 @@ mod tests {
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
-      removed: None,
-      deleted: None,
-      read: None,
-      published: None,
-      updated: None,
-      ap_id: None,
-      local: true,
+      ..CommentForm::default()
     };
 
     let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();

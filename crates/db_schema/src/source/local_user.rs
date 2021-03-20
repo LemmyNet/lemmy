@@ -20,7 +20,7 @@ pub struct LocalUser {
 }
 
 // TODO redo these, check table defaults
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset, Clone, Default)]
 #[table_name = "local_user"]
 pub struct LocalUserForm {
   pub person_id: PersonId,

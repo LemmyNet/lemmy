@@ -28,7 +28,7 @@ pub struct CreateCommunity {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub nsfw: bool,
+  pub nsfw: Option<bool>,
   pub auth: String,
 }
 
@@ -88,7 +88,7 @@ pub struct EditCommunity {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub nsfw: bool,
+  pub nsfw: Option<bool>,
   pub auth: String,
 }
 

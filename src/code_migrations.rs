@@ -55,22 +55,11 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
     let form = PersonForm {
       name: cperson.name.to_owned(),
-      avatar: None,
-      banner: None,
-      preferred_username: None,
-      published: None,
-      updated: None,
-      banned: None,
-      deleted: None,
       actor_id: Some(generate_apub_endpoint(EndpointType::Person, &cperson.name)?),
-      bio: None,
-      local: None,
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(Some(keypair.public_key)),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: None,
-      shared_inbox_url: None,
-      matrix_user_id: None,
+      ..PersonForm::default()
     };
 
     Person::update(&conn, cperson.id, &form)?;
@@ -103,10 +92,10 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       creator_id: ccommunity.creator_id,
       removed: None,
       deleted: None,
-      nsfw: ccommunity.nsfw,
+      nsfw: None,
       updated: None,
       actor_id: Some(community_actor_id.to_owned()),
-      local: ccommunity.local,
+      local: Some(ccommunity.local),
       private_key: Some(keypair.private_key),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
