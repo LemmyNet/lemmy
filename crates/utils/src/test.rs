@@ -53,7 +53,7 @@ fn test_valid_post_title() {
 #[test]
 fn test_slur_filter() {
   let test =
-      "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
+      "faggot test kike tranny cocksucker retardeds cocksucker mudslime spick gook chink bitches fagtard. Capitalized Niggerz. This is a bunch of other safe text.";
   let slur_free = "No slurs here";
   assert_eq!(
       remove_slurs(&test),
