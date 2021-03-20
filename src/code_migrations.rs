@@ -70,6 +70,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       last_refreshed_at: Some(naive_now()),
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     Person::update(&conn, cperson.id, &form)?;

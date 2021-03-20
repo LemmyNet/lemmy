@@ -105,6 +105,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -126,6 +127,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_recipient = Person::create(&conn, &recipient_form).unwrap();

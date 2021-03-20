@@ -543,6 +543,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -550,7 +551,6 @@ mod tests {
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
       email: None,
-      matrix_user_id: None,
       password_encrypted: "123456".to_string(),
       admin: None,
       show_nsfw: None,

@@ -110,6 +110,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -118,7 +119,6 @@ mod tests {
       person_id: inserted_person.id,
       password_encrypted: "pass".to_string(),
       email: None,
-      matrix_user_id: None,
       admin: None,
       show_nsfw: None,
       theme: None,

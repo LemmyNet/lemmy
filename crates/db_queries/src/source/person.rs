@@ -27,6 +27,7 @@ mod safe_type {
     deleted,
     inbox_url,
     shared_inbox_url,
+    matrix_user_id,
   );
 
   impl ToSafe for Person {
@@ -47,6 +48,7 @@ mod safe_type {
         deleted,
         inbox_url,
         shared_inbox_url,
+        matrix_user_id,
       )
     }
   }
@@ -71,6 +73,7 @@ mod safe_type_alias_1 {
     deleted,
     inbox_url,
     shared_inbox_url,
+    matrix_user_id,
   );
 
   impl ToSafe for PersonAlias1 {
@@ -91,6 +94,7 @@ mod safe_type_alias_1 {
         deleted,
         inbox_url,
         shared_inbox_url,
+        matrix_user_id,
       )
     }
   }
@@ -115,6 +119,7 @@ mod safe_type_alias_2 {
     deleted,
     inbox_url,
     shared_inbox_url,
+    matrix_user_id,
   );
 
   impl ToSafe for PersonAlias2 {
@@ -135,6 +140,7 @@ mod safe_type_alias_2 {
         deleted,
         inbox_url,
         shared_inbox_url,
+        matrix_user_id,
       )
     }
   }
@@ -212,16 +218,14 @@ impl Person_ for Person {
 
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
-      .set((
-        local_user::email.eq::<Option<String>>(None),
-        local_user::matrix_user_id.eq::<Option<String>>(None),
-      ))
+      .set((local_user::email.eq::<Option<String>>(None),))
       .execute(conn)?;
 
     diesel::update(person.find(person_id))
       .set((
         preferred_username.eq::<Option<String>>(None),
         bio.eq::<Option<String>>(None),
+        matrix_user_id.eq::<Option<String>>(None),
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
@@ -254,6 +258,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -276,6 +281,7 @@ mod tests {
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.to_owned(),
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let read_person = Person::read(&conn, inserted_person.id).unwrap();

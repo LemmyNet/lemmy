@@ -224,6 +224,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_mod = Person::create(&conn, &new_mod).unwrap();
@@ -245,6 +246,7 @@ mod tests {
       last_refreshed_at: None,
       inbox_url: None,
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();

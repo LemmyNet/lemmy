@@ -16,7 +16,6 @@ pub struct LocalUser {
   pub lang: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
   pub validator_time: chrono::NaiveDateTime,
 }
 
@@ -35,7 +34,6 @@ pub struct LocalUserForm {
   pub lang: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
-  pub matrix_user_id: Option<Option<String>>,
 }
 
 /// A local user view that removes password encrypted
@@ -53,6 +51,5 @@ pub struct LocalUserSettings {
   pub lang: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
   pub validator_time: chrono::NaiveDateTime,
 }

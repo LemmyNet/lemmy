@@ -25,7 +25,6 @@ mod safe_settings_type {
     lang,
     show_avatars,
     send_notifications_to_email,
-    matrix_user_id,
     validator_time,
   );
 
@@ -46,7 +45,6 @@ mod safe_settings_type {
         lang,
         show_avatars,
         send_notifications_to_email,
-        matrix_user_id,
         validator_time,
       )
     }

@@ -214,6 +214,7 @@ impl Perform for Register {
       last_refreshed_at: None,
       inbox_url: Some(generate_inbox_url(&actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
+      matrix_user_id: None,
     };
 
     // insert the person
@@ -232,7 +233,6 @@ impl Perform for Register {
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
       email: Some(data.email.to_owned()),
-      matrix_user_id: None,
       password_encrypted: data.password.to_owned(),
       admin: Some(no_admins),
       show_nsfw: Some(data.show_nsfw),
@@ -477,6 +477,7 @@ impl Perform for SaveUserSettings {
       public_key: None,
       last_refreshed_at: None,
       shared_inbox_url: None,
+      matrix_user_id,
     };
 
     let person_res = blocking(context.pool(), move |conn| {
@@ -493,7 +494,6 @@ impl Perform for SaveUserSettings {
     let local_user_form = LocalUserForm {
       person_id,
       email,
-      matrix_user_id,
       password_encrypted,
       admin: None,
       show_nsfw: data.show_nsfw,
