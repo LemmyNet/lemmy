@@ -4,28 +4,32 @@ set -e
 
 # Creating the new tag
 new_tag="$1"
-#third_semver=$(echo $new_tag | cut -d "." -f 3)
+third_semver=$(echo $new_tag | cut -d "." -f 3)
 
-# Setting the version on the front end
-cd ../../
 # Setting the version on the backend
+pushd ../../
 echo "pub const VERSION: &str = \"$new_tag\";" > "crates/utils/src/version.rs"
 git add "crates/utils/src/version.rs"
-# Setting the version for Ansible
-echo $new_tag > "ansible/VERSION"
-git add "ansible/VERSION"
-
-cd docker/prod || exit
+popd
 
 # Changing various references to the Lemmy version
 sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
 sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
-sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
-sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
-
 git add ../dev/docker-compose.yml
-git add ../prod/docker-compose.yml
 git add ../federation/docker-compose.yml
+
+# The ansible and docker installs should only update for non release-candidates
+# IE, when the third semver is a number, not '2-rc'
+if [ ! -z "${third_semver##*[!0-9]*}" ]; then
+  sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
+  git add ../prod/docker-compose.yml
+
+  # Setting the version for Ansible
+  pushd ../../
+  echo $new_tag > "ansible/VERSION"
+  git add "ansible/VERSION"
+  popd
+fi
 
 # The commit
 git commit -m"Version $new_tag"
@@ -33,21 +37,6 @@ git tag $new_tag
 
 # export COMPOSE_DOCKER_CLI_BUILD=1
 # export DOCKER_BUILDKIT=1
-
-# # Rebuilding docker
-# if [ $third_semver -eq 0 ]; then
-#   # TODO get linux/arm/v7 build working
-#   # Build for Raspberry Pi / other archs too
-#   docker buildx build --platform linux/amd64,linux/arm64 ../../ \
-#     --file Dockerfile \
-#     --tag dessalines/lemmy:$new_tag \
-#     --push
-# else
-#   docker buildx build --platform linux/amd64 ../../ \
-#     --file Dockerfile \
-#     --tag dessalines/lemmy:$new_tag \
-#     --push
-# fi
 
 # Push
 git push origin $new_tag
