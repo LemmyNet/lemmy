@@ -260,6 +260,8 @@ impl Perform for GetPosts {
     let limit = data.limit;
     let community_id = data.community_id;
     let community_name = data.community_name.to_owned();
+    let saved_only = data.saved_only;
+
     let posts = match blocking(context.pool(), move |conn| {
       PostQueryBuilder::create(conn)
         .listing_type(&type_)
@@ -267,6 +269,7 @@ impl Perform for GetPosts {
         .show_nsfw(show_nsfw)
         .community_id(community_id)
         .community_name(community_name)
+        .saved_only(saved_only)
         .my_person_id(person_id)
         .page(page)
         .limit(limit)
