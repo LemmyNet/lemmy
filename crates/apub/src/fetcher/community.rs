@@ -1,5 +1,10 @@
 use crate::{
-  fetcher::{fetch::fetch_remote_object, is_deleted, should_refetch_actor},
+  fetcher::{
+    fetch::fetch_remote_object,
+    is_deleted,
+    person::get_or_fetch_and_upsert_person,
+    should_refetch_actor,
+  },
   inbox::person_inbox::receive_announce,
   objects::FromApub,
   GroupExt,
@@ -11,8 +16,12 @@ use activitystreams::{
 use anyhow::Context;
 use diesel::result::Error::NotFound;
 use lemmy_api_structs::blocking;
-use lemmy_db_queries::{source::community::Community_, ApubObject};
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
+use lemmy_db_schema::{
+  source::community::{Community, CommunityModerator, CommunityModeratorForm},
+  DbUrl,
+};
+use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
@@ -54,9 +63,9 @@ async fn fetch_remote_community(
   apub_id: &Url,
   context: &LemmyContext,
   old_community: Option<Community>,
-  recursion_counter: &mut i32,
+  request_counter: &mut i32,
 ) -> Result<Community, LemmyError> {
-  let group = fetch_remote_object::<GroupExt>(context.client(), apub_id, recursion_counter).await;
+  let group = fetch_remote_object::<GroupExt>(context.client(), apub_id, request_counter).await;
 
   if let Some(c) = old_community.to_owned() {
     if is_deleted(&group) {
@@ -71,22 +80,67 @@ async fn fetch_remote_community(
   }
 
   let group = group?;
-  let community = Community::from_apub(
-    &group,
-    context,
-    apub_id.to_owned(),
-    recursion_counter,
-    false,
-  )
-  .await?;
+  let community =
+    Community::from_apub(&group, context, apub_id.to_owned(), request_counter, false).await?;
+
+  update_community_mods(&group, &community, context, request_counter).await?;
 
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {
     let outbox = group.inner.outbox()?.context(location_info!())?;
-    fetch_community_outbox(context, outbox, &community, recursion_counter).await?
+    fetch_community_outbox(context, outbox, &community, request_counter).await?
   }
 
   Ok(community)
+}
+
+async fn update_community_mods(
+  group: &GroupExt,
+  community: &Community,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let new_moderators = fetch_community_mods(context, group, request_counter).await?;
+  let community_id = community.id;
+  let current_moderators = blocking(context.pool(), move |conn| {
+    CommunityModeratorView::for_community(&conn, community_id)
+  })
+  .await??;
+  // Remove old mods from database which arent in the moderators collection anymore
+  for mod_user in &current_moderators {
+    if !new_moderators.contains(&&mod_user.moderator.actor_id.clone().into()) {
+      let community_moderator_form = CommunityModeratorForm {
+        community_id: mod_user.community.id,
+        person_id: mod_user.moderator.id,
+      };
+      blocking(context.pool(), move |conn| {
+        CommunityModerator::leave(conn, &community_moderator_form)
+      })
+      .await??;
+    }
+  }
+
+  // Add new mods to database which have been added to moderators collection
+  for mod_uri in new_moderators {
+    let mod_user = get_or_fetch_and_upsert_person(&mod_uri, context, request_counter).await?;
+    let current_mod_uris: Vec<DbUrl> = current_moderators
+      .clone()
+      .iter()
+      .map(|c| c.moderator.actor_id.clone())
+      .collect();
+    if !current_mod_uris.contains(&mod_user.actor_id) {
+      let community_moderator_form = CommunityModeratorForm {
+        community_id: community.id,
+        person_id: mod_user.id,
+      };
+      blocking(context.pool(), move |conn| {
+        CommunityModerator::join(conn, &community_moderator_form)
+      })
+      .await??;
+    }
+  }
+
+  Ok(())
 }
 
 async fn fetch_community_outbox(

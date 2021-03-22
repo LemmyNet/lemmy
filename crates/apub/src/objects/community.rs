@@ -23,14 +23,11 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
-use lemmy_api_structs::blocking;
-use lemmy_db_queries::{DbPool, Joinable};
+use lemmy_db_queries::DbPool;
 use lemmy_db_schema::{
   naive_now,
-  source::community::{Community, CommunityForm, CommunityModerator, CommunityModeratorForm},
-  DbUrl,
+  source::community::{Community, CommunityForm},
 };
-use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{
   location_info,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
@@ -109,56 +106,14 @@ impl FromApub for Community {
     request_counter: &mut i32,
     mod_action_allowed: bool,
   ) -> Result<Community, LemmyError> {
-    let community: Community = get_object_from_apub(
+    get_object_from_apub(
       group,
       context,
       expected_domain,
       request_counter,
       mod_action_allowed,
     )
-    .await?;
-
-    let new_moderators = fetch_community_mods(context, group, request_counter).await?;
-    let community_id = community.id;
-    let current_moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(&conn, community_id)
-    })
-    .await??;
-    // Remove old mods from database which arent in the moderators collection anymore
-    for mod_user in &current_moderators {
-      if !new_moderators.contains(&&mod_user.moderator.actor_id.clone().into()) {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id: mod_user.community.id,
-          person_id: mod_user.moderator.id,
-        };
-        blocking(context.pool(), move |conn| {
-          CommunityModerator::leave(conn, &community_moderator_form)
-        })
-        .await??;
-      }
-    }
-
-    // Add new mods to database which have been added to moderators collection
-    for mod_uri in new_moderators {
-      let mod_user = get_or_fetch_and_upsert_person(&mod_uri, context, request_counter).await?;
-      let current_mod_uris: Vec<DbUrl> = current_moderators
-        .clone()
-        .iter()
-        .map(|c| c.moderator.actor_id.clone())
-        .collect();
-      if !current_mod_uris.contains(&mod_user.actor_id) {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id: community.id,
-          person_id: mod_user.id,
-        };
-        blocking(context.pool(), move |conn| {
-          CommunityModerator::join(conn, &community_moderator_form)
-        })
-        .await??;
-      }
-    }
-
-    Ok(community)
+    .await
   }
 }
 

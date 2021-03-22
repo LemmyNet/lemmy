@@ -76,7 +76,7 @@ pub(crate) async fn receive_update_post(
   let stickied = page.ext_one.stickied.context(location_info!())?;
   let locked = !page.ext_one.comments_enabled.context(location_info!())?;
   let mut mod_action_allowed = false;
-  if stickied != old_post.stickied || locked != old_post.locked {
+  if (stickied != old_post.stickied) || (locked != old_post.locked) {
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, old_post.community_id)
     })
