@@ -182,6 +182,7 @@ impl FromApubToForm<PersonExt> for PersonForm {
       actor_id: Some(check_object_domain(person, expected_domain)?),
       bio: Some(bio),
       local: Some(false),
+      admin: Some(false),
       private_key: None,
       public_key: Some(Some(person.ext_one.public_key.to_owned().public_key_pem)),
       last_refreshed_at: Some(naive_now()),

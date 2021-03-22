@@ -526,6 +526,7 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
+        admin: false,
         bio: None,
         banner: None,
         updated: None,

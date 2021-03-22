@@ -28,6 +28,7 @@ mod safe_type {
     inbox_url,
     shared_inbox_url,
     matrix_user_id,
+    admin,
   );
 
   impl ToSafe for Person {
@@ -49,6 +50,7 @@ mod safe_type {
         inbox_url,
         shared_inbox_url,
         matrix_user_id,
+        admin,
       )
     }
   }
@@ -74,6 +76,7 @@ mod safe_type_alias_1 {
     inbox_url,
     shared_inbox_url,
     matrix_user_id,
+    admin,
   );
 
   impl ToSafe for PersonAlias1 {
@@ -95,6 +98,7 @@ mod safe_type_alias_1 {
         inbox_url,
         shared_inbox_url,
         matrix_user_id,
+        admin,
       )
     }
   }
@@ -120,6 +124,7 @@ mod safe_type_alias_2 {
     inbox_url,
     shared_inbox_url,
     matrix_user_id,
+    admin,
   );
 
   impl ToSafe for PersonAlias2 {
@@ -141,6 +146,7 @@ mod safe_type_alias_2 {
         inbox_url,
         shared_inbox_url,
         matrix_user_id,
+        admin,
       )
     }
   }
@@ -187,6 +193,7 @@ impl ApubObject<PersonForm> for Person {
 
 pub trait Person_ {
   fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Person, Error>;
+  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Person, Error>;
   fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
   fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
   fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
@@ -196,6 +203,12 @@ impl Person_ for Person {
   fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(banned.eq(ban))
+      .get_result::<Self>(conn)
+  }
+
+  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Self, Error> {
+    diesel::update(person.find(person_id))
+      .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 
@@ -261,6 +274,7 @@ mod tests {
       actor_id: inserted_person.actor_id.to_owned(),
       bio: None,
       local: true,
+      admin: false,
       private_key: None,
       public_key: None,
       last_refreshed_at: inserted_person.published,

@@ -6,7 +6,6 @@ use lemmy_db_schema::{
   schema::local_user::dsl::*,
   source::local_user::{LocalUser, LocalUserForm},
   LocalUserId,
-  PersonId,
 };
 
 mod safe_settings_type {
@@ -17,7 +16,6 @@ mod safe_settings_type {
     id,
     person_id,
     email,
-    admin,
     show_nsfw,
     theme,
     default_sort_type,
@@ -37,7 +35,6 @@ mod safe_settings_type {
         id,
         person_id,
         email,
-        admin,
         show_nsfw,
         theme,
         default_sort_type,
@@ -58,7 +55,6 @@ pub trait LocalUser_ {
     local_user_id: LocalUserId,
     new_password: &str,
   ) -> Result<LocalUser, Error>;
-  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<LocalUser, Error>;
 }
 
 impl LocalUser_ for LocalUser {
@@ -83,12 +79,6 @@ impl LocalUser_ for LocalUser {
         password_encrypted.eq(password_hash),
         validator_time.eq(naive_now()),
       ))
-      .get_result::<Self>(conn)
-  }
-
-  fn add_admin(conn: &PgConnection, for_person_id: PersonId, added: bool) -> Result<Self, Error> {
-    diesel::update(local_user.filter(person_id.eq(for_person_id)))
-      .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 }

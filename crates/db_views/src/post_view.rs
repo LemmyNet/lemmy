@@ -546,6 +546,7 @@ mod tests {
         avatar: None,
         actor_id: inserted_person.actor_id.to_owned(),
         local: true,
+        admin: false,
         banned: false,
         deleted: false,
         bio: None,

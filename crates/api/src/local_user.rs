@@ -204,6 +204,7 @@ impl Perform for Register {
       public_key: Some(Some(actor_keypair.public_key)),
       inbox_url: Some(generate_inbox_url(&actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
+      admin: Some(no_admins),
       ..PersonForm::default()
     };
 
@@ -224,7 +225,6 @@ impl Perform for Register {
       person_id: inserted_person.id,
       email: Some(data.email.to_owned()),
       password_encrypted: data.password.to_owned(),
-      admin: Some(no_admins),
       show_nsfw: Some(data.show_nsfw),
       theme: Some("browser".into()),
       default_sort_type: Some(SortType::Active as i16),
@@ -455,6 +455,7 @@ impl Perform for SaveUserSettings {
       actor_id: None,
       bio,
       local: None,
+      admin: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
@@ -477,7 +478,6 @@ impl Perform for SaveUserSettings {
       person_id,
       email,
       password_encrypted,
-      admin: None,
       show_nsfw: data.show_nsfw,
       theme: data.theme.to_owned(),
       default_sort_type,
@@ -638,7 +638,7 @@ impl Perform for AddAdmin {
     let added = data.added;
     let added_person_id = data.person_id;
     let added_admin = match blocking(context.pool(), move |conn| {
-      LocalUser::add_admin(conn, added_person_id, added)
+      Person::add_admin(conn, added_person_id, added)
     })
     .await?
     {
@@ -651,7 +651,7 @@ impl Perform for AddAdmin {
     // Mod tables
     let form = ModAddForm {
       mod_person_id: local_user_view.person.id,
-      other_person_id: added_admin.person_id,
+      other_person_id: added_admin.id,
       removed: Some(!data.added),
     };
 

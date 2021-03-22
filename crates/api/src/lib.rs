@@ -79,7 +79,7 @@ pub(crate) async fn is_mod_or_admin(
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.local_user.admin {
+  if !local_user_view.person.admin {
     return Err(ApiError::err("not_an_admin").into());
   }
   Ok(())

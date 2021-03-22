@@ -26,6 +26,7 @@ pub struct Person {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
+  pub admin: bool,
 }
 
 /// A safe representation of person, without the sensitive info
@@ -47,6 +48,7 @@ pub struct PersonSafe {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
+  pub admin: bool,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -70,6 +72,7 @@ pub struct PersonAlias1 {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
+  pub admin: bool,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -90,6 +93,7 @@ pub struct PersonSafeAlias1 {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
+  pub admin: bool,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -113,6 +117,7 @@ pub struct PersonAlias2 {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
+  pub admin: bool,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -133,6 +138,7 @@ pub struct PersonSafeAlias2 {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
+  pub admin: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Default)]
@@ -155,4 +161,5 @@ pub struct PersonForm {
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
   pub matrix_user_id: Option<Option<String>>,
+  pub admin: Option<bool>,
 }
