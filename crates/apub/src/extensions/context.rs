@@ -8,10 +8,11 @@ pub(crate) fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
     "sc": "http://schema.org#",
     "sensitive": "as:sensitive",
     "stickied": "as:stickied",
+    "pt": "https://join.lemmy.ml#",
     "comments_enabled": {
-      "kind": "sc:Boolean",
+      "type": "sc:Boolean",
       "id": "pt:commentsEnabled"
     }
   }))?;
-  Ok(vec![AnyBase::from(context()), context_ext])
+  Ok(vec![AnyBase::from(context()), context_ext, "https://w3id.org/security/v1"])
 }
