@@ -26,6 +26,7 @@ use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentForm},
+    community::Community,
     person::Person,
     post::Post,
   },
@@ -52,6 +53,9 @@ impl ToApub for Comment {
     let post_id = self.post_id;
     let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
+    let community_id = post.community_id;
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
+
     // Add a vector containing some important info to the "in_reply_to" field
     // [post_ap_id, Option(parent_comment_ap_id)]
     let mut in_reply_to_vec = vec![post.ap_id.into_inner()];
@@ -67,7 +71,8 @@ impl ToApub for Comment {
       .set_many_contexts(lemmy_context()?)
       .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
-      .set_to(public())
+      // NOTE: included community id for compatibility with lemmy v0.9.9
+      .set_many_tos(vec![community.actor_id.into_inner(), public()])
       .set_many_in_reply_tos(in_reply_to_vec)
       .set_attributed_to(creator.actor_id.into_inner());
 

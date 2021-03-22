@@ -23,11 +23,13 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
 };
+use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{
   location_info,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
@@ -40,13 +42,25 @@ use url::Url;
 impl ToApub for Community {
   type ApubType = GroupExt;
 
-  async fn to_apub(&self, _pool: &DbPool) -> Result<GroupExt, LemmyError> {
+  async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
+    let id = self.id;
+    let moderators = blocking(pool, move |conn| {
+      CommunityModeratorView::for_community(&conn, id)
+    })
+    .await??;
+    let moderators: Vec<Url> = moderators
+      .into_iter()
+      .map(|m| m.moderator.actor_id.into_inner())
+      .collect();
+
     let mut group = ApObject::new(Group::new());
     group
       .set_many_contexts(lemmy_context()?)
       .set_id(self.actor_id.to_owned().into())
       .set_name(self.title.to_owned())
-      .set_published(convert_datetime(self.published));
+      .set_published(convert_datetime(self.published))
+      // NOTE: included attritubed_to field for compatibility with lemmy v0.9.9
+      .set_many_attributed_tos(moderators);
 
     if let Some(u) = self.updated.to_owned() {
       group.set_updated(convert_datetime(u));
@@ -127,9 +141,24 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
     let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
-    let creator_uri = moderator_uris.first().context(location_info!())?;
+    let creator = if let Some(creator_uri) = moderator_uris.first() {
+      get_or_fetch_and_upsert_person(creator_uri, context, request_counter)
+    } else {
+      // NOTE: code for compatibility with lemmy v0.9.9
+      let creator_uri = group
+        .inner
+        .attributed_to()
+        .map(|a| a.as_many())
+        .flatten()
+        .map(|a| a.first())
+        .flatten()
+        .map(|a| a.as_xsd_any_uri())
+        .flatten()
+        .context(location_info!())?;
+      get_or_fetch_and_upsert_person(creator_uri, context, request_counter)
+    }
+    .await?;
 
-    let creator = get_or_fetch_and_upsert_person(creator_uri, context, request_counter).await?;
     let name = group
       .inner
       .preferred_username()
