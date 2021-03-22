@@ -1,6 +1,7 @@
 use activitystreams::{base::AnyBase, context};
 use lemmy_utils::LemmyError;
 use serde_json::json;
+use url::Url;
 
 pub(crate) fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
   let context_ext = AnyBase::from_arbitrary_json(json!(
@@ -8,10 +9,15 @@ pub(crate) fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
     "sc": "http://schema.org#",
     "sensitive": "as:sensitive",
     "stickied": "as:stickied",
+    "pt": "https://join.lemmy.ml#",
     "comments_enabled": {
-      "kind": "sc:Boolean",
+      "type": "sc:Boolean",
       "id": "pt:commentsEnabled"
     }
   }))?;
-  Ok(vec![AnyBase::from(context()), context_ext])
+  Ok(vec![
+    AnyBase::from(context()),
+    context_ext,
+    AnyBase::from(Url::parse("https://w3id.org/security/v1")?),
+  ])
 }
