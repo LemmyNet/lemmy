@@ -134,46 +134,95 @@ pub(crate) async fn community_receive_message(
   let activity_kind = activity.kind().context(location_info!())?;
   let do_announce = match activity_kind {
     CommunityValidTypes::Follow => {
-      handle_follow(any_base.clone(), person, &to_community, &context).await?;
+      Box::pin(handle_follow(
+        any_base.clone(),
+        person,
+        &to_community,
+        &context,
+      ))
+      .await?;
       false
     }
     CommunityValidTypes::Undo => {
-      handle_undo(
+      Box::pin(handle_undo(
         context,
         activity.clone(),
         actor_url,
         &to_community,
         request_counter,
-      )
+      ))
       .await?
     }
     CommunityValidTypes::Create => {
-      receive_create_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      Box::pin(receive_create_for_community(
+        context,
+        any_base.clone(),
+        &actor_url,
+        request_counter,
+      ))
+      .await?;
       true
     }
     CommunityValidTypes::Update => {
-      receive_update_for_community(context, any_base.clone(), None, &actor_url, request_counter)
-        .await?;
+      Box::pin(receive_update_for_community(
+        context,
+        any_base.clone(),
+        None,
+        &actor_url,
+        request_counter,
+      ))
+      .await?;
       true
     }
     CommunityValidTypes::Like => {
-      receive_like_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      Box::pin(receive_like_for_community(
+        context,
+        any_base.clone(),
+        &actor_url,
+        request_counter,
+      ))
+      .await?;
       true
     }
     CommunityValidTypes::Dislike => {
-      receive_dislike_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      Box::pin(receive_dislike_for_community(
+        context,
+        any_base.clone(),
+        &actor_url,
+        request_counter,
+      ))
+      .await?;
       true
     }
     CommunityValidTypes::Delete => {
-      receive_delete_for_community(context, any_base.clone(), None, &actor_url).await?;
+      Box::pin(receive_delete_for_community(
+        context,
+        any_base.clone(),
+        None,
+        &actor_url,
+        request_counter,
+      ))
+      .await?;
       true
     }
     CommunityValidTypes::Add => {
-      receive_add_for_community(context, any_base.clone(), None, request_counter).await?;
+      Box::pin(receive_add_for_community(
+        context,
+        any_base.clone(),
+        None,
+        request_counter,
+      ))
+      .await?;
       true
     }
     CommunityValidTypes::Remove => {
-      receive_remove_for_community(context, any_base.clone(), None, request_counter).await?;
+      Box::pin(receive_remove_for_community(
+        context,
+        any_base.clone(),
+        None,
+        request_counter,
+      ))
+      .await?;
       true
     }
   };

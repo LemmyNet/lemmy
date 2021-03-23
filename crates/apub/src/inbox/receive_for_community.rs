@@ -35,13 +35,10 @@ use crate::{
     objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     person::get_or_fetch_and_upsert_person,
   },
-  find_object_by_id,
   find_post_or_comment_by_id,
   generate_moderators_url,
   inbox::verify_is_addressed_to_public,
-  ActorType,
   CommunityType,
-  Object,
   PostOrComment,
 };
 use activitystreams::{
@@ -122,7 +119,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, &expected_domain, false)?;
   verify_is_addressed_to_public(&update)?;
-  verify_modification_actor_instance(&update, &announce, context).await?;
+  verify_modification_actor_instance(&update, &announce, context, request_counter).await?;
 
   let kind = update
     .object()
@@ -197,11 +194,12 @@ pub(in crate::inbox) async fn receive_delete_for_community(
   activity: AnyBase,
   announce: Option<Announce>,
   expected_domain: &Url,
+  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&delete, &expected_domain, true)?;
   verify_is_addressed_to_public(&delete)?;
-  verify_modification_actor_instance(&delete, &announce, context).await?;
+  verify_modification_actor_instance(&delete, &announce, context, request_counter).await?;
 
   let object = delete
     .object()
@@ -588,6 +586,7 @@ async fn verify_modification_actor_instance<T, Kind>(
   activity: &T,
   announce: &Option<Announce>,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<(), LemmyError>
 where
   T: ActorAndObjectRef + BaseExt<Kind> + AsObject<Kind>,
@@ -603,12 +602,9 @@ where
     .map(|o| o.id())
     .flatten()
     .context(location_info!())?;
-  let original_id = match find_object_by_id(context, object_id.to_owned()).await? {
-    Object::Post(p) => p.ap_id.into_inner(),
-    Object::Comment(c) => c.ap_id.into_inner(),
-    Object::Community(c) => c.actor_id(),
-    Object::Person(p) => p.actor_id(),
-    Object::PrivateMessage(p) => p.ap_id.into_inner(),
+  let original_id = match fetch_post_or_comment_by_id(object_id, context, request_counter).await? {
+    PostOrComment::Post(p) => p.ap_id.into_inner(),
+    PostOrComment::Comment(c) => c.ap_id.into_inner(),
   };
   if actor_id.domain() != original_id.domain() {
     let community = extract_community_from_cc(activity, context).await?;

@@ -6,9 +6,9 @@ use crate::{
     check_object_domain,
     check_object_for_community_or_site_ban,
     create_tombstone,
+    get_community_from_to_or_cc,
     get_object_from_apub,
     get_source_markdown_value,
-    get_to_community,
     set_content_and_source,
     FromApub,
     FromApubToForm,
@@ -162,7 +162,7 @@ impl FromApubToForm<PageExt> for PostForm {
     let creator =
       get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
 
-    let community = get_to_community(page, context, request_counter).await?;
+    let community = get_community_from_to_or_cc(page, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(

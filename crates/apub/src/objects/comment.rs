@@ -165,15 +165,24 @@ impl FromApubToForm<NoteExt> for CommentForm {
     let post_ap_id = in_reply_tos.next().context(location_info!())??;
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post = get_or_fetch_and_insert_post(&post_ap_id, context, request_counter).await?;
+    let post = Box::pin(get_or_fetch_and_insert_post(
+      &post_ap_id,
+      context,
+      request_counter,
+    ))
+    .await?;
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively
     let parent_id: Option<CommentId> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri?;
-        let parent_comment =
-          get_or_fetch_and_insert_comment(&parent_comment_ap_id, context, request_counter).await?;
+        let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
+          &parent_comment_ap_id,
+          context,
+          request_counter,
+        ))
+        .await?;
 
         Some(parent_comment.id)
       }

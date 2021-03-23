@@ -58,7 +58,7 @@ pub(crate) async fn is_activity_already_known(
 
 pub(crate) fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Vec<Url>
 where
-  T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
+  T: AsObject<Kind>,
 {
   let mut to_and_cc = vec![];
   if let Some(to) = activity.to() {

@@ -154,19 +154,39 @@ pub(crate) async fn person_receive_message(
       .await?;
     }
     PersonValidTypes::Announce => {
-      receive_announce(&context, any_base, actor, request_counter).await?
+      Box::pin(receive_announce(&context, any_base, actor, request_counter)).await?
     }
     PersonValidTypes::Create => {
-      receive_create(&context, any_base, actor_url, request_counter).await?
+      Box::pin(receive_create(
+        &context,
+        any_base,
+        actor_url,
+        request_counter,
+      ))
+      .await?
     }
     PersonValidTypes::Update => {
-      receive_update(&context, any_base, actor_url, request_counter).await?
+      Box::pin(receive_update(
+        &context,
+        any_base,
+        actor_url,
+        request_counter,
+      ))
+      .await?
     }
     PersonValidTypes::Delete => {
-      receive_delete(context, any_base, &actor_url, request_counter).await?
+      Box::pin(receive_delete(
+        context,
+        any_base,
+        &actor_url,
+        request_counter,
+      ))
+      .await?
     }
-    PersonValidTypes::Undo => receive_undo(context, any_base, &actor_url, request_counter).await?,
-    PersonValidTypes::Remove => receive_remove(context, any_base, &actor_url).await?,
+    PersonValidTypes::Undo => {
+      Box::pin(receive_undo(context, any_base, &actor_url, request_counter)).await?
+    }
+    PersonValidTypes::Remove => Box::pin(receive_remove(context, any_base, &actor_url)).await?,
   };
 
   // TODO: would be logical to move websocket notification code here
@@ -305,7 +325,14 @@ pub async fn receive_announce(
       receive_dislike_for_community(context, inner_activity, &inner_id, request_counter).await
     }
     Some(Delete) => {
-      receive_delete_for_community(context, inner_activity, Some(announce), &inner_id).await
+      receive_delete_for_community(
+        context,
+        inner_activity,
+        Some(announce),
+        &inner_id,
+        request_counter,
+      )
+      .await
     }
     Some(Remove) => {
       receive_remove_for_community(context, inner_activity, Some(announce), request_counter).await

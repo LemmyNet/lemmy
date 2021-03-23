@@ -80,13 +80,13 @@ pub async fn shared_inbox(
     let community_activity = CommunityAcceptedActivities::from_any_base(activity_any_base.clone())?
       .context(location_info!())?;
     res = Some(
-      community_receive_message(
+      Box::pin(community_receive_message(
         community_activity,
         community,
         actor.as_ref(),
         &context,
         request_counter,
-      )
+      ))
       .await?,
     );
   } else if is_addressed_to_local_person(&to_and_cc, context.pool()).await? {
@@ -94,13 +94,13 @@ pub async fn shared_inbox(
       .context(location_info!())?;
     // `to_person` is only used for follow activities (which we dont receive here), so no need to pass
     // it in
-    person_receive_message(
+    Box::pin(person_receive_message(
       person_activity,
       None,
       actor.as_ref(),
       &context,
       request_counter,
-    )
+    ))
     .await?;
   } else if is_addressed_to_community_followers(&to_and_cc, context.pool())
     .await?
@@ -109,13 +109,13 @@ pub async fn shared_inbox(
     let person_activity = PersonAcceptedActivities::from_any_base(activity_any_base.clone())?
       .context(location_info!())?;
     res = Some(
-      person_receive_message(
+      Box::pin(person_receive_message(
         person_activity,
         None,
         actor.as_ref(),
         &context,
         request_counter,
-      )
+      ))
       .await?,
     );
   }

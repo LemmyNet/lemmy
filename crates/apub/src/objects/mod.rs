@@ -1,7 +1,8 @@
 use crate::{
   check_is_apub_id_valid,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  inbox::community_inbox::check_community_or_site_ban,
+  inbox::{community_inbox::check_community_or_site_ban, get_activity_to_and_cc},
+  PageExt,
 };
 use activitystreams::{
   base::{AsBase, BaseExt, ExtendsExt},
@@ -230,23 +231,12 @@ where
   check_community_or_site_ban(&person, community_id, context.pool()).await
 }
 
-pub(in crate::objects) async fn get_to_community<T, Kind>(
-  object: &T,
+pub(in crate::objects) async fn get_community_from_to_or_cc(
+  page: &PageExt,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<Community, LemmyError>
-where
-  T: ObjectExt<Kind>,
-{
-  let community_ids = object
-    .to()
-    .context(location_info!())?
-    .as_many()
-    .context(location_info!())?
-    .iter()
-    .map(|a| a.as_xsd_any_uri().context(location_info!()))
-    .collect::<Result<Vec<&Url>, anyhow::Error>>()?;
-  for cid in community_ids {
+) -> Result<Community, LemmyError> {
+  for cid in get_activity_to_and_cc(page) {
     let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
     if community.is_ok() {
       return community;
