@@ -578,6 +578,7 @@ impl Perform for GetPersonDetails {
         .my_person_id(person_id)
         .sort(&sort)
         .saved_only(saved_only)
+        .community_id(community_id)
         .page(page)
         .limit(limit);
 

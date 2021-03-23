@@ -70,6 +70,7 @@ pub struct GetComments {
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
+  pub saved_only: bool,
   pub auth: Option<String>,
 }
 

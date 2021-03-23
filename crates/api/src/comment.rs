@@ -684,12 +684,14 @@ impl Perform for GetComments {
 
     let community_id = data.community_id;
     let community_name = data.community_name.to_owned();
+    let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
     let comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .listing_type(type_)
         .sort(&sort)
+        .saved_only(saved_only)
         .community_id(community_id)
         .community_name(community_name)
         .my_person_id(person_id)
