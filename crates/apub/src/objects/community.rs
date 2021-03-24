@@ -1,5 +1,5 @@
 use crate::{
-  extensions::{context::lemmy_context, group_extensions::GroupExtension},
+  extensions::{context::lemmy_context, group_extension::GroupExtension},
   fetcher::{community::fetch_community_mods, person::get_or_fetch_and_upsert_person},
   generate_moderators_url,
   objects::{

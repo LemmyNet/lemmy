@@ -14,7 +14,11 @@ pub(crate) fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
       "type": "sc:Boolean",
       "id": "pt:commentsEnabled"
     },
-    "moderators": "as:moderators"
+    "moderators": "as:moderators",
+    "matrixUserId": {
+      "type": "sc:Text",
+      "id": "as:alsoKnownAs"
+    },
   }))?;
   Ok(vec![
     AnyBase::from(context()),
