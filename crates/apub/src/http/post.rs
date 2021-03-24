@@ -12,12 +12,12 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct PostQuery {
+pub(crate) struct PostQuery {
   post_id: String,
 }
 
 /// Return the ActivityPub json representation of a local post over HTTP.
-pub async fn get_apub_post(
+pub(crate) async fn get_apub_post(
   info: web::Path<PostQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {

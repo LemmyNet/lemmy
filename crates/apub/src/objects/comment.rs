@@ -26,6 +26,7 @@ use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentForm},
+    community::Community,
     person::Person,
     post::Post,
   },
@@ -52,6 +53,9 @@ impl ToApub for Comment {
     let post_id = self.post_id;
     let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
+    let community_id = post.community_id;
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
+
     // Add a vector containing some important info to the "in_reply_to" field
     // [post_ap_id, Option(parent_comment_ap_id)]
     let mut in_reply_to_vec = vec![post.ap_id.into_inner()];
@@ -67,7 +71,8 @@ impl ToApub for Comment {
       .set_many_contexts(lemmy_context()?)
       .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
-      .set_to(public())
+      // NOTE: included community id for compatibility with lemmy v0.9.9
+      .set_many_tos(vec![community.actor_id.into_inner(), public()])
       .set_many_in_reply_tos(in_reply_to_vec)
       .set_attributed_to(creator.actor_id.into_inner());
 
@@ -102,9 +107,16 @@ impl FromApub for Comment {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<Comment, LemmyError> {
-    let comment: Comment =
-      get_object_from_apub(note, context, expected_domain, request_counter).await?;
+    let comment: Comment = get_object_from_apub(
+      note,
+      context,
+      expected_domain,
+      request_counter,
+      mod_action_allowed,
+    )
+    .await?;
 
     let post_id = comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -131,6 +143,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    _mod_action_allowed: bool,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note
       .attributed_to()
@@ -152,15 +165,24 @@ impl FromApubToForm<NoteExt> for CommentForm {
     let post_ap_id = in_reply_tos.next().context(location_info!())??;
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post = get_or_fetch_and_insert_post(&post_ap_id, context, request_counter).await?;
+    let post = Box::pin(get_or_fetch_and_insert_post(
+      &post_ap_id,
+      context,
+      request_counter,
+    ))
+    .await?;
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively
     let parent_id: Option<CommentId> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri?;
-        let parent_comment =
-          get_or_fetch_and_insert_comment(&parent_comment_ap_id, context, request_counter).await?;
+        let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
+          &parent_comment_ap_id,
+          context,
+          request_counter,
+        ))
+        .await?;
 
         Some(parent_comment.id)
       }

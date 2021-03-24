@@ -42,7 +42,7 @@ pub struct CommunityQuery {
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
-pub async fn get_activity(
+pub(crate) async fn get_activity(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {

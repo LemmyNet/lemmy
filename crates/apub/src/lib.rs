@@ -17,7 +17,7 @@ use crate::extensions::{
 };
 use activitystreams::{
   activity::Follow,
-  actor::{ApActor, Group, Person},
+  actor,
   base::AnyBase,
   object::{ApObject, Note, Page},
 };
@@ -31,7 +31,7 @@ use lemmy_db_schema::{
     activity::Activity,
     comment::Comment,
     community::Community,
-    person::Person as DbPerson,
+    person::{Person as DbPerson, Person},
     post::Post,
     private_message::PrivateMessage,
   },
@@ -44,9 +44,9 @@ use std::net::IpAddr;
 use url::{ParseError, Url};
 
 /// Activitystreams type for community
-type GroupExt = Ext2<ApActor<ApObject<Group>>, GroupExtension, PublicKeyExtension>;
+type GroupExt = Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
 /// Activitystreams type for person
-type PersonExt = Ext1<ApActor<ApObject<Person>>, PublicKeyExtension>;
+type PersonExt = Ext1<actor::ApActor<ApObject<actor::Person>>, PublicKeyExtension>;
 /// Activitystreams type for post
 type PageExt = Ext1<ApObject<Page>, PageExtension>;
 type NoteExt = ApObject<Note>;
@@ -166,38 +166,6 @@ pub trait ActorType {
   fn public_key(&self) -> Option<String>;
   fn private_key(&self) -> Option<String>;
 
-  async fn send_follow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_unfollow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  async fn send_accept_follow(
-    &self,
-    follow: Follow,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_announce(
-    &self,
-    activity: AnyBase,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
-
   fn get_shared_inbox_or_inbox_url(&self) -> Url;
 
   /// Outbox URL is not generally used by Lemmy, so it can be generated on the fly (but only for
@@ -219,6 +187,55 @@ pub trait ActorType {
       .to_ext(),
     )
   }
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait CommunityType {
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
+  async fn send_accept_follow(
+    &self,
+    follow: Follow,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+
+  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+
+  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+
+  async fn send_announce(
+    &self,
+    activity: AnyBase,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+
+  async fn send_add_mod(
+    &self,
+    actor: &Person,
+    added_mod: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_remove_mod(
+    &self,
+    actor: &Person,
+    removed_mod: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait UserType {
+  async fn send_follow(
+    &self,
+    follow_actor_id: &Url,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_unfollow(
+    &self,
+    follow_actor_id: &Url,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
 }
 
 pub enum EndpointType {
@@ -276,6 +293,10 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
+pub(crate) fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
+  Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
+}
+
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
 pub(crate) async fn insert_activity<T>(
@@ -329,6 +350,7 @@ pub(crate) async fn find_post_or_comment_by_id(
   Err(NotFound.into())
 }
 
+#[derive(Debug)]
 pub(crate) enum Object {
   Comment(Box<Comment>),
   Post(Box<Post>),

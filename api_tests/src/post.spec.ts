@@ -22,6 +22,7 @@ import {
   searchForUser,
   banPersonFromSite,
   searchPostLocal,
+  followCommunity,
   banPersonFromCommunity,
 } from './shared';
 import { PostView, CommunityView } from 'lemmy-js-client';
@@ -169,35 +170,38 @@ test('Sticky a post', async () => {
 });
 
 test('Lock a post', async () => {
+  await followCommunity(alpha, true, betaCommunity.community.id);
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
   // Lock the post
-  let lockedPostRes = await lockPost(alpha, true, postRes.post_view.post);
+  let searchBeta = await searchPost(beta, postRes.post_view.post);
+  let betaPost1 = searchBeta.posts[0];
+  let lockedPostRes = await lockPost(beta, true, betaPost1.post);
   expect(lockedPostRes.post_view.post.locked).toBe(true);
 
-  // Make sure that post is locked on beta
-  let searchBeta = await searchPostLocal(beta, postRes.post_view.post);
-  let betaPost1 = searchBeta.posts[0];
-  expect(betaPost1.post.locked).toBe(true);
+  // Make sure that post is locked on alpha
+  let searchAlpha = await searchPostLocal(alpha, postRes.post_view.post);
+  let alphaPost1 = searchAlpha.posts[0];
+  expect(alphaPost1.post.locked).toBe(true);
 
   // Try to make a new comment there, on alpha
-  let comment: any = await createComment(alpha, postRes.post_view.post.id);
+  let comment: any = await createComment(alpha, alphaPost1.post.id);
   expect(comment['error']).toBe('locked');
 
   // Unlock a post
-  let unlockedPost = await lockPost(alpha, false, postRes.post_view.post);
+  let unlockedPost = await lockPost(beta, false, betaPost1.post);
   expect(unlockedPost.post_view.post.locked).toBe(false);
 
-  // Make sure that post is unlocked on beta
-  let searchBeta2 = await searchPost(beta, postRes.post_view.post);
-  let betaPost2 = searchBeta2.posts[0];
-  expect(betaPost2.community.local).toBe(true);
-  expect(betaPost2.creator.local).toBe(false);
-  expect(betaPost2.post.locked).toBe(false);
+  // Make sure that post is unlocked on alpha
+  let searchAlpha2 = await searchPostLocal(alpha, postRes.post_view.post);
+  let alphaPost2 = searchAlpha2.posts[0];
+  expect(alphaPost2.community.local).toBe(false);
+  expect(alphaPost2.creator.local).toBe(true);
+  expect(alphaPost2.post.locked).toBe(false);
 
-  // Try to create a new comment, on beta
-  let commentBeta = await createComment(beta, betaPost2.post.id);
-  expect(commentBeta).toBeDefined();
+  // Try to create a new comment, on alpha
+  let commentAlpha = await createComment(alpha, alphaPost1.post.id);
+  expect(commentAlpha).toBeDefined();
 });
 
 test('Delete a post', async () => {

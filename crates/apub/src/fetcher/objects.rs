@@ -30,7 +30,14 @@ pub(crate) async fn get_or_fetch_and_insert_post(
       debug!("Fetching and creating remote post: {}", post_ap_id);
       let page =
         fetch_remote_object::<PageExt>(context.client(), post_ap_id, recursion_counter).await?;
-      let post = Post::from_apub(&page, context, post_ap_id.to_owned(), recursion_counter).await?;
+      let post = Post::from_apub(
+        &page,
+        context,
+        post_ap_id.to_owned(),
+        recursion_counter,
+        false,
+      )
+      .await?;
 
       Ok(post)
     }
@@ -67,6 +74,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
         context,
         comment_ap_id.to_owned(),
         recursion_counter,
+        false,
       )
       .await?;
 

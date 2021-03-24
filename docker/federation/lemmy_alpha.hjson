@@ -1,4 +1,5 @@
 {
+  hostname: lemmy-alpha:8541
   port: 8541
   tls_enabled: false
   jwt_secret: changeme
