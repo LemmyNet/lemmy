@@ -1,5 +1,6 @@
 use crate::{
   extensions::context::lemmy_context,
+  generate_moderators_url,
   http::{create_apub_response, create_apub_tombstone_response},
   objects::ToApub,
   ActorType,
@@ -7,23 +8,27 @@ use crate::{
 use activitystreams::{
   base::{AnyBase, BaseExt},
   collection::{CollectionExt, OrderedCollection, UnorderedCollection},
+  url::Url,
 };
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_api_structs::blocking;
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
-use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
+use lemmy_db_views_actor::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct CommunityQuery {
+pub(crate) struct CommunityQuery {
   community_name: String,
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
-pub async fn get_apub_community_http(
+pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -42,7 +47,7 @@ pub async fn get_apub_community_http(
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).
-pub async fn get_apub_community_followers(
+pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -67,7 +72,7 @@ pub async fn get_apub_community_followers(
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
 /// activites like votes or comments).
-pub async fn get_apub_community_outbox(
+pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -96,7 +101,7 @@ pub async fn get_apub_community_outbox(
   Ok(create_apub_response(&collection))
 }
 
-pub async fn get_apub_community_inbox(
+pub(crate) async fn get_apub_community_inbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
@@ -107,7 +112,39 @@ pub async fn get_apub_community_inbox(
 
   let mut collection = OrderedCollection::new();
   collection
-    .set_id(format!("{}/inbox", community.actor_id).parse()?)
+    .set_id(community.inbox_url.into())
+    .set_many_contexts(lemmy_context()?);
+  Ok(create_apub_response(&collection))
+}
+
+pub(crate) async fn get_apub_community_moderators(
+  info: web::Path<CommunityQuery>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse<Body>, LemmyError> {
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_name(&conn, &info.community_name)
+  })
+  .await??;
+
+  // The attributed to, is an ordered vector with the creator actor_ids first,
+  // then the rest of the moderators
+  // TODO Technically the instance admins can mod the community, but lets
+  // ignore that for now
+  let cid = community.id;
+  let moderators = blocking(context.pool(), move |conn| {
+    CommunityModeratorView::for_community(&conn, cid)
+  })
+  .await??;
+
+  let moderators: Vec<Url> = moderators
+    .into_iter()
+    .map(|m| m.moderator.actor_id.into_inner())
+    .collect();
+  let mut collection = OrderedCollection::new();
+  collection
+    .set_id(generate_moderators_url(&community.actor_id)?.into())
+    .set_total_items(moderators.len() as u64)
+    .set_many_items(moderators)
     .set_many_contexts(lemmy_context()?);
   Ok(create_apub_response(&collection))
 }

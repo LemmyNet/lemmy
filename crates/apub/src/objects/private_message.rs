@@ -77,8 +77,16 @@ impl FromApub for PrivateMessage {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<PrivateMessage, LemmyError> {
-    get_object_from_apub(note, context, expected_domain, request_counter).await
+    get_object_from_apub(
+      note,
+      context,
+      expected_domain,
+      request_counter,
+      mod_action_allowed,
+    )
+    .await
   }
 }
 
@@ -89,6 +97,7 @@ impl FromApubToForm<NoteExt> for PrivateMessageForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    _mod_action_allowed: bool,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let creator_actor_id = note
       .attributed_to()

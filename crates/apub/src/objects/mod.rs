@@ -1,7 +1,8 @@
 use crate::{
   check_is_apub_id_valid,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  inbox::community_inbox::check_community_or_site_ban,
+  inbox::{community_inbox::check_community_or_site_ban, get_activity_to_and_cc},
+  PageExt,
 };
 use activitystreams::{
   base::{AsBase, BaseExt, ExtendsExt},
@@ -45,12 +46,14 @@ pub(crate) trait FromApub {
   ///
   /// * `apub` The object to read from
   /// * `context` LemmyContext which holds DB pool, HTTP client etc
-  /// * `expected_domain` Domain where the object was received from
+  /// * `expected_domain` Domain where the object was received from. None in case of mod action.
+  /// * `mod_action_allowed` True if the object can be a mod activity, ignore `expected_domain` in this case
   async fn from_apub(
     apub: &Self::ApubType,
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -63,6 +66,7 @@ pub(in crate::objects) trait FromApubToForm<ApubType> {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -132,19 +136,17 @@ where
 {
   let content = object
     .content()
-    .map(|s| s.as_single_xsd_string())
-    .flatten()
-    .map(|s| s.to_string());
+    .map(|s| s.as_single_xsd_string().map(|s2| s2.to_string()))
+    .flatten();
   if content.is_some() {
     let source = object.source().context(location_info!())?;
     let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
     check_is_markdown(source.media_type())?;
     let source_content = source
       .content()
-      .map(|s| s.as_single_xsd_string())
+      .map(|s| s.as_single_xsd_string().map(|s2| s2.to_string()))
       .flatten()
-      .context(location_info!())?
-      .to_string();
+      .context(location_info!())?;
     return Ok(Some(source_content));
   }
   Ok(None)
@@ -177,6 +179,7 @@ pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm, IdT
   context: &LemmyContext,
   expected_domain: Url,
   request_counter: &mut i32,
+  is_mod_action: bool,
 ) -> Result<To, LemmyError>
 where
   From: BaseExt<Kind>,
@@ -196,7 +199,14 @@ where
   }
   // otherwise parse and insert, assuring that it comes from the right domain
   else {
-    let to_form = ToForm::from_apub(&from, context, expected_domain, request_counter).await?;
+    let to_form = ToForm::from_apub(
+      &from,
+      context,
+      expected_domain,
+      request_counter,
+      is_mod_action,
+    )
+    .await?;
 
     let to = blocking(context.pool(), move |conn| To::upsert(conn, &to_form)).await??;
     Ok(to)
@@ -221,23 +231,12 @@ where
   check_community_or_site_ban(&person, community_id, context.pool()).await
 }
 
-pub(in crate::objects) async fn get_to_community<T, Kind>(
-  object: &T,
+pub(in crate::objects) async fn get_community_from_to_or_cc(
+  page: &PageExt,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<Community, LemmyError>
-where
-  T: ObjectExt<Kind>,
-{
-  let community_ids = object
-    .to()
-    .context(location_info!())?
-    .as_many()
-    .context(location_info!())?
-    .iter()
-    .map(|a| a.as_xsd_any_uri().context(location_info!()))
-    .collect::<Result<Vec<&Url>, anyhow::Error>>()?;
-  for cid in community_ids {
+) -> Result<Community, LemmyError> {
+  for cid in get_activity_to_and_cc(page) {
     let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
     if community.is_ok() {
       return community;

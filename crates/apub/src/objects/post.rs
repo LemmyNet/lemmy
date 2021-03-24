@@ -1,13 +1,14 @@
 use crate::{
+  check_is_apub_id_valid,
   extensions::{context::lemmy_context, page_extension::PageExtension},
   fetcher::person::get_or_fetch_and_upsert_person,
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
     create_tombstone,
+    get_community_from_to_or_cc,
     get_object_from_apub,
     get_source_markdown_value,
-    get_to_community,
     set_content_and_source,
     FromApub,
     FromApubToForm,
@@ -117,8 +118,16 @@ impl FromApub for Post {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<Post, LemmyError> {
-    let post: Post = get_object_from_apub(page, context, expected_domain, request_counter).await?;
+    let post: Post = get_object_from_apub(
+      page,
+      context,
+      expected_domain,
+      request_counter,
+      mod_action_allowed,
+    )
+    .await?;
     check_object_for_community_or_site_ban(page, post.community_id, context, request_counter)
       .await?;
     Ok(post)
@@ -132,7 +141,15 @@ impl FromApubToForm<PageExt> for PostForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<PostForm, LemmyError> {
+    let ap_id = if mod_action_allowed {
+      let id = page.id_unchecked().context(location_info!())?;
+      check_is_apub_id_valid(id)?;
+      id.to_owned().into()
+    } else {
+      check_object_domain(page, expected_domain)?
+    };
     let ext = &page.ext_one;
     let creator_actor_id = page
       .inner
@@ -145,7 +162,7 @@ impl FromApubToForm<PageExt> for PostForm {
     let creator =
       get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
 
-    let community = get_to_community(page, context, request_counter).await?;
+    let community = get_community_from_to_or_cc(page, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(
@@ -179,15 +196,19 @@ impl FromApubToForm<PageExt> for PostForm {
     let name = page
       .inner
       .name()
-      .map(|s| s.map(|s2| s2.to_owned()))
       // The following is for compatibility with lemmy v0.9.9 and older
       // TODO: remove it after some time (along with the map above)
-      .or_else(|| page.inner.summary().map(|s| s.to_owned()))
+      .or_else(|| page.inner.summary())
       .context(location_info!())?
       .as_single_xsd_string()
       .context(location_info!())?
       .to_string();
     let body = get_source_markdown_value(page)?;
+
+    // TODO: expected_domain is wrong in this case, because it simply takes the domain of the actor
+    //       maybe we need to take id_unchecked() if the activity is from community to user?
+    //       why did this work before? -> i dont think it did?
+    //       -> try to make expected_domain optional and set it null if it is a mod action
 
     check_slurs(&name)?;
     let body_slurs_removed = body.map(|b| remove_slurs(&b));
@@ -216,7 +237,7 @@ impl FromApubToForm<PageExt> for PostForm {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(check_object_domain(page, expected_domain)?),
+      ap_id: Some(ap_id),
       local: false,
     })
   }

@@ -46,8 +46,14 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
         return Ok(u);
       }
 
-      let person =
-        Person::from_apub(&person?, context, apub_id.to_owned(), recursion_counter).await?;
+      let person = Person::from_apub(
+        &person?,
+        context,
+        apub_id.to_owned(),
+        recursion_counter,
+        false,
+      )
+      .await?;
 
       let person_id = person.id;
       blocking(context.pool(), move |conn| {
@@ -63,8 +69,14 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
       let person =
         fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await?;
 
-      let person =
-        Person::from_apub(&person, context, apub_id.to_owned(), recursion_counter).await?;
+      let person = Person::from_apub(
+        &person,
+        context,
+        apub_id.to_owned(),
+        recursion_counter,
+        false,
+      )
+      .await?;
 
       Ok(person)
     }

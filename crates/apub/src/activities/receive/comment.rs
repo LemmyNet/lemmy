@@ -1,6 +1,6 @@
 use crate::{activities::receive::get_actor_as_person, objects::FromApub, ActorType, NoteExt};
 use activitystreams::{
-  activity::{ActorAndObjectRefExt, Create, Dislike, Like, Remove, Update},
+  activity::{ActorAndObjectRefExt, Create, Dislike, Like, Update},
   base::ExtendsExt,
 };
 use anyhow::Context;
@@ -23,7 +23,8 @@ pub(crate) async fn receive_create_comment(
   let note = NoteExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment = Comment::from_apub(&note, context, person.actor_id(), request_counter).await?;
+  let comment =
+    Comment::from_apub(&note, context, person.actor_id(), request_counter, false).await?;
 
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -73,7 +74,8 @@ pub(crate) async fn receive_update_comment(
     .context(location_info!())?;
   let person = get_actor_as_person(&update, context, request_counter).await?;
 
-  let comment = Comment::from_apub(&note, context, person.actor_id(), request_counter).await?;
+  let comment =
+    Comment::from_apub(&note, context, person.actor_id(), request_counter, false).await?;
 
   let comment_id = comment.id;
   let post_id = comment.post_id;
@@ -228,7 +230,6 @@ pub(crate) async fn receive_delete_comment(
 
 pub(crate) async fn receive_remove_comment(
   context: &LemmyContext,
-  _remove: Remove,
   comment: Comment,
 ) -> Result<(), LemmyError> {
   let removed_comment = blocking(context.pool(), move |conn| {

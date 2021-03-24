@@ -27,7 +27,7 @@ use url::Url;
 
 pub mod community_inbox;
 pub mod person_inbox;
-mod receive_for_community;
+pub(crate) mod receive_for_community;
 pub mod shared_inbox;
 
 pub(crate) fn get_activity_id<T, Kind>(activity: &T, creator_uri: &Url) -> Result<Url, LemmyError>
@@ -58,7 +58,7 @@ pub(crate) async fn is_activity_already_known(
 
 pub(crate) fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Vec<Url>
 where
-  T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
+  T: AsObject<Kind>,
 {
   let mut to_and_cc = vec![];
   if let Some(to) = activity.to() {
@@ -84,7 +84,7 @@ where
   to_and_cc
 }
 
-pub(crate) fn is_addressed_to_public<T, Kind>(activity: &T) -> Result<(), LemmyError>
+pub(crate) fn verify_is_addressed_to_public<T, Kind>(activity: &T) -> Result<(), LemmyError>
 where
   T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
 {

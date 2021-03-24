@@ -39,7 +39,7 @@ pub(crate) async fn receive_create_private_message(
   .context(location_info!())?;
 
   let private_message =
-    PrivateMessage::from_apub(&note, context, expected_domain, request_counter).await?;
+    PrivateMessage::from_apub(&note, context, expected_domain, request_counter, false).await?;
 
   let message = blocking(&context.pool(), move |conn| {
     PrivateMessageView::read(conn, private_message.id)
@@ -85,7 +85,7 @@ pub(crate) async fn receive_update_private_message(
   let note = NoteExt::from_any_base(object)?.context(location_info!())?;
 
   let private_message =
-    PrivateMessage::from_apub(&note, context, expected_domain, request_counter).await?;
+    PrivateMessage::from_apub(&note, context, expected_domain, request_counter, false).await?;
 
   let private_message_id = private_message.id;
   let message = blocking(&context.pool(), move |conn| {

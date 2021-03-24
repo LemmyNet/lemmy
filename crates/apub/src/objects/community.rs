@@ -1,6 +1,7 @@
 use crate::{
   extensions::{context::lemmy_context, group_extensions::GroupExtension},
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::{community::fetch_community_mods, person::get_or_fetch_and_upsert_person},
+  generate_moderators_url,
   objects::{
     check_object_domain,
     create_tombstone,
@@ -42,10 +43,6 @@ impl ToApub for Community {
   type ApubType = GroupExt;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
-    // The attributed to, is an ordered vector with the creator actor_ids first,
-    // then the rest of the moderators
-    // TODO Technically the instance admins can mod the community, but lets
-    // ignore that for now
     let id = self.id;
     let moderators = blocking(pool, move |conn| {
       CommunityModeratorView::for_community(&conn, id)
@@ -62,6 +59,7 @@ impl ToApub for Community {
       .set_id(self.actor_id.to_owned().into())
       .set_name(self.title.to_owned())
       .set_published(convert_datetime(self.published))
+      // NOTE: included attritubed_to field for compatibility with lemmy v0.9.9
       .set_many_attributed_tos(moderators);
 
     if let Some(u) = self.updated.to_owned() {
@@ -95,7 +93,7 @@ impl ToApub for Community {
 
     Ok(Ext2::new(
       ap_actor,
-      GroupExtension::new(self.nsfw)?,
+      GroupExtension::new(self.nsfw, generate_moderators_url(&self.actor_id)?.into())?,
       self.get_public_key_ext()?,
     ))
   }
@@ -114,14 +112,22 @@ impl ToApub for Community {
 impl FromApub for Community {
   type ApubType = GroupExt;
 
-  /// Converts a `Group` to `Community`.
+  /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<Community, LemmyError> {
-    get_object_from_apub(group, context, expected_domain, request_counter).await
+    get_object_from_apub(
+      group,
+      context,
+      expected_domain,
+      request_counter,
+      mod_action_allowed,
+    )
+    .await
   }
 }
 
@@ -132,18 +138,27 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
-    let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;
-    let creator_uri = creator_and_moderator_uris
-      .as_many()
-      .context(location_info!())?
-      .iter()
-      .next()
-      .context(location_info!())?
-      .as_xsd_any_uri()
-      .context(location_info!())?;
+    let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
+    let creator = if let Some(creator_uri) = moderator_uris.first() {
+      get_or_fetch_and_upsert_person(creator_uri, context, request_counter)
+    } else {
+      // NOTE: code for compatibility with lemmy v0.9.9
+      let creator_uri = group
+        .inner
+        .attributed_to()
+        .map(|a| a.as_many())
+        .flatten()
+        .map(|a| a.first())
+        .flatten()
+        .map(|a| a.as_xsd_any_uri())
+        .flatten()
+        .context(location_info!())?;
+      get_or_fetch_and_upsert_person(creator_uri, context, request_counter)
+    }
+    .await?;
 
-    let creator = get_or_fetch_and_upsert_person(creator_uri, context, request_counter).await?;
     let name = group
       .inner
       .preferred_username()

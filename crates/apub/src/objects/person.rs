@@ -93,6 +93,7 @@ impl FromApub for DbPerson {
     context: &LemmyContext,
     expected_domain: Url,
     request_counter: &mut i32,
+    mod_action_allowed: bool,
   ) -> Result<DbPerson, LemmyError> {
     let person_id = person.id_unchecked().context(location_info!())?.to_owned();
     let domain = person_id.domain().context(location_info!())?;
@@ -103,8 +104,14 @@ impl FromApub for DbPerson {
       .await??;
       Ok(person)
     } else {
-      let person_form =
-        PersonForm::from_apub(person, context, expected_domain, request_counter).await?;
+      let person_form = PersonForm::from_apub(
+        person,
+        context,
+        expected_domain,
+        request_counter,
+        mod_action_allowed,
+      )
+      .await?;
       let person = blocking(context.pool(), move |conn| {
         DbPerson::upsert(conn, &person_form)
       })
@@ -121,6 +128,7 @@ impl FromApubToForm<PersonExt> for PersonForm {
     _context: &LemmyContext,
     expected_domain: Url,
     _request_counter: &mut i32,
+    _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
       Some(any_image) => Some(

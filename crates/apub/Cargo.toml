@@ -17,7 +17,7 @@ lemmy_db_views_actor = { path = "../db_views_actor" }
 lemmy_api_structs = { path = "../api_structs" }
 lemmy_websocket = { path = "../websocket" }
 diesel = "1.4.5"
-activitystreams = "0.7.0-alpha.10"
+activitystreams = "0.7.0-alpha.11"
 activitystreams-ext = "0.1.0-alpha.2"
 bcrypt = "0.9.0"
 chrono = { version = "0.4.19", features = ["serde"] }
