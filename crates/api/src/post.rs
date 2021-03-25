@@ -82,19 +82,12 @@ impl Perform for CreatePost {
       body: data.body.to_owned(),
       community_id: data.community_id,
       creator_id: local_user_view.person.id,
-      removed: None,
-      deleted: None,
       nsfw: data.nsfw,
-      locked: None,
-      stickied: None,
-      updated: None,
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: None,
-      local: true,
-      published: None,
+      ..PostForm::default()
     };
 
     let inserted_post =
@@ -402,24 +395,18 @@ impl Perform for EditPost {
       fetch_iframely_and_pictrs_data(context.client(), data_url).await;
 
     let post_form = PostForm {
+      creator_id: orig_post.creator_id.to_owned(),
+      community_id: orig_post.community_id,
       name: data.name.trim().to_owned(),
       url: data_url.map(|u| u.to_owned().into()),
       body: data.body.to_owned(),
       nsfw: data.nsfw,
-      creator_id: orig_post.creator_id.to_owned(),
-      community_id: orig_post.community_id,
-      removed: Some(orig_post.removed),
-      deleted: Some(orig_post.deleted),
-      locked: Some(orig_post.locked),
-      stickied: Some(orig_post.stickied),
       updated: Some(naive_now()),
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(orig_post.ap_id),
-      local: orig_post.local,
-      published: None,
+      ..PostForm::default()
     };
 
     let post_id = data.post_id;

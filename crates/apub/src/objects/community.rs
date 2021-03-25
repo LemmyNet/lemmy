@@ -1,5 +1,5 @@
 use crate::{
-  extensions::{context::lemmy_context, group_extensions::GroupExtension},
+  extensions::{context::lemmy_context, group_extension::GroupExtension},
   fetcher::{community::fetch_community_mods, person::get_or_fetch_and_upsert_person},
   generate_moderators_url,
   objects::{
@@ -220,9 +220,9 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       published: group.inner.published().map(|u| u.to_owned().naive_local()),
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      nsfw: group.ext_one.sensitive.unwrap_or(false),
+      nsfw: Some(group.ext_one.sensitive.unwrap_or(false)),
       actor_id: Some(check_object_domain(group, expected_domain)?),
-      local: false,
+      local: Some(false),
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),

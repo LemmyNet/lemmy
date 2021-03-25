@@ -170,19 +170,14 @@ impl Perform for CreateCommunity {
       icon,
       banner,
       creator_id: local_user_view.person.id,
-      removed: None,
-      deleted: None,
       nsfw: data.nsfw,
-      updated: None,
       actor_id: Some(community_actor_id.to_owned()),
-      local: true,
       private_key: Some(keypair.private_key),
       public_key: Some(keypair.public_key),
-      last_refreshed_at: None,
-      published: None,
       followers_url: Some(generate_followers_url(&community_actor_id)?),
       inbox_url: Some(generate_inbox_url(&community_actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&community_actor_id)?)),
+      ..CommunityForm::default()
     };
 
     let inserted_community = match blocking(context.pool(), move |conn| {
@@ -265,23 +260,13 @@ impl Perform for EditCommunity {
     let community_form = CommunityForm {
       name: read_community.name,
       title: data.title.to_owned(),
+      creator_id: read_community.creator_id,
       description: data.description.to_owned(),
       icon,
       banner,
-      creator_id: read_community.creator_id,
-      removed: Some(read_community.removed),
-      deleted: Some(read_community.deleted),
       nsfw: data.nsfw,
       updated: Some(naive_now()),
-      actor_id: Some(read_community.actor_id),
-      local: read_community.local,
-      private_key: read_community.private_key,
-      public_key: read_community.public_key,
-      last_refreshed_at: None,
-      published: None,
-      followers_url: None,
-      inbox_url: None,
-      shared_inbox_url: None,
+      ..CommunityForm::default()
     };
 
     let community_id = data.community_id;

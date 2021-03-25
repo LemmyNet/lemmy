@@ -51,7 +51,7 @@ pub struct CommentAlias1 {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset, Clone, Default)]
 #[table_name = "comment"]
 pub struct CommentForm {
   pub creator_id: PersonId,
@@ -64,7 +64,7 @@ pub struct CommentForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
-  pub local: bool,
+  pub local: Option<bool>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Clone)]

@@ -199,21 +199,13 @@ impl Perform for Register {
     // Register the new person
     let person_form = PersonForm {
       name: data.username.to_owned(),
-      avatar: None,
-      banner: None,
-      preferred_username: None,
-      published: None,
-      updated: None,
-      banned: None,
-      deleted: None,
       actor_id: Some(actor_id.clone()),
-      bio: None,
-      local: Some(true),
       private_key: Some(Some(actor_keypair.private_key)),
       public_key: Some(Some(actor_keypair.public_key)),
-      last_refreshed_at: None,
       inbox_url: Some(generate_inbox_url(&actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
+      admin: Some(no_admins),
+      ..PersonForm::default()
     };
 
     // insert the person
@@ -232,9 +224,7 @@ impl Perform for Register {
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
       email: Some(data.email.to_owned()),
-      matrix_user_id: None,
       password_encrypted: data.password.to_owned(),
-      admin: Some(no_admins),
       show_nsfw: Some(data.show_nsfw),
       theme: Some("browser".into()),
       default_sort_type: Some(SortType::Active as i16),
@@ -285,22 +275,14 @@ impl Perform for Register {
           name: default_community_name.to_string(),
           title: "The Default Community".to_string(),
           description: Some("The Default Community".to_string()),
-          nsfw: false,
           creator_id: inserted_person.id,
-          removed: None,
-          deleted: None,
-          updated: None,
           actor_id: Some(actor_id.to_owned()),
-          local: true,
           private_key: Some(main_community_keypair.private_key),
           public_key: Some(main_community_keypair.public_key),
-          last_refreshed_at: None,
-          published: None,
-          icon: None,
-          banner: None,
           followers_url: Some(generate_followers_url(&actor_id)?),
           inbox_url: Some(generate_inbox_url(&actor_id)?),
           shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
+          ..CommunityForm::default()
         };
         blocking(context.pool(), move |conn| {
           Community::create(conn, &community_form)
@@ -473,10 +455,12 @@ impl Perform for SaveUserSettings {
       actor_id: None,
       bio,
       local: None,
+      admin: None,
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
       shared_inbox_url: None,
+      matrix_user_id,
     };
 
     let person_res = blocking(context.pool(), move |conn| {
@@ -493,9 +477,7 @@ impl Perform for SaveUserSettings {
     let local_user_form = LocalUserForm {
       person_id,
       email,
-      matrix_user_id,
       password_encrypted,
-      admin: None,
       show_nsfw: data.show_nsfw,
       theme: data.theme.to_owned(),
       default_sort_type,
@@ -657,7 +639,7 @@ impl Perform for AddAdmin {
     let added = data.added;
     let added_person_id = data.person_id;
     let added_admin = match blocking(context.pool(), move |conn| {
-      LocalUser::add_admin(conn, added_person_id, added)
+      Person::add_admin(conn, added_person_id, added)
     })
     .await?
     {
@@ -670,7 +652,7 @@ impl Perform for AddAdmin {
     // Mod tables
     let form = ModAddForm {
       mod_person_id: local_user_view.person.id,
-      other_person_id: added_admin.person_id,
+      other_person_id: added_admin.id,
       removed: Some(!data.added),
     };
 
@@ -1102,12 +1084,7 @@ impl Perform for CreatePrivateMessage {
       content: content_slurs_removed.to_owned(),
       creator_id: local_user_view.person.id,
       recipient_id: data.recipient_id,
-      deleted: None,
-      read: None,
-      updated: None,
-      ap_id: None,
-      local: true,
-      published: None,
+      ..PrivateMessageForm::default()
     };
 
     let inserted_private_message = match blocking(context.pool(), move |conn| {

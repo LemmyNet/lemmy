@@ -27,6 +27,8 @@ mod safe_type {
     deleted,
     inbox_url,
     shared_inbox_url,
+    matrix_user_id,
+    admin,
   );
 
   impl ToSafe for Person {
@@ -47,6 +49,8 @@ mod safe_type {
         deleted,
         inbox_url,
         shared_inbox_url,
+        matrix_user_id,
+        admin,
       )
     }
   }
@@ -71,6 +75,8 @@ mod safe_type_alias_1 {
     deleted,
     inbox_url,
     shared_inbox_url,
+    matrix_user_id,
+    admin,
   );
 
   impl ToSafe for PersonAlias1 {
@@ -91,6 +97,8 @@ mod safe_type_alias_1 {
         deleted,
         inbox_url,
         shared_inbox_url,
+        matrix_user_id,
+        admin,
       )
     }
   }
@@ -115,6 +123,8 @@ mod safe_type_alias_2 {
     deleted,
     inbox_url,
     shared_inbox_url,
+    matrix_user_id,
+    admin,
   );
 
   impl ToSafe for PersonAlias2 {
@@ -135,6 +145,8 @@ mod safe_type_alias_2 {
         deleted,
         inbox_url,
         shared_inbox_url,
+        matrix_user_id,
+        admin,
       )
     }
   }
@@ -181,6 +193,7 @@ impl ApubObject<PersonForm> for Person {
 
 pub trait Person_ {
   fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Person, Error>;
+  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Person, Error>;
   fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
   fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
   fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
@@ -190,6 +203,12 @@ impl Person_ for Person {
   fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(banned.eq(ban))
+      .get_result::<Self>(conn)
+  }
+
+  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Self, Error> {
+    diesel::update(person.find(person_id))
+      .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 
@@ -212,16 +231,14 @@ impl Person_ for Person {
 
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
-      .set((
-        local_user::email.eq::<Option<String>>(None),
-        local_user::matrix_user_id.eq::<Option<String>>(None),
-      ))
+      .set((local_user::email.eq::<Option<String>>(None),))
       .execute(conn)?;
 
     diesel::update(person.find(person_id))
       .set((
         preferred_username.eq::<Option<String>>(None),
         bio.eq::<Option<String>>(None),
+        matrix_user_id.eq::<Option<String>>(None),
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
@@ -239,21 +256,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "holly".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
+      ..PersonForm::default()
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
@@ -271,11 +274,13 @@ mod tests {
       actor_id: inserted_person.actor_id.to_owned(),
       bio: None,
       local: true,
+      admin: false,
       private_key: None,
       public_key: None,
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.to_owned(),
       shared_inbox_url: None,
+      matrix_user_id: None,
     };
 
     let read_person = Person::read(&conn, inserted_person.id).unwrap();

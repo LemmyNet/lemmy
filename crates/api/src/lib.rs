@@ -79,7 +79,7 @@ pub(crate) async fn is_mod_or_admin(
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.local_user.admin {
+  if !local_user_view.person.admin {
     return Err(ApiError::err("not_an_admin").into());
   }
   Ok(())
@@ -528,38 +528,15 @@ mod tests {
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),
-      preferred_username: None,
-      avatar: None,
-      banner: None,
-      banned: None,
-      deleted: None,
-      published: None,
-      updated: None,
-      actor_id: None,
-      bio: None,
-      local: None,
-      private_key: None,
-      public_key: None,
-      last_refreshed_at: None,
-      inbox_url: None,
-      shared_inbox_url: None,
+      ..PersonForm::default()
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
-      email: None,
-      matrix_user_id: None,
       password_encrypted: "123456".to_string(),
-      admin: None,
-      show_nsfw: None,
-      theme: None,
-      default_sort_type: None,
-      default_listing_type: None,
-      lang: None,
-      show_avatars: None,
-      send_notifications_to_email: None,
+      ..LocalUserForm::default()
     };
 
     let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();

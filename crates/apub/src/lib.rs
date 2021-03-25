@@ -11,8 +11,9 @@ pub mod objects;
 pub mod routes;
 
 use crate::extensions::{
-  group_extensions::GroupExtension,
+  group_extension::GroupExtension,
   page_extension::PageExtension,
+  person_extension::PersonExtension,
   signatures::{PublicKey, PublicKeyExtension},
 };
 use activitystreams::{
@@ -46,7 +47,7 @@ use url::{ParseError, Url};
 /// Activitystreams type for community
 type GroupExt = Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
 /// Activitystreams type for person
-type PersonExt = Ext1<actor::ApActor<ApObject<actor::Person>>, PublicKeyExtension>;
+type PersonExt = Ext2<actor::ApActor<ApObject<actor::Person>>, PersonExtension, PublicKeyExtension>;
 /// Activitystreams type for post
 type PageExt = Ext1<ApObject<Page>, PageExtension>;
 type NoteExt = ApObject<Note>;

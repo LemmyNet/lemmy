@@ -9,7 +9,7 @@ use lemmy_db_queries::{
   ViewToVec,
 };
 use lemmy_db_schema::{
-  schema::{local_user, person, person_aggregates},
+  schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
   PersonId,
 };
@@ -36,9 +36,8 @@ impl PersonViewSafe {
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     let admins = person::table
       .inner_join(person_aggregates::table)
-      .inner_join(local_user::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
-      .filter(local_user::admin.eq(true))
+      .filter(person::admin.eq(true))
       .order_by(person::published)
       .load::<PersonViewSafeTuple>(conn)?;
 

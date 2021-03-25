@@ -85,13 +85,7 @@ impl Perform for CreateComment {
       parent_id: data.parent_id.to_owned(),
       post_id: data.post_id,
       creator_id: local_user_view.person.id,
-      removed: None,
-      deleted: None,
-      read: None,
-      published: None,
-      updated: None,
-      ap_id: None,
-      local: true,
+      ..CommentForm::default()
     };
 
     // Create the comment

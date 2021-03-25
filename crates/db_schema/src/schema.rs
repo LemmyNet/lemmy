@@ -146,7 +146,6 @@ table! {
         person_id -> Int4,
         password_encrypted -> Text,
         email -> Nullable<Text>,
-        admin -> Bool,
         show_nsfw -> Bool,
         theme -> Varchar,
         default_sort_type -> Int2,
@@ -154,7 +153,6 @@ table! {
         lang -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
-        matrix_user_id -> Nullable<Text>,
         validator_time -> Timestamp,
     }
 }
@@ -287,6 +285,8 @@ table! {
         deleted -> Bool,
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
+        matrix_user_id -> Nullable<Text>,
+        admin -> Bool,
     }
 }
 
@@ -485,6 +485,8 @@ table! {
         deleted -> Bool,
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
+        matrix_user_id -> Nullable<Text>,
+        admin -> Bool,
     }
 }
 
@@ -507,6 +509,8 @@ table! {
         deleted -> Bool,
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
+        matrix_user_id -> Nullable<Text>,
+        admin -> Bool,
     }
 }
 

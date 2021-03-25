@@ -16,7 +16,7 @@ pub struct PrivateMessage {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Default)]
 #[table_name = "private_message"]
 pub struct PrivateMessageForm {
   pub creator_id: PersonId,
@@ -27,5 +27,5 @@ pub struct PrivateMessageForm {
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub ap_id: Option<DbUrl>,
-  pub local: bool,
+  pub local: Option<bool>,
 }

@@ -31,7 +31,7 @@ pub struct Post {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Default)]
 #[table_name = "post"]
 pub struct PostForm {
   pub name: String,
@@ -51,7 +51,7 @@ pub struct PostForm {
   pub embed_html: Option<String>,
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: Option<DbUrl>,
-  pub local: bool,
+  pub local: Option<bool>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

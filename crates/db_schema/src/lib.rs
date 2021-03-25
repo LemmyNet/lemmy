@@ -22,7 +22,9 @@ use url::Url;
 pub mod schema;
 pub mod source;
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+#[derive(
+  Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize, DieselNewType,
+)]
 pub struct PostId(pub i32);
 
 impl fmt::Display for PostId {
@@ -31,7 +33,9 @@ impl fmt::Display for PostId {
   }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+#[derive(
+  Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize, DieselNewType,
+)]
 pub struct PersonId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
@@ -43,7 +47,9 @@ impl fmt::Display for CommentId {
   }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
+#[derive(
+  Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize, DieselNewType,
+)]
 pub struct CommunityId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]

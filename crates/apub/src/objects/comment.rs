@@ -203,7 +203,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       ap_id: Some(check_object_domain(note, expected_domain)?),
-      local: false,
+      local: Some(false),
     })
   }
 }

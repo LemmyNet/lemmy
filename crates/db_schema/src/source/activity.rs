@@ -18,7 +18,7 @@ pub struct Activity {
 #[table_name = "activity"]
 pub struct ActivityForm {
   pub data: Value,
-  pub local: bool,
+  pub local: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub ap_id: DbUrl,
   pub sensitive: bool,
