@@ -12,7 +12,6 @@ mod local_user;
 mod post;
 mod post_report;
 mod private_message;
-pub mod routes;
 mod site;
 mod websocket;
 
@@ -33,39 +32,21 @@ pub async fn match_websocket_operation(
   op: UserOperation,
   data: &str,
 ) -> Result<String, LemmyError> {
-  //TODO: handle commented out actions in crud crate
-
   match op {
     // User ops
-    UserOperation::Login => {
-      //do_websocket_operation::<Login>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::Register => {
-      //do_websocket_operation::<Register>(context, id, op, data).await
-      todo!()
-    }
+    UserOperation::Login => do_websocket_operation::<Login>(context, id, op, data).await,
     UserOperation::GetCaptcha => do_websocket_operation::<GetCaptcha>(context, id, op, data).await,
-    UserOperation::GetPersonDetails => {
-      //do_websocket_operation::<GetPersonDetails>(context, id, op, data).await
-      todo!()
-    }
     UserOperation::GetReplies => do_websocket_operation::<GetReplies>(context, id, op, data).await,
     UserOperation::AddAdmin => do_websocket_operation::<AddAdmin>(context, id, op, data).await,
     UserOperation::BanPerson => do_websocket_operation::<BanPerson>(context, id, op, data).await,
     UserOperation::GetPersonMentions => {
-      //do_websocket_operation::<GetPersonMentions>(context, id, op, data).await
-      todo!()
+      do_websocket_operation::<GetPersonMentions>(context, id, op, data).await
     }
     UserOperation::MarkPersonMentionAsRead => {
       do_websocket_operation::<MarkPersonMentionAsRead>(context, id, op, data).await
     }
     UserOperation::MarkAllAsRead => {
       do_websocket_operation::<MarkAllAsRead>(context, id, op, data).await
-    }
-    UserOperation::DeleteAccount => {
-      //do_websocket_operation::<DeleteAccount>(context, id, op, data).await
-      todo!()
     }
     UserOperation::PasswordReset => {
       do_websocket_operation::<PasswordReset>(context, id, op, data).await
@@ -87,40 +68,12 @@ pub async fn match_websocket_operation(
     }
 
     // Private Message ops
-    UserOperation::CreatePrivateMessage => {
-      //do_websocket_operation::<CreatePrivateMessage>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::EditPrivateMessage => {
-      //do_websocket_operation::<EditPrivateMessage>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::DeletePrivateMessage => {
-      //do_websocket_operation::<DeletePrivateMessage>(context, id, op, data).await
-      todo!()
-    }
     UserOperation::MarkPrivateMessageAsRead => {
       do_websocket_operation::<MarkPrivateMessageAsRead>(context, id, op, data).await
-    }
-    UserOperation::GetPrivateMessages => {
-      //do_websocket_operation::<GetPrivateMessages>(context, id, op, data).await
-      todo!()
     }
 
     // Site ops
     UserOperation::GetModlog => do_websocket_operation::<GetModlog>(context, id, op, data).await,
-    UserOperation::CreateSite => {
-      //do_websocket_operation::<CreateSite>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::EditSite => {
-      //do_websocket_operation::<EditSite>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::GetSite => {
-      //do_websocket_operation::<GetSite>(context, id, op, data).await
-      todo!()
-    }
     UserOperation::GetSiteConfig => {
       do_websocket_operation::<GetSiteConfig>(context, id, op, data).await
     }
@@ -136,30 +89,6 @@ pub async fn match_websocket_operation(
     }
 
     // Community ops
-    UserOperation::GetCommunity => {
-      //do_websocket_operation::<GetCommunity>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::ListCommunities => {
-      //do_websocket_operation::<ListCommunities>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::CreateCommunity => {
-      //do_websocket_operation::<CreateCommunity>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::EditCommunity => {
-      //do_websocket_operation::<EditCommunity>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::DeleteCommunity => {
-      //do_websocket_operation::<DeleteCommunity>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::RemoveCommunity => {
-      //do_websocket_operation::<RemoveCommunity>(context, id, op, data).await
-      todo!()
-    }
     UserOperation::FollowCommunity => {
       do_websocket_operation::<FollowCommunity>(context, id, op, data).await
     }
@@ -174,30 +103,6 @@ pub async fn match_websocket_operation(
     }
 
     // Post ops
-    UserOperation::CreatePost => {
-      //do_websocket_operation::<CreatePost>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::GetPost => {
-      //do_websocket_operation::<GetPost>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::GetPosts => {
-      //do_websocket_operation::<GetPosts>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::EditPost => {
-      //do_websocket_operation::<EditPost>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::DeletePost => {
-      //do_websocket_operation::<DeletePost>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::RemovePost => {
-      //do_websocket_operation::<RemovePost>(context, id, op, data).await
-      todo!()
-    }
     UserOperation::LockPost => do_websocket_operation::<LockPost>(context, id, op, data).await,
     UserOperation::StickyPost => do_websocket_operation::<StickyPost>(context, id, op, data).await,
     UserOperation::CreatePostLike => {
@@ -215,31 +120,11 @@ pub async fn match_websocket_operation(
     }
 
     // Comment ops
-    UserOperation::CreateComment => {
-      //do_websocket_operation::<CreateComment>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::EditComment => {
-      //do_websocket_operation::<EditComment>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::DeleteComment => {
-      //do_websocket_operation::<DeleteComment>(context, id, op, data).await
-      todo!()
-    }
-    UserOperation::RemoveComment => {
-      //do_websocket_operation::<RemoveComment>(context, id, op, data).await
-      todo!()
-    }
     UserOperation::MarkCommentAsRead => {
       do_websocket_operation::<MarkCommentAsRead>(context, id, op, data).await
     }
     UserOperation::SaveComment => {
       do_websocket_operation::<SaveComment>(context, id, op, data).await
-    }
-    UserOperation::GetComments => {
-      //do_websocket_operation::<GetComments>(context, id, op, data).await
-      todo!()
     }
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
@@ -326,7 +211,7 @@ pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
 
 #[cfg(test)]
 mod tests {
-  use crate::{captcha_espeak_wav_base64, check_validator_time};
+  use crate::captcha_espeak_wav_base64;
   use lemmy_api_common::check_validator_time;
   use lemmy_db_queries::{establish_unpooled_connection, source::local_user::LocalUser_, Crud};
   use lemmy_db_schema::source::{

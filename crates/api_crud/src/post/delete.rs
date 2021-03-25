@@ -12,7 +12,7 @@ use lemmy_db_queries::{source::post::Post_, Crud};
 use lemmy_db_schema::source::{moderator::*, post::*};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePost {
@@ -70,7 +70,7 @@ impl PerformCrud for DeletePost {
     let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
-      op: UserOperation::DeletePost,
+      op: UserOperationCrud::DeletePost,
       post: res.clone(),
       websocket_id,
     });
@@ -151,7 +151,7 @@ impl PerformCrud for RemovePost {
     let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
-      op: UserOperation::RemovePost,
+      op: UserOperationCrud::RemovePost,
       post: res.clone(),
       websocket_id,
     });

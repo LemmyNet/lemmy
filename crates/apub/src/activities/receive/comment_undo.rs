@@ -5,7 +5,7 @@ use lemmy_db_queries::{source::comment::Comment_, Likeable};
 use lemmy_db_schema::source::comment::{Comment, CommentLike};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation, UserOperationCrud};
 
 pub(crate) async fn receive_undo_like_comment(
   like: &Like,
@@ -108,7 +108,7 @@ pub(crate) async fn receive_undo_delete_comment(
   };
 
   context.chat_server().do_send(SendComment {
-    op: UserOperation::EditComment,
+    op: UserOperationCrud::EditComment,
     comment: res,
     websocket_id: None,
   });
@@ -141,7 +141,7 @@ pub(crate) async fn receive_undo_remove_comment(
   };
 
   context.chat_server().do_send(SendComment {
-    op: UserOperation::EditComment,
+    op: UserOperationCrud::EditComment,
     comment: res,
     websocket_id: None,
   });

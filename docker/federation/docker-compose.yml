@@ -29,7 +29,7 @@ services:
       - ./volumes/pictrs_alpha:/mnt
 
   lemmy-alpha-ui:
-    image: dessalines/lemmy-ui:0.9.9
+    image: dessalines/lemmy-ui:0.10.0-rc.12
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
       - LEMMY_EXTERNAL_HOST=localhost:8541

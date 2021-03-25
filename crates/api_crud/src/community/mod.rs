@@ -1,7 +1,7 @@
 use actix_web::web::Data;
 use lemmy_api_common::community::CommunityResponse;
 use lemmy_utils::ConnectionId;
-use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperationCrud};
 
 mod create;
 mod delete;
@@ -12,7 +12,7 @@ pub(in crate::community) fn send_community_websocket(
   res: &CommunityResponse,
   context: &Data<LemmyContext>,
   websocket_id: Option<ConnectionId>,
-  op: UserOperation,
+  op: UserOperationCrud,
 ) {
   // Strip out the person id and subscribed when sending to others
   let mut res_sent = res.clone();

@@ -10,7 +10,7 @@ use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePrivateMessage {
@@ -76,7 +76,7 @@ impl PerformCrud for DeletePrivateMessage {
     {
       let local_recipient_id = local_recipient.local_user.id;
       context.chat_server().do_send(SendUserRoomMessage {
-        op: UserOperation::DeletePrivateMessage,
+        op: UserOperationCrud::DeletePrivateMessage,
         response: res.clone(),
         local_recipient_id,
         websocket_id,

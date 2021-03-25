@@ -18,7 +18,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -158,7 +158,7 @@ impl PerformCrud for CreateComment {
     };
 
     context.chat_server().do_send(SendComment {
-      op: UserOperation::CreateComment,
+      op: UserOperationCrud::CreateComment,
       comment: res.clone(),
       websocket_id,
     });

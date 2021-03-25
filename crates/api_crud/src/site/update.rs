@@ -18,7 +18,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -64,7 +64,7 @@ impl PerformCrud for EditSite {
     let res = SiteResponse { site_view };
 
     context.chat_server().do_send(SendAllMessage {
-      op: UserOperation::EditSite,
+      op: UserOperationCrud::EditSite,
       response: res.clone(),
       websocket_id,
     });

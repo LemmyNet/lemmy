@@ -21,7 +21,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{LemmyContext, UserOperation};
+use lemmy_websocket::{LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditCommunity {
@@ -102,7 +102,12 @@ impl PerformCrud for EditCommunity {
 
     let res = CommunityResponse { community_view };
 
-    send_community_websocket(&res, context, websocket_id, UserOperation::EditCommunity);
+    send_community_websocket(
+      &res,
+      context,
+      websocket_id,
+      UserOperationCrud::EditCommunity,
+    );
 
     Ok(res)
   }

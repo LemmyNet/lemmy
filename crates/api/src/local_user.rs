@@ -153,7 +153,7 @@ impl Perform for GetCaptcha {
     context.chat_server().do_send(captcha_item);
 
     Ok(GetCaptchaResponse {
-      ok: Some(CaptchaResponse { png, uuid, wav }),
+      ok: Some(CaptchaResponse { png, wav, uuid }),
     })
   }
 }
@@ -407,10 +407,7 @@ impl Perform for BanPerson {
     }
 
     // Mod tables
-    let expires = match data.expires {
-      Some(time) => Some(naive_from_unix(time)),
-      None => None,
-    };
+    let expires = data.expires.map(naive_from_unix);
 
     let form = ModBanForm {
       mod_person_id: local_user_view.person.id,

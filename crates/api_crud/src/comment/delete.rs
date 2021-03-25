@@ -13,7 +13,7 @@ use lemmy_db_queries::{source::comment::Comment_, Crud};
 use lemmy_db_schema::source::{comment::*, moderator::*};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteComment {
@@ -95,7 +95,7 @@ impl PerformCrud for DeleteComment {
     };
 
     context.chat_server().do_send(SendComment {
-      op: UserOperation::DeleteComment,
+      op: UserOperationCrud::DeleteComment,
       comment: res.clone(),
       websocket_id,
     });
@@ -200,7 +200,7 @@ impl PerformCrud for RemoveComment {
     };
 
     context.chat_server().do_send(SendComment {
-      op: UserOperation::RemoveComment,
+      op: UserOperationCrud::RemoveComment,
       comment: res.clone(),
       websocket_id,
     });

@@ -12,7 +12,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {
@@ -106,7 +106,7 @@ impl PerformCrud for EditPost {
     let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
-      op: UserOperation::EditPost,
+      op: UserOperationCrud::EditPost,
       post: res.clone(),
       websocket_id,
     });

@@ -92,10 +92,7 @@ impl PerformCrud for GetPosts {
     let data: &GetPosts = &self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let person_id = match &local_user_view {
-      Some(uv) => Some(uv.person.id),
-      None => None,
-    };
+    let person_id = local_user_view.to_owned().map(|l| l.person.id);
 
     let show_nsfw = match &local_user_view {
       Some(uv) => uv.local_user.show_nsfw,

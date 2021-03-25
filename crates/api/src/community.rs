@@ -188,10 +188,7 @@ impl Perform for BanFromCommunity {
 
     // Mod tables
     // TODO eventually do correct expires
-    let expires = match data.expires {
-      Some(time) => Some(naive_from_unix(time)),
-      None => None,
-    };
+    let expires = data.expires.map(naive_from_unix);
 
     let form = ModBanFromCommunityForm {
       mod_person_id: local_user_view.person.id,

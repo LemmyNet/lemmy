@@ -15,8 +15,12 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
+pub fn config(cfg: &mut web::ServiceConfig) {
+  cfg.service(web::resource("/ws").to(chat_route));
+}
+
 /// Entry point for our route
-pub async fn chat_route(
+async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   context: web::Data<LemmyContext>,

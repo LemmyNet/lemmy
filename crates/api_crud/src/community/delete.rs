@@ -9,7 +9,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{utils::naive_from_unix, ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{LemmyContext, UserOperation};
+use lemmy_websocket::{LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteCommunity {
@@ -61,7 +61,12 @@ impl PerformCrud for DeleteCommunity {
 
     let res = CommunityResponse { community_view };
 
-    send_community_websocket(&res, context, websocket_id, UserOperation::DeleteCommunity);
+    send_community_websocket(
+      &res,
+      context,
+      websocket_id,
+      UserOperationCrud::DeleteCommunity,
+    );
 
     Ok(res)
   }
@@ -95,10 +100,7 @@ impl PerformCrud for RemoveCommunity {
     };
 
     // Mod tables
-    let expires = match data.expires {
-      Some(time) => Some(naive_from_unix(time)),
-      None => None,
-    };
+    let expires = data.expires.map(naive_from_unix);
     let form = ModRemoveCommunityForm {
       mod_person_id: local_user_view.person.id,
       community_id: data.community_id,
@@ -127,7 +129,12 @@ impl PerformCrud for RemoveCommunity {
 
     let res = CommunityResponse { community_view };
 
-    send_community_websocket(&res, context, websocket_id, UserOperation::RemoveCommunity);
+    send_community_websocket(
+      &res,
+      context,
+      websocket_id,
+      UserOperationCrud::RemoveCommunity,
+    );
 
     Ok(res)
   }

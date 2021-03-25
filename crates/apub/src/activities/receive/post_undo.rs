@@ -5,7 +5,7 @@ use lemmy_db_queries::{source::post::Post_, Likeable};
 use lemmy_db_schema::source::post::{Post, PostLike};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation, UserOperationCrud};
 
 pub(crate) async fn receive_undo_like_post(
   like: &Like,
@@ -89,7 +89,7 @@ pub(crate) async fn receive_undo_delete_post(
 
   let res = PostResponse { post_view };
   context.chat_server().do_send(SendPost {
-    op: UserOperation::EditPost,
+    op: UserOperationCrud::EditPost,
     post: res,
     websocket_id: None,
   });
@@ -116,7 +116,7 @@ pub(crate) async fn receive_undo_remove_post(
   let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
-    op: UserOperation::EditPost,
+    op: UserOperationCrud::EditPost,
     post: res,
     websocket_id: None,
   });
