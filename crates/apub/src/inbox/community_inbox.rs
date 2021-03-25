@@ -29,7 +29,7 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::community::Community_, ApubObject, DbPool, Followable};
 use lemmy_db_schema::{
   source::{

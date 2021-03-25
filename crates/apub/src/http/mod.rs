@@ -1,7 +1,7 @@
 use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::{body::Body, web, HttpResponse};
 use http::StatusCode;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::source::activity::Activity_;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{settings::structs::Settings, LemmyError};

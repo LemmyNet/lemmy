@@ -1,6 +1,6 @@
 use crate::activities::receive::get_actor_as_person;
 use activitystreams::activity::{Dislike, Like};
-use lemmy_api_structs::{blocking, post::PostResponse};
+use lemmy_api_common::{blocking, post::PostResponse};
 use lemmy_db_queries::{source::post::Post_, Likeable};
 use lemmy_db_schema::source::post::{Post, PostLike};
 use lemmy_db_views::post_view::PostView;

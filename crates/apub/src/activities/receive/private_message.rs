@@ -13,7 +13,7 @@ use activitystreams::{
   public,
 };
 use anyhow::{anyhow, Context};
-use lemmy_api_structs::{blocking, person::PrivateMessageResponse};
+use lemmy_api_common::{blocking, person::PrivateMessageResponse};
 use lemmy_db_queries::source::private_message::PrivateMessage_;
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};

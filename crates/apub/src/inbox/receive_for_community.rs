@@ -61,7 +61,7 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use diesel::result::Error::NotFound;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::community::CommunityModerator_, ApubObject, Crud, Joinable};
 use lemmy_db_schema::{
   source::{

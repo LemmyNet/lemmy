@@ -11,7 +11,7 @@ use activitystreams::{
   url::Url,
 };
 use actix_web::{body::Body, web, HttpResponse};
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{

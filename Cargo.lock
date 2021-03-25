@@ -1746,7 +1746,7 @@ dependencies = [
  "http-signature-normalization-actix",
  "itertools",
  "lazy_static",
- "lemmy_api_structs",
+ "lemmy_api_common",
  "lemmy_apub",
  "lemmy_db_queries",
  "lemmy_db_schema",
@@ -1771,7 +1771,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_api_structs"
+name = "lemmy_api_common"
 version = "0.1.0"
 dependencies = [
  "actix-web",
@@ -1787,6 +1787,51 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
+]
+
+[[package]]
+name = "lemmy_api_crud"
+version = "0.1.0"
+dependencies = [
+ "actix",
+ "actix-rt",
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "awc",
+ "background-jobs",
+ "base64 0.13.0",
+ "bcrypt",
+ "captcha",
+ "chrono",
+ "diesel",
+ "futures",
+ "http",
+ "http-signature-normalization-actix",
+ "itertools",
+ "lazy_static",
+ "lemmy_api_common",
+ "lemmy_apub",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
+ "lemmy_db_views_moderator",
+ "lemmy_utils",
+ "lemmy_websocket",
+ "log",
+ "openssl",
+ "rand 0.8.3",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "strum",
+ "strum_macros",
+ "thiserror",
+ "tokio 0.3.7",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1813,7 +1858,7 @@ dependencies = [
  "http-signature-normalization-reqwest",
  "itertools",
  "lazy_static",
- "lemmy_api_structs",
+ "lemmy_api_common",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -1916,7 +1961,7 @@ dependencies = [
  "chrono",
  "diesel",
  "lazy_static",
- "lemmy_api_structs",
+ "lemmy_api_common",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -1948,7 +1993,8 @@ dependencies = [
  "env_logger",
  "http-signature-normalization-actix",
  "lemmy_api",
- "lemmy_api_structs",
+ "lemmy_api_common",
+ "lemmy_api_crud",
  "lemmy_apub",
  "lemmy_db_queries",
  "lemmy_db_schema",
@@ -2013,7 +2059,7 @@ dependencies = [
  "background-jobs",
  "chrono",
  "diesel",
- "lemmy_api_structs",
+ "lemmy_api_common",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_utils",

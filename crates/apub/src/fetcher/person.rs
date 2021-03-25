@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use diesel::result::Error::NotFound;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::person::Person_, ApubObject};
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;

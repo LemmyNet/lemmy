@@ -12,6 +12,8 @@ debug = 0
 [workspace]
 members = [
     "crates/api",
+    "crates/api_crud",
+    "crates/api_common",
     "crates/apub",
     "crates/utils",
     "crates/db_queries",
@@ -19,13 +21,13 @@ members = [
     "crates/db_views",
     "crates/db_views_actor",
     "crates/db_views_actor",
-    "crates/api_structs",
     "crates/websocket",
     "crates/routes"
 ]
 
 [dependencies]
 lemmy_api = { path = "./crates/api" }
+lemmy_api_crud = { path = "./crates/api_crud" }
 lemmy_apub = { path = "./crates/apub" }
 lemmy_utils = { path = "./crates/utils" }
 lemmy_db_schema = { path = "./crates/db_schema" }
@@ -33,7 +35,7 @@ lemmy_db_queries = { path = "./crates/db_queries" }
 lemmy_db_views = { path = "./crates/db_views" }
 lemmy_db_views_moderator = { path = "./crates/db_views_moderator" }
 lemmy_db_views_actor = { path = "./crates/db_views_actor" }
-lemmy_api_structs = { path = "crates/api_structs" }
+lemmy_api_common = { path = "crates/api_common" }
 lemmy_websocket = { path = "./crates/websocket" }
 lemmy_routes = { path = "./crates/routes" }
 diesel = "1.4.5"

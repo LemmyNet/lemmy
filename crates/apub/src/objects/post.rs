@@ -23,7 +23,7 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   self,

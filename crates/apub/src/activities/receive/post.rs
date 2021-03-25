@@ -10,7 +10,7 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_api_structs::{blocking, post::PostResponse};
+use lemmy_api_common::{blocking, post::PostResponse};
 use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, Likeable};
 use lemmy_db_schema::{
   source::{

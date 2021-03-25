@@ -1,56 +1,20 @@
 use actix_web::{web, web::Data};
-use lemmy_api_structs::{
-  blocking,
-  comment::*,
-  community::*,
-  person::*,
-  post::*,
-  site::*,
-  websocket::*,
-};
-use lemmy_db_queries::{
-  source::{
-    community::{CommunityModerator_, Community_},
-    site::Site_,
-  },
-  Crud,
-  DbPool,
-};
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityModerator},
-    post::Post,
-    site::Site,
-  },
-  CommunityId,
-  LocalUserId,
-  PersonId,
-  PostId,
-};
-use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
-use lemmy_db_views_actor::{
-  community_person_ban_view::CommunityPersonBanView,
-  community_view::CommunityView,
-};
-use lemmy_utils::{
-  claims::Claims,
-  settings::structs::Settings,
-  ApiError,
-  ConnectionId,
-  LemmyError,
-};
+use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 use std::{env, process::Command};
-use url::Url;
 
-pub mod comment;
-pub mod community;
-pub mod local_user;
-pub mod post;
+mod comment;
+mod comment_report;
+mod community;
+mod local_user;
+mod post;
+mod post_report;
+mod private_message;
 pub mod routes;
-pub mod site;
-pub mod websocket;
+mod site;
+mod websocket;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
@@ -63,221 +27,35 @@ pub trait Perform {
   ) -> Result<Self::Response, LemmyError>;
 }
 
-pub(crate) async fn is_mod_or_admin(
-  pool: &DbPool,
-  person_id: PersonId,
-  community_id: CommunityId,
-) -> Result<(), LemmyError> {
-  let is_mod_or_admin = blocking(pool, move |conn| {
-    CommunityView::is_mod_or_admin(conn, person_id, community_id)
-  })
-  .await?;
-  if !is_mod_or_admin {
-    return Err(ApiError::err("not_a_mod_or_admin").into());
-  }
-  Ok(())
-}
-
-pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.local_user.admin {
-    return Err(ApiError::err("not_an_admin").into());
-  }
-  Ok(())
-}
-
-pub(crate) async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
-  match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
-    Ok(post) => Ok(post),
-    Err(_e) => Err(ApiError::err("couldnt_find_post").into()),
-  }
-}
-
-pub(crate) async fn get_local_user_view_from_jwt(
-  jwt: &str,
-  pool: &DbPool,
-) -> Result<LocalUserView, LemmyError> {
-  let claims = match Claims::decode(&jwt) {
-    Ok(claims) => claims.claims,
-    Err(_e) => return Err(ApiError::err("not_logged_in").into()),
-  };
-  let local_user_id = LocalUserId(claims.sub);
-  let local_user_view =
-    blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
-  // Check for a site ban
-  if local_user_view.person.banned {
-    return Err(ApiError::err("site_ban").into());
-  }
-
-  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-  Ok(local_user_view)
-}
-
-/// Checks if user's token was issued before user's password reset.
-pub(crate) fn check_validator_time(
-  validator_time: &chrono::NaiveDateTime,
-  claims: &Claims,
-) -> Result<(), LemmyError> {
-  let user_validation_time = validator_time.timestamp();
-  if user_validation_time > claims.iat {
-    Err(ApiError::err("not_logged_in").into())
-  } else {
-    Ok(())
-  }
-}
-
-pub(crate) async fn get_local_user_view_from_jwt_opt(
-  jwt: &Option<String>,
-  pool: &DbPool,
-) -> Result<Option<LocalUserView>, LemmyError> {
-  match jwt {
-    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool).await?)),
-    None => Ok(None),
-  }
-}
-
-pub(crate) async fn get_local_user_settings_view_from_jwt(
-  jwt: &str,
-  pool: &DbPool,
-) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = match Claims::decode(&jwt) {
-    Ok(claims) => claims.claims,
-    Err(_e) => return Err(ApiError::err("not_logged_in").into()),
-  };
-  let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = blocking(pool, move |conn| {
-    LocalUserSettingsView::read(conn, local_user_id)
-  })
-  .await??;
-  // Check for a site ban
-  if local_user_view.person.banned {
-    return Err(ApiError::err("site_ban").into());
-  }
-
-  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-  Ok(local_user_view)
-}
-
-pub(crate) async fn get_local_user_settings_view_from_jwt_opt(
-  jwt: &Option<String>,
-  pool: &DbPool,
-) -> Result<Option<LocalUserSettingsView>, LemmyError> {
-  match jwt {
-    Some(jwt) => Ok(Some(
-      get_local_user_settings_view_from_jwt(jwt, pool).await?,
-    )),
-    None => Ok(None),
-  }
-}
-
-pub(crate) async fn check_community_ban(
-  person_id: PersonId,
-  community_id: CommunityId,
-  pool: &DbPool,
-) -> Result<(), LemmyError> {
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
-    Err(ApiError::err("community_ban").into())
-  } else {
-    Ok(())
-  }
-}
-
-pub(crate) async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
-  if score == -1 {
-    let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
-    if !site.enable_downvotes {
-      return Err(ApiError::err("downvotes_disabled").into());
-    }
-  }
-  Ok(())
-}
-
-/// Returns a list of communities that the user moderates
-/// or if a community_id is supplied validates the user is a moderator
-/// of that community and returns the community id in a vec
-///
-/// * `person_id` - the person id of the moderator
-/// * `community_id` - optional community id to check for moderator privileges
-/// * `pool` - the diesel db pool
-pub(crate) async fn collect_moderated_communities(
-  person_id: PersonId,
-  community_id: Option<CommunityId>,
-  pool: &DbPool,
-) -> Result<Vec<CommunityId>, LemmyError> {
-  if let Some(community_id) = community_id {
-    // if the user provides a community_id, just check for mod/admin privileges
-    is_mod_or_admin(pool, person_id, community_id).await?;
-    Ok(vec![community_id])
-  } else {
-    let ids = blocking(pool, move |conn: &'_ _| {
-      CommunityModerator::get_person_moderated_communities(conn, person_id)
-    })
-    .await??;
-    Ok(ids)
-  }
-}
-
-pub(crate) async fn build_federated_instances(
-  pool: &DbPool,
-) -> Result<Option<FederatedInstances>, LemmyError> {
-  if Settings::get().federation().enabled {
-    let distinct_communities = blocking(pool, move |conn| {
-      Community::distinct_federated_communities(conn)
-    })
-    .await??;
-
-    let allowed = Settings::get().get_allowed_instances();
-    let blocked = Settings::get().get_blocked_instances();
-
-    let mut linked = distinct_communities
-      .iter()
-      .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
-      .collect::<Result<Vec<String>, LemmyError>>()?;
-
-    if let Some(allowed) = allowed.as_ref() {
-      linked.extend_from_slice(allowed);
-    }
-
-    if let Some(blocked) = blocked.as_ref() {
-      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname()));
-    }
-
-    // Sort and remove dupes
-    linked.sort_unstable();
-    linked.dedup();
-
-    Ok(Some(FederatedInstances {
-      linked,
-      allowed,
-      blocked,
-    }))
-  } else {
-    Ok(None)
-  }
-}
-
 pub async fn match_websocket_operation(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperation,
   data: &str,
 ) -> Result<String, LemmyError> {
+  //TODO: handle commented out actions in crud crate
+
   match op {
     // User ops
-    UserOperation::Login => do_websocket_operation::<Login>(context, id, op, data).await,
-    UserOperation::Register => do_websocket_operation::<Register>(context, id, op, data).await,
+    UserOperation::Login => {
+      //do_websocket_operation::<Login>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::Register => {
+      //do_websocket_operation::<Register>(context, id, op, data).await
+      todo!()
+    }
     UserOperation::GetCaptcha => do_websocket_operation::<GetCaptcha>(context, id, op, data).await,
     UserOperation::GetPersonDetails => {
-      do_websocket_operation::<GetPersonDetails>(context, id, op, data).await
+      //do_websocket_operation::<GetPersonDetails>(context, id, op, data).await
+      todo!()
     }
     UserOperation::GetReplies => do_websocket_operation::<GetReplies>(context, id, op, data).await,
     UserOperation::AddAdmin => do_websocket_operation::<AddAdmin>(context, id, op, data).await,
     UserOperation::BanPerson => do_websocket_operation::<BanPerson>(context, id, op, data).await,
     UserOperation::GetPersonMentions => {
-      do_websocket_operation::<GetPersonMentions>(context, id, op, data).await
+      //do_websocket_operation::<GetPersonMentions>(context, id, op, data).await
+      todo!()
     }
     UserOperation::MarkPersonMentionAsRead => {
       do_websocket_operation::<MarkPersonMentionAsRead>(context, id, op, data).await
@@ -286,7 +64,8 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<MarkAllAsRead>(context, id, op, data).await
     }
     UserOperation::DeleteAccount => {
-      do_websocket_operation::<DeleteAccount>(context, id, op, data).await
+      //do_websocket_operation::<DeleteAccount>(context, id, op, data).await
+      todo!()
     }
     UserOperation::PasswordReset => {
       do_websocket_operation::<PasswordReset>(context, id, op, data).await
@@ -309,26 +88,39 @@ pub async fn match_websocket_operation(
 
     // Private Message ops
     UserOperation::CreatePrivateMessage => {
-      do_websocket_operation::<CreatePrivateMessage>(context, id, op, data).await
+      //do_websocket_operation::<CreatePrivateMessage>(context, id, op, data).await
+      todo!()
     }
     UserOperation::EditPrivateMessage => {
-      do_websocket_operation::<EditPrivateMessage>(context, id, op, data).await
+      //do_websocket_operation::<EditPrivateMessage>(context, id, op, data).await
+      todo!()
     }
     UserOperation::DeletePrivateMessage => {
-      do_websocket_operation::<DeletePrivateMessage>(context, id, op, data).await
+      //do_websocket_operation::<DeletePrivateMessage>(context, id, op, data).await
+      todo!()
     }
     UserOperation::MarkPrivateMessageAsRead => {
       do_websocket_operation::<MarkPrivateMessageAsRead>(context, id, op, data).await
     }
     UserOperation::GetPrivateMessages => {
-      do_websocket_operation::<GetPrivateMessages>(context, id, op, data).await
+      //do_websocket_operation::<GetPrivateMessages>(context, id, op, data).await
+      todo!()
     }
 
     // Site ops
     UserOperation::GetModlog => do_websocket_operation::<GetModlog>(context, id, op, data).await,
-    UserOperation::CreateSite => do_websocket_operation::<CreateSite>(context, id, op, data).await,
-    UserOperation::EditSite => do_websocket_operation::<EditSite>(context, id, op, data).await,
-    UserOperation::GetSite => do_websocket_operation::<GetSite>(context, id, op, data).await,
+    UserOperation::CreateSite => {
+      //do_websocket_operation::<CreateSite>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::EditSite => {
+      //do_websocket_operation::<EditSite>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::GetSite => {
+      //do_websocket_operation::<GetSite>(context, id, op, data).await
+      todo!()
+    }
     UserOperation::GetSiteConfig => {
       do_websocket_operation::<GetSiteConfig>(context, id, op, data).await
     }
@@ -345,22 +137,28 @@ pub async fn match_websocket_operation(
 
     // Community ops
     UserOperation::GetCommunity => {
-      do_websocket_operation::<GetCommunity>(context, id, op, data).await
+      //do_websocket_operation::<GetCommunity>(context, id, op, data).await
+      todo!()
     }
     UserOperation::ListCommunities => {
-      do_websocket_operation::<ListCommunities>(context, id, op, data).await
+      //do_websocket_operation::<ListCommunities>(context, id, op, data).await
+      todo!()
     }
     UserOperation::CreateCommunity => {
-      do_websocket_operation::<CreateCommunity>(context, id, op, data).await
+      //do_websocket_operation::<CreateCommunity>(context, id, op, data).await
+      todo!()
     }
     UserOperation::EditCommunity => {
-      do_websocket_operation::<EditCommunity>(context, id, op, data).await
+      //do_websocket_operation::<EditCommunity>(context, id, op, data).await
+      todo!()
     }
     UserOperation::DeleteCommunity => {
-      do_websocket_operation::<DeleteCommunity>(context, id, op, data).await
+      //do_websocket_operation::<DeleteCommunity>(context, id, op, data).await
+      todo!()
     }
     UserOperation::RemoveCommunity => {
-      do_websocket_operation::<RemoveCommunity>(context, id, op, data).await
+      //do_websocket_operation::<RemoveCommunity>(context, id, op, data).await
+      todo!()
     }
     UserOperation::FollowCommunity => {
       do_websocket_operation::<FollowCommunity>(context, id, op, data).await
@@ -376,12 +174,30 @@ pub async fn match_websocket_operation(
     }
 
     // Post ops
-    UserOperation::CreatePost => do_websocket_operation::<CreatePost>(context, id, op, data).await,
-    UserOperation::GetPost => do_websocket_operation::<GetPost>(context, id, op, data).await,
-    UserOperation::GetPosts => do_websocket_operation::<GetPosts>(context, id, op, data).await,
-    UserOperation::EditPost => do_websocket_operation::<EditPost>(context, id, op, data).await,
-    UserOperation::DeletePost => do_websocket_operation::<DeletePost>(context, id, op, data).await,
-    UserOperation::RemovePost => do_websocket_operation::<RemovePost>(context, id, op, data).await,
+    UserOperation::CreatePost => {
+      //do_websocket_operation::<CreatePost>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::GetPost => {
+      //do_websocket_operation::<GetPost>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::GetPosts => {
+      //do_websocket_operation::<GetPosts>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::EditPost => {
+      //do_websocket_operation::<EditPost>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::DeletePost => {
+      //do_websocket_operation::<DeletePost>(context, id, op, data).await
+      todo!()
+    }
+    UserOperation::RemovePost => {
+      //do_websocket_operation::<RemovePost>(context, id, op, data).await
+      todo!()
+    }
     UserOperation::LockPost => do_websocket_operation::<LockPost>(context, id, op, data).await,
     UserOperation::StickyPost => do_websocket_operation::<StickyPost>(context, id, op, data).await,
     UserOperation::CreatePostLike => {
@@ -400,16 +216,20 @@ pub async fn match_websocket_operation(
 
     // Comment ops
     UserOperation::CreateComment => {
-      do_websocket_operation::<CreateComment>(context, id, op, data).await
+      //do_websocket_operation::<CreateComment>(context, id, op, data).await
+      todo!()
     }
     UserOperation::EditComment => {
-      do_websocket_operation::<EditComment>(context, id, op, data).await
+      //do_websocket_operation::<EditComment>(context, id, op, data).await
+      todo!()
     }
     UserOperation::DeleteComment => {
-      do_websocket_operation::<DeleteComment>(context, id, op, data).await
+      //do_websocket_operation::<DeleteComment>(context, id, op, data).await
+      todo!()
     }
     UserOperation::RemoveComment => {
-      do_websocket_operation::<RemoveComment>(context, id, op, data).await
+      //do_websocket_operation::<RemoveComment>(context, id, op, data).await
+      todo!()
     }
     UserOperation::MarkCommentAsRead => {
       do_websocket_operation::<MarkCommentAsRead>(context, id, op, data).await
@@ -418,7 +238,8 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<SaveComment>(context, id, op, data).await
     }
     UserOperation::GetComments => {
-      do_websocket_operation::<GetComments>(context, id, op, data).await
+      //do_websocket_operation::<GetComments>(context, id, op, data).await
+      todo!()
     }
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
@@ -503,18 +324,10 @@ pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
   Ok(base64)
 }
 
-/// Checks the password length
-pub(crate) fn password_length_check(pass: &str) -> Result<(), LemmyError> {
-  if pass.len() > 60 {
-    Err(ApiError::err("invalid_password").into())
-  } else {
-    Ok(())
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use crate::{captcha_espeak_wav_base64, check_validator_time};
+  use lemmy_api_common::check_validator_time;
   use lemmy_db_queries::{establish_unpooled_connection, source::local_user::LocalUser_, Crud};
   use lemmy_db_schema::source::{
     local_user::{LocalUser, LocalUserForm},

@@ -24,7 +24,7 @@ use activitystreams::{
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
 use lemmy_db_schema::{
   source::{
