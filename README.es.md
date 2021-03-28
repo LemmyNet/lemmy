@@ -11,7 +11,7 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/LemmyNet/lemmy/tree/main/README.md">English</a> |
+  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.md">English</a> |
   <span>Español</span> |
   <a href="https://github.com/alvarotrigo/fullPage.js/tree/master/lang/french#fullpagejs">Français</a> |
   <a href="https://github.com/alvarotrigo/fullPage.js/tree/master/lang/russian#fullpagejs">Pусский</a> |
@@ -25,47 +25,47 @@
 
  <h3 align="center"><a href="https://join.lemmy.ml">Lemmy</a></h3>
   <p align="center">
-    A link aggregator / Reddit clone for the fediverse.
+    Un agregador de enlaces / clon de Reddit para el fediverso. 
     <br />
     <br />
     <a href="https://join.lemmy.ml">Join Lemmy</a>
     ·
-    <a href="https://join.lemmy.ml/docs/en/index.html">Documentation</a>
+    <a href="https://join.lemmy.ml/docs/es/index.html">Documentación</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">Reporta Errores (bugs)</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">Solicitar Características</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
+    <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Lanzamientos</a>
     ·
-    <a href="https://join.lemmy.ml/docs/en/code_of_conduct.html">Code of Conduct</a>
+    <a href="https://join.lemmy.ml/docs/es/code_of_conduct.html">Código de Conducta</a>
   </p>
 </p>
 
-## About The Project
+## Sobre El Proyecto
 
-Desktop|Mobile
+Escritorio|Móvil
 ---|---
 ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp)|![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp)
 
-[Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
+[Lemmy](https://github.com/LemmyNet/lemmy) es similar a sitios como [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), o [Hacker News](https://news.ycombinator.com/): te subscribes a los foros que te interesan, publicas enlaces y debates, luego votas y comentas en ellos. Entre bastidores, es muy diferente; cualquiera puede gestionar fácilmente un servidor, y todos estos servidores son federados (piensa en el correo electrónico), y conectados al mismo universo, llamado [Fediverso](https://es.wikipedia.org/wiki/Fediverso).
 
-For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
+Para un agregador de enlaces, esto significa que un usuario registrado en un servidor puede suscribirse a los foros de otro servidor, y puede mantener discusiones con usuarios registrados en otros lugares. 
 
-The overall goal is to create an easily self-hostable, decentralized alternative to Reddit and other link aggregators, outside of their corporate control and meddling.
+El objetivo general es crear una alternativa a reddit y otros agregadores de enlaces, fácilmente auto-hospedada, descentralizada, fuera de su control e intromisión corporativa.
 
-Each Lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
+Cada servidor lemmy puede establecer su propia política de moderación; nombrando a los administradores del sitio y a los moderadores de la comunidad para mantener alejados a los trolls, y fomentar un entorno saludable y no tóxico en el que puedan sentirse cómodos contribuyendo.
 
-*Note: The WebSocket and HTTP APIs are currently unstable*
+*Nota: Las APIs WebSocket y HTTP actualmente son inestables*
 
-### Why's it called Lemmy?
+### ¿Por qué se llama Lemmy?
 
-- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
-- The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
-- The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
-- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
+- Cantante principal de [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
+- El [videojuego de la vieja escuela](<https://es.wikipedia.org/wiki/Lemmings>).
+- El [Koopa de Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
+- Los [roedores peludos](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
-### Built With
+### Creado Con
 
 - [Rust](https://www.rust-lang.org)
 - [Actix](https://actix.rs/)
@@ -73,70 +73,71 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [Inferno](https://infernojs.org)
 - [Typescript](https://www.typescriptlang.org/)
 
-## Features
+# Características
 
-- Open source, [AGPL License](/LICENSE).
-- Self hostable, easy to deploy.
-  - Comes with [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html) and [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html).
-- Clean, mobile-friendly interface.
-  - Only a minimum of a username and password is required to sign up!
-  - User avatar support.
-  - Live-updating Comment threads.
-  - Full vote scores `(+/-)` like old Reddit.
-  - Themes, including light, dark, and solarized.
-  - Emojis with autocomplete support. Start typing `:`
-  - User tagging using `@`, Community tagging using `!`.
-  - Integrated image uploading in both posts and comments.
-  - A post can consist of a title and any combination of self text, a URL, or nothing else.
-  - Notifications, on comment replies and when you're tagged.
-    - Notifications can be sent via email.
-    - Private messaging support.
-  - i18n / internationalization support.
-  - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
-- Cross-posting support.
-  - A *similar post search* when creating new posts. Great for question / answer communities.
-- Moderation abilities.
-  - Public Moderation Logs.
-  - Can sticky posts to the top of communities.
-  - Both site admins, and community moderators, who can appoint other moderators.
-  - Can lock, remove, and restore posts and comments.
-  - Can ban and unban users from communities and the site.
-  - Can transfer site and communities to others.
-- Can fully erase your data, replacing all posts and comments.
-- NSFW post / community support.
-- OEmbed support via Iframely.
-- High performance.
-  - Server is written in rust.
-  - Front end is `~80kB` gzipped.
-  - Supports arm64 / Raspberry Pi.
+- Código abierto, [Licencia AGPL](/LICENSE).
+- Auto-hospedado, fácil de desplegar (deploy).
+  - Viene con [Docker](#docker) y [Ansible](#ansible).
+- Interfaz limpia y fácil de usar para los móviles.
+  - Sólo se requiere como mínimo un nombre de usuario y una contraseñar para inscribirse!
+  - Soporte de avatar de usuario.
+  - Hilos de comentarios actualizados en directo.
+  - Puntuaciones completas de los votos `(+/-)` como en el antiguo reddit.
+  - Temas, incluidos los claros, los oscuros, y los solarizados.
+  - Emojis con soporte para autocompletar. Empieza tecleando `:`
+  - Etiquetado de Usuarios con `@`, etiquetado de Comunidades con `!`.
+  - Carga de imágenes integrada tanto en las publicaciones como en los comentarios.
+  - Una publicación puede consistir en un título y cualquier combinación de texto propio, una URL o nada más.
+  - Notificaciones, sobre las respuestas a los comentarios y cuando te etiquetan.
+    - Las notificaciones se pueden enviar por correo electrónico.
+    - Soporte para mensajes privados.
+  - Soporte de i18n / internacionalización.
+  - Fuentes RSS / Atom para `Todo`, `Suscrito`, `Bandeja de entrada`, `Usuario`, y `Comunidad`.
+- Soporte para la publicación cruzada (cross-posting).
+  - Una *búsqueda de publicaciones similares* al crear nuevas publicaciones. Ideal para comunidades de preguntas y respuestas.
+- Capacidades de moderación.
+  - Registros públicos de moderación.
+  - Puede pegar las publicaciones a la parte superior de las comunidades.
+  - Tanto los administradores del sitio, como los moderadores de la comunidad, pueden nombrar a otros moderadores.
+  - Puede bloquear, eliminar y restaurar publicaciones y comentarios.
+  - Puede banear y desbanear usuarios de las comunidades y del sitio.
+  - Puede transferir el sitio y las comunidades a otros.
+- Puede borrar completamente sus datos, reemplazando todas las publicaciones y comentarios.
+- Soporte para publicaciones y comunidades NSFW.
+- Soporte de OEmbed a través de Iframely
+- Alto rendimiento.
+  - El servidor está escrito en rust.
+  - El front end está comprimido (gzipped) en `~80kB`.
+  - El front end funciona sin javascript (sólo lectura).
+  - Soporta arm64 / Raspberry Pi.
 
-## Installation
+## Instalación
 
-- [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html)
-- [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+- [Docker](https://join.lemmy.ml/docs/es/administration/install_docker.html)
+- [Ansible](https://join.lemmy.ml/docs/es/administration/install_ansible.html)
 
-## Lemmy Projects
+## Proyectos de Lemmy
 
-### Apps
+### Aplicaciones
 
-- [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/krawieck/lemmur)
-- [Remmel - A native iOS app](https://github.com/uuttff8/Lemmy-iOS)
+- [lemmy-ui - La aplicación web oficial para lemmy](https://github.com/LemmyNet/lemmy-ui)
+- [Lemmur - Un cliente móvil para Lemmy (Android, Linux, Windows)](https://github.com/krawieck/lemmur)
+- [Remmel - Una aplicación IOS nativa](https://github.com/uuttff8/Lemmy-iOS)
 
-### Libraries
+### Librerías
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
-- [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
-- [Dart API client ( under development )](https://github.com/krawieck/lemmy_api_client)
+- [Kotlin API ( en desarrollo )](https://github.com/eiknat/lemmy-client)
+- [Dart API client ( en desarrollo )](https://github.com/krawieck/lemmy_api_client)
 
-## Support / Donate
+## Apoyo / Donación
 
-Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
+Lemmy es un software libre y de código abierto, lo que significa que no hay publicidad, monetización o capital de riesgo, nunca. Tus donaciones apoyan directamente el desarrollo a tiempo completo del proyecto.
 
-- [Support on Liberapay](https://liberapay.com/Lemmy).
-- [Support on Patreon](https://www.patreon.com/dessalines).
-- [Support on OpenCollective](https://opencollective.com/lemmy).
-- [List of Sponsors](https://join.lemmy.ml/sponsors).
+- [Apoya en Liberapay](https://liberapay.com/Lemmy).
+- [Apoya en Patreon](https://www.patreon.com/dessalines).
+- [Apoya en OpenCollective](https://opencollective.com/lemmy).
+- [Lista de patrocinadores](https://join.lemmy.ml/sponsors).
 
 ### Crypto
 
@@ -144,27 +145,27 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
 
-## Contributing
+## Contribuir
 
-- [Contributing instructions](https://join.lemmy.ml/docs/en/contributing/contributing.html)
-- [Docker Development](https://join.lemmy.ml/docs/en/contributing/docker_development.html)
-- [Local Development](https://join.lemmy.ml/docs/en/contributing/local_development.html)
+- [Instrucciones para contribuir](https://join.lemmy.ml/docs/es/contributing/contributing.html)
+- [Desarrollo de Docker](https://join.lemmy.ml/docs/es/contributing/docker_development.html)
+- [Desarrollo local](https://join.lemmy.ml/docs/es/contributing/local_development.html)
 
-### Translations
+### Traducciones
 
-If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.ml/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
+Si quieres ayudar con la traducción, echa un vistazo a [Weblate](https://weblate.yerbamate.ml/projects/lemmy/). También puedes ayudar [traduciendo la documentación](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
-## Contact
+## Contacto
 
 - [Mastodon](https://mastodon.social/@LemmyDev)
 - [Matrix](https://matrix.to/#/#lemmy:matrix.org)
 
-## Code Mirrors
+## Repositorios del código
 
 - [GitHub](https://github.com/LemmyNet/lemmy)
 - [Gitea](https://yerbamate.ml/LemmyNet/lemmy)
 - [Codeberg](https://codeberg.org/LemmyNet/lemmy)
 
-## Credits
+## Creditos
 
-Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license.
+Logo hecho por Andy Cuccaro (@andycuccaro) bajo la licencia CC-BY-SA 4.0.
