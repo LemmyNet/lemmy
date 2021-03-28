@@ -13,10 +13,10 @@
 <p align="center">
   <a href="https://github.com/LemmyNet/lemmy/blob/main/README.md">English</a> |
   <span>Español</span> |
-  <a href="https://github.com/alvarotrigo/fullPage.js/tree/master/lang/french#fullpagejs">Français</a> |
-  <a href="https://github.com/alvarotrigo/fullPage.js/tree/master/lang/russian#fullpagejs">Pусский</a> |
-  <a href="https://github.com/alvarotrigo/fullPage.js/tree/master/lang/chinese#fullpagejs">中文</a> |
-  <a href="https://github.com/alvarotrigo/fullPage.js/tree/master/lang/korean#fullpagejs">한국어</a>
+  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.fr.md">Français</a> |
+  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.ru.md">Pусский</a> |
+  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.cn.md">中文</a> |
+  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.kr.md">한국어</a>
 </p>
 
 <p align="center">
@@ -28,11 +28,11 @@
     Un agregador de enlaces / clon de Reddit para el fediverso. 
     <br />
     <br />
-    <a href="https://join.lemmy.ml">Join Lemmy</a>
+    <a href="https://join.lemmy.ml">Unirse a Lemmy</a>
     ·
     <a href="https://join.lemmy.ml/docs/es/index.html">Documentación</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/issues">Reporta Errores (bugs)</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">Reportar Errores (bugs)</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Solicitar Características</a>
     ·
@@ -149,7 +149,7 @@ Lemmy es un software libre y de código abierto, lo que significa que no hay pub
 
 - [Instrucciones para contribuir](https://join.lemmy.ml/docs/es/contributing/contributing.html)
 - [Desarrollo de Docker](https://join.lemmy.ml/docs/es/contributing/docker_development.html)
-- [Desarrollo local](https://join.lemmy.ml/docs/es/contributing/local_development.html)
+- [Desarrollo Local](https://join.lemmy.ml/docs/es/contributing/local_development.html)
 
 ### Traducciones
 
