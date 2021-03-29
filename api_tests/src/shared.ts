@@ -57,23 +57,23 @@ export interface API {
 }
 
 export let alpha: API = {
-  client: new LemmyHttp('http://localhost:8541/api/v2'),
+  client: new LemmyHttp('http://localhost:8541'),
 };
 
 export let beta: API = {
-  client: new LemmyHttp('http://localhost:8551/api/v2'),
+  client: new LemmyHttp('http://localhost:8551'),
 };
 
 export let gamma: API = {
-  client: new LemmyHttp('http://localhost:8561/api/v2'),
+  client: new LemmyHttp('http://localhost:8561'),
 };
 
 export let delta: API = {
-  client: new LemmyHttp('http://localhost:8571/api/v2'),
+  client: new LemmyHttp('http://localhost:8571'),
 };
 
 export let epsilon: API = {
-  client: new LemmyHttp('http://localhost:8581/api/v2'),
+  client: new LemmyHttp('http://localhost:8581'),
 };
 
 export async function setupLogins() {

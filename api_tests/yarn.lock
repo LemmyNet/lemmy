@@ -3233,10 +3233,10 @@ language-tags@^1.0.5:
   dependencies:
     language-subtag-registry "~0.3.2"
 
-lemmy-js-client@0.10.0-rc.12:
-  version "0.10.0-rc.12"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.10.0-rc.12.tgz#b00fc55f78e3544b2ecf35a363e4f6781c7acd1e"
-  integrity sha512-GKdSBsjSxiWe3bDPgJXiHU8WDWvTDAgYUtQah+2LSjbTxP6G1ARBoZZmIf1ZFIIEBVH6I3n5apkiECK5/veZdg==
+lemmy-js-client@0.10.0-rc.13:
+  version "0.10.0-rc.13"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.10.0-rc.13.tgz#ea2e88857243374d7fbd49ee6b4bb94c34359d85"
+  integrity sha512-zodvYkwBYR7iP27ah6L/QPUphUUdq38kCH7QF2CUYBrsSAEkGmq2kdz+iusnQ1Ht7Ad80GtYycFprsZBveV5eQ==
 
 leven@^3.1.0:
   version "3.1.0"
