@@ -3,12 +3,14 @@ use lemmy_api::Perform;
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
 use lemmy_api_crud::PerformCrud;
 use lemmy_utils::rate_limit::RateLimit;
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{routes::chat_route, LemmyContext};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/api/v3")
+      // Websocket
+      .service(web::resource("/ws").to(chat_route))
       // Site
       .service(
         web::scope("/site")

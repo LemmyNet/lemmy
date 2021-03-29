@@ -91,7 +91,6 @@ async fn main() -> Result<(), LemmyError> {
       .data(context)
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
-      .configure(lemmy_websocket::routes::config)
       .configure(lemmy_apub::routes::config)
       .configure(feeds::config)
       .configure(|cfg| images::config(cfg, &rate_limiter))
