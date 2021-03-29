@@ -28,7 +28,7 @@ use activitystreams::{
 };
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;

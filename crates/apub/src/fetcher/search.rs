@@ -15,7 +15,7 @@ use crate::{
 };
 use activitystreams::base::BaseExt;
 use anyhow::{anyhow, Context};
-use lemmy_api_structs::{blocking, site::SearchResponse};
+use lemmy_api_common::{blocking, site::SearchResponse};
 use lemmy_db_queries::{
   source::{
     comment::Comment_,

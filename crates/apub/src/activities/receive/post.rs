@@ -10,7 +10,7 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_api_structs::{blocking, post::PostResponse};
+use lemmy_api_common::{blocking, post::PostResponse};
 use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, Likeable};
 use lemmy_db_schema::{
   source::{
@@ -21,7 +21,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{location_info, LemmyError};
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation, UserOperationCrud};
 
 pub(crate) async fn receive_create_post(
   create: Create,
@@ -44,7 +44,7 @@ pub(crate) async fn receive_create_post(
   let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
-    op: UserOperation::CreatePost,
+    op: UserOperationCrud::CreatePost,
     post: res,
     websocket_id: None,
   });
@@ -107,7 +107,7 @@ pub(crate) async fn receive_update_post(
   let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
-    op: UserOperation::EditPost,
+    op: UserOperationCrud::EditPost,
     post: res,
     websocket_id: None,
   });
@@ -209,7 +209,7 @@ pub(crate) async fn receive_delete_post(
 
   let res = PostResponse { post_view };
   context.chat_server().do_send(SendPost {
-    op: UserOperation::EditPost,
+    op: UserOperationCrud::EditPost,
     post: res,
     websocket_id: None,
   });
@@ -235,7 +235,7 @@ pub(crate) async fn receive_remove_post(
 
   let res = PostResponse { post_view };
   context.chat_server().do_send(SendPost {
-    op: UserOperation::EditPost,
+    op: UserOperationCrud::EditPost,
     post: res,
     websocket_id: None,
   });

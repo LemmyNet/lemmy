@@ -1,30 +1,18 @@
-use crate::{
+use crate::Perform;
+use actix_web::web::Data;
+use anyhow::Context;
+use lemmy_api_common::{
+  blocking,
   build_federated_instances,
   get_local_user_settings_view_from_jwt,
-  get_local_user_settings_view_from_jwt_opt,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
-  Perform,
+  site::*,
 };
-use actix_web::web::Data;
-use anyhow::Context;
-use lemmy_api_structs::{blocking, person::Register, site::*};
 use lemmy_apub::fetcher::search::search_by_apub_id;
-use lemmy_db_queries::{
-  diesel_option_overwrite_to_url,
-  source::site::Site_,
-  Crud,
-  SearchType,
-  SortType,
-};
-use lemmy_db_schema::{
-  naive_now,
-  source::{
-    moderator::*,
-    site::{Site, *},
-  },
-};
+use lemmy_db_queries::{source::site::Site_, Crud, SearchType, SortType};
+use lemmy_db_schema::source::{moderator::*, site::Site};
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
   post_view::PostQueryBuilder,
@@ -48,18 +36,13 @@ use lemmy_db_views_moderator::{
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,
-  utils::{check_slurs, check_slurs_opt},
   version,
   ApiError,
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{
-  messages::{GetUsersOnline, SendAllMessage},
-  LemmyContext,
-  UserOperation,
-};
-use log::{debug, info};
+use lemmy_websocket::LemmyContext;
+use log::debug;
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -132,189 +115,6 @@ impl Perform for GetModlog {
       banned,
       added_to_community,
       added,
-    })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for CreateSite {
-  type Response = SiteResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<SiteResponse, LemmyError> {
-    let data: &CreateSite = &self;
-
-    let read_site = move |conn: &'_ _| Site::read_simple(conn);
-    if blocking(context.pool(), read_site).await?.is_ok() {
-      return Err(ApiError::err("site_already_exists").into());
-    };
-
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
-
-    check_slurs(&data.name)?;
-    check_slurs_opt(&data.description)?;
-
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
-
-    let site_form = SiteForm {
-      name: data.name.to_owned(),
-      description: data.description.to_owned(),
-      icon: Some(data.icon.to_owned().map(|url| url.into())),
-      banner: Some(data.banner.to_owned().map(|url| url.into())),
-      creator_id: local_user_view.person.id,
-      enable_downvotes: data.enable_downvotes,
-      open_registration: data.open_registration,
-      enable_nsfw: data.enable_nsfw,
-      updated: None,
-    };
-
-    let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
-    if blocking(context.pool(), create_site).await?.is_err() {
-      return Err(ApiError::err("site_already_exists").into());
-    }
-
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
-
-    Ok(SiteResponse { site_view })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for EditSite {
-  type Response = SiteResponse;
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<SiteResponse, LemmyError> {
-    let data: &EditSite = &self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
-
-    check_slurs(&data.name)?;
-    check_slurs_opt(&data.description)?;
-
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
-
-    let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
-
-    let icon = diesel_option_overwrite_to_url(&data.icon)?;
-    let banner = diesel_option_overwrite_to_url(&data.banner)?;
-
-    let site_form = SiteForm {
-      name: data.name.to_owned(),
-      description: data.description.to_owned(),
-      icon,
-      banner,
-      creator_id: found_site.creator_id,
-      updated: Some(naive_now()),
-      enable_downvotes: data.enable_downvotes,
-      open_registration: data.open_registration,
-      enable_nsfw: data.enable_nsfw,
-    };
-
-    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    if blocking(context.pool(), update_site).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_site").into());
-    }
-
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
-
-    let res = SiteResponse { site_view };
-
-    context.chat_server().do_send(SendAllMessage {
-      op: UserOperation::EditSite,
-      response: res.clone(),
-      websocket_id,
-    });
-
-    Ok(res)
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for GetSite {
-  type Response = GetSiteResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &GetSite = &self;
-
-    let site_view = match blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
-      Ok(site_view) => Some(site_view),
-      // If the site isn't created yet, check the setup
-      Err(_) => {
-        if let Some(setup) = Settings::get().setup().as_ref() {
-          let register = Register {
-            username: setup.admin_username.to_owned(),
-            email: setup.admin_email.to_owned(),
-            password: setup.admin_password.to_owned(),
-            password_verify: setup.admin_password.to_owned(),
-            show_nsfw: true,
-            captcha_uuid: None,
-            captcha_answer: None,
-          };
-          let login_response = register.perform(context, websocket_id).await?;
-          info!("Admin {} created", setup.admin_username);
-
-          let create_site = CreateSite {
-            name: setup.site_name.to_owned(),
-            description: None,
-            icon: None,
-            banner: None,
-            enable_downvotes: true,
-            open_registration: true,
-            enable_nsfw: true,
-            auth: login_response.jwt,
-          };
-          create_site.perform(context, websocket_id).await?;
-          info!("Site {} created", setup.site_name);
-          Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
-        } else {
-          None
-        }
-      }
-    };
-
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
-
-    // Make sure the site creator is the top admin
-    if let Some(site_view) = site_view.to_owned() {
-      let site_creator_id = site_view.creator.id;
-      // TODO investigate why this is sometimes coming back null
-      // Maybe user_.admin isn't being set to true?
-      if let Some(creator_index) = admins.iter().position(|r| r.person.id == site_creator_id) {
-        let creator_person = admins.remove(creator_index);
-        admins.insert(0, creator_person);
-      }
-    }
-
-    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
-
-    let online = context
-      .chat_server()
-      .send(GetUsersOnline)
-      .await
-      .unwrap_or(1);
-
-    let my_user = get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?;
-    let federated_instances = build_federated_instances(context.pool()).await?;
-
-    Ok(GetSiteResponse {
-      site_view,
-      admins,
-      banned,
-      online,
-      version: version::VERSION.to_string(),
-      my_user,
-      federated_instances,
     })
   }
 }

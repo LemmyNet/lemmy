@@ -13,12 +13,12 @@ use activitystreams::{
   public,
 };
 use anyhow::{anyhow, Context};
-use lemmy_api_structs::{blocking, person::PrivateMessageResponse};
+use lemmy_api_common::{blocking, person::PrivateMessageResponse};
 use lemmy_db_queries::source::private_message::PrivateMessage_;
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
 use lemmy_utils::{location_info, LemmyError};
-use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperationCrud};
 use url::Url;
 
 pub(crate) async fn receive_create_private_message(
@@ -60,7 +60,7 @@ pub(crate) async fn receive_create_private_message(
   .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
-    op: UserOperation::CreatePrivateMessage,
+    op: UserOperationCrud::CreatePrivateMessage,
     response: res,
     local_recipient_id,
     websocket_id: None,
@@ -106,7 +106,7 @@ pub(crate) async fn receive_update_private_message(
   .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
-    op: UserOperation::EditPrivateMessage,
+    op: UserOperationCrud::EditPrivateMessage,
     response: res,
     local_recipient_id,
     websocket_id: None,
@@ -146,7 +146,7 @@ pub(crate) async fn receive_delete_private_message(
   .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
-    op: UserOperation::EditPrivateMessage,
+    op: UserOperationCrud::EditPrivateMessage,
     response: res,
     local_recipient_id,
     websocket_id: None,
@@ -191,7 +191,7 @@ pub(crate) async fn receive_undo_delete_private_message(
   .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
-    op: UserOperation::EditPrivateMessage,
+    op: UserOperationCrud::EditPrivateMessage,
     response: res,
     local_recipient_id,
     websocket_id: None,

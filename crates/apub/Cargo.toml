@@ -14,7 +14,7 @@ lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }
 lemmy_db_views = { path = "../db_views" }
 lemmy_db_views_actor = { path = "../db_views_actor" }
-lemmy_api_structs = { path = "../api_structs" }
+lemmy_api_common = { path = "../api_common" }
 lemmy_websocket = { path = "../websocket" }
 diesel = "1.4.5"
 activitystreams = "0.7.0-alpha.11"

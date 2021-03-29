@@ -1,6 +1,7 @@
 use crate::{
   chat_server::{ChatServer, SessionInfo},
   messages::*,
+  OperationType,
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
 use lemmy_db_schema::naive_now;
@@ -82,26 +83,28 @@ impl Handler<StandardMessage> for ChatServer {
   }
 }
 
-impl<Response> Handler<SendAllMessage<Response>> for ChatServer
+impl<OP, Response> Handler<SendAllMessage<OP, Response>> for ChatServer
 where
+  OP: OperationType + ToString,
   Response: Serialize,
 {
   type Result = ();
 
-  fn handle(&mut self, msg: SendAllMessage<Response>, _: &mut Context<Self>) {
+  fn handle(&mut self, msg: SendAllMessage<OP, Response>, _: &mut Context<Self>) {
     self
       .send_all_message(&msg.op, &msg.response, msg.websocket_id)
       .ok();
   }
 }
 
-impl<Response> Handler<SendUserRoomMessage<Response>> for ChatServer
+impl<OP, Response> Handler<SendUserRoomMessage<OP, Response>> for ChatServer
 where
+  OP: OperationType + ToString,
   Response: Serialize,
 {
   type Result = ();
 
-  fn handle(&mut self, msg: SendUserRoomMessage<Response>, _: &mut Context<Self>) {
+  fn handle(&mut self, msg: SendUserRoomMessage<OP, Response>, _: &mut Context<Self>) {
     self
       .send_user_room_message(
         &msg.op,
@@ -113,13 +116,14 @@ where
   }
 }
 
-impl<Response> Handler<SendCommunityRoomMessage<Response>> for ChatServer
+impl<OP, Response> Handler<SendCommunityRoomMessage<OP, Response>> for ChatServer
 where
+  OP: OperationType + ToString,
   Response: Serialize,
 {
   type Result = ();
 
-  fn handle(&mut self, msg: SendCommunityRoomMessage<Response>, _: &mut Context<Self>) {
+  fn handle(&mut self, msg: SendCommunityRoomMessage<OP, Response>, _: &mut Context<Self>) {
     self
       .send_community_room_message(&msg.op, &msg.response, msg.community_id, msg.websocket_id)
       .ok();
@@ -139,18 +143,24 @@ where
   }
 }
 
-impl Handler<SendPost> for ChatServer {
+impl<OP> Handler<SendPost<OP>> for ChatServer
+where
+  OP: OperationType + ToString,
+{
   type Result = ();
 
-  fn handle(&mut self, msg: SendPost, _: &mut Context<Self>) {
+  fn handle(&mut self, msg: SendPost<OP>, _: &mut Context<Self>) {
     self.send_post(&msg.op, &msg.post, msg.websocket_id).ok();
   }
 }
 
-impl Handler<SendComment> for ChatServer {
+impl<OP> Handler<SendComment<OP>> for ChatServer
+where
+  OP: OperationType + ToString,
+{
   type Result = ();
 
-  fn handle(&mut self, msg: SendComment, _: &mut Context<Self>) {
+  fn handle(&mut self, msg: SendComment<OP>, _: &mut Context<Self>) {
     self
       .send_comment(&msg.op, &msg.comment, msg.websocket_id)
       .ok();

@@ -49,7 +49,7 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::person::Person_, ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},

@@ -16,7 +16,7 @@ use activitystreams::{
   },
   prelude::*,
 };
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;

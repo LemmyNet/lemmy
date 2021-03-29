@@ -1,6 +1,6 @@
 use crate::UserOperation;
 use actix::{prelude::*, Recipient};
-use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
+use lemmy_api_common::{comment::CommentResponse, post::PostResponse};
 use lemmy_db_schema::{CommunityId, LocalUserId, PostId};
 use lemmy_utils::{ConnectionId, IpAddr};
 use serde::{Deserialize, Serialize};
@@ -40,16 +40,16 @@ pub struct StandardMessage {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendAllMessage<Response> {
-  pub op: UserOperation,
+pub struct SendAllMessage<OP: ToString, Response> {
+  pub op: OP,
   pub response: Response,
   pub websocket_id: Option<ConnectionId>,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendUserRoomMessage<Response> {
-  pub op: UserOperation,
+pub struct SendUserRoomMessage<OP: ToString, Response> {
+  pub op: OP,
   pub response: Response,
   pub local_recipient_id: LocalUserId,
   pub websocket_id: Option<ConnectionId>,
@@ -57,8 +57,8 @@ pub struct SendUserRoomMessage<Response> {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendCommunityRoomMessage<Response> {
-  pub op: UserOperation,
+pub struct SendCommunityRoomMessage<OP: ToString, Response> {
+  pub op: OP,
   pub response: Response,
   pub community_id: CommunityId,
   pub websocket_id: Option<ConnectionId>,
@@ -75,16 +75,16 @@ pub struct SendModRoomMessage<Response> {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendPost {
-  pub op: UserOperation,
+pub struct SendPost<OP: ToString> {
+  pub op: OP,
   pub post: PostResponse,
   pub websocket_id: Option<ConnectionId>,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendComment {
-  pub op: UserOperation,
+pub struct SendComment<OP: ToString> {
+  pub op: OP,
   pub comment: CommentResponse,
   pub websocket_id: Option<ConnectionId>,
 }

@@ -4,7 +4,7 @@ use activitystreams::{
   base::ExtendsExt,
 };
 use anyhow::Context;
-use lemmy_api_structs::{blocking, comment::CommentResponse, send_local_notifs};
+use lemmy_api_common::{blocking, comment::CommentResponse, send_local_notifs};
 use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentLike, CommentLikeForm},
@@ -12,7 +12,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation, UserOperationCrud};
 
 pub(crate) async fn receive_create_comment(
   create: Create,
@@ -57,7 +57,7 @@ pub(crate) async fn receive_create_comment(
   };
 
   context.chat_server().do_send(SendComment {
-    op: UserOperation::CreateComment,
+    op: UserOperationCrud::CreateComment,
     comment: res,
     websocket_id: None,
   });
@@ -98,7 +98,7 @@ pub(crate) async fn receive_update_comment(
   };
 
   context.chat_server().do_send(SendComment {
-    op: UserOperation::EditComment,
+    op: UserOperationCrud::EditComment,
     comment: res,
     websocket_id: None,
   });
@@ -220,7 +220,7 @@ pub(crate) async fn receive_delete_comment(
     form_id: None,
   };
   context.chat_server().do_send(SendComment {
-    op: UserOperation::EditComment,
+    op: UserOperationCrud::EditComment,
     comment: res,
     websocket_id: None,
   });
@@ -252,7 +252,7 @@ pub(crate) async fn receive_remove_comment(
     form_id: None,
   };
   context.chat_server().do_send(SendComment {
-    op: UserOperation::EditComment,
+    op: UserOperationCrud::EditComment,
     comment: res,
     websocket_id: None,
   });

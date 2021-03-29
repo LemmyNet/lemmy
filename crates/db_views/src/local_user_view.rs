@@ -70,9 +70,9 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)?;
     Ok(Self {
+      local_user,
       person,
       counts,
-      local_user,
     })
   }
 
@@ -92,9 +92,9 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)?;
     Ok(Self {
+      local_user,
       person,
       counts,
-      local_user,
     })
   }
 
@@ -110,9 +110,9 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)?;
     Ok(Self {
+      local_user,
       person,
       counts,
-      local_user,
     })
   }
 }
@@ -139,9 +139,9 @@ impl LocalUserSettingsView {
       ))
       .first::<LocalUserSettingsViewTuple>(conn)?;
     Ok(Self {
+      local_user,
       person,
       counts,
-      local_user,
     })
   }
 }

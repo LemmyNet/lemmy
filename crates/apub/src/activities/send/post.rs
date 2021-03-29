@@ -21,7 +21,7 @@ use activitystreams::{
   prelude::*,
   public,
 };
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;

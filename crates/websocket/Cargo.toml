@@ -10,7 +10,7 @@ doctest = false
 
 [dependencies]
 lemmy_utils = { path = "../utils" }
-lemmy_api_structs = { path = "../api_structs" }
+lemmy_api_common = { path = "../api_common" }
 lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }
 reqwest = { version = "0.10.10", features = ["json"] }

@@ -1,7 +1,7 @@
 use crate::{fetcher::fetch::fetch_remote_object, objects::FromApub, NoteExt, PageExt};
 use anyhow::anyhow;
 use diesel::result::Error::NotFound;
-use lemmy_api_structs::blocking;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::LemmyError;

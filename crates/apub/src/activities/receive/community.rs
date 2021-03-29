@@ -1,9 +1,9 @@
-use lemmy_api_structs::{blocking, community::CommunityResponse};
+use lemmy_api_common::{blocking, community::CommunityResponse};
 use lemmy_db_queries::source::community::Community_;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperationCrud};
 
 pub(crate) async fn receive_delete_community(
   context: &LemmyContext,
@@ -24,7 +24,7 @@ pub(crate) async fn receive_delete_community(
 
   let community_id = res.community_view.community.id;
   context.chat_server().do_send(SendCommunityRoomMessage {
-    op: UserOperation::EditCommunity,
+    op: UserOperationCrud::EditCommunity,
     response: res,
     community_id,
     websocket_id: None,
@@ -52,7 +52,7 @@ pub(crate) async fn receive_remove_community(
 
   let community_id = res.community_view.community.id;
   context.chat_server().do_send(SendCommunityRoomMessage {
-    op: UserOperation::EditCommunity,
+    op: UserOperationCrud::EditCommunity,
     response: res,
     community_id,
     websocket_id: None,
@@ -80,7 +80,7 @@ pub(crate) async fn receive_undo_delete_community(
 
   let community_id = res.community_view.community.id;
   context.chat_server().do_send(SendCommunityRoomMessage {
-    op: UserOperation::EditCommunity,
+    op: UserOperationCrud::EditCommunity,
     response: res,
     community_id,
     websocket_id: None,
@@ -109,7 +109,7 @@ pub(crate) async fn receive_undo_remove_community(
   let community_id = res.community_view.community.id;
 
   context.chat_server().do_send(SendCommunityRoomMessage {
-    op: UserOperation::EditCommunity,
+    op: UserOperationCrud::EditCommunity,
     response: res,
     community_id,
     websocket_id: None,
