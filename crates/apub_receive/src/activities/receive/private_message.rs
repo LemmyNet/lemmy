@@ -1,11 +1,4 @@
-use crate::{
-  activities::receive::verify_activity_domains_valid,
-  check_is_apub_id_valid,
-  fetcher::person::get_or_fetch_and_upsert_person,
-  inbox::get_activity_to_and_cc,
-  objects::FromApub,
-  NoteExt,
-};
+use crate::activities::receive::verify_activity_domains_valid;
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Delete, Undo, Update},
   base::{AsBase, ExtendsExt},
@@ -14,6 +7,13 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use lemmy_api_common::{blocking, person::PrivateMessageResponse};
+use lemmy_apub::{
+  check_is_apub_id_valid,
+  fetcher::person::get_or_fetch_and_upsert_person,
+  get_activity_to_and_cc,
+  objects::FromApub,
+  NoteExt,
+};
 use lemmy_db_queries::source::private_message::PrivateMessage_;
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};

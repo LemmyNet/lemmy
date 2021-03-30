@@ -15,6 +15,7 @@ members = [
     "crates/api_crud",
     "crates/api_common",
     "crates/apub",
+    "crates/apub_receive",
     "crates/utils",
     "crates/db_queries",
     "crates/db_schema",
@@ -29,6 +30,7 @@ members = [
 lemmy_api = { path = "./crates/api" }
 lemmy_api_crud = { path = "./crates/api_crud" }
 lemmy_apub = { path = "./crates/apub" }
+lemmy_apub_receive = { path = "./crates/apub_receive" }
 lemmy_utils = { path = "./crates/utils" }
 lemmy_db_schema = { path = "./crates/db_schema" }
 lemmy_db_queries = { path = "./crates/db_queries" }

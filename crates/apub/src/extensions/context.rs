@@ -3,7 +3,7 @@ use lemmy_utils::LemmyError;
 use serde_json::json;
 use url::Url;
 
-pub(crate) fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
+pub fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
   let context_ext = AnyBase::from_arbitrary_json(json!(
   {
     "sc": "http://schema.org#",

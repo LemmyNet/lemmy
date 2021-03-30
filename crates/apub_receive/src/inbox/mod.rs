@@ -1,18 +1,19 @@
-use crate::{
-  check_is_apub_id_valid,
-  extensions::signatures::verify_signature,
-  fetcher::get_or_fetch_and_upsert_actor,
-  ActorType,
-};
 use activitystreams::{
   activity::ActorAndObjectRefExt,
   base::{AsBase, BaseExt, Extends},
-  object::{AsObject, ObjectExt},
+  object::AsObject,
   public,
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
+use lemmy_apub::{
+  check_is_apub_id_valid,
+  extensions::signatures::verify_signature,
+  fetcher::get_or_fetch_and_upsert_actor,
+  get_activity_to_and_cc,
+  ActorType,
+};
 use lemmy_db_queries::{
   source::{activity::Activity_, community::Community_},
   ApubObject,
@@ -54,34 +55,6 @@ pub(crate) async fn is_activity_already_known(
     Ok(_) => Ok(true),
     Err(_) => Ok(false),
   }
-}
-
-pub(crate) fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Vec<Url>
-where
-  T: AsObject<Kind>,
-{
-  let mut to_and_cc = vec![];
-  if let Some(to) = activity.to() {
-    let to = to.to_owned().unwrap_to_vec();
-    let mut to = to
-      .iter()
-      .map(|t| t.as_xsd_any_uri())
-      .flatten()
-      .map(|t| t.to_owned())
-      .collect();
-    to_and_cc.append(&mut to);
-  }
-  if let Some(cc) = activity.cc() {
-    let cc = cc.to_owned().unwrap_to_vec();
-    let mut cc = cc
-      .iter()
-      .map(|c| c.as_xsd_any_uri())
-      .flatten()
-      .map(|c| c.to_owned())
-      .collect();
-    to_and_cc.append(&mut cc);
-  }
-  to_and_cc
 }
 
 pub(crate) fn verify_is_addressed_to_public<T, Kind>(activity: &T) -> Result<(), LemmyError>

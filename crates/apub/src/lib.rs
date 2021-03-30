@@ -5,10 +5,7 @@ pub mod activities;
 pub mod activity_queue;
 pub mod extensions;
 pub mod fetcher;
-pub mod http;
-pub mod inbox;
 pub mod objects;
-pub mod routes;
 
 use crate::extensions::{
   group_extension::GroupExtension,
@@ -20,7 +17,7 @@ use activitystreams::{
   activity::Follow,
   actor,
   base::AnyBase,
-  object::{ApObject, Note, Page},
+  object::{ApObject, AsObject, Note, ObjectExt, Page},
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
@@ -36,8 +33,10 @@ use lemmy_db_schema::{
     post::Post,
     private_message::PrivateMessage,
   },
+  CommunityId,
   DbUrl,
 };
+use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
@@ -49,8 +48,8 @@ type GroupExt = Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, Pub
 /// Activitystreams type for person
 type PersonExt = Ext2<actor::ApActor<ApObject<actor::Person>>, PersonExtension, PublicKeyExtension>;
 /// Activitystreams type for post
-type PageExt = Ext1<ApObject<Page>, PageExtension>;
-type NoteExt = ApObject<Note>;
+pub type PageExt = Ext1<ApObject<Page>, PageExtension>;
+pub type NoteExt = ApObject<Note>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
@@ -63,7 +62,7 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 /// - URL not being in the blocklist (if it is active)
 ///
 /// Note that only one of allowlist and blacklist can be enabled, not both.
-fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
+pub fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let settings = Settings::get();
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
@@ -294,13 +293,13 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
-pub(crate) fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
+pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
 }
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-pub(crate) async fn insert_activity<T>(
+pub async fn insert_activity<T>(
   ap_id: &Url,
   activity: T,
   local: bool,
@@ -318,7 +317,7 @@ where
   Ok(())
 }
 
-pub(crate) enum PostOrComment {
+pub enum PostOrComment {
   Comment(Box<Comment>),
   Post(Box<Post>),
 }
@@ -326,7 +325,7 @@ pub(crate) enum PostOrComment {
 /// Tries to find a post or comment in the local database, without any network requests.
 /// This is used to handle deletions and removals, because in case we dont have the object, we can
 /// simply ignore the activity.
-pub(crate) async fn find_post_or_comment_by_id(
+pub async fn find_post_or_comment_by_id(
   context: &LemmyContext,
   apub_id: Url,
 ) -> Result<PostOrComment, LemmyError> {
@@ -399,4 +398,50 @@ pub(crate) async fn find_object_by_id(
   }
 
   Err(NotFound.into())
+}
+
+pub async fn check_community_or_site_ban(
+  person: &Person,
+  community_id: CommunityId,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  if person.banned {
+    return Err(anyhow!("Person is banned from site").into());
+  }
+  let person_id = person.id;
+  let is_banned =
+    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
+  if blocking(pool, is_banned).await? {
+    return Err(anyhow!("Person is banned from community").into());
+  }
+
+  Ok(())
+}
+
+pub fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Vec<Url>
+where
+  T: AsObject<Kind>,
+{
+  let mut to_and_cc = vec![];
+  if let Some(to) = activity.to() {
+    let to = to.to_owned().unwrap_to_vec();
+    let mut to = to
+      .iter()
+      .map(|t| t.as_xsd_any_uri())
+      .flatten()
+      .map(|t| t.to_owned())
+      .collect();
+    to_and_cc.append(&mut to);
+  }
+  if let Some(cc) = activity.cc() {
+    let cc = cc.to_owned().unwrap_to_vec();
+    let mut cc = cc
+      .iter()
+      .map(|c| c.as_xsd_any_uri())
+      .flatten()
+      .map(|c| c.to_owned())
+      .collect();
+    to_and_cc.append(&mut cc);
+  }
+  to_and_cc
 }

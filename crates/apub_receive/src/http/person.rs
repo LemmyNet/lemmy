@@ -1,15 +1,11 @@
-use crate::{
-  extensions::context::lemmy_context,
-  http::{create_apub_response, create_apub_tombstone_response},
-  objects::ToApub,
-  ActorType,
-};
+use crate::http::{create_apub_response, create_apub_tombstone_response};
 use activitystreams::{
   base::BaseExt,
   collection::{CollectionExt, OrderedCollection},
 };
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_api_common::blocking;
+use lemmy_apub::{extensions::context::lemmy_context, objects::ToApub, ActorType};
 use lemmy_db_queries::source::person::Person_;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;

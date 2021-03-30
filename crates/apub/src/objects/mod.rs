@@ -1,7 +1,8 @@
 use crate::{
+  check_community_or_site_ban,
   check_is_apub_id_valid,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  inbox::{community_inbox::check_community_or_site_ban, get_activity_to_and_cc},
+  get_activity_to_and_cc,
   PageExt,
 };
 use activitystreams::{
@@ -33,14 +34,14 @@ pub(crate) mod private_message;
 
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
-pub(crate) trait ToApub {
+pub trait ToApub {
   type ApubType;
   async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]
-pub(crate) trait FromApub {
+pub trait FromApub {
   type ApubType;
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///

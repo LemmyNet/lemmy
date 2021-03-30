@@ -31,15 +31,7 @@ use crate::{
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
-  fetcher::{
-    objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-    person::get_or_fetch_and_upsert_person,
-  },
-  find_post_or_comment_by_id,
-  generate_moderators_url,
   inbox::verify_is_addressed_to_public,
-  CommunityType,
-  PostOrComment,
 };
 use activitystreams::{
   activity::{
@@ -62,6 +54,16 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
+use lemmy_apub::{
+  fetcher::{
+    objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+    person::get_or_fetch_and_upsert_person,
+  },
+  find_post_or_comment_by_id,
+  generate_moderators_url,
+  CommunityType,
+  PostOrComment,
+};
 use lemmy_db_queries::{source::community::CommunityModerator_, ApubObject, Crud, Joinable};
 use lemmy_db_schema::{
   source::{

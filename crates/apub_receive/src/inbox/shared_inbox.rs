@@ -1,21 +1,18 @@
-use crate::{
-  inbox::{
-    assert_activity_not_local,
-    community_inbox::{community_receive_message, CommunityAcceptedActivities},
-    get_activity_id,
-    get_activity_to_and_cc,
-    inbox_verify_http_signature,
-    is_activity_already_known,
-    is_addressed_to_community_followers,
-    is_addressed_to_local_person,
-    person_inbox::{person_receive_message, PersonAcceptedActivities},
-  },
-  insert_activity,
+use crate::inbox::{
+  assert_activity_not_local,
+  community_inbox::{community_receive_message, CommunityAcceptedActivities},
+  get_activity_id,
+  inbox_verify_http_signature,
+  is_activity_already_known,
+  is_addressed_to_community_followers,
+  is_addressed_to_local_person,
+  person_inbox::{person_receive_message, PersonAcceptedActivities},
 };
 use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
 use lemmy_api_common::blocking;
+use lemmy_apub::{get_activity_to_and_cc, insert_activity};
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::{location_info, LemmyError};

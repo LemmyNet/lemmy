@@ -3,7 +3,6 @@ use crate::{
   inbox::{
     assert_activity_not_local,
     get_activity_id,
-    get_activity_to_and_cc,
     inbox_verify_http_signature,
     is_activity_already_known,
     receive_for_community::{
@@ -18,9 +17,6 @@ use crate::{
     },
     verify_is_addressed_to_public,
   },
-  insert_activity,
-  ActorType,
-  CommunityType,
 };
 use activitystreams::{
   activity::{kind::FollowType, ActorAndObject, Follow, Undo},
@@ -30,15 +26,18 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
-use lemmy_db_queries::{source::community::Community_, ApubObject, DbPool, Followable};
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityFollower, CommunityFollowerForm},
-    person::Person,
-  },
-  CommunityId,
+use lemmy_apub::{
+  check_community_or_site_ban,
+  get_activity_to_and_cc,
+  insert_activity,
+  ActorType,
+  CommunityType,
 };
-use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
+use lemmy_db_queries::{source::community::Community_, ApubObject, Followable};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityFollower, CommunityFollowerForm},
+  person::Person,
+};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
@@ -315,24 +314,6 @@ async fn handle_undo_follow(
     CommunityFollower::unfollow(&conn, &community_follower_form).ok()
   })
   .await?;
-
-  Ok(())
-}
-
-pub(crate) async fn check_community_or_site_ban(
-  person: &Person,
-  community_id: CommunityId,
-  pool: &DbPool,
-) -> Result<(), LemmyError> {
-  if person.banned {
-    return Err(anyhow!("Person is banned from site").into());
-  }
-  let person_id = person.id;
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
-    return Err(anyhow!("Person is banned from community").into());
-  }
 
   Ok(())
 }

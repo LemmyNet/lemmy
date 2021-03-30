@@ -1,9 +1,6 @@
 use crate::{
   activities::receive::get_actor_as_person,
   inbox::receive_for_community::verify_mod_activity,
-  objects::FromApub,
-  ActorType,
-  PageExt,
 };
 use activitystreams::{
   activity::{Announce, Create, Dislike, Like, Update},
@@ -11,6 +8,7 @@ use activitystreams::{
 };
 use anyhow::Context;
 use lemmy_api_common::{blocking, post::PostResponse};
+use lemmy_apub::{objects::FromApub, ActorType, PageExt};
 use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, Likeable};
 use lemmy_db_schema::{
   source::{

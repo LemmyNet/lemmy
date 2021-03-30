@@ -1,10 +1,4 @@
-use crate::{
-  extensions::context::lemmy_context,
-  generate_moderators_url,
-  http::{create_apub_response, create_apub_tombstone_response},
-  objects::ToApub,
-  ActorType,
-};
+use crate::http::{create_apub_response, create_apub_tombstone_response};
 use activitystreams::{
   base::{AnyBase, BaseExt},
   collection::{CollectionExt, OrderedCollection, UnorderedCollection},
@@ -12,6 +6,12 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_api_common::blocking;
+use lemmy_apub::{
+  extensions::context::lemmy_context,
+  generate_moderators_url,
+  objects::ToApub,
+  ActorType,
+};
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{
