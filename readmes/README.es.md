@@ -11,12 +11,9 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.md">English</a> |
+  <a href="../README.md">English</a> |
   <span>Español</span> |
-  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.fr.md">Français</a> |
-  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.ru.md">Pусский</a> |
-  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.cn.md">中文</a> |
-  <a href="https://github.com/LemmyNet/lemmy/blob/main/README.kr.md">한국어</a>
+  <a href="README.ru.md">Pусский</a> 
 </p>
 
 <p align="center">
@@ -25,7 +22,7 @@
 
  <h3 align="center"><a href="https://join.lemmy.ml">Lemmy</a></h3>
   <p align="center">
-    Un agregador de enlaces / clon de Reddit para el fediverso. 
+    Un agregador de enlaces / alternativa a Menéame - Reddit para el fediverso. 
     <br />
     <br />
     <a href="https://join.lemmy.ml">Unirse a Lemmy</a>
@@ -48,7 +45,7 @@ Escritorio|Móvil
 ---|---
 ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp)|![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp)
 
-[Lemmy](https://github.com/LemmyNet/lemmy) es similar a sitios como [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), o [Hacker News](https://news.ycombinator.com/): te subscribes a los foros que te interesan, publicas enlaces y debates, luego votas y comentas en ellos. Entre bastidores, es muy diferente; cualquiera puede gestionar fácilmente un servidor, y todos estos servidores son federados (piensa en el correo electrónico), y conectados al mismo universo, llamado [Fediverso](https://es.wikipedia.org/wiki/Fediverso).
+[Lemmy](https://github.com/LemmyNet/lemmy) es similar a sitios como [Menéame](https://www.meneame.net/), [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), o [Hacker News](https://news.ycombinator.com/): te subscribes a los foros que te interesan, publicas enlaces y debates, luego votas y comentas en ellos. Entre bastidores, es muy diferente; cualquiera puede gestionar fácilmente un servidor, y todos estos servidores son federados (piensa en el correo electrónico), y conectados al mismo universo, llamado [Fediverso](https://es.wikipedia.org/wiki/Fediverso).
 
 Para un agregador de enlaces, esto significa que un usuario registrado en un servidor puede suscribirse a los foros de otro servidor, y puede mantener discusiones con usuarios registrados en otros lugares. 
 
@@ -148,7 +145,7 @@ Lemmy es un software libre y de código abierto, lo que significa que no hay pub
 ## Contribuir
 
 - [Instrucciones para contribuir](https://join.lemmy.ml/docs/es/contributing/contributing.html)
-- [Desarrollo de Docker](https://join.lemmy.ml/docs/es/contributing/docker_development.html)
+- [Desarrollo por Docker](https://join.lemmy.ml/docs/es/contributing/docker_development.html)
 - [Desarrollo Local](https://join.lemmy.ml/docs/es/contributing/local_development.html)
 
 ### Traducciones
