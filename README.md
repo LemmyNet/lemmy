@@ -12,8 +12,7 @@
 
 <p align="center">
   <span>English</span> |
-  <a href="readmes/README.es.md">Español</a> |
-  <a href="readmes/README.ru.md">Pусский</a>
+  <a href="readmes/README.es.md">Español</a>
 </p>
 
 <p align="center">
