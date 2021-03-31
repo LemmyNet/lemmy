@@ -418,3 +418,12 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
     Ok(())
   }
 }
+
+/// Checks the site description length
+pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
+  if description.len() > 150 {
+    Err(ApiError::err("site_description_length_overflow").into())
+  } else {
+    Ok(())
+  }
+}

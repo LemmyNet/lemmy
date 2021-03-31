@@ -5,6 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   is_admin,
   site::{EditSite, SiteResponse},
+  site_description_length_check,
 };
 use lemmy_db_queries::{
   diesel_option_overwrite,
@@ -48,6 +49,10 @@ impl PerformCrud for EditSite {
     let description = diesel_option_overwrite(&data.description);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
+
+    if let Some(Some(desc)) = &description {
+      site_description_length_check(desc)?;
+    }
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
