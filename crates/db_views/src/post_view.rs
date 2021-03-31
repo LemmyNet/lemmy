@@ -498,7 +498,7 @@ mod tests {
     let inserted_post = Post::create(&conn, &new_post).unwrap();
 
     let new_bot_post = PostForm {
-      name: bot_post_name.to_owned(),
+      name: bot_post_name,
       creator_id: inserted_bot.id,
       community_id: inserted_community.id,
       ..PostForm::default()
