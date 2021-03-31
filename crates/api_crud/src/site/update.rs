@@ -6,7 +6,12 @@ use lemmy_api_common::{
   is_admin,
   site::{EditSite, SiteResponse},
 };
-use lemmy_db_queries::{diesel_option_overwrite_to_url, source::site::Site_, Crud};
+use lemmy_db_queries::{
+  diesel_option_overwrite,
+  diesel_option_overwrite_to_url,
+  source::site::Site_,
+  Crud,
+};
 use lemmy_db_schema::{
   naive_now,
   source::site::{Site, SiteForm},
@@ -39,12 +44,15 @@ impl PerformCrud for EditSite {
 
     let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
+    let sidebar = diesel_option_overwrite(&data.sidebar);
+    let description = diesel_option_overwrite(&data.description);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
-      description: data.description.to_owned(),
+      sidebar,
+      description,
       icon,
       banner,
       creator_id: found_site.creator_id,

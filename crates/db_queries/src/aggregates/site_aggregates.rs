@@ -49,6 +49,7 @@ mod tests {
 
     let site_form = SiteForm {
       name: "test_site".into(),
+      sidebar: None,
       description: None,
       icon: None,
       banner: None,
