@@ -228,11 +228,14 @@ fn get_feed_front(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.sub);
-  let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
+  let local_user = LocalUser::read(&conn, local_user_id)?;
+  let person_id = local_user.person_id;
+  let show_bot_accounts = local_user.show_bot_accounts;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::Subscribed)
     .my_person_id(person_id)
+    .show_bot_accounts(show_bot_accounts)
     .sort(sort_type)
     .list()?;
 
@@ -255,13 +258,16 @@ fn get_feed_front(
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.sub);
-  let person_id = LocalUser::read(&conn, local_user_id)?.person_id;
+  let local_user = LocalUser::read(&conn, local_user_id)?;
+  let person_id = local_user.person_id;
+  let show_bot_accounts = local_user.show_bot_accounts;
 
   let sort = SortType::New;
 
   let replies = CommentQueryBuilder::create(&conn)
     .recipient_id(person_id)
     .my_person_id(person_id)
+    .show_bot_accounts(show_bot_accounts)
     .sort(&sort)
     .list()?;
 

@@ -9,11 +9,18 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct PersonExtension {
   pub matrix_user_id: Option<String>,
+  pub bot_account: bool,
 }
 
 impl PersonExtension {
-  pub fn new(matrix_user_id: Option<String>) -> Result<PersonExtension, LemmyError> {
-    Ok(PersonExtension { matrix_user_id })
+  pub fn new(
+    matrix_user_id: Option<String>,
+    bot_account: bool,
+  ) -> Result<PersonExtension, LemmyError> {
+    Ok(PersonExtension {
+      matrix_user_id,
+      bot_account,
+    })
   }
 }
 
@@ -26,11 +33,13 @@ where
   fn try_from_unparsed(unparsed_mut: &mut U) -> Result<Self, Self::Error> {
     Ok(PersonExtension {
       matrix_user_id: unparsed_mut.remove("matrix_user_id")?,
+      bot_account: unparsed_mut.remove("bot_account")?,
     })
   }
 
   fn try_into_unparsed(self, unparsed_mut: &mut U) -> Result<(), Self::Error> {
     unparsed_mut.insert("matrix_user_id", self.matrix_user_id)?;
+    unparsed_mut.insert("bot_account", self.bot_account)?;
     Ok(())
   }
 }

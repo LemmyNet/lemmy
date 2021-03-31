@@ -154,6 +154,7 @@ table! {
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
+        show_bot_accounts -> Bool,
     }
 }
 
@@ -287,6 +288,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
+        bot_account -> Bool,
     }
 }
 
@@ -487,6 +489,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
+        bot_account -> Bool,
     }
 }
 
@@ -511,6 +514,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
+        bot_account -> Bool,
     }
 }
 

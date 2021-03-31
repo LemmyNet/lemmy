@@ -9,6 +9,8 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt_opt,
   is_admin,
   site::*,
+  user_show_bot_accounts,
+  user_show_nsfw,
 };
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{source::site::Site_, Crud, SearchType, SortType};
@@ -136,6 +138,10 @@ impl Perform for Search {
     }
 
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+
+    let show_nsfw = user_show_nsfw(&local_user_view);
+    let show_bot_accounts = user_show_bot_accounts(&local_user_view);
+
     let person_id = local_user_view.map(|u| u.person.id);
 
     let type_ = SearchType::from_str(&data.type_)?;
@@ -158,7 +164,8 @@ impl Perform for Search {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(&sort)
-            .show_nsfw(true)
+            .show_nsfw(show_nsfw)
+            .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
             .community_name(community_name)
             .my_person_id(person_id)
@@ -174,6 +181,7 @@ impl Perform for Search {
           CommentQueryBuilder::create(&conn)
             .sort(&sort)
             .search_term(q)
+            .show_bot_accounts(show_bot_accounts)
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
@@ -208,7 +216,8 @@ impl Perform for Search {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(&sort)
-            .show_nsfw(true)
+            .show_nsfw(show_nsfw)
+            .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
             .community_name(community_name)
             .my_person_id(person_id)
@@ -226,6 +235,7 @@ impl Perform for Search {
           CommentQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
+            .show_bot_accounts(show_bot_accounts)
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
@@ -264,7 +274,8 @@ impl Perform for Search {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(&sort)
-            .show_nsfw(true)
+            .show_nsfw(show_nsfw)
+            .show_bot_accounts(show_bot_accounts)
             .my_person_id(person_id)
             .community_id(community_id)
             .community_name(community_name)

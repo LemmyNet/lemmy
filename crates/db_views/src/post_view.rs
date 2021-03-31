@@ -164,6 +164,7 @@ pub struct PostQueryBuilder<'a> {
   search_term: Option<String>,
   url_search: Option<String>,
   show_nsfw: bool,
+  show_bot_accounts: bool,
   saved_only: bool,
   unread_only: bool,
   page: Option<i64>,
@@ -183,6 +184,7 @@ impl<'a> PostQueryBuilder<'a> {
       search_term: None,
       url_search: None,
       show_nsfw: true,
+      show_bot_accounts: true,
       saved_only: false,
       unread_only: false,
       page: None,
@@ -232,6 +234,11 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
     self.show_nsfw = show_nsfw;
+    self
+  }
+
+  pub fn show_bot_accounts(mut self, show_bot_accounts: bool) -> Self {
+    self.show_bot_accounts = show_bot_accounts;
     self
   }
 
@@ -351,6 +358,10 @@ impl<'a> PostQueryBuilder<'a> {
         .filter(community::nsfw.eq(false));
     };
 
+    if !self.show_bot_accounts {
+      query = query.filter(person::bot_account.eq(false));
+    };
+
     // TODO  These two might be wrong
     if self.saved_only {
       query = query.filter(post_saved::id.is_not_null());
@@ -451,6 +462,7 @@ mod tests {
     let person_name = "tegan".to_string();
     let community_name = "test_community_3".to_string();
     let post_name = "test post 3".to_string();
+    let bot_post_name = "test bot post".to_string();
 
     let new_person = PersonForm {
       name: person_name.to_owned(),
@@ -458,6 +470,14 @@ mod tests {
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
+
+    let new_bot = PersonForm {
+      name: person_name.to_owned(),
+      bot_account: Some(true),
+      ..PersonForm::default()
+    };
+
+    let inserted_bot = Person::create(&conn, &new_bot).unwrap();
 
     let new_community = CommunityForm {
       name: community_name.to_owned(),
@@ -476,6 +496,15 @@ mod tests {
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
+
+    let new_bot_post = PostForm {
+      name: bot_post_name.to_owned(),
+      creator_id: inserted_bot.id,
+      community_id: inserted_community.id,
+      ..PostForm::default()
+    };
+
+    let _inserted_bot_post = Post::create(&conn, &new_bot_post).unwrap();
 
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
@@ -496,6 +525,7 @@ mod tests {
     let read_post_listings_with_person = PostQueryBuilder::create(&conn)
       .listing_type(&ListingType::Community)
       .sort(&SortType::New)
+      .show_bot_accounts(false)
       .community_id(inserted_community.id)
       .my_person_id(inserted_person.id)
       .list()
@@ -547,6 +577,7 @@ mod tests {
         actor_id: inserted_person.actor_id.to_owned(),
         local: true,
         admin: false,
+        bot_account: false,
         banned: false,
         deleted: false,
         bio: None,
@@ -598,6 +629,7 @@ mod tests {
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
     Person::delete(&conn, inserted_person.id).unwrap();
+    Person::delete(&conn, inserted_bot.id).unwrap();
 
     // The with user
     assert_eq!(
@@ -608,18 +640,20 @@ mod tests {
       expected_post_listing_with_user,
       read_post_listing_with_person
     );
+
+    // Should be only one person, IE the bot post should be missing
     assert_eq!(1, read_post_listings_with_person.len());
 
     // Without the user
     assert_eq!(
       expected_post_listing_no_person,
-      read_post_listings_no_person[0]
+      read_post_listings_no_person[1]
     );
     assert_eq!(expected_post_listing_no_person, read_post_listing_no_person);
-    assert_eq!(1, read_post_listings_no_person.len());
 
-    // assert_eq!(expected_post, inserted_post);
-    // assert_eq!(expected_post, updated_post);
+    // Should be 2 posts, with the bot post
+    assert_eq!(2, read_post_listings_no_person.len());
+
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(1, like_removed);
     assert_eq!(1, num_deleted);

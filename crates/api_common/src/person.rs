@@ -62,6 +62,8 @@ pub struct SaveUserSettings {
   pub old_password: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
+  pub bot_account: Option<bool>,
+  pub show_bot_accounts: Option<bool>,
   pub auth: String,
 }
 

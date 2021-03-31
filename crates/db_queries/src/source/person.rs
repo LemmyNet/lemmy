@@ -29,6 +29,7 @@ mod safe_type {
     shared_inbox_url,
     matrix_user_id,
     admin,
+    bot_account,
   );
 
   impl ToSafe for Person {
@@ -51,6 +52,7 @@ mod safe_type {
         shared_inbox_url,
         matrix_user_id,
         admin,
+        bot_account,
       )
     }
   }
@@ -77,6 +79,7 @@ mod safe_type_alias_1 {
     shared_inbox_url,
     matrix_user_id,
     admin,
+    bot_account,
   );
 
   impl ToSafe for PersonAlias1 {
@@ -99,6 +102,7 @@ mod safe_type_alias_1 {
         shared_inbox_url,
         matrix_user_id,
         admin,
+        bot_account,
       )
     }
   }
@@ -125,6 +129,7 @@ mod safe_type_alias_2 {
     shared_inbox_url,
     matrix_user_id,
     admin,
+    bot_account,
   );
 
   impl ToSafe for PersonAlias2 {
@@ -147,6 +152,7 @@ mod safe_type_alias_2 {
         shared_inbox_url,
         matrix_user_id,
         admin,
+        bot_account,
       )
     }
   }
@@ -274,6 +280,7 @@ mod tests {
       actor_id: inserted_person.actor_id.to_owned(),
       bio: None,
       local: true,
+      bot_account: false,
       admin: false,
       private_key: None,
       public_key: None,

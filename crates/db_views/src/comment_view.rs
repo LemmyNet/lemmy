@@ -183,6 +183,7 @@ pub struct CommentQueryBuilder<'a> {
   search_term: Option<String>,
   saved_only: bool,
   unread_only: bool,
+  show_bot_accounts: bool,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -202,6 +203,7 @@ impl<'a> CommentQueryBuilder<'a> {
       search_term: None,
       saved_only: false,
       unread_only: false,
+      show_bot_accounts: true,
       page: None,
       limit: None,
     }
@@ -259,6 +261,11 @@ impl<'a> CommentQueryBuilder<'a> {
 
   pub fn unread_only(mut self, unread_only: bool) -> Self {
     self.unread_only = unread_only;
+    self
+  }
+
+  pub fn show_bot_accounts(mut self, show_bot_accounts: bool) -> Self {
+    self.show_bot_accounts = show_bot_accounts;
     self
   }
 
@@ -379,6 +386,10 @@ impl<'a> CommentQueryBuilder<'a> {
     if self.saved_only {
       query = query.filter(comment_saved::id.is_not_null());
     }
+
+    if !self.show_bot_accounts {
+      query = query.filter(person::bot_account.eq(false));
+    };
 
     query = match self.sort {
       SortType::Hot | SortType::Active => query
@@ -527,6 +538,7 @@ mod tests {
         banned: false,
         deleted: false,
         admin: false,
+        bot_account: false,
         bio: None,
         banner: None,
         updated: None,

@@ -77,7 +77,8 @@ impl ToApub for DbPerson {
         ..Default::default()
       });
 
-    let person_ext = PersonExtension::new(self.matrix_user_id.to_owned())?;
+    let person_ext =
+      PersonExtension::new(self.matrix_user_id.to_owned(), self.bot_account.to_owned())?;
     Ok(Ext2::new(ap_actor, person_ext, self.get_public_key_ext()?))
   }
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
@@ -192,6 +193,7 @@ impl FromApubToForm<PersonExt> for PersonForm {
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),
+      bot_account: Some(person.ext_one.bot_account),
       private_key: None,
       public_key: Some(Some(person.ext_two.public_key.to_owned().public_key_pem)),
       last_refreshed_at: Some(naive_now()),

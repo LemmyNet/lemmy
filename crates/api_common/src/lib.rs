@@ -236,6 +236,22 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   Ok(())
 }
 
+/// A helper method for showing the bot account
+pub fn user_show_bot_accounts(local_user_view: &Option<LocalUserView>) -> bool {
+  match local_user_view {
+    Some(uv) => uv.to_owned().local_user.show_bot_accounts,
+    None => true,
+  }
+}
+
+/// A helper method for showing nsfw
+pub fn user_show_nsfw(local_user_view: &Option<LocalUserView>) -> bool {
+  match &local_user_view {
+    Some(uv) => uv.local_user.show_nsfw,
+    None => false,
+  }
+}
+
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
     Ok(post) => Ok(post),

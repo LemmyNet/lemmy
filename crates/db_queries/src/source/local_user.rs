@@ -24,6 +24,7 @@ mod safe_settings_type {
     show_avatars,
     send_notifications_to_email,
     validator_time,
+    show_bot_accounts,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -43,6 +44,7 @@ mod safe_settings_type {
         show_avatars,
         send_notifications_to_email,
         validator_time,
+        show_bot_accounts,
       )
     }
   }
