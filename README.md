@@ -11,6 +11,11 @@
 </div>
 
 <p align="center">
+  <span>English</span> |
+  <a href="readmes/README.es.md">Español</a>
+</p>
+
+<p align="center">
   <a href="https://join.lemmy.ml/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
