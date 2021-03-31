@@ -1,7 +1,7 @@
-pub(crate) mod community;
+pub mod community;
 mod fetch;
-pub(crate) mod objects;
-pub(crate) mod person;
+pub mod objects;
+pub mod person;
 pub mod search;
 
 use crate::{
@@ -42,7 +42,7 @@ where
 ///
 /// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
 /// Otherwise it is fetched from the remote instance, stored and returned.
-pub(crate) async fn get_or_fetch_and_upsert_actor(
+pub async fn get_or_fetch_and_upsert_actor(
   apub_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,

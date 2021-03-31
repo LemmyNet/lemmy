@@ -26,7 +26,7 @@ lazy_static! {
 
 /// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
 /// `activity` as request body. The request is signed with `private_key` and then sent.
-pub async fn sign_and_send(
+pub(crate) async fn sign_and_send(
   client: &Client,
   headers: BTreeMap<String, String>,
   inbox_url: &Url,
@@ -65,10 +65,7 @@ pub async fn sign_and_send(
 }
 
 /// Verifies the HTTP signature on an incoming inbox request.
-pub(crate) fn verify_signature(
-  request: &HttpRequest,
-  actor: &dyn ActorType,
-) -> Result<(), LemmyError> {
+pub fn verify_signature(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
   let public_key = actor.public_key().context(location_info!())?;
   let verified = CONFIG2
     .begin_verify(

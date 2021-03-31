@@ -17,10 +17,10 @@ use crate::{
     person_inbox::person_inbox,
     shared_inbox::shared_inbox,
   },
-  APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::*;
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
+use lemmy_apub::APUB_JSON_CONTENT_TYPE;
 use lemmy_utils::settings::structs::Settings;
 use sha2::{Digest, Sha256};
 

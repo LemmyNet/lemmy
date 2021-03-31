@@ -1,10 +1,8 @@
-use crate::{
-  http::{create_apub_response, create_apub_tombstone_response},
-  objects::ToApub,
-};
+use crate::http::{create_apub_response, create_apub_tombstone_response};
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
+use lemmy_apub::objects::ToApub;
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{source::comment::Comment, CommentId};
 use lemmy_utils::LemmyError;

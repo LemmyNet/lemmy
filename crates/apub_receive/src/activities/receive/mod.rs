@@ -1,10 +1,10 @@
-use crate::fetcher::person::get_or_fetch_and_upsert_person;
 use activitystreams::{
   activity::{ActorAndObjectRef, ActorAndObjectRefExt},
   base::{AsBase, BaseExt},
   error::DomainError,
 };
 use anyhow::{anyhow, Context};
+use lemmy_apub::fetcher::person::get_or_fetch_and_upsert_person;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;

@@ -16,12 +16,9 @@ use crate::{
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
-  check_is_apub_id_valid,
-  fetcher::community::get_or_fetch_and_upsert_community,
   inbox::{
     assert_activity_not_local,
     get_activity_id,
-    get_activity_to_and_cc,
     inbox_verify_http_signature,
     is_activity_already_known,
     is_addressed_to_community_followers,
@@ -38,8 +35,6 @@ use crate::{
     },
     verify_is_addressed_to_public,
   },
-  insert_activity,
-  ActorType,
 };
 use activitystreams::{
   activity::{Accept, ActorAndObject, Announce, Create, Delete, Follow, Remove, Undo, Update},
@@ -50,6 +45,13 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
+use lemmy_apub::{
+  check_is_apub_id_valid,
+  fetcher::community::get_or_fetch_and_upsert_community,
+  get_activity_to_and_cc,
+  insert_activity,
+  ActorType,
+};
 use lemmy_db_queries::{source::person::Person_, ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},

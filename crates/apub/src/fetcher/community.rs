@@ -5,7 +5,6 @@ use crate::{
     person::get_or_fetch_and_upsert_person,
     should_refetch_actor,
   },
-  inbox::person_inbox::receive_announce,
   objects::FromApub,
   GroupExt,
 };
@@ -31,7 +30,7 @@ use url::Url;
 ///
 /// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
 /// Otherwise it is fetched from the remote instance, stored and returned.
-pub(crate) async fn get_or_fetch_and_upsert_community(
+pub async fn get_or_fetch_and_upsert_community(
   apub_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
@@ -158,7 +157,8 @@ async fn fetch_community_outbox(
   }
 
   for activity in outbox_activities {
-    receive_announce(context, activity, community, recursion_counter).await?;
+    todo!("{:?} {:?} {:?}", activity, community, recursion_counter);
+    //receive_announce(context, activity, community, recursion_counter).await?;
   }
 
   Ok(())
