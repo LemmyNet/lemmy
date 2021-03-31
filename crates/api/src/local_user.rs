@@ -267,6 +267,7 @@ impl Perform for SaveUserSettings {
       email,
       password_encrypted,
       show_nsfw: data.show_nsfw,
+      show_scores: data.show_scores,
       theme: data.theme.to_owned(),
       default_sort_type,
       default_listing_type,

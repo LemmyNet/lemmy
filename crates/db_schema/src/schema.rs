@@ -154,6 +154,7 @@ table! {
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
+        show_scores -> Bool,
     }
 }
 
