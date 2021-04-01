@@ -1,4 +1,4 @@
-use crate::{captcha_espeak_wav_base64, Perform};
+use crate::{captcha_as_wav_base64, Perform};
 use actix_web::web::Data;
 use anyhow::Context;
 use bcrypt::verify;
@@ -135,13 +135,11 @@ impl Perform for GetCaptcha {
 
     let answer = captcha.chars_as_string();
 
-    let png_byte_array = captcha.as_png().expect("failed to generate captcha");
-
-    let png = base64::encode(png_byte_array);
+    let png = captcha.as_base64().expect("failed to generate captcha");
 
     let uuid = uuid::Uuid::new_v4().to_string();
 
-    let wav = captcha_espeak_wav_base64(&answer).ok();
+    let wav = captcha_as_wav_base64(&captcha);
 
     let captcha_item = CaptchaItem {
       answer,
