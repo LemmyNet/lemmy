@@ -15,6 +15,7 @@ lazy_static! {
   static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").expect("compile regex");
   static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").expect("compile regex");
   static ref VALID_POST_TITLE_REGEX: Regex = Regex::new(r".*\S.*").expect("compile regex");
+  static ref VALID_MATRIX_ID_REGEX: Regex = Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex");
 }
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
@@ -112,6 +113,10 @@ pub fn is_valid_preferred_username(preferred_username: &str) -> bool {
   !preferred_username.starts_with('@')
     && preferred_username.chars().count() >= 3
     && preferred_username.chars().count() <= 20
+}
+
+pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
+  VALID_MATRIX_ID_REGEX.is_match(matrix_id)
 }
 
 pub fn is_valid_community_name(name: &str) -> bool {
