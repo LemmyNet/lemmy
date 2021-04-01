@@ -63,6 +63,9 @@ pub async fn match_websocket_operation(
     UserOperation::SaveUserSettings => {
       do_websocket_operation::<SaveUserSettings>(context, id, op, data).await
     }
+    UserOperation::ChangePassword => {
+      do_websocket_operation::<ChangePassword>(context, id, op, data).await
+    }
     UserOperation::GetReportCount => {
       do_websocket_operation::<GetReportCount>(context, id, op, data).await
     }

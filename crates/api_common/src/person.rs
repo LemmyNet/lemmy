@@ -57,11 +57,16 @@ pub struct SaveUserSettings {
   pub email: Option<String>,
   pub bio: Option<String>,
   pub matrix_user_id: Option<String>,
-  pub new_password: Option<String>,
-  pub new_password_verify: Option<String>,
-  pub old_password: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
+  pub auth: String,
+}
+
+#[derive(Deserialize)]
+pub struct ChangePassword {
+  pub new_password: String,
+  pub new_password_verify: String,
+  pub old_password: String,
   pub auth: String,
 }
 

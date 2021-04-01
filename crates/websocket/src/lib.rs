@@ -123,6 +123,7 @@ pub enum UserOperation {
   PostJoin,
   CommunityJoin,
   ModJoin,
+  ChangePassword,
 }
 
 #[derive(EnumString, ToString, Debug, Clone)]
