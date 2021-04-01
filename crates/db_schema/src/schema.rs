@@ -270,7 +270,7 @@ table! {
     person (id) {
         id -> Int4,
         name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
         avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
@@ -470,7 +470,7 @@ table! {
     person_alias_1 (id) {
         id -> Int4,
         name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
         avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
@@ -494,7 +494,7 @@ table! {
     person_alias_2 (id) {
         id -> Int4,
         name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
         avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,

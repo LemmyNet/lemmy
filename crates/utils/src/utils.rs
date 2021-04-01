@@ -108,10 +108,8 @@ pub fn is_valid_username(name: &str) -> bool {
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_preferred_username(preferred_username: &str) -> bool {
-  !preferred_username.starts_with('@')
-    && preferred_username.chars().count() >= 3
-    && preferred_username.chars().count() <= 20
+pub fn is_valid_display_name(name: &str) -> bool {
+  !name.starts_with('@') && name.chars().count() >= 3 && name.chars().count() <= 20
 }
 
 pub fn is_valid_community_name(name: &str) -> bool {

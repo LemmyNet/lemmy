@@ -53,7 +53,7 @@ pub struct SaveUserSettings {
   pub lang: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub email: Option<String>,
   pub bio: Option<String>,
   pub matrix_user_id: Option<String>,
