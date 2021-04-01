@@ -109,7 +109,10 @@ pub fn is_valid_username(name: &str) -> bool {
 
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_display_name(name: &str) -> bool {
-  !name.starts_with('@') && name.chars().count() >= 3 && name.chars().count() <= 20
+  !name.starts_with('@')
+    && !name.starts_with('\u{200b}')
+    && name.chars().count() >= 3
+    && name.chars().count() <= 20
 }
 
 pub fn is_valid_community_name(name: &str) -> bool {

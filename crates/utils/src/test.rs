@@ -32,6 +32,12 @@ fn test_valid_register_username() {
 fn test_valid_display_name() {
   assert!(is_valid_display_name("hello @there"));
   assert!(!is_valid_display_name("@hello there"));
+
+  // Make sure zero-space with an @ doesn't work
+  assert!(!is_valid_display_name(&format!(
+    "{}@my name is",
+    '\u{200b}'
+  )));
 }
 
 #[test]
