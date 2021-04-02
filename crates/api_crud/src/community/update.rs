@@ -61,7 +61,6 @@ impl PerformCrud for EditCommunity {
     let community_form = CommunityForm {
       name: read_community.name,
       title: data.title.to_owned(),
-      creator_id: read_community.creator_id,
       description: data.description.to_owned(),
       icon,
       banner,

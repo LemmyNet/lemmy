@@ -58,7 +58,6 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "TIL_site_agg".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };

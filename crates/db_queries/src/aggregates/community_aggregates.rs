@@ -62,7 +62,6 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "TIL_community_agg".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };
@@ -71,7 +70,6 @@ mod tests {
 
     let another_community = CommunityForm {
       name: "TIL_community_agg_2".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };

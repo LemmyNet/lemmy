@@ -18,7 +18,6 @@ use lemmy_db_queries::{
   diesel_option_overwrite_to_url,
   source::{
     comment::Comment_,
-    community::Community_,
     local_user::LocalUser_,
     password_reset_request::PasswordResetRequest_,
     person::Person_,
@@ -33,7 +32,6 @@ use lemmy_db_schema::{
   naive_now,
   source::{
     comment::Comment,
-    community::*,
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
     password_reset_request::*,
@@ -394,10 +392,9 @@ impl Perform for BanPerson {
       .await??;
 
       // Communities
-      blocking(context.pool(), move |conn: &'_ _| {
-        Community::update_removed_for_creator(conn, banned_person_id, true)
-      })
-      .await??;
+      // Remove all communities where they're the top mod
+      // TODO couldn't get group by's working in diesel,
+      // for now, remove the communities manually
 
       // Comments
       blocking(context.pool(), move |conn: &'_ _| {

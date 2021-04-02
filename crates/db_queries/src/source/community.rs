@@ -26,7 +26,6 @@ mod safe_type {
     name,
     title,
     description,
-    creator_id,
     removed,
     published,
     updated,
@@ -46,7 +45,6 @@ mod safe_type {
         name,
         title,
         description,
-        creator_id,
         removed,
         published,
         updated,
@@ -122,16 +120,6 @@ pub trait Community_ {
     community_id: CommunityId,
     new_removed: bool,
   ) -> Result<Community, Error>;
-  fn update_removed_for_creator(
-    conn: &PgConnection,
-    for_creator_id: PersonId,
-    new_removed: bool,
-  ) -> Result<Vec<Community>, Error>;
-  fn update_creator(
-    conn: &PgConnection,
-    community_id: CommunityId,
-    new_creator_id: PersonId,
-  ) -> Result<Community, Error>;
   fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error>;
   fn read_from_followers_url(
     conn: &PgConnection,
@@ -167,28 +155,6 @@ impl Community_ for Community {
     use lemmy_db_schema::schema::community::dsl::*;
     diesel::update(community.find(community_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  fn update_removed_for_creator(
-    conn: &PgConnection,
-    for_creator_id: PersonId,
-    new_removed: bool,
-  ) -> Result<Vec<Community>, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
-    diesel::update(community.filter(creator_id.eq(for_creator_id)))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_results::<Self>(conn)
-  }
-
-  fn update_creator(
-    conn: &PgConnection,
-    community_id: CommunityId,
-    new_creator_id: PersonId,
-  ) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
-    diesel::update(community.find(community_id))
-      .set((creator_id.eq(new_creator_id), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
@@ -363,7 +329,6 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "TIL".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };
@@ -372,7 +337,6 @@ mod tests {
 
     let expected_community = Community {
       id: inserted_community.id,
-      creator_id: inserted_person.id,
       name: "TIL".into(),
       title: "nada".to_owned(),
       description: None,

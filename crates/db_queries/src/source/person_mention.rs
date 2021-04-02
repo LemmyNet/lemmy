@@ -105,7 +105,6 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community lake".to_string(),
       title: "nada".to_owned(),
-      creator_id: inserted_person.id,
       ..CommunityForm::default()
     };
 
@@ -113,7 +112,6 @@ mod tests {
 
     let new_post = PostForm {
       name: "A test post".into(),
-      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       ..PostForm::default()
     };

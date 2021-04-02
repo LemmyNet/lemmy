@@ -78,7 +78,6 @@ table! {
         name -> Varchar,
         title -> Varchar,
         description -> Nullable<Text>,
-        creator_id -> Int4,
         removed -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
@@ -532,7 +531,6 @@ joinable!(comment_like -> post (post_id));
 joinable!(comment_report -> comment (comment_id));
 joinable!(comment_saved -> comment (comment_id));
 joinable!(comment_saved -> person (person_id));
-joinable!(community -> person (creator_id));
 joinable!(community_aggregates -> community (community_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_follower -> person (person_id));
