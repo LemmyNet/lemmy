@@ -18,6 +18,7 @@
   port: 8536
   # json web token for authorization between server and client
   jwt_secret: "{{ jwt_password }}"
+  # whether tls is required for activitypub. only disable this for debugging, never for producion.
   tls_enabled: false
   # email sending configuration
   email: {
