@@ -29,6 +29,7 @@ steps:
     image: ekidd/rust-musl-builder:1.50.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      LEMMY_CONFIG_LOCATION: ./config/config.hjson
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
@@ -107,6 +108,7 @@ steps:
     image: rust:1.50-slim-buster
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      LEMMY_CONFIG_LOCATION: ./config/config.hjson
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
