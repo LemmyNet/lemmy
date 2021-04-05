@@ -1,3 +1,7 @@
+# Lemmy v0.10.2 Release (2021-04-05)
+
+- Forcing a crash if config.hjson fails to load. Should show errors easier.
+
 # Lemmy v0.10.0 Release (2021-04-05)
 
 ## Changes
