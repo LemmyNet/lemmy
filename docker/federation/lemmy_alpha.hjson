@@ -31,7 +31,6 @@
     post_per_second: 600
     register: 99999
     register_per_second: 3600
-    register_per_second: 3600
     image: 6
     image_per_second: 3600
   }
