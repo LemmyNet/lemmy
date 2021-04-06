@@ -25,6 +25,7 @@ mod safe_settings_type {
     send_notifications_to_email,
     validator_time,
     show_bot_accounts,
+    show_scores,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -45,6 +46,7 @@ mod safe_settings_type {
         send_notifications_to_email,
         validator_time,
         show_bot_accounts,
+        show_scores,
       )
     }
   }

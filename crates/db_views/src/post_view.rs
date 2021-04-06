@@ -571,7 +571,7 @@ mod tests {
       creator: PersonSafe {
         id: inserted_person.id,
         name: person_name,
-        preferred_username: None,
+        display_name: None,
         published: inserted_person.published,
         avatar: None,
         actor_id: inserted_person.actor_id.to_owned(),

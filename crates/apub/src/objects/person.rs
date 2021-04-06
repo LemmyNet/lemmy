@@ -64,7 +64,8 @@ impl ToApub for DbPerson {
       set_content_and_source(&mut person, bio)?;
     }
 
-    if let Some(i) = self.preferred_username.to_owned() {
+    // In apub, the "name" is a display name
+    if let Some(i) = self.display_name.to_owned() {
       person.set_name(i);
     }
 
@@ -162,7 +163,7 @@ impl FromApubToForm<PersonExt> for PersonForm {
       .preferred_username()
       .context(location_info!())?
       .to_string();
-    let preferred_username: Option<String> = person
+    let display_name: Option<String> = person
       .name()
       .map(|n| n.one())
       .flatten()
@@ -177,12 +178,12 @@ impl FromApubToForm<PersonExt> for PersonForm {
       .map(|s| s.to_owned().into());
 
     check_slurs(&name)?;
-    check_slurs_opt(&preferred_username)?;
+    check_slurs_opt(&display_name)?;
     check_slurs_opt(&bio)?;
 
     Ok(PersonForm {
       name,
-      preferred_username: Some(preferred_username),
+      display_name: Some(display_name),
       banned: None,
       deleted: None,
       avatar: avatar.map(|o| o.map(|i| i.into())),

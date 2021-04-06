@@ -17,6 +17,7 @@ pub struct LocalUser {
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
   pub show_bot_accounts: bool,
+  pub show_scores: bool,
 }
 
 // TODO redo these, check table defaults
@@ -34,6 +35,7 @@ pub struct LocalUserForm {
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
+  pub show_scores: Option<bool>,
 }
 
 /// A local user view that removes password encrypted
@@ -52,4 +54,5 @@ pub struct LocalUserSettings {
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
   pub show_bot_accounts: bool,
+  pub show_scores: bool,
 }
