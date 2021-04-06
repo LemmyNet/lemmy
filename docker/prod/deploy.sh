@@ -13,7 +13,9 @@ git add "crates/utils/src/version.rs"
 popd
 
 # Changing various references to the Lemmy version
+sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../dev/docker-compose.yml
 sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
+sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../federation/docker-compose.yml
 sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
 git add ../dev/docker-compose.yml
 git add ../federation/docker-compose.yml
@@ -22,6 +24,7 @@ git add ../federation/docker-compose.yml
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
+  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
   git add ../prod/docker-compose.yml
 
   # Setting the version for Ansible

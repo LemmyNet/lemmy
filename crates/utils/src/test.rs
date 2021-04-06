@@ -1,8 +1,8 @@
 use crate::utils::{
   is_valid_community_name,
+  is_valid_display_name,
   is_valid_matrix_id,
   is_valid_post_title,
-  is_valid_preferred_username,
   is_valid_username,
   remove_slurs,
   scrape_text_for_mentions,
@@ -30,9 +30,15 @@ fn test_valid_register_username() {
 }
 
 #[test]
-fn test_valid_preferred_username() {
-  assert!(is_valid_preferred_username("hello @there"));
-  assert!(!is_valid_preferred_username("@hello there"));
+fn test_valid_display_name() {
+  assert!(is_valid_display_name("hello @there"));
+  assert!(!is_valid_display_name("@hello there"));
+
+  // Make sure zero-space with an @ doesn't work
+  assert!(!is_valid_display_name(&format!(
+    "{}@my name is",
+    '\u{200b}'
+  )));
 }
 
 #[test]
