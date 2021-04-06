@@ -1,9 +1,9 @@
 use actix_web::{web, web::Data};
+use captcha::Captcha;
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
-use std::{env, process::Command};
 
 mod comment;
 mod comment_report;
@@ -161,60 +161,23 @@ where
   serialize_websocket_message(&op, &res)
 }
 
-pub(crate) fn captcha_espeak_wav_base64(captcha: &str) -> Result<String, LemmyError> {
-  let mut built_text = String::new();
+/// Converts the captcha to a base64 encoded wav audio file
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
+  let letters = captcha.as_wav();
 
-  // Building proper speech text for espeak
-  for mut c in captcha.chars() {
-    let new_str = if c.is_alphabetic() {
-      if c.is_lowercase() {
-        c.make_ascii_uppercase();
-        format!("lower case {} ... ", c)
-      } else {
-        c.make_ascii_uppercase();
-        format!("capital {} ... ", c)
-      }
-    } else {
-      format!("{} ...", c)
-    };
+  let mut concat_letters: Vec<u8> = Vec::new();
 
-    built_text.push_str(&new_str);
+  for letter in letters {
+    let bytes = letter.unwrap_or_default();
+    concat_letters.extend(bytes);
   }
 
-  espeak_wav_base64(&built_text)
-}
-
-pub(crate) fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
-  // Make a temp file path
-  let uuid = uuid::Uuid::new_v4().to_string();
-  let file_path = format!(
-    "{}/lemmy_espeak_{}.wav",
-    env::temp_dir().to_string_lossy(),
-    &uuid
-  );
-
-  // Write the wav file
-  Command::new("espeak")
-    .arg("-w")
-    .arg(&file_path)
-    .arg(text)
-    .status()?;
-
-  // Read the wav file bytes
-  let bytes = std::fs::read(&file_path)?;
-
-  // Delete the file
-  std::fs::remove_file(file_path)?;
-
   // Convert to base64
-  let base64 = base64::encode(bytes);
-
-  Ok(base64)
+  base64::encode(concat_letters)
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::captcha_espeak_wav_base64;
   use lemmy_api_common::check_validator_time;
   use lemmy_db_queries::{establish_unpooled_connection, source::local_user::LocalUser_, Crud};
   use lemmy_db_schema::source::{
@@ -255,10 +218,5 @@ mod tests {
 
     let num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
     assert_eq!(1, num_deleted);
-  }
-
-  #[test]
-  fn test_espeak() {
-    assert!(captcha_espeak_wav_base64("WxRt2l").is_ok())
   }
 }

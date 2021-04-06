@@ -15,7 +15,7 @@ mod safe_type {
   type Columns = (
     id,
     name,
-    preferred_username,
+    display_name,
     avatar,
     banned,
     published,
@@ -37,7 +37,7 @@ mod safe_type {
       (
         id,
         name,
-        preferred_username,
+        display_name,
         avatar,
         banned,
         published,
@@ -63,7 +63,7 @@ mod safe_type_alias_1 {
   type Columns = (
     id,
     name,
-    preferred_username,
+    display_name,
     avatar,
     banned,
     published,
@@ -85,7 +85,7 @@ mod safe_type_alias_1 {
       (
         id,
         name,
-        preferred_username,
+        display_name,
         avatar,
         banned,
         published,
@@ -111,7 +111,7 @@ mod safe_type_alias_2 {
   type Columns = (
     id,
     name,
-    preferred_username,
+    display_name,
     avatar,
     banned,
     published,
@@ -133,7 +133,7 @@ mod safe_type_alias_2 {
       (
         id,
         name,
-        preferred_username,
+        display_name,
         avatar,
         banned,
         published,
@@ -236,7 +236,7 @@ impl Person_ for Person {
 
     diesel::update(person.find(person_id))
       .set((
-        preferred_username.eq::<Option<String>>(None),
+        display_name.eq::<Option<String>>(None),
         bio.eq::<Option<String>>(None),
         matrix_user_id.eq::<Option<String>>(None),
         deleted.eq(true),
@@ -264,7 +264,7 @@ mod tests {
     let expected_person = Person {
       id: inserted_person.id,
       name: "holly".into(),
-      preferred_username: None,
+      display_name: None,
       avatar: None,
       banner: None,
       banned: false,

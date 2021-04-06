@@ -1,3 +1,95 @@
+# Lemmy v0.10.2 Release (2021-04-05)
+
+- Forcing a crash if config.hjson fails to load. Should show errors easier.
+
+# Lemmy v0.10.0 Release (2021-04-05)
+
+## Changes
+
+Since our last release in February, we've had [~150](https://github.com/LemmyNet/lemmy/compare/0.9.9...main) commits to Lemmy. The biggest changes, as we'll outline below, are a split of Lemmy's user tables into federated and local tables, necessitating a `v3` of Lemmy's API, federated moderation, i18n support in join.lemmy.ml, and lots of back-end cleanup.
+
+### Lemmy Server
+
+#### General
+
+- Rewrote config implementation, finally allowing us to use newer Rust versions.
+- Removed categories. 
+- Various refactors.
+
+#### API
+
+- A full list of the API changes can be seen on this diff of [lemmy-js-client: 0.9.9 -> 0.10.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.9.9...0.10.0-rc.13) .
+- Login invalidation on password change, thanks to @Mart-Bogdan
+
+#### Federation
+
+- It is now possible to add users from other instances as community mods.
+- Federating Matrix ID.
+- Many changes for better compatibility with ActivityPub standard.
+
+#### Database 
+
+- Split the `user_` into `person` and `local_user` tables.
+- Strictly typed commonly used ID columns, to prevent DB errors using `i32` as ids.
+- Strictly typed URL fields, thanks to ajyoon.
+- Created default DB forms, now used in all the unit tests.
+
+### Lemmy UI
+
+- Now using utf-8 emojis.
+- Support for all the above changes to Lemmy.
+- Typescript-safe i18n strings, thanks to @shilangyu.
+- Added expandable post text (click on open book icon).
+- Prettier cross-posting, which does smart quoting.
+- Bugfixes for restoring scroll position on post page, custom site favicons, and autocomplete for login fields.
+
+### Lemmy Docs
+
+- Gazconroy built an [Async API spec for Lemmy](https://join.lemmy.ml/api/index.html), that now serves as our main API docs.
+
+### join.lemmy.ml
+
+- Rewrote in inferno isomorphic, added i18n support via [weblate](https://weblate.yerbamate.ml/projects/lemmy/joinlemmy/).
+- Added a section on the support page thanking contributors.
+- Changed some page urls / titles
+
+## Upgrade notes
+
+**Important**: there are multiple breaking changes:
+
+- Configuration via environment variables is not supported anymore, you must have all your config in the [lemmy.hjson](https://github.com/LemmyNet/lemmy/blob/main/ansible/templates/config.hjson) file ( except for `LEMMY_CONFIG_LOCATION` ).
+- The config format for `allowed_instances` and `blocked_instances` has changed, and you need to adjust your config file manually:
+    - before: `allowed_instances: ds9.lemmy.ml,enterprise.lemmy.ml`
+    - now: `allowed_instances: ["ds9.lemmy.ml", "enterprise.lemmy.ml"]` , and only one of the `allowed_instances` or `blocked_instances` blocks can be set.
+- The API has been upgraded from `v2` to `v3`, so all clients need to be updated: [lemmy-js-client: 0.9.9 -> 0.10.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.9.9...0.10.0-rc.13) .
+
+If you'd like to make a DB backup before upgrading, follow [this guide](https://join.lemmy.ml/docs/en/administration/backup_and_restore.html).
+
+To upgrade your instance to `v0.10.0`, simply follow the instructions in the documentation:
+
+- [Upgrade with manual Docker installation](https://join.lemmy.ml/docs/en/administration/install_docker.html#updating)
+- [Upgrade with Ansible installation](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+
+
+## Compilation time
+
+|| v0.9.0 (Rust 1.47) | v0.10.0 (Rust 1.47) | v0.10.0 (Rust 1.51) |
+|-| -------- | -------- | -------- |
+|Clean | 140s     | 146s     | 119s     |
+| Incremental | 28s | 22s | 19s |
+
+Despite ongoing efforts to speed up compilation, it has actually gotten slower when comparing with the same Rust version. Only thanks to improvements in newer Rust versions has our build process gotten faster. This could be simply because we added more code, while Lemmy v0.9.0 had 22.4k lines of Rust, v0.10.0 has 23.8k (an increase of 6%).
+
+v0.9.0 build graph:
+![](https://lemmy.ml/pictrs/image/GVBqFnrLqG.jpg)
+
+v0.10.0 build graph:
+![](https://lemmy.ml/pictrs/image/NllzjVEyNK.jpg)
+
+We extracted the crates `lemmy_api_crud` and `lemmy_apub_receive` from `lemmy_api` and `lemmy_apub`, respectively, and renamed `lemmy_structs` to `lemmy_api_common`. In the second graph you can see how parts of the api and apub crates are now built nicely in parallel, speeding up builds on multi-core systems.
+
+On the other hand, some crates have gotten much slower to compile, in particular `lemmy_db_queries` (6.5s slower), `lemmy_apub` (6.5s slower if we include `lemmy_apub_receive`). And `lemmy_db_views` is quite slow, just as before.
+
 # Lemmy v0.9.9 Release (2021-02-19)
 
 ## Changes

@@ -1,4 +1,4 @@
-use crate::{captcha_espeak_wav_base64, Perform};
+use crate::{captcha_as_wav_base64, Perform};
 use actix_web::web::Data;
 use anyhow::Context;
 use bcrypt::verify;
@@ -60,7 +60,7 @@ use lemmy_utils::{
   email::send_email,
   location_info,
   settings::structs::Settings,
-  utils::{generate_random_string, is_valid_preferred_username, naive_from_unix},
+  utils::{generate_random_string, is_valid_display_name, naive_from_unix},
   ApiError,
   ConnectionId,
   LemmyError,
@@ -135,13 +135,11 @@ impl Perform for GetCaptcha {
 
     let answer = captcha.chars_as_string();
 
-    let png_byte_array = captcha.as_png().expect("failed to generate captcha");
-
-    let png = base64::encode(png_byte_array);
+    let png = captcha.as_base64().expect("failed to generate captcha");
 
     let uuid = uuid::Uuid::new_v4().to_string();
 
-    let wav = captcha_espeak_wav_base64(&answer).ok();
+    let wav = captcha_as_wav_base64(&captcha);
 
     let captcha_item = CaptchaItem {
       answer,
@@ -174,7 +172,7 @@ impl Perform for SaveUserSettings {
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
     let email = diesel_option_overwrite(&data.email);
     let bio = diesel_option_overwrite(&data.bio);
-    let preferred_username = diesel_option_overwrite(&data.preferred_username);
+    let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
 
     if let Some(Some(bio)) = &bio {
@@ -183,8 +181,8 @@ impl Perform for SaveUserSettings {
       }
     }
 
-    if let Some(Some(preferred_username)) = &preferred_username {
-      if !is_valid_preferred_username(preferred_username.trim()) {
+    if let Some(Some(display_name)) = &display_name {
+      if !is_valid_display_name(display_name.trim()) {
         return Err(ApiError::err("invalid_username").into());
       }
     }
@@ -200,7 +198,7 @@ impl Perform for SaveUserSettings {
       avatar,
       banner,
       inbox_url: None,
-      preferred_username,
+      display_name,
       published: None,
       updated: Some(naive_now()),
       banned: None,
@@ -232,6 +230,7 @@ impl Perform for SaveUserSettings {
       email,
       password_encrypted,
       show_nsfw: data.show_nsfw,
+      show_scores: data.show_scores,
       theme: data.theme.to_owned(),
       default_sort_type,
       default_listing_type,
