@@ -47,6 +47,8 @@ pub struct CaptchaResponse {
 #[derive(Deserialize)]
 pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
+  pub show_scores: Option<bool>,
+  pub show_avatars: Option<bool>,
   pub theme: Option<String>,
   pub default_sort_type: Option<i16>,
   pub default_listing_type: Option<i16>,
@@ -60,7 +62,6 @@ pub struct SaveUserSettings {
   pub new_password: Option<String>,
   pub new_password_verify: Option<String>,
   pub old_password: Option<String>,
-  pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub auth: String,
 }
