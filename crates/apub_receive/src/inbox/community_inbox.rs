@@ -7,6 +7,7 @@ use crate::{
     is_activity_already_known,
     receive_for_community::{
       receive_add_for_community,
+      receive_block_user_for_community,
       receive_create_for_community,
       receive_delete_for_community,
       receive_dislike_for_community,
@@ -58,6 +59,7 @@ pub enum CommunityValidTypes {
   Delete,  // post or comment deleted by creator
   Remove,  // post or comment removed by mod or admin, or mod removed from community
   Add,     // mod added to community
+  Block,   // user blocked by community
 }
 
 pub type CommunityAcceptedActivities = ActorAndObject<CommunityValidTypes>;
@@ -216,6 +218,16 @@ pub(crate) async fn community_receive_message(
     }
     CommunityValidTypes::Remove => {
       Box::pin(receive_remove_for_community(
+        context,
+        any_base.clone(),
+        None,
+        request_counter,
+      ))
+      .await?;
+      true
+    }
+    CommunityValidTypes::Block => {
+      Box::pin(receive_block_user_for_community(
         context,
         any_base.clone(),
         None,

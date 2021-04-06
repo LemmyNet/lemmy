@@ -222,6 +222,19 @@ pub trait CommunityType {
     removed_mod: Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
+
+  async fn send_block_user(
+    &self,
+    actor: &Person,
+    blocked_user: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_block_user(
+    &self,
+    actor: &Person,
+    blocked_user: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]

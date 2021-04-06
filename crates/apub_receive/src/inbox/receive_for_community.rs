@@ -38,6 +38,7 @@ use activitystreams::{
     ActorAndObjectRef,
     Add,
     Announce,
+    Block,
     Create,
     Delete,
     Dislike,
@@ -64,10 +65,25 @@ use lemmy_apub::{
   CommunityType,
   PostOrComment,
 };
-use lemmy_db_queries::{source::community::CommunityModerator_, ApubObject, Crud, Joinable};
+use lemmy_db_queries::{
+  source::community::CommunityModerator_,
+  ApubObject,
+  Bannable,
+  Crud,
+  Followable,
+  Joinable,
+};
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityModerator, CommunityModeratorForm},
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+    },
     person::Person,
     site::Site,
   },
@@ -271,6 +287,7 @@ enum UndoableActivities {
   Remove,
   Like,
   Dislike,
+  Block,
 }
 
 /// A post/comment action being reverted (either a delete, remove, upvote or downvote)
@@ -300,6 +317,16 @@ pub(in crate::inbox) async fn receive_undo_for_community(
     }
     Some(Dislike) => {
       receive_undo_dislike_for_community(context, undo, expected_domain, request_counter).await
+    }
+    Some(Block) => {
+      receive_undo_block_user_for_community(
+        context,
+        undo,
+        announce,
+        expected_domain,
+        request_counter,
+      )
+      .await
     }
     _ => receive_unhandled_activity(undo),
   }
@@ -449,6 +476,85 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
       receive_undo_dislike_comment(&dislike, *comment, context, request_counter).await
     }
   }
+}
+
+pub(crate) async fn receive_block_user_for_community(
+  context: &LemmyContext,
+  block_any_base: AnyBase,
+  announce: Option<Announce>,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let block = Block::from_any_base(block_any_base.to_owned())?.context(location_info!())?;
+  let community = extract_community_from_cc(&block, context).await?;
+
+  verify_mod_activity(&block, announce, &community, context).await?;
+  verify_is_addressed_to_public(&block)?;
+
+  let blocked_user = block
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
+  let blocked_user =
+    get_or_fetch_and_upsert_person(&blocked_user, context, request_counter).await?;
+
+  let community_user_ban_form = CommunityPersonBanForm {
+    community_id: community.id,
+    person_id: blocked_user.id,
+  };
+
+  blocking(context.pool(), move |conn: &'_ _| {
+    CommunityPersonBan::ban(conn, &community_user_ban_form)
+  })
+  .await??;
+
+  // Also unsubscribe them from the community, if they are subscribed
+  let community_follower_form = CommunityFollowerForm {
+    community_id: community.id,
+    person_id: blocked_user.id,
+    pending: false,
+  };
+  blocking(context.pool(), move |conn: &'_ _| {
+    CommunityFollower::unfollow(conn, &community_follower_form)
+  })
+  .await?
+  .ok();
+
+  Ok(())
+}
+
+pub(crate) async fn receive_undo_block_user_for_community(
+  context: &LemmyContext,
+  undo: Undo,
+  announce: Option<Announce>,
+  expected_domain: &Url,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let object = undo.object().clone().one().context(location_info!())?;
+  let block = Block::from_any_base(object)?.context(location_info!())?;
+  let community = extract_community_from_cc(&block, context).await?;
+
+  verify_activity_domains_valid(&block, &expected_domain, false)?;
+  verify_is_addressed_to_public(&block)?;
+  verify_undo_remove_actor_instance(&undo, &block, &announce, context).await?;
+
+  let blocked_user = block
+    .object()
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
+  let blocked_user =
+    get_or_fetch_and_upsert_person(&blocked_user, context, request_counter).await?;
+
+  let community_user_ban_form = CommunityPersonBanForm {
+    community_id: community.id,
+    person_id: blocked_user.id,
+  };
+
+  blocking(context.pool(), move |conn: &'_ _| {
+    CommunityPersonBan::unban(conn, &community_user_ban_form)
+  })
+  .await??;
+
+  Ok(())
 }
 
 async fn fetch_post_or_comment_by_id(

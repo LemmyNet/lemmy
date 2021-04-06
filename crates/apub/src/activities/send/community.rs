@@ -11,11 +11,21 @@ use crate::{
 };
 use activitystreams::{
   activity::{
-    kind::{AcceptType, AddType, AnnounceType, DeleteType, LikeType, RemoveType, UndoType},
+    kind::{
+      AcceptType,
+      AddType,
+      AnnounceType,
+      BlockType,
+      DeleteType,
+      LikeType,
+      RemoveType,
+      UndoType,
+    },
     Accept,
     ActorAndObjectRefExt,
     Add,
     Announce,
+    Block,
     Delete,
     Follow,
     OptTargetRefExt,
@@ -170,7 +180,7 @@ impl CommunityType for Community {
       insert_activity(inner_id, activity.clone(), true, false, context.pool()).await?;
     }
 
-    let mut announce = Announce::new(self.actor_id.to_owned().into_inner(), activity);
+    let mut announce = Announce::new(self.actor_id(), activity);
     announce
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
@@ -209,10 +219,7 @@ impl CommunityType for Community {
     added_mod: Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut add = Add::new(
-      actor.actor_id.clone().into_inner(),
-      added_mod.actor_id.into_inner(),
-    );
+    let mut add = Add::new(actor.actor_id(), added_mod.actor_id());
     add
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AddType::Add)?)
@@ -230,10 +237,7 @@ impl CommunityType for Community {
     removed_mod: Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut remove = Remove::new(
-      actor.actor_id.clone().into_inner(),
-      removed_mod.actor_id.into_inner(),
-    );
+    let mut remove = Remove::new(actor.actor_id(), removed_mod.actor_id());
     remove
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
@@ -242,6 +246,48 @@ impl CommunityType for Community {
       .set_target(generate_moderators_url(&self.actor_id)?.into_inner());
 
     send_to_community(remove, &actor, self, context).await?;
+    Ok(())
+  }
+
+  // / TODO: also need to implement the Undo for this
+  async fn send_block_user(
+    &self,
+    actor: &Person,
+    blocked_user: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let mut block = Block::new(actor.actor_id(), blocked_user.actor_id());
+    block
+      .set_many_contexts(lemmy_context()?)
+      .set_id(generate_activity_id(BlockType::Block)?)
+      .set_to(public())
+      .set_many_ccs(vec![self.actor_id()]);
+
+    send_to_community(block, &actor, self, context).await?;
+    Ok(())
+  }
+
+  async fn send_undo_block_user(
+    &self,
+    actor: &Person,
+    blocked_user: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let mut block = Block::new(actor.actor_id(), blocked_user.actor_id());
+    block
+      .set_many_contexts(lemmy_context()?)
+      .set_id(generate_activity_id(BlockType::Block)?)
+      .set_to(public())
+      .set_many_ccs(vec![self.actor_id()]);
+
+    // Undo that fake activity
+    let mut undo = Undo::new(actor.actor_id(), block.into_any_base()?);
+    undo
+      .set_many_contexts(lemmy_context()?)
+      .set_id(generate_activity_id(UndoType::Undo)?)
+      .set_to(public())
+      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+    send_to_community(undo, &actor, self, context).await?;
     Ok(())
   }
 }

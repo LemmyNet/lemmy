@@ -74,7 +74,7 @@ impl UserType for Person {
     })
     .await?;
 
-    let mut follow = Follow::new(self.actor_id.to_owned().into_inner(), community.actor_id());
+    let mut follow = Follow::new(self.actor_id(), community.actor_id());
     follow
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(FollowType::Follow)?)
@@ -95,7 +95,7 @@ impl UserType for Person {
     })
     .await??;
 
-    let mut follow = Follow::new(self.actor_id.to_owned().into_inner(), community.actor_id());
+    let mut follow = Follow::new(self.actor_id(), community.actor_id());
     follow
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(FollowType::Follow)?)
