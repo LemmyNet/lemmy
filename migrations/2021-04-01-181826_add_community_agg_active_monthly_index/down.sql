@@ -1,0 +1,1 @@
+drop index idx_community_aggregates_users_active_month;
