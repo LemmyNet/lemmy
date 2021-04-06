@@ -39,8 +39,8 @@ pub struct GetCaptchaResponse {
 
 #[derive(Serialize)]
 pub struct CaptchaResponse {
-  pub png: String,         // A Base64 encoded png
-  pub wav: Option<String>, // A Base64 encoded wav audio
+  pub png: String, // A Base64 encoded png
+  pub wav: String, // A Base64 encoded wav audio
   pub uuid: String,
 }
 
