@@ -189,44 +189,9 @@ impl Perform for SaveUserSettings {
 
     let local_user_id = local_user_view.local_user.id;
     let person_id = local_user_view.person.id;
-    let password_encrypted = match &data.new_password {
-      Some(new_password) => {
-        match &data.new_password_verify {
-          Some(new_password_verify) => {
-            password_length_check(&new_password)?;
-
-            // Make sure passwords match
-            if new_password != new_password_verify {
-              return Err(ApiError::err("passwords_dont_match").into());
-            }
-
-            // Check the old password
-            match &data.old_password {
-              Some(old_password) => {
-                let valid: bool =
-                  verify(old_password, &local_user_view.local_user.password_encrypted)
-                    .unwrap_or(false);
-                if !valid {
-                  return Err(ApiError::err("password_incorrect").into());
-                }
-                let new_password = new_password.to_owned();
-                let user = blocking(context.pool(), move |conn| {
-                  LocalUser::update_password(conn, local_user_id, &new_password)
-                })
-                .await??;
-                user.password_encrypted
-              }
-              None => return Err(ApiError::err("password_incorrect").into()),
-            }
-          }
-          None => return Err(ApiError::err("passwords_dont_match").into()),
-        }
-      }
-      None => local_user_view.local_user.password_encrypted,
-    };
-
     let default_listing_type = data.default_listing_type;
     let default_sort_type = data.default_sort_type;
+    let password_encrypted = local_user_view.local_user.password_encrypted;
 
     let person_form = PersonForm {
       name: local_user_view.person.name,
@@ -292,6 +257,49 @@ impl Perform for SaveUserSettings {
         return Err(ApiError::err(err_type).into());
       }
     };
+
+    // Return the jwt
+    Ok(LoginResponse {
+      jwt: Claims::jwt(updated_local_user.id.0)?,
+    })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ChangePassword {
+  type Response = LoginResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<LoginResponse, LemmyError> {
+    let data: &ChangePassword = &self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+
+    password_length_check(&data.new_password)?;
+
+    // Make sure passwords match
+    if data.new_password != data.new_password_verify {
+      return Err(ApiError::err("passwords_dont_match").into());
+    }
+
+    // Check the old password
+    let valid: bool = verify(
+      &data.old_password,
+      &local_user_view.local_user.password_encrypted,
+    )
+    .unwrap_or(false);
+    if !valid {
+      return Err(ApiError::err("password_incorrect").into());
+    }
+
+    let local_user_id = local_user_view.local_user.id;
+    let new_password = data.new_password.to_owned();
+    let updated_local_user = blocking(context.pool(), move |conn| {
+      LocalUser::update_password(conn, local_user_id, &new_password)
+    })
+    .await??;
 
     // Return the jwt
     Ok(LoginResponse {
