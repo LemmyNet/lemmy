@@ -422,7 +422,7 @@ table! {
     site (id) {
         id -> Int4,
         name -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         creator_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
@@ -431,6 +431,7 @@ table! {
         enable_nsfw -> Bool,
         icon -> Nullable<Varchar>,
         banner -> Nullable<Varchar>,
+        description -> Nullable<Text>,
     }
 }
 
