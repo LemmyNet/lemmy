@@ -60,7 +60,7 @@ use lemmy_utils::{
   email::send_email,
   location_info,
   settings::structs::Settings,
-  utils::{generate_random_string, is_valid_display_name, naive_from_unix},
+  utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ApiError,
   ConnectionId,
   LemmyError,
@@ -184,6 +184,12 @@ impl Perform for SaveUserSettings {
     if let Some(Some(display_name)) = &display_name {
       if !is_valid_display_name(display_name.trim()) {
         return Err(ApiError::err("invalid_username").into());
+      }
+    }
+
+    if let Some(Some(matrix_user_id)) = &matrix_user_id {
+      if !is_valid_matrix_id(matrix_user_id) {
+        return Err(ApiError::err("invalid_matrix_id").into());
       }
     }
 
