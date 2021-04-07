@@ -67,6 +67,10 @@ steps:
       auto_tag: true
       auto_tag_suffix: linux-amd64
     when:
+      branch:
+        include:
+          - main
+          - drone-release-main
       ref:
       - refs/tags/*
 
