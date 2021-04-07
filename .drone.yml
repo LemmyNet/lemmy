@@ -69,7 +69,6 @@ steps:
     when:
       branch:
       - main
-      - drone-release-main
 
   - name: push dev build to docker manifest
     image: plugins/manifest
@@ -87,7 +86,6 @@ steps:
     when:
       branch:
       - main
-      - drone-release-main
 
   - name: make release build and push to docker hub
     image: plugins/docker
@@ -188,7 +186,6 @@ steps:
     when:
       branch:
       - main
-      - drone-release-main
 
   - name: push dev build to docker manifest
     image: plugins/manifest
@@ -206,7 +203,6 @@ steps:
     when:
       branch:
       - main
-      - drone-release-main
 
   - name: make release build and push to docker hub
     image: plugins/docker
