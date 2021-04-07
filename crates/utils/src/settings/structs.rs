@@ -27,12 +27,12 @@ pub struct CaptchaConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseConfig {
-  pub user: String,
+  pub user: Option<String>,
   pub password: String,
   pub host: String,
-  pub port: i32,
-  pub database: String,
-  pub pool_size: u32,
+  pub port: Option<i32>,
+  pub database: Option<String>,
+  pub pool_size: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

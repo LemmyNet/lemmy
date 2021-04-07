@@ -16,7 +16,7 @@ use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  settings::structs::Settings,
+  settings::{defaults::DEFAULT_DATABASE_POOL_SIZE, structs::Settings},
   LemmyError,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
@@ -38,7 +38,12 @@ async fn main() -> Result<(), LemmyError> {
   };
   let manager = ConnectionManager::<PgConnection>::new(&db_url);
   let pool = Pool::builder()
-    .max_size(settings.database().pool_size)
+    .max_size(
+      settings
+        .database()
+        .pool_size
+        .unwrap_or(DEFAULT_DATABASE_POOL_SIZE),
+    )
     .build(manager)
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 
