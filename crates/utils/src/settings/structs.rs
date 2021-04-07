@@ -40,26 +40,26 @@ impl DatabaseConfig {
     self
       .user
       .to_owned()
-      .unwrap_or(DatabaseConfig::default().user.expect("missing user"))
+      .unwrap_or_else(|| DatabaseConfig::default().user.expect("missing user"))
   }
   pub fn port(&self) -> i32 {
     self
       .port
-      .unwrap_or(DatabaseConfig::default().port.expect("missing port"))
+      .unwrap_or_else(|| DatabaseConfig::default().port.expect("missing port"))
   }
   pub fn database(&self) -> String {
-    self.database.to_owned().unwrap_or(
+    self.database.to_owned().unwrap_or_else(|| {
       DatabaseConfig::default()
         .database
-        .expect("missing database"),
-    )
+        .expect("missing database")
+    })
   }
   pub fn pool_size(&self) -> u32 {
-    self.pool_size.unwrap_or(
+    self.pool_size.unwrap_or_else(|| {
       DatabaseConfig::default()
         .pool_size
-        .expect("missing pool_size"),
-    )
+        .expect("missing pool_size")
+    })
   }
 }
 
