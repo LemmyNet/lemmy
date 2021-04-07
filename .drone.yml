@@ -55,21 +55,6 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: make release build and push to docker hub
-    image: plugins/docker
-    settings:
-      dockerfile: docker/prod/Dockerfile
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      repo: dessalines/lemmy
-      auto_tag: true
-      auto_tag_suffix: linux-amd64
-    when:
-      ref:
-      - refs/tags/*
-
   - name: build latest development version and push to docker hub
     image: plugins/docker
     settings:
@@ -86,6 +71,40 @@ steps:
         include:
           - main
           - drone-release-main
+
+  - name: push to docker manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:dev"
+      template: "dessalines/lemmy:dev-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      branch:
+        include:
+          - main
+          - drone-release-main
+
+  - name: make release build and push to docker hub
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      auto_tag: true
+      auto_tag_suffix: linux-amd64
+    when:
+      ref:
+      - refs/tags/*
 
   - name: push to docker manifest
     image: plugins/manifest
@@ -156,6 +175,42 @@ steps:
       - cd api_tests/
       - yarn
       - yarn api-test
+
+  - name: build latest development version and push to docker hub
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile.arm
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      tags:
+        - dev
+    when:
+      branch:
+        include:
+          - main
+          - drone-release-main
+
+  - name: push to docker manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:${DRONE_TAG}"
+      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      branch:
+        include:
+          - main
+          - drone-release-main
 
   - name: make release build and push to docker hub
     image: plugins/docker
