@@ -19,7 +19,7 @@ let apShortname: string;
 
 function assertUserFederation(userOne: PersonViewSafe, userTwo: PersonViewSafe) {
   expect(userOne.person.name).toBe(userTwo.person.name);
-  expect(userOne.person.display_name).toBe(userTwo.person.display_name);
+  expect(userOne.person.preferred_username).toBe(userTwo.person.preferred_username);
   expect(userOne.person.bio).toBe(userTwo.person.bio);
   expect(userOne.person.actor_id).toBe(userTwo.person.actor_id);
   expect(userOne.person.avatar).toBe(userTwo.person.avatar);
@@ -49,7 +49,7 @@ test('Set some user settings, check that they are federated', async () => {
     lang: '',
     avatar,
     banner,
-    display_name: 'user321',
+    preferred_username: 'user321',
     show_avatars: false,
     send_notifications_to_email: false,
     bio,
