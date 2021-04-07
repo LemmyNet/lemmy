@@ -10,7 +10,7 @@ use serde::Serialize;
 pub struct Person {
   pub id: PersonId,
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -35,7 +35,7 @@ pub struct Person {
 pub struct PersonSafe {
   pub id: PersonId,
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -56,7 +56,7 @@ pub struct PersonSafe {
 pub struct PersonAlias1 {
   pub id: PersonId,
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -80,7 +80,7 @@ pub struct PersonAlias1 {
 pub struct PersonSafeAlias1 {
   pub id: PersonId,
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -101,7 +101,7 @@ pub struct PersonSafeAlias1 {
 pub struct PersonAlias2 {
   pub id: PersonId,
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -125,7 +125,7 @@ pub struct PersonAlias2 {
 pub struct PersonSafeAlias2 {
   pub id: PersonId,
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -145,7 +145,7 @@ pub struct PersonSafeAlias2 {
 #[table_name = "person"]
 pub struct PersonForm {
   pub name: String,
-  pub preferred_username: Option<Option<String>>,
+  pub display_name: Option<Option<String>>,
   pub avatar: Option<Option<DbUrl>>,
   pub banned: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,

@@ -1,4 +1,4 @@
-use crate::{captcha_espeak_wav_base64, Perform};
+use crate::{captcha_as_wav_base64, Perform};
 use actix_web::web::Data;
 use anyhow::Context;
 use bcrypt::verify;
@@ -58,7 +58,7 @@ use lemmy_utils::{
   email::send_email,
   location_info,
   settings::structs::Settings,
-  utils::{generate_random_string, is_valid_preferred_username, naive_from_unix},
+  utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ApiError,
   ConnectionId,
   LemmyError,
@@ -133,13 +133,11 @@ impl Perform for GetCaptcha {
 
     let answer = captcha.chars_as_string();
 
-    let png_byte_array = captcha.as_png().expect("failed to generate captcha");
-
-    let png = base64::encode(png_byte_array);
+    let png = captcha.as_base64().expect("failed to generate captcha");
 
     let uuid = uuid::Uuid::new_v4().to_string();
 
-    let wav = captcha_espeak_wav_base64(&answer).ok();
+    let wav = captcha_as_wav_base64(&captcha);
 
     let captcha_item = CaptchaItem {
       answer,
@@ -172,7 +170,7 @@ impl Perform for SaveUserSettings {
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
     let email = diesel_option_overwrite(&data.email);
     let bio = diesel_option_overwrite(&data.bio);
-    let preferred_username = diesel_option_overwrite(&data.preferred_username);
+    let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
 
     if let Some(Some(bio)) = &bio {
@@ -181,59 +179,30 @@ impl Perform for SaveUserSettings {
       }
     }
 
-    if let Some(Some(preferred_username)) = &preferred_username {
-      if !is_valid_preferred_username(preferred_username.trim()) {
+    if let Some(Some(display_name)) = &display_name {
+      if !is_valid_display_name(display_name.trim()) {
         return Err(ApiError::err("invalid_username").into());
+      }
+    }
+
+    if let Some(Some(matrix_user_id)) = &matrix_user_id {
+      if !is_valid_matrix_id(matrix_user_id) {
+        return Err(ApiError::err("invalid_matrix_id").into());
       }
     }
 
     let local_user_id = local_user_view.local_user.id;
     let person_id = local_user_view.person.id;
-    let password_encrypted = match &data.new_password {
-      Some(new_password) => {
-        match &data.new_password_verify {
-          Some(new_password_verify) => {
-            password_length_check(&new_password)?;
-
-            // Make sure passwords match
-            if new_password != new_password_verify {
-              return Err(ApiError::err("passwords_dont_match").into());
-            }
-
-            // Check the old password
-            match &data.old_password {
-              Some(old_password) => {
-                let valid: bool =
-                  verify(old_password, &local_user_view.local_user.password_encrypted)
-                    .unwrap_or(false);
-                if !valid {
-                  return Err(ApiError::err("password_incorrect").into());
-                }
-                let new_password = new_password.to_owned();
-                let user = blocking(context.pool(), move |conn| {
-                  LocalUser::update_password(conn, local_user_id, &new_password)
-                })
-                .await??;
-                user.password_encrypted
-              }
-              None => return Err(ApiError::err("password_incorrect").into()),
-            }
-          }
-          None => return Err(ApiError::err("passwords_dont_match").into()),
-        }
-      }
-      None => local_user_view.local_user.password_encrypted,
-    };
-
     let default_listing_type = data.default_listing_type;
     let default_sort_type = data.default_sort_type;
+    let password_encrypted = local_user_view.local_user.password_encrypted;
 
     let person_form = PersonForm {
       name: local_user_view.person.name,
       avatar,
       banner,
       inbox_url: None,
-      preferred_username,
+      display_name,
       published: None,
       updated: Some(naive_now()),
       banned: None,
@@ -265,6 +234,7 @@ impl Perform for SaveUserSettings {
       email,
       password_encrypted,
       show_nsfw: data.show_nsfw,
+      show_scores: data.show_scores,
       theme: data.theme.to_owned(),
       default_sort_type,
       default_listing_type,
@@ -291,6 +261,49 @@ impl Perform for SaveUserSettings {
         return Err(ApiError::err(err_type).into());
       }
     };
+
+    // Return the jwt
+    Ok(LoginResponse {
+      jwt: Claims::jwt(updated_local_user.id.0)?,
+    })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ChangePassword {
+  type Response = LoginResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<LoginResponse, LemmyError> {
+    let data: &ChangePassword = &self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+
+    password_length_check(&data.new_password)?;
+
+    // Make sure passwords match
+    if data.new_password != data.new_password_verify {
+      return Err(ApiError::err("passwords_dont_match").into());
+    }
+
+    // Check the old password
+    let valid: bool = verify(
+      &data.old_password,
+      &local_user_view.local_user.password_encrypted,
+    )
+    .unwrap_or(false);
+    if !valid {
+      return Err(ApiError::err("password_incorrect").into());
+    }
+
+    let local_user_id = local_user_view.local_user.id;
+    let new_password = data.new_password.to_owned();
+    let updated_local_user = blocking(context.pool(), move |conn| {
+      LocalUser::update_password(conn, local_user_id, &new_password)
+    })
+    .await??;
 
     // Return the jwt
     Ok(LoginResponse {

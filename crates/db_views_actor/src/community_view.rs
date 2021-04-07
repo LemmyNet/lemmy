@@ -183,6 +183,7 @@ impl<'a> CommunityQueryBuilder<'a> {
     match self.sort {
       SortType::New => query = query.order_by(community::published.desc()),
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
+      SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       // Covers all other sorts, including hot
       _ => {
         query = query

@@ -133,6 +133,7 @@ impl PerformCrud for Register {
       default_listing_type: Some(ListingType::Subscribed as i16),
       lang: Some("browser".into()),
       show_avatars: Some(true),
+      show_scores: Some(true),
       send_notifications_to_email: Some(false),
     };
 

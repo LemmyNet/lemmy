@@ -22,9 +22,9 @@ RUN cp ./target/release/lemmy_server /app/lemmy_server
 # The Debian runner
 FROM debian:buster-slim as lemmy
 
-# Install libpq for postgres and espeak for captchas
+# Install libpq for postgres
 RUN apt-get update \
- && apt-get -y install --no-install-recommends espeak postgresql-client libc6 libssl1.1 \
+ && apt-get -y install --no-install-recommends postgresql-client libc6 libssl1.1 \
  && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --gid 1000 lemmy

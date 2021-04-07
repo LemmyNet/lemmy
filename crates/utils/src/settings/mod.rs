@@ -1,38 +1,32 @@
 use crate::{
   location_info,
-  settings::structs::{
-    CaptchaConfig,
-    DatabaseConfig,
-    EmailConfig,
-    FederationConfig,
-    RateLimitConfig,
-    Settings,
-    SetupConfig,
+  settings::{
+    defaults::{DEFAULT_DATABASE_DB, DEFAULT_DATABASE_PORT, DEFAULT_DATABASE_USER},
+    structs::{
+      CaptchaConfig,
+      DatabaseConfig,
+      EmailConfig,
+      FederationConfig,
+      RateLimitConfig,
+      Settings,
+      SetupConfig,
+    },
   },
   LemmyError,
 };
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use log::warn;
 use merge::Merge;
 use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
 
-pub(crate) mod defaults;
+pub mod defaults;
 pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
 
 lazy_static! {
-  static ref SETTINGS: RwLock<Settings> = RwLock::new(match Settings::init() {
-    Ok(c) => c,
-    Err(e) => {
-      warn!(
-        "Couldn't load settings file, using default settings.\n{}",
-        e
-      );
-      Settings::default()
-    }
-  });
+  static ref SETTINGS: RwLock<Settings> =
+    RwLock::new(Settings::init().expect("Failed to load settings file"));
 }
 
 impl Settings {
@@ -69,7 +63,15 @@ impl Settings {
     let conf = self.database();
     format!(
       "postgres://{}:{}@{}:{}/{}",
-      conf.user, conf.password, conf.host, conf.port, conf.database,
+      conf
+        .user
+        .unwrap_or_else(|| DEFAULT_DATABASE_USER.to_string()),
+      conf.password,
+      conf.host,
+      conf.port.unwrap_or(DEFAULT_DATABASE_PORT),
+      conf
+        .database
+        .unwrap_or_else(|| DEFAULT_DATABASE_DB.to_string()),
     )
   }
 

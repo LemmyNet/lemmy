@@ -21,15 +21,20 @@ impl Default for Settings {
   }
 }
 
+pub(in crate::settings) static DEFAULT_DATABASE_USER: &str = "lemmy";
+pub(in crate::settings) static DEFAULT_DATABASE_PORT: i32 = 5432;
+pub(in crate::settings) static DEFAULT_DATABASE_DB: &str = "lemmy";
+pub static DEFAULT_DATABASE_POOL_SIZE: u32 = 5;
+
 impl Default for DatabaseConfig {
   fn default() -> Self {
     Self {
-      user: "lemmy".into(),
+      user: Some(DEFAULT_DATABASE_USER.to_string()),
       password: "password".into(),
       host: "localhost".into(),
-      port: 5432,
-      database: "lemmy".into(),
-      pool_size: 5,
+      port: Some(DEFAULT_DATABASE_PORT),
+      database: Some(DEFAULT_DATABASE_DB.to_string()),
+      pool_size: Some(DEFAULT_DATABASE_POOL_SIZE),
     }
   }
 }
