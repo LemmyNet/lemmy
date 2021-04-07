@@ -71,7 +71,7 @@ steps:
       - main
       - drone-release-main
 
-  - name: push to docker manifest
+  - name: push dev build to docker manifest
     image: plugins/manifest
     settings:
       username:
@@ -190,7 +190,7 @@ steps:
       - main
       - drone-release-main
 
-  - name: push to docker manifest
+  - name: push dev build to docker manifest
     image: plugins/manifest
     settings:
       username:
