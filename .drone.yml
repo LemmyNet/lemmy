@@ -65,12 +65,11 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       tags:
-        - dev
+      - dev
     when:
       branch:
-        include:
-          - main
-          - drone-release-main
+      - main
+      - drone-release-main
 
   - name: push to docker manifest
     image: plugins/manifest
@@ -87,9 +86,8 @@ steps:
       ignore_missing: true
     when:
       branch:
-        include:
-          - main
-          - drone-release-main
+      - main
+      - drone-release-main
 
   - name: make release build and push to docker hub
     image: plugins/docker
@@ -186,12 +184,11 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       tags:
-        - dev
+      - dev
     when:
       branch:
-        include:
-          - main
-          - drone-release-main
+      - main
+      - drone-release-main
 
   - name: push to docker manifest
     image: plugins/manifest
@@ -208,9 +205,8 @@ steps:
       ignore_missing: true
     when:
       branch:
-        include:
-          - main
-          - drone-release-main
+      - main
+      - drone-release-main
 
   - name: make release build and push to docker hub
     image: plugins/docker
@@ -225,7 +221,7 @@ steps:
       auto_tag_suffix: linux-arm64
     when:
       ref:
-        - refs/tags/*
+      - refs/tags/*
 
   - name: push to docker manifest
     image: plugins/manifest
