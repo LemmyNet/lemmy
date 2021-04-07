@@ -148,6 +148,10 @@ mod tests {
     let person_num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
     assert_eq!(1, person_num_deleted);
 
+    // Delete the community
+    let community_num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
+    assert_eq!(1, community_num_deleted);
+
     // Should be none found, since the creator was deleted
     let after_delete = PostAggregates::read(&conn, inserted_post.id);
     assert!(after_delete.is_err());

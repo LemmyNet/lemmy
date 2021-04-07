@@ -231,6 +231,7 @@ mod tests {
 
     let new_post = PostForm {
       name: "A test post thweep".into(),
+      creator_id: inserted_person.id,
       community_id: inserted_community.id,
       ..PostForm::default()
     };

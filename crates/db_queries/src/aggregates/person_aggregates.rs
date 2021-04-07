@@ -159,6 +159,10 @@ mod tests {
     assert_eq!(1, person_num_deleted);
     Person::delete(&conn, another_inserted_person.id).unwrap();
 
+    // Delete the community
+    let community_num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
+    assert_eq!(1, community_num_deleted);
+
     // Should be none found
     let after_delete = PersonAggregates::read(&conn, inserted_person.id);
     assert!(after_delete.is_err());
