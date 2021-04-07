@@ -65,7 +65,7 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       tags:
-      - dev
+      - dev-linux-amd64
     when:
       branch:
       - main
@@ -184,7 +184,7 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       tags:
-      - dev
+      - dev-linux-arm64
     when:
       branch:
       - main
