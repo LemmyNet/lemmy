@@ -27,12 +27,40 @@ pub struct CaptchaConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseConfig {
-  pub user: Option<String>,
+  pub(super) user: Option<String>,
   pub password: String,
   pub host: String,
-  pub port: Option<i32>,
-  pub database: Option<String>,
-  pub pool_size: Option<u32>,
+  pub(super) port: Option<i32>,
+  pub(super) database: Option<String>,
+  pub(super) pool_size: Option<u32>,
+}
+
+impl DatabaseConfig {
+  pub fn user(&self) -> String {
+    self
+      .user
+      .to_owned()
+      .unwrap_or(DatabaseConfig::default().user.expect("missing user"))
+  }
+  pub fn port(&self) -> i32 {
+    self
+      .port
+      .unwrap_or(DatabaseConfig::default().port.expect("missing port"))
+  }
+  pub fn database(&self) -> String {
+    self.database.to_owned().unwrap_or(
+      DatabaseConfig::default()
+        .database
+        .expect("missing database"),
+    )
+  }
+  pub fn pool_size(&self) -> u32 {
+    self.pool_size.unwrap_or(
+      DatabaseConfig::default()
+        .pool_size
+        .expect("missing pool_size"),
+    )
+  }
 }
 
 #[derive(Debug, Deserialize, Clone)]
