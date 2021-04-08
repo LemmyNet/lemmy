@@ -160,6 +160,7 @@ impl Perform for BanFromCommunity {
       })
       .await?
       .ok();
+
       community
         .send_block_user(&local_user_view.person, banned_person, context)
         .await?;

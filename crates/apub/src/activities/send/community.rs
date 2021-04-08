@@ -3,7 +3,7 @@ use crate::{
   activity_queue::{send_activity_single_dest, send_to_community, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::{get_or_fetch_and_upsert_actor, person::get_or_fetch_and_upsert_person},
   generate_moderators_url,
   insert_activity,
   ActorType,
@@ -72,6 +72,10 @@ impl ActorType for Community {
 
 #[async_trait::async_trait(?Send)]
 impl CommunityType for Community {
+  fn followers_url(&self) -> Url {
+    self.followers_url.clone().into_inner()
+  }
+
   /// As a local community, accept the follow request from a remote person.
   async fn send_accept_follow(
     &self,
@@ -104,9 +108,9 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.followers_url()]);
 
-    send_to_community_followers(delete, self, context).await?;
+    send_to_community_followers(delete, self, None, context).await?;
     Ok(())
   }
 
@@ -117,16 +121,16 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.followers_url()]);
 
     let mut undo = Undo::new(self.actor_id(), delete.into_any_base()?);
     undo
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.followers_url()]);
 
-    send_to_community_followers(undo, self, context).await?;
+    send_to_community_followers(undo, self, None, context).await?;
     Ok(())
   }
 
@@ -137,9 +141,9 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.followers_url()]);
 
-    send_to_community_followers(remove, self, context).await?;
+    send_to_community_followers(remove, self, None, context).await?;
     Ok(())
   }
 
@@ -150,7 +154,7 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.followers_url()]);
 
     // Undo that fake activity
     let mut undo = Undo::new(self.actor_id(), remove.into_any_base()?);
@@ -158,9 +162,9 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(vec![self.followers_url()]);
 
-    send_to_community_followers(undo, self, context).await?;
+    send_to_community_followers(undo, self, None, context).await?;
     Ok(())
   }
 
@@ -170,9 +174,13 @@ impl CommunityType for Community {
   /// If we are announcing a local activity, it hasn't been stored in the database yet, and we need
   /// to do it here, so that it can be fetched by ID. Remote activities are inserted into DB in the
   /// inbox.
+  ///
+  /// If the `object` of the announced activity is an actor, the actor ID needs to be passed as
+  /// `object_actor`, so that the announce can be delivered to that user.
   async fn send_announce(
     &self,
     activity: AnyBase,
+    object_actor: Option<Url>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let inner_id = activity.id().context(location_info!())?;
@@ -180,14 +188,27 @@ impl CommunityType for Community {
       insert_activity(inner_id, activity.clone(), true, false, context.pool()).await?;
     }
 
+    let mut ccs = vec![self.followers_url()];
+    let mut object_actor_inbox: Option<Url> = None;
+    if let Some(actor_id) = object_actor {
+      // Ignore errors, maybe its not actually an actor
+      // TODO: should pass the actual request counter in, but that seems complicated
+      let actor = get_or_fetch_and_upsert_actor(&actor_id, context, &mut 0)
+        .await
+        .ok();
+      if let Some(actor) = actor {
+        ccs.push(actor_id);
+        object_actor_inbox = Some(actor.get_shared_inbox_or_inbox_url());
+      }
+    }
     let mut announce = Announce::new(self.actor_id(), activity);
     announce
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
+      .set_many_ccs(ccs);
 
-    send_to_community_followers(announce, self, context).await?;
+    send_to_community_followers(announce, self, object_actor_inbox, context).await?;
 
     Ok(())
   }
@@ -227,7 +248,7 @@ impl CommunityType for Community {
       .set_many_ccs(vec![self.actor_id()])
       .set_target(generate_moderators_url(&self.actor_id)?.into_inner());
 
-    send_to_community(add, actor, self, context).await?;
+    send_to_community(add, actor, self, Some(added_mod.actor_id()), context).await?;
     Ok(())
   }
 
@@ -245,11 +266,10 @@ impl CommunityType for Community {
       .set_many_ccs(vec![self.actor_id()])
       .set_target(generate_moderators_url(&self.actor_id)?.into_inner());
 
-    send_to_community(remove, &actor, self, context).await?;
+    send_to_community(remove, &actor, self, Some(removed_mod.actor_id()), context).await?;
     Ok(())
   }
 
-  // / TODO: also need to implement the Undo for this
   async fn send_block_user(
     &self,
     actor: &Person,
@@ -263,17 +283,17 @@ impl CommunityType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()]);
 
-    send_to_community(block, &actor, self, context).await?;
+    send_to_community(block, &actor, self, Some(blocked_user.actor_id()), context).await?;
     Ok(())
   }
 
   async fn send_undo_block_user(
     &self,
     actor: &Person,
-    blocked_user: Person,
+    unblocked_user: Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut block = Block::new(actor.actor_id(), blocked_user.actor_id());
+    let mut block = Block::new(actor.actor_id(), unblocked_user.actor_id());
     block
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(BlockType::Block)?)
@@ -286,8 +306,9 @@ impl CommunityType for Community {
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![self.followers_url.clone().into_inner()]);
-    send_to_community(undo, &actor, self, context).await?;
+      .set_many_ccs(vec![self.actor_id()]);
+
+    send_to_community(undo, &actor, self, Some(unblocked_user.actor_id()), context).await?;
     Ok(())
   }
 }

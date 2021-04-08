@@ -21,7 +21,6 @@ use background_jobs::{
   WorkerConfig,
 };
 use itertools::Itertools;
-use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -53,16 +52,7 @@ where
       &activity.id_unchecked(),
       &inbox
     );
-    send_activity_internal(
-      context.activity_queue(),
-      activity,
-      creator,
-      vec![inbox],
-      context.pool(),
-      true,
-      true,
-    )
-    .await?;
+    send_activity_internal(context, activity, creator, vec![inbox], true, true).await?;
   }
 
   Ok(())
@@ -72,11 +62,11 @@ where
 ///
 /// * `activity` the apub activity to send
 /// * `community` the sending community
-/// * `sender_shared_inbox` in case of an announce, this should be the shared inbox of the inner
-///                         activities creator, as receiving a known activity will cause an error
+/// * `extra_inbox` actor inbox which should receive the activity, in addition to followers
 pub(crate) async fn send_to_community_followers<T, Kind>(
   activity: T,
   community: &Community,
+  extra_inbox: Option<Url>,
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
@@ -84,31 +74,25 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  let follower_inboxes: Vec<Url> = community
-    .get_follower_inboxes(context.pool())
-    .await?
-    .iter()
-    .unique()
-    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
-    .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
-    .map(|inbox| inbox.to_owned())
-    .collect();
+  let extra_inbox: Vec<Url> = extra_inbox.into_iter().collect();
+  let follower_inboxes: Vec<Url> = vec![
+    community.get_follower_inboxes(context.pool()).await?,
+    extra_inbox,
+  ]
+  .iter()
+  .flatten()
+  .unique()
+  .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
+  .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
+  .map(|inbox| inbox.to_owned())
+  .collect();
   debug!(
     "Sending activity {:?} to followers of {}",
     &activity.id_unchecked().map(|i| i.to_string()),
     &community.actor_id
   );
 
-  send_activity_internal(
-    context.activity_queue(),
-    activity,
-    community,
-    follower_inboxes,
-    context.pool(),
-    true,
-    false,
-  )
-  .await?;
+  send_activity_internal(context, activity, community, follower_inboxes, true, false).await?;
 
   Ok(())
 }
@@ -118,11 +102,14 @@ where
 /// * `activity` the activity to send
 /// * `creator` the creator of the activity
 /// * `community` the destination community
+/// * `object_actor` if the object of the activity is an actor, it should be passed here so it can
+///                  be sent directly to the actor
 ///
 pub(crate) async fn send_to_community<T, Kind>(
   activity: T,
   creator: &Person,
   community: &Community,
+  object_actor: Option<Url>,
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
@@ -133,7 +120,7 @@ where
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
     community
-      .send_announce(activity.into_any_base()?, context)
+      .send_announce(activity.into_any_base()?, object_actor, context)
       .await?;
   } else {
     let inbox = community.get_shared_inbox_or_inbox_url();
@@ -143,16 +130,8 @@ where
       &activity.id_unchecked(),
       &community.actor_id
     );
-    send_activity_internal(
-      context.activity_queue(),
-      activity,
-      creator,
-      vec![inbox],
-      context.pool(),
-      true,
-      false,
-    )
-    .await?;
+    // dont send to object_actor here, as that is responsibility of the community itself
+    send_activity_internal(context, activity, creator, vec![inbox], true, false).await?;
   }
 
   Ok(())
@@ -185,12 +164,7 @@ where
     .map(|i| i.to_owned())
     .collect();
   send_activity_internal(
-    context.activity_queue(),
-    activity,
-    creator,
-    mentions,
-    context.pool(),
-    false, // Don't create a new DB row
+    context, activity, creator, mentions, false, // Don't create a new DB row
     false,
   )
   .await?;
@@ -203,11 +177,10 @@ where
 /// The caller of this function needs to remove any blocked domains from `to`,
 /// using `check_is_apub_id_valid()`.
 async fn send_activity_internal<T, Kind>(
-  activity_sender: &QueueHandle,
+  context: &LemmyContext,
   activity: T,
   actor: &dyn ActorType,
   inboxes: Vec<Url>,
-  pool: &DbPool,
   insert_into_db: bool,
   sensitive: bool,
 ) -> Result<(), LemmyError>
@@ -234,7 +207,7 @@ where
   // might send the same ap_id
   if insert_into_db {
     let id = activity.id().context(location_info!())?;
-    insert_activity(id, activity.clone(), true, sensitive, pool).await?;
+    insert_activity(id, activity.clone(), true, sensitive, context.pool()).await?;
   }
 
   for i in inboxes {
@@ -247,7 +220,7 @@ where
     if env::var("LEMMY_TEST_SEND_SYNC").is_ok() {
       do_send(message, &Client::default()).await?;
     } else {
-      activity_sender.queue::<SendActivityTask>(message)?;
+      context.activity_queue.queue::<SendActivityTask>(message)?;
     }
   }
 

@@ -260,7 +260,13 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       CommunityModerator::leave(conn, &form)
     })
     .await??;
-    community.send_announce(remove_any_base, context).await?;
+    community
+      .send_announce(
+        remove_any_base,
+        remove.object().clone().single_xsd_any_uri(),
+        context,
+      )
+      .await?;
     // TODO: send websocket notification about removed mod
     Ok(())
   }
@@ -446,7 +452,13 @@ pub(in crate::inbox) async fn receive_add_for_community(
     .await??;
   }
   if community.local {
-    community.send_announce(add_any_base, context).await?;
+    community
+      .send_announce(
+        add_any_base,
+        add.object().clone().single_xsd_any_uri(),
+        context,
+      )
+      .await?;
   }
   // TODO: send websocket notification about added mod
   Ok(())

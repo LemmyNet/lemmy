@@ -241,8 +241,9 @@ pub(crate) async fn community_receive_message(
   if do_announce {
     // Check again that the activity is public, just to be sure
     verify_is_addressed_to_public(&activity)?;
+    let object_actor = activity.object().clone().single_xsd_any_uri();
     to_community
-      .send_announce(activity.into_any_base()?, context)
+      .send_announce(activity.into_any_base()?, object_actor, context)
       .await?;
   }
 

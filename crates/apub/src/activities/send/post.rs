@@ -49,7 +49,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(create, creator, &community, context).await?;
+    send_to_community(create, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -73,7 +73,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(update, creator, &community, context).await?;
+    send_to_community(update, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -94,7 +94,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(delete, creator, &community, context).await?;
+    send_to_community(delete, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -130,7 +130,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, creator, &community, context).await?;
+    send_to_community(undo, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -151,7 +151,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(remove, mod_, &community, context).await?;
+    send_to_community(remove, mod_, &community, None, context).await?;
     Ok(())
   }
 
@@ -187,7 +187,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, mod_, &community, context).await?;
+    send_to_community(undo, mod_, &community, None, context).await?;
     Ok(())
   }
 }
@@ -211,7 +211,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(like, &creator, &community, context).await?;
+    send_to_community(like, &creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -232,7 +232,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(dislike, &creator, &community, context).await?;
+    send_to_community(dislike, &creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -268,7 +268,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, &creator, &community, context).await?;
+    send_to_community(undo, &creator, &community, None, context).await?;
     Ok(())
   }
 }
