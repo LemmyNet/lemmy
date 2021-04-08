@@ -263,7 +263,7 @@ impl<'a> PostQueryBuilder<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(community::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -462,7 +462,6 @@ mod tests {
     let new_community = CommunityForm {
       name: community_name.to_owned(),
       title: "nada".to_owned(),
-      creator_id: inserted_person.id,
       ..CommunityForm::default()
     };
 
@@ -541,7 +540,7 @@ mod tests {
       creator: PersonSafe {
         id: inserted_person.id,
         name: person_name,
-        preferred_username: None,
+        display_name: None,
         published: inserted_person.published,
         avatar: None,
         actor_id: inserted_person.actor_id.to_owned(),
@@ -568,7 +567,6 @@ mod tests {
         local: true,
         title: "nada".to_owned(),
         description: None,
-        creator_id: inserted_person.id,
         updated: None,
         banner: None,
         published: inserted_community.published,

@@ -133,6 +133,7 @@ impl PerformCrud for Register {
       default_listing_type: Some(ListingType::Subscribed as i16),
       lang: Some("browser".into()),
       show_avatars: Some(true),
+      show_scores: Some(true),
       send_notifications_to_email: Some(false),
     };
 
@@ -177,7 +178,6 @@ impl PerformCrud for Register {
           name: default_community_name.to_string(),
           title: "The Default Community".to_string(),
           description: Some("The Default Community".to_string()),
-          creator_id: inserted_person.id,
           actor_id: Some(actor_id.to_owned()),
           private_key: Some(main_community_keypair.private_key),
           public_key: Some(main_community_keypair.public_key),

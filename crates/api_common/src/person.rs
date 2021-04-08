@@ -39,29 +39,38 @@ pub struct GetCaptchaResponse {
 
 #[derive(Serialize)]
 pub struct CaptchaResponse {
-  pub png: String,         // A Base64 encoded png
-  pub wav: Option<String>, // A Base64 encoded wav audio
+  pub png: String, // A Base64 encoded png
+  pub wav: String, // A Base64 encoded wav audio
   pub uuid: String,
 }
 
 #[derive(Deserialize)]
 pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
+  pub show_scores: Option<bool>,
   pub theme: Option<String>,
   pub default_sort_type: Option<i16>,
   pub default_listing_type: Option<i16>,
   pub lang: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,
-  pub preferred_username: Option<String>,
+  pub display_name: Option<String>,
   pub email: Option<String>,
   pub bio: Option<String>,
   pub matrix_user_id: Option<String>,
+  pub show_avatars: Option<bool>,
   pub new_password: Option<String>,
   pub new_password_verify: Option<String>,
   pub old_password: Option<String>,
-  pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
+  pub auth: String,
+}
+
+#[derive(Deserialize)]
+pub struct ChangePassword {
+  pub new_password: String,
+  pub new_password_verify: String,
+  pub old_password: String,
   pub auth: String,
 }
 

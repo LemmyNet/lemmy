@@ -16,7 +16,7 @@ use deser_hjson::from_str;
 use merge::Merge;
 use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
 
-pub(crate) mod defaults;
+pub mod defaults;
 pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
@@ -60,7 +60,11 @@ impl Settings {
     let conf = self.database();
     format!(
       "postgres://{}:{}@{}:{}/{}",
-      conf.user, conf.password, conf.host, conf.port, conf.database,
+      conf.user(),
+      conf.password,
+      conf.host,
+      conf.port(),
+      conf.database(),
     )
   }
 
