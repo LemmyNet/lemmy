@@ -55,7 +55,7 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: build latest development version and push to docker hub
+  - name: publish dev docker image
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile
@@ -67,10 +67,10 @@ steps:
       tags:
       - dev-linux-amd64
     when:
-      branch:
-      - main
+      ref:
+      - refs/heads/main
 
-  - name: push dev build to docker manifest
+  - name: publish dev docker manifest
     image: plugins/manifest
     settings:
       username:
@@ -84,10 +84,10 @@ steps:
         - linux/arm64
       ignore_missing: true
     when:
-      branch:
-      - main
+      ref:
+      - refs/heads/main
 
-  - name: make release build and push to docker hub
+  - name: publish release docker image
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile
@@ -102,7 +102,7 @@ steps:
       ref:
       - refs/tags/*
 
-  - name: push to docker manifest
+  - name: publish release docker manifest
     image: plugins/manifest
     settings: 
       username:
@@ -172,7 +172,7 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: build latest development version and push to docker hub
+  - name: publish dev docker image
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile.arm
@@ -184,10 +184,10 @@ steps:
       tags:
       - dev-linux-arm64
     when:
-      branch:
-      - main
+      ref:
+      - refs/heads/main
 
-  - name: push dev build to docker manifest
+  - name: publish dev docker manifest
     image: plugins/manifest
     settings:
       username:
@@ -201,10 +201,10 @@ steps:
         - linux/arm64
       ignore_missing: true
     when:
-      branch:
-      - main
+      ref:
+      - refs/heads/main
 
-  - name: make release build and push to docker hub
+  - name: publish release docker image
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile.arm
@@ -219,7 +219,7 @@ steps:
       ref:
       - refs/tags/*
 
-  - name: push to docker manifest
+  - name: publish release docker manifest
     image: plugins/manifest
     settings: 
       username:
