@@ -65,10 +65,10 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       tags:
-      - dev-linux-amd64
+        - dev-linux-amd64
     when:
       ref:
-      - refs/heads/main
+        - refs/heads/main
 
   - name: publish dev docker manifest
     image: plugins/manifest
@@ -85,7 +85,7 @@ steps:
       ignore_missing: true
     when:
       ref:
-      - refs/heads/main
+        - refs/heads/main
 
   - name: publish release docker image
     image: plugins/docker
@@ -100,7 +100,7 @@ steps:
       auto_tag_suffix: linux-amd64
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
   - name: publish release docker manifest
     image: plugins/manifest
@@ -117,7 +117,7 @@ steps:
       ignore_missing: true
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
 services:
   - name: database
@@ -182,10 +182,10 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       tags:
-      - dev-linux-arm64
+        - dev-linux-arm64
     when:
       ref:
-      - refs/heads/main
+        - refs/heads/main
 
   - name: publish dev docker manifest
     image: plugins/manifest
@@ -202,7 +202,7 @@ steps:
       ignore_missing: true
     when:
       ref:
-      - refs/heads/main
+        - refs/heads/main
 
   - name: publish release docker image
     image: plugins/docker
@@ -217,7 +217,7 @@ steps:
       auto_tag_suffix: linux-arm64
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
   - name: publish release docker manifest
     image: plugins/manifest
@@ -234,7 +234,7 @@ steps:
       ignore_missing: true
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
 services:
   - name: database
