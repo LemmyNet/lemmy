@@ -7,7 +7,10 @@ use lemmy_db_schema::source::{
   community::*,
   moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
 };
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views_actor::{
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
+};
 use lemmy_utils::{utils::naive_from_unix, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 
@@ -23,13 +26,15 @@ impl PerformCrud for DeleteCommunity {
     let data: &DeleteCommunity = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    // Verify its the creator (only a creator can delete the community)
+    // Fetch the community mods
     let community_id = data.community_id;
-    let read_community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
+    let community_mods = blocking(context.pool(), move |conn| {
+      CommunityModeratorView::for_community(conn, community_id)
     })
     .await??;
-    if read_community.creator_id != local_user_view.person.id {
+
+    // Make sure deleter is the top mod
+    if local_user_view.person.id != community_mods[0].moderator.id {
       return Err(ApiError::err("no_community_edit_allowed").into());
     }
 

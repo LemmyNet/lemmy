@@ -462,7 +462,6 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community 5".to_string(),
       title: "nada".to_owned(),
-      creator_id: inserted_person.id,
       ..CommunityForm::default()
     };
 
@@ -567,7 +566,6 @@ mod tests {
         local: true,
         title: "nada".to_owned(),
         description: None,
-        creator_id: inserted_person.id,
         updated: None,
         banner: None,
         published: inserted_community.published,

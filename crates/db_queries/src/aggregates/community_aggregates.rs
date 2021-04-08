@@ -62,7 +62,6 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "TIL_community_agg".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };
@@ -71,7 +70,6 @@ mod tests {
 
     let another_community = CommunityForm {
       name: "TIL_community_agg_2".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };
@@ -168,6 +166,14 @@ mod tests {
     // This should delete all the associated rows, and fire triggers
     let person_num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
     assert_eq!(1, person_num_deleted);
+
+    // Delete the community
+    let community_num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
+    assert_eq!(1, community_num_deleted);
+
+    let another_community_num_deleted =
+      Community::delete(&conn, another_inserted_community.id).unwrap();
+    assert_eq!(1, another_community_num_deleted);
 
     // Should be none found, since the creator was deleted
     let after_delete = CommunityAggregates::read(&conn, inserted_community.id);

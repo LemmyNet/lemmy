@@ -105,7 +105,6 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community lake".to_string(),
       title: "nada".to_owned(),
-      creator_id: inserted_person.id,
       ..CommunityForm::default()
     };
 

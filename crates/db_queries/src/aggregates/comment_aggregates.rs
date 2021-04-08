@@ -58,7 +58,6 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "TIL_comment_agg".into(),
-      creator_id: inserted_person.id,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };
@@ -142,5 +141,9 @@ mod tests {
     Person::delete(&conn, another_inserted_person.id).unwrap();
     let person_num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
     assert_eq!(1, person_num_deleted);
+
+    // Delete the community
+    let community_num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
+    assert_eq!(1, community_num_deleted);
   }
 }
