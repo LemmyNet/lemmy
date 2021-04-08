@@ -1,16 +1,13 @@
 use crate::{
   location_info,
-  settings::{
-    defaults::{DEFAULT_DATABASE_DB, DEFAULT_DATABASE_PORT, DEFAULT_DATABASE_USER},
-    structs::{
-      CaptchaConfig,
-      DatabaseConfig,
-      EmailConfig,
-      FederationConfig,
-      RateLimitConfig,
-      Settings,
-      SetupConfig,
-    },
+  settings::structs::{
+    CaptchaConfig,
+    DatabaseConfig,
+    EmailConfig,
+    FederationConfig,
+    RateLimitConfig,
+    Settings,
+    SetupConfig,
   },
   LemmyError,
 };
@@ -63,15 +60,11 @@ impl Settings {
     let conf = self.database();
     format!(
       "postgres://{}:{}@{}:{}/{}",
-      conf
-        .user
-        .unwrap_or_else(|| DEFAULT_DATABASE_USER.to_string()),
+      conf.user(),
       conf.password,
       conf.host,
-      conf.port.unwrap_or(DEFAULT_DATABASE_PORT),
-      conf
-        .database
-        .unwrap_or_else(|| DEFAULT_DATABASE_DB.to_string()),
+      conf.port(),
+      conf.database(),
     )
   }
 
