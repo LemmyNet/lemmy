@@ -55,7 +55,39 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: make release build and push to docker hub
+  - name: publish dev docker image
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      tags:
+        - dev-linux-amd64
+    when:
+      ref:
+        - refs/heads/main
+
+  - name: publish dev docker manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:dev"
+      template: "dessalines/lemmy:dev-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      ref:
+        - refs/heads/main
+
+  - name: publish release docker image
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile
@@ -68,9 +100,9 @@ steps:
       auto_tag_suffix: linux-amd64
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
-  - name: push to docker manifest
+  - name: publish release docker manifest
     image: plugins/manifest
     settings: 
       username:
@@ -85,7 +117,7 @@ steps:
       ignore_missing: true
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
 services:
   - name: database
@@ -140,7 +172,39 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: make release build and push to docker hub
+  - name: publish dev docker image
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile.arm
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      tags:
+        - dev-linux-arm64
+    when:
+      ref:
+        - refs/heads/main
+
+  - name: publish dev docker manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:dev"
+      template: "dessalines/lemmy:dev-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      ref:
+        - refs/heads/main
+
+  - name: publish release docker image
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile.arm
@@ -155,7 +219,7 @@ steps:
       ref:
         - refs/tags/*
 
-  - name: push to docker manifest
+  - name: publish release docker manifest
     image: plugins/manifest
     settings: 
       username:
@@ -170,7 +234,7 @@ steps:
       ignore_missing: true
     when:
       ref:
-      - refs/tags/*
+        - refs/tags/*
 
 services:
   - name: database
