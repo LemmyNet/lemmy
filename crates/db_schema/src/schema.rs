@@ -78,7 +78,6 @@ table! {
         name -> Varchar,
         title -> Varchar,
         description -> Nullable<Text>,
-        creator_id -> Int4,
         removed -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
@@ -154,6 +153,7 @@ table! {
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
+        show_scores -> Bool,
     }
 }
 
@@ -270,7 +270,7 @@ table! {
     person (id) {
         id -> Int4,
         name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
         avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
@@ -421,7 +421,7 @@ table! {
     site (id) {
         id -> Int4,
         name -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         creator_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
@@ -430,6 +430,7 @@ table! {
         enable_nsfw -> Bool,
         icon -> Nullable<Varchar>,
         banner -> Nullable<Varchar>,
+        description -> Nullable<Text>,
     }
 }
 
@@ -470,7 +471,7 @@ table! {
     person_alias_1 (id) {
         id -> Int4,
         name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
         avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
@@ -494,7 +495,7 @@ table! {
     person_alias_2 (id) {
         id -> Int4,
         name -> Varchar,
-        preferred_username -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
         avatar -> Nullable<Varchar>,
         banned -> Bool,
         published -> Timestamp,
@@ -532,7 +533,6 @@ joinable!(comment_like -> post (post_id));
 joinable!(comment_report -> comment (comment_id));
 joinable!(comment_saved -> comment (comment_id));
 joinable!(comment_saved -> person (person_id));
-joinable!(community -> person (creator_id));
 joinable!(community_aggregates -> community (community_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_follower -> person (person_id));

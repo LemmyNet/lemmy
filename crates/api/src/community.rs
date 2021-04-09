@@ -10,11 +10,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{ActorType, CommunityType, UserType};
 use lemmy_db_queries::{
-  source::{
-    comment::Comment_,
-    community::{CommunityModerator_, Community_},
-    post::Post_,
-  },
+  source::{comment::Comment_, community::CommunityModerator_, post::Post_},
   Bannable,
   Crud,
   Followable,
@@ -340,12 +336,6 @@ impl Perform for TransferCommunity {
     let data: &TransferCommunity = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let community_id = data.community_id;
-    let read_community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
-
     let site_creator_id = blocking(context.pool(), move |conn| {
       Site::read(conn, 1).map(|s| s.creator_id)
     })
@@ -353,7 +343,7 @@ impl Perform for TransferCommunity {
 
     let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
 
-    // Making sure the creator, if an admin, is at the top
+    // Making sure the site creator, if an admin, is at the top
     let creator_index = admins
       .iter()
       .position(|r| r.person.id == site_creator_id)
@@ -361,8 +351,15 @@ impl Perform for TransferCommunity {
     let creator_person = admins.remove(creator_index);
     admins.insert(0, creator_person);
 
-    // Make sure user is the creator, or an admin
-    if local_user_view.person.id != read_community.creator_id
+    // Fetch the community mods
+    let community_id = data.community_id;
+    let mut community_mods = blocking(context.pool(), move |conn| {
+      CommunityModeratorView::for_community(conn, community_id)
+    })
+    .await??;
+
+    // Make sure transferrer is either the top community mod, or an admin
+    if local_user_view.person.id != community_mods[0].moderator.id
       && !admins
         .iter()
         .map(|a| a.person.id)
@@ -371,19 +368,8 @@ impl Perform for TransferCommunity {
       return Err(ApiError::err("not_an_admin").into());
     }
 
-    let community_id = data.community_id;
-    let new_creator = data.person_id;
-    let update = move |conn: &'_ _| Community::update_creator(conn, community_id, new_creator);
-    if blocking(context.pool(), update).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_community").into());
-    };
-
-    // You also have to re-do the community_moderator table, reordering it.
-    let community_id = data.community_id;
-    let mut community_mods = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    // You have to re-do the community_moderator table, reordering it.
+    // Add the transferee to the top
     let creator_index = community_mods
       .iter()
       .position(|r| r.moderator.id == data.person_id)
@@ -391,6 +377,7 @@ impl Perform for TransferCommunity {
     let creator_person = community_mods.remove(creator_index);
     community_mods.insert(0, creator_person);
 
+    // Delete all the mods
     let community_id = data.community_id;
     blocking(context.pool(), move |conn| {
       CommunityModerator::delete_for_community(conn, community_id)
@@ -398,6 +385,7 @@ impl Perform for TransferCommunity {
     .await??;
 
     // TODO: this should probably be a bulk operation
+    // Re-add the mods, in the new order
     for cmod in &community_mods {
       let community_moderator_form = CommunityModeratorForm {
         community_id: cmod.community.id,
@@ -411,6 +399,8 @@ impl Perform for TransferCommunity {
     }
 
     // Mod tables
+    // TODO there should probably be another table for transfer community
+    // Right now, it will just look like it modded them twice
     let form = ModAddCommunityForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,

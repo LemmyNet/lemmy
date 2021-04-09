@@ -89,7 +89,6 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       name: ccommunity.name.to_owned(),
       title: ccommunity.title.to_owned(),
       description: ccommunity.description.to_owned(),
-      creator_id: ccommunity.creator_id,
       removed: None,
       deleted: None,
       nsfw: None,

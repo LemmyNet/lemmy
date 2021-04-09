@@ -75,7 +75,6 @@ impl PerformCrud for CreateCommunity {
       description: data.description.to_owned(),
       icon,
       banner,
-      creator_id: local_user_view.person.id,
       nsfw: data.nsfw,
       actor_id: Some(community_actor_id.to_owned()),
       private_key: Some(keypair.private_key),

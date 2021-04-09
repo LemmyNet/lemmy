@@ -56,8 +56,8 @@ pub struct CommentAlias1 {
 pub struct CommentForm {
   pub creator_id: PersonId,
   pub post_id: PostId,
-  pub parent_id: Option<CommentId>,
   pub content: String,
+  pub parent_id: Option<CommentId>,
   pub removed: Option<bool>,
   pub read: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,

@@ -43,6 +43,7 @@ impl PerformCrud for GetSite {
 
           let create_site = CreateSite {
             name: setup.site_name.to_owned(),
+            sidebar: None,
             description: None,
             icon: None,
             banner: None,

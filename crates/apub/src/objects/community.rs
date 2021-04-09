@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, group_extension::GroupExtension},
-  fetcher::{community::fetch_community_mods, person::get_or_fetch_and_upsert_person},
+  fetcher::community::fetch_community_mods,
   generate_moderators_url,
   objects::{
     check_object_domain,
@@ -140,24 +140,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
     request_counter: &mut i32,
     _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
-    let moderator_uris = fetch_community_mods(context, group, request_counter).await?;
-    let creator = if let Some(creator_uri) = moderator_uris.first() {
-      get_or_fetch_and_upsert_person(creator_uri, context, request_counter)
-    } else {
-      // NOTE: code for compatibility with lemmy v0.9.9
-      let creator_uri = group
-        .inner
-        .attributed_to()
-        .map(|a| a.as_many())
-        .flatten()
-        .map(|a| a.first())
-        .flatten()
-        .map(|a| a.as_xsd_any_uri())
-        .flatten()
-        .context(location_info!())?;
-      get_or_fetch_and_upsert_person(creator_uri, context, request_counter)
-    }
-    .await?;
+    fetch_community_mods(context, group, request_counter).await?;
 
     let name = group
       .inner
@@ -215,7 +198,6 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       name,
       title,
       description,
-      creator_id: creator.id,
       removed: None,
       published: group.inner.published().map(|u| u.to_owned().naive_local()),
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),

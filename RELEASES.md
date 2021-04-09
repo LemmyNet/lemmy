@@ -1,3 +1,10 @@
+# Lemmy v0.10.3 Release (2021-04-07)
+
+- Fixing instances page.
+- Fixed unban not working.
+- Fixed post title fetching and cross-post search.
+- Fixed navigating to a user page.
+
 # Lemmy v0.10.2 Release (2021-04-05)
 
 - Forcing a crash if config.hjson fails to load. Should show errors easier.

@@ -24,12 +24,12 @@ impl Default for Settings {
 impl Default for DatabaseConfig {
   fn default() -> Self {
     Self {
-      user: "lemmy".into(),
+      user: Some("lemmy".to_string()),
       password: "password".into(),
       host: "localhost".into(),
-      port: 5432,
-      database: "lemmy".into(),
-      pool_size: 5,
+      port: Some(5432),
+      database: Some("lemmy".to_string()),
+      pool_size: Some(5),
     }
   }
 }

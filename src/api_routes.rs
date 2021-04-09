@@ -182,6 +182,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/save_user_settings",
             web::put().to(route_post::<SaveUserSettings>),
           )
+          .route(
+            "/change_password",
+            web::put().to(route_post::<ChangePassword>),
+          )
           .route("/report_count", web::get().to(route_get::<GetReportCount>)),
       )
       // Admin Actions
