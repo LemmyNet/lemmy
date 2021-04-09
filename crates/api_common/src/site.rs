@@ -25,6 +25,7 @@ pub struct Search {
   pub type_: String,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
+  pub creator_id: Option<PersonId>,
   pub sort: String,
   pub page: Option<i64>,
   pub limit: Option<i64>,
