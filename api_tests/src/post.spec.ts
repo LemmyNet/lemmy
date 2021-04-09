@@ -361,5 +361,5 @@ test('Enforce community ban for federated user', async () => {
   // Make sure that post makes it to beta community
   let searchBeta = await searchPostLocal(beta, postRes2.post_view.post);
   let betaPost = searchBeta.posts[0];
-  expect(betaPost.post_view.post).toBeDefined();
+  expect(betaPost).toBeDefined();
 });
