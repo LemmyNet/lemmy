@@ -7,6 +7,7 @@ use crate::{
     is_activity_already_known,
     receive_for_community::{
       receive_add_for_community,
+      receive_block_user_for_community,
       receive_create_for_community,
       receive_delete_for_community,
       receive_dislike_for_community,
@@ -58,6 +59,7 @@ pub enum CommunityValidTypes {
   Delete,  // post or comment deleted by creator
   Remove,  // post or comment removed by mod or admin, or mod removed from community
   Add,     // mod added to community
+  Block,   // user blocked by community
 }
 
 pub type CommunityAcceptedActivities = ActorAndObject<CommunityValidTypes>;
@@ -224,13 +226,35 @@ pub(crate) async fn community_receive_message(
       .await?;
       true
     }
+    CommunityValidTypes::Block => {
+      Box::pin(receive_block_user_for_community(
+        context,
+        any_base.clone(),
+        None,
+        request_counter,
+      ))
+      .await?;
+      true
+    }
   };
 
   if do_announce {
     // Check again that the activity is public, just to be sure
     verify_is_addressed_to_public(&activity)?;
+    let mut object_actor = activity.object().clone().single_xsd_any_uri();
+    // If activity is something like Undo/Block, we need to access activity.object.object
+    if object_actor.is_none() {
+      object_actor = activity
+        .object()
+        .as_one()
+        .map(|a| ActorAndObject::from_any_base(a.to_owned()).ok())
+        .flatten()
+        .flatten()
+        .map(|a: ActorAndObject<CommunityValidTypes>| a.object().to_owned().single_xsd_any_uri())
+        .flatten();
+    }
     to_community
-      .send_announce(activity.into_any_base()?, context)
+      .send_announce(activity.into_any_base()?, object_actor, context)
       .await?;
   }
 

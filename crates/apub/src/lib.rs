@@ -191,6 +191,7 @@ pub trait ActorType {
 
 #[async_trait::async_trait(?Send)]
 pub trait CommunityType {
+  fn followers_url(&self) -> Url;
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
   async fn send_accept_follow(
     &self,
@@ -207,6 +208,7 @@ pub trait CommunityType {
   async fn send_announce(
     &self,
     activity: AnyBase,
+    object: Option<Url>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
@@ -220,6 +222,19 @@ pub trait CommunityType {
     &self,
     actor: &Person,
     removed_mod: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+
+  async fn send_block_user(
+    &self,
+    actor: &Person,
+    blocked_user: Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_block_user(
+    &self,
+    actor: &Person,
+    blocked_user: Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 }

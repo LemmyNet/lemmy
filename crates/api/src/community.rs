@@ -130,6 +130,15 @@ impl Perform for BanFromCommunity {
       person_id: data.person_id,
     };
 
+    let community = blocking(context.pool(), move |conn: &'_ _| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    let banned_person = blocking(context.pool(), move |conn: &'_ _| {
+      Person::read(conn, banned_person_id)
+    })
+    .await??;
+
     if data.ban {
       let ban = move |conn: &'_ _| CommunityPersonBan::ban(conn, &community_user_ban_form);
       if blocking(context.pool(), ban).await?.is_err() {
@@ -147,11 +156,18 @@ impl Perform for BanFromCommunity {
       })
       .await?
       .ok();
+
+      community
+        .send_block_user(&local_user_view.person, banned_person, context)
+        .await?;
     } else {
       let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
       if blocking(context.pool(), unban).await?.is_err() {
         return Err(ApiError::err("community_user_already_banned").into());
       }
+      community
+        .send_undo_block_user(&local_user_view.person, banned_person, context)
+        .await?;
     }
 
     // Remove/Restore their data if that's desired

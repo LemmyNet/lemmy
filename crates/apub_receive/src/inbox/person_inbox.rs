@@ -25,6 +25,7 @@ use crate::{
     is_addressed_to_local_person,
     receive_for_community::{
       receive_add_for_community,
+      receive_block_user_for_community,
       receive_create_for_community,
       receive_delete_for_community,
       receive_dislike_for_community,
@@ -276,6 +277,7 @@ enum AnnouncableActivities {
   Remove,
   Undo,
   Add,
+  Block,
 }
 
 /// Takes an announce and passes the inner activity to the appropriate handler.
@@ -351,6 +353,10 @@ pub async fn receive_announce(
     }
     Some(Add) => {
       receive_add_for_community(context, inner_activity, Some(announce), request_counter).await
+    }
+    Some(Block) => {
+      receive_block_user_for_community(context, inner_activity, Some(announce), request_counter)
+        .await
     }
     _ => receive_unhandled_activity(inner_activity),
   }
