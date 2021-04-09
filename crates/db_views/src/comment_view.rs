@@ -172,7 +172,7 @@ impl CommentView {
 
 pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
-  listing_type: ListingType,
+  listing_type: &'a ListingType,
   sort: &'a SortType,
   community_id: Option<CommunityId>,
   community_name: Option<String>,
@@ -192,7 +192,7 @@ impl<'a> CommentQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
     CommentQueryBuilder {
       conn,
-      listing_type: ListingType::All,
+      listing_type: &ListingType::All,
       sort: &SortType::New,
       community_id: None,
       community_name: None,
@@ -209,7 +209,7 @@ impl<'a> CommentQueryBuilder<'a> {
     }
   }
 
-  pub fn listing_type(mut self, listing_type: ListingType) -> Self {
+  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
     self.listing_type = listing_type;
     self
   }
