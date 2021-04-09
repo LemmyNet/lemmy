@@ -59,9 +59,6 @@ pub struct SaveUserSettings {
   pub bio: Option<String>,
   pub matrix_user_id: Option<String>,
   pub show_avatars: Option<bool>,
-  pub new_password: Option<String>,
-  pub new_password_verify: Option<String>,
-  pub old_password: Option<String>,
   pub send_notifications_to_email: Option<bool>,
   pub auth: String,
 }
