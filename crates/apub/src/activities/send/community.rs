@@ -208,6 +208,7 @@ impl CommunityType for Community {
       .set_to(public())
       .set_many_ccs(ccs);
 
+    dbg!(&object_actor_inbox);
     send_to_community_followers(announce, self, object_actor_inbox, context).await?;
 
     Ok(())
