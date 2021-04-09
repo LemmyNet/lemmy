@@ -10,11 +10,12 @@ use crate::{
   },
   ActorType,
   PersonExt,
+  UserTypes,
 };
 use activitystreams::{
-  actor::{ApActor, Endpoints, Person},
-  object::{ApObject, Image, Tombstone},
-  prelude::*,
+  actor::{Actor, ApActor, ApActorExt, Endpoints},
+  base::{BaseExt, ExtendsExt},
+  object::{ApObject, Image, Object, ObjectExt, Tombstone},
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
@@ -38,7 +39,16 @@ impl ToApub for DbPerson {
   type ApubType = PersonExt;
 
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
-    let mut person = ApObject::new(Person::new());
+    let object = Object::<UserTypes>::new_none_type();
+    let mut actor = Actor(object);
+    let kind = if self.bot_account {
+      UserTypes::Service
+    } else {
+      UserTypes::Person
+    };
+    actor.set_kind(kind);
+    let mut person = ApObject::new(actor);
+
     person
       .set_many_contexts(lemmy_context()?)
       .set_id(self.actor_id.to_owned().into_inner())
@@ -78,8 +88,7 @@ impl ToApub for DbPerson {
         ..Default::default()
       });
 
-    let person_ext =
-      PersonExtension::new(self.matrix_user_id.to_owned(), self.bot_account.to_owned())?;
+    let person_ext = PersonExtension::new(self.matrix_user_id.to_owned())?;
     Ok(Ext2::new(ap_actor, person_ext, self.get_public_key_ext()?))
   }
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
@@ -133,6 +142,8 @@ impl FromApubToForm<PersonExt> for PersonForm {
     _request_counter: &mut i32,
     _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
+    dbg!(person);
+    dbg!(person.inner.is_kind(&UserTypes::Service));
     let avatar = match person.icon() {
       Some(any_image) => Some(
         Image::from_any_base(any_image.as_one().context(location_info!())?.clone())?
@@ -194,7 +205,7 @@ impl FromApubToForm<PersonExt> for PersonForm {
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),
-      bot_account: Some(person.ext_one.bot_account),
+      bot_account: Some(person.inner.is_kind(&UserTypes::Service)),
       private_key: None,
       public_key: Some(Some(person.ext_two.public_key.to_owned().public_key_pem)),
       last_refreshed_at: Some(naive_now()),

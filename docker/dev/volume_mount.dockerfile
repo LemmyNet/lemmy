@@ -24,7 +24,6 @@ RUN apt-get update -y
 RUN apt-get install -y libpq-dev
 
 # Copy resources
-COPY config/defaults.hjson /config/defaults.hjson
 COPY --from=rust /app/lemmy_server /app/lemmy
 
 EXPOSE 8536

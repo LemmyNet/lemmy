@@ -46,10 +46,17 @@ use url::{ParseError, Url};
 /// Activitystreams type for community
 type GroupExt = Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
 /// Activitystreams type for person
-type PersonExt = Ext2<actor::ApActor<ApObject<actor::Person>>, PersonExtension, PublicKeyExtension>;
+type PersonExt =
+  Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
 /// Activitystreams type for post
 pub type PageExt = Ext1<ApObject<Page>, PageExtension>;
 pub type NoteExt = ApObject<Note>;
+
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq)]
+pub enum UserTypes {
+  Person,
+  Service,
+}
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
