@@ -9,6 +9,7 @@ WORKDIR /app
 COPY ./ ./
 
 RUN sudo chown -R rust:rust .
+RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
 RUN cargo build --release
 
 # reduce binary size

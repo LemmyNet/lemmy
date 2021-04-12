@@ -6,12 +6,6 @@ set -e
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
 
-# Setting the version on the backend
-pushd ../../
-echo "pub const VERSION: &str = \"$new_tag\";" > "crates/utils/src/version.rs"
-git add "crates/utils/src/version.rs"
-popd
-
 # The ansible and docker installs should only update for non release-candidates
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then

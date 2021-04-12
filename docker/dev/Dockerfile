@@ -36,6 +36,7 @@ COPY --from=cacher /home/rust/.cargo /home/rust/.cargo
 COPY ./ ./
 
 RUN sudo chown -R rust:rust .
+RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
 RUN cargo build
 
 # reduce binary size
