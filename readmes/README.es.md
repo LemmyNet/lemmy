@@ -12,7 +12,8 @@
 
 <p align="center">
   <a href="../README.md">English</a> |
-  <span>Español</span>
+  <span>Español</span> |
+  <a href="README.ru.md">Русский</a>
 </p>
 
 <p align="center">

@@ -11,8 +11,9 @@
 </div>
 
 <p align="center">
-  <span>English</span> |
-  <a href="readmes/README.ru.md">Русский</a>
+  <a href="../README.md">English</a> |
+  <a href="README.ru.md">Español</a> |
+  <span>Русский</span>
 </p>
 
 <p align="center">
