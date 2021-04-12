@@ -4,5 +4,4 @@ docker
 api_tests
 ansible
 tests
-.git
 *.sh

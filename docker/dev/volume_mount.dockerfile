@@ -9,6 +9,7 @@ WORKDIR /app
 
 # Copy the source folders
 COPY . ./
+RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
 
 # Build for debug
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
