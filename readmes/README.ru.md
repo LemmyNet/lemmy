@@ -144,7 +144,7 @@ Lemmy - бесплатное программное обеспечение с о
 ## Вклад
 
 - [Инструкции по внесению вклада](https://join.lemmy.ml/docs/en/contributing/contributing.html)
-- [Docker разарботка](https://join.lemmy.ml/docs/en/contributing/docker_development.html)
+- [Docker разработка](https://join.lemmy.ml/docs/en/contributing/docker_development.html)
 - [Локальное развитие](https://join.lemmy.ml/docs/en/contributing/local_development.html)
 
 ### Переводы
