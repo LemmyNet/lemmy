@@ -1,9 +1,7 @@
 use crate::{
   check_community_or_site_ban,
   check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  get_activity_to_and_cc,
-  PageExt,
+  fetcher::person::get_or_fetch_and_upsert_person,
 };
 use activitystreams::{
   base::{AsBase, BaseExt, ExtendsExt},
@@ -13,10 +11,9 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
-use lemmy_db_schema::{source::community::Community, CommunityId, DbUrl};
+use lemmy_db_schema::{CommunityId, DbUrl};
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,
@@ -61,7 +58,7 @@ pub trait FromApub {
 }
 
 #[async_trait::async_trait(?Send)]
-pub(in crate::objects) trait FromApubToForm<ApubType> {
+pub trait FromApubToForm<ApubType> {
   async fn from_apub(
     apub: &ApubType,
     context: &LemmyContext,
@@ -175,7 +172,7 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
 /// Converts an ActivityPub object (eg `Note`) to a database object (eg `Comment`). If an object
 /// with the same ActivityPub ID already exists in the database, it is returned directly. Otherwise
 /// the apub object is parsed, inserted and returned.
-pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm, IdType>(
+pub async fn get_object_from_apub<From, Kind, To, ToForm, IdType>(
   from: &From,
   context: &LemmyContext,
   expected_domain: Url,
@@ -230,18 +227,4 @@ where
     .context(location_info!())?;
   let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
   check_community_or_site_ban(&person, community_id, context.pool()).await
-}
-
-pub(in crate::objects) async fn get_community_from_to_or_cc(
-  page: &PageExt,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<Community, LemmyError> {
-  for cid in get_activity_to_and_cc(page) {
-    let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
-    if community.is_ok() {
-      return community;
-    }
-  }
-  Err(NotFound.into())
 }

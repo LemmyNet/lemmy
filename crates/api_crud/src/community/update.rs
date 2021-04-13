@@ -5,6 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   get_local_user_view_from_jwt,
 };
+use lemmy_apub::CommunityType;
 use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud};
 use lemmy_db_schema::{
   naive_now,
@@ -70,17 +71,15 @@ impl PerformCrud for EditCommunity {
     };
 
     let community_id = data.community_id;
-    match blocking(context.pool(), move |conn| {
+    let updated_community = blocking(context.pool(), move |conn| {
       Community::update(conn, community_id, &community_form)
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("couldnt_update_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
-    // TODO there needs to be some kind of an apub update
-    // process for communities and users
+    updated_community
+      .send_update(local_user_view.person.to_owned(), context)
+      .await?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
