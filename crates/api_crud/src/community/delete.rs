@@ -52,9 +52,13 @@ impl PerformCrud for DeleteCommunity {
 
     // Send apub messages
     if deleted {
-      updated_community.send_delete(context).await?;
+      updated_community
+        .send_delete(local_user_view.person.to_owned(), context)
+        .await?;
     } else {
-      updated_community.send_undo_delete(context).await?;
+      updated_community
+        .send_undo_delete(local_user_view.person.to_owned(), context)
+        .await?;
     }
 
     let community_id = data.community_id;

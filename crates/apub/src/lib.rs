@@ -7,11 +7,14 @@ pub mod extensions;
 pub mod fetcher;
 pub mod objects;
 
-use crate::extensions::{
-  group_extension::GroupExtension,
-  page_extension::PageExtension,
-  person_extension::PersonExtension,
-  signatures::{PublicKey, PublicKeyExtension},
+use crate::{
+  extensions::{
+    group_extension::GroupExtension,
+    page_extension::PageExtension,
+    person_extension::PersonExtension,
+    signatures::{PublicKey, PublicKeyExtension},
+  },
+  fetcher::community::get_or_fetch_and_upsert_community,
 };
 use activitystreams::{
   activity::Follow,
@@ -44,7 +47,8 @@ use std::net::IpAddr;
 use url::{ParseError, Url};
 
 /// Activitystreams type for community
-type GroupExt = Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
+pub type GroupExt =
+  Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
 /// Activitystreams type for person
 type PersonExt = Ext2<actor::ApActor<ApObject<actor::Person>>, PersonExtension, PublicKeyExtension>;
 /// Activitystreams type for post
@@ -171,9 +175,11 @@ pub trait ActorType {
   /// Outbox URL is not generally used by Lemmy, so it can be generated on the fly (but only for
   /// local actors).
   fn get_outbox_url(&self) -> Result<Url, LemmyError> {
+    /* TODO
     if !self.is_local() {
       return Err(anyhow!("get_outbox_url() called for remote actor").into());
     }
+    */
     Ok(Url::parse(&format!("{}/outbox", &self.actor_id()))?)
   }
 
@@ -199,8 +205,9 @@ pub trait CommunityType {
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
-  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
 
   async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
   async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
@@ -366,7 +373,7 @@ pub async fn find_post_or_comment_by_id(
 }
 
 #[derive(Debug)]
-pub(crate) enum Object {
+pub enum Object {
   Comment(Box<Comment>),
   Post(Box<Post>),
   Community(Box<Community>),
@@ -374,10 +381,7 @@ pub(crate) enum Object {
   PrivateMessage(Box<PrivateMessage>),
 }
 
-pub(crate) async fn find_object_by_id(
-  context: &LemmyContext,
-  apub_id: Url,
-) -> Result<Object, LemmyError> {
+pub async fn find_object_by_id(context: &LemmyContext, apub_id: Url) -> Result<Object, LemmyError> {
   let ap_id = apub_id.clone();
   if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
     return Ok(match pc {
@@ -459,4 +463,21 @@ where
     to_and_cc.append(&mut cc);
   }
   to_and_cc
+}
+
+pub async fn get_community_from_to_or_cc<T, Kind>(
+  activity: &T,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<Community, LemmyError>
+where
+  T: AsObject<Kind>,
+{
+  for cid in get_activity_to_and_cc(activity) {
+    let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
+    if community.is_ok() {
+      return community;
+    }
+  }
+  Err(NotFound.into())
 }

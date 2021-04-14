@@ -6,6 +6,7 @@ use crate::{
   fetcher::{get_or_fetch_and_upsert_actor, person::get_or_fetch_and_upsert_person},
   generate_moderators_url,
   insert_activity,
+  objects::ToApub,
   ActorType,
   CommunityType,
 };
@@ -20,6 +21,7 @@ use activitystreams::{
       LikeType,
       RemoveType,
       UndoType,
+      UpdateType,
     },
     Accept,
     ActorAndObjectRefExt,
@@ -31,6 +33,7 @@ use activitystreams::{
     OptTargetRefExt,
     Remove,
     Undo,
+    Update,
   },
   base::{AnyBase, BaseExt, ExtendsExt},
   object::ObjectExt,
@@ -101,36 +104,95 @@ impl CommunityType for Community {
     Ok(())
   }
 
-  /// If the creator of a community deletes the community, send this to all followers.
-  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    let mut delete = Delete::new(self.actor_id(), self.actor_id());
-    delete
-      .set_many_contexts(lemmy_context()?)
-      .set_id(generate_activity_id(DeleteType::Delete)?)
-      .set_to(public())
-      .set_many_ccs(vec![self.followers_url()]);
+  /// If a remote community is updated by a local mod, send the updated info to the community's
+  /// instance.
+  async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError> {
+    if self.local {
+      // Do nothing, other instances will automatically refetch the community
+    } else {
+      let mut update = Update::new(
+        mod_.actor_id(),
+        self.to_apub(context.pool()).await?.into_any_base()?,
+      );
+      update
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(UpdateType::Update)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.actor_id()]);
+      send_to_community(update, &mod_, self, None, context).await?;
+    }
+    Ok(())
+  }
 
-    send_to_community_followers(delete, self, None, context).await?;
+  /// If the creator of a community deletes the community, send this to all followers.
+  ///
+  /// We need to handle deletion by a remote mod separately.
+  async fn send_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError> {
+    // Local mod, send directly from community to followers
+    if self.local {
+      let mut delete = Delete::new(self.actor_id(), self.actor_id());
+      delete
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(DeleteType::Delete)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.followers_url()]);
+
+      send_to_community_followers(delete, self, None, context).await?;
+    }
+    // Remote mod, send from mod to community
+    else {
+      let mut delete = Delete::new(mod_.actor_id(), self.actor_id());
+      delete
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(DeleteType::Delete)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.actor_id()]);
+
+      send_to_community(delete, &mod_, self, None, context).await?;
+    }
     Ok(())
   }
 
   /// If the creator of a community reverts the deletion of a community, send this to all followers.
-  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    let mut delete = Delete::new(self.actor_id(), self.actor_id());
-    delete
-      .set_many_contexts(lemmy_context()?)
-      .set_id(generate_activity_id(DeleteType::Delete)?)
-      .set_to(public())
-      .set_many_ccs(vec![self.followers_url()]);
+  ///
+  /// We need to handle undelete by a remote mod separately.
+  async fn send_undo_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError> {
+    // Local mod, send directly from community to followers
+    if self.local {
+      let mut delete = Delete::new(self.actor_id(), self.actor_id());
+      delete
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(DeleteType::Delete)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.followers_url()]);
 
-    let mut undo = Undo::new(self.actor_id(), delete.into_any_base()?);
-    undo
-      .set_many_contexts(lemmy_context()?)
-      .set_id(generate_activity_id(UndoType::Undo)?)
-      .set_to(public())
-      .set_many_ccs(vec![self.followers_url()]);
+      let mut undo = Undo::new(self.actor_id(), delete.into_any_base()?);
+      undo
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(UndoType::Undo)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.followers_url()]);
 
-    send_to_community_followers(undo, self, None, context).await?;
+      send_to_community_followers(undo, self, None, context).await?;
+    }
+    // Remote mod, send from mod to community
+    else {
+      let mut delete = Delete::new(mod_.actor_id(), self.actor_id());
+      delete
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(DeleteType::Delete)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.actor_id()]);
+
+      let mut undo = Undo::new(mod_.actor_id(), delete.into_any_base()?);
+      undo
+        .set_many_contexts(lemmy_context()?)
+        .set_id(generate_activity_id(UndoType::Undo)?)
+        .set_to(public())
+        .set_many_ccs(vec![self.actor_id()]);
+
+      send_to_community(undo, &mod_, self, None, context).await?;
+    }
     Ok(())
   }
 
