@@ -163,7 +163,7 @@ pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SortType {
   Active,
   Hot,
@@ -177,7 +177,7 @@ pub enum SortType {
   NewComments,
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone)]
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum ListingType {
   All,
   Local,
@@ -185,7 +185,7 @@ pub enum ListingType {
   Community,
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SearchType {
   All,
   Comments,
@@ -193,6 +193,16 @@ pub enum SearchType {
   Communities,
   Users,
   Url,
+}
+
+pub fn from_opt_str_to_opt_enum<T: std::str::FromStr>(opt: &Option<String>) -> Option<T> {
+  match opt {
+    Some(t) => match T::from_str(&t) {
+      Ok(r) => Some(r),
+      Err(_) => None,
+    },
+    None => None,
+  }
 }
 
 pub fn fuzzy_search(q: &str) -> String {

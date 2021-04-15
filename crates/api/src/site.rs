@@ -13,7 +13,14 @@ use lemmy_api_common::{
   user_show_nsfw,
 };
 use lemmy_apub::fetcher::search::search_by_apub_id;
-use lemmy_db_queries::{source::site::Site_, Crud, ListingType, SearchType, SortType};
+use lemmy_db_queries::{
+  from_opt_str_to_opt_enum,
+  source::site::Site_,
+  Crud,
+  ListingType,
+  SearchType,
+  SortType,
+};
 use lemmy_db_schema::source::{moderator::*, site::Site};
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
@@ -45,7 +52,6 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use log::debug;
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetModlog {
@@ -154,21 +160,20 @@ impl Perform for Search {
     let q = data.q.to_owned();
     let page = data.page;
     let limit = data.limit;
-    let sort = SortType::from_str(&data.sort)?;
-    let type_ = SearchType::from_str(&data.type_)?;
-    let listing_type = ListingType::from_str(&data.listing_type)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
+    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.listing_type);
+    let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_name = data.community_name.to_owned();
     let creator_id = data.creator_id;
-    match type_ {
+    match search_type {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
-            .listing_type(&listing_type)
-            .show_nsfw(true)
+            .listing_type(listing_type)
             .community_id(community_id)
             .community_name(community_name)
             .creator_id(creator_id)
@@ -183,8 +188,8 @@ impl Perform for Search {
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(&conn)
-            .sort(&sort)
-            .listing_type(&listing_type)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
@@ -200,8 +205,8 @@ impl Perform for Search {
       SearchType::Communities => {
         communities = blocking(context.pool(), move |conn| {
           CommunityQueryBuilder::create(conn)
-            .sort(&sort)
-            .listing_type(&listing_type)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .my_person_id(person_id)
             .page(page)
@@ -213,7 +218,7 @@ impl Perform for Search {
       SearchType::Users => {
         users = blocking(context.pool(), move |conn| {
           PersonQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -224,11 +229,10 @@ impl Perform for Search {
       SearchType::All => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
-            .listing_type(&listing_type)
-            .show_nsfw(true)
+            .listing_type(listing_type)
             .community_id(community_id)
             .community_name(community_name)
             .creator_id(creator_id)
@@ -241,14 +245,12 @@ impl Perform for Search {
         .await??;
 
         let q = data.q.to_owned();
-        let sort = SortType::from_str(&data.sort)?;
-        let listing_type = ListingType::from_str(&data.listing_type)?;
         let community_name = data.community_name.to_owned();
 
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
-            .sort(&sort)
-            .listing_type(&listing_type)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
@@ -262,13 +264,11 @@ impl Perform for Search {
         .await??;
 
         let q = data.q.to_owned();
-        let sort = SortType::from_str(&data.sort)?;
-        let listing_type = ListingType::from_str(&data.listing_type)?;
 
         communities = blocking(context.pool(), move |conn| {
           CommunityQueryBuilder::create(conn)
-            .sort(&sort)
-            .listing_type(&listing_type)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .my_person_id(person_id)
             .page(page)
@@ -278,11 +278,10 @@ impl Perform for Search {
         .await??;
 
         let q = data.q.to_owned();
-        let sort = SortType::from_str(&data.sort)?;
 
         users = blocking(context.pool(), move |conn| {
           PersonQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -293,11 +292,10 @@ impl Perform for Search {
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
-            .listing_type(&listing_type)
-            .show_nsfw(true)
+            .listing_type(listing_type)
             .my_person_id(person_id)
             .community_id(community_id)
             .community_name(community_name)
@@ -313,7 +311,7 @@ impl Perform for Search {
 
     // Return the jwt
     Ok(SearchResponse {
-      type_: data.type_.to_owned(),
+      type_: search_type.to_string(),
       comments,
       posts,
       communities,

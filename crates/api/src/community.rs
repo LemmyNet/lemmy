@@ -171,7 +171,7 @@ impl Perform for BanFromCommunity {
     }
 
     // Remove/Restore their data if that's desired
-    if data.remove_data {
+    if data.remove_data.unwrap_or_default() {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
         Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)

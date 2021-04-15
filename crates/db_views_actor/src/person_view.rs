@@ -57,7 +57,7 @@ impl PersonViewSafe {
 
 pub struct PersonQueryBuilder<'a> {
   conn: &'a PgConnection,
-  sort: &'a SortType,
+  sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -68,14 +68,14 @@ impl<'a> PersonQueryBuilder<'a> {
     PersonQueryBuilder {
       conn,
       search_term: None,
-      sort: &SortType::Hot,
+      sort: None,
       page: None,
       limit: None,
     }
   }
 
-  pub fn sort(mut self, sort: &'a SortType) -> Self {
-    self.sort = sort;
+  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
+    self.sort = sort.get_optional();
     self
   }
 
@@ -104,7 +104,7 @@ impl<'a> PersonQueryBuilder<'a> {
       query = query.filter(person::name.ilike(fuzzy_search(&search_term)));
     }
 
-    query = match self.sort {
+    query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Hot => query
         .order_by(person_aggregates::comment_score.desc())
         .then_order_by(person::published.desc()),

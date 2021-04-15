@@ -46,7 +46,7 @@ impl PrivateMessageView {
 pub struct PrivateMessageQueryBuilder<'a> {
   conn: &'a PgConnection,
   recipient_id: PersonId,
-  unread_only: bool,
+  unread_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -56,14 +56,14 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
     PrivateMessageQueryBuilder {
       conn,
       recipient_id,
-      unread_only: false,
+      unread_only: None,
       page: None,
       limit: None,
     }
   }
 
-  pub fn unread_only(mut self, unread_only: bool) -> Self {
-    self.unread_only = unread_only;
+  pub fn unread_only<T: MaybeOptional<bool>>(mut self, unread_only: T) -> Self {
+    self.unread_only = unread_only.get_optional();
     self
   }
 
@@ -89,7 +89,7 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
       .into_boxed();
 
     // If its unread, I only want the ones to me
-    if self.unread_only {
+    if self.unread_only.unwrap_or_default() {
       query = query
         .filter(private_message::read.eq(false))
         .filter(private_message::recipient_id.eq(self.recipient_id));

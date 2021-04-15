@@ -155,8 +155,8 @@ pub struct PersonMentionQueryBuilder<'a> {
   conn: &'a PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
-  sort: &'a SortType,
-  unread_only: bool,
+  sort: Option<SortType>,
+  unread_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -167,20 +167,20 @@ impl<'a> PersonMentionQueryBuilder<'a> {
       conn,
       my_person_id: None,
       recipient_id: None,
-      sort: &SortType::New,
-      unread_only: false,
+      sort: None,
+      unread_only: None,
       page: None,
       limit: None,
     }
   }
 
-  pub fn sort(mut self, sort: &'a SortType) -> Self {
-    self.sort = sort;
+  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
+    self.sort = sort.get_optional();
     self
   }
 
-  pub fn unread_only(mut self, unread_only: bool) -> Self {
-    self.unread_only = unread_only;
+  pub fn unread_only<T: MaybeOptional<bool>>(mut self, unread_only: T) -> Self {
+    self.unread_only = unread_only.get_optional();
     self
   }
 
@@ -264,11 +264,11 @@ impl<'a> PersonMentionQueryBuilder<'a> {
       query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
-    if self.unread_only {
+    if self.unread_only.unwrap_or_default() {
       query = query.filter(person_mention::read.eq(false));
     }
 
-    query = match self.sort {
+    query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Hot | SortType::Active => query
         .order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
         .then_order_by(comment_aggregates::published.desc()),

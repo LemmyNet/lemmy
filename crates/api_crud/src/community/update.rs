@@ -16,12 +16,7 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
 };
-use lemmy_utils::{
-  utils::{check_slurs, check_slurs_opt},
-  ApiError,
-  ConnectionId,
-  LemmyError,
-};
+use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
@@ -36,7 +31,7 @@ impl PerformCrud for EditCommunity {
     let data: &EditCommunity = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    check_slurs(&data.title)?;
+    check_slurs_opt(&data.title)?;
     check_slurs_opt(&data.description)?;
 
     // Verify its a mod (only mods can edit it)
@@ -61,7 +56,7 @@ impl PerformCrud for EditCommunity {
 
     let community_form = CommunityForm {
       name: read_community.name,
-      title: data.title.to_owned(),
+      title: data.title.to_owned().unwrap_or(read_community.title),
       description: data.description.to_owned(),
       icon,
       banner,

@@ -230,8 +230,8 @@ impl FromApubToForm<PageExt> for PostForm {
         .as_ref()
         .map(|u| u.to_owned().naive_local()),
       deleted: None,
-      nsfw: ext.sensitive.unwrap_or(false),
-      stickied: ext.stickied.or(Some(false)),
+      nsfw: ext.sensitive,
+      stickied: ext.stickied,
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,

@@ -14,10 +14,10 @@ use url::Url;
 #[derive(Deserialize, Debug)]
 pub struct CreatePost {
   pub name: String,
+  pub community_id: CommunityId,
   pub url: Option<Url>,
   pub body: Option<String>,
-  pub nsfw: bool,
-  pub community_id: CommunityId,
+  pub nsfw: Option<bool>,
   pub auth: String,
 }
 
@@ -43,13 +43,13 @@ pub struct GetPostResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct GetPosts {
-  pub type_: String,
-  pub sort: String,
+  pub type_: Option<String>,
+  pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
-  pub saved_only: bool,
+  pub saved_only: Option<bool>,
   pub auth: Option<String>,
 }
 
@@ -68,10 +68,10 @@ pub struct CreatePostLike {
 #[derive(Deserialize)]
 pub struct EditPost {
   pub post_id: PostId,
-  pub name: String,
+  pub name: Option<String>,
   pub url: Option<Url>,
   pub body: Option<String>,
-  pub nsfw: bool,
+  pub nsfw: Option<bool>,
   pub auth: String,
 }
 
