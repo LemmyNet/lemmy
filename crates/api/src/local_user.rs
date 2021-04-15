@@ -83,14 +83,11 @@ impl Perform for Login {
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let local_user_view = match blocking(context.pool(), move |conn| {
+    let local_user_view = blocking(context.pool(), move |conn| {
       LocalUserView::find_by_email_or_name(conn, &username_or_email)
     })
     .await?
-    {
-      Ok(uv) => uv,
-      Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?;
 
     // Verify the password
     let valid: bool = verify(
@@ -629,14 +626,11 @@ impl Perform for PasswordReset {
 
     // Fetch that email
     let email = data.email.clone();
-    let local_user_view = match blocking(context.pool(), move |conn| {
+    let local_user_view = blocking(context.pool(), move |conn| {
       LocalUserView::find_by_email(conn, &email)
     })
     .await?
-    {
-      Ok(lu) => lu,
-      Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?;
 
     // Generate a random token
     let token = generate_random_string();
@@ -655,10 +649,8 @@ impl Perform for PasswordReset {
     let subject = &format!("Password reset for {}", local_user_view.person.name);
     let hostname = &Settings::get().get_protocol_and_hostname();
     let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, hostname, &token);
-    match send_email(subject, email, &local_user_view.person.name, html) {
-      Ok(_o) => _o,
-      Err(_e) => return Err(ApiError::err(&_e).into()),
-    };
+    send_email(subject, email, &local_user_view.person.name, html)
+      .map_err(|e| ApiError::err(&e))?;
 
     Ok(PasswordResetResponse {})
   }
@@ -691,14 +683,11 @@ impl Perform for PasswordChange {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = match blocking(context.pool(), move |conn| {
+    let updated_local_user = blocking(context.pool(), move |conn| {
       LocalUser::update_password(conn, local_user_id, &password)
     })
     .await?
-    {
-      Ok(u) => u,
-      Err(_e) => return Err(ApiError::err("couldnt_update_user").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_user"))?;
 
     // Return the jwt
     Ok(LoginResponse {
@@ -776,14 +765,11 @@ impl Perform for GetFollowedCommunities {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let person_id = local_user_view.person.id;
-    let communities = match blocking(context.pool(), move |conn| {
+    let communities = blocking(context.pool(), move |conn| {
       CommunityFollowerView::for_person(conn, person_id)
     })
     .await?
-    {
-      Ok(communities) => communities,
-      _ => return Err(ApiError::err("system_err_login").into()),
-    };
+    .map_err(|_| ApiError::err("system_err_login"))?;
 
     // Return the jwt
     Ok(GetFollowedCommunitiesResponse { communities })

@@ -388,10 +388,8 @@ impl Perform for SaveSiteConfig {
     is_admin(&local_user_view)?;
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
-    let config_hjson = match Settings::save_config_file(&data.config_hjson) {
-      Ok(config_hjson) => config_hjson,
-      Err(_e) => return Err(ApiError::err("couldnt_update_site").into()),
-    };
+    let config_hjson = Settings::save_config_file(&data.config_hjson)
+      .map_err(|_| ApiError::err("couldnt_update_site"))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
   }

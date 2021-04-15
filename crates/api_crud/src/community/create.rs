@@ -85,14 +85,11 @@ impl PerformCrud for CreateCommunity {
       ..CommunityForm::default()
     };
 
-    let inserted_community = match blocking(context.pool(), move |conn| {
+    let inserted_community = blocking(context.pool(), move |conn| {
       Community::create(conn, &community_form)
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("community_already_exists").into()),
-    };
+    .map_err(|_| ApiError::err("community_already_exists"))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {

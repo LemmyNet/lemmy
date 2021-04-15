@@ -71,14 +71,11 @@ impl Perform for CreatePostLike {
 
     let post_id = data.post_id;
     let person_id = local_user_view.person.id;
-    let post_view = match blocking(context.pool(), move |conn| {
+    let post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, post_id, Some(person_id))
     })
     .await?
-    {
-      Ok(post) => post,
-      Err(_e) => return Err(ApiError::err("couldnt_find_post").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_post"))?;
 
     let res = PostResponse { post_view };
 

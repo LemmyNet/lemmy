@@ -52,14 +52,11 @@ impl PerformCrud for EditComment {
     // Do the update
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
     let comment_id = data.comment_id;
-    let updated_comment = match blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_content(conn, comment_id, &content_slurs_removed)
     })
     .await?
-    {
-      Ok(comment) => comment,
-      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Send the apub update
     updated_comment

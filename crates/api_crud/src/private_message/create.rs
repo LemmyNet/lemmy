@@ -46,7 +46,7 @@ impl PerformCrud for CreatePrivateMessage {
     };
 
     let inserted_private_message_id = inserted_private_message.id;
-    let updated_private_message = match blocking(
+    let updated_private_message = blocking(
       context.pool(),
       move |conn| -> Result<PrivateMessage, LemmyError> {
         let apub_id = generate_apub_endpoint(
@@ -61,10 +61,7 @@ impl PerformCrud for CreatePrivateMessage {
       },
     )
     .await?
-    {
-      Ok(private_message) => private_message,
-      Err(_e) => return Err(ApiError::err("couldnt_create_private_message").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_create_private_message"))?;
 
     updated_private_message
       .send_create(&local_user_view.person, context)

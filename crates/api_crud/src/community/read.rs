@@ -28,35 +28,26 @@ impl PerformCrud for GetCommunity {
       Some(id) => id,
       None => {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
-        match blocking(context.pool(), move |conn| {
+        blocking(context.pool(), move |conn| {
           Community::read_from_name(conn, &name)
         })
         .await?
-        {
-          Ok(community) => community,
-          Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
-        }
+        .map_err(|_| ApiError::err("couldnt_find_community"))?
         .id
       }
     };
 
-    let community_view = match blocking(context.pool(), move |conn| {
+    let community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
-    let moderators: Vec<CommunityModeratorView> = match blocking(context.pool(), move |conn| {
+    let moderators: Vec<CommunityModeratorView> = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    {
-      Ok(moderators) => moderators,
-      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     let online = context
       .chat_server()

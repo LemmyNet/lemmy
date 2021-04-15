@@ -40,11 +40,8 @@ impl PerformCrud for GetComments {
         .limit(limit)
         .list()
     })
-    .await?;
-    let comments = match comments {
-      Ok(comments) => comments,
-      Err(_) => return Err(ApiError::err("couldnt_get_comments").into()),
-    };
+    .await?
+    .map_err(|_| ApiError::err("couldnt_get_comments"))?;
 
     Ok(GetCommentsResponse { comments })
   }

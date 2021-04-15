@@ -48,11 +48,9 @@ impl PerformCrud for CreateComment {
     // If there's a parent_id, check to make sure that comment is in that post
     if let Some(parent_id) = data.parent_id {
       // Make sure the parent comment exists
-      let parent =
-        match blocking(context.pool(), move |conn| Comment::read(&conn, parent_id)).await? {
-          Ok(comment) => comment,
-          Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
-        };
+      let parent = blocking(context.pool(), move |conn| Comment::read(&conn, parent_id))
+        .await?
+        .map_err(|_| ApiError::err("couldnt_create_comment"))?;
       if parent.post_id != post_id {
         return Err(ApiError::err("couldnt_create_comment").into());
       }
@@ -68,28 +66,22 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let comment_form2 = comment_form.clone();
-    let inserted_comment = match blocking(context.pool(), move |conn| {
+    let inserted_comment = blocking(context.pool(), move |conn| {
       Comment::create(&conn, &comment_form2)
     })
     .await?
-    {
-      Ok(comment) => comment,
-      Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_create_comment"))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
     let updated_comment: Comment =
-      match blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
+      blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
         let apub_id =
           generate_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string())?;
         Ok(Comment::update_ap_id(&conn, inserted_comment_id, apub_id)?)
       })
       .await?
-      {
-        Ok(comment) => comment,
-        Err(_e) => return Err(ApiError::err("couldnt_create_comment").into()),
-      };
+      .map_err(|_| ApiError::err("couldnt_create_comment"))?;
 
     updated_comment
       .send_create(&local_user_view.person, context)
@@ -134,14 +126,11 @@ impl PerformCrud for CreateComment {
     // If its a comment to yourself, mark it as read
     let comment_id = comment_view.comment.id;
     if local_user_view.person.id == comment_view.get_recipient_id() {
-      match blocking(context.pool(), move |conn| {
+      blocking(context.pool(), move |conn| {
         Comment::update_read(conn, comment_id, true)
       })
       .await?
-      {
-        Ok(comment) => comment,
-        Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
-      };
+      .map_err(|_| ApiError::err("couldnt_update_comment"))?;
       comment_view.comment.read = true;
     }
 

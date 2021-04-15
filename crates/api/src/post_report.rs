@@ -68,14 +68,11 @@ impl Perform for CreatePostReport {
       reason: data.reason.to_owned(),
     };
 
-    let report = match blocking(context.pool(), move |conn| {
+    let report = blocking(context.pool(), move |conn| {
       PostReport::report(conn, &report_form)
     })
     .await?
-    {
-      Ok(report) => report,
-      Err(_e) => return Err(ApiError::err("couldnt_create_report").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_create_report"))?;
 
     let res = CreatePostReportResponse { success: true };
 
