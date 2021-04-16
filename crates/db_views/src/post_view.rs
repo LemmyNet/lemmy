@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   CommunityId,
+  DbLanguage,
   PersonId,
   PostId,
 };
@@ -168,6 +169,7 @@ pub struct PostQueryBuilder<'a> {
   unread_only: bool,
   page: Option<i64>,
   limit: Option<i64>,
+  languages: Option<Vec<DbLanguage>>,
 }
 
 impl<'a> PostQueryBuilder<'a> {
@@ -187,6 +189,7 @@ impl<'a> PostQueryBuilder<'a> {
       unread_only: false,
       page: None,
       limit: None,
+      languages: None,
     }
   }
 
@@ -247,6 +250,11 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
     self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn languages<T: MaybeOptional<Vec<DbLanguage>>>(mut self, languages: T) -> Self {
+    self.languages = languages.get_optional();
     self
   }
 
@@ -358,6 +366,10 @@ impl<'a> PostQueryBuilder<'a> {
 
     if self.unread_only {
       query = query.filter(post_read::id.is_not_null());
+    };
+
+    if let Some(languages) = self.languages {
+      query = query.filter(post::language.eq_any(languages.into_iter()));
     };
 
     query = match self.sort {
