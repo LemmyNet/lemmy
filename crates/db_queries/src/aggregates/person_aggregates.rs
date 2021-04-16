@@ -36,6 +36,7 @@ mod tests {
     post::{Post, PostForm, PostLike, PostLikeForm},
   };
   use serial_test::serial;
+  use language_tags::LanguageTag;
 
   #[test]
   #[serial]
@@ -68,6 +69,7 @@ mod tests {
       name: "A test post".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..PostForm::default()
     };
 
@@ -85,6 +87,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..CommentForm::default()
     };
 
@@ -104,6 +107,7 @@ mod tests {
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..CommentForm::default()
     };
 

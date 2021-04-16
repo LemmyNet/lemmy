@@ -484,6 +484,7 @@ mod tests {
       name: post_name.to_owned(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..PostForm::default()
     };
 

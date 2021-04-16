@@ -185,6 +185,7 @@ mod tests {
     person::{Person, PersonForm},
   };
   use lemmy_utils::claims::Claims;
+  use language_tags::LanguageTag;
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {
@@ -200,6 +201,7 @@ mod tests {
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
       password_encrypted: "123456".to_string(),
+      discussion_languages: Some(vec![LanguageTag::parse("en").unwrap().into()]),
       ..LocalUserForm::default()
     };
 

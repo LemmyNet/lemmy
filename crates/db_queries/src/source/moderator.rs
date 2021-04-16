@@ -200,6 +200,7 @@ mod tests {
   use crate::{establish_unpooled_connection, Crud};
   use lemmy_db_schema::source::{comment::*, community::*, moderator::*, person::*, post::*};
   use serial_test::serial;
+  use language_tags::LanguageTag;
 
   // use Crud;
   #[test]
@@ -233,6 +234,7 @@ mod tests {
       name: "A test post thweep".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..PostForm::default()
     };
 
@@ -242,6 +244,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..CommentForm::default()
     };
 

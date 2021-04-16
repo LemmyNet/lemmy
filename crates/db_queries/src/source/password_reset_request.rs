@@ -87,6 +87,7 @@ mod tests {
     person::*,
   };
   use serial_test::serial;
+  use language_tags::LanguageTag;
 
   #[test]
   #[serial]
@@ -103,6 +104,7 @@ mod tests {
     let new_local_user = LocalUserForm {
       person_id: inserted_person.id,
       password_encrypted: "pass".to_string(),
+      discussion_languages: Some(vec![LanguageTag::parse("en").unwrap().into()]),
       ..LocalUserForm::default()
     };
 

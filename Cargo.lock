@@ -1751,6 +1751,7 @@ dependencies = [
  "http",
  "http-signature-normalization-actix",
  "itertools",
+ "language-tags 0.3.0",
  "lazy_static",
  "lemmy_api_common",
  "lemmy_apub",

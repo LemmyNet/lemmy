@@ -472,6 +472,7 @@ mod tests {
       name: "A test post 2".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..PostForm::default()
     };
 
@@ -481,6 +482,7 @@ mod tests {
       content: "A test comment 32".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language: Some(LanguageTag::parse("en").unwrap().into()),
       ..CommentForm::default()
     };
 
