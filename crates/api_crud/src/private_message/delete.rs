@@ -37,14 +37,11 @@ impl PerformCrud for DeletePrivateMessage {
     // Doing the update
     let private_message_id = data.private_message_id;
     let deleted = data.deleted;
-    let updated_private_message = match blocking(context.pool(), move |conn| {
+    let updated_private_message = blocking(context.pool(), move |conn| {
       PrivateMessage::update_deleted(conn, private_message_id, deleted)
     })
     .await?
-    {
-      Ok(private_message) => private_message,
-      Err(_e) => return Err(ApiError::err("couldnt_update_private_message").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // Send the apub update
     if data.deleted {

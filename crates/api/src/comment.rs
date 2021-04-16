@@ -46,14 +46,11 @@ impl Perform for MarkCommentAsRead {
 
     // Do the mark as read
     let read = data.read;
-    match blocking(context.pool(), move |conn| {
+    blocking(context.pool(), move |conn| {
       Comment::update_read(conn, comment_id, read)
     })
     .await?
-    {
-      Ok(comment) => comment,
-      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;

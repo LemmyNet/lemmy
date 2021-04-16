@@ -43,10 +43,9 @@ impl PerformCrud for GetPersonDetails {
           Person::find_by_name(conn, &username)
         })
         .await?;
-        match person {
-          Ok(p) => p.id,
-          Err(_e) => return Err(ApiError::err("couldnt_find_that_username_or_email").into()),
-        }
+        person
+          .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?
+          .id
       }
     };
 

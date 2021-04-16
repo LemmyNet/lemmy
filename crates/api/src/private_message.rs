@@ -36,14 +36,11 @@ impl Perform for MarkPrivateMessageAsRead {
     // Doing the update
     let private_message_id = data.private_message_id;
     let read = data.read;
-    match blocking(context.pool(), move |conn| {
+    blocking(context.pool(), move |conn| {
       PrivateMessage::update_read(conn, private_message_id, read)
     })
     .await?
-    {
-      Ok(private_message) => private_message,
-      Err(_e) => return Err(ApiError::err("couldnt_update_private_message").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // No need to send an apub update
     let private_message_id = data.private_message_id;

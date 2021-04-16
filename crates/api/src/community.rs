@@ -414,24 +414,18 @@ impl Perform for TransferCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = match blocking(context.pool(), move |conn| {
+    let community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(person_id))
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     let community_id = data.community_id;
-    let moderators = match blocking(context.pool(), move |conn| {
+    let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    {
-      Ok(moderators) => moderators,
-      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     // Return the jwt
     Ok(GetCommunityResponse {

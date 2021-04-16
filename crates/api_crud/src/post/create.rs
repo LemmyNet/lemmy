@@ -69,15 +69,12 @@ impl PerformCrud for CreatePost {
       };
 
     let inserted_post_id = inserted_post.id;
-    let updated_post = match blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
+    let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
       let apub_id = generate_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string())?;
       Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
     })
     .await?
-    {
-      Ok(post) => post,
-      Err(_e) => return Err(ApiError::err("couldnt_create_post").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_create_post"))?;
 
     updated_post
       .send_create(&local_user_view.person, context)
@@ -101,14 +98,11 @@ impl PerformCrud for CreatePost {
 
     // Refetch the view
     let inserted_post_id = inserted_post.id;
-    let post_view = match blocking(context.pool(), move |conn| {
+    let post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, inserted_post_id, Some(local_user_view.person.id))
     })
     .await?
-    {
-      Ok(post) => post,
-      Err(_e) => return Err(ApiError::err("couldnt_find_post").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_post"))?;
 
     let res = PostResponse { post_view };
 

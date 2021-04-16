@@ -237,20 +237,18 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
 }
 
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
-  match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
-    Ok(post) => Ok(post),
-    Err(_e) => Err(ApiError::err("couldnt_find_post").into()),
-  }
+  blocking(pool, move |conn| Post::read(conn, post_id))
+    .await?
+    .map_err(|_| ApiError::err("couldnt_find_post").into())
 }
 
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserView, LemmyError> {
-  let claims = match Claims::decode(&jwt) {
-    Ok(claims) => claims.claims,
-    Err(_e) => return Err(ApiError::err("not_logged_in").into()),
-  };
+  let claims = Claims::decode(&jwt)
+    .map_err(|_| ApiError::err("not_logged_in"))?
+    .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
@@ -291,10 +289,9 @@ pub async fn get_local_user_settings_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = match Claims::decode(&jwt) {
-    Ok(claims) => claims.claims,
-    Err(_e) => return Err(ApiError::err("not_logged_in").into()),
-  };
+  let claims = Claims::decode(&jwt)
+    .map_err(|_| ApiError::err("not_logged_in"))?
+    .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view = blocking(pool, move |conn| {
     LocalUserSettingsView::read(conn, local_user_id)

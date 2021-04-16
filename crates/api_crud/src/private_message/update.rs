@@ -37,14 +37,11 @@ impl PerformCrud for EditPrivateMessage {
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content);
     let private_message_id = data.private_message_id;
-    let updated_private_message = match blocking(context.pool(), move |conn| {
+    let updated_private_message = blocking(context.pool(), move |conn| {
       PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
     })
     .await?
-    {
-      Ok(private_message) => private_message,
-      Err(_e) => return Err(ApiError::err("couldnt_update_private_message").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // Send the apub update
     updated_private_message

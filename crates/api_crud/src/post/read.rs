@@ -28,14 +28,11 @@ impl PerformCrud for GetPost {
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
-    let post_view = match blocking(context.pool(), move |conn| {
+    let post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, id, person_id)
     })
     .await?
-    {
-      Ok(post) => post,
-      Err(_e) => return Err(ApiError::err("couldnt_find_post").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_post"))?;
 
     let id = data.id;
     let comments = blocking(context.pool(), move |conn| {
@@ -54,14 +51,11 @@ impl PerformCrud for GetPost {
     .await??;
 
     // Necessary for the sidebar
-    let community_view = match blocking(context.pool(), move |conn| {
+    let community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("couldnt_find_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     let online = context
       .chat_server()
@@ -108,7 +102,7 @@ impl PerformCrud for GetPosts {
     let community_name = data.community_name.to_owned();
     let saved_only = data.saved_only;
 
-    let posts = match blocking(context.pool(), move |conn| {
+    let posts = blocking(context.pool(), move |conn| {
       PostQueryBuilder::create(conn)
         .listing_type(&type_)
         .sort(&sort)
@@ -122,10 +116,7 @@ impl PerformCrud for GetPosts {
         .list()
     })
     .await?
-    {
-      Ok(posts) => posts,
-      Err(_e) => return Err(ApiError::err("couldnt_get_posts").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_get_posts"))?;
 
     Ok(GetPostsResponse { posts })
   }

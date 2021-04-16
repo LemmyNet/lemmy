@@ -41,14 +41,11 @@ impl PerformCrud for DeleteCommunity {
     // Do the delete
     let community_id = data.community_id;
     let deleted = data.deleted;
-    let updated_community = match blocking(context.pool(), move |conn| {
+    let updated_community = blocking(context.pool(), move |conn| {
       Community::update_deleted(conn, community_id, deleted)
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("couldnt_update_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
     // Send apub messages
     if deleted {
@@ -99,14 +96,11 @@ impl PerformCrud for RemoveCommunity {
     // Do the remove
     let community_id = data.community_id;
     let removed = data.removed;
-    let updated_community = match blocking(context.pool(), move |conn| {
+    let updated_community = blocking(context.pool(), move |conn| {
       Community::update_removed(conn, community_id, removed)
     })
     .await?
-    {
-      Ok(community) => community,
-      Err(_e) => return Err(ApiError::err("couldnt_update_community").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

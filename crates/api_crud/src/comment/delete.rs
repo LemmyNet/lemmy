@@ -47,14 +47,11 @@ impl PerformCrud for DeleteComment {
 
     // Do the delete
     let deleted = data.deleted;
-    let updated_comment = match blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
-    {
-      Ok(comment) => comment,
-      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Send the apub message
     if deleted {
@@ -139,14 +136,11 @@ impl PerformCrud for RemoveComment {
 
     // Do the remove
     let removed = data.removed;
-    let updated_comment = match blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
-    {
-      Ok(comment) => comment,
-      Err(_e) => return Err(ApiError::err("couldnt_update_comment").into()),
-    };
+    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {
