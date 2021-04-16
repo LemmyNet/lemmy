@@ -237,10 +237,9 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
 }
 
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
-  match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
-    Ok(post) => Ok(post),
-    Err(_e) => Err(ApiError::err("couldnt_find_post").into()),
-  }
+  blocking(pool, move |conn| Post::read(conn, post_id))
+    .await?
+    .map_err(|_| ApiError::err("couldnt_find_post").into())
 }
 
 pub async fn get_local_user_view_from_jwt(

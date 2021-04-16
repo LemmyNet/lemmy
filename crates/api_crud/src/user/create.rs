@@ -111,16 +111,11 @@ impl PerformCrud for Register {
     };
 
     // insert the person
-    let inserted_person = match blocking(context.pool(), move |conn| {
+    let inserted_person = blocking(context.pool(), move |conn| {
       Person::create(conn, &person_form)
     })
     .await?
-    {
-      Ok(u) => u,
-      Err(_) => {
-        return Err(ApiError::err("user_already_exists").into());
-      }
-    };
+    .map_err(|_| ApiError::err("user_already_exists"))?;
 
     // Create the local user
     let local_user_form = LocalUserForm {
