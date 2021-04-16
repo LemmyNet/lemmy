@@ -24,6 +24,7 @@ table! {
         deleted -> Bool,
         ap_id -> Varchar,
         local -> Bool,
+        language -> Text,
     }
 }
 
@@ -149,11 +150,12 @@ table! {
         theme -> Varchar,
         default_sort_type -> Int2,
         default_listing_type -> Int2,
-        lang -> Varchar,
+        interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
         show_scores -> Bool,
+        discussion_languages -> Array<Text>,
     }
 }
 
@@ -340,6 +342,7 @@ table! {
         thumbnail_url -> Nullable<Text>,
         ap_id -> Varchar,
         local -> Bool,
+        language -> Text,
     }
 }
 
@@ -414,6 +417,7 @@ table! {
         updated -> Nullable<Timestamp>,
         ap_id -> Varchar,
         local -> Bool,
+        language -> Text,
     }
 }
 

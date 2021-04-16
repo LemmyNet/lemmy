@@ -290,6 +290,7 @@ mod tests {
       updated: None,
       ap_id: inserted_comment.ap_id.to_owned(),
       local: true,
+      language: None,
     };
 
     let child_comment_form = CommentForm {

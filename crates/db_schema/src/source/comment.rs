@@ -2,6 +2,7 @@ use crate::{
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
   CommentId,
+  DbLanguage,
   DbUrl,
   PersonId,
   PostId,
@@ -31,6 +32,7 @@ pub struct Comment {
   pub deleted: bool,
   pub ap_id: DbUrl,
   pub local: bool,
+  pub language: DbLanguage,
 }
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
@@ -65,6 +67,7 @@ pub struct CommentForm {
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
+  pub language: Option<DbLanguage>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Clone)]

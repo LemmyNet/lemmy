@@ -19,6 +19,7 @@ pub struct CreatePost {
   pub nsfw: bool,
   pub community_id: CommunityId,
   pub auth: String,
+  pub language: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -73,6 +74,7 @@ pub struct EditPost {
   pub body: Option<String>,
   pub nsfw: bool,
   pub auth: String,
+  pub language: String,
 }
 
 #[derive(Deserialize)]

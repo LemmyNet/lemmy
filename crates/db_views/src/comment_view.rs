@@ -438,6 +438,7 @@ impl ViewToVec for CommentView {
 #[cfg(test)]
 mod tests {
   use crate::comment_view::*;
+  use language_tags::LanguageTag;
   use lemmy_db_queries::{
     aggregates::comment_aggregates::CommentAggregates,
     establish_unpooled_connection,
@@ -514,6 +515,7 @@ mod tests {
         ap_id: inserted_comment.ap_id,
         updated: None,
         local: true,
+        language: LanguageTag::parse("en").unwrap().into(),
       },
       creator: PersonSafe {
         id: inserted_person.id,
@@ -554,6 +556,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
+        language: LanguageTag::parse("en").unwrap().into(),
       },
       community: CommunitySafe {
         id: inserted_community.id,

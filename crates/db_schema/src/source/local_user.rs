@@ -1,4 +1,4 @@
-use crate::{schema::local_user, LocalUserId, PersonId};
+use crate::{schema::local_user, DbLanguage, LocalUserId, PersonId};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -12,11 +12,12 @@ pub struct LocalUser {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
-  pub lang: String,
+  pub interface_language: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
   pub show_scores: bool,
+  pub discussion_languages: Vec<DbLanguage>,
 }
 
 // TODO redo these, check table defaults
@@ -30,10 +31,11 @@ pub struct LocalUserForm {
   pub theme: Option<String>,
   pub default_sort_type: Option<i16>,
   pub default_listing_type: Option<i16>,
-  pub lang: Option<String>,
+  pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_scores: Option<bool>,
+  pub discussion_languages: Option<Vec<DbLanguage>>,
 }
 
 /// A local user view that removes password encrypted
@@ -47,7 +49,7 @@ pub struct LocalUserSettings {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
-  pub lang: String,
+  pub interface_language: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,

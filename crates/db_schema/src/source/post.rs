@@ -1,6 +1,7 @@
 use crate::{
   schema::{post, post_like, post_read, post_saved},
   CommunityId,
+  DbLanguage,
   DbUrl,
   PersonId,
   PostId,
@@ -29,6 +30,7 @@ pub struct Post {
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: DbUrl,
   pub local: bool,
+  pub language: DbLanguage,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
@@ -52,6 +54,7 @@ pub struct PostForm {
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
+  pub language: Option<DbLanguage>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

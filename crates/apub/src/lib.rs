@@ -10,6 +10,7 @@ pub mod objects;
 use crate::{
   extensions::{
     group_extension::GroupExtension,
+    note_extension::NoteExtension,
     page_extension::PageExtension,
     person_extension::PersonExtension,
     signatures::{PublicKey, PublicKeyExtension},
@@ -53,7 +54,7 @@ pub type GroupExt =
 type PersonExt = Ext2<actor::ApActor<ApObject<actor::Person>>, PersonExtension, PublicKeyExtension>;
 /// Activitystreams type for post
 pub type PageExt = Ext1<ApObject<Page>, PageExtension>;
-pub type NoteExt = ApObject<Note>;
+pub type NoteExt = Ext1<ApObject<Note>, NoteExtension>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 

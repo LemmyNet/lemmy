@@ -16,7 +16,7 @@ pub struct Login {
   pub username_or_email: String,
   pub password: String,
 }
-use lemmy_db_schema::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
+use lemmy_db_schema::{CommunityId, DbLanguage, PersonId, PersonMentionId, PrivateMessageId};
 
 #[derive(Deserialize)]
 pub struct Register {
@@ -27,6 +27,7 @@ pub struct Register {
   pub show_nsfw: bool,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
+  pub discussion_languages: Vec<DbLanguage>,
 }
 
 #[derive(Deserialize)]
@@ -51,7 +52,7 @@ pub struct SaveUserSettings {
   pub theme: Option<String>,
   pub default_sort_type: Option<i16>,
   pub default_listing_type: Option<i16>,
-  pub lang: Option<String>,
+  pub interface_language: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,
   pub display_name: Option<String>,
@@ -61,6 +62,7 @@ pub struct SaveUserSettings {
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub auth: String,
+  pub discussion_languages: Option<Vec<DbLanguage>>,
 }
 
 #[derive(Deserialize)]

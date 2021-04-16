@@ -432,6 +432,7 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
+  use language_tags::LanguageTag;
   use lemmy_db_queries::{
     aggregates::post_aggregates::PostAggregates,
     establish_unpooled_connection,
@@ -535,6 +536,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
+        language: LanguageTag::parse("en").unwrap().into(),
       },
       my_vote: None,
       creator: PersonSafe {
