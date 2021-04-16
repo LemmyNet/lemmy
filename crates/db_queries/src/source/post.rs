@@ -260,12 +260,12 @@ impl Readable<PostReadForm> for PostRead {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, source::post::*};
+  use language_tags::LanguageTag;
   use lemmy_db_schema::source::{
     community::{Community, CommunityForm},
     person::*,
   };
   use serial_test::serial;
-  use language_tags::LanguageTag;
 
   #[test]
   #[serial]

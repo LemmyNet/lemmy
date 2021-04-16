@@ -81,13 +81,13 @@ mod tests {
     source::password_reset_request::PasswordResetRequest_,
     Crud,
   };
+  use language_tags::LanguageTag;
   use lemmy_db_schema::source::{
     local_user::{LocalUser, LocalUserForm},
     password_reset_request::PasswordResetRequest,
     person::*,
   };
   use serial_test::serial;
-  use language_tags::LanguageTag;
 
   #[test]
   #[serial]

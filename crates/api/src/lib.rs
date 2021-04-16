@@ -178,6 +178,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 
 #[cfg(test)]
 mod tests {
+  use language_tags::LanguageTag;
   use lemmy_api_common::check_validator_time;
   use lemmy_db_queries::{establish_unpooled_connection, source::local_user::LocalUser_, Crud};
   use lemmy_db_schema::source::{
@@ -185,7 +186,6 @@ mod tests {
     person::{Person, PersonForm},
   };
   use lemmy_utils::claims::Claims;
-  use language_tags::LanguageTag;
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {

@@ -198,9 +198,9 @@ impl Crud<ModAddForm, i32> for ModAdd {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, Crud};
+  use language_tags::LanguageTag;
   use lemmy_db_schema::source::{comment::*, community::*, moderator::*, person::*, post::*};
   use serial_test::serial;
-  use language_tags::LanguageTag;
 
   // use Crud;
   #[test]

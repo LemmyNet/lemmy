@@ -26,6 +26,7 @@ impl SiteAggregates {
 #[cfg(test)]
 mod tests {
   use crate::{aggregates::site_aggregates::SiteAggregates, establish_unpooled_connection, Crud};
+  use language_tags::LanguageTag;
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     community::{Community, CommunityForm},
@@ -34,7 +35,6 @@ mod tests {
     site::{Site, SiteForm},
   };
   use serial_test::serial;
-  use language_tags::LanguageTag;
 
   #[test]
   #[serial]

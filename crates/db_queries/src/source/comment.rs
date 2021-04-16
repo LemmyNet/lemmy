@@ -231,6 +231,7 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, Crud, Likeable, Saveable};
+  use language_tags::LanguageTag;
   use lemmy_db_schema::source::{
     comment::*,
     community::{Community, CommunityForm},
@@ -238,7 +239,6 @@ mod tests {
     post::*,
   };
   use serial_test::serial;
-  use language_tags::LanguageTag;
 
   #[test]
   #[serial]

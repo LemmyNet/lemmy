@@ -33,6 +33,7 @@ mod tests {
     Crud,
     Likeable,
   };
+  use language_tags::LanguageTag;
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     community::{Community, CommunityForm},
@@ -40,7 +41,6 @@ mod tests {
     post::{Post, PostForm, PostLike, PostLikeForm},
   };
   use serial_test::serial;
-  use language_tags::LanguageTag;
 
   #[test]
   #[serial]
