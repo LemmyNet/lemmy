@@ -4,6 +4,7 @@ use lemmy_api_common::{
   blocking,
   community::{CommunityResponse, CreateCommunity},
   get_local_user_view_from_jwt,
+  is_admin,
 };
 use lemmy_apub::{
   generate_apub_endpoint,
@@ -13,13 +14,16 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_queries::{diesel_option_overwrite_to_url, ApubObject, Crud, Followable, Joinable};
-use lemmy_db_schema::source::community::{
-  Community,
-  CommunityFollower,
-  CommunityFollowerForm,
-  CommunityForm,
-  CommunityModerator,
-  CommunityModeratorForm,
+use lemmy_db_schema::source::{
+  community::{
+    Community,
+    CommunityFollower,
+    CommunityFollowerForm,
+    CommunityForm,
+    CommunityModerator,
+    CommunityModeratorForm,
+  },
+  site::Site,
 };
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{
@@ -42,6 +46,11 @@ impl PerformCrud for CreateCommunity {
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+
+    let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
+    if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
+      return Err(ApiError::err("only_admins_can_create_communities").into());
+    }
 
     check_slurs(&data.name)?;
     check_slurs(&data.title)?;

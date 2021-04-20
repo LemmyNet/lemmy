@@ -72,6 +72,7 @@ pub struct CreateSite {
   pub open_registration: bool,
   pub enable_nsfw: bool,
   pub auth: String,
+  pub community_creation_admin_only: bool,
 }
 
 #[derive(Deserialize)]
@@ -85,6 +86,7 @@ pub struct EditSite {
   pub open_registration: bool,
   pub enable_nsfw: bool,
   pub auth: String,
+  pub community_creation_admin_only: Option<bool>,
 }
 
 #[derive(Deserialize)]
