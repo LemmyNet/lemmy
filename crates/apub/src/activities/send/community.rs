@@ -290,7 +290,7 @@ impl CommunityType for Community {
       .map(|i| i.into_inner())
       .unique()
       // Don't send to blocked instances
-      .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
+      .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
       .collect();
 
     Ok(inboxes)

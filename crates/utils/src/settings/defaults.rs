@@ -49,6 +49,7 @@ impl Default for FederationConfig {
       enabled: false,
       allowed_instances: None,
       blocked_instances: None,
+      strict_allowlist: Some(true),
     }
   }
 }

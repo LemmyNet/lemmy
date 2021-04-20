@@ -65,8 +65,7 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 ///
-/// Note that only one of allowlist and blacklist can be enabled, not both.
-pub fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
+pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Result<(), LemmyError> {
   let settings = Settings::get();
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
@@ -95,30 +94,33 @@ pub fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
     return Err(anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id).into());
   }
 
-  let allowed_instances = Settings::get().get_allowed_instances();
-  let blocked_instances = Settings::get().get_blocked_instances();
-
-  if allowed_instances.is_none() && blocked_instances.is_none() {
-    Ok(())
-  } else if let Some(mut allowed) = allowed_instances {
-    // need to allow this explicitly because apub receive might contain objects from our local
-    // instance. split is needed to remove the port in our federation test setup.
-    allowed.push(local_instance);
-
-    if allowed.contains(&domain) {
-      Ok(())
-    } else {
-      Err(anyhow!("{} not in federation allowlist", domain).into())
-    }
-  } else if let Some(blocked) = blocked_instances {
+  // TODO: might be good to put the part above in one method, and below in another
+  //       (which only gets called in apub::objects)
+  //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
+  if let Some(blocked) = Settings::get().get_blocked_instances() {
     if blocked.contains(&domain) {
-      Err(anyhow!("{} is in federation blocklist", domain).into())
-    } else {
-      Ok(())
+      return Err(anyhow!("{} is in federation blocklist", domain).into());
     }
-  } else {
-    panic!("Invalid config, both allowed_instances and blocked_instances are specified");
   }
+
+  if let Some(mut allowed) = Settings::get().get_allowed_instances() {
+    // Only check allowlist if this is a community, or strict allowlist is enabled.
+    let strict_allowlist = Settings::get()
+      .federation()
+      .strict_allowlist
+      .unwrap_or(true);
+    if use_strict_allowlist || strict_allowlist {
+      // need to allow this explicitly because apub receive might contain objects from our local
+      // instance.
+      allowed.push(local_instance);
+
+      if !allowed.contains(&domain) {
+        return Err(anyhow!("{} not in federation allowlist", domain).into());
+      }
+    }
+  }
+
+  Ok(())
 }
 
 /// Common functions for ActivityPub objects, which are implemented by most (but not all) objects

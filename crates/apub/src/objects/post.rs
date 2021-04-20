@@ -143,12 +143,13 @@ impl FromApubToForm<PageExt> for PostForm {
     request_counter: &mut i32,
     mod_action_allowed: bool,
   ) -> Result<PostForm, LemmyError> {
+    let community = get_community_from_to_or_cc(page, context, request_counter).await?;
     let ap_id = if mod_action_allowed {
       let id = page.id_unchecked().context(location_info!())?;
-      check_is_apub_id_valid(id)?;
+      check_is_apub_id_valid(id, community.local)?;
       id.to_owned().into()
     } else {
-      check_object_domain(page, expected_domain)?
+      check_object_domain(page, expected_domain, community.local)?
     };
     let ext = &page.ext_one;
     let creator_actor_id = page
@@ -161,8 +162,6 @@ impl FromApubToForm<PageExt> for PostForm {
 
     let creator =
       get_or_fetch_and_upsert_person(creator_actor_id, context, request_counter).await?;
-
-    let community = get_community_from_to_or_cc(page, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(
