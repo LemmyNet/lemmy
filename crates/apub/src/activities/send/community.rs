@@ -3,7 +3,11 @@ use crate::{
   activity_queue::{send_activity_single_dest, send_to_community, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::{get_or_fetch_and_upsert_actor, person::get_or_fetch_and_upsert_person},
+  fetcher::{
+    community::ReceiveAnnounceFunction,
+    get_or_fetch_and_upsert_actor,
+    person::get_or_fetch_and_upsert_person,
+  },
   generate_moderators_url,
   insert_activity,
   objects::ToApub,
@@ -244,6 +248,7 @@ impl CommunityType for Community {
     activity: AnyBase,
     object_actor: Option<Url>,
     context: &LemmyContext,
+    receive_announce: ReceiveAnnounceFunction<'_>,
   ) -> Result<(), LemmyError> {
     let inner_id = activity.id().context(location_info!())?;
     if inner_id.domain() == Some(&Settings::get().get_hostname_without_port()?) {
@@ -255,7 +260,7 @@ impl CommunityType for Community {
     if let Some(actor_id) = object_actor {
       // Ignore errors, maybe its not actually an actor
       // TODO: should pass the actual request counter in, but that seems complicated
-      let actor = get_or_fetch_and_upsert_actor(&actor_id, context, &mut 0)
+      let actor = get_or_fetch_and_upsert_actor(&actor_id, context, &mut 0, receive_announce)
         .await
         .ok();
       if let Some(actor) = actor {

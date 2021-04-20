@@ -6,7 +6,7 @@ pub mod search;
 
 use crate::{
   fetcher::{
-    community::get_or_fetch_and_upsert_community,
+    community::{get_or_fetch_and_upsert_community, ReceiveAnnounceFunction},
     fetch::FetchError,
     person::get_or_fetch_and_upsert_person,
   },
@@ -46,8 +46,10 @@ pub async fn get_or_fetch_and_upsert_actor(
   apub_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
+  receive_announce: ReceiveAnnounceFunction<'_>,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let community = get_or_fetch_and_upsert_community(apub_id, context, recursion_counter).await;
+  let community =
+    get_or_fetch_and_upsert_community(apub_id, context, recursion_counter, receive_announce).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
     Err(_) => Box::new(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?),

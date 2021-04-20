@@ -254,7 +254,8 @@ async fn receive_accept(
     .context(location_info!())?;
 
   let community =
-    get_or_fetch_and_upsert_community(&community_uri, context, request_counter).await?;
+    get_or_fetch_and_upsert_community(&community_uri, context, request_counter, receive_announce)
+      .await?;
 
   let community_id = community.id;
   let person_id = person.id;

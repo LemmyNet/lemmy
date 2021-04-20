@@ -1,6 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   extensions::signatures::sign_and_send,
+  fetcher::community::ReceiveAnnounceFunction,
   insert_activity,
   ActorType,
   CommunityType,
@@ -111,6 +112,7 @@ pub(crate) async fn send_to_community<T, Kind>(
   community: &Community,
   object_actor: Option<Url>,
   context: &LemmyContext,
+  receive_announce: ReceiveAnnounceFunction<'_>,
 ) -> Result<(), LemmyError>
 where
   T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
@@ -120,7 +122,12 @@ where
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
     community
-      .send_announce(activity.into_any_base()?, object_actor, context)
+      .send_announce(
+        activity.into_any_base()?,
+        object_actor,
+        context,
+        receive_announce,
+      )
       .await?;
   } else {
     let inbox = community.get_shared_inbox_or_inbox_url();

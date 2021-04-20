@@ -6,10 +6,12 @@ use crate::{
     should_refetch_actor,
   },
   objects::FromApub,
+  ActorType,
   GroupExt,
 };
 use activitystreams::{
   actor::ApActorExt,
+  base::AnyBase,
   collection::{CollectionExt, OrderedCollection},
 };
 use anyhow::Context;
@@ -24,7 +26,16 @@ use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
+use std::{future::Future, pin::Pin};
 use url::Url;
+
+pub(crate) type ReceiveAnnounceFunction<'a> =
+  fn(
+    &LemmyContext,
+    AnyBase,
+    &dyn ActorType,
+    &mut i32,
+  ) -> Pin<Box<dyn Future<Output = Result<(), LemmyError>> + 'a>>;
 
 /// Get a community from its apub ID.
 ///
@@ -34,6 +45,7 @@ pub async fn get_or_fetch_and_upsert_community(
   apub_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
+  receive_announce: ReceiveAnnounceFunction<'_>,
 ) -> Result<Community, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let community = blocking(context.pool(), move |conn| {
@@ -44,12 +56,19 @@ pub async fn get_or_fetch_and_upsert_community(
   match community {
     Ok(c) if !c.local && should_refetch_actor(c.last_refreshed_at) => {
       debug!("Fetching and updating from remote community: {}", apub_id);
-      fetch_remote_community(apub_id, context, Some(c), recursion_counter).await
+      fetch_remote_community(
+        apub_id,
+        context,
+        Some(c),
+        recursion_counter,
+        receive_announce,
+      )
+      .await
     }
     Ok(c) => Ok(c),
     Err(NotFound {}) => {
       debug!("Fetching and creating remote community: {}", apub_id);
-      fetch_remote_community(apub_id, context, None, recursion_counter).await
+      fetch_remote_community(apub_id, context, None, recursion_counter, receive_announce).await
     }
     Err(e) => Err(e.into()),
   }
@@ -63,6 +82,7 @@ async fn fetch_remote_community(
   context: &LemmyContext,
   old_community: Option<Community>,
   request_counter: &mut i32,
+  receive_announce: ReceiveAnnounceFunction<'_>,
 ) -> Result<Community, LemmyError> {
   let group = fetch_remote_object::<GroupExt>(context.client(), apub_id, request_counter).await;
 
@@ -87,7 +107,14 @@ async fn fetch_remote_community(
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {
     let outbox = group.inner.outbox()?.context(location_info!())?;
-    fetch_community_outbox(context, outbox, &community, request_counter).await?
+    fetch_community_outbox(
+      context,
+      outbox,
+      &community,
+      request_counter,
+      receive_announce,
+    )
+    .await?
   }
 
   Ok(community)
@@ -147,6 +174,7 @@ async fn fetch_community_outbox(
   outbox: &Url,
   community: &Community,
   recursion_counter: &mut i32,
+  receive_announce: ReceiveAnnounceFunction<'_>,
 ) -> Result<(), LemmyError> {
   let outbox =
     fetch_remote_object::<OrderedCollection>(context.client(), outbox, recursion_counter).await?;
@@ -157,8 +185,7 @@ async fn fetch_community_outbox(
   }
 
   for activity in outbox_activities {
-    todo!("{:?} {:?} {:?}", activity, community, recursion_counter);
-    //receive_announce(context, activity, community, recursion_counter).await?;
+    receive_announce(context, activity, community, recursion_counter).await?;
   }
 
   Ok(())

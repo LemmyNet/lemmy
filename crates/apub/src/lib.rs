@@ -14,7 +14,7 @@ use crate::{
     person_extension::PersonExtension,
     signatures::{PublicKey, PublicKeyExtension},
   },
-  fetcher::community::get_or_fetch_and_upsert_community,
+  fetcher::community::{get_or_fetch_and_upsert_community, ReceiveAnnounceFunction},
 };
 use activitystreams::{
   activity::Follow,
@@ -217,6 +217,7 @@ pub trait CommunityType {
     activity: AnyBase,
     object: Option<Url>,
     context: &LemmyContext,
+    receive_announce: ReceiveAnnounceFunction<'_>,
   ) -> Result<(), LemmyError>;
 
   async fn send_add_mod(
@@ -469,12 +470,14 @@ pub async fn get_community_from_to_or_cc<T, Kind>(
   activity: &T,
   context: &LemmyContext,
   request_counter: &mut i32,
+  receive_announce: ReceiveAnnounceFunction<'_>,
 ) -> Result<Community, LemmyError>
 where
   T: AsObject<Kind>,
 {
   for cid in get_activity_to_and_cc(activity) {
-    let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
+    let community =
+      get_or_fetch_and_upsert_community(&cid, context, request_counter, receive_announce).await;
     if community.is_ok() {
       return community;
     }
