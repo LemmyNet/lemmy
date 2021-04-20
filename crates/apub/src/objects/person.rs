@@ -142,8 +142,6 @@ impl FromApubToForm<PersonExt> for PersonForm {
     _request_counter: &mut i32,
     _mod_action_allowed: bool,
   ) -> Result<Self, LemmyError> {
-    dbg!(person);
-    dbg!(person.inner.is_kind(&UserTypes::Service));
     let avatar = match person.icon() {
       Some(any_image) => Some(
         Image::from_any_base(any_image.as_one().context(location_info!())?.clone())?
