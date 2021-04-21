@@ -11,9 +11,10 @@ use diesel::{
   serialize::{Output, ToSql},
   sql_types::Text,
 };
-use language_tags::LanguageTag;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use language_tags::{LanguageTag, ValidationError};
+use serde::{Deserialize, Serialize};
 use std::{
+  convert::TryFrom,
   fmt,
   fmt::{Display, Formatter},
   io::Write,
@@ -122,69 +123,15 @@ pub fn naive_now() -> NaiveDateTime {
 }
 
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Debug, AsExpression, FromSqlRow)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug, AsExpression, Queryable)]
 #[sql_type = "Text"]
-pub struct DbLanguage(LanguageTag);
+pub struct PrimaryLanguageTag(String);
 
-impl<DB: Backend> ToSql<Text, DB> for DbLanguage
-where
-  String: ToSql<Text, DB>,
-{
-  fn to_sql<W: Write>(&self, out: &mut Output<W, DB>) -> diesel::serialize::Result {
-    self.0.to_string().to_sql(out)
-  }
-}
+impl TryFrom<LanguageTag> for PrimaryLanguageTag {
+  type Error = ValidationError;
 
-// TODO: hopefully the crate will add serde support
-//       https://github.com/pyfisch/rust-language-tags/issues/22
-impl Serialize for DbLanguage {
-  fn serialize<S>(&self, _serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-  where
-    S: Serializer,
-  {
-    todo!()
-  }
-}
-
-impl<'de> Deserialize<'de> for DbLanguage {
-  fn deserialize<D>(_deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
-  where
-    D: Deserializer<'de>,
-  {
-    todo!()
-  }
-}
-
-impl<DB: Backend> FromSql<Text, DB> for DbLanguage
-where
-  String: FromSql<Text, DB>,
-{
-  fn from_sql(bytes: Option<&DB::RawValue>) -> diesel::deserialize::Result<Self> {
-    let str = String::from_sql(bytes)?;
-    Ok(DbLanguage(LanguageTag::parse(&str)?))
-  }
-}
-
-impl DbLanguage {
-  pub fn into_inner(self) -> LanguageTag {
-    self.0
-  }
-}
-
-impl Display for DbLanguage {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.to_owned().into_inner().fmt(f)
-  }
-}
-
-impl From<DbLanguage> for LanguageTag {
-  fn from(url: DbLanguage) -> Self {
-    url.0
-  }
-}
-
-impl From<LanguageTag> for DbLanguage {
-  fn from(lang: LanguageTag) -> Self {
-    DbLanguage(lang)
+  fn try_from(tag: LanguageTag) -> Result<Self, Self::Error> {
+    let canonical = tag.canonicalize()?;
+    Ok(PrimaryLanguageTag(canonical.primary_language().to_string()))
   }
 }
