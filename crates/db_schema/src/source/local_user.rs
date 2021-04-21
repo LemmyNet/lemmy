@@ -16,6 +16,7 @@ pub struct LocalUser {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
+  pub show_bot_accounts: bool,
   pub show_scores: bool,
 }
 
@@ -33,6 +34,7 @@ pub struct LocalUserForm {
   pub lang: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
+  pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
 }
 
@@ -51,5 +53,6 @@ pub struct LocalUserSettings {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
+  pub show_bot_accounts: bool,
   pub show_scores: bool,
 }

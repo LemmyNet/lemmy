@@ -169,6 +169,7 @@ impl Perform for SaveUserSettings {
     let bio = diesel_option_overwrite(&data.bio);
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
+    let bot_account = data.bot_account;
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
@@ -213,6 +214,7 @@ impl Perform for SaveUserSettings {
       last_refreshed_at: None,
       shared_inbox_url: None,
       matrix_user_id,
+      bot_account,
     };
 
     let person_res = blocking(context.pool(), move |conn| {
@@ -231,6 +233,7 @@ impl Perform for SaveUserSettings {
       email,
       password_encrypted,
       show_nsfw: data.show_nsfw,
+      show_bot_accounts: data.show_bot_accounts,
       show_scores: data.show_scores,
       theme: data.theme.to_owned(),
       default_sort_type,
@@ -465,11 +468,14 @@ impl Perform for GetReplies {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let person_id = local_user_view.person.id;
+    let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
+
     let replies = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .sort(&sort)
         .unread_only(unread_only)
         .recipient_id(person_id)
+        .show_bot_accounts(show_bot_accounts)
         .my_person_id(person_id)
         .page(page)
         .limit(limit)

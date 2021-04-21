@@ -1,6 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, post::*};
+use lemmy_api_common::{
+  blocking,
+  get_local_user_view_from_jwt_opt,
+  post::*,
+  user_show_bot_accounts,
+  user_show_nsfw,
+};
 use lemmy_db_queries::{ListingType, SortType};
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
@@ -25,6 +31,9 @@ impl PerformCrud for GetPost {
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = &self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+
+    let show_bot_accounts = user_show_bot_accounts(&local_user_view);
+
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
@@ -38,6 +47,7 @@ impl PerformCrud for GetPost {
     let comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .my_person_id(person_id)
+        .show_bot_accounts(show_bot_accounts)
         .post_id(id)
         .limit(9999)
         .list()
@@ -88,10 +98,8 @@ impl PerformCrud for GetPosts {
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);
 
-    let show_nsfw = match &local_user_view {
-      Some(uv) => uv.local_user.show_nsfw,
-      None => false,
-    };
+    let show_nsfw = user_show_nsfw(&local_user_view);
+    let show_bot_accounts = user_show_bot_accounts(&local_user_view);
 
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
@@ -107,6 +115,7 @@ impl PerformCrud for GetPosts {
         .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
+        .show_bot_accounts(show_bot_accounts)
         .community_id(community_id)
         .community_name(community_name)
         .saved_only(saved_only)

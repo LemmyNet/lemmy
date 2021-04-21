@@ -123,6 +123,7 @@ impl PerformCrud for Register {
       email: Some(data.email.to_owned()),
       password_encrypted: data.password.to_owned(),
       show_nsfw: Some(data.show_nsfw),
+      show_bot_accounts: Some(true),
       theme: Some("browser".into()),
       default_sort_type: Some(SortType::Active as i16),
       default_listing_type: Some(ListingType::Subscribed as i16),

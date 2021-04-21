@@ -1,6 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*};
+use lemmy_api_common::{
+  blocking,
+  get_local_user_view_from_jwt_opt,
+  person::*,
+  user_show_bot_accounts,
+  user_show_nsfw,
+};
 use lemmy_db_queries::{source::person::Person_, SortType};
 use lemmy_db_schema::source::person::*;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
@@ -25,10 +31,8 @@ impl PerformCrud for GetPersonDetails {
     let data: &GetPersonDetails = &self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let show_nsfw = match &local_user_view {
-      Some(uv) => uv.local_user.show_nsfw,
-      None => false,
-    };
+    let show_nsfw = user_show_nsfw(&local_user_view);
+    let show_bot_accounts = user_show_bot_accounts(&local_user_view);
 
     let sort = SortType::from_str(&data.sort)?;
 
@@ -67,6 +71,7 @@ impl PerformCrud for GetPersonDetails {
       let mut posts_query = PostQueryBuilder::create(conn)
         .sort(&sort)
         .show_nsfw(show_nsfw)
+        .show_bot_accounts(show_bot_accounts)
         .saved_only(saved_only)
         .community_id(community_id)
         .my_person_id(person_id)
@@ -75,6 +80,7 @@ impl PerformCrud for GetPersonDetails {
 
       let mut comments_query = CommentQueryBuilder::create(conn)
         .my_person_id(person_id)
+        .show_bot_accounts(show_bot_accounts)
         .sort(&sort)
         .saved_only(saved_only)
         .community_id(community_id)
