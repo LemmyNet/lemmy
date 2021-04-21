@@ -96,13 +96,6 @@ pub async fn community_inbox(
   assert_activity_not_local(&activity)?;
   insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
 
-  info!(
-    "Community {} received activity {:?} from {}",
-    community.name,
-    &activity.id_unchecked(),
-    &actor.actor_id()
-  );
-
   community_receive_message(
     activity.clone(),
     community.clone(),
@@ -129,6 +122,16 @@ pub(crate) async fn community_receive_message(
   })
   .await??;
   check_community_or_site_ban(&person, to_community.id, context.pool()).await?;
+
+  info!(
+    "Community {} received activity {} from {}",
+    to_community.name,
+    &activity
+      .id_unchecked()
+      .context(location_info!())?
+      .to_string(),
+    &person.actor_id().to_string()
+  );
 
   let any_base = activity.clone().into_any_base()?;
   let actor_url = actor.actor_id();

@@ -61,7 +61,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::debug;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::EnumString;
@@ -115,13 +115,6 @@ pub async fn person_inbox(
   assert_activity_not_local(&activity)?;
   insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
 
-  debug!(
-    "Person {} received activity {:?} from {}",
-    person.name,
-    &activity.id_unchecked(),
-    &actor.actor_id()
-  );
-
   person_receive_message(
     activity.clone(),
     Some(person.clone()),
@@ -141,6 +134,15 @@ pub(crate) async fn person_receive_message(
   request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   is_for_person_inbox(context, &activity).await?;
+
+  info!(
+    "User received activity {:?} from {}",
+    &activity
+      .id_unchecked()
+      .context(location_info!())?
+      .to_string(),
+    &actor.actor_id().to_string()
+  );
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
