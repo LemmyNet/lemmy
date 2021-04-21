@@ -1,6 +1,7 @@
 use crate::{check_is_apub_id_valid, APUB_JSON_CONTENT_TYPE};
 use anyhow::anyhow;
 use lemmy_utils::{request::retry, LemmyError};
+use log::info;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use std::time::Duration;
@@ -73,11 +74,14 @@ where
   .await?;
 
   if res.status() == StatusCode::GONE {
+    info!("Fetched remote object {} which was deleted", url);
     return Err(FetchError {
-      inner: anyhow!("Remote object {} was deleted", url),
+      inner: anyhow!("Fetched remote object {} which was deleted", url),
       status_code: Some(res.status()),
     });
   }
 
-  Ok(res.json().await?)
+  let object = res.json().await?;
+  info!("Fetched remote object {}", url);
+  Ok(object)
 }
