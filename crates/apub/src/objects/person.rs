@@ -189,7 +189,7 @@ impl FromApubToForm<PersonExt> for PersonForm {
       banner: banner.map(|o| o.map(|i| i.into())),
       published: person.inner.published().map(|u| u.to_owned().naive_local()),
       updated: person.updated().map(|u| u.to_owned().naive_local()),
-      actor_id: Some(check_object_domain(person, expected_domain)?),
+      actor_id: Some(check_object_domain(person, expected_domain, false)?),
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),

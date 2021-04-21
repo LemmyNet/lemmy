@@ -59,7 +59,7 @@ where
   if *recursion_counter > MAX_REQUEST_NUMBER {
     return Err(LemmyError::from(anyhow!("Maximum recursion depth reached")).into());
   }
-  check_is_apub_id_valid(&url)?;
+  check_is_apub_id_valid(&url, false)?;
 
   let timeout = Duration::from_secs(60);
 

@@ -302,7 +302,7 @@ pub async fn receive_announce(
     .context(location_info!())?;
 
   let inner_id = inner_activity.id().context(location_info!())?.to_owned();
-  check_is_apub_id_valid(&inner_id)?;
+  check_is_apub_id_valid(&inner_id, false)?;
   if is_activity_already_known(context.pool(), &inner_id).await? {
     return Ok(());
   }

@@ -65,11 +65,13 @@
     # Allows and blocks are described here:
     # https://join.lemmy.ml/docs/en/federation/administration.html#instance-allowlist-and-blocklist
     #
-    # comma separated list of instances with which federation is allowed
-    # Only one of these blocks should be uncommented
+    # list of instances with which federation is allowed
     # allowed_instances: ["instance1.tld","instance2.tld"]
-    # comma separated list of instances which are blocked from federating
+    # instances which we never federate anything with (but previously federated objects are unaffected)
     # blocked_instances: []
+    # If true, only federate with instances on the allowlist and block everything else. If false,
+    # use allowlist only for remote communities, and posts/comments in local communities.
+    # strict_allowlist: true
   }
   captcha: {
     enabled: true
