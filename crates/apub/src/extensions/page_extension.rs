@@ -1,6 +1,6 @@
 use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
-use lemmy_db_schema::DbLanguage;
+use lemmy_db_schema::PrimaryLanguageTag;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +13,7 @@ pub struct PageExtension {
   pub comments_enabled: Option<bool>,
   pub sensitive: Option<bool>,
   pub stickied: Option<bool>,
-  pub language: Option<DbLanguage>,
+  pub language: Option<PrimaryLanguageTag>,
 }
 
 impl PageExtension {
@@ -21,7 +21,7 @@ impl PageExtension {
     comments_enabled: bool,
     sensitive: bool,
     stickied: bool,
-    language: DbLanguage,
+    language: PrimaryLanguageTag,
   ) -> Result<PageExtension, LemmyError> {
     Ok(PageExtension {
       comments_enabled: Some(comments_enabled),

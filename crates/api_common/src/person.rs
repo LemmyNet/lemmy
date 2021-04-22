@@ -1,3 +1,10 @@
+use lemmy_db_schema::{
+  CommunityId,
+  PersonId,
+  PersonMentionId,
+  PrimaryLanguageTag,
+  PrivateMessageId,
+};
 use lemmy_db_views::{
   comment_view::CommentView,
   post_view::PostView,
@@ -16,7 +23,6 @@ pub struct Login {
   pub username_or_email: String,
   pub password: String,
 }
-use lemmy_db_schema::{CommunityId, DbLanguage, PersonId, PersonMentionId, PrivateMessageId};
 
 #[derive(Deserialize)]
 pub struct Register {
@@ -27,7 +33,7 @@ pub struct Register {
   pub show_nsfw: bool,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
-  pub discussion_languages: Vec<DbLanguage>,
+  pub discussion_languages: Vec<PrimaryLanguageTag>,
 }
 
 #[derive(Deserialize)]
@@ -62,7 +68,7 @@ pub struct SaveUserSettings {
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub auth: String,
-  pub discussion_languages: Option<Vec<DbLanguage>>,
+  pub discussion_languages: Option<Vec<PrimaryLanguageTag>>,
 }
 
 #[derive(Deserialize)]

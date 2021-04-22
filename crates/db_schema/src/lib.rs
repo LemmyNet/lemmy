@@ -123,8 +123,7 @@ pub fn naive_now() -> NaiveDateTime {
 }
 
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Serialize, Deserialize, Debug, AsExpression, Queryable)]
-#[sql_type = "Text"]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
 pub struct PrimaryLanguageTag(String);
 
 impl TryFrom<LanguageTag> for PrimaryLanguageTag {

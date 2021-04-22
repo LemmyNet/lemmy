@@ -1,6 +1,6 @@
 use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
-use lemmy_db_schema::DbLanguage;
+use lemmy_db_schema::PrimaryLanguageTag;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 
@@ -10,11 +10,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteExtension {
-  pub language: Option<DbLanguage>,
+  pub language: Option<PrimaryLanguageTag>,
 }
 
 impl NoteExtension {
-  pub fn new(language: DbLanguage) -> Result<NoteExtension, LemmyError> {
+  pub fn new(language: PrimaryLanguageTag) -> Result<NoteExtension, LemmyError> {
     Ok(NoteExtension {
       language: Some(language),
     })

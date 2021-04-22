@@ -28,9 +28,9 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   CommunityId,
-  DbLanguage,
   PersonId,
   PostId,
+  PrimaryLanguageTag,
 };
 use log::debug;
 use serde::Serialize;
@@ -169,7 +169,7 @@ pub struct PostQueryBuilder<'a> {
   unread_only: bool,
   page: Option<i64>,
   limit: Option<i64>,
-  languages: Option<Vec<DbLanguage>>,
+  languages: Option<Vec<PrimaryLanguageTag>>,
 }
 
 impl<'a> PostQueryBuilder<'a> {
@@ -253,7 +253,7 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn languages<T: MaybeOptional<Vec<DbLanguage>>>(mut self, languages: T) -> Self {
+  pub fn languages<T: MaybeOptional<Vec<PrimaryLanguageTag>>>(mut self, languages: T) -> Self {
     self.languages = languages.get_optional();
     self
   }
