@@ -71,6 +71,7 @@ pub struct CreateSite {
   pub enable_downvotes: bool,
   pub open_registration: bool,
   pub enable_nsfw: bool,
+  pub community_creation_admin_only: bool,
   pub auth: String,
 }
 
@@ -84,6 +85,7 @@ pub struct EditSite {
   pub enable_downvotes: bool,
   pub open_registration: bool,
   pub enable_nsfw: bool,
+  pub community_creation_admin_only: Option<bool>,
   pub auth: String,
 }
 

@@ -58,6 +58,7 @@ mod tests {
       open_registration: true,
       enable_nsfw: true,
       updated: None,
+      community_creation_admin_only: Some(false),
     };
 
     Site::create(&conn, &site_form).unwrap();

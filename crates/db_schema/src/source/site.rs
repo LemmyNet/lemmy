@@ -16,6 +16,7 @@ pub struct Site {
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
   pub description: Option<String>,
+  pub community_creation_admin_only: bool,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -32,4 +33,5 @@ pub struct SiteForm {
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,
+  pub community_creation_admin_only: Option<bool>,
 }

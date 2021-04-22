@@ -433,6 +433,7 @@ table! {
         icon -> Nullable<Varchar>,
         banner -> Nullable<Varchar>,
         description -> Nullable<Text>,
+        community_creation_admin_only -> Bool,
     }
 }
 

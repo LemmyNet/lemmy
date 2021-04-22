@@ -51,6 +51,7 @@ impl PerformCrud for GetSite {
             open_registration: true,
             enable_nsfw: true,
             auth: login_response.jwt,
+            community_creation_admin_only: false,
           };
           create_site.perform(context, websocket_id).await?;
           info!("Site {} created", setup.site_name);
