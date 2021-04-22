@@ -81,11 +81,13 @@ mod tests {
     source::password_reset_request::PasswordResetRequest_,
     Crud,
   };
-  use language_tags::LanguageTag;
-  use lemmy_db_schema::source::{
-    local_user::{LocalUser, LocalUserForm},
-    password_reset_request::PasswordResetRequest,
-    person::*,
+  use lemmy_db_schema::{
+    source::{
+      local_user::{LocalUser, LocalUserForm},
+      password_reset_request::PasswordResetRequest,
+      person::*,
+    },
+    PrimaryLanguageTag,
   };
   use serial_test::serial;
 
@@ -104,7 +106,7 @@ mod tests {
     let new_local_user = LocalUserForm {
       person_id: inserted_person.id,
       password_encrypted: "pass".to_string(),
-      discussion_languages: Some(vec![LanguageTag::parse("en").unwrap().into()]),
+      discussion_languages: Some(vec![PrimaryLanguageTag("en".to_string())]),
       ..LocalUserForm::default()
     };
 

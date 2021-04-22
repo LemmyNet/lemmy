@@ -124,7 +124,7 @@ pub fn naive_now() -> NaiveDateTime {
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, DieselNewType)]
-pub struct PrimaryLanguageTag(String);
+pub struct PrimaryLanguageTag(pub String);
 
 impl TryFrom<LanguageTag> for PrimaryLanguageTag {
   type Error = ValidationError;

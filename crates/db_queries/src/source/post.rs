@@ -260,10 +260,12 @@ impl Readable<PostReadForm> for PostRead {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, source::post::*};
-  use language_tags::LanguageTag;
-  use lemmy_db_schema::source::{
-    community::{Community, CommunityForm},
-    person::*,
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityForm},
+      person::*,
+    },
+    PrimaryLanguageTag,
   };
   use serial_test::serial;
 
@@ -291,7 +293,7 @@ mod tests {
       name: "A test post".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..PostForm::default()
     };
 
@@ -317,7 +319,7 @@ mod tests {
       thumbnail_url: None,
       ap_id: inserted_post.ap_id.to_owned(),
       local: true,
-      language: LanguageTag::parse("en").unwrap().into(),
+      language: PrimaryLanguageTag("en".to_string()),
     };
 
     // Post Like

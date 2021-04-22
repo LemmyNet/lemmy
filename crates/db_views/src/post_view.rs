@@ -444,7 +444,6 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
-  use language_tags::LanguageTag;
   use lemmy_db_queries::{
     aggregates::post_aggregates::PostAggregates,
     establish_unpooled_connection,
@@ -453,7 +452,10 @@ mod tests {
     ListingType,
     SortType,
   };
-  use lemmy_db_schema::source::{community::*, person::*, post::*};
+  use lemmy_db_schema::{
+    source::{community::*, person::*, post::*},
+    PrimaryLanguageTag,
+  };
   use serial_test::serial;
 
   #[test]
@@ -484,7 +486,7 @@ mod tests {
       name: post_name.to_owned(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..PostForm::default()
     };
 
@@ -549,7 +551,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
-        language: LanguageTag::parse("en").unwrap().into(),
+        language: PrimaryLanguageTag("en".to_string()),
       },
       my_vote: None,
       creator: PersonSafe {

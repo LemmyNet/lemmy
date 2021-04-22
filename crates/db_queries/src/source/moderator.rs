@@ -198,8 +198,10 @@ impl Crud<ModAddForm, i32> for ModAdd {
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, Crud};
-  use language_tags::LanguageTag;
-  use lemmy_db_schema::source::{comment::*, community::*, moderator::*, person::*, post::*};
+  use lemmy_db_schema::{
+    source::{comment::*, community::*, moderator::*, person::*, post::*},
+    PrimaryLanguageTag,
+  };
   use serial_test::serial;
 
   // use Crud;
@@ -234,7 +236,7 @@ mod tests {
       name: "A test post thweep".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..PostForm::default()
     };
 
@@ -244,7 +246,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..CommentForm::default()
     };
 

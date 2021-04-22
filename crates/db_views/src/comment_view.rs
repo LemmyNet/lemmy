@@ -438,14 +438,16 @@ impl ViewToVec for CommentView {
 #[cfg(test)]
 mod tests {
   use crate::comment_view::*;
-  use language_tags::LanguageTag;
   use lemmy_db_queries::{
     aggregates::comment_aggregates::CommentAggregates,
     establish_unpooled_connection,
     Crud,
     Likeable,
   };
-  use lemmy_db_schema::source::{comment::*, community::*, person::*, post::*};
+  use lemmy_db_schema::{
+    source::{comment::*, community::*, person::*, post::*},
+    PrimaryLanguageTag,
+  };
   use serial_test::serial;
 
   #[test]
@@ -472,7 +474,7 @@ mod tests {
       name: "A test post 2".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..PostForm::default()
     };
 
@@ -482,7 +484,7 @@ mod tests {
       content: "A test comment 32".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..CommentForm::default()
     };
 
@@ -517,7 +519,7 @@ mod tests {
         ap_id: inserted_comment.ap_id,
         updated: None,
         local: true,
-        language: LanguageTag::parse("en").unwrap().into(),
+        language: PrimaryLanguageTag("en".to_string()),
       },
       creator: PersonSafe {
         id: inserted_person.id,
@@ -558,7 +560,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
-        language: LanguageTag::parse("en").unwrap().into(),
+        language: PrimaryLanguageTag("en".to_string()),
       },
       community: CommunitySafe {
         id: inserted_community.id,

@@ -33,12 +33,14 @@ mod tests {
     Crud,
     Likeable,
   };
-  use language_tags::LanguageTag;
-  use lemmy_db_schema::source::{
-    comment::{Comment, CommentForm},
-    community::{Community, CommunityForm},
-    person::{Person, PersonForm},
-    post::{Post, PostForm, PostLike, PostLikeForm},
+  use lemmy_db_schema::{
+    source::{
+      comment::{Comment, CommentForm},
+      community::{Community, CommunityForm},
+      person::{Person, PersonForm},
+      post::{Post, PostForm, PostLike, PostLikeForm},
+    },
+    PrimaryLanguageTag,
   };
   use serial_test::serial;
 
@@ -73,7 +75,7 @@ mod tests {
       name: "A test post".into(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..PostForm::default()
     };
 
@@ -83,7 +85,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..CommentForm::default()
     };
 
@@ -94,7 +96,7 @@ mod tests {
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
-      language: Some(LanguageTag::parse("en").unwrap().into()),
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..CommentForm::default()
     };
 
