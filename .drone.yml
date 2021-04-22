@@ -8,11 +8,12 @@ platform:
 
 steps:
 
-  - name: chown repo
+  - name: prepare repo
     image: ekidd/rust-musl-builder:1.50.0
     user: root
     commands:
       - chown 1000:1000 . -R
+      - git fetch --tags
 
   - name: check formatting
     image: rustdocker/rust:nightly
@@ -135,6 +136,15 @@ platform:
   arch: arm64
 
 steps:
+
+  - name: prepare repo
+    image: rust:1.50-slim-buster
+    user: root
+    commands:
+      - chown 1000:1000 . -R
+      - apt update
+      - apt install --no-install-recommends --yes git
+      - git fetch --tags
 
   - name: cargo test
     image: rust:1.50-slim-buster
