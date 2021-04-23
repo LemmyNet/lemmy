@@ -227,6 +227,9 @@ impl Perform for Search {
         .await??;
       }
       SearchType::All => {
+        // If the community is included, dont search communities or users
+        let community_included = data.community_id.is_some() || data.community_name.is_some();
+
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(sort)
@@ -265,29 +268,37 @@ impl Perform for Search {
 
         let q = data.q.to_owned();
 
-        communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn)
-            .sort(sort)
-            .listing_type(listing_type)
-            .search_term(q)
-            .my_person_id(person_id)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        communities = if community_included {
+          vec![]
+        } else {
+          blocking(context.pool(), move |conn| {
+            CommunityQueryBuilder::create(conn)
+              .sort(sort)
+              .listing_type(listing_type)
+              .search_term(q)
+              .my_person_id(person_id)
+              .page(page)
+              .limit(limit)
+              .list()
+          })
+          .await??
+        };
 
         let q = data.q.to_owned();
 
-        users = blocking(context.pool(), move |conn| {
-          PersonQueryBuilder::create(conn)
-            .sort(sort)
-            .search_term(q)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        users = if community_included {
+          vec![]
+        } else {
+          blocking(context.pool(), move |conn| {
+            PersonQueryBuilder::create(conn)
+              .sort(sort)
+              .search_term(q)
+              .page(page)
+              .limit(limit)
+              .list()
+          })
+          .await??
+        };
       }
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
