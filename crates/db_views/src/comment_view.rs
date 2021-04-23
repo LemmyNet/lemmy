@@ -264,8 +264,8 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn show_bot_accounts(mut self, show_bot_accounts: bool) -> Self {
-    self.show_bot_accounts = show_bot_accounts;
+  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
+    self.show_bot_accounts = show_bot_accounts.get_optional();
     self
   }
 

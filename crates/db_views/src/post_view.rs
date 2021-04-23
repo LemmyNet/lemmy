@@ -238,7 +238,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
-    self.show_bot_accounts = show_bot_accounts;
+    self.show_bot_accounts = show_bot_accounts.get_optional();
     self
   }
 
@@ -360,7 +360,7 @@ impl<'a> PostQueryBuilder<'a> {
         .filter(community::nsfw.eq(false));
     };
 
-    if !self.show_bot_accounts {
+    if !self.show_bot_accounts.unwrap_or(true) {
       query = query.filter(person::bot_account.eq(false));
     };
 

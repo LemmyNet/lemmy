@@ -1,6 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*, user_show_nsfw, user_show_bot_accounts};
+use lemmy_api_common::{
+  blocking,
+  get_local_user_view_from_jwt_opt,
+  person::*,
+  user_show_bot_accounts,
+  user_show_nsfw,
+};
 use lemmy_db_queries::{from_opt_str_to_opt_enum, source::person::Person_, SortType};
 use lemmy_db_schema::source::person::*;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
