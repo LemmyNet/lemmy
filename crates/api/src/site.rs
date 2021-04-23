@@ -227,8 +227,9 @@ impl Perform for Search {
         .await??;
       }
       SearchType::All => {
-        // If the community is included, dont search communities or users
-        let community_included = data.community_id.is_some() || data.community_name.is_some();
+        // If the community or creator is included, dont search communities or users
+        let community_or_creator_included =
+          data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
 
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
@@ -268,7 +269,7 @@ impl Perform for Search {
 
         let q = data.q.to_owned();
 
-        communities = if community_included {
+        communities = if community_or_creator_included {
           vec![]
         } else {
           blocking(context.pool(), move |conn| {
@@ -286,7 +287,7 @@ impl Perform for Search {
 
         let q = data.q.to_owned();
 
-        users = if community_included {
+        users = if community_or_creator_included {
           vec![]
         } else {
           blocking(context.pool(), move |conn| {
