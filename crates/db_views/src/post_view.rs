@@ -165,8 +165,8 @@ pub struct PostQueryBuilder<'a> {
   url_search: Option<String>,
   show_nsfw: bool,
   show_bot_accounts: bool,
+  show_read_posts: bool,
   saved_only: bool,
-  unread_only: bool,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -185,8 +185,8 @@ impl<'a> PostQueryBuilder<'a> {
       url_search: None,
       show_nsfw: true,
       show_bot_accounts: true,
+      show_read_posts: true,
       saved_only: false,
-      unread_only: false,
       page: None,
       limit: None,
     }
@@ -239,6 +239,11 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn show_bot_accounts(mut self, show_bot_accounts: bool) -> Self {
     self.show_bot_accounts = show_bot_accounts;
+    self
+  }
+
+  pub fn show_read_posts(mut self, show_read_posts: bool) -> Self {
+    self.show_read_posts = show_read_posts;
     self
   }
 
@@ -362,13 +367,12 @@ impl<'a> PostQueryBuilder<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    // TODO  These two might be wrong
     if self.saved_only {
       query = query.filter(post_saved::id.is_not_null());
     };
 
-    if self.unread_only {
-      query = query.filter(post_read::id.is_not_null());
+    if !self.show_read_posts {
+      query = query.filter(post_read::id.is_null());
     };
 
     query = match self.sort {

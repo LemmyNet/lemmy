@@ -6,6 +6,7 @@ use lemmy_api_common::{
   person::*,
   user_show_bot_accounts,
   user_show_nsfw,
+  user_show_read_posts,
 };
 use lemmy_db_queries::{source::person::Person_, SortType};
 use lemmy_db_schema::source::person::*;
@@ -33,6 +34,7 @@ impl PerformCrud for GetPersonDetails {
 
     let show_nsfw = user_show_nsfw(&local_user_view);
     let show_bot_accounts = user_show_bot_accounts(&local_user_view);
+    let show_read_posts = user_show_read_posts(&local_user_view);
 
     let sort = SortType::from_str(&data.sort)?;
 
@@ -72,6 +74,7 @@ impl PerformCrud for GetPersonDetails {
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .show_bot_accounts(show_bot_accounts)
+        .show_read_posts(show_read_posts)
         .saved_only(saved_only)
         .community_id(community_id)
         .my_person_id(person_id)

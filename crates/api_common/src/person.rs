@@ -62,6 +62,7 @@ pub struct SaveUserSettings {
   pub send_notifications_to_email: Option<bool>,
   pub bot_account: Option<bool>,
   pub show_bot_accounts: Option<bool>,
+  pub show_read_posts: Option<bool>,
   pub auth: String,
 }
 

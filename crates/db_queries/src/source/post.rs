@@ -243,6 +243,9 @@ impl Readable<PostReadForm> for PostRead {
     use lemmy_db_schema::schema::post_read::dsl::*;
     insert_into(post_read)
       .values(post_read_form)
+      .on_conflict((post_id, person_id))
+      .do_update()
+      .set(post_read_form)
       .get_result::<Self>(conn)
   }
 

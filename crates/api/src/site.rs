@@ -11,6 +11,7 @@ use lemmy_api_common::{
   site::*,
   user_show_bot_accounts,
   user_show_nsfw,
+  user_show_read_posts,
 };
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{source::site::Site_, Crud, SearchType, SortType};
@@ -141,6 +142,7 @@ impl Perform for Search {
 
     let show_nsfw = user_show_nsfw(&local_user_view);
     let show_bot_accounts = user_show_bot_accounts(&local_user_view);
+    let show_read_posts = user_show_read_posts(&local_user_view);
 
     let person_id = local_user_view.map(|u| u.person.id);
 
@@ -166,6 +168,7 @@ impl Perform for Search {
             .sort(&sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
+            .show_read_posts(show_read_posts)
             .community_id(community_id)
             .community_name(community_name)
             .my_person_id(person_id)
@@ -218,6 +221,7 @@ impl Perform for Search {
             .sort(&sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
+            .show_read_posts(show_read_posts)
             .community_id(community_id)
             .community_name(community_name)
             .my_person_id(person_id)
@@ -276,6 +280,7 @@ impl Perform for Search {
             .sort(&sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
+            .show_read_posts(show_read_posts)
             .my_person_id(person_id)
             .community_id(community_id)
             .community_name(community_name)

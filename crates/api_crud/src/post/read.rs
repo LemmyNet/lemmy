@@ -3,9 +3,11 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
   get_local_user_view_from_jwt_opt,
+  mark_post_as_read,
   post::*,
   user_show_bot_accounts,
   user_show_nsfw,
+  user_show_read_posts,
 };
 use lemmy_db_queries::{ListingType, SortType};
 use lemmy_db_views::{
@@ -42,6 +44,11 @@ impl PerformCrud for GetPost {
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_find_post"))?;
+
+    // Mark the post as read
+    if let Some(person_id) = person_id {
+      mark_post_as_read(person_id, id, context.pool()).await?;
+    }
 
     let id = data.id;
     let comments = blocking(context.pool(), move |conn| {
@@ -100,6 +107,7 @@ impl PerformCrud for GetPosts {
 
     let show_nsfw = user_show_nsfw(&local_user_view);
     let show_bot_accounts = user_show_bot_accounts(&local_user_view);
+    let show_read_posts = user_show_read_posts(&local_user_view);
 
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
@@ -116,6 +124,7 @@ impl PerformCrud for GetPosts {
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .show_bot_accounts(show_bot_accounts)
+        .show_read_posts(show_read_posts)
         .community_id(community_id)
         .community_name(community_name)
         .saved_only(saved_only)

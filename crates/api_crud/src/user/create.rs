@@ -130,6 +130,7 @@ impl PerformCrud for Register {
       lang: Some("browser".into()),
       show_avatars: Some(true),
       show_scores: Some(true),
+      show_read_posts: Some(true),
       send_notifications_to_email: Some(false),
     };
 

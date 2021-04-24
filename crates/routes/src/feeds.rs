@@ -231,11 +231,13 @@ fn get_feed_front(
   let local_user = LocalUser::read(&conn, local_user_id)?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
+  let show_read_posts = local_user.show_read_posts;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::Subscribed)
     .my_person_id(person_id)
     .show_bot_accounts(show_bot_accounts)
+    .show_read_posts(show_read_posts)
     .sort(sort_type)
     .list()?;
 
