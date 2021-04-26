@@ -67,7 +67,7 @@ impl PerformCrud for CreateSite {
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
       updated: None,
-      community_creation_admin_only: Some(data.community_creation_admin_only),
+      community_creation_admin_only: data.community_creation_admin_only,
     };
 
     let create_site = move |conn: &'_ _| Site::create(conn, &site_form);

@@ -18,12 +18,7 @@ use lemmy_db_schema::{
   source::site::{Site, SiteForm},
 };
 use lemmy_db_views::site_view::SiteView;
-use lemmy_utils::{
-  utils::{check_slurs, check_slurs_opt},
-  ApiError,
-  ConnectionId,
-  LemmyError,
-};
+use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
@@ -37,7 +32,7 @@ impl PerformCrud for EditSite {
     let data: &EditSite = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    check_slurs(&data.name)?;
+    check_slurs_opt(&data.name)?;
     check_slurs_opt(&data.description)?;
 
     // Make sure user is an admin
@@ -55,12 +50,12 @@ impl PerformCrud for EditSite {
     }
 
     let site_form = SiteForm {
-      name: data.name.to_owned(),
+      creator_id: found_site.creator_id,
+      name: data.name.to_owned().unwrap_or(found_site.name),
       sidebar,
       description,
       icon,
       banner,
-      creator_id: found_site.creator_id,
       updated: Some(naive_now()),
       enable_downvotes: data.enable_downvotes,
       open_registration: data.open_registration,

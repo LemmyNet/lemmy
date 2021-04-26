@@ -7,7 +7,7 @@ use lemmy_api_common::{
   user_show_bot_accounts,
   user_show_nsfw,
 };
-use lemmy_db_queries::{source::person::Person_, SortType};
+use lemmy_db_queries::{from_opt_str_to_opt_enum, source::person::Person_, SortType};
 use lemmy_db_schema::source::person::*;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::{
@@ -17,7 +17,6 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPersonDetails {
@@ -34,7 +33,7 @@ impl PerformCrud for GetPersonDetails {
     let show_nsfw = user_show_nsfw(&local_user_view);
     let show_bot_accounts = user_show_bot_accounts(&local_user_view);
 
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
     let username = data
       .username
@@ -69,7 +68,7 @@ impl PerformCrud for GetPersonDetails {
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
       let mut posts_query = PostQueryBuilder::create(conn)
-        .sort(&sort)
+        .sort(sort)
         .show_nsfw(show_nsfw)
         .show_bot_accounts(show_bot_accounts)
         .saved_only(saved_only)
@@ -81,7 +80,7 @@ impl PerformCrud for GetPersonDetails {
       let mut comments_query = CommentQueryBuilder::create(conn)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
-        .sort(&sort)
+        .sort(sort)
         .saved_only(saved_only)
         .community_id(community_id)
         .page(page)
@@ -89,7 +88,7 @@ impl PerformCrud for GetPersonDetails {
 
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only {
+      if !saved_only.unwrap_or(false) {
         posts_query = posts_query.creator_id(person_details_id);
         comments_query = comments_query.creator_id(person_details_id);
       }

@@ -16,6 +16,7 @@ use lemmy_api_common::{
 use lemmy_db_queries::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
+  from_opt_str_to_opt_enum,
   source::{
     comment::Comment_,
     local_user::LocalUser_,
@@ -68,7 +69,6 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {
@@ -397,7 +397,7 @@ impl Perform for BanPerson {
     }
 
     // Remove their data if that's desired
-    if data.remove_data {
+    if data.remove_data.unwrap_or(false) {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
         Post::update_removed_for_creator(conn, banned_person_id, None, true)
@@ -462,7 +462,7 @@ impl Perform for GetReplies {
     let data: &GetReplies = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
     let page = data.page;
     let limit = data.limit;
@@ -472,7 +472,7 @@ impl Perform for GetReplies {
 
     let replies = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
-        .sort(&sort)
+        .sort(sort)
         .unread_only(unread_only)
         .recipient_id(person_id)
         .show_bot_accounts(show_bot_accounts)
@@ -499,7 +499,7 @@ impl Perform for GetPersonMentions {
     let data: &GetPersonMentions = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
     let page = data.page;
     let limit = data.limit;
@@ -509,7 +509,7 @@ impl Perform for GetPersonMentions {
       PersonMentionQueryBuilder::create(conn)
         .recipient_id(person_id)
         .my_person_id(person_id)
-        .sort(&sort)
+        .sort(sort)
         .unread_only(unread_only)
         .page(page)
         .limit(limit)
