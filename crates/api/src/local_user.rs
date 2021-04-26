@@ -240,6 +240,7 @@ impl Perform for SaveUserSettings {
       default_listing_type,
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
+      show_read_posts: data.show_read_posts,
       send_notifications_to_email: data.send_notifications_to_email,
     };
 

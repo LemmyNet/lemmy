@@ -9,8 +9,6 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt_opt,
   is_admin,
   site::*,
-  user_show_bot_accounts,
-  user_show_nsfw,
 };
 use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{
@@ -145,8 +143,13 @@ impl Perform for Search {
 
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let show_nsfw = user_show_nsfw(&local_user_view);
-    let show_bot_accounts = user_show_bot_accounts(&local_user_view);
+    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
+    let show_bot_accounts = local_user_view
+      .as_ref()
+      .map(|t| t.local_user.show_bot_accounts);
+    let show_read_posts = local_user_view
+      .as_ref()
+      .map(|t| t.local_user.show_read_posts);
 
     let person_id = local_user_view.map(|u| u.person.id);
 
@@ -173,6 +176,7 @@ impl Perform for Search {
             .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
+            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .community_id(community_id)
             .community_name(community_name)
@@ -236,6 +240,7 @@ impl Perform for Search {
             .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
+            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .community_id(community_id)
             .community_name(community_name)
@@ -307,6 +312,7 @@ impl Perform for Search {
             .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
+            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .my_person_id(person_id)
             .community_id(community_id)

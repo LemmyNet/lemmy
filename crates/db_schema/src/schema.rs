@@ -155,6 +155,7 @@ table! {
         validator_time -> Timestamp,
         show_bot_accounts -> Bool,
         show_scores -> Bool,
+        show_read_posts -> Bool,
     }
 }
 

@@ -165,8 +165,8 @@ pub struct PostQueryBuilder<'a> {
   url_search: Option<String>,
   show_nsfw: Option<bool>,
   show_bot_accounts: Option<bool>,
+  show_read_posts: Option<bool>,
   saved_only: Option<bool>,
-  unread_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -185,8 +185,8 @@ impl<'a> PostQueryBuilder<'a> {
       url_search: None,
       show_nsfw: None,
       show_bot_accounts: None,
+      show_read_posts: None,
       saved_only: None,
-      unread_only: None,
       page: None,
       limit: None,
     }
@@ -239,6 +239,11 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
     self.show_bot_accounts = show_bot_accounts.get_optional();
+    self
+  }
+
+  pub fn show_read_posts<T: MaybeOptional<bool>>(mut self, show_read_posts: T) -> Self {
+    self.show_read_posts = show_read_posts.get_optional();
     self
   }
 
@@ -364,12 +369,12 @@ impl<'a> PostQueryBuilder<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if self.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::id.is_not_null());
+    if !self.show_read_posts.unwrap_or(true) {
+      query = query.filter(post_read::id.is_null());
     };
 
-    if self.unread_only.unwrap_or(false) {
-      query = query.filter(post_read::id.is_not_null());
+    if self.saved_only.unwrap_or(false) {
+      query = query.filter(post_saved::id.is_not_null());
     };
 
     query = match self.sort.unwrap_or(SortType::Hot) {
