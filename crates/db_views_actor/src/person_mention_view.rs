@@ -264,7 +264,7 @@ impl<'a> PersonMentionQueryBuilder<'a> {
       query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
-    if self.unread_only.unwrap_or_default() {
+    if self.unread_only.unwrap_or(false) {
       query = query.filter(person_mention::read.eq(false));
     }
 

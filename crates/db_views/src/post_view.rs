@@ -317,7 +317,7 @@ impl<'a> PostQueryBuilder<'a> {
 
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()),
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -364,12 +364,11 @@ impl<'a> PostQueryBuilder<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    // TODO  These two might be wrong
-    if self.saved_only.unwrap_or_default() {
+    if self.saved_only.unwrap_or(false) {
       query = query.filter(post_saved::id.is_not_null());
     };
 
-    if self.unread_only.unwrap_or_default() {
+    if self.unread_only.unwrap_or(false) {
       query = query.filter(post_read::id.is_not_null());
     };
 

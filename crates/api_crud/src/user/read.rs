@@ -88,7 +88,7 @@ impl PerformCrud for GetPersonDetails {
 
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only.unwrap_or_default() {
+      if !saved_only.unwrap_or(false) {
         posts_query = posts_query.creator_id(person_details_id);
         comments_query = comments_query.creator_id(person_details_id);
       }

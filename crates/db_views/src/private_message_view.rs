@@ -89,7 +89,7 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
       .into_boxed();
 
     // If its unread, I only want the ones to me
-    if self.unread_only.unwrap_or_default() {
+    if self.unread_only.unwrap_or(false) {
       query = query
         .filter(private_message::read.eq(false))
         .filter(private_message::recipient_id.eq(self.recipient_id));

@@ -196,13 +196,7 @@ pub enum SearchType {
 }
 
 pub fn from_opt_str_to_opt_enum<T: std::str::FromStr>(opt: &Option<String>) -> Option<T> {
-  match opt {
-    Some(t) => match T::from_str(&t) {
-      Ok(r) => Some(r),
-      Err(_) => None,
-    },
-    None => None,
-  }
+  opt.as_ref().map(|t| T::from_str(t).ok()).flatten()
 }
 
 pub fn fuzzy_search(q: &str) -> String {

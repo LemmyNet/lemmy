@@ -397,7 +397,7 @@ impl Perform for BanPerson {
     }
 
     // Remove their data if that's desired
-    if data.remove_data.unwrap_or_default() {
+    if data.remove_data.unwrap_or(false) {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
         Post::update_removed_for_creator(conn, banned_person_id, None, true)
