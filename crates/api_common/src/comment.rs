@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 pub struct CreateComment {
   pub content: String,
-  pub parent_id: Option<CommentId>,
   pub post_id: PostId,
+  pub parent_id: Option<CommentId>,
   pub form_id: Option<String>,
   pub auth: String,
 }
@@ -64,13 +64,13 @@ pub struct CreateCommentLike {
 
 #[derive(Deserialize)]
 pub struct GetComments {
-  pub type_: String,
-  pub sort: String,
+  pub type_: Option<String>,
+  pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
-  pub saved_only: bool,
+  pub saved_only: Option<bool>,
   pub auth: Option<String>,
 }
 

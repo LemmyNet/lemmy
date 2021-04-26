@@ -9,12 +9,16 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt_opt,
   is_admin,
   site::*,
-  user_show_bot_accounts,
-  user_show_nsfw,
-  user_show_read_posts,
 };
 use lemmy_apub::fetcher::search::search_by_apub_id;
-use lemmy_db_queries::{source::site::Site_, Crud, SearchType, SortType};
+use lemmy_db_queries::{
+  from_opt_str_to_opt_enum,
+  source::site::Site_,
+  Crud,
+  ListingType,
+  SearchType,
+  SortType,
+};
 use lemmy_db_schema::source::{moderator::*, site::Site};
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
@@ -46,7 +50,6 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use log::debug;
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetModlog {
@@ -140,13 +143,15 @@ impl Perform for Search {
 
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let show_nsfw = user_show_nsfw(&local_user_view);
-    let show_bot_accounts = user_show_bot_accounts(&local_user_view);
-    let show_read_posts = user_show_read_posts(&local_user_view);
+    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
+    let show_bot_accounts = local_user_view
+      .as_ref()
+      .map(|t| t.local_user.show_bot_accounts);
+    let show_read_posts = local_user_view
+      .as_ref()
+      .map(|t| t.local_user.show_read_posts);
 
     let person_id = local_user_view.map(|u| u.person.id);
-
-    let type_ = SearchType::from_str(&data.type_)?;
 
     let mut posts = Vec::new();
     let mut comments = Vec::new();
@@ -158,19 +163,24 @@ impl Perform for Search {
     let q = data.q.to_owned();
     let page = data.page;
     let limit = data.limit;
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
+    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.listing_type);
+    let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_name = data.community_name.to_owned();
-    match type_ {
+    let creator_id = data.creator_id;
+    match search_type {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
             .show_read_posts(show_read_posts)
+            .listing_type(listing_type)
             .community_id(community_id)
             .community_name(community_name)
+            .creator_id(creator_id)
             .my_person_id(person_id)
             .search_term(q)
             .page(page)
@@ -182,9 +192,13 @@ impl Perform for Search {
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(&conn)
-            .sort(&sort)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)
+            .community_id(community_id)
+            .community_name(community_name)
+            .creator_id(creator_id)
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
@@ -195,7 +209,8 @@ impl Perform for Search {
       SearchType::Communities => {
         communities = blocking(context.pool(), move |conn| {
           CommunityQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .my_person_id(person_id)
             .page(page)
@@ -207,7 +222,7 @@ impl Perform for Search {
       SearchType::Users => {
         users = blocking(context.pool(), move |conn| {
           PersonQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -216,14 +231,20 @@ impl Perform for Search {
         .await??;
       }
       SearchType::All => {
+        // If the community or creator is included, dont search communities or users
+        let community_or_creator_included =
+          data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
+
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
             .show_read_posts(show_read_posts)
+            .listing_type(listing_type)
             .community_id(community_id)
             .community_name(community_name)
+            .creator_id(creator_id)
             .my_person_id(person_id)
             .search_term(q)
             .page(page)
@@ -233,13 +254,17 @@ impl Perform for Search {
         .await??;
 
         let q = data.q.to_owned();
-        let sort = SortType::from_str(&data.sort)?;
+        let community_name = data.community_name.to_owned();
 
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
+            .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)
+            .community_id(community_id)
+            .community_name(community_name)
+            .creator_id(creator_id)
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
@@ -248,42 +273,51 @@ impl Perform for Search {
         .await??;
 
         let q = data.q.to_owned();
-        let sort = SortType::from_str(&data.sort)?;
 
-        communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn)
-            .sort(&sort)
-            .search_term(q)
-            .my_person_id(person_id)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        communities = if community_or_creator_included {
+          vec![]
+        } else {
+          blocking(context.pool(), move |conn| {
+            CommunityQueryBuilder::create(conn)
+              .sort(sort)
+              .listing_type(listing_type)
+              .search_term(q)
+              .my_person_id(person_id)
+              .page(page)
+              .limit(limit)
+              .list()
+          })
+          .await??
+        };
 
         let q = data.q.to_owned();
-        let sort = SortType::from_str(&data.sort)?;
 
-        users = blocking(context.pool(), move |conn| {
-          PersonQueryBuilder::create(conn)
-            .sort(&sort)
-            .search_term(q)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        users = if community_or_creator_included {
+          vec![]
+        } else {
+          blocking(context.pool(), move |conn| {
+            PersonQueryBuilder::create(conn)
+              .sort(sort)
+              .search_term(q)
+              .page(page)
+              .limit(limit)
+              .list()
+          })
+          .await??
+        };
       }
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
-            .sort(&sort)
+            .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
             .show_read_posts(show_read_posts)
+            .listing_type(listing_type)
             .my_person_id(person_id)
             .community_id(community_id)
             .community_name(community_name)
+            .creator_id(creator_id)
             .url_search(q)
             .page(page)
             .limit(limit)
@@ -295,7 +329,7 @@ impl Perform for Search {
 
     // Return the jwt
     Ok(SearchResponse {
-      type_: data.type_.to_owned(),
+      type_: search_type.to_string(),
       comments,
       posts,
       communities,

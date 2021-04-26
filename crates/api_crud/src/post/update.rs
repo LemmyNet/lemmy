@@ -7,7 +7,7 @@ use lemmy_db_schema::{naive_now, source::post::*};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{
   request::fetch_iframely_and_pictrs_data,
-  utils::{check_slurs, check_slurs_opt, is_valid_post_title},
+  utils::{check_slurs_opt, is_valid_post_title},
   ApiError,
   ConnectionId,
   LemmyError,
@@ -26,11 +26,13 @@ impl PerformCrud for EditPost {
     let data: &EditPost = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    check_slurs(&data.name)?;
+    check_slurs_opt(&data.name)?;
     check_slurs_opt(&data.body)?;
 
-    if !is_valid_post_title(&data.name) {
-      return Err(ApiError::err("invalid_post_title").into());
+    if let Some(name) = &data.name {
+      if !is_valid_post_title(name) {
+        return Err(ApiError::err("invalid_post_title").into());
+      }
     }
 
     let post_id = data.post_id;
@@ -56,7 +58,7 @@ impl PerformCrud for EditPost {
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
       community_id: orig_post.community_id,
-      name: data.name.trim().to_owned(),
+      name: data.name.to_owned().unwrap_or(orig_post.name),
       url: data_url.map(|u| u.to_owned().into()),
       body: data.body.to_owned(),
       nsfw: data.nsfw,

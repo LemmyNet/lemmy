@@ -21,10 +21,10 @@ use lemmy_db_schema::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
 #[derive(Deserialize)]
 pub struct Register {
   pub username: String,
-  pub email: Option<String>,
   pub password: String,
   pub password_verify: String,
   pub show_nsfw: bool,
+  pub email: Option<String>,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
 }
@@ -81,13 +81,13 @@ pub struct LoginResponse {
 
 #[derive(Deserialize)]
 pub struct GetPersonDetails {
-  pub person_id: Option<PersonId>,
+  pub person_id: Option<PersonId>, // One of these two are required
   pub username: Option<String>,
-  pub sort: String,
+  pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
-  pub saved_only: bool,
+  pub saved_only: Option<bool>,
   pub auth: Option<String>,
 }
 
@@ -131,7 +131,7 @@ pub struct AddAdminResponse {
 pub struct BanPerson {
   pub person_id: PersonId,
   pub ban: bool,
-  pub remove_data: bool,
+  pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: String,
@@ -145,19 +145,19 @@ pub struct BanPersonResponse {
 
 #[derive(Deserialize)]
 pub struct GetReplies {
-  pub sort: String,
+  pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unread_only: bool,
+  pub unread_only: Option<bool>,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct GetPersonMentions {
-  pub sort: String,
+  pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unread_only: bool,
+  pub unread_only: Option<bool>,
   pub auth: String,
 }
 
@@ -224,7 +224,7 @@ pub struct MarkPrivateMessageAsRead {
 
 #[derive(Deserialize)]
 pub struct GetPrivateMessages {
-  pub unread_only: bool,
+  pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: String,

@@ -155,18 +155,18 @@ impl PostView {
 
 pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
-  listing_type: &'a ListingType,
-  sort: &'a SortType,
+  listing_type: Option<ListingType>,
+  sort: Option<SortType>,
   creator_id: Option<PersonId>,
   community_id: Option<CommunityId>,
   community_name: Option<String>,
   my_person_id: Option<PersonId>,
   search_term: Option<String>,
   url_search: Option<String>,
-  show_nsfw: bool,
-  show_bot_accounts: bool,
-  show_read_posts: bool,
-  saved_only: bool,
+  show_nsfw: Option<bool>,
+  show_bot_accounts: Option<bool>,
+  show_read_posts: Option<bool>,
+  saved_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -175,30 +175,30 @@ impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
     PostQueryBuilder {
       conn,
-      listing_type: &ListingType::All,
-      sort: &SortType::Hot,
+      listing_type: None,
+      sort: None,
       creator_id: None,
       community_id: None,
       community_name: None,
       my_person_id: None,
       search_term: None,
       url_search: None,
-      show_nsfw: true,
-      show_bot_accounts: true,
-      show_read_posts: true,
-      saved_only: false,
+      show_nsfw: None,
+      show_bot_accounts: None,
+      show_read_posts: None,
+      saved_only: None,
       page: None,
       limit: None,
     }
   }
 
-  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
-    self.listing_type = listing_type;
+  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
+    self.listing_type = listing_type.get_optional();
     self
   }
 
-  pub fn sort(mut self, sort: &'a SortType) -> Self {
-    self.sort = sort;
+  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
+    self.sort = sort.get_optional();
     self
   }
 
@@ -232,23 +232,23 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
-    self.show_nsfw = show_nsfw;
+  pub fn show_nsfw<T: MaybeOptional<bool>>(mut self, show_nsfw: T) -> Self {
+    self.show_nsfw = show_nsfw.get_optional();
     self
   }
 
-  pub fn show_bot_accounts(mut self, show_bot_accounts: bool) -> Self {
-    self.show_bot_accounts = show_bot_accounts;
+  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
+    self.show_bot_accounts = show_bot_accounts.get_optional();
     self
   }
 
-  pub fn show_read_posts(mut self, show_read_posts: bool) -> Self {
-    self.show_read_posts = show_read_posts;
+  pub fn show_read_posts<T: MaybeOptional<bool>>(mut self, show_read_posts: T) -> Self {
+    self.show_read_posts = show_read_posts.get_optional();
     self
   }
 
-  pub fn saved_only(mut self, saved_only: bool) -> Self {
-    self.saved_only = saved_only;
+  pub fn saved_only<T: MaybeOptional<bool>>(mut self, saved_only: T) -> Self {
+    self.saved_only = saved_only.get_optional();
     self
   }
 
@@ -320,11 +320,13 @@ impl<'a> PostQueryBuilder<'a> {
       ))
       .into_boxed();
 
-    query = match self.listing_type {
-      ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
-      ListingType::Local => query.filter(community::local.eq(true)),
-      _ => query,
-    };
+    if let Some(listing_type) = self.listing_type {
+      query = match listing_type {
+        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()),
+        ListingType::Local => query.filter(community::local.eq(true)),
+        _ => query,
+      };
+    }
 
     if let Some(community_id) = self.community_id {
       query = query
@@ -357,25 +359,25 @@ impl<'a> PostQueryBuilder<'a> {
       query = query.filter(post::creator_id.eq(creator_id));
     }
 
-    if !self.show_nsfw {
+    if !self.show_nsfw.unwrap_or(true) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !self.show_bot_accounts {
+    if !self.show_bot_accounts.unwrap_or(true) {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if self.saved_only {
-      query = query.filter(post_saved::id.is_not_null());
-    };
-
-    if !self.show_read_posts {
+    if !self.show_read_posts.unwrap_or(true) {
       query = query.filter(post_read::id.is_null());
     };
 
-    query = match self.sort {
+    if self.saved_only.unwrap_or(false) {
+      query = query.filter(post_saved::id.is_not_null());
+    };
+
+    query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query
         .then_order_by(
           hot_rank(
@@ -526,8 +528,8 @@ mod tests {
     };
 
     let read_post_listings_with_person = PostQueryBuilder::create(&conn)
-      .listing_type(&ListingType::Community)
-      .sort(&SortType::New)
+      .listing_type(ListingType::Community)
+      .sort(SortType::New)
       .show_bot_accounts(false)
       .community_id(inserted_community.id)
       .my_person_id(inserted_person.id)
@@ -535,8 +537,8 @@ mod tests {
       .unwrap();
 
     let read_post_listings_no_person = PostQueryBuilder::create(&conn)
-      .listing_type(&ListingType::Community)
-      .sort(&SortType::New)
+      .listing_type(ListingType::Community)
+      .sort(SortType::New)
       .community_id(inserted_community.id)
       .list()
       .unwrap();
