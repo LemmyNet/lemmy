@@ -35,7 +35,7 @@ steps:
       RUST_TEST_THREADS: 1
     commands:
       - sudo apt-get update
-      - sudo apt-get -y install --no-install-recommends espeak postgresql-client
+      - sudo apt-get -y install --no-install-recommends postgresql-client
       - cargo test --workspace --no-fail-fast
 
   - name: cargo build
@@ -155,7 +155,7 @@ steps:
       RUST_TEST_THREADS: 1
     commands:
       - apt-get update
-      - apt-get -y install --no-install-recommends espeak postgresql-client libssl-dev pkg-config libpq-dev
+      - apt-get -y install --no-install-recommends postgresql-client libssl-dev pkg-config libpq-dev
       - cargo test --workspace --no-fail-fast
       - cargo build
 
