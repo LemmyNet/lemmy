@@ -16,20 +16,22 @@ pub struct Site {
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
   pub description: Option<String>,
+  pub community_creation_admin_only: bool,
 }
 
 #[derive(Insertable, AsChangeset)]
 #[table_name = "site"]
 pub struct SiteForm {
   pub name: String,
-  pub sidebar: Option<Option<String>>,
   pub creator_id: PersonId,
+  pub sidebar: Option<Option<String>>,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub enable_downvotes: bool,
-  pub open_registration: bool,
-  pub enable_nsfw: bool,
+  pub enable_downvotes: Option<bool>,
+  pub open_registration: Option<bool>,
+  pub enable_nsfw: Option<bool>,
   // when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,
+  pub community_creation_admin_only: Option<bool>,
 }

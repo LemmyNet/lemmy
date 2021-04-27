@@ -1,7 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*};
-use lemmy_db_queries::{source::person::Person_, SortType};
+use lemmy_db_queries::{from_opt_str_to_opt_enum, source::person::Person_, SortType};
 use lemmy_db_schema::source::person::*;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::{
@@ -11,7 +11,6 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPersonDetails {
@@ -25,12 +24,15 @@ impl PerformCrud for GetPersonDetails {
     let data: &GetPersonDetails = &self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
-    let show_nsfw = match &local_user_view {
-      Some(uv) => uv.local_user.show_nsfw,
-      None => false,
-    };
+    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
+    let show_bot_accounts = local_user_view
+      .as_ref()
+      .map(|t| t.local_user.show_bot_accounts);
+    let show_read_posts = local_user_view
+      .as_ref()
+      .map(|t| t.local_user.show_read_posts);
 
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
     let username = data
       .username
@@ -65,8 +67,10 @@ impl PerformCrud for GetPersonDetails {
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
       let mut posts_query = PostQueryBuilder::create(conn)
-        .sort(&sort)
+        .sort(sort)
         .show_nsfw(show_nsfw)
+        .show_bot_accounts(show_bot_accounts)
+        .show_read_posts(show_read_posts)
         .saved_only(saved_only)
         .community_id(community_id)
         .my_person_id(person_id)
@@ -75,7 +79,8 @@ impl PerformCrud for GetPersonDetails {
 
       let mut comments_query = CommentQueryBuilder::create(conn)
         .my_person_id(person_id)
-        .sort(&sort)
+        .show_bot_accounts(show_bot_accounts)
+        .sort(sort)
         .saved_only(saved_only)
         .community_id(community_id)
         .page(page)
@@ -83,7 +88,7 @@ impl PerformCrud for GetPersonDetails {
 
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only {
+      if !saved_only.unwrap_or(false) {
         posts_query = posts_query.creator_id(person_details_id);
         comments_query = comments_query.creator_id(person_details_id);
       }

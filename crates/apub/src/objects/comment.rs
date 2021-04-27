@@ -1,6 +1,7 @@
 use crate::{
   extensions::{context::lemmy_context, note_extension::NoteExtension},
   fetcher::objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+  get_community_from_to_or_cc,
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
@@ -147,6 +148,8 @@ impl FromApubToForm<NoteExt> for CommentForm {
     request_counter: &mut i32,
     _mod_action_allowed: bool,
   ) -> Result<CommentForm, LemmyError> {
+    let community = get_community_from_to_or_cc(note, context, request_counter).await?;
+    let ap_id = Some(check_object_domain(note, expected_domain, community.local)?);
     let creator_actor_id = &note
       .attributed_to()
       .context(location_info!())?
@@ -204,7 +207,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: Some(check_object_domain(note, expected_domain)?),
+      ap_id,
       local: Some(false),
       language: note.ext_one.language.to_owned(),
     })

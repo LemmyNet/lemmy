@@ -52,15 +52,16 @@ mod tests {
 
     let site_form = SiteForm {
       name: "test_site".into(),
+      creator_id: inserted_person.id,
       sidebar: None,
       description: None,
       icon: None,
       banner: None,
-      creator_id: inserted_person.id,
-      enable_downvotes: true,
-      open_registration: true,
-      enable_nsfw: true,
+      enable_downvotes: None,
+      open_registration: None,
+      enable_nsfw: None,
       updated: None,
+      community_creation_admin_only: Some(false),
     };
 
     Site::create(&conn, &site_form).unwrap();

@@ -1,7 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
-use lemmy_db_queries::{source::community::Community_, ListingType, SortType};
+use lemmy_db_queries::{
+  from_opt_str_to_opt_enum,
+  source::community::Community_,
+  ListingType,
+  SortType,
+};
 use lemmy_db_schema::source::community::*;
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
@@ -9,7 +14,6 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetCommunity {
@@ -86,15 +90,15 @@ impl PerformCrud for ListCommunities {
       None => false,
     };
 
-    let type_ = ListingType::from_str(&data.type_)?;
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
+    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.type_);
 
     let page = data.page;
     let limit = data.limit;
     let communities = blocking(context.pool(), move |conn| {
       CommunityQueryBuilder::create(conn)
-        .listing_type(&type_)
-        .sort(&sort)
+        .listing_type(listing_type)
+        .sort(sort)
         .show_nsfw(show_nsfw)
         .my_person_id(person_id)
         .page(page)

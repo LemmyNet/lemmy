@@ -16,6 +16,7 @@ use lemmy_api_common::{
 use lemmy_db_queries::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
+  from_opt_str_to_opt_enum,
   source::{
     comment::Comment_,
     local_user::LocalUser_,
@@ -68,7 +69,6 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {
@@ -169,6 +169,7 @@ impl Perform for SaveUserSettings {
     let bio = diesel_option_overwrite(&data.bio);
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
+    let bot_account = data.bot_account;
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
@@ -213,6 +214,7 @@ impl Perform for SaveUserSettings {
       last_refreshed_at: None,
       shared_inbox_url: None,
       matrix_user_id,
+      bot_account,
     };
 
     let person_res = blocking(context.pool(), move |conn| {
@@ -231,12 +233,14 @@ impl Perform for SaveUserSettings {
       email,
       password_encrypted,
       show_nsfw: data.show_nsfw,
+      show_bot_accounts: data.show_bot_accounts,
       show_scores: data.show_scores,
       theme: data.theme.to_owned(),
       default_sort_type,
       default_listing_type,
       interface_language: data.interface_language.to_owned(),
       show_avatars: data.show_avatars,
+      show_read_posts: data.show_read_posts,
       send_notifications_to_email: data.send_notifications_to_email,
       discussion_languages: data.discussion_languages.to_owned(),
     };
@@ -395,7 +399,7 @@ impl Perform for BanPerson {
     }
 
     // Remove their data if that's desired
-    if data.remove_data {
+    if data.remove_data.unwrap_or(false) {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
         Post::update_removed_for_creator(conn, banned_person_id, None, true)
@@ -460,17 +464,20 @@ impl Perform for GetReplies {
     let data: &GetReplies = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
     let person_id = local_user_view.person.id;
+    let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
+
     let replies = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
-        .sort(&sort)
+        .sort(sort)
         .unread_only(unread_only)
         .recipient_id(person_id)
+        .show_bot_accounts(show_bot_accounts)
         .my_person_id(person_id)
         .page(page)
         .limit(limit)
@@ -494,7 +501,7 @@ impl Perform for GetPersonMentions {
     let data: &GetPersonMentions = &self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let sort = SortType::from_str(&data.sort)?;
+    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
     let page = data.page;
     let limit = data.limit;
@@ -504,7 +511,7 @@ impl Perform for GetPersonMentions {
       PersonMentionQueryBuilder::create(conn)
         .recipient_id(person_id)
         .my_person_id(person_id)
-        .sort(&sort)
+        .sort(sort)
         .unread_only(unread_only)
         .page(page)
         .limit(limit)

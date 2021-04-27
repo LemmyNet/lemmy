@@ -220,7 +220,7 @@ where
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  check_is_apub_id_valid(&person_id)?;
+  check_is_apub_id_valid(&person_id, false)?;
   // check that the sender is a person, not a community
   get_or_fetch_and_upsert_person(&person_id, &context, request_counter).await?;
 

@@ -94,10 +94,10 @@ impl CommunityView {
 
 pub struct CommunityQueryBuilder<'a> {
   conn: &'a PgConnection,
-  listing_type: &'a ListingType,
-  sort: &'a SortType,
+  listing_type: Option<ListingType>,
+  sort: Option<SortType>,
   my_person_id: Option<PersonId>,
-  show_nsfw: bool,
+  show_nsfw: Option<bool>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -108,27 +108,27 @@ impl<'a> CommunityQueryBuilder<'a> {
     CommunityQueryBuilder {
       conn,
       my_person_id: None,
-      listing_type: &ListingType::All,
-      sort: &SortType::Hot,
-      show_nsfw: true,
+      listing_type: None,
+      sort: None,
+      show_nsfw: None,
       search_term: None,
       page: None,
       limit: None,
     }
   }
 
-  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
-    self.listing_type = listing_type;
+  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
+    self.listing_type = listing_type.get_optional();
     self
   }
 
-  pub fn sort(mut self, sort: &'a SortType) -> Self {
-    self.sort = sort;
+  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
+    self.sort = sort.get_optional();
     self
   }
 
-  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
-    self.show_nsfw = show_nsfw;
+  pub fn show_nsfw<T: MaybeOptional<bool>>(mut self, show_nsfw: T) -> Self {
+    self.show_nsfw = show_nsfw.get_optional();
     self
   }
 
@@ -180,7 +180,7 @@ impl<'a> CommunityQueryBuilder<'a> {
         .or_filter(community::description.ilike(searcher));
     };
 
-    match self.sort {
+    match self.sort.unwrap_or(SortType::Hot) {
       SortType::New => query = query.order_by(community::published.desc()),
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
@@ -198,15 +198,17 @@ impl<'a> CommunityQueryBuilder<'a> {
       }
     };
 
-    if !self.show_nsfw {
+    if !self.show_nsfw.unwrap_or(true) {
       query = query.filter(community::nsfw.eq(false));
     };
 
-    query = match self.listing_type {
-      ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
-      ListingType::Local => query.filter(community::local.eq(true)),
-      _ => query,
-    };
+    if let Some(listing_type) = self.listing_type {
+      query = match listing_type {
+        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Local => query.filter(community::local.eq(true)),
+        _ => query,
+      };
+    }
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
     let res = query

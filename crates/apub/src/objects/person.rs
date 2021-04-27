@@ -10,11 +10,12 @@ use crate::{
   },
   ActorType,
   PersonExt,
+  UserTypes,
 };
 use activitystreams::{
-  actor::{ApActor, Endpoints, Person},
-  object::{ApObject, Image, Tombstone},
-  prelude::*,
+  actor::{Actor, ApActor, ApActorExt, Endpoints},
+  base::{BaseExt, ExtendsExt},
+  object::{ApObject, Image, Object, ObjectExt, Tombstone},
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
@@ -38,7 +39,16 @@ impl ToApub for DbPerson {
   type ApubType = PersonExt;
 
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
-    let mut person = ApObject::new(Person::new());
+    let object = Object::<UserTypes>::new_none_type();
+    let mut actor = Actor(object);
+    let kind = if self.bot_account {
+      UserTypes::Service
+    } else {
+      UserTypes::Person
+    };
+    actor.set_kind(kind);
+    let mut person = ApObject::new(actor);
+
     person
       .set_many_contexts(lemmy_context()?)
       .set_id(self.actor_id.to_owned().into_inner())
@@ -189,10 +199,11 @@ impl FromApubToForm<PersonExt> for PersonForm {
       banner: banner.map(|o| o.map(|i| i.into())),
       published: person.inner.published().map(|u| u.to_owned().naive_local()),
       updated: person.updated().map(|u| u.to_owned().naive_local()),
-      actor_id: Some(check_object_domain(person, expected_domain)?),
+      actor_id: Some(check_object_domain(person, expected_domain, false)?),
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),
+      bot_account: Some(person.inner.is_kind(&UserTypes::Service)),
       private_key: None,
       public_key: Some(Some(person.ext_two.public_key.to_owned().public_key_pem)),
       last_refreshed_at: Some(naive_now()),

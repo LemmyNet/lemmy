@@ -46,7 +46,7 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if check_is_apub_id_valid(&inbox).is_ok() {
+  if check_is_apub_id_valid(&inbox, false).is_ok() {
     debug!(
       "Sending activity {:?} to {}",
       &activity.id_unchecked(),
@@ -83,7 +83,7 @@ where
   .flatten()
   .unique()
   .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
-  .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
+  .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
   .map(|inbox| inbox.to_owned())
   .collect();
   debug!(
@@ -124,7 +124,7 @@ where
       .await?;
   } else {
     let inbox = community.get_shared_inbox_or_inbox_url();
-    check_is_apub_id_valid(&inbox)?;
+    check_is_apub_id_valid(&inbox, false)?;
     debug!(
       "Sending activity {:?} to community {}",
       &activity.id_unchecked(),
@@ -160,7 +160,7 @@ where
   );
   let mentions = mentions
     .iter()
-    .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
+    .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
     .map(|i| i.to_owned())
     .collect();
   send_activity_internal(

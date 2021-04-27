@@ -12,12 +12,12 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:0.10.3
+    image: dessalines/lemmy:0.11.0
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
     environment:
-      - RUST_LOG=error
+      - RUST_LOG="warn,lemmy_server=info,lemmy_api=info,lemmy_api_common=info,lemmy_api_crud=info,lemmy_apub=info,lemmy_apub_receive=info,lemmy_db_queries=info,lemmy_db_schema=info,lemmy_db_views=info,lemmy_db_views_actor=info,lemmy_db_views_moderator=info,lemmy_routes=info,lemmy_utils=info,lemmy_websocket=info"
     volumes:
       - ./lemmy.hjson:/config/config.hjson
     depends_on:
@@ -26,7 +26,7 @@ services:
       - iframely
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.10.3
+    image: dessalines/lemmy-ui:0.11.0
     ports:
       - "127.0.0.1:1235:1234"
     restart: always

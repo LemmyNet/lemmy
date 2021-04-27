@@ -154,8 +154,10 @@ table! {
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
+        show_bot_accounts -> Bool,
         show_scores -> Bool,
         discussion_languages -> Array<Text>,
+        show_read_posts -> Bool,
     }
 }
 
@@ -289,6 +291,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
+        bot_account -> Bool,
     }
 }
 
@@ -435,6 +438,7 @@ table! {
         icon -> Nullable<Varchar>,
         banner -> Nullable<Varchar>,
         description -> Nullable<Text>,
+        community_creation_admin_only -> Bool,
     }
 }
 
@@ -492,6 +496,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
+        bot_account -> Bool,
     }
 }
 
@@ -516,6 +521,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
+        bot_account -> Bool,
     }
 }
 

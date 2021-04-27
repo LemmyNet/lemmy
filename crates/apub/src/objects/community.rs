@@ -203,7 +203,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: Some(group.ext_one.sensitive.unwrap_or(false)),
-      actor_id: Some(check_object_domain(group, expected_domain)?),
+      actor_id: Some(check_object_domain(group, expected_domain, true)?),
       local: Some(false),
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),

@@ -98,13 +98,14 @@ where
 pub(in crate::objects) fn check_object_domain<T, Kind>(
   apub: &T,
   expected_domain: Url,
+  use_strict_allowlist: bool,
 ) -> Result<DbUrl, LemmyError>
 where
   T: Base + AsBase<Kind>,
 {
   let domain = expected_domain.domain().context(location_info!())?;
   let object_id = apub.id(domain)?.context(location_info!())?;
-  check_is_apub_id_valid(object_id)?;
+  check_is_apub_id_valid(object_id, use_strict_allowlist)?;
   Ok(object_id.to_owned().into())
 }
 

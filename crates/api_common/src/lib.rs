@@ -14,6 +14,7 @@ use lemmy_db_queries::{
   },
   Crud,
   DbPool,
+  Readable,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,7 +22,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator},
     person::Person,
     person_mention::{PersonMention, PersonMentionForm},
-    post::Post,
+    post::{Post, PostRead, PostReadForm},
     site::Site,
   },
   CommunityId,
@@ -240,6 +241,20 @@ pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError
   blocking(pool, move |conn| Post::read(conn, post_id))
     .await?
     .map_err(|_| ApiError::err("couldnt_find_post").into())
+}
+
+pub async fn mark_post_as_read(
+  person_id: PersonId,
+  post_id: PostId,
+  pool: &DbPool,
+) -> Result<PostRead, LemmyError> {
+  let post_read_form = PostReadForm { post_id, person_id };
+
+  blocking(pool, move |conn| {
+    PostRead::mark_as_read(conn, &post_read_form)
+  })
+  .await?
+  .map_err(|_| ApiError::err("couldnt_mark_post_as_read").into())
 }
 
 pub async fn get_local_user_view_from_jwt(

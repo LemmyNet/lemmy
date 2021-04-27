@@ -39,8 +39,8 @@ pub struct CommunityResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct ListCommunities {
-  pub type_: String,
-  pub sort: String,
+  pub type_: Option<String>,
+  pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Option<String>,
@@ -56,7 +56,7 @@ pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub ban: bool,
-  pub remove_data: bool,
+  pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: String,
@@ -84,7 +84,7 @@ pub struct AddModToCommunityResponse {
 #[derive(Deserialize)]
 pub struct EditCommunity {
   pub community_id: CommunityId,
-  pub title: String,
+  pub title: Option<String>,
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,

@@ -85,7 +85,7 @@ where
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  check_is_apub_id_valid(&actor_id)?;
+  check_is_apub_id_valid(&actor_id, false)?;
   let actor = get_or_fetch_and_upsert_actor(&actor_id, &context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
   Ok(actor)

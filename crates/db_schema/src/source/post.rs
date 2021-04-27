@@ -39,7 +39,7 @@ pub struct PostForm {
   pub name: String,
   pub creator_id: PersonId,
   pub community_id: CommunityId,
-  pub nsfw: bool,
+  pub nsfw: Option<bool>,
   pub url: Option<DbUrl>,
   pub body: Option<String>,
   pub removed: Option<bool>,

@@ -77,6 +77,7 @@ pub struct FederationConfig {
   pub enabled: bool,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
+  pub strict_allowlist: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

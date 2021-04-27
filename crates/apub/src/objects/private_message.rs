@@ -1,5 +1,4 @@
 use crate::{
-  check_is_apub_id_valid,
   extensions::{context::lemmy_context, note_extension::NoteExtension},
   fetcher::person::get_or_fetch_and_upsert_person,
   objects::{
@@ -118,8 +117,7 @@ impl FromApubToForm<NoteExt> for PrivateMessageForm {
       .context(location_info!())?;
     let recipient =
       get_or_fetch_and_upsert_person(&recipient_actor_id, context, request_counter).await?;
-    let ap_id = note.id_unchecked().context(location_info!())?.to_string();
-    check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
+    let ap_id = Some(check_object_domain(note, expected_domain, false)?);
 
     let content = get_source_markdown_value(note)?.context(location_info!())?;
 
@@ -131,7 +129,7 @@ impl FromApubToForm<NoteExt> for PrivateMessageForm {
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
-      ap_id: Some(check_object_domain(note, expected_domain)?),
+      ap_id,
       local: Some(false),
       language: note.ext_one.language.to_owned(),
     })
