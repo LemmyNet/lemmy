@@ -34,6 +34,7 @@ use lemmy_db_schema::{
   CommunityId,
   PersonId,
   PostId,
+  PrimaryLanguageTag,
 };
 use serde::Serialize;
 
@@ -184,6 +185,7 @@ pub struct CommentQueryBuilder<'a> {
   saved_only: Option<bool>,
   unread_only: Option<bool>,
   show_bot_accounts: Option<bool>,
+  languages: Option<Vec<PrimaryLanguageTag>>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -204,6 +206,7 @@ impl<'a> CommentQueryBuilder<'a> {
       saved_only: None,
       unread_only: None,
       show_bot_accounts: None,
+      languages: None,
       page: None,
       limit: None,
     }
@@ -266,6 +269,11 @@ impl<'a> CommentQueryBuilder<'a> {
 
   pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
     self.show_bot_accounts = show_bot_accounts.get_optional();
+    self
+  }
+
+  pub fn languages<T: MaybeOptional<Vec<PrimaryLanguageTag>>>(mut self, languages: T) -> Self {
+    self.languages = languages.get_optional();
     self
   }
 
@@ -391,6 +399,10 @@ impl<'a> CommentQueryBuilder<'a> {
     if !self.show_bot_accounts.unwrap_or(true) {
       query = query.filter(person::bot_account.eq(false));
     };
+
+    if let Some(languages) = self.languages {
+      query = query.filter(comment::language.eq(any(languages)))
+    }
 
     query = match self.sort.unwrap_or(SortType::New) {
       SortType::Hot | SortType::Active => query
