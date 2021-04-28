@@ -522,6 +522,7 @@ mod tests {
       name: bot_post_name,
       creator_id: inserted_bot.id,
       community_id: inserted_community.id,
+      language: Some(PrimaryLanguageTag("en".to_string())),
       ..PostForm::default()
     };
 
