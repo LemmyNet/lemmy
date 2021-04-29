@@ -5,11 +5,12 @@ services:
     image: postgres:12-alpine
     environment:
       - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data
     restart: always
+    env_file:
+      - db.env
 
   lemmy:
     image: dessalines/lemmy:0.11.0
