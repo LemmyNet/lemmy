@@ -9,6 +9,9 @@ services:
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data
     restart: always
+    # create a file named db.env in this directory and fill it with
+    # POSTGRES_PASSWORD=password
+    # change "password" to your password
     env_file:
       - db.env
 
