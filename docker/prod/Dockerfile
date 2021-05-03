@@ -1,5 +1,5 @@
 # Build the project
-FROM ekidd/rust-musl-builder:1.50.0 as builder
+FROM ekidd/rust-musl-builder:1.51.0 as builder
 
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="release"
