@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 #git checkout main
 
 # Creating the new tag

@@ -8,11 +8,11 @@ Since our last release this month, we've had [~60](https://github.com/LemmyNet/l
 
 #### Major Changes
 
-- Add option to disable strict allowlist ( [#1486](https://github.com/LemmyNet/lemmy/issues/1486)) [documentation](https://join.lemmy.ml/docs/en/federation/administration.html) # TODO: need to merge https://github.com/LemmyNet/lemmy-docs/pull/66/files
+- Add option to disable strict allowlist ( [#1486](https://github.com/LemmyNet/lemmy/issues/1486)) [documentation](https://join.lemmy.ml/docs/en/federation/administration.html) 
 - Add option to limit community creation to admins only ([#1587](https://github.com/LemmyNet/lemmy/issues/1587))
 - Many search improvements:
-    - Don't search for communities or users when the id is included.
-    - Add creator id to search.
+  - Don't search for communities or users when the id is included.
+  - Add creator id to search.
 
 #### General
 
