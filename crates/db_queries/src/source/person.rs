@@ -237,7 +237,10 @@ impl Person_ for Person {
 
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
-      .set((local_user::email.eq::<Option<String>>(None),))
+      .set((
+        local_user::email.eq::<Option<String>>(None),
+        local_user::validator_time.eq(naive_now()),
+      ))
       .execute(conn)?;
 
     diesel::update(person.find(person_id))
