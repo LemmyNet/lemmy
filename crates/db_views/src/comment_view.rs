@@ -18,16 +18,19 @@ use lemmy_db_schema::{
     comment_like,
     comment_saved,
     community,
+    community_block,
     community_follower,
     community_person_ban,
     person,
     person_alias_1,
+    person_block,
     post,
   },
   source::{
     comment::{Comment, CommentAlias1, CommentSaved},
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person_block::PersonBlock,
     post::Post,
   },
   CommentId,
@@ -49,6 +52,7 @@ pub struct CommentView {
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub subscribed: bool,                    // Left join to CommunityFollower
   pub saved: bool,                         // Left join to CommentSaved
+  pub creator_blocked: bool,               // Left join to PersonBlock
   pub my_vote: Option<i16>,                // Left join to CommentLike
 }
 
@@ -63,6 +67,7 @@ type CommentViewTuple = (
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
+  Option<PersonBlock>,
   Option<i16>,
 );
 
@@ -86,6 +91,7 @@ impl CommentView {
       creator_banned_from_community,
       subscribed,
       saved,
+      creator_blocked,
       comment_like,
     ) = comment::table
       .find(comment_id)
@@ -118,6 +124,13 @@ impl CommentView {
         ),
       )
       .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::person_id)
+            .and(person_block::recipient_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
@@ -135,6 +148,7 @@ impl CommentView {
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
         comment_saved::all_columns.nullable(),
+        person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
       .first::<CommentViewTuple>(conn)?;
@@ -157,6 +171,7 @@ impl CommentView {
       creator_banned_from_community: creator_banned_from_community.is_some(),
       subscribed: subscribed.is_some(),
       saved: saved.is_some(),
+      creator_blocked: creator_blocked.is_some(),
       my_vote,
     })
   }
@@ -316,6 +331,20 @@ impl<'a> CommentQueryBuilder<'a> {
         ),
       )
       .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::person_id)
+            .and(person_block::recipient_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_block::table.on(
+          community::id
+            .eq(community_block::community_id)
+            .and(community_block::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
@@ -333,6 +362,7 @@ impl<'a> CommentQueryBuilder<'a> {
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
         comment_saved::all_columns.nullable(),
+        person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
       .into_boxed();
@@ -413,6 +443,11 @@ impl<'a> CommentQueryBuilder<'a> {
         .order_by(comment_aggregates::score.desc()),
     };
 
+    // Don't show blocked communities
+    if self.my_person_id.is_some() {
+      query = query.filter(community_block::person_id.is_null());
+    }
+
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
     // Note: deleted and removed comments are done on the front side
@@ -440,7 +475,8 @@ impl ViewToVec for CommentView {
         creator_banned_from_community: a.7.is_some(),
         subscribed: a.8.is_some(),
         saved: a.9.is_some(),
-        my_vote: a.10,
+        creator_blocked: a.10.is_some(),
+        my_vote: a.11,
       })
       .collect::<Vec<Self>>()
   }
@@ -512,6 +548,7 @@ mod tests {
       my_vote: None,
       subscribed: false,
       saved: false,
+      creator_blocked: false,
       comment: Comment {
         id: inserted_comment.id,
         content: "A test comment 32".into(),

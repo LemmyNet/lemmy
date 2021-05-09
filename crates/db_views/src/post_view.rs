@@ -13,9 +13,11 @@ use lemmy_db_queries::{
 use lemmy_db_schema::{
   schema::{
     community,
+    community_block,
     community_follower,
     community_person_ban,
     person,
+    person_block,
     post,
     post_aggregates,
     post_like,
@@ -25,6 +27,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
     person::{Person, PersonSafe},
+    person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
   },
   CommunityId,
@@ -42,10 +45,11 @@ pub struct PostView {
   pub community: CommunitySafe,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub counts: PostAggregates,
-  pub subscribed: bool,     // Left join to CommunityFollower
-  pub saved: bool,          // Left join to PostSaved
-  pub read: bool,           // Left join to PostRead
-  pub my_vote: Option<i16>, // Left join to PostLike
+  pub subscribed: bool,      // Left join to CommunityFollower
+  pub saved: bool,           // Left join to PostSaved
+  pub read: bool,            // Left join to PostRead
+  pub creator_blocked: bool, // Left join to PersonBlock
+  pub my_vote: Option<i16>,  // Left join to PostLike
 }
 
 type PostViewTuple = (
@@ -57,6 +61,7 @@ type PostViewTuple = (
   Option<CommunityFollower>,
   Option<PostSaved>,
   Option<PostRead>,
+  Option<PersonBlock>,
   Option<i16>,
 );
 
@@ -78,6 +83,7 @@ impl PostView {
       follower,
       saved,
       read,
+      creator_blocked,
       post_like,
     ) = post::table
       .find(post_id)
@@ -113,6 +119,13 @@ impl PostView {
         ),
       )
       .left_join(
+        person_block::table.on(
+          post::creator_id
+            .eq(person_block::person_id)
+            .and(person_block::recipient_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         post_like::table.on(
           post::id
             .eq(post_like::post_id)
@@ -128,6 +141,7 @@ impl PostView {
         community_follower::all_columns.nullable(),
         post_saved::all_columns.nullable(),
         post_read::all_columns.nullable(),
+        person_block::all_columns.nullable(),
         post_like::score.nullable(),
       ))
       .first::<PostViewTuple>(conn)?;
@@ -149,6 +163,7 @@ impl PostView {
       subscribed: follower.is_some(),
       saved: saved.is_some(),
       read: read.is_some(),
+      creator_blocked: creator_blocked.is_some(),
       my_vote,
     })
   }
@@ -302,6 +317,20 @@ impl<'a> PostQueryBuilder<'a> {
         ),
       )
       .left_join(
+        person_block::table.on(
+          post::creator_id
+            .eq(person_block::person_id)
+            .and(person_block::recipient_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_block::table.on(
+          community::id
+            .eq(community_block::community_id)
+            .and(community_block::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         post_like::table.on(
           post::id
             .eq(post_like::post_id)
@@ -317,6 +346,7 @@ impl<'a> PostQueryBuilder<'a> {
         community_follower::all_columns.nullable(),
         post_saved::all_columns.nullable(),
         post_read::all_columns.nullable(),
+        person_block::all_columns.nullable(),
         post_like::score.nullable(),
       ))
       .into_boxed();
@@ -376,6 +406,11 @@ impl<'a> PostQueryBuilder<'a> {
     if self.saved_only.unwrap_or(false) {
       query = query.filter(post_saved::id.is_not_null());
     };
+
+    // Don't show blocked communities
+    if self.my_person_id.is_some() {
+      query = query.filter(community_block::person_id.is_null());
+    }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query
@@ -440,7 +475,8 @@ impl ViewToVec for PostView {
         subscribed: a.5.is_some(),
         saved: a.6.is_some(),
         read: a.7.is_some(),
-        my_vote: a.8,
+        creator_blocked: a.8.is_some(),
+        my_vote: a.9,
       })
       .collect::<Vec<Self>>()
   }
@@ -623,6 +659,7 @@ mod tests {
       subscribed: false,
       read: false,
       saved: false,
+      creator_blocked: false,
     };
 
     // TODO More needs to be added here

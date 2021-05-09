@@ -126,6 +126,10 @@ pub enum UserOperation {
   ModJoin,
   ChangePassword,
   GetSiteMetadata,
+  BlockCommunity,
+  BlockPerson,
+  GetBlockedCommunities,
+  GetBlockedPersons,
 }
 
 #[derive(EnumString, ToString, Debug, Clone)]
