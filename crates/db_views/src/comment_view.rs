@@ -126,8 +126,8 @@ impl CommentView {
       .left_join(
         person_block::table.on(
           comment::creator_id
-            .eq(person_block::person_id)
-            .and(person_block::recipient_id.eq(person_id_join)),
+            .eq(person_block::recipient_id)
+            .and(person_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -443,9 +443,10 @@ impl<'a> CommentQueryBuilder<'a> {
         .order_by(comment_aggregates::score.desc()),
     };
 
-    // Don't show blocked communities
+    // Don't show blocked communities or persons
     if self.my_person_id.is_some() {
       query = query.filter(community_block::person_id.is_null());
+      query = query.filter(person_block::person_id.is_null());
     }
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
