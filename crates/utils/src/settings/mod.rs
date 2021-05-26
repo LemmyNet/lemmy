@@ -27,10 +27,10 @@ lazy_static! {
 }
 
 impl Settings {
-  /// Reads config from the files and environment.
-  /// First, defaults are loaded from CONFIG_FILE_DEFAULTS, then these values can be overwritten
-  /// from CONFIG_FILE (optional). Finally, values from the environment (with prefix LEMMY) are
-  /// added to the config.
+  /// Reads config from configuration file.
+  /// Then values from the environment (with prefix LEMMY) are added to the config.
+  /// And then default values are merged into config.
+  /// Defaults are controlled by Default trait implemntation for Settings structs.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`

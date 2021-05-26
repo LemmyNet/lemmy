@@ -90,4 +90,8 @@
 #    # whether or not smtp connections should use tls
 #    use_tls: true
 #  }
+  # additional_slurs:
+  #  '''
+  #  (\bThis\b)|(\bis\b)|(\bsample\b)
+  #  '''
 }
