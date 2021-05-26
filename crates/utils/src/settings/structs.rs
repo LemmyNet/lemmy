@@ -17,6 +17,7 @@ pub struct Settings {
   pub(crate) captcha: Option<CaptchaConfig>,
   pub(crate) email: Option<EmailConfig>,
   pub(crate) setup: Option<SetupConfig>,
+  pub(crate) additional_slurs: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

@@ -17,6 +17,7 @@ impl Default for Settings {
       jwt_secret: Some("changeme".into()),
       pictrs_url: Some("http://pictrs:8080".into()),
       iframely_url: Some("http://iframely".into()),
+      additional_slurs: None,
     }
   }
 }
