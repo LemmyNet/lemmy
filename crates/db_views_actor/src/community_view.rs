@@ -198,7 +198,7 @@ impl<'a> CommunityQueryBuilder<'a> {
       }
     };
 
-    if !self.show_nsfw.unwrap_or(true) {
+    if !self.show_nsfw.unwrap_or(false) {
       query = query.filter(community::nsfw.eq(false));
     };
 
