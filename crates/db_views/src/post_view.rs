@@ -359,7 +359,7 @@ impl<'a> PostQueryBuilder<'a> {
       query = query.filter(post::creator_id.eq(creator_id));
     }
 
-    if !self.show_nsfw.unwrap_or(true) {
+    if !self.show_nsfw.unwrap_or(false) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
