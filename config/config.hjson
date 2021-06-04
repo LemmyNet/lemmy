@@ -63,7 +63,7 @@
     # whether to enable activitypub federation.
     enabled: false
     # Allows and blocks are described here:
-    # https://join.lemmy.ml/docs/en/federation/administration.html#instance-allowlist-and-blocklist
+    # https://join-lemmy.org/docs/en/federation/administration.html#instance-allowlist-and-blocklist
     #
     # list of instances with which federation is allowed
     # allowed_instances: ["instance1.tld","instance2.tld"]

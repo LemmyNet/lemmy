@@ -17,17 +17,17 @@
 </p>
 
 <p align="center">
-  <a href="https://join.lemmy.ml/" rel="noopener">
+  <a href="https://join-lemmy.org/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
- <h3 align="center"><a href="https://join.lemmy.ml">Lemmy</a></h3>
+ <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
   <p align="center">
     Un agregador de enlaces / alternativa a Menéame - Reddit para el fediverso. 
     <br />
     <br />
-    <a href="https://join.lemmy.ml">Unirse a Lemmy</a>
+    <a href="https://join-lemmy.org">Unirse a Lemmy</a>
     ·
-    <a href="https://join.lemmy.ml/docs/es/index.html">Documentación</a>
+    <a href="https://join-lemmy.org/docs/es/index.html">Documentación</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Reportar Errores (bugs)</a>
     ·
@@ -35,7 +35,7 @@
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Lanzamientos</a>
     ·
-    <a href="https://join.lemmy.ml/docs/es/code_of_conduct.html">Código de Conducta</a>
+    <a href="https://join-lemmy.org/docs/es/code_of_conduct.html">Código de Conducta</a>
   </p>
 </p>
 
@@ -111,8 +111,8 @@ Cada servidor lemmy puede establecer su propia política de moderación; nombran
 
 ## Instalación
 
-- [Docker](https://join.lemmy.ml/docs/es/administration/install_docker.html)
-- [Ansible](https://join.lemmy.ml/docs/es/administration/install_ansible.html)
+- [Docker](https://join-lemmy.org/docs/es/administration/install_docker.html)
+- [Ansible](https://join-lemmy.org/docs/es/administration/install_ansible.html)
 
 ## Proyectos de Lemmy
 
@@ -135,7 +135,7 @@ Lemmy es un software libre y de código abierto, lo que significa que no hay pub
 - [Apoya en Liberapay](https://liberapay.com/Lemmy).
 - [Apoya en Patreon](https://www.patreon.com/dessalines).
 - [Apoya en OpenCollective](https://opencollective.com/lemmy).
-- [Lista de patrocinadores](https://join.lemmy.ml/sponsors).
+- [Lista de patrocinadores](https://join-lemmy.org/sponsors).
 
 ### Crypto
 
@@ -145,9 +145,9 @@ Lemmy es un software libre y de código abierto, lo que significa que no hay pub
 
 ## Contribuir
 
-- [Instrucciones para contribuir](https://join.lemmy.ml/docs/es/contributing/contributing.html)
-- [Desarrollo por Docker](https://join.lemmy.ml/docs/es/contributing/docker_development.html)
-- [Desarrollo Local](https://join.lemmy.ml/docs/es/contributing/local_development.html)
+- [Instrucciones para contribuir](https://join-lemmy.org/docs/es/contributing/contributing.html)
+- [Desarrollo por Docker](https://join-lemmy.org/docs/es/contributing/docker_development.html)
+- [Desarrollo Local](https://join-lemmy.org/docs/es/contributing/local_development.html)
 
 ### Traducciones
 

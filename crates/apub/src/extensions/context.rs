@@ -9,7 +9,7 @@ pub fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
     "sc": "http://schema.org#",
     "sensitive": "as:sensitive",
     "stickied": "as:stickied",
-    "pt": "https://join.lemmy.ml#",
+    "pt": "https://join-lemmy.org#",
     "comments_enabled": {
       "type": "sc:Boolean",
       "id": "pt:commentsEnabled"

@@ -1,6 +1,6 @@
 {
   # for more info about the config, check out the documentation
-  # https://join.lemmy.ml/docs/en/administration/configuration.html
+  # https://join-lemmy.org/docs/en/administration/configuration.html
 
   # settings related to the postgresql database
   database: {
@@ -33,7 +33,7 @@
     # whether to enable activitypub federation. 
     enabled: false
     # Allows and blocks are described here:
-    # https://join.lemmy.ml/docs/en/federation/administration.html#instance-allowlist-and-blocklist
+    # https://join-lemmy.org/docs/en/federation/administration.html#instance-allowlist-and-blocklist
     #
     # comma separated list of instances with which federation is allowed
     # Only one of these blocks should be uncommented
