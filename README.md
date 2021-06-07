@@ -17,17 +17,17 @@
 </p>
 
 <p align="center">
-  <a href="https://join.lemmy.ml/" rel="noopener">
+  <a href="https://join-lemmy.org/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
- <h3 align="center"><a href="https://join.lemmy.ml">Lemmy</a></h3>
+ <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
   <p align="center">
     A link aggregator / Reddit clone for the fediverse.
     <br />
     <br />
-    <a href="https://join.lemmy.ml">Join Lemmy</a>
+    <a href="https://join-lemmy.org">Join Lemmy</a>
     ·
-    <a href="https://join.lemmy.ml/docs/en/index.html">Documentation</a>
+    <a href="https://join-lemmy.org/docs/en/index.html">Documentation</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
     ·
@@ -35,7 +35,7 @@
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
     ·
-    <a href="https://join.lemmy.ml/docs/en/code_of_conduct.html">Code of Conduct</a>
+    <a href="https://join-lemmy.org/docs/en/code_of_conduct.html">Code of Conduct</a>
   </p>
 </p>
 
@@ -74,7 +74,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html) and [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html).
+  - Comes with [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html) and [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html).
 - Clean, mobile-friendly interface.
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
@@ -109,8 +109,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html)
-- [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+- [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html)
+- [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html)
 
 ## Lemmy Projects
 
@@ -133,7 +133,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
-- [List of Sponsors](https://join.lemmy.ml/sponsors).
+- [List of Sponsors](https://join-lemmy.org/sponsors).
 
 ### Crypto
 
@@ -143,9 +143,9 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://join.lemmy.ml/docs/en/contributing/contributing.html)
-- [Docker Development](https://join.lemmy.ml/docs/en/contributing/docker_development.html)
-- [Local Development](https://join.lemmy.ml/docs/en/contributing/local_development.html)
+- [Contributing instructions](https://join-lemmy.org/docs/en/contributing/contributing.html)
+- [Docker Development](https://join-lemmy.org/docs/en/contributing/docker_development.html)
+- [Local Development](https://join-lemmy.org/docs/en/contributing/local_development.html)
 
 ### Translations
 
