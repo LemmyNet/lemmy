@@ -8,7 +8,7 @@ Since our last release this month, we've had [~60](https://github.com/LemmyNet/l
 
 #### Major Changes
 
-- Add option to disable strict allowlist ( [#1486](https://github.com/LemmyNet/lemmy/issues/1486)) [documentation](https://join.lemmy.ml/docs/en/federation/administration.html) 
+- Add option to disable strict allowlist ( [#1486](https://github.com/LemmyNet/lemmy/issues/1486)) [documentation](https://join-lemmy.org/docs/en/federation/administration.html) 
 - Add option to limit community creation to admins only ([#1587](https://github.com/LemmyNet/lemmy/issues/1587))
 - Many search improvements:
   - Don't search for communities or users when the id is included.
@@ -54,12 +54,12 @@ Since our last release this month, we've had [~60](https://github.com/LemmyNet/l
 
 ### Servers
 
-If you'd like to make a DB backup before upgrading, follow [this guide](https://join.lemmy.ml/docs/en/administration/backup_and_restore.html).
+If you'd like to make a DB backup before upgrading, follow [this guide](https://join-lemmy.org/docs/en/administration/backup_and_restore.html).
 
 To upgrade your instance to `v0.10.0`, simply follow the instructions in the documentation:
 
-- [Upgrade with manual Docker installation](https://join.lemmy.ml/docs/en/administration/install_docker.html#updating)
-- [Upgrade with Ansible installation](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+- [Upgrade with manual Docker installation](https://join-lemmy.org/docs/en/administration/install_docker.html#updating)
+- [Upgrade with Ansible installation](https://join-lemmy.org/docs/en/administration/install_ansible.html)
 
 ### Clients / Apps
 
@@ -80,7 +80,7 @@ To upgrade your instance to `v0.10.0`, simply follow the instructions in the doc
 
 ## Changes
 
-Since our last release in February, we've had [~150](https://github.com/LemmyNet/lemmy/compare/0.9.9...main) commits to Lemmy. The biggest changes, as we'll outline below, are a split of Lemmy's user tables into federated and local tables, necessitating a `v3` of Lemmy's API, federated moderation, i18n support in join.lemmy.ml, and lots of back-end cleanup.
+Since our last release in February, we've had [~150](https://github.com/LemmyNet/lemmy/compare/0.9.9...main) commits to Lemmy. The biggest changes, as we'll outline below, are a split of Lemmy's user tables into federated and local tables, necessitating a `v3` of Lemmy's API, federated moderation, i18n support in join-lemmy.org, and lots of back-end cleanup.
 
 ### Lemmy Server
 
@@ -119,9 +119,9 @@ Since our last release in February, we've had [~150](https://github.com/LemmyNet
 
 ### Lemmy Docs
 
-- Gazconroy built an [Async API spec for Lemmy](https://join.lemmy.ml/api/index.html), that now serves as our main API docs.
+- Gazconroy built an [Async API spec for Lemmy](https://join-lemmy.org/api/index.html), that now serves as our main API docs.
 
-### join.lemmy.ml
+### join-lemmy.org
 
 - Rewrote in inferno isomorphic, added i18n support via [weblate](https://weblate.yerbamate.ml/projects/lemmy/joinlemmy/).
 - Added a section on the support page thanking contributors.
@@ -137,12 +137,12 @@ Since our last release in February, we've had [~150](https://github.com/LemmyNet
     - now: `allowed_instances: ["ds9.lemmy.ml", "enterprise.lemmy.ml"]` , and only one of the `allowed_instances` or `blocked_instances` blocks can be set.
 - The API has been upgraded from `v2` to `v3`, so all clients need to be updated: [lemmy-js-client: 0.9.9 -> 0.10.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.9.9...0.10.0-rc.13) .
 
-If you'd like to make a DB backup before upgrading, follow [this guide](https://join.lemmy.ml/docs/en/administration/backup_and_restore.html).
+If you'd like to make a DB backup before upgrading, follow [this guide](https://join-lemmy.org/docs/en/administration/backup_and_restore.html).
 
 To upgrade your instance to `v0.10.0`, simply follow the instructions in the documentation:
 
-- [Upgrade with manual Docker installation](https://join.lemmy.ml/docs/en/administration/install_docker.html#updating)
-- [Upgrade with Ansible installation](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+- [Upgrade with manual Docker installation](https://join-lemmy.org/docs/en/administration/install_docker.html#updating)
+- [Upgrade with Ansible installation](https://join-lemmy.org/docs/en/administration/install_ansible.html)
 
 
 ## Compilation time
@@ -201,7 +201,7 @@ On the other hand, some crates have gotten much slower to compile, in particular
 
 - Fixed inbox_urls not being correctly set, which broke federation in `v0.9.5`. Added some logging to catch these.
 - Fixing community search not using auth.
-- Moved docs to https://join.lemmy.ml
+- Moved docs to https://join-lemmy.org
 - Fixed an issue w/ lemmy-ui with forms being cleared out.
 
 # Lemmy v0.9.4 Pre-Release (2021-02-02)
@@ -282,10 +282,10 @@ None of these are breaking changes, so federation between 0.9.0 and 0.8.11 will 
 
 ## Upgrading
 
-If you'd like to make a DB backup before upgrading, follow [this guide](https://join.lemmy.ml/docs/en/administration/backup_and_restore.html).
+If you'd like to make a DB backup before upgrading, follow [this guide](https://join-lemmy.org/docs/en/administration/backup_and_restore.html).
 
-- [Upgrade with manual Docker installation](https://join.lemmy.ml/docs/en/administration/install_docker.html#updating)
-- [Upgrade with Ansible installation](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+- [Upgrade with manual Docker installation](https://join-lemmy.org/docs/en/administration/install_docker.html#updating)
+- [Upgrade with Ansible installation](https://join-lemmy.org/docs/en/administration/install_ansible.html)
 
 # Lemmy v0.8.0 Release (2020-10-16)
 
@@ -309,7 +309,7 @@ Here are some of the bigger changes:
 - The first **federation public beta release**, woohoo :fireworks: 
 - All Lemmy functionality now works over ActivityPub (except turning remote users into mods/admins)
 - Instance allowlist and blocklist
-- Documentation for [admins](https://join.lemmy.ml/docs/administration_federation.html) and [devs](https://join.lemmy.ml/docs/contributing_federation_overview.html) on how federation works
+- Documentation for [admins](https://join-lemmy.org/docs/administration_federation.html) and [devs](https://join-lemmy.org/docs/contributing_federation_overview.html) on how federation works
 - Upgraded to newest versions of @asonix activitypub libraries
 - Full local federation setup for manual testing
 - Automated testing for nearly every federation action
@@ -347,8 +347,8 @@ We'd also like to thank both the [NLnet foundation](https://nlnet.nl/) for their
 
 ## Upgrading
 
-- [with manual Docker installation](https://join.lemmy.ml/docs/administration_install_docker.html#updating)
-- [with Ansible installation](https://join.lemmy.ml/docs/administration_install_ansible.html)
+- [with manual Docker installation](https://join-lemmy.org/docs/administration_install_docker.html#updating)
+- [with Ansible installation](https://join-lemmy.org/docs/administration_install_ansible.html)
 
 ## Testing Federation
 
@@ -436,7 +436,7 @@ Overall, since our last major release in January (v0.6.0), we have closed over
 
 Before starting the upgrade, make sure that you have a working backup of your
 database and image files. See our
-[documentation](https://join.lemmy.ml/docs/administration_backup_and_restore.html)
+[documentation](https://join-lemmy.org/docs/administration_backup_and_restore.html)
 for backup instructions.
 
 **With Ansible:**

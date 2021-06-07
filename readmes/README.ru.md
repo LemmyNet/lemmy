@@ -17,17 +17,17 @@
 </p>
 
 <p align="center">
-  <a href="https://join.lemmy.ml/" rel="noopener">
+  <a href="https://join-lemmy.org/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
- <h3 align="center"><a href="https://join.lemmy.ml">Lemmy</a></h3>
+ <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
   <p align="center">
     Агрегатор ссылок / Клон Reddit для федиверс.
     <br />
     <br />
-    <a href="https://join.lemmy.ml">Присоединяйтесь к Lemmy</a>
+    <a href="https://join-lemmy.org">Присоединяйтесь к Lemmy</a>
     ·
-    <a href="https://join.lemmy.ml/docs/en/index.html">Документация</a>
+    <a href="https://join-lemmy.org/docs/en/index.html">Документация</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Сообщить об Ошибке</a>
     ·
@@ -35,7 +35,7 @@
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Релизы</a>
     ·
-    <a href="https://join.lemmy.ml/docs/en/code_of_conduct.html">Нормы поведения</a>
+    <a href="https://join-lemmy.org/docs/en/code_of_conduct.html">Нормы поведения</a>
   </p>
 </p>
 
@@ -74,7 +74,7 @@
 
 - Открытое программное обеспечение, [Лицензия AGPL](/LICENSE).
 - Возможность самостоятельного размещения, простота развёртывания.
-  - Работает на [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html) и [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html).
+  - Работает на [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html) и [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html).
 - Понятый и удобный интерфейс для мобильных устройств.
   - Для регистрации требуется минимум: имя пользователя и пароль!
   - Поддержка аватара пользователя.
@@ -109,8 +109,8 @@
 
 ## Установка
 
-- [Docker](https://join.lemmy.ml/docs/en/administration/install_docker.html)
-- [Ansible](https://join.lemmy.ml/docs/en/administration/install_ansible.html)
+- [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html)
+- [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html)
 
 ## Проекты Lemmy
 
@@ -133,7 +133,7 @@ Lemmy - бесплатное программное обеспечение с о
 - [Поддержать на Liberapay](https://liberapay.com/Lemmy).
 - [Поддержать на Patreon](https://www.patreon.com/dessalines).
 - [Поддержать на OpenCollective](https://opencollective.com/lemmy).
-- [Список Спонсоров](https://join.lemmy.ml/sponsors).
+- [Список Спонсоров](https://join-lemmy.org/sponsors).
 
 ### Криптовалюты
 
@@ -143,9 +143,9 @@ Lemmy - бесплатное программное обеспечение с о
 
 ## Вклад
 
-- [Инструкции по внесению вклада](https://join.lemmy.ml/docs/en/contributing/contributing.html)
-- [Docker разработка](https://join.lemmy.ml/docs/en/contributing/docker_development.html)
-- [Локальное развитие](https://join.lemmy.ml/docs/en/contributing/local_development.html)
+- [Инструкции по внесению вклада](https://join-lemmy.org/docs/en/contributing/contributing.html)
+- [Docker разработка](https://join-lemmy.org/docs/en/contributing/docker_development.html)
+- [Локальное развитие](https://join-lemmy.org/docs/en/contributing/local_development.html)
 
 ### Переводы
 
