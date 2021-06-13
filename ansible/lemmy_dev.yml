@@ -31,7 +31,7 @@
         - 'python-certbot-nginx'
 
   - name: request initial letsencrypt certificate
-    command: certbot certonly --nginx --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
+    command: certbot certonly --nginx --agree-tos --cert-name '{{ domain }}' -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
     args:
       creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
 
@@ -146,4 +146,4 @@
       special_time: daily
       name: certbot-renew-lemmy
       user: root
-      job: "certbot certonly --nginx -d '{{ domain }}' --deploy-hook 'nginx -s reload'"
+      job: "certbot certonly --nginx --cert-name '{{ domain }}' -d '{{ domain }}' --deploy-hook 'nginx -s reload'"
