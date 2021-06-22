@@ -25,8 +25,8 @@ actix-rt = { version = "1.1.1", default-features = false }
 awc = { version = "2.0.3", default-features = false }
 log = "0.4.14"
 rand = "0.8.3"
-strum = "0.20.0"
-strum_macros = "0.20.1"
+strum = { version = "0.21", features = ["derive"] }
+strum_macros = "0.21"
 url = { version = "2.2.1", features = ["serde"] }
 percent-encoding = "2.1.0"
 openssl = "0.10.32"

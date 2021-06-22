@@ -5,6 +5,7 @@ use crate::{
     get_activity_id,
     inbox_verify_http_signature,
     is_activity_already_known,
+    new_inbox_routing::receive_activity,
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
@@ -136,6 +137,7 @@ pub(crate) async fn community_receive_message(
   let any_base = activity.clone().into_any_base()?;
   let actor_url = actor.actor_id();
   let activity_kind = activity.kind().context(location_info!())?;
+  receive_activity(any_base.clone(), context)?;
   let do_announce = match activity_kind {
     CommunityValidTypes::Follow => {
       Box::pin(handle_follow(

@@ -15,6 +15,20 @@ use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation, UserOperationCrud};
 
+// TODO:
+// - define traits for all activity types
+// - implement inbox routing with these traits
+// - replace context with actix style Data struct (actix_web::web::Data)
+pub(crate) trait ReceiveCreate {
+  fn receive_create(self, create: Create, context: LemmyContext, request_counter: &mut i32);
+}
+
+impl ReceiveCreate for Comment {
+  fn receive_create(self, _create: Create, _context: LemmyContext, _request_counter: &mut i32) {
+    unimplemented!()
+  }
+}
+
 pub(crate) async fn receive_create_comment(
   create: Create,
   context: &LemmyContext,

@@ -52,6 +52,7 @@ pub type GroupExt =
 /// Activitystreams type for person
 type PersonExt =
   Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
+pub type SiteExt = actor::ApActor<ApObject<actor::Service>>;
 /// Activitystreams type for post
 pub type PageExt = Ext1<ApObject<Page>, PageExtension>;
 pub type NoteExt = ApObject<Note>;
