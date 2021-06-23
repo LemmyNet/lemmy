@@ -66,6 +66,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::EnumString;
 use url::Url;
+use crate::inbox::new_inbox_routing::{PersonAcceptedActivitiesNew, ReceiveActivity, Activity};
 
 /// Allowed activities for person inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
@@ -85,11 +86,15 @@ pub type PersonAcceptedActivities = ActorAndObject<PersonValidTypes>;
 /// Handler for all incoming activities to person inboxes.
 pub async fn person_inbox(
   request: HttpRequest,
-  input: web::Json<PersonAcceptedActivities>,
+  input: web::Json<Activity<PersonAcceptedActivitiesNew>>,
   path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
+  let request_counter = &mut 0;
+  activity.inner.receive(&context, request_counter);
+  todo!()
+  /*
   // First of all check the http signature
   let request_counter = &mut 0;
   let actor = inbox_verify_http_signature(&activity, &context, request, request_counter).await?;
@@ -123,6 +128,7 @@ pub async fn person_inbox(
     request_counter,
   )
   .await
+  */
 }
 
 /// Receives Accept/Follow, Announce, private messages and community (undo) remove, (undo) delete
@@ -149,14 +155,6 @@ pub(crate) async fn person_receive_message(
   let actor_url = actor.actor_id();
   match kind {
     PersonValidTypes::Accept => {
-      receive_accept(
-        &context,
-        any_base,
-        actor,
-        to_person.expect("person provided"),
-        request_counter,
-      )
-      .await?;
     }
     PersonValidTypes::Announce => {
       Box::pin(receive_announce(&context, any_base, actor, request_counter)).await?
@@ -232,41 +230,6 @@ async fn is_for_person_inbox(
   }
 
   Err(anyhow!("Not addressed for any local person").into())
-}
-
-/// Handle accepted follows.
-async fn receive_accept(
-  context: &LemmyContext,
-  activity: AnyBase,
-  actor: &dyn ActorType,
-  person: Person,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let accept = Accept::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&accept, &actor.actor_id(), false)?;
-
-  let object = accept.object().to_owned().one().context(location_info!())?;
-  let follow = Follow::from_any_base(object)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &person.actor_id(), false)?;
-
-  let community_uri = accept
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-
-  let community =
-    get_or_fetch_and_upsert_community(&community_uri, context, request_counter).await?;
-
-  let community_id = community.id;
-  let person_id = person.id;
-  // This will throw an error if no follow was requested
-  blocking(&context.pool(), move |conn| {
-    CommunityFollower::follow_accepted(conn, community_id, person_id)
-  })
-  .await??;
-
-  Ok(())
 }
 
 #[derive(EnumString)]
