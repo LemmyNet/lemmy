@@ -24,12 +24,12 @@ impl PerformCrud for DeleteComment {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &DeleteComment = &self;
+    let data: &DeleteComment = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, comment_id, None)
+      CommentView::read(conn, comment_id, None)
     })
     .await??;
 
@@ -110,12 +110,12 @@ impl PerformCrud for RemoveComment {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &RemoveComment = &self;
+    let data: &RemoveComment = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, comment_id, None)
+      CommentView::read(conn, comment_id, None)
     })
     .await??;
 

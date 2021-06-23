@@ -57,7 +57,7 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let maa = collect_non_local_mentions(&self, &community, context).await?;
+    let maa = collect_non_local_mentions(self, &community, context).await?;
 
     let mut create = Create::new(
       creator.actor_id.to_owned().into_inner(),
@@ -71,8 +71,8 @@ impl ApubObjectType for Comment {
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_to_community(create.clone(), &creator, &community, None, context).await?;
-    send_comment_mentions(&creator, maa.inboxes, create, context).await?;
+    send_to_community(create.clone(), creator, &community, None, context).await?;
+    send_comment_mentions(creator, maa.inboxes, create, context).await?;
     Ok(())
   }
 
@@ -90,7 +90,7 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let maa = collect_non_local_mentions(&self, &community, context).await?;
+    let maa = collect_non_local_mentions(self, &community, context).await?;
 
     let mut update = Update::new(
       creator.actor_id.to_owned().into_inner(),
@@ -104,8 +104,8 @@ impl ApubObjectType for Comment {
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_to_community(update.clone(), &creator, &community, None, context).await?;
-    send_comment_mentions(&creator, maa.inboxes, update, context).await?;
+    send_to_community(update.clone(), creator, &community, None, context).await?;
+    send_comment_mentions(creator, maa.inboxes, update, context).await?;
     Ok(())
   }
 
@@ -129,7 +129,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(delete, &creator, &community, None, context).await?;
+    send_to_community(delete, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -169,7 +169,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, &creator, &community, None, context).await?;
+    send_to_community(undo, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -193,7 +193,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(remove, &mod_, &community, None, context).await?;
+    send_to_community(remove, mod_, &community, None, context).await?;
     Ok(())
   }
 
@@ -233,7 +233,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, &mod_, &community, None, context).await?;
+    send_to_community(undo, mod_, &community, None, context).await?;
     Ok(())
   }
 }
@@ -260,7 +260,7 @@ impl ApubLikeableType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(like, &creator, &community, None, context).await?;
+    send_to_community(like, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -284,7 +284,7 @@ impl ApubLikeableType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(dislike, &creator, &community, None, context).await?;
+    send_to_community(dislike, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -323,7 +323,7 @@ impl ApubLikeableType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, &creator, &community, None, context).await?;
+    send_to_community(undo, creator, &community, None, context).await?;
     Ok(())
   }
 }

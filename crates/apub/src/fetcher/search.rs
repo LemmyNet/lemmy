@@ -89,7 +89,7 @@ pub async fn search_by_apub_id(
     );
     Url::parse(&url)?
   } else {
-    Url::parse(&query)?
+    Url::parse(query)?
   };
 
   let recursion_counter = &mut 0;
@@ -124,7 +124,7 @@ async fn build_response(
     SearchAcceptedObjects::Person(p) => {
       let person_uri = p.inner.id(domain)?.context("person has no id")?;
 
-      let person = get_or_fetch_and_upsert_person(&person_uri, context, recursion_counter).await?;
+      let person = get_or_fetch_and_upsert_person(person_uri, context, recursion_counter).await?;
 
       response.users = vec![
         blocking(context.pool(), move |conn| {

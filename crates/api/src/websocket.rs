@@ -16,7 +16,7 @@ impl Perform for UserJoin {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<UserJoinResponse, LemmyError> {
-    let data: &UserJoin = &self;
+    let data: &UserJoin = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     if let Some(ws_id) = websocket_id {
@@ -39,7 +39,7 @@ impl Perform for CommunityJoin {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityJoinResponse, LemmyError> {
-    let data: &CommunityJoin = &self;
+    let data: &CommunityJoin = self;
 
     if let Some(ws_id) = websocket_id {
       context.chat_server().do_send(JoinCommunityRoom {
@@ -61,7 +61,7 @@ impl Perform for ModJoin {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<ModJoinResponse, LemmyError> {
-    let data: &ModJoin = &self;
+    let data: &ModJoin = self;
 
     if let Some(ws_id) = websocket_id {
       context.chat_server().do_send(JoinModRoom {
@@ -83,7 +83,7 @@ impl Perform for PostJoin {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostJoinResponse, LemmyError> {
-    let data: &PostJoin = &self;
+    let data: &PostJoin = self;
 
     if let Some(ws_id) = websocket_id {
       context.chat_server().do_send(JoinPostRoom {

@@ -71,7 +71,7 @@ impl ToApub for Post {
       .set_attributed_to(creator.actor_id.into_inner());
 
     if let Some(body) = &self.body {
-      set_content_and_source(&mut page, &body)?;
+      set_content_and_source(&mut page, body)?;
     }
 
     if let Some(url) = &self.url {

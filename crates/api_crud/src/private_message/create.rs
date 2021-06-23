@@ -22,7 +22,7 @@ impl PerformCrud for CreatePrivateMessage {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &CreatePrivateMessage = &self;
+    let data: &CreatePrivateMessage = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
@@ -54,7 +54,7 @@ impl PerformCrud for CreatePrivateMessage {
           &inserted_private_message_id.to_string(),
         )?;
         Ok(PrivateMessage::update_ap_id(
-          &conn,
+          conn,
           inserted_private_message_id,
           apub_id,
         )?)

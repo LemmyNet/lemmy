@@ -49,21 +49,13 @@ pub fn send_email(
         MultiPart::alternative()
           .singlepart(
             SinglePart::builder()
-              .header(header::ContentType(
-                "text/plain; charset=utf8"
-                  .parse()
-                  .expect("email could not parse header"),
-              ))
+              .header(header::ContentType::TEXT_PLAIN)
               .body(html.to_string()),
           )
           .multipart(
             MultiPart::related().singlepart(
               SinglePart::builder()
-                .header(header::ContentType(
-                  "text/html; charset=utf8"
-                    .parse()
-                    .expect("email could not parse header"),
-                ))
+                .header(header::ContentType::TEXT_HTML)
                 .body(html.to_string()),
             ),
           ),

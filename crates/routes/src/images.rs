@@ -1,8 +1,8 @@
-use actix::clock::Duration;
 use actix_web::{body::BodyStream, http::StatusCode, *};
 use awc::Client;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   let client = Client::builder()

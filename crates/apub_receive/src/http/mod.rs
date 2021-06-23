@@ -55,7 +55,7 @@ pub(crate) async fn get_activity(
   ))?
   .into();
   let activity = blocking(context.pool(), move |conn| {
-    Activity::read_from_apub_id(&conn, &activity_id)
+    Activity::read_from_apub_id(conn, &activity_id)
   })
   .await??;
 

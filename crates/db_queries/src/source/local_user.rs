@@ -70,7 +70,7 @@ impl LocalUser_ for LocalUser {
       hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
     edited_user.password_encrypted = password_hash;
 
-    Self::create(&conn, &edited_user)
+    Self::create(conn, &edited_user)
   }
 
   fn update_password(

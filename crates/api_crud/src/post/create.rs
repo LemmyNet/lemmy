@@ -29,7 +29,7 @@ impl PerformCrud for CreatePost {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &CreatePost = &self;
+    let data: &CreatePost = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;

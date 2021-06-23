@@ -124,7 +124,7 @@ where
   for<'de> Data: Deserialize<'de> + 'a,
   Data: PerformCrud,
 {
-  let parsed_data: Data = serde_json::from_str(&data)?;
+  let parsed_data: Data = serde_json::from_str(data)?;
   let res = parsed_data
     .perform(&web::Data::new(context), Some(id))
     .await?;
