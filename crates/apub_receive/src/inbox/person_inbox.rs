@@ -23,6 +23,7 @@ use crate::{
     is_activity_already_known,
     is_addressed_to_community_followers,
     is_addressed_to_local_person,
+    new_inbox_routing::{Activity, PersonAcceptedActivitiesNew, ReceiveActivity},
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
@@ -66,7 +67,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::EnumString;
 use url::Url;
-use crate::inbox::new_inbox_routing::{PersonAcceptedActivitiesNew, ReceiveActivity, Activity};
 
 /// Allowed activities for person inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
@@ -154,8 +154,7 @@ pub(crate) async fn person_receive_message(
   let kind = activity.kind().context(location_info!())?;
   let actor_url = actor.actor_id();
   match kind {
-    PersonValidTypes::Accept => {
-    }
+    PersonValidTypes::Accept => {}
     PersonValidTypes::Announce => {
       Box::pin(receive_announce(&context, any_base, actor, request_counter)).await?
     }

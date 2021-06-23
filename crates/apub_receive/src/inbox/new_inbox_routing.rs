@@ -1,12 +1,14 @@
-use activitystreams::base::{AnyBase};
-use lemmy_utils::{LemmyError};
-use lemmy_websocket::LemmyContext;
-use activitystreams::unparsed::Unparsed;
-use activitystreams::primitives::{OneOrMany};
-use url::Url;
 use crate::activities_new::follow::Accept;
+use activitystreams::{
+  base::AnyBase,
+  error::DomainError,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
 use std::marker::PhantomData;
-use activitystreams::error::DomainError;
+use url::Url;
 
 // for now, limit it to activity routing only, no http sigs, parsing or any of that
 // need to route in this order:
@@ -43,17 +45,21 @@ pub fn verify_domains_match(a: &Url, b: &Url) -> Result<(), LemmyError> {
 // todo: maybe add a separate method verify()
 #[async_trait::async_trait(?Send)]
 pub trait ReceiveActivity {
-  type Kind;
-  // todo: would be nice if we didnt have to pass Activity and Self separately
   // todo: later handle request_counter completely inside library
-  async fn receive(&self, activity: Activity<Self::Kind>, context: &LemmyContext, request_counter: &mut i32) -> Result<(), LemmyError>;
+  async fn receive(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError>;
 }
 
 // todo: instead of phantomdata, might use option<kind> to cache the fetched object (or just fetch on construction)
 pub struct ObjectId<'a, Kind>(Url, &'a PhantomData<Kind>);
 
 impl<Kind> ObjectId<'_, Kind> {
-  pub fn url(self) -> Url {self.0}
+  pub fn url(self) -> Url {
+    self.0
+  }
   pub fn dereference(self) -> Result<Kind, LemmyError> {
     // todo: fetch object from http or database
     todo!()
@@ -92,11 +98,13 @@ pub enum PersonAcceptedActivitiesNew {
 
 // todo: there should be a better way to do this (maybe needs a derive macro)
 #[async_trait::async_trait(?Send)]
-impl ReceiveActivity<Kind> for PersonAcceptedActivitiesNew {
-  async fn receive(&self, activity: Activity<Kind>, context: &LemmyContext, request_counter: &mut i32) -> Result<(), LemmyError> {
+impl ReceiveActivity for PersonAcceptedActivitiesNew {
+  async fn receive(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
     use PersonAcceptedActivitiesNew::*;
-    match self {
-      Accept(a) => a.receive(activity, context, request_counter)
-    }.await
+    self.receive(context, request_counter).await
   }
 }
