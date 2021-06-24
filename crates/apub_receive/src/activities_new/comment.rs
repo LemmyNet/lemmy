@@ -1,4 +1,3 @@
-use crate::inbox::new_inbox_routing::{ReceiveActivity, Activity, PublicUrl};
 use url::Url;
 use lemmy_apub::NoteExt;
 use activitystreams::
@@ -15,6 +14,8 @@ use lemmy_utils::utils::scrape_text_for_mentions;
 use lemmy_db_schema::source::post::Post;
 use lemmy_db_queries::Crud;
 use lemmy_apub::fetcher::person::get_or_fetch_and_upsert_person;
+use lemmy_apub_lib::{PublicUrl, ReceiveActivity};
+use crate::inbox::new_inbox_routing::Activity;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]

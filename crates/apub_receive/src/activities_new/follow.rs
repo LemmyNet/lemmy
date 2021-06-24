@@ -1,6 +1,3 @@
-use crate::{
-  inbox::new_inbox_routing::{verify_domains_match, Activity, ReceiveActivity},
-};
 use activitystreams::{
   activity::kind::{AcceptType, FollowType},
 };
@@ -14,6 +11,8 @@ use lemmy_db_schema::source::community::CommunityFollower;
 use lemmy_utils::{LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
+use lemmy_apub_lib::{ReceiveActivity, verify_domains_match};
+use crate::inbox::new_inbox_routing::Activity;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]

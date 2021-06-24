@@ -1,4 +1,3 @@
-use crate::inbox::new_inbox_routing::{Activity, ReceiveActivity};
 use activitystreams::activity::kind::CreateType;
 use lemmy_api_common::{blocking, person::PrivateMessageResponse};
 use lemmy_apub::{objects::FromApub, NoteExt};
@@ -7,6 +6,8 @@ use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::Priva
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperationCrud};
 use url::Url;
+use lemmy_apub_lib::{ReceiveActivity};
+use crate::inbox::new_inbox_routing::Activity;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]

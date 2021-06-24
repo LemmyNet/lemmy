@@ -1881,6 +1881,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_apub_lib"
+version = "0.1.0"
+dependencies = [
+ "activitystreams",
+ "activitystreams-ext",
+ "async-trait",
+ "lemmy_utils",
+ "lemmy_websocket",
+ "serde",
+ "url",
+]
+
+[[package]]
 name = "lemmy_apub_receive"
 version = "0.1.0"
 dependencies = [
@@ -1904,6 +1917,7 @@ dependencies = [
  "itertools",
  "lemmy_api_common",
  "lemmy_apub",
+ "lemmy_apub_lib",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",

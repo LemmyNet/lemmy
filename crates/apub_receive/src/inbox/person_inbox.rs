@@ -19,7 +19,6 @@ use crate::{
     is_activity_already_known,
     is_addressed_to_community_followers,
     is_addressed_to_local_person,
-    new_inbox_routing::{Activity, PersonAcceptedActivitiesNew, ReceiveActivity},
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
@@ -61,6 +60,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::EnumString;
 use url::Url;
+use crate::inbox::new_inbox_routing::{PersonAcceptedActivitiesNew, Activity};
+use lemmy_apub_lib::ReceiveActivity;
 
 /// Allowed activities for person inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
