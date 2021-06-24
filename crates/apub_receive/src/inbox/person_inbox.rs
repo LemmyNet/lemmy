@@ -7,11 +7,6 @@ use crate::{
       receive_undo_delete_community,
       receive_undo_remove_community,
     },
-    private_message::{
-      receive_delete_private_message,
-      receive_undo_delete_private_message,
-      receive_update_private_message,
-    },
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
@@ -19,6 +14,7 @@ use crate::{
     is_activity_already_known,
     is_addressed_to_community_followers,
     is_addressed_to_local_person,
+    new_inbox_routing::{Activity, PersonAcceptedActivitiesNew},
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
@@ -42,11 +38,8 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
-use lemmy_apub::{
-  check_is_apub_id_valid,
-  get_activity_to_and_cc,
-  ActorType,
-};
+use lemmy_apub::{check_is_apub_id_valid, get_activity_to_and_cc, ActorType};
+use lemmy_apub_lib::ReceiveActivity;
 use lemmy_db_queries::{ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
@@ -60,8 +53,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::EnumString;
 use url::Url;
-use crate::inbox::new_inbox_routing::{PersonAcceptedActivitiesNew, Activity};
-use lemmy_apub_lib::ReceiveActivity;
 
 /// Allowed activities for person inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
@@ -326,7 +317,7 @@ async fn receive_update(
   if verify_is_addressed_to_public(&update).is_ok() {
     receive_update_comment(update, context, request_counter).await
   } else {
-    receive_update_private_message(&context, update, expected_domain, request_counter).await
+    todo!()
   }
 }
 
@@ -334,7 +325,7 @@ async fn receive_delete(
   context: &LemmyContext,
   any_base: AnyBase,
   expected_domain: &Url,
-  request_counter: &mut i32,
+  _request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   use CommunityOrPrivateMessage::*;
 
@@ -348,7 +339,7 @@ async fn receive_delete(
 
   match find_community_or_private_message_by_id(context, object_uri).await? {
     Community(c) => receive_delete_community(context, c).await,
-    PrivateMessage(p) => receive_delete_private_message(context, delete, p, request_counter).await,
+    PrivateMessage(_) => todo!(),
   }
 }
 
@@ -375,7 +366,7 @@ async fn receive_undo(
   context: &LemmyContext,
   any_base: AnyBase,
   expected_domain: &Url,
-  request_counter: &mut i32,
+  _request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let undo = Undo::from_any_base(any_base)?.context(location_info!())?;
   verify_activity_domains_valid(&undo, expected_domain, true)?;
@@ -394,9 +385,8 @@ async fn receive_undo(
       use CommunityOrPrivateMessage::*;
       match find_community_or_private_message_by_id(context, object_uri).await? {
         Community(c) => receive_undo_delete_community(context, c).await,
-        PrivateMessage(p) => {
-          receive_undo_delete_private_message(context, undo, expected_domain, p, request_counter)
-            .await
+        PrivateMessage(_) => {
+          todo!()
         }
       }
     }

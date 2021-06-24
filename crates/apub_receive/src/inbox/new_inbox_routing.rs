@@ -1,13 +1,18 @@
-use crate::activities_new::follow::Accept;
+use crate::activities_new::{
+  comment::create::CreateComment,
+  follow::AcceptFollowCommunity,
+  private_message::{
+    create::CreatePrivateMessage,
+    delete::DeletePrivateMessage,
+    undo_delete::UndoDeletePrivateMessage,
+    update::UpdatePrivateMessage,
+  },
+};
+use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
+use lemmy_apub_lib::ReceiveActivity;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use crate::activities_new::private_message::CreatePrivateMessage;
-use crate::activities_new::comment::CreateComment;
-use lemmy_apub_lib::ReceiveActivity;
-use activitystreams::primitives::OneOrMany;
-use activitystreams::base::AnyBase;
 use url::Url;
-use activitystreams::unparsed::Unparsed;
 
 // TODO: would be nice if we could move this to lemmy_apub_lib crate. doing that gives error:
 //       "only traits defined in the current crate can be implemented for arbitrary types"
@@ -36,12 +41,15 @@ impl<Kind> Activity<Kind> {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum PersonAcceptedActivitiesNew {
-  Accept(Accept),
+  AcceptFollowCommunity(AcceptFollowCommunity),
   CreatePrivateMessage(CreatePrivateMessage),
-  CreateComment(CreateComment)
+  UpdatePrivateMessage(UpdatePrivateMessage),
+  DeletePrivateMessage(DeletePrivateMessage),
+  UndoDeletePrivateMessage(UndoDeletePrivateMessage),
+  CreateComment(CreateComment),
 }
 
-// todo: there should be a better way to do this (maybe needs a derive macro)
+// todo: can probably get rid of this?
 #[async_trait::async_trait(?Send)]
 impl ReceiveActivity for PersonAcceptedActivitiesNew {
   async fn receive(

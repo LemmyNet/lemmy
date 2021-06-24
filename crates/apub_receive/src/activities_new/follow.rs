@@ -1,22 +1,20 @@
-use activitystreams::{
-  activity::kind::{AcceptType, FollowType},
-};
+use crate::inbox::new_inbox_routing::Activity;
+use activitystreams::activity::kind::{AcceptType, FollowType};
 use lemmy_api_common::blocking;
 use lemmy_apub::fetcher::{
   community::get_or_fetch_and_upsert_community,
   person::get_or_fetch_and_upsert_person,
 };
+use lemmy_apub_lib::{verify_domains_match, ReceiveActivity};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::community::CommunityFollower;
-use lemmy_utils::{LemmyError};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
-use lemmy_apub_lib::{ReceiveActivity, verify_domains_match};
-use crate::inbox::new_inbox_routing::Activity;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Follow {
+pub struct FollowCommunity {
   actor: Url,
   to: Url,
   object: Url,
@@ -25,7 +23,7 @@ pub struct Follow {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<Follow> {
+impl ReceiveActivity for Activity<FollowCommunity> {
   async fn receive(
     &self,
     _context: &LemmyContext,
@@ -38,17 +36,17 @@ impl ReceiveActivity for Activity<Follow> {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Accept {
+pub struct AcceptFollowCommunity {
   actor: Url,
   to: Url,
-  object: Activity<Follow>,
+  object: Activity<FollowCommunity>,
   #[serde(rename = "type")]
   kind: AcceptType,
 }
 
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<Accept> {
+impl ReceiveActivity for Activity<AcceptFollowCommunity> {
   async fn receive(
     &self,
     context: &LemmyContext,

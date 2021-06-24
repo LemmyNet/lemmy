@@ -1,6 +1,4 @@
-use activitystreams::{
-  error::DomainError,
-};
+use activitystreams::error::DomainError;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use std::marker::PhantomData;
