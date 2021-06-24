@@ -11,6 +11,7 @@ pub mod update;
 
 async fn send_websocket_message(
   private_message_id: PrivateMessageId,
+  op: UserOperationCrud,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let message = blocking(&context.pool(), move |conn| {
@@ -31,7 +32,7 @@ async fn send_websocket_message(
   .id;
 
   context.chat_server().do_send(SendUserRoomMessage {
-    op: UserOperationCrud::CreatePrivateMessage,
+    op,
     response: res,
     local_recipient_id,
     websocket_id: None,

@@ -2,7 +2,7 @@ use crate::{
   activities_new::comment::{get_notif_recipients, send_websocket_message},
   inbox::new_inbox_routing::Activity,
 };
-use activitystreams::{activity::kind::CreateType, base::BaseExt};
+use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use anyhow::Context;
 use lemmy_apub::{objects::FromApub, NoteExt};
 use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity};
@@ -13,16 +13,16 @@ use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateComment {
+pub struct UpdateComment {
   actor: Url,
   to: PublicUrl,
   object: NoteExt,
   #[serde(rename = "type")]
-  kind: CreateType,
+  kind: UpdateType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<CreateComment> {
+impl ReceiveActivity for Activity<UpdateComment> {
   async fn receive(
     &self,
     context: &LemmyContext,
@@ -42,12 +42,13 @@ impl ReceiveActivity for Activity<CreateComment> {
       false,
     )
     .await?;
+
     let recipients =
       get_notif_recipients(&self.inner.actor, &comment, context, request_counter).await?;
     send_websocket_message(
       comment.id,
       recipients,
-      UserOperationCrud::CreateComment,
+      UserOperationCrud::EditComment,
       context,
     )
     .await

@@ -12,7 +12,6 @@ use log::debug;
 use std::fmt::Debug;
 use url::Url;
 
-pub(crate) mod comment;
 pub(crate) mod comment_undo;
 pub(crate) mod community;
 pub(crate) mod post;

@@ -7,7 +7,7 @@ use lemmy_apub::{objects::FromApub, NoteExt};
 use lemmy_apub_lib::{verify_domains_match, ReceiveActivity};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -38,7 +38,12 @@ impl ReceiveActivity for Activity<CreatePrivateMessage> {
     )
     .await?;
 
-    send_websocket_message(private_message.id, context).await?;
+    send_websocket_message(
+      private_message.id,
+      UserOperationCrud::CreatePrivateMessage,
+      context,
+    )
+    .await?;
 
     Ok(())
   }

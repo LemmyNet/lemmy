@@ -1,6 +1,5 @@
 use crate::{
   activities::receive::{
-    comment::receive_update_comment,
     community::{
       receive_delete_community,
       receive_remove_community,
@@ -30,7 +29,7 @@ use crate::{
   },
 };
 use activitystreams::{
-  activity::{ActorAndObject, Announce, Delete, Remove, Undo, Update},
+  activity::{ActorAndObject, Announce, Delete, Remove, Undo},
   base::AnyBase,
   prelude::*,
 };
@@ -145,15 +144,7 @@ pub(crate) async fn person_receive_message(
       Box::pin(receive_announce(&context, any_base, actor, request_counter)).await?
     }
     PersonValidTypes::Create => {}
-    PersonValidTypes::Update => {
-      Box::pin(receive_update(
-        &context,
-        any_base,
-        actor_url,
-        request_counter,
-      ))
-      .await?
-    }
+    PersonValidTypes::Update => {}
     PersonValidTypes::Delete => {
       Box::pin(receive_delete(
         context,
@@ -301,23 +292,6 @@ pub async fn receive_announce(
         .await
     }
     _ => receive_unhandled_activity(inner_activity),
-  }
-}
-
-/// Receive either an updated private message, or an updated comment mention. We distinguish
-/// them by checking whether the activity is public.
-async fn receive_update(
-  context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let update = Update::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&update, &expected_domain, true)?;
-  if verify_is_addressed_to_public(&update).is_ok() {
-    receive_update_comment(update, context, request_counter).await
-  } else {
-    todo!()
   }
 }
 

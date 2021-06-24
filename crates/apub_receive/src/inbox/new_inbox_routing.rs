@@ -1,5 +1,12 @@
 use crate::activities_new::{
-  comment::create::CreateComment,
+  comment::{
+    create::CreateComment,
+    delete::DeleteComment,
+    dislike::DislikeComment,
+    like::LikeComment,
+    remove::RemoveComment,
+    update::UpdateComment,
+  },
   follow::AcceptFollowCommunity,
   private_message::{
     create::CreatePrivateMessage,
@@ -13,6 +20,9 @@ use lemmy_apub_lib::ReceiveActivity;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
+
+// TODO: add security checks for received activities back in
+//       mainly check that domain of actor and id are identical (and object/object.id where applicable)
 
 // TODO: would be nice if we could move this to lemmy_apub_lib crate. doing that gives error:
 //       "only traits defined in the current crate can be implemented for arbitrary types"
@@ -28,7 +38,6 @@ pub struct Activity<Kind> {
   pub inner: Kind,
 
   // unparsed fields
-  // todo: can probably remove this field
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -47,6 +56,11 @@ pub enum PersonAcceptedActivitiesNew {
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
   CreateComment(CreateComment),
+  UpdateComment(UpdateComment),
+  LikeComment(LikeComment),
+  DislikeComment(DislikeComment),
+  DeleteComment(DeleteComment),
+  RemoveComment(RemoveComment),
 }
 
 // todo: can probably get rid of this?

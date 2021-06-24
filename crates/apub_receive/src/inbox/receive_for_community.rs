@@ -1,12 +1,5 @@
 use crate::{
   activities::receive::{
-    comment::{
-      receive_delete_comment,
-      receive_dislike_comment,
-      receive_like_comment,
-      receive_remove_comment,
-      receive_update_comment,
-    },
     comment_undo::{
       receive_undo_delete_comment,
       receive_undo_dislike_comment,
@@ -162,7 +155,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
     Some(ObjectTypes::Page) => {
       receive_update_post(update, announce, context, request_counter).await
     }
-    Some(ObjectTypes::Note) => receive_update_comment(update, context, request_counter).await,
+    Some(ObjectTypes::Note) => todo!(),
     Some(ObjectTypes::Group) => {
       receive_remote_mod_update_community(update, context, request_counter).await
     }
@@ -187,8 +180,8 @@ pub(in crate::inbox) async fn receive_like_for_community(
     .context(location_info!())?;
   match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
     PostOrComment::Post(post) => receive_like_post(like, *post, context, request_counter).await,
-    PostOrComment::Comment(comment) => {
-      receive_like_comment(like, *comment, context, request_counter).await
+    PostOrComment::Comment(_) => {
+      todo!()
     }
   }
 }
@@ -220,8 +213,8 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
     PostOrComment::Post(post) => {
       receive_dislike_post(dislike, *post, context, request_counter).await
     }
-    PostOrComment::Comment(comment) => {
-      receive_dislike_comment(dislike, *comment, context, request_counter).await
+    PostOrComment::Comment(_) => {
+      todo!()
     }
   }
 }
@@ -250,9 +243,9 @@ pub(in crate::inbox) async fn receive_delete_for_community(
       verify_activity_domains_valid(&delete, &expected_domain, true)?;
       receive_delete_post(context, *p).await
     }
-    Ok(Object::Comment(c)) => {
+    Ok(Object::Comment(_)) => {
       verify_activity_domains_valid(&delete, &expected_domain, true)?;
-      receive_delete_comment(context, *c).await
+      todo!()
     }
     Ok(Object::Community(c)) => {
       receive_remote_mod_delete_community(delete, *c, context, request_counter).await
@@ -309,7 +302,7 @@ pub(in crate::inbox) async fn receive_remove_for_community(
 
     match find_post_or_comment_by_id(context, object).await {
       Ok(PostOrComment::Post(p)) => receive_remove_post(context, *p).await,
-      Ok(PostOrComment::Comment(c)) => receive_remove_comment(context, *c).await,
+      Ok(PostOrComment::Comment(_)) => todo!(),
       // if we dont have the object, no need to do anything
       Err(_) => Ok(()),
     }
