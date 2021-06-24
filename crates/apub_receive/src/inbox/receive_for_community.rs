@@ -1,7 +1,6 @@
 use crate::{
   activities::receive::{
     comment::{
-      receive_create_comment,
       receive_delete_comment,
       receive_dislike_comment,
       receive_like_comment,
@@ -137,7 +136,7 @@ pub(in crate::inbox) async fn receive_create_for_community(
     .and_then(|s| s.parse().ok());
   match kind {
     Some(ObjectTypes::Page) => receive_create_post(create, context, request_counter).await,
-    Some(ObjectTypes::Note) => receive_create_comment(create, context, request_counter).await,
+    Some(ObjectTypes::Note) => todo!(),
     _ => receive_unhandled_activity(create),
   }
 }

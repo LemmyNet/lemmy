@@ -9,6 +9,8 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use std::marker::PhantomData;
 use url::Url;
+use crate::activities_new::private_message::CreatePrivateMessage;
+use crate::activities_new::comment::CreateComment;
 
 // for now, limit it to activity routing only, no http sigs, parsing or any of that
 // need to route in this order:
@@ -24,14 +26,20 @@ use url::Url;
 // .checkHttpSig::<RequestType>()
 // .fetchObject() - for custom http client
 // .checkActivity() - for common validity checks
-struct InboxConfig {
+pub struct InboxConfig {
   //actors: Vec<ActorConfig>,
 }
 
 impl InboxConfig {
-  fn shared_inbox_handler() {
+  pub fn shared_inbox_handler() {
     todo!()
   }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub enum PublicUrl {
+  #[serde(rename = "https://www.w3.org/ns/activitystreams#Public")]
+  Public,
 }
 
 pub fn verify_domains_match(a: &Url, b: &Url) -> Result<(), LemmyError> {
@@ -94,6 +102,8 @@ impl<Kind> Activity<Kind> {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum PersonAcceptedActivitiesNew {
   Accept(Accept),
+  CreatePrivateMessage(CreatePrivateMessage),
+  CreateComment(CreateComment)
 }
 
 // todo: there should be a better way to do this (maybe needs a derive macro)
@@ -104,7 +114,6 @@ impl ReceiveActivity for PersonAcceptedActivitiesNew {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    use PersonAcceptedActivitiesNew::*;
     self.receive(context, request_counter).await
   }
 }

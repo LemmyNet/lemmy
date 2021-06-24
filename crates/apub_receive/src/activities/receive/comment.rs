@@ -1,6 +1,6 @@
 use crate::activities::receive::get_actor_as_person;
 use activitystreams::{
-  activity::{ActorAndObjectRefExt, Create, Dislike, Like, Update},
+  activity::{ActorAndObjectRefExt, Dislike, Like, Update},
   base::ExtendsExt,
 };
 use anyhow::Context;
@@ -14,71 +14,6 @@ use lemmy_db_schema::source::{
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation, UserOperationCrud};
-
-// TODO:
-// - define traits for all activity types
-// - implement inbox routing with these traits
-// - replace context with actix style Data struct (actix_web::web::Data)
-pub(crate) trait ReceiveCreate {
-  fn receive_create(self, create: Create, context: LemmyContext, request_counter: &mut i32);
-}
-
-impl ReceiveCreate for Comment {
-  fn receive_create(self, _create: Create, _context: LemmyContext, _request_counter: &mut i32) {
-    unimplemented!()
-  }
-}
-
-pub(crate) async fn receive_create_comment(
-  create: Create,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let person = get_actor_as_person(&create, context, request_counter).await?;
-  let note = NoteExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let comment =
-    Comment::from_apub(&note, context, person.actor_id(), request_counter, false).await?;
-
-  let post_id = comment.post_id;
-  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-
-  // Note:
-  // Although mentions could be gotten from the post tags (they are included there), or the ccs,
-  // Its much easier to scrape them from the comment body, since the API has to do that
-  // anyway.
-  let mentions = scrape_text_for_mentions(&comment.content);
-  let recipient_ids = send_local_notifs(
-    mentions,
-    comment.clone(),
-    person,
-    post,
-    context.pool(),
-    true,
-  )
-  .await?;
-
-  // Refetch the view
-  let comment_view = blocking(context.pool(), move |conn| {
-    CommentView::read(conn, comment.id, None)
-  })
-  .await??;
-
-  let res = CommentResponse {
-    comment_view,
-    recipient_ids,
-    form_id: None,
-  };
-
-  context.chat_server().do_send(SendComment {
-    op: UserOperationCrud::CreateComment,
-    comment: res,
-    websocket_id: None,
-  });
-
-  Ok(())
-}
 
 pub(crate) async fn receive_update_comment(
   update: Update,

@@ -1,6 +1,6 @@
 use crate::{
   activities::receive::{
-    comment::{receive_create_comment, receive_update_comment},
+    comment::receive_update_comment,
     community::{
       receive_delete_community,
       receive_remove_community,
@@ -8,7 +8,6 @@ use crate::{
       receive_undo_remove_community,
     },
     private_message::{
-      receive_create_private_message,
       receive_delete_private_message,
       receive_undo_delete_private_message,
       receive_update_private_message,
@@ -17,9 +16,6 @@ use crate::{
     verify_activity_domains_valid,
   },
   inbox::{
-    assert_activity_not_local,
-    get_activity_id,
-    inbox_verify_http_signature,
     is_activity_already_known,
     is_addressed_to_community_followers,
     is_addressed_to_local_person,
@@ -39,7 +35,7 @@ use crate::{
   },
 };
 use activitystreams::{
-  activity::{Accept, ActorAndObject, Announce, Create, Delete, Follow, Remove, Undo, Update},
+  activity::{ActorAndObject, Announce, Delete, Remove, Undo, Update},
   base::AnyBase,
   prelude::*,
 };
@@ -49,12 +45,10 @@ use diesel::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   check_is_apub_id_valid,
-  fetcher::community::get_or_fetch_and_upsert_community,
   get_activity_to_and_cc,
-  insert_activity,
   ActorType,
 };
-use lemmy_db_queries::{source::person::Person_, ApubObject, Followable};
+use lemmy_db_queries::{ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
   person::Person,
@@ -85,14 +79,14 @@ pub type PersonAcceptedActivities = ActorAndObject<PersonValidTypes>;
 
 /// Handler for all incoming activities to person inboxes.
 pub async fn person_inbox(
-  request: HttpRequest,
+  _request: HttpRequest,
   input: web::Json<Activity<PersonAcceptedActivitiesNew>>,
-  path: web::Path<String>,
+  _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
   let request_counter = &mut 0;
-  activity.inner.receive(&context, request_counter);
+  activity.inner.receive(&context, request_counter).await?;
   todo!()
   /*
   // First of all check the http signature
@@ -134,7 +128,7 @@ pub async fn person_inbox(
 /// Receives Accept/Follow, Announce, private messages and community (undo) remove, (undo) delete
 pub(crate) async fn person_receive_message(
   activity: PersonAcceptedActivities,
-  to_person: Option<Person>,
+  _to_person: Option<Person>,
   actor: &dyn ActorType,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -158,15 +152,7 @@ pub(crate) async fn person_receive_message(
     PersonValidTypes::Announce => {
       Box::pin(receive_announce(&context, any_base, actor, request_counter)).await?
     }
-    PersonValidTypes::Create => {
-      Box::pin(receive_create(
-        &context,
-        any_base,
-        actor_url,
-        request_counter,
-      ))
-      .await?
-    }
+    PersonValidTypes::Create => {}
     PersonValidTypes::Update => {
       Box::pin(receive_update(
         &context,
@@ -323,23 +309,6 @@ pub async fn receive_announce(
         .await
     }
     _ => receive_unhandled_activity(inner_activity),
-  }
-}
-
-/// Receive either a new private message, or a new comment mention. We distinguish them by checking
-/// whether the activity is public.
-async fn receive_create(
-  context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let create = Create::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&create, &expected_domain, true)?;
-  if verify_is_addressed_to_public(&create).is_ok() {
-    receive_create_comment(create, context, request_counter).await
-  } else {
-    receive_create_private_message(&context, create, expected_domain, request_counter).await
   }
 }
 
