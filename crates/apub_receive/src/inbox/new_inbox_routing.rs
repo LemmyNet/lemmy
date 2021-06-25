@@ -8,6 +8,14 @@ use crate::activities_new::{
     update::UpdateComment,
   },
   follow::AcceptFollowCommunity,
+  post::{
+    create::CreatePost,
+    delete::DeletePost,
+    dislike::DislikePost,
+    like::LikePost,
+    remove::RemovePost,
+    update::UpdatePost,
+  },
   private_message::{
     create::CreatePrivateMessage,
     delete::DeletePrivateMessage,
@@ -61,6 +69,12 @@ pub enum PersonAcceptedActivitiesNew {
   DislikeComment(DislikeComment),
   DeleteComment(DeleteComment),
   RemoveComment(RemoveComment),
+  CreatePost(CreatePost),
+  UpdatePost(UpdatePost),
+  LikePost(LikePost),
+  DislikePost(DislikePost),
+  DeletePost(DeletePost),
+  RemovePost(RemovePost),
 }
 
 // todo: can probably get rid of this?

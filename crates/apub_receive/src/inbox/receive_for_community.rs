@@ -11,14 +11,6 @@ use crate::{
       receive_remote_mod_undo_delete_community,
       receive_remote_mod_update_community,
     },
-    post::{
-      receive_create_post,
-      receive_delete_post,
-      receive_dislike_post,
-      receive_like_post,
-      receive_remove_post,
-      receive_update_post,
-    },
     post_undo::{
       receive_undo_delete_post,
       receive_undo_dislike_post,
@@ -36,7 +28,6 @@ use activitystreams::{
     Add,
     Announce,
     Block,
-    Create,
     Delete,
     Dislike,
     Like,
@@ -69,7 +60,6 @@ use lemmy_db_queries::{
   source::community::CommunityModerator_,
   ApubObject,
   Bannable,
-  Crud,
   Followable,
   Joinable,
 };
@@ -85,7 +75,6 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
     },
     person::Person,
-    site::Site,
   },
   DbUrl,
 };
@@ -112,28 +101,6 @@ enum ObjectTypes {
 /// This file is for post/comment activities received by the community, and for post/comment
 ///       activities announced by the community and received by the person.
 
-/// A post or comment being created
-pub(in crate::inbox) async fn receive_create_for_community(
-  context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let create = Create::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&create, &expected_domain, true)?;
-  verify_is_addressed_to_public(&create)?;
-
-  let kind = create
-    .object()
-    .as_single_kind_str()
-    .and_then(|s| s.parse().ok());
-  match kind {
-    Some(ObjectTypes::Page) => receive_create_post(create, context, request_counter).await,
-    Some(ObjectTypes::Note) => todo!(),
-    _ => receive_unhandled_activity(create),
-  }
-}
-
 /// A post or comment being edited
 pub(in crate::inbox) async fn receive_update_for_community(
   context: &LemmyContext,
@@ -152,70 +119,12 @@ pub(in crate::inbox) async fn receive_update_for_community(
     .as_single_kind_str()
     .and_then(|s| s.parse().ok());
   match kind {
-    Some(ObjectTypes::Page) => {
-      receive_update_post(update, announce, context, request_counter).await
-    }
+    Some(ObjectTypes::Page) => todo!(),
     Some(ObjectTypes::Note) => todo!(),
     Some(ObjectTypes::Group) => {
       receive_remote_mod_update_community(update, context, request_counter).await
     }
     _ => receive_unhandled_activity(update),
-  }
-}
-
-/// A post or comment being upvoted
-pub(in crate::inbox) async fn receive_like_for_community(
-  context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let like = Like::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&like, &expected_domain, false)?;
-  verify_is_addressed_to_public(&like)?;
-
-  let object_id = like
-    .object()
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
-    PostOrComment::Post(post) => receive_like_post(like, *post, context, request_counter).await,
-    PostOrComment::Comment(_) => {
-      todo!()
-    }
-  }
-}
-
-/// A post or comment being downvoted
-pub(in crate::inbox) async fn receive_dislike_for_community(
-  context: &LemmyContext,
-  activity: AnyBase,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let enable_downvotes = blocking(context.pool(), move |conn| {
-    Site::read(conn, 1).map(|s| s.enable_downvotes)
-  })
-  .await??;
-  if !enable_downvotes {
-    return Ok(());
-  }
-
-  let dislike = Dislike::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&dislike, &expected_domain, false)?;
-  verify_is_addressed_to_public(&dislike)?;
-
-  let object_id = dislike
-    .object()
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
-    PostOrComment::Post(post) => {
-      receive_dislike_post(dislike, *post, context, request_counter).await
-    }
-    PostOrComment::Comment(_) => {
-      todo!()
-    }
   }
 }
 
@@ -239,10 +148,7 @@ pub(in crate::inbox) async fn receive_delete_for_community(
     .context(location_info!())?;
 
   match find_object_by_id(context, object).await {
-    Ok(Object::Post(p)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
-      receive_delete_post(context, *p).await
-    }
+    Ok(Object::Post(_)) => todo!(),
     Ok(Object::Comment(_)) => {
       verify_activity_domains_valid(&delete, &expected_domain, true)?;
       todo!()
@@ -290,23 +196,8 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       )
       .await?;
     // TODO: send websocket notification about removed mod
-    Ok(())
   }
-  // Remove a post or comment
-  else {
-    let object = remove
-      .object()
-      .to_owned()
-      .single_xsd_any_uri()
-      .context(location_info!())?;
-
-    match find_post_or_comment_by_id(context, object).await {
-      Ok(PostOrComment::Post(p)) => receive_remove_post(context, *p).await,
-      Ok(PostOrComment::Comment(_)) => todo!(),
-      // if we dont have the object, no need to do anything
-      Err(_) => Ok(()),
-    }
-  }
+  Ok(())
 }
 
 #[derive(EnumString)]

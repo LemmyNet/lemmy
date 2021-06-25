@@ -14,7 +14,6 @@ use url::Url;
 
 pub(crate) mod comment_undo;
 pub(crate) mod community;
-pub(crate) mod post;
 pub(crate) mod post_undo;
 pub(crate) mod private_message;
 

@@ -1,14 +1,20 @@
 use lemmy_api_common::{blocking, comment::CommentResponse, send_local_notifs};
-use lemmy_apub::fetcher::person::get_or_fetch_and_upsert_person;
-use lemmy_db_queries::Crud;
+use lemmy_apub::fetcher::{
+  objects::get_or_fetch_and_insert_comment,
+  person::get_or_fetch_and_upsert_person,
+};
+use lemmy_db_queries::{Crud, Likeable};
 use lemmy_db_schema::{
-  source::{comment::Comment, post::Post},
+  source::{
+    comment::{Comment, CommentLike, CommentLikeForm},
+    post::Post,
+  },
   CommentId,
   LocalUserId,
 };
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{utils::scrape_text_for_mentions, LemmyError};
-use lemmy_websocket::{messages::SendComment, LemmyContext};
+use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
 use url::Url;
 
 pub mod create;
@@ -61,4 +67,38 @@ async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::Operation
   });
 
   Ok(())
+}
+
+async fn like_or_dislike_comment(
+  score: i16,
+  actor: &Url,
+  object: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let person = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
+
+  let comment_id = comment.id;
+  let like_form = CommentLikeForm {
+    comment_id,
+    post_id: comment.post_id,
+    person_id: person.id,
+    score,
+  };
+  let person_id = person.id;
+  blocking(context.pool(), move |conn| {
+    CommentLike::remove(conn, person_id, comment_id)?;
+    CommentLike::like(conn, &like_form)
+  })
+  .await??;
+
+  // TODO get those recipient actor ids from somewhere
+  send_websocket_message(
+    comment_id,
+    vec![],
+    UserOperation::CreateCommentLike,
+    context,
+  )
+  .await
 }

@@ -17,10 +17,7 @@ use crate::{
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
-      receive_create_for_community,
       receive_delete_for_community,
-      receive_dislike_for_community,
-      receive_like_for_community,
       receive_remove_for_community,
       receive_undo_for_community,
       receive_update_for_community,
@@ -242,9 +239,7 @@ pub async fn receive_announce(
 
   use AnnouncableActivities::*;
   match kind {
-    Some(Create) => {
-      receive_create_for_community(context, inner_activity, &inner_id, request_counter).await
-    }
+    Some(Create) => todo!(),
     Some(Update) => {
       receive_update_for_community(
         context,
@@ -255,12 +250,8 @@ pub async fn receive_announce(
       )
       .await
     }
-    Some(Like) => {
-      receive_like_for_community(context, inner_activity, &inner_id, request_counter).await
-    }
-    Some(Dislike) => {
-      receive_dislike_for_community(context, inner_activity, &inner_id, request_counter).await
-    }
+    Some(Like) => todo!(),
+    Some(Dislike) => todo!(),
     Some(Delete) => {
       receive_delete_for_community(
         context,

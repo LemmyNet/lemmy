@@ -8,10 +8,7 @@ use crate::{
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
-      receive_create_for_community,
       receive_delete_for_community,
-      receive_dislike_for_community,
-      receive_like_for_community,
       receive_remove_for_community,
       receive_undo_for_community,
       receive_update_for_community,
@@ -157,16 +154,7 @@ pub(crate) async fn community_receive_message(
       ))
       .await?
     }
-    CommunityValidTypes::Create => {
-      Box::pin(receive_create_for_community(
-        context,
-        any_base.clone(),
-        &actor_url,
-        request_counter,
-      ))
-      .await?;
-      true
-    }
+    CommunityValidTypes::Create => todo!(),
     CommunityValidTypes::Update => {
       Box::pin(receive_update_for_community(
         context,
@@ -178,26 +166,8 @@ pub(crate) async fn community_receive_message(
       .await?;
       true
     }
-    CommunityValidTypes::Like => {
-      Box::pin(receive_like_for_community(
-        context,
-        any_base.clone(),
-        &actor_url,
-        request_counter,
-      ))
-      .await?;
-      true
-    }
-    CommunityValidTypes::Dislike => {
-      Box::pin(receive_dislike_for_community(
-        context,
-        any_base.clone(),
-        &actor_url,
-        request_counter,
-      ))
-      .await?;
-      true
-    }
+    CommunityValidTypes::Like => todo!(),
+    CommunityValidTypes::Dislike => todo!(),
     CommunityValidTypes::Delete => {
       Box::pin(receive_delete_for_community(
         context,
