@@ -15,7 +15,6 @@ use url::Url;
 pub(crate) mod comment_undo;
 pub(crate) mod community;
 pub(crate) mod post_undo;
-pub(crate) mod private_message;
 
 /// Return HTTP 501 for unsupported activities in inbox.
 pub(crate) fn receive_unhandled_activity<A>(activity: A) -> Result<(), LemmyError>

@@ -5,7 +5,7 @@ use lemmy_apub::fetcher::{
   community::get_or_fetch_and_upsert_community,
   person::get_or_fetch_and_upsert_person,
 };
-use lemmy_apub_lib::{verify_domains_match, ReceiveActivity};
+use lemmy_apub_lib::{verify_domains_match, ReceiveActivity, VerifyActivity};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::community::CommunityFollower;
 use lemmy_utils::LemmyError;
@@ -20,6 +20,13 @@ pub struct FollowCommunity {
   object: Url,
   #[serde(rename = "type")]
   kind: FollowType,
+}
+
+#[async_trait::async_trait(?Send)]
+impl VerifyActivity for Activity<FollowCommunity> {
+  async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
+    todo!()
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -44,6 +51,14 @@ pub struct AcceptFollowCommunity {
   kind: AcceptType,
 }
 
+#[async_trait::async_trait(?Send)]
+impl VerifyActivity for Activity<AcceptFollowCommunity> {
+  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(self.id_unchecked(), &self.inner.actor)?;
+    self.inner.object.verify(context).await
+  }
+}
+
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
 impl ReceiveActivity for Activity<AcceptFollowCommunity> {
@@ -52,11 +67,6 @@ impl ReceiveActivity for Activity<AcceptFollowCommunity> {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    // TODO: move check for id.domain == actor.domain to library and do it automatically
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
-    let follow = &self.inner.object;
-    verify_domains_match(&follow.inner.actor, &follow.id_unchecked())?;
-
     let community =
       get_or_fetch_and_upsert_community(&self.inner.actor, context, request_counter).await?;
     let person = get_or_fetch_and_upsert_person(&self.inner.to, context, request_counter).await?;

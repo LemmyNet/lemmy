@@ -1,6 +1,7 @@
 use crate::{activities_new::comment::like_or_dislike_comment, inbox::new_inbox_routing::Activity};
 use activitystreams::activity::kind::LikeType;
-use lemmy_apub_lib::{PublicUrl, ReceiveActivity};
+use lemmy_apub::check_is_apub_id_valid;
+use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -14,6 +15,14 @@ pub struct LikeComment {
   cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: LikeType,
+}
+
+#[async_trait::async_trait(?Send)]
+impl VerifyActivity for Activity<LikeComment> {
+  async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
+    check_is_apub_id_valid(&self.inner.actor, false)
+  }
 }
 
 #[async_trait::async_trait(?Send)]

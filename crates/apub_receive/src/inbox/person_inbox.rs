@@ -35,7 +35,7 @@ use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, get_activity_to_and_cc, ActorType};
-use lemmy_apub_lib::ReceiveActivity;
+use lemmy_apub_lib::{ReceiveActivity, VerifyActivity};
 use lemmy_db_queries::{ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
@@ -73,6 +73,7 @@ pub async fn person_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
+  activity.inner.verify(&context).await?;
   let request_counter = &mut 0;
   activity.inner.receive(&context, request_counter).await?;
   todo!()

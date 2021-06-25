@@ -1,14 +1,15 @@
 use crate::{activities_new::post::send_websocket_message, inbox::new_inbox_routing::Activity};
-use activitystreams::activity::kind::UpdateType;
+use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
+  check_is_apub_id_valid,
   fetcher::person::get_or_fetch_and_upsert_person,
   objects::{FromApub, FromApubToForm},
   ActorType,
   PageExt,
 };
-use lemmy_apub_lib::{PublicUrl, ReceiveActivity};
+use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::{
   source::{
@@ -29,6 +30,15 @@ pub struct UpdatePost {
   object: PageExt,
   #[serde(rename = "type")]
   kind: UpdateType,
+}
+
+#[async_trait::async_trait(?Send)]
+impl VerifyActivity for Activity<UpdatePost> {
+  async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(self.id_unchecked(), &self.inner.actor)?;
+    self.inner.object.id(self.inner.actor.as_str())?;
+    check_is_apub_id_valid(&self.inner.actor, false)
+  }
 }
 
 #[async_trait::async_trait(?Send)]

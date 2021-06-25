@@ -1,8 +1,8 @@
 use crate::{activities_new::comment::send_websocket_message, inbox::new_inbox_routing::Activity};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
-use lemmy_apub::fetcher::objects::get_or_fetch_and_insert_comment;
-use lemmy_apub_lib::{PublicUrl, ReceiveActivity};
+use lemmy_apub::{check_is_apub_id_valid, fetcher::objects::get_or_fetch_and_insert_comment};
+use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
 use lemmy_db_queries::source::comment::Comment_;
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_utils::LemmyError;
@@ -18,6 +18,15 @@ pub struct DeleteComment {
   cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: DeleteType,
+}
+
+#[async_trait::async_trait(?Send)]
+impl VerifyActivity for Activity<DeleteComment> {
+  async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
+    verify_domains_match(&self.inner.actor, &self.inner.object)?;
+    check_is_apub_id_valid(&self.inner.actor, false)
+  }
 }
 
 #[async_trait::async_trait(?Send)]

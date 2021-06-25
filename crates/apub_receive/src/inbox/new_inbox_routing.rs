@@ -24,7 +24,7 @@ use crate::activities_new::{
   },
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
-use lemmy_apub_lib::ReceiveActivity;
+use lemmy_apub_lib::{ReceiveActivity, VerifyActivity};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -77,7 +77,14 @@ pub enum PersonAcceptedActivitiesNew {
   RemovePost(RemovePost),
 }
 
-// todo: can probably get rid of this?
+// todo: can probably get rid of these?
+#[async_trait::async_trait(?Send)]
+impl VerifyActivity for PersonAcceptedActivitiesNew {
+  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    self.verify(context).await
+  }
+}
+
 #[async_trait::async_trait(?Send)]
 impl ReceiveActivity for PersonAcceptedActivitiesNew {
   async fn receive(
