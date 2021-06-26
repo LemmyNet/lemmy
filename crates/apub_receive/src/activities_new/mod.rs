@@ -8,6 +8,7 @@ use lemmy_websocket::LemmyContext;
 use url::Url;
 
 pub mod comment;
+pub mod community;
 pub mod follow;
 pub mod post;
 pub mod private_message;

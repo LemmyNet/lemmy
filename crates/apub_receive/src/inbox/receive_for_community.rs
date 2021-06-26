@@ -6,11 +6,6 @@ use crate::{
       receive_undo_like_comment,
       receive_undo_remove_comment,
     },
-    community::{
-      receive_remote_mod_delete_community,
-      receive_remote_mod_undo_delete_community,
-      receive_remote_mod_update_community,
-    },
     post_undo::{
       receive_undo_delete_post,
       receive_undo_dislike_post,
@@ -34,7 +29,6 @@ use activitystreams::{
     OptTargetRef,
     Remove,
     Undo,
-    Update,
   },
   base::AnyBase,
   object::AsObject,
@@ -51,7 +45,6 @@ use lemmy_apub::{
   find_object_by_id,
   find_post_or_comment_by_id,
   generate_moderators_url,
-  ActorType,
   CommunityType,
   Object,
   PostOrComment,
@@ -100,66 +93,6 @@ enum ObjectTypes {
 
 /// This file is for post/comment activities received by the community, and for post/comment
 ///       activities announced by the community and received by the person.
-
-/// A post or comment being edited
-pub(in crate::inbox) async fn receive_update_for_community(
-  context: &LemmyContext,
-  activity: AnyBase,
-  announce: Option<Announce>,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let update = Update::from_any_base(activity.to_owned())?.context(location_info!())?;
-  verify_activity_domains_valid(&update, &expected_domain, false)?;
-  verify_is_addressed_to_public(&update)?;
-  verify_modification_actor_instance(&update, &announce, context, request_counter).await?;
-
-  let kind = update
-    .object()
-    .as_single_kind_str()
-    .and_then(|s| s.parse().ok());
-  match kind {
-    Some(ObjectTypes::Page) => todo!(),
-    Some(ObjectTypes::Note) => todo!(),
-    Some(ObjectTypes::Group) => {
-      receive_remote_mod_update_community(update, context, request_counter).await
-    }
-    _ => receive_unhandled_activity(update),
-  }
-}
-
-/// A post or comment being deleted by its creator
-pub(in crate::inbox) async fn receive_delete_for_community(
-  context: &LemmyContext,
-  activity: AnyBase,
-  announce: Option<Announce>,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let delete = Delete::from_any_base(activity)?.context(location_info!())?;
-  // TODO: skip this check if action is done by remote mod
-  verify_is_addressed_to_public(&delete)?;
-  verify_modification_actor_instance(&delete, &announce, context, request_counter).await?;
-
-  let object = delete
-    .object()
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-
-  match find_object_by_id(context, object).await {
-    Ok(Object::Post(_)) => todo!(),
-    Ok(Object::Comment(_)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
-      todo!()
-    }
-    Ok(Object::Community(c)) => {
-      receive_remote_mod_delete_community(delete, *c, context, request_counter).await
-    }
-    // if we dont have the object or dont support its deletion, no need to do anything
-    _ => Ok(()),
-  }
-}
 
 /// A post or comment being removed by a mod/admin
 pub(in crate::inbox) async fn receive_remove_for_community(
@@ -258,7 +191,7 @@ pub(in crate::inbox) async fn receive_undo_delete_for_community(
   context: &LemmyContext,
   undo: Undo,
   expected_domain: &Url,
-  request_counter: &mut i32,
+  _request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -278,10 +211,7 @@ pub(in crate::inbox) async fn receive_undo_delete_for_community(
       verify_activity_domains_valid(&delete, &expected_domain, true)?;
       receive_undo_delete_comment(context, *c).await
     }
-    Ok(Object::Community(c)) => {
-      verify_actor_is_community_mod(&undo, &c, context).await?;
-      receive_remote_mod_undo_delete_community(undo, *c, context, request_counter).await
-    }
+    Ok(Object::Community(_)) => todo!(),
     // if we dont have the object or dont support its deletion, no need to do anything
     _ => Ok(()),
   }
@@ -619,52 +549,6 @@ where
   if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
     return Err(anyhow!("Unkown target url").into());
   }
-  Ok(())
-}
-
-/// For activities like Update, Delete or Remove, check that the actor is from the same instance
-/// as the original object itself (or is a remote mod).
-///
-/// Note: This is only needed for mod actions. Normal user actions (edit post, undo vote etc) are
-///       already verified with `expected_domain`, so this serves as an additional check.
-async fn verify_modification_actor_instance<T, Kind>(
-  activity: &T,
-  announce: &Option<Announce>,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError>
-where
-  T: ActorAndObjectRef + BaseExt<Kind> + AsObject<Kind>,
-{
-  let actor_id = activity
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let object_id = activity
-    .object()
-    .as_one()
-    .map(|o| o.id())
-    .flatten()
-    .context(location_info!())?;
-  let original_id = match fetch_post_or_comment_by_id(object_id, context, request_counter).await {
-    Ok(PostOrComment::Post(p)) => p.ap_id.into_inner(),
-    Ok(PostOrComment::Comment(c)) => c.ap_id.into_inner(),
-    Err(_) => {
-      // We can also receive Update activity from remote mod for local activity
-      let object_id = object_id.to_owned().into();
-      blocking(context.pool(), move |conn| {
-        Community::read_from_apub_id(conn, &object_id)
-      })
-      .await??
-      .actor_id()
-    }
-  };
-  if actor_id.domain() != original_id.domain() {
-    let community = extract_community_from_cc(activity, context).await?;
-    verify_mod_activity(activity, announce.to_owned(), &community, context).await?;
-  }
-
   Ok(())
 }
 

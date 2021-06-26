@@ -1,14 +1,5 @@
 use crate::{
-  activities::receive::{
-    community::{
-      receive_delete_community,
-      receive_remove_community,
-      receive_undo_delete_community,
-      receive_undo_remove_community,
-    },
-    receive_unhandled_activity,
-    verify_activity_domains_valid,
-  },
+  activities::receive::{receive_unhandled_activity, verify_activity_domains_valid},
   inbox::{
     is_activity_already_known,
     is_addressed_to_community_followers,
@@ -17,38 +8,30 @@ use crate::{
     receive_for_community::{
       receive_add_for_community,
       receive_block_user_for_community,
-      receive_delete_for_community,
       receive_remove_for_community,
       receive_undo_for_community,
-      receive_update_for_community,
     },
     verify_is_addressed_to_public,
   },
 };
 use activitystreams::{
-  activity::{ActorAndObject, Announce, Delete, Remove, Undo},
+  activity::{ActorAndObject, Announce},
   base::AnyBase,
   prelude::*,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
-use diesel::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, get_activity_to_and_cc, ActorType};
 use lemmy_apub_lib::{ReceiveActivity, VerifyActivity};
-use lemmy_db_queries::{ApubObject, Followable};
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower},
-  person::Person,
-  private_message::PrivateMessage,
-};
+use lemmy_db_queries::Followable;
+use lemmy_db_schema::source::{community::CommunityFollower, person::Person};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::EnumString;
-use url::Url;
 
 /// Allowed activities for person inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
@@ -135,7 +118,6 @@ pub(crate) async fn person_receive_message(
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
-  let actor_url = actor.actor_id();
   match kind {
     PersonValidTypes::Accept => {}
     PersonValidTypes::Announce => {
@@ -143,19 +125,9 @@ pub(crate) async fn person_receive_message(
     }
     PersonValidTypes::Create => {}
     PersonValidTypes::Update => {}
-    PersonValidTypes::Delete => {
-      Box::pin(receive_delete(
-        context,
-        any_base,
-        &actor_url,
-        request_counter,
-      ))
-      .await?
-    }
-    PersonValidTypes::Undo => {
-      Box::pin(receive_undo(context, any_base, &actor_url, request_counter)).await?
-    }
-    PersonValidTypes::Remove => Box::pin(receive_remove(context, any_base, &actor_url)).await?,
+    PersonValidTypes::Delete => todo!(),
+    PersonValidTypes::Undo => todo!(),
+    PersonValidTypes::Remove => todo!(),
   };
 
   // TODO: would be logical to move websocket notification code here
@@ -241,28 +213,10 @@ pub async fn receive_announce(
   use AnnouncableActivities::*;
   match kind {
     Some(Create) => todo!(),
-    Some(Update) => {
-      receive_update_for_community(
-        context,
-        inner_activity,
-        Some(announce),
-        &inner_id,
-        request_counter,
-      )
-      .await
-    }
+    Some(Update) => todo!(),
     Some(Like) => todo!(),
     Some(Dislike) => todo!(),
-    Some(Delete) => {
-      receive_delete_for_community(
-        context,
-        inner_activity,
-        Some(announce),
-        &inner_id,
-        request_counter,
-      )
-      .await
-    }
+    Some(Delete) => todo!(),
     Some(Remove) => {
       receive_remove_for_community(context, inner_activity, Some(announce), request_counter).await
     }
@@ -285,119 +239,4 @@ pub async fn receive_announce(
     }
     _ => receive_unhandled_activity(inner_activity),
   }
-}
-
-async fn receive_delete(
-  context: &LemmyContext,
-  any_base: AnyBase,
-  expected_domain: &Url,
-  _request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  use CommunityOrPrivateMessage::*;
-
-  let delete = Delete::from_any_base(any_base.clone())?.context(location_info!())?;
-  verify_activity_domains_valid(&delete, expected_domain, true)?;
-  let object_uri = delete
-    .object()
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-
-  match find_community_or_private_message_by_id(context, object_uri).await? {
-    Community(c) => receive_delete_community(context, c).await,
-    PrivateMessage(_) => todo!(),
-  }
-}
-
-async fn receive_remove(
-  context: &LemmyContext,
-  any_base: AnyBase,
-  expected_domain: &Url,
-) -> Result<(), LemmyError> {
-  let remove = Remove::from_any_base(any_base.clone())?.context(location_info!())?;
-  verify_activity_domains_valid(&remove, expected_domain, true)?;
-  let object_uri = remove
-    .object()
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &object_uri.into())
-  })
-  .await??;
-  receive_remove_community(&context, community).await
-}
-
-async fn receive_undo(
-  context: &LemmyContext,
-  any_base: AnyBase,
-  expected_domain: &Url,
-  _request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let undo = Undo::from_any_base(any_base)?.context(location_info!())?;
-  verify_activity_domains_valid(&undo, expected_domain, true)?;
-
-  let inner_activity = undo.object().to_owned().one().context(location_info!())?;
-  let kind = inner_activity.kind_str();
-  match kind {
-    Some("Delete") => {
-      let delete = Delete::from_any_base(inner_activity)?.context(location_info!())?;
-      verify_activity_domains_valid(&delete, expected_domain, true)?;
-      let object_uri = delete
-        .object()
-        .to_owned()
-        .single_xsd_any_uri()
-        .context(location_info!())?;
-      use CommunityOrPrivateMessage::*;
-      match find_community_or_private_message_by_id(context, object_uri).await? {
-        Community(c) => receive_undo_delete_community(context, c).await,
-        PrivateMessage(_) => {
-          todo!()
-        }
-      }
-    }
-    Some("Remove") => {
-      let remove = Remove::from_any_base(inner_activity)?.context(location_info!())?;
-      let object_uri = remove
-        .object()
-        .to_owned()
-        .single_xsd_any_uri()
-        .context(location_info!())?;
-      let community = blocking(context.pool(), move |conn| {
-        Community::read_from_apub_id(conn, &object_uri.into())
-      })
-      .await??;
-      receive_undo_remove_community(context, community).await
-    }
-    _ => receive_unhandled_activity(undo),
-  }
-}
-enum CommunityOrPrivateMessage {
-  Community(Community),
-  PrivateMessage(PrivateMessage),
-}
-
-async fn find_community_or_private_message_by_id(
-  context: &LemmyContext,
-  apub_id: Url,
-) -> Result<CommunityOrPrivateMessage, LemmyError> {
-  let ap_id = apub_id.to_owned();
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
-  if let Ok(c) = community {
-    return Ok(CommunityOrPrivateMessage::Community(c));
-  }
-
-  let ap_id = apub_id.to_owned();
-  let private_message = blocking(context.pool(), move |conn| {
-    PrivateMessage::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
-  if let Ok(p) = private_message {
-    return Ok(CommunityOrPrivateMessage::PrivateMessage(p));
-  }
-
-  Err(NotFound.into())
 }

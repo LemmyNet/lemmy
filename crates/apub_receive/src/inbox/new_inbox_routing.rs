@@ -7,6 +7,7 @@ use crate::activities_new::{
     remove::RemoveComment,
     update::UpdateComment,
   },
+  community::{delete::DeleteCommunity, update::UpdateCommunity},
   follow::AcceptFollowCommunity,
   post::{
     create::CreatePost,
@@ -28,9 +29,9 @@ use lemmy_apub_lib::{ReceiveActivity, VerifyActivity};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
-
-// TODO: add security checks for received activities back in
-//       mainly check that domain of actor and id are identical (and object/object.id where applicable)
+use crate::activities_new::community::remove::RemoveCommunity;
+use crate::activities_new::community::undo_remove::UndoRemoveCommunity;
+use crate::activities_new::community::undo_delete::UndoDeleteCommunity;
 
 // TODO: would be nice if we could move this to lemmy_apub_lib crate. doing that gives error:
 //       "only traits defined in the current crate can be implemented for arbitrary types"
@@ -75,6 +76,11 @@ pub enum PersonAcceptedActivitiesNew {
   DislikePost(DislikePost),
   DeletePost(DeletePost),
   RemovePost(RemovePost),
+  UpdateCommunity(UpdateCommunity),
+  DeleteCommunity(DeleteCommunity),
+  RemoveCommunity(RemoveCommunity),
+  UndoDeleteCommunity(UndoDeleteCommunity),
+  UndoRemoveCommunity(UndoRemoveCommunity),
 }
 
 // todo: can probably get rid of these?
