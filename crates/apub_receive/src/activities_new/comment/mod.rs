@@ -38,6 +38,7 @@ async fn get_notif_recipients(
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,
   // Its much easier to scrape them from the comment body, since the API has to do that
   // anyway.
+  // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
   send_local_notifs(mentions, comment.clone(), actor, post, context.pool(), true).await
 }

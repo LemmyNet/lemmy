@@ -26,6 +26,7 @@ pub struct RemoveCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<RemoveCommunity> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
     check_is_apub_id_valid(&self.inner.actor, false)?;
     verify_domains_match(&self.inner.actor, &self.inner.object)?;
     verify_domains_match(&self.inner.actor, &self.inner.cc[0])

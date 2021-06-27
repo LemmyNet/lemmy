@@ -26,6 +26,7 @@ pub struct UndoRemoveCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UndoRemoveCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
     check_is_apub_id_valid(&self.inner.actor, false)?;
     verify_domains_match(&self.inner.actor, &self.inner.object.inner.object)?;
     verify_domains_match(&self.inner.actor, &self.inner.cc[0])?;

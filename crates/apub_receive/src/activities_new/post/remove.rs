@@ -39,7 +39,7 @@ impl ReceiveActivity for Activity<RemovePost> {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    // TODO: check that actor is instance mod if community is local (same for DeleteComment)
+    // TODO: check that actor is instance mod if community is local (same for RemoveComment)
     let post = get_or_fetch_and_insert_post(&self.inner.object, context, request_counter).await?;
 
     let removed_post = blocking(context.pool(), move |conn| {

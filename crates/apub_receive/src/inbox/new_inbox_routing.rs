@@ -14,7 +14,7 @@ use crate::activities_new::{
     undo_remove::UndoRemoveCommunity,
     update::UpdateCommunity,
   },
-  follow::AcceptFollowCommunity,
+  follow::{accept::AcceptFollowCommunity, follow::FollowCommunity, undo::UndoFollowCommunity},
   post::{
     create::CreatePost,
     delete::DeletePost,
@@ -63,7 +63,9 @@ impl<Kind> Activity<Kind> {
 // TODO: this is probably wrong, it contains all activities
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum PersonAcceptedActivitiesNew {
+  FollowCommunity(FollowCommunity),
   AcceptFollowCommunity(AcceptFollowCommunity),
+  UndoFollowCommunity(UndoFollowCommunity),
   CreatePrivateMessage(CreatePrivateMessage),
   UpdatePrivateMessage(UpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),

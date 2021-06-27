@@ -34,6 +34,7 @@ pub struct DeleteCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<DeleteCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
     let object = self.inner.object.clone();
     let community = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &object.into())

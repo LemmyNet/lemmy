@@ -1,22 +1,18 @@
-use crate::{
-  activities::receive::verify_activity_domains_valid,
-  inbox::{
-    assert_activity_not_local,
-    get_activity_id,
-    inbox_verify_http_signature,
-    is_activity_already_known,
-    receive_for_community::{
-      receive_add_for_community,
-      receive_block_user_for_community,
-      receive_remove_for_community,
-      receive_undo_for_community,
-    },
-    verify_is_addressed_to_public,
+use crate::inbox::{
+  assert_activity_not_local,
+  get_activity_id,
+  inbox_verify_http_signature,
+  is_activity_already_known,
+  receive_for_community::{
+    receive_add_for_community,
+    receive_block_user_for_community,
+    receive_remove_for_community,
+    receive_undo_for_community,
   },
+  verify_is_addressed_to_public,
 };
 use activitystreams::{
-  activity::{kind::FollowType, ActorAndObject, Follow, Undo},
-  base::AnyBase,
+  activity::{kind::FollowType, ActorAndObject},
   prelude::*,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -29,11 +25,8 @@ use lemmy_apub::{
   ActorType,
   CommunityType,
 };
-use lemmy_db_queries::{source::community::Community_, ApubObject, Followable};
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
-  person::Person,
-};
+use lemmy_db_queries::{source::community::Community_, ApubObject};
+use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
@@ -132,16 +125,7 @@ pub(crate) async fn community_receive_message(
   let actor_url = actor.actor_id();
   let activity_kind = activity.kind().context(location_info!())?;
   let do_announce = match activity_kind {
-    CommunityValidTypes::Follow => {
-      Box::pin(handle_follow(
-        any_base.clone(),
-        person,
-        &to_community,
-        &context,
-      ))
-      .await?;
-      false
-    }
+    CommunityValidTypes::Follow => todo!(),
     CommunityValidTypes::Undo => {
       Box::pin(handle_undo(
         context,
@@ -212,39 +196,11 @@ pub(crate) async fn community_receive_message(
   Ok(HttpResponse::Ok().finish())
 }
 
-/// Handle a follow request from a remote person, adding the person as follower and returning an
-/// Accept activity.
-async fn handle_follow(
-  activity: AnyBase,
-  person: Person,
-  community: &Community,
-  context: &LemmyContext,
-) -> Result<HttpResponse, LemmyError> {
-  let follow = Follow::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &person.actor_id(), false)?;
-
-  let community_follower_form = CommunityFollowerForm {
-    community_id: community.id,
-    person_id: person.id,
-    pending: false,
-  };
-
-  // This will fail if they're already a follower, but ignore the error.
-  blocking(&context.pool(), move |conn| {
-    CommunityFollower::follow(&conn, &community_follower_form).ok()
-  })
-  .await?;
-
-  community.send_accept_follow(follow, context).await?;
-
-  Ok(HttpResponse::Ok().finish())
-}
-
 async fn handle_undo(
   context: &LemmyContext,
   activity: CommunityAcceptedActivities,
   actor_url: Url,
-  to_community: &Community,
+  _to_community: &Community,
   request_counter: &mut i32,
 ) -> Result<bool, LemmyError> {
   let inner_kind = activity
@@ -252,43 +208,9 @@ async fn handle_undo(
     .is_single_kind(&FollowType::Follow.to_string());
   let any_base = activity.into_any_base()?;
   if inner_kind {
-    handle_undo_follow(any_base, actor_url, to_community, &context).await?;
-    Ok(false)
+    todo!()
   } else {
     receive_undo_for_community(context, any_base, None, &actor_url, request_counter).await?;
     Ok(true)
   }
-}
-
-/// Handle `Undo/Follow` from a person, removing the person from followers list.
-async fn handle_undo_follow(
-  activity: AnyBase,
-  person_url: Url,
-  community: &Community,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
-  let undo = Undo::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&undo, &person_url, true)?;
-
-  let object = undo.object().to_owned().one().context(location_info!())?;
-  let follow = Follow::from_any_base(object)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &person_url, false)?;
-
-  let person = blocking(&context.pool(), move |conn| {
-    Person::read_from_apub_id(&conn, &person_url.into())
-  })
-  .await??;
-  let community_follower_form = CommunityFollowerForm {
-    community_id: community.id,
-    person_id: person.id,
-    pending: false,
-  };
-
-  // This will fail if they aren't a follower, but ignore the error.
-  blocking(&context.pool(), move |conn| {
-    CommunityFollower::unfollow(&conn, &community_follower_form).ok()
-  })
-  .await?;
-
-  Ok(())
 }

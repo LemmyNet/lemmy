@@ -5,7 +5,7 @@ use crate::{
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, objects::FromApubToForm, GroupExt};
-use lemmy_apub_lib::{PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::community::{Community, CommunityForm};
 use lemmy_utils::LemmyError;
@@ -28,6 +28,7 @@ pub struct UpdateCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UpdateCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
     self.inner.object.id(self.inner.cc[0].as_str())?;
     check_is_apub_id_valid(&self.inner.actor, false)?;
     verify_is_community_mod(self.inner.actor.clone(), self.inner.cc[0].clone(), context).await

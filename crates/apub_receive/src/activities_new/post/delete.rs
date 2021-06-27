@@ -36,7 +36,6 @@ impl ReceiveActivity for Activity<DeletePost> {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    // TODO: check that actor is from same instance as post (same for DeleteComment)
     let post = get_or_fetch_and_insert_post(&self.inner.object, context, request_counter).await?;
 
     let deleted_post = blocking(context.pool(), move |conn| {
