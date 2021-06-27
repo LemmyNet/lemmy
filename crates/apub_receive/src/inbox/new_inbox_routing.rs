@@ -7,7 +7,13 @@ use crate::activities_new::{
     remove::RemoveComment,
     update::UpdateComment,
   },
-  community::{delete::DeleteCommunity, update::UpdateCommunity},
+  community::{
+    delete::DeleteCommunity,
+    remove::RemoveCommunity,
+    undo_delete::UndoDeleteCommunity,
+    undo_remove::UndoRemoveCommunity,
+    update::UpdateCommunity,
+  },
   follow::AcceptFollowCommunity,
   post::{
     create::CreatePost,
@@ -29,9 +35,6 @@ use lemmy_apub_lib::{ReceiveActivity, VerifyActivity};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
-use crate::activities_new::community::remove::RemoveCommunity;
-use crate::activities_new::community::undo_remove::UndoRemoveCommunity;
-use crate::activities_new::community::undo_delete::UndoDeleteCommunity;
 
 // TODO: would be nice if we could move this to lemmy_apub_lib crate. doing that gives error:
 //       "only traits defined in the current crate can be implemented for arbitrary types"
@@ -57,6 +60,7 @@ impl<Kind> Activity<Kind> {
   }
 }
 
+// TODO: this is probably wrong, it contains all activities
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum PersonAcceptedActivitiesNew {
   AcceptFollowCommunity(AcceptFollowCommunity),

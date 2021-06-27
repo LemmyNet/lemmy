@@ -30,7 +30,7 @@ pub struct UndoDeleteCommunity {
   actor: Url,
   to: PublicUrl,
   object: Activity<DeleteCommunity>,
-  cc: Url,
+  cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
 }
@@ -45,14 +45,14 @@ impl VerifyActivity for Activity<UndoDeleteCommunity> {
     .await?;
     // remote mod action on local community
     if let Ok(c) = community {
-      verify_domains_match(&self.inner.object.inner.object, &self.inner.cc)?;
+      verify_domains_match(&self.inner.object.inner.object, &self.inner.cc[0])?;
       check_is_apub_id_valid(&self.inner.actor, false)?;
       verify_is_community_mod(self.inner.actor.clone(), c.actor_id(), context).await?;
     }
     // community action sent to followers
     else {
       verify_domains_match(&self.inner.actor, &self.inner.object.inner.object)?;
-      verify_domains_match(&self.inner.actor, &self.inner.cc)?;
+      verify_domains_match(&self.inner.actor, &self.inner.cc[0])?;
     }
     self.inner.object.verify(context).await
   }

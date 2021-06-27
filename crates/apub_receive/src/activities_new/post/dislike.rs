@@ -12,6 +12,7 @@ pub struct DislikePost {
   actor: Url,
   to: PublicUrl,
   object: Url,
+  cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DislikeType,
 }

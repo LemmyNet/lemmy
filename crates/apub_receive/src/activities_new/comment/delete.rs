@@ -15,7 +15,7 @@ pub struct DeleteComment {
   actor: Url,
   to: PublicUrl,
   object: Url,
-  cc: Vec<Url>,
+  cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
 }

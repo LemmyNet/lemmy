@@ -19,6 +19,7 @@ pub struct CreatePost {
   actor: Url,
   to: PublicUrl,
   object: PageExt,
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: CreateType,
 }

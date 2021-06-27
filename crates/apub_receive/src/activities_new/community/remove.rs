@@ -18,7 +18,7 @@ pub struct RemoveCommunity {
   actor: Url,
   to: PublicUrl,
   pub(in crate::activities_new::community) object: Url,
-  cc: Url,
+  cc: [Url; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
 }
@@ -28,7 +28,7 @@ impl VerifyActivity for Activity<RemoveCommunity> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     check_is_apub_id_valid(&self.inner.actor, false)?;
     verify_domains_match(&self.inner.actor, &self.inner.object)?;
-    verify_domains_match(&self.inner.actor, &self.inner.cc)
+    verify_domains_match(&self.inner.actor, &self.inner.cc[0])
   }
 }
 

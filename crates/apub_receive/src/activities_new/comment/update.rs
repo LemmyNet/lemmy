@@ -16,6 +16,7 @@ pub struct UpdateComment {
   actor: Url,
   to: PublicUrl,
   object: NoteExt,
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UpdateType,
 }

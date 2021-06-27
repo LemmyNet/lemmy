@@ -20,7 +20,7 @@ pub struct UpdateCommunity {
   actor: Url,
   to: PublicUrl,
   object: GroupExt,
-  cc: Url,
+  cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UpdateType,
 }
@@ -28,9 +28,9 @@ pub struct UpdateCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UpdateCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    self.inner.object.id(self.inner.cc.as_str())?;
+    self.inner.object.id(self.inner.cc[0].as_str())?;
     check_is_apub_id_valid(&self.inner.actor, false)?;
-    verify_is_community_mod(self.inner.actor.clone(), self.inner.cc.clone(), context).await
+    verify_is_community_mod(self.inner.actor.clone(), self.inner.cc[0].clone(), context).await
   }
 }
 
@@ -41,7 +41,7 @@ impl ReceiveActivity for Activity<UpdateCommunity> {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let cc = self.inner.cc.clone().into();
+    let cc = self.inner.cc[0].clone().into();
     let community = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &cc)
     })

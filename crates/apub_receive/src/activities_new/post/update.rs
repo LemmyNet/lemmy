@@ -28,6 +28,7 @@ pub struct UpdatePost {
   actor: Url,
   to: PublicUrl,
   object: PageExt,
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UpdateType,
 }

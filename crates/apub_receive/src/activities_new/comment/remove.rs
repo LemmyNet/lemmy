@@ -18,7 +18,7 @@ pub struct RemoveComment {
   actor: Url,
   to: PublicUrl,
   object: Url,
-  cc: Vec<Url>,
+  cc: [Url; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
 }
@@ -28,7 +28,7 @@ impl VerifyActivity for Activity<RemoveComment> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.inner.actor, self.id_unchecked())?;
     check_is_apub_id_valid(&self.inner.actor, false)?;
-    verify_mod_action(self.inner.actor.clone(), self.inner.cc.clone(), context).await
+    verify_mod_action(self.inner.actor.clone(), self.inner.cc[0].clone(), context).await
   }
 }
 
