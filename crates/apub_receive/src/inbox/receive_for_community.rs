@@ -1,47 +1,22 @@
 use crate::{
   activities::receive::{
-    comment_undo::{
-      receive_undo_delete_comment,
-      receive_undo_dislike_comment,
-      receive_undo_like_comment,
-      receive_undo_remove_comment,
-    },
-    post_undo::{
-      receive_undo_delete_post,
-      receive_undo_dislike_post,
-      receive_undo_like_post,
-      receive_undo_remove_post,
-    },
+    comment_undo::{receive_undo_delete_comment, receive_undo_remove_comment},
+    post_undo::{receive_undo_delete_post, receive_undo_remove_post},
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
   inbox::verify_is_addressed_to_public,
 };
 use activitystreams::{
-  activity::{
-    ActorAndObjectRef,
-    Add,
-    Announce,
-    Block,
-    Delete,
-    Dislike,
-    Like,
-    OptTargetRef,
-    Remove,
-    Undo,
-  },
+  activity::{ActorAndObjectRef, Add, Announce, Block, Delete, OptTargetRef, Remove, Undo},
   base::AnyBase,
   object::AsObject,
   prelude::*,
 };
 use anyhow::{anyhow, Context};
-use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
-  fetcher::{
-    objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-    person::get_or_fetch_and_upsert_person,
-  },
+  fetcher::person::get_or_fetch_and_upsert_person,
   find_object_by_id,
   find_post_or_comment_by_id,
   generate_moderators_url,
@@ -166,12 +141,8 @@ pub(in crate::inbox) async fn receive_undo_for_community(
     Some(Remove) => {
       receive_undo_remove_for_community(context, undo, announce, expected_domain).await
     }
-    Some(Like) => {
-      receive_undo_like_for_community(context, undo, expected_domain, request_counter).await
-    }
-    Some(Dislike) => {
-      receive_undo_dislike_for_community(context, undo, expected_domain, request_counter).await
-    }
+    Some(Like) => todo!(),
+    Some(Dislike) => todo!(),
     Some(Block) => {
       receive_undo_block_user_for_community(
         context,
@@ -243,32 +214,6 @@ pub(in crate::inbox) async fn receive_undo_remove_for_community(
   }
 }
 
-/// A post or comment upvote being reverted
-pub(in crate::inbox) async fn receive_undo_like_for_community(
-  context: &LemmyContext,
-  undo: Undo,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let like = Like::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-  verify_activity_domains_valid(&like, &expected_domain, false)?;
-  verify_is_addressed_to_public(&like)?;
-
-  let object_id = like
-    .object()
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
-    PostOrComment::Post(post) => {
-      receive_undo_like_post(&like, *post, context, request_counter).await
-    }
-    PostOrComment::Comment(comment) => {
-      receive_undo_like_comment(&like, *comment, context, request_counter).await
-    }
-  }
-}
-
 /// Add a new mod to the community (can only be done by an existing mod).
 pub(in crate::inbox) async fn receive_add_for_community(
   context: &LemmyContext,
@@ -317,32 +262,6 @@ pub(in crate::inbox) async fn receive_add_for_community(
   }
   // TODO: send websocket notification about added mod
   Ok(())
-}
-
-/// A post or comment downvote being reverted
-pub(in crate::inbox) async fn receive_undo_dislike_for_community(
-  context: &LemmyContext,
-  undo: Undo,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let dislike = Dislike::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-  verify_activity_domains_valid(&dislike, &expected_domain, false)?;
-  verify_is_addressed_to_public(&dislike)?;
-
-  let object_id = dislike
-    .object()
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
-    PostOrComment::Post(post) => {
-      receive_undo_dislike_post(&dislike, *post, context, request_counter).await
-    }
-    PostOrComment::Comment(comment) => {
-      receive_undo_dislike_comment(&dislike, *comment, context, request_counter).await
-    }
-  }
 }
 
 pub(crate) async fn receive_block_user_for_community(
@@ -422,22 +341,6 @@ pub(crate) async fn receive_undo_block_user_for_community(
   .await??;
 
   Ok(())
-}
-
-async fn fetch_post_or_comment_by_id(
-  apub_id: &Url,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<PostOrComment, LemmyError> {
-  if let Ok(post) = get_or_fetch_and_insert_post(apub_id, context, request_counter).await {
-    return Ok(PostOrComment::Post(Box::new(post)));
-  }
-
-  if let Ok(comment) = get_or_fetch_and_insert_comment(apub_id, context, request_counter).await {
-    return Ok(PostOrComment::Comment(Box::new(comment)));
-  }
-
-  Err(NotFound.into())
 }
 
 /// Searches the activity's cc field for a Community ID, and returns the community.

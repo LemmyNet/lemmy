@@ -11,7 +11,7 @@ use url::Url;
 pub struct LikePost {
   actor: Url,
   to: PublicUrl,
-  object: Url,
+  pub(in crate::activities_new::post) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: LikeType,

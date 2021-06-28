@@ -22,6 +22,8 @@ pub mod delete;
 pub mod dislike;
 pub mod like;
 pub mod remove;
+pub mod undo_dislike;
+pub mod undo_like;
 pub mod update;
 
 async fn get_notif_recipients(
@@ -97,6 +99,32 @@ async fn like_or_dislike_comment(
   // TODO get those recipient actor ids from somewhere
   send_websocket_message(
     comment_id,
+    vec![],
+    UserOperation::CreateCommentLike,
+    context,
+  )
+  .await
+}
+
+async fn undo_like_or_dislike_comment(
+  actor: &Url,
+  object: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let person = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
+
+  let comment_id = comment.id;
+  let person_id = person.id;
+  blocking(context.pool(), move |conn| {
+    CommentLike::remove(conn, person_id, comment_id)
+  })
+  .await??;
+
+  // TODO get those recipient actor ids from somewhere
+  send_websocket_message(
+    comment.id,
     vec![],
     UserOperation::CreateCommentLike,
     context,

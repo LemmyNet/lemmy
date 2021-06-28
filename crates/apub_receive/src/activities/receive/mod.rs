@@ -24,20 +24,6 @@ where
   Err(anyhow!("Activity not supported").into())
 }
 
-/// Reads the actor field of an activity and returns the corresponding `Person`.
-pub(crate) async fn get_actor_as_person<T, A>(
-  activity: &T,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<Person, LemmyError>
-where
-  T: AsBase<A> + ActorAndObjectRef,
-{
-  let actor = activity.actor()?;
-  let person_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_person(&person_uri, context, request_counter).await
-}
-
 /// Ensure that the ID of an incoming activity comes from the same domain as the actor. Optionally
 /// also checks the ID of the inner object.
 ///

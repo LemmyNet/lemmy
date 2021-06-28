@@ -18,6 +18,8 @@ pub mod delete;
 pub mod dislike;
 pub mod like;
 pub mod remove;
+pub mod undo_dislike;
+pub mod undo_like;
 pub mod update;
 
 async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::OperationType + 'static>(
@@ -64,5 +66,23 @@ async fn like_or_dislike_post(
   })
   .await??;
 
+  send_websocket_message(post.id, UserOperation::CreatePostLike, context).await
+}
+
+async fn undo_like_or_dislike_post(
+  actor: &Url,
+  object: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let person = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let post = get_or_fetch_and_insert_post(object, context, request_counter).await?;
+
+  let post_id = post.id;
+  let person_id = person.id;
+  blocking(context.pool(), move |conn| {
+    PostLike::remove(conn, person_id, post_id)
+  })
+  .await??;
   send_websocket_message(post.id, UserOperation::CreatePostLike, context).await
 }
