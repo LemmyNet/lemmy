@@ -1,4 +1,4 @@
-use crate::activities_new::{
+use crate::activities::{
   comment::{
     create::CreateComment,
     delete::DeleteComment,
@@ -12,8 +12,11 @@ use crate::activities_new::{
     update::UpdateComment,
   },
   community::{
+    announce::AnnounceActivity,
+    block_user::BlockUserFromCommunity,
     delete::DeleteCommunity,
     remove::RemoveCommunity,
+    undo_block_user::UndoBlockUserFromCommunity,
     undo_delete::UndoDeleteCommunity,
     undo_remove::UndoRemoveCommunity,
     update::UpdateCommunity,
@@ -68,7 +71,7 @@ impl<Kind> Activity<Kind> {
   }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub enum SharedInboxActivities {
   FollowCommunity(FollowCommunity),
   AcceptFollowCommunity(AcceptFollowCommunity),
@@ -97,11 +100,14 @@ pub enum SharedInboxActivities {
   UndoRemovePost(UndoRemovePost),
   UndoLikePost(UndoLikePost),
   UndoDislikePost(UndoDislikePost),
+  AnnounceActivity(AnnounceActivity),
   UpdateCommunity(UpdateCommunity),
   DeleteCommunity(DeleteCommunity),
   RemoveCommunity(RemoveCommunity),
   UndoDeleteCommunity(UndoDeleteCommunity),
   UndoRemoveCommunity(UndoRemoveCommunity),
+  BlockUserFromCommunity(BlockUserFromCommunity),
+  UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
 }
 
 // todo: can probably get rid of these?
