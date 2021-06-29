@@ -68,9 +68,8 @@ impl<Kind> Activity<Kind> {
   }
 }
 
-// TODO: this is probably wrong, it contains all activities
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum PersonAcceptedActivitiesNew {
+pub enum SharedInboxActivities {
   FollowCommunity(FollowCommunity),
   AcceptFollowCommunity(AcceptFollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
@@ -107,14 +106,14 @@ pub enum PersonAcceptedActivitiesNew {
 
 // todo: can probably get rid of these?
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for PersonAcceptedActivitiesNew {
+impl VerifyActivity for SharedInboxActivities {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     self.verify(context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ReceiveActivity for PersonAcceptedActivitiesNew {
+impl ReceiveActivity for SharedInboxActivities {
   async fn receive(
     &self,
     context: &LemmyContext,

@@ -1,9 +1,9 @@
 use crate::{
-  activities::receive::{receive_unhandled_activity, verify_activity_domains_valid},
+  activities::receive::verify_activity_domains_valid,
   inbox::verify_is_addressed_to_public,
 };
 use activitystreams::{
-  activity::{ActorAndObjectRef, Add, Announce, Block, OptTargetRef, Remove, Undo},
+  activity::{ActorAndObjectRef, Add, Announce, OptTargetRef},
   base::AnyBase,
   object::AsObject,
   prelude::*,
@@ -15,24 +15,10 @@ use lemmy_apub::{
   generate_moderators_url,
   CommunityType,
 };
-use lemmy_db_queries::{
-  source::community::CommunityModerator_,
-  ApubObject,
-  Bannable,
-  Followable,
-  Joinable,
-};
+use lemmy_db_queries::{source::community::CommunityModerator_, ApubObject, Joinable};
 use lemmy_db_schema::{
   source::{
-    community::{
-      Community,
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityModerator,
-      CommunityModeratorForm,
-      CommunityPersonBan,
-      CommunityPersonBanForm,
-    },
+    community::{Community, CommunityModerator, CommunityModeratorForm},
     person::Person,
   },
   DbUrl,
@@ -41,7 +27,6 @@ use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use strum_macros::EnumString;
-use url::Url;
 
 #[derive(EnumString)]
 enum PageOrNote {
@@ -57,48 +42,6 @@ enum ObjectTypes {
   Person,
 }
 
-/// This file is for post/comment activities received by the community, and for post/comment
-///       activities announced by the community and received by the person.
-
-/// A post or comment being removed by a mod/admin
-pub(in crate::inbox) async fn receive_remove_for_community(
-  context: &LemmyContext,
-  remove_any_base: AnyBase,
-  announce: Option<Announce>,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let remove = Remove::from_any_base(remove_any_base.to_owned())?.context(location_info!())?;
-  let community = extract_community_from_cc(&remove, context).await?;
-
-  verify_mod_activity(&remove, announce, &community, context).await?;
-  verify_is_addressed_to_public(&remove)?;
-
-  if remove.target().is_some() {
-    let remove_mod = remove
-      .object()
-      .as_single_xsd_any_uri()
-      .context(location_info!())?;
-    let remove_mod = get_or_fetch_and_upsert_person(&remove_mod, context, request_counter).await?;
-    let form = CommunityModeratorForm {
-      community_id: community.id,
-      person_id: remove_mod.id,
-    };
-    blocking(context.pool(), move |conn| {
-      CommunityModerator::leave(conn, &form)
-    })
-    .await??;
-    community
-      .send_announce(
-        remove_any_base,
-        remove.object().clone().single_xsd_any_uri(),
-        context,
-      )
-      .await?;
-    // TODO: send websocket notification about removed mod
-  }
-  Ok(())
-}
-
 #[derive(EnumString)]
 enum UndoableActivities {
   Delete,
@@ -106,42 +49,6 @@ enum UndoableActivities {
   Like,
   Dislike,
   Block,
-}
-
-/// A post/comment action being reverted (either a delete, remove, upvote or downvote)
-pub(in crate::inbox) async fn receive_undo_for_community(
-  context: &LemmyContext,
-  activity: AnyBase,
-  announce: Option<Announce>,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let undo = Undo::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&undo, &expected_domain.to_owned(), true)?;
-  verify_is_addressed_to_public(&undo)?;
-
-  use UndoableActivities::*;
-  match undo
-    .object()
-    .as_single_kind_str()
-    .and_then(|s| s.parse().ok())
-  {
-    Some(Delete) => todo!(),
-    Some(Remove) => todo!(),
-    Some(Like) => todo!(),
-    Some(Dislike) => todo!(),
-    Some(Block) => {
-      receive_undo_block_user_for_community(
-        context,
-        undo,
-        announce,
-        expected_domain,
-        request_counter,
-      )
-      .await
-    }
-    _ => receive_unhandled_activity(undo),
-  }
 }
 
 /// Add a new mod to the community (can only be done by an existing mod).
@@ -191,85 +98,6 @@ pub(in crate::inbox) async fn receive_add_for_community(
       .await?;
   }
   // TODO: send websocket notification about added mod
-  Ok(())
-}
-
-pub(crate) async fn receive_block_user_for_community(
-  context: &LemmyContext,
-  block_any_base: AnyBase,
-  announce: Option<Announce>,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let block = Block::from_any_base(block_any_base.to_owned())?.context(location_info!())?;
-  let community = extract_community_from_cc(&block, context).await?;
-
-  verify_mod_activity(&block, announce, &community, context).await?;
-  verify_is_addressed_to_public(&block)?;
-
-  let blocked_user = block
-    .object()
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  let blocked_user =
-    get_or_fetch_and_upsert_person(&blocked_user, context, request_counter).await?;
-
-  let community_user_ban_form = CommunityPersonBanForm {
-    community_id: community.id,
-    person_id: blocked_user.id,
-  };
-
-  blocking(context.pool(), move |conn: &'_ _| {
-    CommunityPersonBan::ban(conn, &community_user_ban_form)
-  })
-  .await??;
-
-  // Also unsubscribe them from the community, if they are subscribed
-  let community_follower_form = CommunityFollowerForm {
-    community_id: community.id,
-    person_id: blocked_user.id,
-    pending: false,
-  };
-  blocking(context.pool(), move |conn: &'_ _| {
-    CommunityFollower::unfollow(conn, &community_follower_form)
-  })
-  .await?
-  .ok();
-
-  Ok(())
-}
-
-pub(crate) async fn receive_undo_block_user_for_community(
-  context: &LemmyContext,
-  undo: Undo,
-  announce: Option<Announce>,
-  expected_domain: &Url,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let object = undo.object().clone().one().context(location_info!())?;
-  let block = Block::from_any_base(object)?.context(location_info!())?;
-  let community = extract_community_from_cc(&block, context).await?;
-
-  verify_activity_domains_valid(&block, &expected_domain, false)?;
-  verify_is_addressed_to_public(&block)?;
-  verify_undo_remove_actor_instance(&undo, &block, &announce, context).await?;
-
-  let blocked_user = block
-    .object()
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  let blocked_user =
-    get_or_fetch_and_upsert_person(&blocked_user, context, request_counter).await?;
-
-  let community_user_ban_form = CommunityPersonBanForm {
-    community_id: community.id,
-    person_id: blocked_user.id,
-  };
-
-  blocking(context.pool(), move |conn: &'_ _| {
-    CommunityPersonBan::unban(conn, &community_user_ban_form)
-  })
-  .await??;
-
   Ok(())
 }
 
@@ -382,23 +210,5 @@ where
   if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
     return Err(anyhow!("Unkown target url").into());
   }
-  Ok(())
-}
-
-pub(crate) async fn verify_undo_remove_actor_instance<T, Kind>(
-  undo: &Undo,
-  inner: &T,
-  announce: &Option<Announce>,
-  context: &LemmyContext,
-) -> Result<(), LemmyError>
-where
-  T: ActorAndObjectRef + BaseExt<Kind> + AsObject<Kind>,
-{
-  if announce.is_none() {
-    let community = extract_community_from_cc(undo, context).await?;
-    verify_mod_activity(undo, announce.to_owned(), &community, context).await?;
-    verify_mod_activity(inner, announce.to_owned(), &community, context).await?;
-  }
-
   Ok(())
 }

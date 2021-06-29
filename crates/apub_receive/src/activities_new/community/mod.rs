@@ -10,8 +10,10 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext};
 use url::Url;
 
+pub mod block_user;
 pub mod delete;
 pub mod remove;
+pub mod undo_block_user;
 pub mod undo_delete;
 pub mod undo_remove;
 pub mod update;
@@ -38,6 +40,7 @@ async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::Operation
   Ok(())
 }
 
+// TODO: why do we have this and verify_mod_action() ?
 async fn verify_is_community_mod(
   actor: Url,
   community: Url,

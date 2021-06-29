@@ -3,18 +3,10 @@ use crate::inbox::{
   get_activity_id,
   inbox_verify_http_signature,
   is_activity_already_known,
-  receive_for_community::{
-    receive_add_for_community,
-    receive_block_user_for_community,
-    receive_remove_for_community,
-    receive_undo_for_community,
-  },
+  receive_for_community::receive_add_for_community,
   verify_is_addressed_to_public,
 };
-use activitystreams::{
-  activity::{kind::FollowType, ActorAndObject},
-  prelude::*,
-};
+use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
@@ -32,7 +24,6 @@ use lemmy_websocket::LemmyContext;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use url::Url;
 
 /// Allowed activities for community inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
@@ -122,20 +113,10 @@ pub(crate) async fn community_receive_message(
   );
 
   let any_base = activity.clone().into_any_base()?;
-  let actor_url = actor.actor_id();
   let activity_kind = activity.kind().context(location_info!())?;
   let do_announce = match activity_kind {
     CommunityValidTypes::Follow => todo!(),
-    CommunityValidTypes::Undo => {
-      Box::pin(handle_undo(
-        context,
-        activity.clone(),
-        actor_url,
-        &to_community,
-        request_counter,
-      ))
-      .await?
-    }
+    CommunityValidTypes::Undo => todo!(),
     CommunityValidTypes::Create => todo!(),
     CommunityValidTypes::Update => todo!(),
     CommunityValidTypes::Like => todo!(),
@@ -151,26 +132,8 @@ pub(crate) async fn community_receive_message(
       .await?;
       true
     }
-    CommunityValidTypes::Remove => {
-      Box::pin(receive_remove_for_community(
-        context,
-        any_base.clone(),
-        None,
-        request_counter,
-      ))
-      .await?;
-      true
-    }
-    CommunityValidTypes::Block => {
-      Box::pin(receive_block_user_for_community(
-        context,
-        any_base.clone(),
-        None,
-        request_counter,
-      ))
-      .await?;
-      true
-    }
+    CommunityValidTypes::Remove => todo!(),
+    CommunityValidTypes::Block => todo!(),
   };
 
   if do_announce {
@@ -194,23 +157,4 @@ pub(crate) async fn community_receive_message(
   }
 
   Ok(HttpResponse::Ok().finish())
-}
-
-async fn handle_undo(
-  context: &LemmyContext,
-  activity: CommunityAcceptedActivities,
-  actor_url: Url,
-  _to_community: &Community,
-  request_counter: &mut i32,
-) -> Result<bool, LemmyError> {
-  let inner_kind = activity
-    .object()
-    .is_single_kind(&FollowType::Follow.to_string());
-  let any_base = activity.into_any_base()?;
-  if inner_kind {
-    todo!()
-  } else {
-    receive_undo_for_community(context, any_base, None, &actor_url, request_counter).await?;
-    Ok(true)
-  }
 }

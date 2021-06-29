@@ -4,13 +4,8 @@ use crate::{
     is_activity_already_known,
     is_addressed_to_community_followers,
     is_addressed_to_local_person,
-    new_inbox_routing::{Activity, PersonAcceptedActivitiesNew},
-    receive_for_community::{
-      receive_add_for_community,
-      receive_block_user_for_community,
-      receive_remove_for_community,
-      receive_undo_for_community,
-    },
+    new_inbox_routing::{Activity, SharedInboxActivities},
+    receive_for_community::receive_add_for_community,
     verify_is_addressed_to_public,
   },
 };
@@ -51,7 +46,7 @@ pub type PersonAcceptedActivities = ActorAndObject<PersonValidTypes>;
 /// Handler for all incoming activities to person inboxes.
 pub async fn person_inbox(
   _request: HttpRequest,
-  input: web::Json<Activity<PersonAcceptedActivitiesNew>>,
+  input: web::Json<Activity<SharedInboxActivities>>,
   _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
@@ -217,26 +212,12 @@ pub async fn receive_announce(
     Some(Like) => todo!(),
     Some(Dislike) => todo!(),
     Some(Delete) => todo!(),
-    Some(Remove) => {
-      receive_remove_for_community(context, inner_activity, Some(announce), request_counter).await
-    }
-    Some(Undo) => {
-      receive_undo_for_community(
-        context,
-        inner_activity,
-        Some(announce),
-        &inner_id,
-        request_counter,
-      )
-      .await
-    }
+    Some(Remove) => todo!(),
+    Some(Undo) => todo!(),
     Some(Add) => {
       receive_add_for_community(context, inner_activity, Some(announce), request_counter).await
     }
-    Some(Block) => {
-      receive_block_user_for_community(context, inner_activity, Some(announce), request_counter)
-        .await
-    }
+    Some(Block) => todo!(),
     _ => receive_unhandled_activity(inner_activity),
   }
 }
