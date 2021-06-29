@@ -12,10 +12,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeleteComment {
-  actor: Url,
   to: PublicUrl,
   object: Activity<DeleteComment>,
   cc: [Url; 1],
@@ -26,9 +25,9 @@ pub struct UndoDeleteComment {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UndoDeleteComment> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
-    verify_domains_match(&self.inner.actor, &self.inner.object.inner.actor)?;
-    check_is_apub_id_valid(&self.inner.actor, false)?;
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    verify_domains_match(&self.actor, &self.inner.object.actor)?;
+    check_is_apub_id_valid(&self.actor, false)?;
     self.inner.object.verify(context).await
   }
 }

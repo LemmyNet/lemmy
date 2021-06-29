@@ -6,10 +6,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DislikeComment {
-  actor: Url,
   to: PublicUrl,
   pub(in crate::activities::comment) object: Url,
   cc: [Url; 1],
@@ -20,8 +19,8 @@ pub struct DislikeComment {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<DislikeComment> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
-    check_is_apub_id_valid(&self.inner.actor, false)
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    check_is_apub_id_valid(&self.actor, false)
   }
 }
 
@@ -34,7 +33,7 @@ impl ReceiveActivity for Activity<DislikeComment> {
   ) -> Result<(), LemmyError> {
     like_or_dislike_comment(
       -1,
-      &self.inner.actor,
+      &self.actor,
       &self.inner.object,
       context,
       request_counter,

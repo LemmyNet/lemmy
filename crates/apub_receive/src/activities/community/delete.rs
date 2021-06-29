@@ -20,10 +20,9 @@ use url::Url;
 // We have two possibilities which need to be handled:
 //     1. actor is remote mod, community id in object
 //     2. actor is community, cc is followers collection
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteCommunity {
-  actor: Url,
   to: PublicUrl,
   pub(in crate::activities::community) object: Url,
   cc: [Url; 1],
@@ -34,7 +33,7 @@ pub struct DeleteCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<DeleteCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
+    verify_domains_match(&self.actor, self.id_unchecked())?;
     let object = self.inner.object.clone();
     let community = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &object.into())
@@ -43,13 +42,13 @@ impl VerifyActivity for Activity<DeleteCommunity> {
     // remote mod action on local community
     if let Ok(c) = community {
       verify_domains_match(&self.inner.object, &self.inner.cc[0])?;
-      check_is_apub_id_valid(&self.inner.actor, false)?;
-      verify_is_community_mod(self.inner.actor.clone(), c.actor_id(), context).await
+      check_is_apub_id_valid(&self.actor, false)?;
+      verify_is_community_mod(self.actor.clone(), c.actor_id(), context).await
     }
     // community action sent to followers
     else {
-      verify_domains_match(&self.inner.actor, &self.inner.object)?;
-      verify_domains_match(&self.inner.actor, &self.inner.cc[0])
+      verify_domains_match(&self.actor, &self.inner.object)?;
+      verify_domains_match(&self.actor, &self.inner.cc[0])
     }
   }
 }
@@ -69,8 +68,7 @@ impl ReceiveActivity for Activity<DeleteCommunity> {
     let community_id = match community {
       Ok(c) => {
         // remote mod sent delete to local community, forward it to followers
-        let actor =
-          get_or_fetch_and_upsert_person(&self.inner.actor, context, request_counter).await?;
+        let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
         c.send_delete(actor, context).await?;
         c.id
       }

@@ -10,10 +10,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateComment {
-  actor: Url,
   to: PublicUrl,
   object: NoteExt,
   cc: Vec<Url>,
@@ -24,9 +23,9 @@ pub struct UpdateComment {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UpdateComment> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(self.id_unchecked(), &self.inner.actor)?;
-    self.inner.object.id(self.inner.actor.as_str())?;
-    check_is_apub_id_valid(&self.inner.actor, false)
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    self.inner.object.id(self.actor.as_str())?;
+    check_is_apub_id_valid(&self.actor, false)
   }
 }
 
@@ -40,14 +39,13 @@ impl ReceiveActivity for Activity<UpdateComment> {
     let comment = Comment::from_apub(
       &self.inner.object,
       context,
-      self.inner.actor.clone(),
+      self.actor.clone(),
       request_counter,
       false,
     )
     .await?;
 
-    let recipients =
-      get_notif_recipients(&self.inner.actor, &comment, context, request_counter).await?;
+    let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
     send_websocket_message(
       comment.id,
       recipients,

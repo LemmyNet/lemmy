@@ -10,10 +10,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePrivateMessage {
-  actor: Url,
   to: Url,
   object: NoteExt,
   #[serde(rename = "type")]
@@ -23,9 +22,9 @@ pub struct CreatePrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<CreatePrivateMessage> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(self.id_unchecked(), &self.inner.actor)?;
-    self.inner.object.id(self.inner.actor.as_str())?;
-    check_is_apub_id_valid(&self.inner.actor, false)
+    verify_domains_match(self.id_unchecked(), &self.actor)?;
+    self.inner.object.id(self.actor.as_str())?;
+    check_is_apub_id_valid(&self.actor, false)
   }
 }
 
@@ -39,7 +38,7 @@ impl ReceiveActivity for Activity<CreatePrivateMessage> {
     let private_message = PrivateMessage::from_apub(
       &self.inner.object,
       context,
-      self.inner.actor.clone(),
+      self.actor.clone(),
       request_counter,
       false,
     )

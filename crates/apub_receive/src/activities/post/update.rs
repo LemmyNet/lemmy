@@ -22,10 +22,9 @@ use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePost {
-  actor: Url,
   to: PublicUrl,
   object: PageExt,
   cc: Vec<Url>,
@@ -36,9 +35,9 @@ pub struct UpdatePost {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UpdatePost> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(self.id_unchecked(), &self.inner.actor)?;
-    self.inner.object.id(self.inner.actor.as_str())?;
-    check_is_apub_id_valid(&self.inner.actor, false)
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    self.inner.object.id(self.actor.as_str())?;
+    check_is_apub_id_valid(&self.actor, false)
   }
 }
 
@@ -49,8 +48,7 @@ impl ReceiveActivity for Activity<UpdatePost> {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let person =
-      get_or_fetch_and_upsert_person(&self.inner.actor, context, request_counter).await?;
+    let person = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let temp_post = PostForm::from_apub(
       &self.inner.object,
       context,

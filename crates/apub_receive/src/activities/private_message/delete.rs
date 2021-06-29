@@ -12,10 +12,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeletePrivateMessage {
-  actor: Url,
   to: Url,
   pub(in crate::activities::private_message) object: Url,
   #[serde(rename = "type")]
@@ -25,9 +24,9 @@ pub struct DeletePrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<DeletePrivateMessage> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
-    verify_domains_match(&self.inner.actor, &self.inner.object)?;
-    check_is_apub_id_valid(&self.inner.actor, false)
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    verify_domains_match(&self.actor, &self.inner.object)?;
+    check_is_apub_id_valid(&self.actor, false)
   }
 }
 

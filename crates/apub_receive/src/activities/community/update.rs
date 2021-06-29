@@ -14,10 +14,9 @@ use url::Url;
 
 /// This activity is received from a remote community mod, and updates the description or other
 /// fields of a local community.
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
-  actor: Url,
   to: PublicUrl,
   object: GroupExt,
   cc: [Url; 1],
@@ -28,10 +27,10 @@ pub struct UpdateCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<UpdateCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
+    verify_domains_match(&self.actor, self.id_unchecked())?;
     self.inner.object.id(self.inner.cc[0].as_str())?;
-    check_is_apub_id_valid(&self.inner.actor, false)?;
-    verify_is_community_mod(self.inner.actor.clone(), self.inner.cc[0].clone(), context).await
+    check_is_apub_id_valid(&self.actor, false)?;
+    verify_is_community_mod(self.actor.clone(), self.inner.cc[0].clone(), context).await
   }
 }
 

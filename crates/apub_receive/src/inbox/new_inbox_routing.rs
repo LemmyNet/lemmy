@@ -49,12 +49,13 @@ use url::Url;
 
 // TODO: would be nice if we could move this to lemmy_apub_lib crate. doing that gives error:
 //       "only traits defined in the current crate can be implemented for arbitrary types"
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity<Kind> {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
   id: Url,
+  pub(crate) actor: Url,
 
   /// type-specific fields
   #[serde(flatten)]
@@ -71,7 +72,7 @@ impl<Kind> Activity<Kind> {
   }
 }
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum SharedInboxActivities {
   FollowCommunity(FollowCommunity),
   AcceptFollowCommunity(AcceptFollowCommunity),

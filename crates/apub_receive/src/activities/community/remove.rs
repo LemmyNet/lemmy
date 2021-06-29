@@ -9,10 +9,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveCommunity {
-  actor: Url,
   to: PublicUrl,
   pub(in crate::activities::community) object: Url,
   cc: [Url; 1],
@@ -23,10 +22,10 @@ pub struct RemoveCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<RemoveCommunity> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
-    check_is_apub_id_valid(&self.inner.actor, false)?;
-    verify_domains_match(&self.inner.actor, &self.inner.object)?;
-    verify_domains_match(&self.inner.actor, &self.inner.cc[0])
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    check_is_apub_id_valid(&self.actor, false)?;
+    verify_domains_match(&self.actor, &self.inner.object)?;
+    verify_domains_match(&self.actor, &self.inner.cc[0])
   }
 }
 

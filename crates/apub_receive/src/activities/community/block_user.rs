@@ -17,10 +17,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockUserFromCommunity {
-  actor: Url,
   to: PublicUrl,
   pub(in crate::activities::community) object: Url,
   cc: [Url; 1],
@@ -31,9 +30,9 @@ pub struct BlockUserFromCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<BlockUserFromCommunity> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
-    check_is_apub_id_valid(&self.inner.actor, false)?;
-    verify_mod_action(self.inner.actor.clone(), self.inner.cc[0].clone(), context).await
+    verify_domains_match(&self.actor, self.id_unchecked())?;
+    check_is_apub_id_valid(&self.actor, false)?;
+    verify_mod_action(self.actor.clone(), self.inner.cc[0].clone(), context).await
   }
 }
 

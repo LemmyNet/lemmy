@@ -17,10 +17,9 @@ use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
-  actor: Url,
   to: Url,
   pub(in crate::activities::follow) object: Url,
   #[serde(rename = "type")]
@@ -30,9 +29,9 @@ pub struct FollowCommunity {
 #[async_trait::async_trait(?Send)]
 impl VerifyActivity for Activity<FollowCommunity> {
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.inner.actor, self.id_unchecked())?;
+    verify_domains_match(&self.actor, self.id_unchecked())?;
     verify_domains_match(&self.inner.to, &self.inner.object)?;
-    check_is_apub_id_valid(&self.inner.actor, false)
+    check_is_apub_id_valid(&self.actor, false)
   }
 }
 
@@ -45,8 +44,7 @@ impl ReceiveActivity for Activity<FollowCommunity> {
   ) -> Result<(), LemmyError> {
     let community =
       get_or_fetch_and_upsert_community(&self.inner.object, context, request_counter).await?;
-    let person =
-      get_or_fetch_and_upsert_person(&self.inner.actor, context, request_counter).await?;
+    let person = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: person.id,
