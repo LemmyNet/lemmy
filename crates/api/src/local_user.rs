@@ -125,7 +125,7 @@ impl Perform for GetCaptcha {
       "easy" => gen(Difficulty::Easy),
       "medium" => gen(Difficulty::Medium),
       "hard" => gen(Difficulty::Hard),
-      _ => gen(Difficulty::Medium),
+      _ => gen(Difficulty::Easy),
     };
 
     let answer = captcha.chars_as_string();

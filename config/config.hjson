@@ -75,7 +75,7 @@
   }
   captcha: {
     enabled: true
-    difficulty: medium # Can be easy, medium, or hard
+    difficulty: easy # Can be easy, medium, or hard
   }
 #  # email sending configuration
 #  email: {

@@ -39,7 +39,7 @@ impl Default for CaptchaConfig {
   fn default() -> Self {
     Self {
       enabled: true,
-      difficulty: "medium".into(),
+      difficulty: "easy".into(),
     }
   }
 }

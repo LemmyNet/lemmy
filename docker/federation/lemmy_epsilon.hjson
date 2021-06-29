@@ -22,7 +22,7 @@
   }
   captcha: {
     enabled: false
-    difficulty: medium
+    difficulty: easy
   }
   rate_limit: {
     message: 180
