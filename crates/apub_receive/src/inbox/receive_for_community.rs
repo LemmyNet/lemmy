@@ -1,14 +1,9 @@
 use crate::{
-  activities::receive::{
-    comment_undo::{receive_undo_delete_comment, receive_undo_remove_comment},
-    post_undo::{receive_undo_delete_post, receive_undo_remove_post},
-    receive_unhandled_activity,
-    verify_activity_domains_valid,
-  },
+  activities::receive::{receive_unhandled_activity, verify_activity_domains_valid},
   inbox::verify_is_addressed_to_public,
 };
 use activitystreams::{
-  activity::{ActorAndObjectRef, Add, Announce, Block, Delete, OptTargetRef, Remove, Undo},
+  activity::{ActorAndObjectRef, Add, Announce, Block, OptTargetRef, Remove, Undo},
   base::AnyBase,
   object::AsObject,
   prelude::*,
@@ -17,12 +12,8 @@ use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   fetcher::person::get_or_fetch_and_upsert_person,
-  find_object_by_id,
-  find_post_or_comment_by_id,
   generate_moderators_url,
   CommunityType,
-  Object,
-  PostOrComment,
 };
 use lemmy_db_queries::{
   source::community::CommunityModerator_,
@@ -135,12 +126,8 @@ pub(in crate::inbox) async fn receive_undo_for_community(
     .as_single_kind_str()
     .and_then(|s| s.parse().ok())
   {
-    Some(Delete) => {
-      receive_undo_delete_for_community(context, undo, expected_domain, request_counter).await
-    }
-    Some(Remove) => {
-      receive_undo_remove_for_community(context, undo, announce, expected_domain).await
-    }
+    Some(Delete) => todo!(),
+    Some(Remove) => todo!(),
     Some(Like) => todo!(),
     Some(Dislike) => todo!(),
     Some(Block) => {
@@ -154,63 +141,6 @@ pub(in crate::inbox) async fn receive_undo_for_community(
       .await
     }
     _ => receive_unhandled_activity(undo),
-  }
-}
-
-/// A post, comment or community deletion being reverted
-pub(in crate::inbox) async fn receive_undo_delete_for_community(
-  context: &LemmyContext,
-  undo: Undo,
-  expected_domain: &Url,
-  _request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-  verify_is_addressed_to_public(&delete)?;
-
-  let object = delete
-    .object()
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  match find_object_by_id(context, object).await {
-    Ok(Object::Post(p)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
-      receive_undo_delete_post(context, *p).await
-    }
-    Ok(Object::Comment(c)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
-      receive_undo_delete_comment(context, *c).await
-    }
-    Ok(Object::Community(_)) => todo!(),
-    // if we dont have the object or dont support its deletion, no need to do anything
-    _ => Ok(()),
-  }
-}
-
-/// A post or comment removal being reverted
-pub(in crate::inbox) async fn receive_undo_remove_for_community(
-  context: &LemmyContext,
-  undo: Undo,
-  announce: Option<Announce>,
-  expected_domain: &Url,
-) -> Result<(), LemmyError> {
-  let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-  verify_activity_domains_valid(&remove, &expected_domain, false)?;
-  verify_is_addressed_to_public(&remove)?;
-  verify_undo_remove_actor_instance(&undo, &remove, &announce, context).await?;
-
-  let object = remove
-    .object()
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  match find_post_or_comment_by_id(context, object).await {
-    Ok(PostOrComment::Post(p)) => receive_undo_remove_post(context, *p).await,
-    Ok(PostOrComment::Comment(c)) => receive_undo_remove_comment(context, *c).await,
-    // if we dont have the object, no need to do anything
-    Err(_) => Ok(()),
   }
 }
 

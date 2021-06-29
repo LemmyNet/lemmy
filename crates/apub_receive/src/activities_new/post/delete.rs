@@ -12,9 +12,9 @@ use url::Url;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeletePost {
-  actor: Url,
+  pub(in crate::activities_new::post) actor: Url,
   to: PublicUrl,
-  object: Url,
+  pub(in crate::activities_new::post) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DeleteType,

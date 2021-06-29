@@ -1,8 +1,5 @@
 use crate::{
-  activities_new::{
-    comment::{dislike::DislikeComment, undo_like_or_dislike_comment},
-    post::like::LikePost,
-  },
+  activities_new::comment::{dislike::DislikeComment, undo_like_or_dislike_comment},
   inbox::new_inbox_routing::Activity,
 };
 use activitystreams::activity::kind::UndoType;

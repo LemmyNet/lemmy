@@ -4,16 +4,10 @@ use activitystreams::{
   error::DomainError,
 };
 use anyhow::{anyhow, Context};
-use lemmy_apub::fetcher::person::get_or_fetch_and_upsert_person;
-use lemmy_db_schema::source::person::Person;
 use lemmy_utils::{location_info, LemmyError};
-use lemmy_websocket::LemmyContext;
 use log::debug;
 use std::fmt::Debug;
 use url::Url;
-
-pub(crate) mod comment_undo;
-pub(crate) mod post_undo;
 
 /// Return HTTP 501 for unsupported activities in inbox.
 pub(crate) fn receive_unhandled_activity<A>(activity: A) -> Result<(), LemmyError>

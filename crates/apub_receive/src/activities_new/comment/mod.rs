@@ -22,8 +22,10 @@ pub mod delete;
 pub mod dislike;
 pub mod like;
 pub mod remove;
+pub mod undo_delete;
 pub mod undo_dislike;
 pub mod undo_like;
+pub mod undo_remove;
 pub mod update;
 
 async fn get_notif_recipients(
@@ -45,6 +47,8 @@ async fn get_notif_recipients(
   send_local_notifs(mentions, comment.clone(), actor, post, context.pool(), true).await
 }
 
+// TODO: in many call sites we are setting an empty vec for recipient_ids, we should get the actual
+//       recipient actors from somewhere
 async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::OperationType + 'static>(
   comment_id: CommentId,
   recipient_ids: Vec<LocalUserId>,
@@ -96,7 +100,6 @@ async fn like_or_dislike_comment(
   })
   .await??;
 
-  // TODO get those recipient actor ids from somewhere
   send_websocket_message(
     comment_id,
     vec![],
@@ -122,7 +125,6 @@ async fn undo_like_or_dislike_comment(
   })
   .await??;
 
-  // TODO get those recipient actor ids from somewhere
   send_websocket_message(
     comment.id,
     vec![],
