@@ -3,9 +3,9 @@ use crate::{
   inbox::new_inbox_routing::Activity,
 };
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, NoteExt};
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, NoteExt};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
+use lemmy_db_schema::source::{comment::Comment, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -21,25 +21,25 @@ pub struct CreateComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<CreateComment> {
+impl ActivityHandler for Activity<CreateComment> {
+  type Actor = Person;
+
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     self.inner.object.id(self.actor.as_str())?;
     check_is_apub_id_valid(&self.actor, false)
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<CreateComment> {
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment = Comment::from_apub(
       &self.inner.object,
       context,
-      self.actor.clone(),
+      actor.actor_id(),
       request_counter,
       false,
     )

@@ -2,7 +2,7 @@ use crate::{activities::community::send_websocket_message, inbox::new_inbox_rout
 use activitystreams::activity::kind::RemoveType;
 use lemmy_api_common::blocking;
 use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{source::community::Community_, ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -20,19 +20,19 @@ pub struct RemoveCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<RemoveCommunity> {
+impl ActivityHandler for Activity<RemoveCommunity> {
+  type Actor = lemmy_apub::fetcher::Actor;
+
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     check_is_apub_id_valid(&self.actor, false)?;
     verify_domains_match(&self.actor, &self.inner.object)?;
     verify_domains_match(&self.actor, &self.inner.cc[0])
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<RemoveCommunity> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

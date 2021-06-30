@@ -7,6 +7,7 @@ use lemmy_db_queries::{Crud, Likeable};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentLike, CommentLikeForm},
+    person::Person,
     post::Post,
   },
   CommentId,
@@ -78,22 +79,21 @@ async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::Operation
 
 async fn like_or_dislike_comment(
   score: i16,
-  actor: &Url,
+  actor: &Person,
   object: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let person = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
   let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
 
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
-    person_id: person.id,
+    person_id: actor.id,
     score,
   };
-  let person_id = person.id;
+  let person_id = actor.id;
   blocking(context.pool(), move |conn| {
     CommentLike::remove(conn, person_id, comment_id)?;
     CommentLike::like(conn, &like_form)
@@ -110,16 +110,15 @@ async fn like_or_dislike_comment(
 }
 
 async fn undo_like_or_dislike_comment(
-  actor: &Url,
+  actor: &Person,
   object: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let person = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
   let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
 
   let comment_id = comment.id;
-  let person_id = person.id;
+  let person_id = actor.id;
   blocking(context.pool(), move |conn| {
     CommentLike::remove(conn, person_id, comment_id)
   })

@@ -37,8 +37,9 @@ use crate::{
   inbox::{is_activity_already_known, new_inbox_routing::Activity},
 };
 use activitystreams::activity::kind::RemoveType;
-use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub::{check_is_apub_id_valid, fetcher::person::get_or_fetch_and_upsert_person};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
+use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -76,20 +77,20 @@ pub enum AnnouncableActivities {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for AnnouncableActivities {
+impl ActivityHandler for AnnouncableActivities {
+  type Actor = Person;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     self.verify(context).await
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for AnnouncableActivities {
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    self.receive(context, request_counter).await
+    self.receive(actor, context, request_counter).await
   }
 }
 
@@ -104,30 +105,32 @@ pub struct AnnounceActivity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<AnnounceActivity> {
+impl ActivityHandler for Activity<AnnounceActivity> {
+  type Actor = Community;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     verify_domains_match(&self.actor, &self.inner.cc[0])?;
     check_is_apub_id_valid(&self.actor, false)?;
     self.inner.object.inner.verify(context).await
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<AnnounceActivity> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if is_activity_already_known(context.pool(), &self.inner.object.id_unchecked()).await? {
       return Ok(());
     }
+    let inner_actor =
+      get_or_fetch_and_upsert_person(&self.inner.object.actor, context, request_counter).await?;
     self
       .inner
       .object
       .inner
-      .receive(context, request_counter)
+      .receive(inner_actor, context, request_counter)
       .await
   }
 }

@@ -5,9 +5,12 @@ use crate::{
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, objects::FromApubToForm, GroupExt};
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{ApubObject, Crud};
-use lemmy_db_schema::source::community::{Community, CommunityForm};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityForm},
+  person::Person,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -25,19 +28,19 @@ pub struct UpdateCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<UpdateCommunity> {
+impl ActivityHandler for Activity<UpdateCommunity> {
+  type Actor = Person;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     self.inner.object.id(self.inner.cc[0].as_str())?;
     check_is_apub_id_valid(&self.actor, false)?;
     verify_is_community_mod(self.actor.clone(), self.inner.cc[0].clone(), context).await
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<UpdateCommunity> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

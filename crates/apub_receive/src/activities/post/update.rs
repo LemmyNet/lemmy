@@ -4,16 +4,16 @@ use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   check_is_apub_id_valid,
-  fetcher::person::get_or_fetch_and_upsert_person,
   objects::{FromApub, FromApubToForm},
   ActorType,
   PageExt,
 };
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::{
   source::{
     community::Community,
+    person::Person,
     post::{Post, PostForm},
   },
   DbUrl,
@@ -33,26 +33,25 @@ pub struct UpdatePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<UpdatePost> {
+impl ActivityHandler for Activity<UpdatePost> {
+  type Actor = Person;
+
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     self.inner.object.id(self.actor.as_str())?;
     check_is_apub_id_valid(&self.actor, false)
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<UpdatePost> {
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let person = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let temp_post = PostForm::from_apub(
       &self.inner.object,
       context,
-      person.actor_id(),
+      actor.actor_id(),
       request_counter,
       false,
     )
@@ -84,7 +83,7 @@ impl ReceiveActivity for Activity<UpdatePost> {
     let post = Post::from_apub(
       &self.inner.object,
       context,
-      person.actor_id(),
+      actor.actor_id(),
       request_counter,
       mod_action_allowed,
     )

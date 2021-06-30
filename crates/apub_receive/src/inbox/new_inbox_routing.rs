@@ -12,10 +12,12 @@ use crate::activities::{
     update::UpdateComment,
   },
   community::{
+    add_mod::AddMod,
     announce::AnnounceActivity,
     block_user::BlockUserFromCommunity,
     delete::DeleteCommunity,
     remove::RemoveCommunity,
+    remove_mod::RemoveMod,
     undo_block_user::UndoBlockUserFromCommunity,
     undo_delete::UndoDeleteCommunity,
     undo_remove::UndoRemoveCommunity,
@@ -42,7 +44,7 @@ use crate::activities::{
   },
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
-use lemmy_apub_lib::{ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::ActivityHandler;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -105,27 +107,28 @@ pub enum SharedInboxActivities {
   UpdateCommunity(UpdateCommunity),
   DeleteCommunity(DeleteCommunity),
   RemoveCommunity(RemoveCommunity),
+  AddMod(AddMod),
+  RemoveMod(RemoveMod),
   UndoDeleteCommunity(UndoDeleteCommunity),
   UndoRemoveCommunity(UndoRemoveCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
 }
 
-// todo: can probably get rid of these?
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for SharedInboxActivities {
+impl ActivityHandler for SharedInboxActivities {
+  type Actor = lemmy_apub::fetcher::Actor;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     self.verify(context).await
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for SharedInboxActivities {
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    self.receive(context, request_counter).await
+    self.receive(actor, context, request_counter).await
   }
 }

@@ -3,9 +3,9 @@ use crate::{
   inbox::new_inbox_routing::Activity,
 };
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, NoteExt};
-use lemmy_apub_lib::{verify_domains_match, ReceiveActivity, VerifyActivity};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, NoteExt};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler};
+use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -20,25 +20,25 @@ pub struct CreatePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<CreatePrivateMessage> {
+impl ActivityHandler for Activity<CreatePrivateMessage> {
+  type Actor = Person;
+
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(self.id_unchecked(), &self.actor)?;
     self.inner.object.id(self.actor.as_str())?;
     check_is_apub_id_valid(&self.actor, false)
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<CreatePrivateMessage> {
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let private_message = PrivateMessage::from_apub(
       &self.inner.object,
       context,
-      self.actor.clone(),
+      actor.actor_id(),
       request_counter,
       false,
     )

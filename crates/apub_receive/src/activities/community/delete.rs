@@ -10,7 +10,7 @@ use lemmy_apub::{
   ActorType,
   CommunityType,
 };
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{source::community::Community_, ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -31,7 +31,9 @@ pub struct DeleteCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<DeleteCommunity> {
+impl ActivityHandler for Activity<DeleteCommunity> {
+  type Actor = lemmy_apub::fetcher::Actor;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     let object = self.inner.object.clone();
@@ -51,15 +53,14 @@ impl VerifyActivity for Activity<DeleteCommunity> {
       verify_domains_match(&self.actor, &self.inner.cc[0])
     }
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<DeleteCommunity> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    // TODO: match on actor to decide what to do
     let actor = self.inner.object.clone();
     let community = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &actor.into())

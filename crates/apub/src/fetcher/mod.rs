@@ -14,7 +14,10 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use http::StatusCode;
-use lemmy_db_schema::naive_now;
+use lemmy_db_schema::{
+  naive_now,
+  source::{community::Community, person::Person},
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -51,6 +54,27 @@ pub async fn get_or_fetch_and_upsert_actor(
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
     Err(_) => Box::new(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?),
+  };
+  Ok(actor)
+}
+
+pub enum Actor {
+  Person(Person),
+  Community(Community),
+}
+
+// TODO: use this and get rid of ActorType
+pub async fn get_or_fetch_and_upsert_actor2(
+  apub_id: &Url,
+  context: &LemmyContext,
+  recursion_counter: &mut i32,
+) -> Result<Actor, LemmyError> {
+  let community = get_or_fetch_and_upsert_community(apub_id, context, recursion_counter).await;
+  let actor: Actor = match community {
+    Ok(c) => Actor::Community(c),
+    Err(_) => {
+      Actor::Person(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?)
+    }
   };
   Ok(actor)
 }

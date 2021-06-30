@@ -5,9 +5,9 @@ use crate::{
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -22,18 +22,18 @@ pub struct DeletePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<DeletePrivateMessage> {
+impl ActivityHandler for Activity<DeletePrivateMessage> {
+  type Actor = Person;
+
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     verify_domains_match(&self.actor, &self.inner.object)?;
     check_is_apub_id_valid(&self.actor, false)
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<DeletePrivateMessage> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

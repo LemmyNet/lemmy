@@ -3,9 +3,9 @@ use crate::{
   inbox::new_inbox_routing::Activity,
 };
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, NoteExt};
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, NoteExt};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
+use lemmy_db_schema::source::{comment::Comment, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -21,18 +21,18 @@ pub struct UpdateComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<UpdateComment> {
+impl ActivityHandler for Activity<UpdateComment> {
+  type Actor = Person;
+
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     self.inner.object.id(self.actor.as_str())?;
     check_is_apub_id_valid(&self.actor, false)
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<UpdateComment> {
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
@@ -45,7 +45,8 @@ impl ReceiveActivity for Activity<UpdateComment> {
     )
     .await?;
 
-    let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
+    let recipients =
+      get_notif_recipients(&actor.actor_id(), &comment, context, request_counter).await?;
     send_websocket_message(
       comment.id,
       recipients,

@@ -31,13 +31,17 @@ pub enum PublicUrl {
   Public,
 }
 
-// todo: later add a similar trait SendActivity
-// todo: maybe add a separate method verify()
 #[async_trait::async_trait(?Send)]
-pub trait ReceiveActivity {
+pub trait ActivityHandler {
+  type Actor;
+
+  // TODO: also need to check for instance/community blocks in here
+  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+
   // todo: later handle request_counter completely inside library
   async fn receive(
     &self,
+    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError>;
@@ -48,12 +52,6 @@ pub fn verify_domains_match(a: &Url, b: &Url) -> Result<(), LemmyError> {
     return Err(DomainError.into());
   }
   Ok(())
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait VerifyActivity {
-  // TODO: also need to check for instance/actor blocks in here i think
-  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 }
 
 // todo: instead of phantomdata, might use option<kind> to cache the fetched object (or just fetch on construction)

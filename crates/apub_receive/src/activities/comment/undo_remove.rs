@@ -8,9 +8,9 @@ use crate::{
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::objects::get_or_fetch_and_insert_comment};
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
 use lemmy_db_queries::source::comment::Comment_;
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_db_schema::source::{comment::Comment, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -26,19 +26,19 @@ pub struct UndoRemoveComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<UndoRemoveComment> {
+impl ActivityHandler for Activity<UndoRemoveComment> {
+  type Actor = Person;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     check_is_apub_id_valid(&self.actor, false)?;
     verify_mod_action(self.actor.clone(), self.inner.cc[0].clone(), context).await?;
     self.inner.object.verify(context).await
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<UndoRemoveComment> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

@@ -9,16 +9,19 @@ use lemmy_apub::{
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   CommunityType,
 };
-use lemmy_apub_lib::{verify_domains_match, PublicUrl, ReceiveActivity, VerifyActivity};
+use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
-use lemmy_db_schema::source::community::{CommunityModerator, CommunityModeratorForm};
+use lemmy_db_schema::source::{
+  community::{CommunityModerator, CommunityModeratorForm},
+  person::Person,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AddModToCommunity {
+pub struct AddMod {
   to: PublicUrl,
   object: Url,
   target: Url,
@@ -28,7 +31,9 @@ pub struct AddModToCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl VerifyActivity for Activity<AddModToCommunity> {
+impl ActivityHandler for Activity<AddMod> {
+  type Actor = Person;
+
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     verify_domains_match(&self.inner.target, &self.inner.cc[0])?;
@@ -36,12 +41,10 @@ impl VerifyActivity for Activity<AddModToCommunity> {
     verify_mod_action(self.actor.clone(), self.inner.cc[0].clone(), context).await?;
     verify_add_remove_moderator_target(&self.inner.target, self.inner.cc[0].clone())
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ReceiveActivity for Activity<AddModToCommunity> {
   async fn receive(
     &self,
+    _actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
