@@ -1,9 +1,17 @@
-use crate::http::{create_apub_response, create_apub_tombstone_response};
+use crate::{
+  activities::LemmyActivity,
+  http::{
+    create_apub_response,
+    create_apub_tombstone_response,
+    inbox_enums::PersonInboxActivities,
+    receive_activity,
+  },
+};
 use activitystreams::{
   base::BaseExt,
   collection::{CollectionExt, OrderedCollection},
 };
-use actix_web::{body::Body, web, HttpResponse};
+use actix_web::{body::Body, web, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub::{extensions::context::lemmy_context, objects::ToApub, ActorType};
 use lemmy_db_queries::source::person::Person_;
@@ -37,6 +45,15 @@ pub(crate) async fn get_apub_person_http(
   } else {
     Ok(create_apub_tombstone_response(&person.to_tombstone()?))
   }
+}
+
+pub async fn person_inbox(
+  request: HttpRequest,
+  input: web::Json<LemmyActivity<PersonInboxActivities>>,
+  path: web::Path<String>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, LemmyError> {
+  receive_activity(request, input.into_inner(), Some(path.0), context).await
 }
 
 pub(crate) async fn get_apub_person_outbox(

@@ -23,7 +23,7 @@ use crate::activities::{
     undo_remove::UndoRemoveCommunity,
     update::UpdateCommunity,
   },
-  follow::{accept::AcceptFollowCommunity, follow::FollowCommunity, undo::UndoFollowCommunity},
+  following::{accept::AcceptFollowCommunity, follow::FollowCommunity, undo::UndoFollowCommunity},
   post::{
     create::CreatePost,
     delete::DeletePost,
@@ -43,46 +43,25 @@ use crate::activities::{
     update::UpdatePrivateMessage,
   },
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_apub_lib::ActivityHandler;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use url::Url;
+use serde::{Deserialize, Serialize};
 
-// TODO: would be nice if we could move this to lemmy_apub_lib crate. doing that gives error:
-//       "only traits defined in the current crate can be implemented for arbitrary types"
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Activity<Kind> {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  id: Url,
-  pub(crate) actor: Url,
-
-  /// type-specific fields
-  #[serde(flatten)]
-  pub inner: Kind,
-
-  // unparsed fields
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-impl<Kind> Activity<Kind> {
-  pub fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum SharedInboxActivities {
-  FollowCommunity(FollowCommunity),
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
-  UndoFollowCommunity(UndoFollowCommunity),
   CreatePrivateMessage(CreatePrivateMessage),
   UpdatePrivateMessage(UpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
+  AnnounceActivity(Box<AnnounceActivity>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum GroupInboxActivities {
+  FollowCommunity(FollowCommunity),
+  UndoFollowCommunity(UndoFollowCommunity),
   CreateComment(CreateComment),
   UpdateComment(UpdateComment),
   LikeComment(LikeComment),
@@ -103,20 +82,98 @@ pub enum SharedInboxActivities {
   UndoRemovePost(UndoRemovePost),
   UndoLikePost(UndoLikePost),
   UndoDislikePost(UndoDislikePost),
-  AnnounceActivity(AnnounceActivity),
-  UpdateCommunity(UpdateCommunity),
+  UpdateCommunity(Box<UpdateCommunity>),
   DeleteCommunity(DeleteCommunity),
   RemoveCommunity(RemoveCommunity),
-  AddMod(AddMod),
-  RemoveMod(RemoveMod),
   UndoDeleteCommunity(UndoDeleteCommunity),
   UndoRemoveCommunity(UndoRemoveCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
+  AddMod(AddMod),
+  RemoveMod(RemoveMod),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum SharedInboxActivities {
+  // received by person
+  AcceptFollowCommunity(AcceptFollowCommunity),
+  CreatePrivateMessage(CreatePrivateMessage),
+  UpdatePrivateMessage(UpdatePrivateMessage),
+  DeletePrivateMessage(DeletePrivateMessage),
+  UndoDeletePrivateMessage(UndoDeletePrivateMessage),
+  AnnounceActivity(Box<AnnounceActivity>),
+  // received by group
+  FollowCommunity(FollowCommunity),
+  UndoFollowCommunity(UndoFollowCommunity),
+  CreateComment(CreateComment),
+  UpdateComment(UpdateComment),
+  LikeComment(LikeComment),
+  DislikeComment(DislikeComment),
+  UndoLikeComment(UndoLikeComment),
+  UndoDislikeComment(UndoDislikeComment),
+  DeleteComment(DeleteComment),
+  UndoDeleteComment(UndoDeleteComment),
+  RemoveComment(RemoveComment),
+  UndoRemoveComment(UndoRemoveComment),
+  CreatePost(CreatePost),
+  UpdatePost(UpdatePost),
+  LikePost(LikePost),
+  DislikePost(DislikePost),
+  DeletePost(DeletePost),
+  UndoDeletePost(UndoDeletePost),
+  RemovePost(RemovePost),
+  UndoRemovePost(UndoRemovePost),
+  UndoLikePost(UndoLikePost),
+  UndoDislikePost(UndoDislikePost),
+  UpdateCommunity(Box<UpdateCommunity>),
+  DeleteCommunity(DeleteCommunity),
+  RemoveCommunity(RemoveCommunity),
+  UndoDeleteCommunity(UndoDeleteCommunity),
+  UndoRemoveCommunity(UndoRemoveCommunity),
+  BlockUserFromCommunity(BlockUserFromCommunity),
+  UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
+  AddMod(AddMod),
+  RemoveMod(RemoveMod),
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for SharedInboxActivities {
+  type Actor = lemmy_apub::fetcher::Actor;
+
+  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    self.verify(context).await
+  }
+
+  async fn receive(
+    &self,
+    actor: Self::Actor,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    self.receive(actor, context, request_counter).await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ActivityHandler for PersonInboxActivities {
+  type Actor = lemmy_apub::fetcher::Actor;
+
+  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
+    self.verify(context).await
+  }
+
+  async fn receive(
+    &self,
+    actor: Self::Actor,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    self.receive(actor, context, request_counter).await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ActivityHandler for GroupInboxActivities {
   type Actor = lemmy_apub::fetcher::Actor;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

@@ -1,6 +1,7 @@
-use crate::{
-  activities::{community::verify_add_remove_moderator_target, verify_mod_action},
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  community::verify_add_remove_moderator_target,
+  verify_mod_action,
+  LemmyActivity,
 };
 use activitystreams::{activity::kind::RemoveType, base::AnyBase};
 use lemmy_api_common::blocking;
@@ -31,7 +32,7 @@ pub struct RemoveMod {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<RemoveMod> {
+impl ActivityHandler for LemmyActivity<RemoveMod> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

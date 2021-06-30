@@ -1,6 +1,6 @@
-use crate::{
-  activities::private_message::{delete::DeletePrivateMessage, send_websocket_message},
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  private_message::{delete::DeletePrivateMessage, send_websocket_message},
+  LemmyActivity,
 };
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
@@ -16,13 +16,13 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeletePrivateMessage {
   to: Url,
-  object: Activity<DeletePrivateMessage>,
+  object: LemmyActivity<DeletePrivateMessage>,
   #[serde(rename = "type")]
   kind: UndoType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UndoDeletePrivateMessage> {
+impl ActivityHandler for LemmyActivity<UndoDeletePrivateMessage> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

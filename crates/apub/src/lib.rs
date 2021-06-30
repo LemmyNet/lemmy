@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate trait_enum;
 
 pub mod activities;
 pub mod activity_queue;
@@ -171,10 +173,10 @@ pub trait ApubLikeableType {
 
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
-#[async_trait::async_trait(?Send)]
 pub trait ActorType {
   fn is_local(&self) -> bool;
   fn actor_id(&self) -> Url;
+  fn name(&self) -> String;
 
   // TODO: every actor should have a public key, so this shouldnt be an option (needs to be fixed in db)
   fn public_key(&self) -> Option<String>;

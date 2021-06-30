@@ -1,4 +1,4 @@
-use crate::{activities::post::send_websocket_message, inbox::new_inbox_routing::Activity};
+use crate::activities::{post::send_websocket_message, LemmyActivity};
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
 use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, PageExt};
 use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
@@ -18,7 +18,7 @@ pub struct CreatePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<CreatePost> {
+impl ActivityHandler for LemmyActivity<CreatePost> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

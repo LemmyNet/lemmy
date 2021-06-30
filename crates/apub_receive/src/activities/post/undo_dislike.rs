@@ -1,6 +1,6 @@
-use crate::{
-  activities::post::{dislike::DislikePost, undo_like_or_dislike_post},
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  post::{dislike::DislikePost, undo_like_or_dislike_post},
+  LemmyActivity,
 };
 use activitystreams::activity::kind::UndoType;
 use lemmy_apub::check_is_apub_id_valid;
@@ -14,14 +14,14 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDislikePost {
   to: PublicUrl,
-  object: Activity<DislikePost>,
+  object: LemmyActivity<DislikePost>,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UndoDislikePost> {
+impl ActivityHandler for LemmyActivity<UndoDislikePost> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

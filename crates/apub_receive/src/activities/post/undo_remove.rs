@@ -1,9 +1,7 @@
-use crate::{
-  activities::{
-    post::{remove::RemovePost, send_websocket_message},
-    verify_mod_action,
-  },
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  post::{remove::RemovePost, send_websocket_message},
+  verify_mod_action,
+  LemmyActivity,
 };
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
@@ -19,14 +17,14 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoRemovePost {
   to: PublicUrl,
-  object: Activity<RemovePost>,
+  object: LemmyActivity<RemovePost>,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UndoRemovePost> {
+impl ActivityHandler for LemmyActivity<UndoRemovePost> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

@@ -1,4 +1,4 @@
-use crate::{activities::verify_mod_action, inbox::new_inbox_routing::Activity};
+use crate::activities::{verify_mod_action, LemmyActivity};
 use activitystreams::activity::kind::BlockType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
@@ -31,7 +31,7 @@ pub struct BlockUserFromCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<BlockUserFromCommunity> {
+impl ActivityHandler for LemmyActivity<BlockUserFromCommunity> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

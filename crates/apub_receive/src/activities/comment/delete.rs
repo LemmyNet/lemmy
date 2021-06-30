@@ -1,4 +1,4 @@
-use crate::{activities::comment::send_websocket_message, inbox::new_inbox_routing::Activity};
+use crate::activities::{comment::send_websocket_message, LemmyActivity};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::objects::get_or_fetch_and_insert_comment};
@@ -20,7 +20,7 @@ pub struct DeleteComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<DeleteComment> {
+impl ActivityHandler for LemmyActivity<DeleteComment> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

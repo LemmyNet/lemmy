@@ -1,4 +1,4 @@
-use crate::{activities::post::like_or_dislike_post, inbox::new_inbox_routing::Activity};
+use crate::activities::{post::like_or_dislike_post, LemmyActivity};
 use activitystreams::activity::kind::DislikeType;
 use lemmy_apub::check_is_apub_id_valid;
 use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
@@ -18,7 +18,7 @@ pub struct DislikePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<DislikePost> {
+impl ActivityHandler for LemmyActivity<DislikePost> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

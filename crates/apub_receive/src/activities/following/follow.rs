@@ -1,4 +1,4 @@
-use crate::inbox::new_inbox_routing::Activity;
+use crate::activities::LemmyActivity;
 use activitystreams::{
   activity::{kind::FollowType, Follow},
   base::{AnyBase, ExtendsExt},
@@ -24,13 +24,13 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
   to: Url,
-  pub(in crate::activities::follow) object: Url,
+  pub(in crate::activities::following) object: Url,
   #[serde(rename = "type")]
   kind: FollowType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<FollowCommunity> {
+impl ActivityHandler for LemmyActivity<FollowCommunity> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

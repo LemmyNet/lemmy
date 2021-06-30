@@ -1,10 +1,18 @@
-use crate::http::{create_apub_response, create_apub_tombstone_response};
+use crate::{
+  activities::LemmyActivity,
+  http::{
+    create_apub_response,
+    create_apub_tombstone_response,
+    inbox_enums::GroupInboxActivities,
+    receive_activity,
+  },
+};
 use activitystreams::{
   base::{AnyBase, BaseExt},
   collection::{CollectionExt, OrderedCollection, UnorderedCollection},
   url::Url,
 };
-use actix_web::{body::Body, web, HttpResponse};
+use actix_web::{body::Body, web, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   extensions::context::lemmy_context,
@@ -44,6 +52,16 @@ pub(crate) async fn get_apub_community_http(
   } else {
     Ok(create_apub_tombstone_response(&community.to_tombstone()?))
   }
+}
+
+/// Handler for all incoming receive to community inboxes.
+pub async fn community_inbox(
+  request: HttpRequest,
+  input: web::Json<LemmyActivity<GroupInboxActivities>>,
+  path: web::Path<String>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, LemmyError> {
+  receive_activity(request, input.into_inner(), Some(path.0), context).await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

@@ -40,31 +40,37 @@ where
   false
 }
 
-/// Get a remote actor from its apub ID (either a person or a community). Thin wrapper around
-/// `get_or_fetch_and_upsert_person()` and `get_or_fetch_and_upsert_community()`.
-///
-/// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
-/// Otherwise it is fetched from the remote instance, stored and returned.
+trait_enum! {
+pub enum Actor: ActorType {
+  Person,
+  Community,
+}
+}
+/*
+impl ActorType for Actor {
+  fn is_local(&self) -> bool {
+    self.
+    self.is_local()
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id()
+  }
+  fn name(&self) -> String {
+    self.name()
+  }
+  fn public_key(&self) -> Option<String> {
+    self.public_key()
+  }
+  fn private_key(&self) -> Option<String> {
+    self.private_key()
+  }
+  fn get_shared_inbox_or_inbox_url(&self) -> Url {
+      self.get_shared_inbox_or_inbox_url()
+  }
+}
+ */
+
 pub async fn get_or_fetch_and_upsert_actor(
-  apub_id: &Url,
-  context: &LemmyContext,
-  recursion_counter: &mut i32,
-) -> Result<Box<dyn ActorType>, LemmyError> {
-  let community = get_or_fetch_and_upsert_community(apub_id, context, recursion_counter).await;
-  let actor: Box<dyn ActorType> = match community {
-    Ok(c) => Box::new(c),
-    Err(_) => Box::new(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?),
-  };
-  Ok(actor)
-}
-
-pub enum Actor {
-  Person(Person),
-  Community(Community),
-}
-
-// TODO: use this and get rid of ActorType
-pub async fn get_or_fetch_and_upsert_actor2(
   apub_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,

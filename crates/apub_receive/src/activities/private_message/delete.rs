@@ -1,7 +1,4 @@
-use crate::{
-  activities::private_message::send_websocket_message,
-  inbox::new_inbox_routing::Activity,
-};
+use crate::activities::{private_message::send_websocket_message, LemmyActivity};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub::check_is_apub_id_valid;
@@ -22,7 +19,7 @@ pub struct DeletePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<DeletePrivateMessage> {
+impl ActivityHandler for LemmyActivity<DeletePrivateMessage> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

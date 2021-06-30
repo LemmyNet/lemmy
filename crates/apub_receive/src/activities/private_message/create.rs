@@ -1,7 +1,4 @@
-use crate::{
-  activities::private_message::send_websocket_message,
-  inbox::new_inbox_routing::Activity,
-};
+use crate::activities::{private_message::send_websocket_message, LemmyActivity};
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
 use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, NoteExt};
 use lemmy_apub_lib::{verify_domains_match, ActivityHandler};
@@ -20,7 +17,7 @@ pub struct CreatePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<CreatePrivateMessage> {
+impl ActivityHandler for LemmyActivity<CreatePrivateMessage> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

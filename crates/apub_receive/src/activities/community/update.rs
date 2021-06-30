@@ -1,6 +1,6 @@
-use crate::{
-  activities::community::{send_websocket_message, verify_is_community_mod},
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  community::{send_websocket_message, verify_is_community_mod},
+  LemmyActivity,
 };
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use lemmy_api_common::blocking;
@@ -28,7 +28,7 @@ pub struct UpdateCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UpdateCommunity> {
+impl ActivityHandler for LemmyActivity<UpdateCommunity> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

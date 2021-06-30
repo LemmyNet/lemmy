@@ -1,10 +1,6 @@
-use crate::{
-  activities::community::{
-    delete::DeleteCommunity,
-    send_websocket_message,
-    verify_is_community_mod,
-  },
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  community::{delete::DeleteCommunity, send_websocket_message, verify_is_community_mod},
+  LemmyActivity,
 };
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
@@ -28,14 +24,14 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeleteCommunity {
   to: PublicUrl,
-  object: Activity<DeleteCommunity>,
+  object: LemmyActivity<DeleteCommunity>,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UndoDeleteCommunity> {
+impl ActivityHandler for LemmyActivity<UndoDeleteCommunity> {
   type Actor = lemmy_apub::fetcher::Actor;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

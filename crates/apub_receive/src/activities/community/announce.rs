@@ -12,15 +12,7 @@ use crate::{
       undo_remove::UndoRemoveComment,
       update::UpdateComment,
     },
-    community::{
-      block_user::BlockUserFromCommunity,
-      delete::DeleteCommunity,
-      remove::RemoveCommunity,
-      undo_block_user::UndoBlockUserFromCommunity,
-      undo_delete::UndoDeleteCommunity,
-      undo_remove::UndoRemoveCommunity,
-      update::UpdateCommunity,
-    },
+    community::{block_user::BlockUserFromCommunity, undo_block_user::UndoBlockUserFromCommunity},
     post::{
       create::CreatePost,
       delete::DeletePost,
@@ -33,8 +25,9 @@ use crate::{
       undo_remove::UndoRemovePost,
       update::UpdatePost,
     },
+    LemmyActivity,
   },
-  inbox::{is_activity_already_known, new_inbox_routing::Activity},
+  http::is_activity_already_known,
 };
 use activitystreams::activity::kind::RemoveType;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::person::get_or_fetch_and_upsert_person};
@@ -66,12 +59,6 @@ pub enum AnnouncableActivities {
   UndoRemovePost(UndoRemovePost),
   UndoLikePost(UndoLikePost),
   UndoDislikePost(UndoDislikePost),
-  // TODO: which of these get announced?
-  UpdateCommunity(UpdateCommunity),
-  DeleteCommunity(DeleteCommunity),
-  RemoveCommunity(RemoveCommunity),
-  UndoDeleteCommunity(UndoDeleteCommunity),
-  UndoRemoveCommunity(UndoRemoveCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
 }
@@ -98,14 +85,14 @@ impl ActivityHandler for AnnouncableActivities {
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   to: PublicUrl,
-  object: Activity<AnnouncableActivities>,
+  object: LemmyActivity<AnnouncableActivities>,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<AnnounceActivity> {
+impl ActivityHandler for LemmyActivity<AnnounceActivity> {
   type Actor = Community;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

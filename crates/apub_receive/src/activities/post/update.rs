@@ -1,4 +1,4 @@
-use crate::{activities::post::send_websocket_message, inbox::new_inbox_routing::Activity};
+use crate::activities::{post::send_websocket_message, LemmyActivity};
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use anyhow::Context;
 use lemmy_api_common::blocking;
@@ -33,7 +33,7 @@ pub struct UpdatePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UpdatePost> {
+impl ActivityHandler for LemmyActivity<UpdatePost> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {

@@ -50,3 +50,4 @@ thiserror = "1.0.23"
 background-jobs = "0.8.0"
 reqwest = { version = "0.10.10", features = ["json"] }
 backtrace = "0.3.56"
+trait_enum = "0.5.0"

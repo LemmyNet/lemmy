@@ -1,4 +1,4 @@
-use crate::{activities::follow::follow::FollowCommunity, inbox::new_inbox_routing::Activity};
+use crate::activities::{following::follow::FollowCommunity, LemmyActivity};
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::community::get_or_fetch_and_upsert_community};
@@ -16,13 +16,13 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollowCommunity {
   to: Url,
-  object: Activity<FollowCommunity>,
+  object: LemmyActivity<FollowCommunity>,
   #[serde(rename = "type")]
   kind: UndoType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UndoFollowCommunity> {
+impl ActivityHandler for LemmyActivity<UndoFollowCommunity> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

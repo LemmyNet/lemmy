@@ -1,4 +1,4 @@
-use crate::{activities::follow::follow::FollowCommunity, inbox::new_inbox_routing::Activity};
+use crate::activities::{following::follow::FollowCommunity, LemmyActivity};
 use activitystreams::activity::kind::AcceptType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::person::get_or_fetch_and_upsert_person};
@@ -13,14 +13,14 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct AcceptFollowCommunity {
   to: Url,
-  object: Activity<FollowCommunity>,
+  object: LemmyActivity<FollowCommunity>,
   #[serde(rename = "type")]
   kind: AcceptType,
 }
 
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<AcceptFollowCommunity> {
+impl ActivityHandler for LemmyActivity<AcceptFollowCommunity> {
   type Actor = Community;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

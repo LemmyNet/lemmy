@@ -1,7 +1,4 @@
-use crate::{
-  activities::{post::send_websocket_message, verify_mod_action},
-  inbox::new_inbox_routing::Activity,
-};
+use crate::activities::{post::send_websocket_message, verify_mod_action, LemmyActivity};
 use activitystreams::activity::kind::RemoveType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::objects::get_or_fetch_and_insert_post};
@@ -23,7 +20,7 @@ pub struct RemovePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<RemovePost> {
+impl ActivityHandler for LemmyActivity<RemovePost> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

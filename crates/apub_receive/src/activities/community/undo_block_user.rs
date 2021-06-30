@@ -1,6 +1,7 @@
-use crate::{
-  activities::{community::block_user::BlockUserFromCommunity, verify_mod_action},
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  community::block_user::BlockUserFromCommunity,
+  verify_mod_action,
+  LemmyActivity,
 };
 use activitystreams::activity::kind::BlockType;
 use lemmy_api_common::blocking;
@@ -22,14 +23,14 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
   to: PublicUrl,
-  object: Activity<BlockUserFromCommunity>,
+  object: LemmyActivity<BlockUserFromCommunity>,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: BlockType,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<UndoBlockUserFromCommunity> {
+impl ActivityHandler for LemmyActivity<UndoBlockUserFromCommunity> {
   type Actor = Person;
 
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {

@@ -1,6 +1,6 @@
-use crate::{
-  activities::comment::{get_notif_recipients, send_websocket_message},
-  inbox::new_inbox_routing::Activity,
+use crate::activities::{
+  comment::{get_notif_recipients, send_websocket_message},
+  LemmyActivity,
 };
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
 use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, NoteExt};
@@ -21,7 +21,7 @@ pub struct CreateComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for Activity<CreateComment> {
+impl ActivityHandler for LemmyActivity<CreateComment> {
   type Actor = Person;
 
   async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
