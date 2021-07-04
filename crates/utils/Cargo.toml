@@ -23,11 +23,11 @@ comrak = { version = "0.10.1", default-features = false }
 lazy_static = "1.4.0"
 openssl = "0.10.35"
 url = { version = "2.2.2", features = ["serde"] }
-actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
+actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
 actix-rt = { version = "2.2.0", default-features = false }
 anyhow = "1.0.41"
 reqwest = { version = "0.11.4", features = ["json"] }
-tokio = { version = "1.7.1", features = ["sync"] }
+tokio = { version = "1.8.0", features = ["sync"] }
 strum = "0.21.0"
 strum_macros = "0.21.1"
 futures = "0.3.15"

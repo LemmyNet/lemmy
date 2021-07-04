@@ -16,7 +16,7 @@ lemmy_db_schema = { path = "../db_schema" }
 lemmy_api_common = { path = "../api_common" }
 diesel = "1.4.7"
 actix = "0.12.0"
-actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
+actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
 actix-web-actors = { version = "3.0.0", default-features = false }
 sha2 = "0.9.5"
 log = "0.4.14"
