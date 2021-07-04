@@ -128,7 +128,7 @@ pub(in crate::inbox) async fn receive_create_for_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&create, &expected_domain, true)?;
+  verify_activity_domains_valid(&create, expected_domain, true)?;
   verify_is_addressed_to_public(&create)?;
 
   let kind = create
@@ -151,7 +151,7 @@ pub(in crate::inbox) async fn receive_update_for_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let update = Update::from_any_base(activity.to_owned())?.context(location_info!())?;
-  verify_activity_domains_valid(&update, &expected_domain, false)?;
+  verify_activity_domains_valid(&update, expected_domain, false)?;
   verify_is_addressed_to_public(&update)?;
   verify_modification_actor_instance(&update, &announce, context, request_counter).await?;
 
@@ -179,14 +179,14 @@ pub(in crate::inbox) async fn receive_like_for_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let like = Like::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&like, &expected_domain, false)?;
+  verify_activity_domains_valid(&like, expected_domain, false)?;
   verify_is_addressed_to_public(&like)?;
 
   let object_id = like
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+  match fetch_post_or_comment_by_id(object_id, context, request_counter).await? {
     PostOrComment::Post(post) => receive_like_post(like, *post, context, request_counter).await,
     PostOrComment::Comment(comment) => {
       receive_like_comment(like, *comment, context, request_counter).await
@@ -210,14 +210,14 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
   }
 
   let dislike = Dislike::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&dislike, &expected_domain, false)?;
+  verify_activity_domains_valid(&dislike, expected_domain, false)?;
   verify_is_addressed_to_public(&dislike)?;
 
   let object_id = dislike
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+  match fetch_post_or_comment_by_id(object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_dislike_post(dislike, *post, context, request_counter).await
     }
@@ -248,11 +248,11 @@ pub(in crate::inbox) async fn receive_delete_for_community(
 
   match find_object_by_id(context, object).await {
     Ok(Object::Post(p)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
+      verify_activity_domains_valid(&delete, expected_domain, true)?;
       receive_delete_post(context, *p).await
     }
     Ok(Object::Comment(c)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
+      verify_activity_domains_valid(&delete, expected_domain, true)?;
       receive_delete_comment(context, *c).await
     }
     Ok(Object::Community(c)) => {
@@ -281,7 +281,7 @@ pub(in crate::inbox) async fn receive_remove_for_community(
       .object()
       .as_single_xsd_any_uri()
       .context(location_info!())?;
-    let remove_mod = get_or_fetch_and_upsert_person(&remove_mod, context, request_counter).await?;
+    let remove_mod = get_or_fetch_and_upsert_person(remove_mod, context, request_counter).await?;
     let form = CommunityModeratorForm {
       community_id: community.id,
       person_id: remove_mod.id,
@@ -388,11 +388,11 @@ pub(in crate::inbox) async fn receive_undo_delete_for_community(
     .context(location_info!())?;
   match find_object_by_id(context, object).await {
     Ok(Object::Post(p)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
+      verify_activity_domains_valid(&delete, expected_domain, true)?;
       receive_undo_delete_post(context, *p).await
     }
     Ok(Object::Comment(c)) => {
-      verify_activity_domains_valid(&delete, &expected_domain, true)?;
+      verify_activity_domains_valid(&delete, expected_domain, true)?;
       receive_undo_delete_comment(context, *c).await
     }
     Ok(Object::Community(c)) => {
@@ -413,7 +413,7 @@ pub(in crate::inbox) async fn receive_undo_remove_for_community(
 ) -> Result<(), LemmyError> {
   let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  verify_activity_domains_valid(&remove, &expected_domain, false)?;
+  verify_activity_domains_valid(&remove, expected_domain, false)?;
   verify_is_addressed_to_public(&remove)?;
   verify_undo_remove_actor_instance(&undo, &remove, &announce, context).await?;
 
@@ -439,14 +439,14 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
 ) -> Result<(), LemmyError> {
   let like = Like::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  verify_activity_domains_valid(&like, &expected_domain, false)?;
+  verify_activity_domains_valid(&like, expected_domain, false)?;
   verify_is_addressed_to_public(&like)?;
 
   let object_id = like
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+  match fetch_post_or_comment_by_id(object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_undo_like_post(&like, *post, context, request_counter).await
     }
@@ -474,7 +474,7 @@ pub(in crate::inbox) async fn receive_add_for_community(
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  let new_mod = get_or_fetch_and_upsert_person(&new_mod, context, request_counter).await?;
+  let new_mod = get_or_fetch_and_upsert_person(new_mod, context, request_counter).await?;
 
   // If we had to refetch the community while parsing the activity, then the new mod has already
   // been added. Skip it here as it would result in a duplicate key error.
@@ -515,14 +515,14 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
 ) -> Result<(), LemmyError> {
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  verify_activity_domains_valid(&dislike, &expected_domain, false)?;
+  verify_activity_domains_valid(&dislike, expected_domain, false)?;
   verify_is_addressed_to_public(&dislike)?;
 
   let object_id = dislike
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+  match fetch_post_or_comment_by_id(object_id, context, request_counter).await? {
     PostOrComment::Post(post) => {
       receive_undo_dislike_post(&dislike, *post, context, request_counter).await
     }
@@ -548,8 +548,7 @@ pub(crate) async fn receive_block_user_for_community(
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  let blocked_user =
-    get_or_fetch_and_upsert_person(&blocked_user, context, request_counter).await?;
+  let blocked_user = get_or_fetch_and_upsert_person(blocked_user, context, request_counter).await?;
 
   let community_user_ban_form = CommunityPersonBanForm {
     community_id: community.id,
@@ -587,7 +586,7 @@ pub(crate) async fn receive_undo_block_user_for_community(
   let block = Block::from_any_base(object)?.context(location_info!())?;
   let community = extract_community_from_cc(&block, context).await?;
 
-  verify_activity_domains_valid(&block, &expected_domain, false)?;
+  verify_activity_domains_valid(&block, expected_domain, false)?;
   verify_is_addressed_to_public(&block)?;
   verify_undo_remove_actor_instance(&undo, &block, &announce, context).await?;
 
@@ -595,8 +594,7 @@ pub(crate) async fn receive_undo_block_user_for_community(
     .object()
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  let blocked_user =
-    get_or_fetch_and_upsert_person(&blocked_user, context, request_counter).await?;
+  let blocked_user = get_or_fetch_and_upsert_person(blocked_user, context, request_counter).await?;
 
   let community_user_ban_form = CommunityPersonBanForm {
     community_id: community.id,
@@ -646,8 +644,8 @@ where
     .flatten()
     .context(location_info!())?;
   let community_id: DbUrl = community_id.to_owned().into();
-  let community = blocking(&context.pool(), move |conn| {
-    Community::read_from_apub_id(&conn, &community_id)
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_apub_id(conn, &community_id)
   })
   .await??;
   Ok(community)
@@ -672,8 +670,8 @@ where
     .as_single_xsd_any_uri()
     .context(location_info!())?
     .to_owned();
-  let actor = blocking(&context.pool(), move |conn| {
-    Person::read_from_apub_id(&conn, &actor.into())
+  let actor = blocking(context.pool(), move |conn| {
+    Person::read_from_apub_id(conn, &actor.into())
   })
   .await??;
 

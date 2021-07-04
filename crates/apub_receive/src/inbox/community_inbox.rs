@@ -84,12 +84,12 @@ pub async fn community_inbox(
 
   // Check if the activity is actually meant for us
   let path = path.into_inner();
-  let community = blocking(&context.pool(), move |conn| {
-    Community::read_from_name(&conn, &path)
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_name(conn, &path)
   })
   .await??;
   let to_and_cc = get_activity_to_and_cc(&activity);
-  if !to_and_cc.contains(&&community.actor_id()) {
+  if !to_and_cc.contains(&community.actor_id()) {
     return Err(anyhow!("Activity delivered to wrong community").into());
   }
 
@@ -117,8 +117,8 @@ pub(crate) async fn community_receive_message(
   // Only persons can send activities to the community, so we can get the actor as person
   // unconditionally.
   let actor_id = actor.actor_id();
-  let person = blocking(&context.pool(), move |conn| {
-    Person::read_from_apub_id(&conn, &actor_id.into())
+  let person = blocking(context.pool(), move |conn| {
+    Person::read_from_apub_id(conn, &actor_id.into())
   })
   .await??;
   check_community_or_site_ban(&person, to_community.id, context.pool()).await?;
@@ -142,7 +142,7 @@ pub(crate) async fn community_receive_message(
         any_base.clone(),
         person,
         &to_community,
-        &context,
+        context,
       ))
       .await?;
       false
@@ -282,8 +282,8 @@ async fn handle_follow(
   };
 
   // This will fail if they're already a follower, but ignore the error.
-  blocking(&context.pool(), move |conn| {
-    CommunityFollower::follow(&conn, &community_follower_form).ok()
+  blocking(context.pool(), move |conn| {
+    CommunityFollower::follow(conn, &community_follower_form).ok()
   })
   .await?;
 
@@ -304,7 +304,7 @@ async fn handle_undo(
     .is_single_kind(&FollowType::Follow.to_string());
   let any_base = activity.into_any_base()?;
   if inner_kind {
-    handle_undo_follow(any_base, actor_url, to_community, &context).await?;
+    handle_undo_follow(any_base, actor_url, to_community, context).await?;
     Ok(false)
   } else {
     receive_undo_for_community(context, any_base, None, &actor_url, request_counter).await?;
@@ -326,8 +326,8 @@ async fn handle_undo_follow(
   let follow = Follow::from_any_base(object)?.context(location_info!())?;
   verify_activity_domains_valid(&follow, &person_url, false)?;
 
-  let person = blocking(&context.pool(), move |conn| {
-    Person::read_from_apub_id(&conn, &person_url.into())
+  let person = blocking(context.pool(), move |conn| {
+    Person::read_from_apub_id(conn, &person_url.into())
   })
   .await??;
   let community_follower_form = CommunityFollowerForm {
@@ -337,8 +337,8 @@ async fn handle_undo_follow(
   };
 
   // This will fail if they aren't a follower, but ignore the error.
-  blocking(&context.pool(), move |conn| {
-    CommunityFollower::unfollow(&conn, &community_follower_form).ok()
+  blocking(context.pool(), move |conn| {
+    CommunityFollower::unfollow(conn, &community_follower_form).ok()
   })
   .await?;
 

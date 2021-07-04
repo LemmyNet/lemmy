@@ -23,12 +23,12 @@ impl Perform for MarkCommentAsRead {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &MarkCommentAsRead = &self;
+    let data: &MarkCommentAsRead = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, comment_id, None)
+      CommentView::read(conn, comment_id, None)
     })
     .await??;
 
@@ -79,7 +79,7 @@ impl Perform for SaveComment {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &SaveComment = &self;
+    let data: &SaveComment = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_saved_form = CommentSavedForm {
@@ -123,7 +123,7 @@ impl Perform for CreateCommentLike {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &CreateCommentLike = &self;
+    let data: &CreateCommentLike = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let mut recipient_ids = Vec::<LocalUserId>::new();
@@ -133,7 +133,7 @@ impl Perform for CreateCommentLike {
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, comment_id, None)
+      CommentView::read(conn, comment_id, None)
     })
     .await??;
 

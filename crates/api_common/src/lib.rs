@@ -112,7 +112,7 @@ fn do_send_local_notifs(
     .filter(|m| m.is_local() && m.name.ne(&person.name))
     .collect::<Vec<&MentionData>>()
   {
-    if let Ok(mention_user_view) = LocalUserView::read_from_name(&conn, &mention.name) {
+    if let Ok(mention_user_view) = LocalUserView::read_from_name(conn, &mention.name) {
       // TODO
       // At some point, make it so you can't tag the parent creator either
       // This can cause two notifications, one for reply and the other for mention
@@ -126,7 +126,7 @@ fn do_send_local_notifs(
 
       // Allow this to fail softly, since comment edits might re-update or replace it
       // Let the uniqueness handle this fail
-      PersonMention::create(&conn, &user_mention_form).ok();
+      PersonMention::create(conn, &user_mention_form).ok();
 
       // Send an email to those local users that have notifications on
       if do_send_email {
@@ -143,11 +143,11 @@ fn do_send_local_notifs(
   // Send notifs to the parent commenter / poster
   match comment.parent_id {
     Some(parent_id) => {
-      if let Ok(parent_comment) = Comment::read(&conn, parent_id) {
+      if let Ok(parent_comment) = Comment::read(conn, parent_id) {
         // Don't send a notif to yourself
         if parent_comment.creator_id != person.id {
           // Get the parent commenter local_user
-          if let Ok(parent_user_view) = LocalUserView::read_person(&conn, parent_comment.creator_id)
+          if let Ok(parent_user_view) = LocalUserView::read_person(conn, parent_comment.creator_id)
           {
             recipient_ids.push(parent_user_view.local_user.id);
 
@@ -166,7 +166,7 @@ fn do_send_local_notifs(
     // Its a post
     None => {
       if post.creator_id != person.id {
-        if let Ok(parent_user_view) = LocalUserView::read_person(&conn, post.creator_id) {
+        if let Ok(parent_user_view) = LocalUserView::read_person(conn, post.creator_id) {
           recipient_ids.push(parent_user_view.local_user.id);
 
           if do_send_email {
@@ -208,7 +208,7 @@ pub fn send_email_to_user(
       comment_content,
       Settings::get().get_protocol_and_hostname()
     );
-    match send_email(subject, &user_email, &local_user_view.person.name, html) {
+    match send_email(subject, user_email, &local_user_view.person.name, html) {
       Ok(_o) => _o,
       Err(e) => error!("{}", e),
     };
@@ -261,7 +261,7 @@ pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(&jwt)
+  let claims = Claims::decode(jwt)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -304,7 +304,7 @@ pub async fn get_local_user_settings_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = Claims::decode(&jwt)
+  let claims = Claims::decode(jwt)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);

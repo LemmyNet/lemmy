@@ -45,7 +45,7 @@ impl ToApub for Community {
   async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
     let id = self.id;
     let moderators = blocking(pool, move |conn| {
-      CommunityModeratorView::for_community(&conn, id)
+      CommunityModeratorView::for_community(conn, id)
     })
     .await??;
     let moderators: Vec<Url> = moderators

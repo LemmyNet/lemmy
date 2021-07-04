@@ -169,7 +169,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
     let post = Box::pin(get_or_fetch_and_insert_post(
-      &post_ap_id,
+      post_ap_id,
       context,
       request_counter,
     ))
@@ -181,7 +181,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri?;
         let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
-          &parent_comment_ap_id,
+          parent_comment_ap_id,
           context,
           request_counter,
         ))

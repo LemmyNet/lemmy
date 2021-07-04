@@ -44,7 +44,7 @@ impl PerformCrud for CreateCommunity {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &CreateCommunity = &self;
+    let data: &CreateCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;

@@ -211,7 +211,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(like, &creator, &community, None, context).await?;
+    send_to_community(like, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -232,7 +232,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(dislike, &creator, &community, None, context).await?;
+    send_to_community(dislike, creator, &community, None, context).await?;
     Ok(())
   }
 
@@ -268,7 +268,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
 
-    send_to_community(undo, &creator, &community, None, context).await?;
+    send_to_community(undo, creator, &community, None, context).await?;
     Ok(())
   }
 }

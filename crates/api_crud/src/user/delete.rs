@@ -16,7 +16,7 @@ impl PerformCrud for DeleteAccount {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &DeleteAccount = &self;
+    let data: &DeleteAccount = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Verify the password

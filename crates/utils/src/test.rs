@@ -71,7 +71,7 @@ fn test_slur_filter() {
       "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
   let slur_free = "No slurs here";
   assert_eq!(
-      remove_slurs(&test),
+      remove_slurs(test),
       "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
         .to_string()
     );

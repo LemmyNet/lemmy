@@ -14,7 +14,7 @@ lazy_static! {
         slurs.push('|');
         slurs.push_str(&additional_slurs);
     };
-    RegexBuilder::new(&&slurs).case_insensitive(true).build().expect("compile regex")
+    RegexBuilder::new(&slurs).case_insensitive(true).build().expect("compile regex")
   };
 
 
