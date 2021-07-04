@@ -13,7 +13,7 @@ use lemmy_db_schema::source::post::*;
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{
   request::fetch_iframely_and_pictrs_data,
-  utils::{check_slurs, check_slurs_opt, is_valid_post_title},
+  utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
   ApiError,
   ConnectionId,
   LemmyError,
@@ -48,7 +48,7 @@ impl PerformCrud for CreatePost {
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
-      url: data_url.map(|u| u.to_owned().into()),
+      url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
       body: data.body.to_owned(),
       community_id: data.community_id,
       creator_id: local_user_view.person.id,

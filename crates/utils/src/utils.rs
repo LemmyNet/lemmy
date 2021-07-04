@@ -4,6 +4,7 @@ use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
+use url::Url;
 
 lazy_static! {
   static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").expect("compile regex");
@@ -25,6 +26,8 @@ lazy_static! {
   static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").expect("compile regex");
   static ref VALID_POST_TITLE_REGEX: Regex = Regex::new(r".*\S.*").expect("compile regex");
   static ref VALID_MATRIX_ID_REGEX: Regex = Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex");
+  // taken from https://en.wikipedia.org/wiki/UTM_parameters
+  static ref CLEAN_URL_PARAMS_REGEX: Regex = Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$").expect("compile regex");
 }
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
@@ -147,4 +150,28 @@ pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
       .unwrap_or("127.0.0.1")
       .to_string(),
   )
+}
+
+pub fn clean_url_params(mut url: Url) -> Url {
+  let new_query = url
+    .query_pairs()
+    .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(&q.0))
+    .map(|q| format!("{}={}", q.0, q.1))
+    .join("&");
+  url.set_query(Some(&new_query));
+  url
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::utils::clean_url_params;
+  use url::Url;
+
+  #[test]
+  fn test_clean_url_params() {
+    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&username=randomuser&id=123").unwrap();
+    let cleaned = clean_url_params(url);
+    let expected = Url::parse("https://example.com/path/123?username=randomuser&id=123").unwrap();
+    assert_eq!(expected.to_string(), cleaned.to_string());
+  }
 }

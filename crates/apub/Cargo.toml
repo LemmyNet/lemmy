@@ -46,7 +46,7 @@ uuid = { version = "0.8.2", features = ["serde", "v4"] }
 sha2 = "0.9.5"
 async-trait = "0.1.50"
 anyhow = "1.0.41"
-thiserror = "1.0.25"
+thiserror = "1.0.26"
 background-jobs = "0.9.0"
 reqwest = { version = "0.11.4", features = ["json"] }
 backtrace = "0.3.60"

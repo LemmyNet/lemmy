@@ -18,7 +18,7 @@ rand = "0.8.4"
 percent-encoding = "2.1.0"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["preserve_order"] }
-thiserror = "1.0.25"
+thiserror = "1.0.26"
 comrak = { version = "0.10.1", default-features = false }
 lazy_static = "1.4.0"
 openssl = "0.10.35"
