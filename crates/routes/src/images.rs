@@ -1,4 +1,4 @@
-use actix_web::{body::BodyStream, http::StatusCode, *};
+use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use awc::Client;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
     .finish();
 
   cfg
-    .app_data(client)
+    .app_data(Data::new(client))
     .service(
       web::resource("/pictrs/image")
         .wrap(rate_limit.image())
