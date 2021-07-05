@@ -16,10 +16,7 @@ use anyhow::Context;
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
-use lemmy_db_schema::{
-  source::community::{Community, CommunityModerator, CommunityModeratorForm},
-  DbUrl,
-};
+use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -102,12 +99,12 @@ async fn update_community_mods(
   let new_moderators = fetch_community_mods(context, group, request_counter).await?;
   let community_id = community.id;
   let current_moderators = blocking(context.pool(), move |conn| {
-    CommunityModeratorView::for_community(&conn, community_id)
+    CommunityModeratorView::for_community(conn, community_id)
   })
   .await??;
   // Remove old mods from database which arent in the moderators collection anymore
   for mod_user in &current_moderators {
-    if !new_moderators.contains(&&mod_user.moderator.actor_id.clone().into()) {
+    if !new_moderators.contains(&mod_user.moderator.actor_id.clone().into()) {
       let community_moderator_form = CommunityModeratorForm {
         community_id: mod_user.community.id,
         person_id: mod_user.moderator.id,
@@ -122,12 +119,13 @@ async fn update_community_mods(
   // Add new mods to database which have been added to moderators collection
   for mod_uri in new_moderators {
     let mod_user = get_or_fetch_and_upsert_person(&mod_uri, context, request_counter).await?;
-    let current_mod_uris: Vec<DbUrl> = current_moderators
+
+    if !current_moderators
       .clone()
       .iter()
       .map(|c| c.moderator.actor_id.clone())
-      .collect();
-    if !current_mod_uris.contains(&mod_user.actor_id) {
+      .any(|x| x == mod_user.actor_id)
+    {
       let community_moderator_form = CommunityModeratorForm {
         community_id: community.id,
         person_id: mod_user.id,

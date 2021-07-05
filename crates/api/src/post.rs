@@ -25,7 +25,7 @@ impl Perform for CreatePostLike {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &CreatePostLike = &self;
+    let data: &CreatePostLike = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled
@@ -102,7 +102,7 @@ impl Perform for LockPost {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &LockPost = &self;
+    let data: &LockPost = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
@@ -172,7 +172,7 @@ impl Perform for StickyPost {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &StickyPost = &self;
+    let data: &StickyPost = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
@@ -246,7 +246,7 @@ impl Perform for SavePost {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &SavePost = &self;
+    let data: &SavePost = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_saved_form = PostSavedForm {

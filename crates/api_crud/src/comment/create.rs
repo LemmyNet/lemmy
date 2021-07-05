@@ -29,7 +29,7 @@ impl PerformCrud for CreateComment {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &CreateComment = &self;
+    let data: &CreateComment = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
@@ -48,7 +48,7 @@ impl PerformCrud for CreateComment {
     // If there's a parent_id, check to make sure that comment is in that post
     if let Some(parent_id) = data.parent_id {
       // Make sure the parent comment exists
-      let parent = blocking(context.pool(), move |conn| Comment::read(&conn, parent_id))
+      let parent = blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
         .await?
         .map_err(|_| ApiError::err("couldnt_create_comment"))?;
       if parent.post_id != post_id {
@@ -67,7 +67,7 @@ impl PerformCrud for CreateComment {
     // Create the comment
     let comment_form2 = comment_form.clone();
     let inserted_comment = blocking(context.pool(), move |conn| {
-      Comment::create(&conn, &comment_form2)
+      Comment::create(conn, &comment_form2)
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_create_comment"))?;
@@ -78,7 +78,7 @@ impl PerformCrud for CreateComment {
       blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
         let apub_id =
           generate_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string())?;
-        Ok(Comment::update_ap_id(&conn, inserted_comment_id, apub_id)?)
+        Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
       })
       .await?
       .map_err(|_| ApiError::err("couldnt_create_comment"))?;
@@ -108,7 +108,7 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    let like = move |conn: &'_ _| CommentLike::like(&conn, &like_form);
+    let like = move |conn: &'_ _| CommentLike::like(conn, &like_form);
     if blocking(context.pool(), like).await?.is_err() {
       return Err(ApiError::err("couldnt_like_comment").into());
     }
@@ -119,7 +119,7 @@ impl PerformCrud for CreateComment {
 
     let person_id = local_user_view.person.id;
     let mut comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, inserted_comment.id, Some(person_id))
+      CommentView::read(conn, inserted_comment.id, Some(person_id))
     })
     .await??;
 

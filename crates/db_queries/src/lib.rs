@@ -314,7 +314,7 @@ mod tests {
     let example_url = "https://example.com";
     assert!(matches!(
       diesel_option_overwrite_to_url(&Some(example_url.to_string())),
-      Ok(Some(Some(url))) if url == Url::parse(&example_url).unwrap().into()
+      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
     ));
   }
 }

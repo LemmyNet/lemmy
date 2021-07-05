@@ -41,7 +41,7 @@ pub(crate) async fn receive_create_private_message(
   let private_message =
     PrivateMessage::from_apub(&note, context, expected_domain, request_counter, false).await?;
 
-  let message = blocking(&context.pool(), move |conn| {
+  let message = blocking(context.pool(), move |conn| {
     PrivateMessageView::read(conn, private_message.id)
   })
   .await??;
@@ -88,7 +88,7 @@ pub(crate) async fn receive_update_private_message(
     PrivateMessage::from_apub(&note, context, expected_domain, request_counter, false).await?;
 
   let private_message_id = private_message.id;
-  let message = blocking(&context.pool(), move |conn| {
+  let message = blocking(context.pool(), move |conn| {
     PrivateMessageView::read(conn, private_message_id)
   })
   .await??;
@@ -128,8 +128,8 @@ pub(crate) async fn receive_delete_private_message(
   })
   .await??;
 
-  let message = blocking(&context.pool(), move |conn| {
-    PrivateMessageView::read(&conn, deleted_private_message.id)
+  let message = blocking(context.pool(), move |conn| {
+    PrivateMessageView::read(conn, deleted_private_message.id)
   })
   .await??;
 
@@ -173,8 +173,8 @@ pub(crate) async fn receive_undo_delete_private_message(
   })
   .await??;
 
-  let message = blocking(&context.pool(), move |conn| {
-    PrivateMessageView::read(&conn, deleted_private_message.id)
+  let message = blocking(context.pool(), move |conn| {
+    PrivateMessageView::read(conn, deleted_private_message.id)
   })
   .await??;
 
@@ -222,7 +222,7 @@ where
     .context(location_info!())?;
   check_is_apub_id_valid(&person_id, false)?;
   // check that the sender is a person, not a community
-  get_or_fetch_and_upsert_person(&person_id, &context, request_counter).await?;
+  get_or_fetch_and_upsert_person(&person_id, context, request_counter).await?;
 
   Ok(())
 }

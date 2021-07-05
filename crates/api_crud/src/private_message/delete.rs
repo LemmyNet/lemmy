@@ -21,7 +21,7 @@ impl PerformCrud for DeletePrivateMessage {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &DeletePrivateMessage = &self;
+    let data: &DeletePrivateMessage = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions

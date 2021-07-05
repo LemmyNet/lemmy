@@ -102,13 +102,13 @@ pub async fn person_inbox(
 
   // Check if the activity is actually meant for us
   let username = path.into_inner();
-  let person = blocking(&context.pool(), move |conn| {
-    Person::find_by_name(&conn, &username)
+  let person = blocking(context.pool(), move |conn| {
+    Person::find_by_name(conn, &username)
   })
   .await??;
   let to_and_cc = get_activity_to_and_cc(&activity);
   // TODO: we should also accept activities that are sent to community followers
-  if !to_and_cc.contains(&&person.actor_id()) {
+  if !to_and_cc.contains(&person.actor_id()) {
     return Err(anyhow!("Activity delivered to wrong person").into());
   }
 
@@ -150,7 +150,7 @@ pub(crate) async fn person_receive_message(
   match kind {
     PersonValidTypes::Accept => {
       receive_accept(
-        &context,
+        context,
         any_base,
         actor,
         to_person.expect("person provided"),
@@ -159,11 +159,11 @@ pub(crate) async fn person_receive_message(
       .await?;
     }
     PersonValidTypes::Announce => {
-      Box::pin(receive_announce(&context, any_base, actor, request_counter)).await?
+      Box::pin(receive_announce(context, any_base, actor, request_counter)).await?
     }
     PersonValidTypes::Create => {
       Box::pin(receive_create(
-        &context,
+        context,
         any_base,
         actor_url,
         request_counter,
@@ -172,7 +172,7 @@ pub(crate) async fn person_receive_message(
     }
     PersonValidTypes::Update => {
       Box::pin(receive_update(
-        &context,
+        context,
         any_base,
         actor_url,
         request_counter,
@@ -217,7 +217,7 @@ async fn is_for_person_inbox(
   let community = is_addressed_to_community_followers(&to_and_cc, context.pool()).await?;
   if let Some(c) = community {
     let community_id = c.id;
-    let has_local_followers = blocking(&context.pool(), move |conn| {
+    let has_local_followers = blocking(context.pool(), move |conn| {
       CommunityFollower::has_local_followers(conn, community_id)
     })
     .await??;
@@ -261,7 +261,7 @@ async fn receive_accept(
   let community_id = community.id;
   let person_id = person.id;
   // This will throw an error if no follow was requested
-  blocking(&context.pool(), move |conn| {
+  blocking(context.pool(), move |conn| {
     CommunityFollower::follow_accepted(conn, community_id, person_id)
   })
   .await??;
@@ -377,7 +377,7 @@ async fn receive_create(
   if verify_is_addressed_to_public(&create).is_ok() {
     receive_create_comment(create, context, request_counter).await
   } else {
-    receive_create_private_message(&context, create, expected_domain, request_counter).await
+    receive_create_private_message(context, create, expected_domain, request_counter).await
   }
 }
 
@@ -394,7 +394,7 @@ async fn receive_update(
   if verify_is_addressed_to_public(&update).is_ok() {
     receive_update_comment(update, context, request_counter).await
   } else {
-    receive_update_private_message(&context, update, expected_domain, request_counter).await
+    receive_update_private_message(context, update, expected_domain, request_counter).await
   }
 }
 
@@ -436,7 +436,7 @@ async fn receive_remove(
     Community::read_from_apub_id(conn, &object_uri.into())
   })
   .await??;
-  receive_remove_community(&context, community).await
+  receive_remove_community(context, community).await
 }
 
 async fn receive_undo(

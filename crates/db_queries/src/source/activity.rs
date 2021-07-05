@@ -78,7 +78,7 @@ impl Activity_ for Activity {
       sensitive,
       updated: None,
     };
-    let result = Activity::create(&conn, &activity_form);
+    let result = Activity::create(conn, &activity_form);
     match result {
       Ok(s) => Ok(s),
       Err(e) => Err(IoError::new(

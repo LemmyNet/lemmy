@@ -328,7 +328,7 @@ impl CommunityType for Community {
       .set_many_ccs(vec![self.actor_id()])
       .set_target(generate_moderators_url(&self.actor_id)?.into_inner());
 
-    send_to_community(remove, &actor, self, Some(removed_mod.actor_id()), context).await?;
+    send_to_community(remove, actor, self, Some(removed_mod.actor_id()), context).await?;
     Ok(())
   }
 
@@ -345,7 +345,7 @@ impl CommunityType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()]);
 
-    send_to_community(block, &actor, self, Some(blocked_user.actor_id()), context).await?;
+    send_to_community(block, actor, self, Some(blocked_user.actor_id()), context).await?;
     Ok(())
   }
 
@@ -370,7 +370,7 @@ impl CommunityType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()]);
 
-    send_to_community(undo, &actor, self, Some(unblocked_user.actor_id()), context).await?;
+    send_to_community(undo, actor, self, Some(unblocked_user.actor_id()), context).await?;
     Ok(())
   }
 }

@@ -69,7 +69,7 @@ impl UserType for Person {
       person_id: self.id,
       pending: true,
     };
-    blocking(&context.pool(), move |conn| {
+    blocking(context.pool(), move |conn| {
       CommunityFollower::follow(conn, &community_follower_form).ok()
     })
     .await?;

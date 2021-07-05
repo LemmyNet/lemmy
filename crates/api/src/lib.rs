@@ -154,7 +154,7 @@ where
   for<'de> Data: Deserialize<'de> + 'a,
   Data: Perform,
 {
-  let parsed_data: Data = serde_json::from_str(&data)?;
+  let parsed_data: Data = serde_json::from_str(data)?;
   let res = parsed_data
     .perform(&web::Data::new(context), Some(id))
     .await?;
@@ -212,7 +212,7 @@ mod tests {
 
     // The check should fail, since the validator time is now newer than the jwt issue time
     let updated_local_user =
-      LocalUser::update_password(&conn, inserted_local_user.id, &"password111").unwrap();
+      LocalUser::update_password(&conn, inserted_local_user.id, "password111").unwrap();
     let check_after = check_validator_time(&updated_local_user.validator_time, &claims);
     assert!(check_after.is_err());
 

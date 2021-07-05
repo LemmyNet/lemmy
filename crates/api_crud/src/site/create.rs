@@ -32,7 +32,7 @@ impl PerformCrud for CreateSite {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<SiteResponse, LemmyError> {
-    let data: &CreateSite = &self;
+    let data: &CreateSite = self;
 
     let read_site = move |conn: &'_ _| Site::read_simple(conn);
     if blocking(context.pool(), read_site).await?.is_ok() {
