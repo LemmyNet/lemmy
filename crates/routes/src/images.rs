@@ -66,12 +66,9 @@ async fn upload(
   let mut res = client_req
     .send_stream(body)
     .await
-    .map_err(|e| error::ErrorBadRequest(e))?;
+    .map_err(error::ErrorBadRequest)?;
 
-  let images = res
-    .json::<Images>()
-    .await
-    .map_err(|e| error::ErrorBadRequest(e))?;
+  let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).json(images))
 }
@@ -122,7 +119,7 @@ async fn image(
     .no_decompress()
     .send()
     .await
-    .map_err(|e| error::ErrorBadRequest(e))?;
+    .map_err(error::ErrorBadRequest)?;
 
   if res.status() == StatusCode::NOT_FOUND {
     return Ok(HttpResponse::NotFound().finish());
@@ -161,7 +158,7 @@ async fn delete(
     .no_decompress()
     .send()
     .await
-    .map_err(|e| error::ErrorBadRequest(e))?;
+    .map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res)))
 }

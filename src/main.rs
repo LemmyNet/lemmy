@@ -88,7 +88,7 @@ async fn main() -> Result<(), LemmyError> {
     let rate_limiter = rate_limiter.clone();
     App::new()
       .wrap(middleware::Logger::default())
-      .data(context)
+      .app_data(context)
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(lemmy_apub_receive::routes::config)

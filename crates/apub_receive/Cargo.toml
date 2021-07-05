@@ -31,7 +31,7 @@ url = { version = "2.2.2", features = ["serde"] }
 percent-encoding = "2.1.0"
 openssl = "0.10.35"
 http = "0.2.4"
-http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
+http-signature-normalization-actix = { version = "0.5.0-beta.6", default-features = false, features = ["sha-2"] }
 http-signature-normalization-reqwest = { version = "0.2.0", default-features = false, features = ["sha-2"] }
 base64 = "0.13.0"
 tokio = "1.8.0"
