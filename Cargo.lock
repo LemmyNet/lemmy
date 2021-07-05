@@ -29,40 +29,15 @@ dependencies = [
 
 [[package]]
 name = "actix"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1be241f88f3b1e7e9a3fbe3b5a8a0f6915b5a1d7ee0d9a248d3376d01068cc60"
-dependencies = [
- "actix-rt 1.1.1",
- "actix_derive 0.5.0",
- "bitflags",
- "bytes 0.5.6",
- "crossbeam-channel 0.4.4",
- "derive_more",
- "futures-channel",
- "futures-util",
- "log",
- "once_cell",
- "parking_lot",
- "pin-project 0.4.28",
- "smallvec",
- "tokio 0.2.25",
- "tokio-util 0.3.1",
- "trust-dns-proto",
- "trust-dns-resolver",
-]
-
-[[package]]
-name = "actix"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3720d0064a0ce5c0de7bd93bdb0a6caebab2a9b5668746145d7b3b0c5da02914"
 dependencies = [
  "actix-rt 2.2.0",
- "actix_derive 0.6.0",
+ "actix_derive",
  "bitflags",
  "bytes 1.0.1",
- "crossbeam-channel 0.5.1",
+ "crossbeam-channel",
  "futures-core",
  "futures-sink",
  "futures-task",
@@ -441,7 +416,7 @@ dependencies = [
  "actix-tls 2.0.0",
  "actix-utils 2.0.0",
  "actix-web-codegen 0.4.0",
- "awc",
+ "awc 2.0.3",
  "bytes 0.5.6",
  "derive_more",
  "encoding_rs",
@@ -506,18 +481,19 @@ dependencies = [
 
 [[package]]
 name = "actix-web-actors"
-version = "3.0.0"
+version = "4.0.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f6edf3c2693e2a8c422800c87ee89a6a4eac7dd01109bc172a1093ce1f4f001"
+checksum = "7db5c2c78a2606e6634abee4973a4924221cfab66e48f23844256e4fb8ce0f42"
 dependencies = [
- "actix 0.10.0",
- "actix-codec 0.3.0",
- "actix-http 2.2.0",
- "actix-web 3.3.2",
- "bytes 0.5.6",
- "futures-channel",
+ "actix",
+ "actix-codec 0.4.0",
+ "actix-http 3.0.0-beta.8",
+ "actix-web 4.0.0-beta.8",
+ "bytes 1.0.1",
+ "bytestring",
  "futures-core",
- "pin-project 0.4.28",
+ "pin-project 1.0.7",
+ "tokio 1.8.0",
 ]
 
 [[package]]
@@ -536,17 +512,6 @@ name = "actix-web-codegen"
 version = "0.5.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d048c6986743105c1e8e9729fbc8d5d1667f2f62393a58be8d85a7d9a5a6c8d"
-dependencies = [
- "proc-macro2 1.0.27",
- "quote 1.0.9",
- "syn 1.0.73",
-]
-
-[[package]]
-name = "actix_derive"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b95aceadaf327f18f0df5962fedc1bde2f870566a0b9f65c89508a3b1f79334c"
 dependencies = [
  "proc-macro2 1.0.27",
  "quote 1.0.9",
@@ -685,6 +650,33 @@ dependencies = [
  "mime",
  "percent-encoding",
  "rand 0.7.3",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+]
+
+[[package]]
+name = "awc"
+version = "3.0.0-beta.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "364ef81705bf38403a3c3da4fab9eeec1e1503cd72dd6cd7c4259d2a6b08aa98"
+dependencies = [
+ "actix-codec 0.4.0",
+ "actix-http 3.0.0-beta.8",
+ "actix-rt 2.2.0",
+ "actix-service 2.0.0",
+ "base64 0.13.0",
+ "bytes 1.0.1",
+ "cfg-if 1.0.0",
+ "cookie 0.15.0",
+ "derive_more",
+ "futures-core",
+ "itoa",
+ "log",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite 0.2.7",
+ "rand 0.8.4",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -1081,22 +1073,12 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b153fe7cbef478c567df0f972e02e6d736db11affe43dfc9c56a9374d1adfb87"
-dependencies = [
- "crossbeam-utils 0.7.2",
- "maybe-uninit",
-]
-
-[[package]]
-name = "crossbeam-channel"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06ed27e177f16d65f0f0c22a213e17c696ace5dd64b14258b52f9417ccb52db4"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.5",
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -1107,7 +1089,7 @@ checksum = "94af6efb46fef72616855b036a624cf27ba656ffc9be1b9a3c931cfc7749a9a9"
 dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-epoch",
- "crossbeam-utils 0.8.5",
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -1117,21 +1099,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec02e091aa634e2c3ada4a392989e7c3116673ef0ac5b72232439094d73b7fd"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-utils 0.8.5",
+ "crossbeam-utils",
  "lazy_static",
  "memoffset",
  "scopeguard",
-]
-
-[[package]]
-name = "crossbeam-utils"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c7c73a2d1e9fc0886a08b93e98eb643461230d5f1925e4036204d5f2e261a8"
-dependencies = [
- "autocfg",
- "cfg-if 0.1.10",
- "lazy_static",
 ]
 
 [[package]]
@@ -1754,9 +1725,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57da981a97112479df3de7e88550c0de21dfbcc401efe832c8e5c7574ba1952e"
 dependencies = [
  "actix-web 3.3.2",
- "awc",
+ "awc 2.0.3",
  "base64 0.12.3",
  "bytes 0.5.6",
+ "chrono",
+ "futures",
+ "http-signature-normalization",
+ "log",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
+name = "http-signature-normalization-actix"
+version = "0.5.0-beta.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fddb5f0de5059c337a00cfe5b224768e1821327da9df4b6f27762cbf305126d"
+dependencies = [
+ "actix-web 4.0.0-beta.8",
+ "awc 3.0.0-beta.7",
+ "base64 0.13.0",
  "chrono",
  "futures",
  "http-signature-normalization",
@@ -2008,12 +1996,12 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api"
 version = "0.1.0"
 dependencies = [
- "actix 0.12.0",
+ "actix",
  "actix-rt 2.2.0",
  "actix-web 4.0.0-beta.8",
  "anyhow",
  "async-trait",
- "awc",
+ "awc 3.0.0-beta.7",
  "background-jobs",
  "base64 0.13.0",
  "bcrypt",
@@ -2022,7 +2010,7 @@ dependencies = [
  "diesel",
  "futures",
  "http",
- "http-signature-normalization-actix",
+ "http-signature-normalization-actix 0.4.1",
  "itertools",
  "lazy_static",
  "lemmy_api_common",
@@ -2072,12 +2060,12 @@ dependencies = [
 name = "lemmy_api_crud"
 version = "0.1.0"
 dependencies = [
- "actix 0.12.0",
+ "actix",
  "actix-rt 2.2.0",
  "actix-web 4.0.0-beta.8",
  "anyhow",
  "async-trait",
- "awc",
+ "awc 3.0.0-beta.7",
  "background-jobs",
  "base64 0.13.0",
  "bcrypt",
@@ -2085,7 +2073,7 @@ dependencies = [
  "diesel",
  "futures",
  "http",
- "http-signature-normalization-actix",
+ "http-signature-normalization-actix 0.4.1",
  "itertools",
  "lazy_static",
  "lemmy_api_common",
@@ -2118,12 +2106,12 @@ version = "0.1.0"
 dependencies = [
  "activitystreams",
  "activitystreams-ext",
- "actix 0.12.0",
+ "actix",
  "actix-rt 2.2.0",
  "actix-web 4.0.0-beta.8",
  "anyhow",
  "async-trait",
- "awc",
+ "awc 3.0.0-beta.7",
  "background-jobs",
  "backtrace",
  "base64 0.13.0",
@@ -2132,7 +2120,7 @@ dependencies = [
  "diesel",
  "futures",
  "http",
- "http-signature-normalization-actix",
+ "http-signature-normalization-actix 0.5.0-beta.6",
  "http-signature-normalization-reqwest",
  "itertools",
  "lazy_static",
@@ -2165,12 +2153,12 @@ version = "0.1.0"
 dependencies = [
  "activitystreams",
  "activitystreams-ext",
- "actix 0.12.0",
+ "actix",
  "actix-rt 2.2.0",
  "actix-web 4.0.0-beta.8",
  "anyhow",
  "async-trait",
- "awc",
+ "awc 3.0.0-beta.7",
  "backtrace",
  "base64 0.13.0",
  "bcrypt",
@@ -2178,7 +2166,7 @@ dependencies = [
  "diesel",
  "futures",
  "http",
- "http-signature-normalization-actix",
+ "http-signature-normalization-actix 0.4.1",
  "http-signature-normalization-reqwest",
  "itertools",
  "lemmy_api_common",
@@ -2275,11 +2263,11 @@ dependencies = [
 name = "lemmy_routes"
 version = "0.1.0"
 dependencies = [
- "actix 0.12.0",
+ "actix",
  "actix-web 4.0.0-beta.8",
  "actix-web-actors",
  "anyhow",
- "awc",
+ "awc 3.0.0-beta.7",
  "chrono",
  "diesel",
  "lazy_static",
@@ -2303,7 +2291,7 @@ name = "lemmy_server"
 version = "0.0.1"
 dependencies = [
  "activitystreams",
- "actix 0.12.0",
+ "actix",
  "actix-rt 2.2.0",
  "actix-web 4.0.0-beta.8",
  "anyhow",
@@ -2313,7 +2301,7 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "env_logger",
- "http-signature-normalization-actix",
+ "http-signature-normalization-actix 0.4.1",
  "lemmy_api",
  "lemmy_api_common",
  "lemmy_api_crud",
@@ -2375,7 +2363,7 @@ dependencies = [
 name = "lemmy_websocket"
 version = "0.1.0"
 dependencies = [
- "actix 0.12.0",
+ "actix",
  "actix-web 4.0.0-beta.8",
  "actix-web-actors",
  "anyhow",
@@ -2502,12 +2490,6 @@ name = "matches"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ffc5c5338469d4d3ea17d269fa8ea3512ad247247c30bd2df69e68309ed0a08"
-
-[[package]]
-name = "maybe-uninit"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "memchr"
@@ -3220,9 +3202,9 @@ version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d78120e2c850279833f1dd3582f730c4ab53ed95aeaaaa862a2a5c71b1656d8e"
 dependencies = [
- "crossbeam-channel 0.5.1",
+ "crossbeam-channel",
  "crossbeam-deque",
- "crossbeam-utils 0.8.5",
+ "crossbeam-utils",
  "lazy_static",
  "num_cpus",
 ]
@@ -3874,7 +3856,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6703a273949a90131b290be1fe7b039d0fc884aa1935860dfcbe056f28cd8092"
 dependencies = [
  "bytes 0.5.6",
- "fnv",
  "futures-core",
  "iovec",
  "lazy_static",
@@ -3935,7 +3916,6 @@ checksum = "be8242891f2b6cbef26a2d7e8605133c2c554cd35b3e4948ea892d6d68436499"
 dependencies = [
  "bytes 0.5.6",
  "futures-core",
- "futures-io",
  "futures-sink",
  "log",
  "pin-project-lite 0.1.12",

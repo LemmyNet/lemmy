@@ -154,11 +154,9 @@ impl RateLimited {
   }
 }
 
-impl<S, Req> Transform<S, Req> for RateLimited
+impl<S> Transform<S, ServiceRequest> for RateLimited
 where
-  // S: Service<Request = ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
-    // TODO 
-  S: Service<Req>,
+  S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
   S::Future: 'static,
 {
   type Response = S::Response;
@@ -177,22 +175,20 @@ where
 
 type FutResult<T, E> = dyn Future<Output = Result<T, E>>;
 
-impl<S, Req> Service<Req> for RateLimitedMiddleware<S>
+impl<S> Service<ServiceRequest> for RateLimitedMiddleware<S>
 where
-  // S: Service<Request = ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
-    // TODO
-  S: Service<Req>,
+  S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
   S::Future: 'static,
 {
   type Response = S::Response;
   type Error = actix_web::Error;
   type Future = Pin<Box<FutResult<Self::Response, Self::Error>>>;
 
-  fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+  fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
     self.service.poll_ready(cx)
   }
 
-  fn call(&mut self, req: Self::Request) -> Self::Future {
+  fn call(&self, req: ServiceRequest) -> Self::Future {
     let ip_addr = get_ip(&req.connection_info());
 
     let fut = self

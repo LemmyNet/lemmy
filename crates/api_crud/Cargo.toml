@@ -21,7 +21,7 @@ serde = { version = "1.0.126", features = ["derive"] }
 actix = "0.12.0"
 actix-web = { version = "4.0.0-beta.8", default-features = false }
 actix-rt = { version = "2.2.0", default-features = false }
-awc = { version = "2.0.3", default-features = false }
+awc = { version = "3.0.0-beta.7", default-features = false }
 log = "0.4.14"
 rand = "0.8.4"
 strum = "0.21.0"
