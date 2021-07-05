@@ -137,8 +137,8 @@ async fn extract_local_community_from_destinations(
 ) -> Result<Option<Community>, LemmyError> {
   for url in to_and_cc {
     let url = url.to_owned();
-    let community = blocking(&pool, move |conn| {
-      Community::read_from_apub_id(&conn, &url.into())
+    let community = blocking(pool, move |conn| {
+      Community::read_from_apub_id(conn, &url.into())
     })
     .await?;
     if let Ok(c) = community {

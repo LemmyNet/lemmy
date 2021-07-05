@@ -48,7 +48,7 @@ pub(crate) async fn is_activity_already_known(
 ) -> Result<bool, LemmyError> {
   let activity_id = activity_id.to_owned().into();
   let existing = blocking(pool, move |conn| {
-    Activity::read_from_apub_id(&conn, &activity_id)
+    Activity::read_from_apub_id(conn, &activity_id)
   })
   .await?;
   match existing {
@@ -86,7 +86,7 @@ where
     .single_xsd_any_uri()
     .context(location_info!())?;
   check_is_apub_id_valid(&actor_id, false)?;
-  let actor = get_or_fetch_and_upsert_actor(&actor_id, &context, request_counter).await?;
+  let actor = get_or_fetch_and_upsert_actor(&actor_id, context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
   Ok(actor)
 }
@@ -98,8 +98,8 @@ pub(crate) async fn is_addressed_to_local_person(
 ) -> Result<bool, LemmyError> {
   for url in to_and_cc {
     let url = url.to_owned();
-    let person = blocking(&pool, move |conn| {
-      Person::read_from_apub_id(&conn, &url.into())
+    let person = blocking(pool, move |conn| {
+      Person::read_from_apub_id(conn, &url.into())
     })
     .await?;
     if let Ok(u) = person {
@@ -119,9 +119,9 @@ pub(crate) async fn is_addressed_to_community_followers(
 ) -> Result<Option<Community>, LemmyError> {
   for url in to_and_cc {
     let url = url.to_owned().into();
-    let community = blocking(&pool, move |conn| {
+    let community = blocking(pool, move |conn| {
       // ignore errors here, because the current url might not actually be a followers url
-      Community::read_from_followers_url(&conn, &url).ok()
+      Community::read_from_followers_url(conn, &url).ok()
     })
     .await?;
     if let Some(c) = community {

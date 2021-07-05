@@ -15,7 +15,7 @@ impl PerformCrud for GetComments {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommentsResponse, LemmyError> {
-    let data: &GetComments = &self;
+    let data: &GetComments = self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
     let show_bot_accounts = local_user_view

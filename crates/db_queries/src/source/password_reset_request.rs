@@ -53,7 +53,7 @@ impl PasswordResetRequest_ for PasswordResetRequest {
       token_encrypted: token_hash,
     };
 
-    Self::create(&conn, &form)
+    Self::create(conn, &form)
   }
   fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();

@@ -42,7 +42,7 @@ impl Perform for FollowCommunity {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &FollowCommunity = &self;
+    let data: &FollowCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
@@ -116,7 +116,7 @@ impl Perform for BanFromCommunity {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
-    let data: &BanFromCommunity = &self;
+    let data: &BanFromCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
@@ -246,7 +246,7 @@ impl Perform for AddModToCommunity {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
-    let data: &AddModToCommunity = &self;
+    let data: &AddModToCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
@@ -333,7 +333,7 @@ impl Perform for TransferCommunity {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
-    let data: &TransferCommunity = &self;
+    let data: &TransferCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let site_creator_id = blocking(context.pool(), move |conn| {

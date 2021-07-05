@@ -199,7 +199,7 @@ where
   // otherwise parse and insert, assuring that it comes from the right domain
   else {
     let to_form = ToForm::from_apub(
-      &from,
+      from,
       context,
       expected_domain,
       request_counter,

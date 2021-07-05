@@ -22,7 +22,7 @@ impl PerformCrud for GetSite {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &GetSite = &self;
+    let data: &GetSite = self;
 
     let site_view = match blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
       Ok(site_view) => Some(site_view),

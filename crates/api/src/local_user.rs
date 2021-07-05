@@ -79,7 +79,7 @@ impl Perform for Login {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &Login = &self;
+    let data: &Login = self;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
@@ -160,7 +160,7 @@ impl Perform for SaveUserSettings {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &SaveUserSettings = &self;
+    let data: &SaveUserSettings = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
@@ -279,7 +279,7 @@ impl Perform for ChangePassword {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &ChangePassword = &self;
+    let data: &ChangePassword = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     password_length_check(&data.new_password)?;
@@ -322,7 +322,7 @@ impl Perform for AddAdmin {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddAdminResponse, LemmyError> {
-    let data: &AddAdmin = &self;
+    let data: &AddAdmin = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Make sure user is an admin
@@ -384,7 +384,7 @@ impl Perform for BanPerson {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanPersonResponse, LemmyError> {
-    let data: &BanPerson = &self;
+    let data: &BanPerson = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Make sure user is an admin
@@ -460,7 +460,7 @@ impl Perform for GetReplies {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
-    let data: &GetReplies = &self;
+    let data: &GetReplies = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
@@ -497,7 +497,7 @@ impl Perform for GetPersonMentions {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonMentionsResponse, LemmyError> {
-    let data: &GetPersonMentions = &self;
+    let data: &GetPersonMentions = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
@@ -531,7 +531,7 @@ impl Perform for MarkPersonMentionAsRead {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PersonMentionResponse, LemmyError> {
-    let data: &MarkPersonMentionAsRead = &self;
+    let data: &MarkPersonMentionAsRead = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let person_mention_id = data.person_mention_id;
@@ -574,7 +574,7 @@ impl Perform for MarkAllAsRead {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
-    let data: &MarkAllAsRead = &self;
+    let data: &MarkAllAsRead = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let person_id = local_user_view.person.id;
@@ -629,7 +629,7 @@ impl Perform for PasswordReset {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PasswordResetResponse, LemmyError> {
-    let data: &PasswordReset = &self;
+    let data: &PasswordReset = self;
 
     // Fetch that email
     let email = data.email.clone();
@@ -672,7 +672,7 @@ impl Perform for PasswordChange {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &PasswordChange = &self;
+    let data: &PasswordChange = self;
 
     // Fetch the user_id from the token
     let token = data.token.clone();
@@ -712,7 +712,7 @@ impl Perform for GetReportCount {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
-    let data: &GetReportCount = &self;
+    let data: &GetReportCount = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let person_id = local_user_view.person.id;
@@ -768,7 +768,7 @@ impl Perform for GetFollowedCommunities {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
-    let data: &GetFollowedCommunities = &self;
+    let data: &GetFollowedCommunities = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let person_id = local_user_view.person.id;

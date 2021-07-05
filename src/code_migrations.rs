@@ -28,13 +28,13 @@ use lemmy_utils::{apub::generate_actor_keypair, settings::structs::Settings, Lem
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
-  user_updates_2020_04_02(&conn)?;
-  community_updates_2020_04_02(&conn)?;
-  post_updates_2020_04_03(&conn)?;
-  comment_updates_2020_04_03(&conn)?;
-  private_message_updates_2020_05_05(&conn)?;
-  post_thumbnail_url_updates_2020_07_27(&conn)?;
-  apub_columns_2021_02_02(&conn)?;
+  user_updates_2020_04_02(conn)?;
+  community_updates_2020_04_02(conn)?;
+  post_updates_2020_04_03(conn)?;
+  comment_updates_2020_04_03(conn)?;
+  private_message_updates_2020_05_05(conn)?;
+  post_thumbnail_url_updates_2020_07_27(conn)?;
+  apub_columns_2021_02_02(conn)?;
 
   Ok(())
 }
@@ -62,7 +62,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       ..PersonForm::default()
     };
 
-    Person::update(&conn, cperson.id, &form)?;
+    Person::update(conn, cperson.id, &form)?;
   }
 
   info!("{} person rows updated.", incorrect_persons.len());
@@ -106,7 +106,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       shared_inbox_url: None,
     };
 
-    Community::update(&conn, ccommunity.id, &form)?;
+    Community::update(conn, ccommunity.id, &form)?;
   }
 
   info!("{} community rows updated.", incorrect_communities.len());
@@ -127,7 +127,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   for cpost in &incorrect_posts {
     let apub_id = generate_apub_endpoint(EndpointType::Post, &cpost.id.to_string())?;
-    Post::update_ap_id(&conn, cpost.id, apub_id)?;
+    Post::update_ap_id(conn, cpost.id, apub_id)?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());
@@ -148,7 +148,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 
   for ccomment in &incorrect_comments {
     let apub_id = generate_apub_endpoint(EndpointType::Comment, &ccomment.id.to_string())?;
-    Comment::update_ap_id(&conn, ccomment.id, apub_id)?;
+    Comment::update_ap_id(conn, ccomment.id, apub_id)?;
   }
 
   info!("{} comment rows updated.", incorrect_comments.len());
@@ -169,7 +169,7 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
 
   for cpm in &incorrect_pms {
     let apub_id = generate_apub_endpoint(EndpointType::PrivateMessage, &cpm.id.to_string())?;
-    PrivateMessage::update_ap_id(&conn, cpm.id, apub_id)?;
+    PrivateMessage::update_ap_id(conn, cpm.id, apub_id)?;
   }
 
   info!("{} private message rows updated.", incorrect_pms.len());

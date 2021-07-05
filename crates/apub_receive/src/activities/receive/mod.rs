@@ -39,7 +39,7 @@ where
 {
   let actor = activity.actor()?;
   let person_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_person(&person_uri, context, request_counter).await
+  get_or_fetch_and_upsert_person(person_uri, context, request_counter).await
 }
 
 /// Ensure that the ID of an incoming activity comes from the same domain as the actor. Optionally

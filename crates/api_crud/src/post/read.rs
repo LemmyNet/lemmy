@@ -22,7 +22,7 @@ impl PerformCrud for GetPost {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostResponse, LemmyError> {
-    let data: &GetPost = &self;
+    let data: &GetPost = self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
     let show_bot_accounts = local_user_view
@@ -92,7 +92,7 @@ impl PerformCrud for GetPosts {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
-    let data: &GetPosts = &self;
+    let data: &GetPosts = self;
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);

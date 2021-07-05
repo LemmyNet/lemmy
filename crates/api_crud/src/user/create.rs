@@ -46,7 +46,7 @@ impl PerformCrud for Register {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &Register = &self;
+    let data: &Register = self;
 
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
@@ -151,7 +151,7 @@ impl PerformCrud for Register {
 
         // If the local user creation errored, then delete that person
         blocking(context.pool(), move |conn| {
-          Person::delete(&conn, inserted_person.id)
+          Person::delete(conn, inserted_person.id)
         })
         .await??;
 

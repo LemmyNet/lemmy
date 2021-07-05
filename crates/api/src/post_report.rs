@@ -38,7 +38,7 @@ impl Perform for CreatePostReport {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CreatePostReportResponse, LemmyError> {
-    let data: &CreatePostReport = &self;
+    let data: &CreatePostReport = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // check size of report and check for whitespace
@@ -53,7 +53,7 @@ impl Perform for CreatePostReport {
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(&conn, post_id, None)
+      PostView::read(conn, post_id, None)
     })
     .await??;
 
@@ -104,12 +104,12 @@ impl Perform for ResolvePostReport {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<ResolvePostReportResponse, LemmyError> {
-    let data: &ResolvePostReport = &self;
+    let data: &ResolvePostReport = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let report_id = data.report_id;
     let report = blocking(context.pool(), move |conn| {
-      PostReportView::read(&conn, report_id)
+      PostReportView::read(conn, report_id)
     })
     .await??;
 
@@ -156,7 +156,7 @@ impl Perform for ListPostReports {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<ListPostReportsResponse, LemmyError> {
-    let data: &ListPostReports = &self;
+    let data: &ListPostReports = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let person_id = local_user_view.person.id;
