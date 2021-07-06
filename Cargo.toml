@@ -40,25 +40,25 @@ lemmy_db_views_actor = { path = "./crates/db_views_actor" }
 lemmy_api_common = { path = "crates/api_common" }
 lemmy_websocket = { path = "./crates/websocket" }
 lemmy_routes = { path = "./crates/routes" }
-diesel = "1.4.5"
+diesel = "1.4.7"
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.123", features = ["derive"] }
-actix = "0.10.0"
-actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
+serde = { version = "1.0.126", features = ["derive"] }
+actix = "0.12.0"
+actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
 log = "0.4.14"
-env_logger = "0.8.2"
-strum = "0.20.0"
-url = { version = "2.2.1", features = ["serde"] }
-openssl = "0.10.32"
-http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
-tokio = "0.3.6"
-anyhow = "1.0.38"
-reqwest = { version = "0.10.10", features = ["json"] }
-activitystreams = "0.7.0-alpha.10"
-actix-rt = { version = "1.1.1", default-features = false }
-serde_json = { version = "1.0.61", features = ["preserve_order"] }
-clokwerk = "0.3.4"
+env_logger = "0.8.4"
+strum = "0.21.0"
+url = { version = "2.2.2", features = ["serde"] }
+openssl = "0.10.35"
+http-signature-normalization-actix = { version = "0.5.0-beta.6", default-features = false, features = ["sha-2"] }
+tokio = { version = "1.8.0", features = ["sync"] }
+anyhow = "1.0.41"
+reqwest = { version = "0.11.4", features = ["json"] }
+activitystreams = "0.7.0-alpha.11"
+actix-rt = { version = "2.2.0", default-features = false }
+serde_json = { version = "1.0.64", features = ["preserve_order"] }
+clokwerk = "0.3.5"
 
 [dev-dependencies.cargo-husky]
 version = "1.5.0"

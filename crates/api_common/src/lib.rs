@@ -73,11 +73,11 @@ where
   let res = actix_web::web::block(move || {
     let conn = pool.get()?;
     let res = (f)(&conn);
-    Ok(res) as Result<_, LemmyError>
+    Ok(res) as Result<T, LemmyError>
   })
   .await?;
 
-  Ok(res)
+  res
 }
 
 pub async fn send_local_notifs(

@@ -124,11 +124,14 @@ async fn get_feed_data(
 }
 
 async fn get_feed(
-  web::Path((req_type, param)): web::Path<(String, String)>,
+  req: HttpRequest,
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
+
+  let req_type: String = req.match_info().get("type").unwrap_or("none").parse()?;
+  let param: String = req.match_info().get("name").unwrap_or("none").parse()?;
 
   let request_type = match req_type.as_str() {
     "u" => RequestType::User,
