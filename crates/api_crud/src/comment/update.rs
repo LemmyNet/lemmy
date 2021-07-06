@@ -28,12 +28,12 @@ impl PerformCrud for EditComment {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &EditComment = &self;
+    let data: &EditComment = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, comment_id, None)
+      CommentView::read(conn, comment_id, None)
     })
     .await??;
 

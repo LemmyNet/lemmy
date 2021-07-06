@@ -249,7 +249,7 @@ impl Handler<CheckCaptcha> for ChatServer {
     let check = self
       .captchas
       .iter()
-      .any(|r| r.uuid == msg.uuid && r.answer == msg.answer);
+      .any(|r| r.uuid == msg.uuid && r.answer.to_lowercase() == msg.answer.to_lowercase());
 
     // Remove this uuid so it can't be re-checked (Checks only work once)
     self.captchas.retain(|x| x.uuid != msg.uuid);

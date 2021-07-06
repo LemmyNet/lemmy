@@ -37,7 +37,7 @@ impl ActivityHandler for LemmyActivity<AcceptFollowCommunity> {
   ) -> Result<(), LemmyError> {
     let person = get_or_fetch_and_upsert_person(&self.inner.to, context, request_counter).await?;
     // This will throw an error if no follow was requested
-    blocking(&context.pool(), move |conn| {
+    blocking(context.pool(), move |conn| {
       CommunityFollower::follow_accepted(conn, actor.id, person.id)
     })
     .await??;

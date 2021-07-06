@@ -23,7 +23,7 @@ impl PerformCrud for DeletePost {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &DeletePost = &self;
+    let data: &DeletePost = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
@@ -88,7 +88,7 @@ impl PerformCrud for RemovePost {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
-    let data: &RemovePost = &self;
+    let data: &RemovePost = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;

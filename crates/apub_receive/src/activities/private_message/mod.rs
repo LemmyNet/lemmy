@@ -14,7 +14,7 @@ async fn send_websocket_message(
   op: UserOperationCrud,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  let message = blocking(&context.pool(), move |conn| {
+  let message = blocking(context.pool(), move |conn| {
     PrivateMessageView::read(conn, private_message_id)
   })
   .await??;

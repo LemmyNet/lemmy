@@ -48,8 +48,8 @@ async fn verify_mod_action(
   .await??;
 
   if community.local {
-    let actor = blocking(&context.pool(), move |conn| {
-      Person::read_from_apub_id(&conn, &actor_id.into())
+    let actor = blocking(context.pool(), move |conn| {
+      Person::read_from_apub_id(conn, &actor_id.into())
     })
     .await??;
 

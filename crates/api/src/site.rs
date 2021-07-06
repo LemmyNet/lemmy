@@ -60,7 +60,7 @@ impl Perform for GetModlog {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetModlogResponse, LemmyError> {
-    let data: &GetModlog = &self;
+    let data: &GetModlog = self;
 
     let community_id = data.community_id;
     let mod_person_id = data.mod_person_id;
@@ -134,7 +134,7 @@ impl Perform for Search {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<SearchResponse, LemmyError> {
-    let data: &Search = &self;
+    let data: &Search = self;
 
     match search_by_apub_id(&data.q, context).await {
       Ok(r) => return Ok(r),
@@ -191,7 +191,7 @@ impl Perform for Search {
       }
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(&conn)
+          CommentQueryBuilder::create(conn)
             .sort(sort)
             .listing_type(listing_type)
             .search_term(q)
@@ -347,7 +347,7 @@ impl Perform for TransferSite {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &TransferSite = &self;
+    let data: &TransferSite = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     is_admin(&local_user_view)?;
@@ -410,7 +410,7 @@ impl Perform for GetSiteConfig {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
-    let data: &GetSiteConfig = &self;
+    let data: &GetSiteConfig = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
@@ -431,7 +431,7 @@ impl Perform for SaveSiteConfig {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
-    let data: &SaveSiteConfig = &self;
+    let data: &SaveSiteConfig = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this

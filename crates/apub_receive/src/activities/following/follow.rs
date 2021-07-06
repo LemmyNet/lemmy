@@ -54,8 +54,8 @@ impl ActivityHandler for LemmyActivity<FollowCommunity> {
     };
 
     // This will fail if they're already a follower, but ignore the error.
-    blocking(&context.pool(), move |conn| {
-      CommunityFollower::follow(&conn, &community_follower_form).ok()
+    blocking(context.pool(), move |conn| {
+      CommunityFollower::follow(conn, &community_follower_form).ok()
     })
     .await?;
 

@@ -41,7 +41,7 @@ fn reindex_aggregates_tables(conn: &PgConnection) {
     "comment_aggregates",
     "community_aggregates",
   ] {
-    reindex_table(&conn, &table_name);
+    reindex_table(conn, table_name);
   }
 }
 
@@ -55,7 +55,7 @@ fn reindex_table(conn: &PgConnection, table_name: &str) {
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &PgConnection) {
   info!("Clearing old activities...");
-  Activity::delete_olds(&conn).expect("clear old activities");
+  Activity::delete_olds(conn).expect("clear old activities");
   info!("Done.");
 }
 

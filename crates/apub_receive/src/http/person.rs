@@ -61,7 +61,7 @@ pub(crate) async fn get_apub_person_outbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(&conn, &info.user_name)
+    Person::find_by_name(conn, &info.user_name)
   })
   .await??;
   // TODO: populate the person outbox
@@ -79,7 +79,7 @@ pub(crate) async fn get_apub_person_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(&conn, &info.user_name)
+    Person::find_by_name(conn, &info.user_name)
   })
   .await??;
 

@@ -461,7 +461,7 @@ impl ChatServer {
         message: "Unknown op type".to_string(),
       })?;
 
-      if let Ok(user_operation_crud) = UserOperationCrud::from_str(&op) {
+      if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);
         match user_operation_crud {
           UserOperationCrud::Register => rate_limiter.register().wrap(ip, fut).await,
@@ -470,7 +470,7 @@ impl ChatServer {
           _ => rate_limiter.message().wrap(ip, fut).await,
         }
       } else {
-        let user_operation = UserOperation::from_str(&op)?;
+        let user_operation = UserOperation::from_str(op)?;
         let fut = (message_handler)(context, msg.id, user_operation.clone(), data);
         rate_limiter.message().wrap(ip, fut).await
       }

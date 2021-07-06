@@ -108,7 +108,7 @@ impl ActivityHandler for LemmyActivity<AnnounceActivity> {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    if is_activity_already_known(context.pool(), &self.inner.object.id_unchecked()).await? {
+    if is_activity_already_known(context.pool(), self.inner.object.id_unchecked()).await? {
       return Ok(());
     }
     let inner_actor =

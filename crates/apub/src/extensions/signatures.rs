@@ -78,7 +78,7 @@ pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), L
       );
       let public_key = PKey::public_key_from_pem(public_key.as_bytes())?;
       let mut verifier = Verifier::new(MessageDigest::sha256(), &public_key)?;
-      verifier.update(&signing_string.as_bytes())?;
+      verifier.update(signing_string.as_bytes())?;
       Ok(verifier.verify(&base64::decode(signature)?)?)
     })?;
 

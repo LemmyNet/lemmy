@@ -134,7 +134,7 @@ pub async fn fetch_iframely_and_pictrs_data(
           }
         },
         // Try to generate a small thumbnail if iframely is not supported
-        None => match fetch_pictrs(client, &url).await {
+        None => match fetch_pictrs(client, url).await {
           Ok(res) => Some(res.files[0].file.to_owned()),
           Err(e) => {
             error!("pictrs err: {}", e);

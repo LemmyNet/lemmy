@@ -48,8 +48,8 @@ impl ActivityHandler for LemmyActivity<UndoFollowCommunity> {
     };
 
     // This will fail if they aren't a follower, but ignore the error.
-    blocking(&context.pool(), move |conn| {
-      CommunityFollower::unfollow(&conn, &community_follower_form).ok()
+    blocking(context.pool(), move |conn| {
+      CommunityFollower::unfollow(conn, &community_follower_form).ok()
     })
     .await?;
     Ok(())

@@ -50,7 +50,7 @@ where
 {
   // TODO: which order to check things?
   // Do nothing if we received the same activity before
-  if is_activity_already_known(context.pool(), &activity.id_unchecked()).await? {
+  if is_activity_already_known(context.pool(), activity.id_unchecked()).await? {
     return Ok(HttpResponse::Ok().finish());
   }
   assert_activity_not_local(&activity)?;
@@ -70,7 +70,7 @@ where
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
   insert_activity(
-    &activity.id_unchecked(),
+    activity.id_unchecked(),
     activity.clone(),
     false,
     true,
@@ -126,7 +126,7 @@ pub(crate) async fn get_activity(
   ))?
   .into();
   let activity = blocking(context.pool(), move |conn| {
-    Activity::read_from_apub_id(&conn, &activity_id)
+    Activity::read_from_apub_id(conn, &activity_id)
   })
   .await??;
 
@@ -144,7 +144,7 @@ pub(crate) async fn is_activity_already_known(
 ) -> Result<bool, LemmyError> {
   let activity_id = activity_id.to_owned().into();
   let existing = blocking(pool, move |conn| {
-    Activity::read_from_apub_id(&conn, &activity_id)
+    Activity::read_from_apub_id(conn, &activity_id)
   })
   .await?;
   match existing {
