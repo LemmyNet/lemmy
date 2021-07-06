@@ -26,8 +26,8 @@ impl ActivityHandler for LemmyActivity<UndoLikePost> {
   async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     verify_domains_match(&self.actor, self.id_unchecked())?;
     verify_domains_match(&self.actor, &self.inner.object.inner.object)?;
-    check_is_apub_id_valid(&self.actor, false)?;
-    self.inner.object.verify(context).await
+    check_is_apub_id_valid(&self.actor, false)
+    //self.inner.object.verify(context).await
   }
 
   async fn receive(

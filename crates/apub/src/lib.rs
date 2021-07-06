@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
-extern crate trait_enum;
 
 pub mod activities;
 pub mod activity_queue;

@@ -1,24 +1,28 @@
-use actix_web::{body::Body, web, HttpRequest, HttpResponse};
-use http::StatusCode;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-use crate::{activities::LemmyActivity, http::inbox_enums::SharedInboxActivities};
+use crate::activities::{
+  following::accept::AcceptFollowCommunity,
+  post::{create::CreatePost, like::LikePost},
+};
+use actix_web::{body::Body, web, web::Bytes, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
+use futures::StreamExt;
+use http::StatusCode;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   check_is_apub_id_valid,
   extensions::signatures::verify_signature,
-  fetcher::{get_or_fetch_and_upsert_actor, Actor},
+  fetcher::get_or_fetch_and_upsert_actor,
   insert_activity,
   APUB_JSON_CONTENT_TYPE,
 };
-use lemmy_apub_lib::ActivityHandler;
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use std::fmt::Debug;
+use log::debug;
+use serde::{Deserialize, Serialize};
+use std::{fmt::Debug, io::Read};
+use url::Url;
 
 pub mod comment;
 pub mod community;
@@ -26,51 +30,99 @@ pub mod inbox_enums;
 pub mod person;
 pub mod post;
 
-pub async fn shared_inbox(
-  request: HttpRequest,
-  input: web::Json<LemmyActivity<SharedInboxActivities>>,
-  context: web::Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, input.into_inner(), None, context).await
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+enum Ac {
+  CreatePost(CreatePost),
+  LikePost(LikePost),
+  AcceptFollowCommunity(AcceptFollowCommunity),
 }
 
-async fn receive_activity<T>(
+// TODO: write a derive trait which creates this
+#[async_trait::async_trait(?Send)]
+impl ActivityHandlerNew for Ac {
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    match self {
+      Ac::CreatePost(a) => a.verify(context, request_counter).await,
+      Ac::LikePost(a) => a.verify(context, request_counter).await,
+      Ac::AcceptFollowCommunity(a) => a.verify(context, request_counter).await,
+    }
+  }
+
+  async fn receive(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    match self {
+      Ac::CreatePost(a) => a.receive(context, request_counter).await,
+      Ac::LikePost(a) => a.receive(context, request_counter).await,
+      Ac::AcceptFollowCommunity(a) => a.receive(context, request_counter).await,
+    }
+  }
+
+  fn common(&self) -> &ActivityCommonFields {
+    match self {
+      Ac::CreatePost(a) => a.common(),
+      Ac::LikePost(a) => a.common(),
+      Ac::AcceptFollowCommunity(a) => a.common(),
+    }
+  }
+}
+
+pub async fn shared_inbox(
   request: HttpRequest,
-  activity: LemmyActivity<T>,
+  mut body: web::Payload,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, LemmyError> {
+  let mut bytes = web::BytesMut::new();
+  while let Some(item) = body.next().await {
+    bytes.extend_from_slice(&item?);
+  }
+  let mut unparsed: String = String::new();
+  Bytes::from(bytes).as_ref().read_to_string(&mut unparsed)?;
+  receive_activity::<Ac>(request, &unparsed, None, context).await
+}
+
+async fn receive_activity<'a, T>(
+  request: HttpRequest,
+  activity: &'a str,
   expected_name: Option<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError>
 where
-  T: ActivityHandler<Actor = lemmy_apub::fetcher::Actor>
-    + Clone
-    + Serialize
-    + std::fmt::Debug
-    + Send
-    + 'static,
+  T: ActivityHandlerNew + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
 {
+  debug!("Received activity {}", activity);
+  let activity = serde_json::from_str::<T>(activity)?;
+  let activity_data = activity.common();
   // TODO: which order to check things?
   // Do nothing if we received the same activity before
-  if is_activity_already_known(context.pool(), activity.id_unchecked()).await? {
+  if is_activity_already_known(context.pool(), activity_data.id_unchecked()).await? {
     return Ok(HttpResponse::Ok().finish());
   }
   assert_activity_not_local(&activity)?;
-  check_is_apub_id_valid(&activity.actor, false)?;
-  activity.inner.verify(&context).await?;
+  check_is_apub_id_valid(&activity_data.actor, false)?;
 
   let request_counter = &mut 0;
-  let actor: Actor =
-    get_or_fetch_and_upsert_actor(&activity.actor, &context, request_counter).await?;
+  let actor =
+    get_or_fetch_and_upsert_actor(&activity_data.actor, &context, request_counter).await?;
   if let Some(expected) = expected_name {
     if expected != actor.name() {
       return Ok(HttpResponse::BadRequest().finish());
     }
   }
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
+  activity.verify(&context, request_counter).await?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
   insert_activity(
-    activity.id_unchecked(),
+    activity_data.id_unchecked(),
     activity.clone(),
     false,
     true,
@@ -78,10 +130,7 @@ where
   )
   .await?;
 
-  activity
-    .inner
-    .receive(actor, &context, request_counter)
-    .await?;
+  activity.receive(&context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -153,10 +202,14 @@ pub(crate) async fn is_activity_already_known(
   }
 }
 
-pub(in crate::http) fn assert_activity_not_local<T: Debug>(
-  activity: &LemmyActivity<T>,
+fn assert_activity_not_local<T: Debug + ActivityHandlerNew>(
+  activity: &T,
 ) -> Result<(), LemmyError> {
-  let activity_domain = activity.id_unchecked().domain().context(location_info!())?;
+  let activity_domain = activity
+    .common()
+    .id_unchecked()
+    .domain()
+    .context(location_info!())?;
 
   if activity_domain == Settings::get().hostname() {
     return Err(

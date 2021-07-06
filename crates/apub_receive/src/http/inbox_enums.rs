@@ -49,6 +49,7 @@ use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
   CreatePrivateMessage(CreatePrivateMessage),
@@ -59,6 +60,7 @@ pub enum PersonInboxActivities {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
@@ -94,6 +96,7 @@ pub enum GroupInboxActivities {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum SharedInboxActivities {
   // received by person
   AcceptFollowCommunity(AcceptFollowCommunity),

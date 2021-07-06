@@ -61,7 +61,8 @@ pub async fn community_inbox(
   path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, input.into_inner(), Some(path.0), context).await
+  //receive_activity(request, input.into_inner(), Some(path.0), context).await
+  todo!()
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

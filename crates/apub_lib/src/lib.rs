@@ -1,4 +1,9 @@
-use activitystreams::error::DomainError;
+use activitystreams::{
+  base::AnyBase,
+  error::DomainError,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use std::marker::PhantomData;
@@ -29,6 +34,42 @@ impl InboxConfig {
 pub enum PublicUrl {
   #[serde(rename = "https://www.w3.org/ns/activitystreams#Public")]
   Public,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityCommonFields {
+  #[serde(rename = "@context")]
+  pub context: OneOrMany<AnyBase>,
+  id: Url,
+  pub actor: Url,
+
+  // unparsed fields
+  #[serde(flatten)]
+  pub unparsed: Unparsed,
+}
+
+impl ActivityCommonFields {
+  pub fn id_unchecked(&self) -> &Url {
+    &self.id
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait ActivityHandlerNew {
+  // TODO: also need to check for instance/community blocks in here
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError>;
+
+  async fn receive(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError>;
+  fn common(&self) -> &ActivityCommonFields;
 }
 
 #[async_trait::async_trait(?Send)]

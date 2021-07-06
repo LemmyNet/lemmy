@@ -88,7 +88,7 @@ test('Create a post', async () => {
   let searchEpsilon = await searchPost(epsilon, postRes.post_view.post);
   expect(searchEpsilon.posts[0]).toBeUndefined();
 });
-
+/*
 test('Create a post in a non-existent community', async () => {
   let postRes = await createPost(alpha, -2);
   expect(postRes).toStrictEqual({ error: 'couldnt_create_post' });
@@ -363,3 +363,4 @@ test('Enforce community ban for federated user', async () => {
   let betaPost = searchBeta.posts[0];
   expect(betaPost).toBeDefined();
 });
+*/

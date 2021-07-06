@@ -14,6 +14,7 @@ pub mod following;
 pub mod post;
 pub mod private_message;
 
+// TODO: remove this
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LemmyActivity<Kind> {
