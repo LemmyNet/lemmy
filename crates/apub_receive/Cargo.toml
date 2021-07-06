@@ -12,34 +12,34 @@ lemmy_db_views = { path = "../db_views" }
 lemmy_db_views_actor = { path = "../db_views_actor" }
 lemmy_api_common = { path = "../api_common" }
 lemmy_websocket = { path = "../websocket" }
-diesel = "1.4.5"
+diesel = "1.4.7"
 activitystreams = "0.7.0-alpha.11"
 activitystreams-ext = "0.1.0-alpha.2"
-bcrypt = "0.9.0"
+bcrypt = "0.10.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde_json = { version = "1.0.61", features = ["preserve_order"] }
-serde = { version = "1.0.123", features = ["derive"] }
-actix = "0.10.0"
-actix-web = { version = "3.3.2", default-features = false }
-actix-rt = { version = "1.1.1", default-features = false }
-awc = { version = "2.0.3", default-features = false }
+serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde = { version = "1.0.126", features = ["derive"] }
+actix = "0.12.0"
+actix-web = { version = "4.0.0-beta.8", default-features = false }
+actix-rt = { version = "2.2.0", default-features = false }
+awc = { version = "3.0.0-beta.7", default-features = false }
 log = "0.4.14"
-rand = "0.8.3"
-strum = "0.20.0"
-strum_macros = "0.20.1"
-url = { version = "2.2.1", features = ["serde"] }
+rand = "0.8.4"
+strum = "0.21.0"
+strum_macros = "0.21.1"
+url = { version = "2.2.2", features = ["serde"] }
 percent-encoding = "2.1.0"
-openssl = "0.10.32"
-http = "0.2.3"
-http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
-http-signature-normalization-reqwest = { version = "0.1.3", default-features = false, features = ["sha-2"] }
+openssl = "0.10.35"
+http = "0.2.4"
+http-signature-normalization-actix = { version = "0.5.0-beta.6", default-features = false, features = ["sha-2"] }
+http-signature-normalization-reqwest = { version = "0.2.0", default-features = false, features = ["sha-2"] }
 base64 = "0.13.0"
-tokio = "0.3.6"
-futures = "0.3.12"
-itertools = "0.10.0"
-sha2 = "0.9.3"
-async-trait = "0.1.42"
-anyhow = "1.0.38"
-thiserror = "1.0.23"
-backtrace = "0.3.56"
+tokio = "1.8.0"
+futures = "0.3.15"
+itertools = "0.10.1"
+sha2 = "0.9.5"
+async-trait = "0.1.50"
+anyhow = "1.0.41"
+thiserror = "1.0.26"
+backtrace = "0.3.60"
 

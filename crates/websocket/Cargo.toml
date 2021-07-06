@@ -13,18 +13,18 @@ lemmy_utils = { path = "../utils" }
 lemmy_api_common = { path = "../api_common" }
 lemmy_db_queries = { path = "../db_queries" }
 lemmy_db_schema = { path = "../db_schema" }
-reqwest = { version = "0.10.10", features = ["json"] }
+reqwest = { version = "0.11.4", features = ["json"] }
 log = "0.4.14"
-rand = "0.8.3"
-serde = { version = "1.0.123", features = ["derive"] }
-serde_json = { version = "1.0.61", features = ["preserve_order"] }
-actix = "0.10.0"
-anyhow = "1.0.38"
-diesel = "1.4.5"
-background-jobs = "0.8.0"
-tokio = "0.3.6"
-strum = "0.20.0"
-strum_macros = "0.20.1"
+rand = "0.8.4"
+serde = { version = "1.0.126", features = ["derive"] }
+serde_json = { version = "1.0.64", features = ["preserve_order"] }
+actix = "0.12.0"
+anyhow = "1.0.41"
+diesel = "1.4.7"
+background-jobs = "0.9.0"
+tokio = "1.8.0"
+strum = "0.21.0"
+strum_macros = "0.21.1"
 chrono = { version = "0.4.19", features = ["serde"] }
-actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "3.0.0", default-features = false }
+actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "4.0.0-beta.6", default-features = false }

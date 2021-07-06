@@ -2,7 +2,7 @@
 extern crate diesel_migrations;
 
 use actix::prelude::*;
-use actix_web::*;
+use actix_web::{web::Data, *};
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
@@ -88,7 +88,7 @@ async fn main() -> Result<(), LemmyError> {
     let rate_limiter = rate_limiter.clone();
     App::new()
       .wrap(middleware::Logger::default())
-      .data(context)
+      .app_data(Data::new(context))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(lemmy_apub_receive::routes::config)

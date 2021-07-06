@@ -1,8 +1,8 @@
-use actix::clock::Duration;
-use actix_web::{body::BodyStream, http::StatusCode, *};
+use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use awc::Client;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   let client = Client::builder()
@@ -11,7 +11,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
     .finish();
 
   cfg
-    .data(client)
+    .app_data(Data::new(client))
     .service(
       web::resource("/pictrs/image")
         .wrap(rate_limit.image())
@@ -60,12 +60,15 @@ async fn upload(
   );
 
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string())
+    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
   };
 
-  let mut res = client_req.send_stream(body).await?;
+  let mut res = client_req
+    .send_stream(body)
+    .await
+    .map_err(error::ErrorBadRequest)?;
 
-  let images = res.json::<Images>().await?;
+  let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).json(images))
 }
@@ -109,10 +112,14 @@ async fn image(
   let mut client_req = client.request_from(url, req.head());
 
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string())
+    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
   };
 
-  let res = client_req.no_decompress().send().await?;
+  let res = client_req
+    .no_decompress()
+    .send()
+    .await
+    .map_err(error::ErrorBadRequest)?;
 
   if res.status() == StatusCode::NOT_FOUND {
     return Ok(HttpResponse::NotFound().finish());
@@ -121,7 +128,7 @@ async fn image(
   let mut client_res = HttpResponse::build(res.status());
 
   for (name, value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
-    client_res.header(name.clone(), value.clone());
+    client_res.insert_header((name.clone(), value.clone()));
   }
 
   Ok(client_res.body(BodyStream::new(res)))
@@ -144,10 +151,14 @@ async fn delete(
   let mut client_req = client.request_from(url, req.head());
 
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string())
+    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
   };
 
-  let res = client_req.no_decompress().send().await?;
+  let res = client_req
+    .no_decompress()
+    .send()
+    .await
+    .map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res)))
 }
