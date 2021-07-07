@@ -1,16 +1,11 @@
-use crate::activities::{following::follow::FollowCommunity, LemmyActivity};
+use crate::activities::following::follow::FollowCommunity;
 use activitystreams::activity::kind::AcceptType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   check_is_apub_id_valid,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
 };
-use lemmy_apub_lib::{
-  verify_domains_match,
-  ActivityCommonFields,
-  ActivityHandler,
-  ActivityHandlerNew,
-};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::community::CommunityFollower;
 use lemmy_utils::LemmyError;
@@ -21,7 +16,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct AcceptFollowCommunity {
   to: Url,
-  object: LemmyActivity<FollowCommunity>,
+  object: FollowCommunity,
   #[serde(rename = "type")]
   kind: AcceptType,
   #[serde(flatten)]
@@ -31,10 +26,14 @@ pub struct AcceptFollowCommunity {
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
 impl ActivityHandlerNew for AcceptFollowCommunity {
-  async fn verify(&self, context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, &self.common.id_unchecked())?;
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
     check_is_apub_id_valid(&self.common.actor, false)?;
-    self.object.verify(context).await
+    self.object.verify(context, request_counter).await
   }
 
   async fn receive(

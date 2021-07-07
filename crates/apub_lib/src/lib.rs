@@ -65,28 +65,13 @@ pub trait ActivityHandlerNew {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError>;
 
+  // todo: later handle request_counter completely inside library
   async fn receive(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError>;
   fn common(&self) -> &ActivityCommonFields;
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait ActivityHandler {
-  type Actor;
-
-  // TODO: also need to check for instance/community blocks in here
-  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  // todo: later handle request_counter completely inside library
-  async fn receive(
-    &self,
-    actor: Self::Actor,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError>;
 }
 
 pub fn verify_domains_match(a: &Url, b: &Url) -> Result<(), LemmyError> {

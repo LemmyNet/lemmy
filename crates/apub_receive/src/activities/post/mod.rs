@@ -1,11 +1,11 @@
 use lemmy_api_common::{blocking, post::PostResponse};
-use lemmy_apub::fetcher::objects::get_or_fetch_and_insert_post;
+use lemmy_apub::fetcher::{
+  objects::get_or_fetch_and_insert_post,
+  person::get_or_fetch_and_upsert_person,
+};
 use lemmy_db_queries::Likeable;
 use lemmy_db_schema::{
-  source::{
-    person::Person,
-    post::{PostLike, PostLikeForm},
-  },
+  source::post::{PostLike, PostLikeForm},
   PostId,
 };
 use lemmy_db_views::post_view::PostView;
@@ -47,11 +47,12 @@ async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::Operation
 
 async fn like_or_dislike_post(
   score: i16,
-  actor: &Person,
+  actor: &Url,
   object: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
+  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
   let post = get_or_fetch_and_insert_post(object, context, request_counter).await?;
 
   let post_id = post.id;
@@ -71,11 +72,12 @@ async fn like_or_dislike_post(
 }
 
 async fn undo_like_or_dislike_post(
-  actor: &Person,
+  actor: &Url,
   object: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
+  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
   let post = get_or_fetch_and_insert_post(object, context, request_counter).await?;
 
   let post_id = post.id;

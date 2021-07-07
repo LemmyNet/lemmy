@@ -1,6 +1,6 @@
 use crate::activities::post::like_or_dislike_post;
 use activitystreams::activity::kind::LikeType;
-use lemmy_apub::{check_is_apub_id_valid, fetcher::person::get_or_fetch_and_upsert_person};
+use lemmy_apub::check_is_apub_id_valid;
 use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -30,9 +30,14 @@ impl ActivityHandlerNew for LikePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor =
-      get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
-    like_or_dislike_post(1, &actor, &self.object, context, request_counter).await
+    like_or_dislike_post(
+      1,
+      &self.common.actor,
+      &self.object,
+      context,
+      request_counter,
+    )
+    .await
   }
 
   fn common(&self) -> &ActivityCommonFields {

@@ -7,7 +7,6 @@ use lemmy_db_queries::{Crud, Likeable};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentLike, CommentLikeForm},
-    person::Person,
     post::Post,
   },
   CommentId,
@@ -79,11 +78,12 @@ async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::Operation
 
 async fn like_or_dislike_comment(
   score: i16,
-  actor: &Person,
+  actor: &Url,
   object: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
+  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
   let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
 
   let comment_id = comment.id;
@@ -110,11 +110,12 @@ async fn like_or_dislike_comment(
 }
 
 async fn undo_like_or_dislike_comment(
-  actor: &Person,
+  actor: &Url,
   object: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
+  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
   let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
 
   let comment_id = comment.id;

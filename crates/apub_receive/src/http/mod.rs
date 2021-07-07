@@ -2,7 +2,13 @@ use crate::activities::{
   following::accept::AcceptFollowCommunity,
   post::{create::CreatePost, like::LikePost},
 };
-use actix_web::{body::Body, web, web::Bytes, HttpRequest, HttpResponse};
+use actix_web::{
+  body::Body,
+  web,
+  web::{Bytes, BytesMut, Payload},
+  HttpRequest,
+  HttpResponse,
+};
 use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
@@ -40,18 +46,22 @@ enum Ac {
 
 pub async fn shared_inbox(
   request: HttpRequest,
-  mut body: web::Payload,
+  payload: Payload,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let mut bytes = web::BytesMut::new();
-  while let Some(item) = body.next().await {
-    bytes.extend_from_slice(&item?);
-  }
-  let mut unparsed: String = String::new();
-  Bytes::from(bytes).as_ref().read_to_string(&mut unparsed)?;
+  let unparsed = payload_to_string(payload).await?;
   receive_activity::<Ac>(request, &unparsed, None, context).await
 }
 
+async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
+  let mut bytes = BytesMut::new();
+  while let Some(item) = payload.next().await {
+    bytes.extend_from_slice(&item?);
+  }
+  let mut unparsed = String::new();
+  Bytes::from(bytes).as_ref().read_to_string(&mut unparsed)?;
+  Ok(unparsed)
+}
 async fn receive_activity<'a, T>(
   request: HttpRequest,
   activity: &'a str,

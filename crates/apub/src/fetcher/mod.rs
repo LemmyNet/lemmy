@@ -37,12 +37,6 @@ where
   false
 }
 
-// TODO: remove this
-pub enum Actor {
-  Person,
-  Community,
-}
-
 /// Get a remote actor from its apub ID (either a person or a community). Thin wrapper around
 /// `get_or_fetch_and_upsert_person()` and `get_or_fetch_and_upsert_community()`.
 ///

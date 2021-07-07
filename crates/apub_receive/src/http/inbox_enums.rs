@@ -43,12 +43,12 @@ use crate::activities::{
     update::UpdatePrivateMessage,
   },
 };
-use lemmy_apub_lib::ActivityHandler;
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
 #[serde(untagged)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
@@ -59,7 +59,7 @@ pub enum PersonInboxActivities {
   AnnounceActivity(Box<AnnounceActivity>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
 #[serde(untagged)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
@@ -95,7 +95,7 @@ pub enum GroupInboxActivities {
   RemoveMod(RemoveMod),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
 #[serde(untagged)]
 pub enum SharedInboxActivities {
   // received by person
@@ -137,58 +137,4 @@ pub enum SharedInboxActivities {
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
   RemoveMod(RemoveMod),
-}
-
-#[async_trait::async_trait(?Send)]
-impl ActivityHandler for SharedInboxActivities {
-  type Actor = lemmy_apub::fetcher::Actor;
-
-  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    self.verify(context).await
-  }
-
-  async fn receive(
-    &self,
-    actor: Self::Actor,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    self.receive(actor, context, request_counter).await
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl ActivityHandler for PersonInboxActivities {
-  type Actor = lemmy_apub::fetcher::Actor;
-
-  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    self.verify(context).await
-  }
-
-  async fn receive(
-    &self,
-    actor: Self::Actor,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    self.receive(actor, context, request_counter).await
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl ActivityHandler for GroupInboxActivities {
-  type Actor = lemmy_apub::fetcher::Actor;
-
-  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    self.verify(context).await
-  }
-
-  async fn receive(
-    &self,
-    actor: Self::Actor,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    self.receive(actor, context, request_counter).await
-  }
 }

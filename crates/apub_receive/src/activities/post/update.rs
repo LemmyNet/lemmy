@@ -1,19 +1,17 @@
-use crate::activities::{post::send_websocket_message, LemmyActivity};
+use crate::activities::post::send_websocket_message;
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
   check_is_apub_id_valid,
   objects::{FromApub, FromApubToForm},
-  ActorType,
   PageExt,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::{
   source::{
     community::Community,
-    person::Person,
     post::{Post, PostForm},
   },
   DbUrl,
@@ -30,28 +28,27 @@ pub struct UpdatePost {
   cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UpdateType,
+  #[serde(flatten)]
+  common: ActivityCommonFields,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for LemmyActivity<UpdatePost> {
-  type Actor = Person;
-
-  async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.actor, self.id_unchecked())?;
-    self.inner.object.id(self.actor.as_str())?;
-    check_is_apub_id_valid(&self.actor, false)
+impl ActivityHandlerNew for UpdatePost {
+  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
+    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
+    self.object.id(self.common.actor.as_str())?;
+    check_is_apub_id_valid(&self.common.actor, false)
   }
 
   async fn receive(
     &self,
-    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let temp_post = PostForm::from_apub(
-      &self.inner.object,
+      &self.object,
       context,
-      actor.actor_id(),
+      self.common.actor.clone(),
       request_counter,
       false,
     )
@@ -81,14 +78,18 @@ impl ActivityHandler for LemmyActivity<UpdatePost> {
     }
 
     let post = Post::from_apub(
-      &self.inner.object,
+      &self.object,
       context,
-      actor.actor_id(),
+      self.common.actor.clone(),
       request_counter,
       mod_action_allowed,
     )
     .await?;
 
     send_websocket_message(post.id, UserOperationCrud::EditPost, context).await
+  }
+
+  fn common(&self) -> &ActivityCommonFields {
+    &self.common
   }
 }

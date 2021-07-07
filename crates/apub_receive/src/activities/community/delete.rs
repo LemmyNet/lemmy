@@ -1,7 +1,4 @@
-use crate::activities::{
-  community::{send_websocket_message, verify_is_community_mod},
-  LemmyActivity,
-};
+use crate::activities::community::{send_websocket_message, verify_is_community_mod};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
@@ -10,7 +7,7 @@ use lemmy_apub::{
   ActorType,
   CommunityType,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_db_queries::{source::community::Community_, ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -28,40 +25,39 @@ pub struct DeleteCommunity {
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
+  #[serde(flatten)]
+  common: ActivityCommonFields,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for LemmyActivity<DeleteCommunity> {
-  type Actor = lemmy_apub::fetcher::Actor;
-
-  async fn verify(&self, context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.actor, self.id_unchecked())?;
-    let object = self.inner.object.clone();
+impl ActivityHandlerNew for DeleteCommunity {
+  async fn verify(&self, context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
+    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
+    let object = self.object.clone();
     let community = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &object.into())
     })
     .await?;
     // remote mod action on local community
     if let Ok(c) = community {
-      verify_domains_match(&self.inner.object, &self.inner.cc[0])?;
-      check_is_apub_id_valid(&self.actor, false)?;
-      verify_is_community_mod(self.actor.clone(), c.actor_id(), context).await
+      verify_domains_match(&self.object, &self.cc[0])?;
+      check_is_apub_id_valid(&self.common.actor, false)?;
+      verify_is_community_mod(self.common.actor.clone(), c.actor_id(), context).await
     }
     // community action sent to followers
     else {
-      verify_domains_match(&self.actor, &self.inner.object)?;
-      verify_domains_match(&self.actor, &self.inner.cc[0])
+      verify_domains_match(&self.common.actor, &self.object)?;
+      verify_domains_match(&self.common.actor, &self.cc[0])
     }
   }
 
   async fn receive(
     &self,
-    _actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     // TODO: match on actor to decide what to do
-    let actor = self.inner.object.clone();
+    let actor = self.object.clone();
     let community = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &actor.into())
     })
@@ -69,14 +65,15 @@ impl ActivityHandler for LemmyActivity<DeleteCommunity> {
     let community_id = match community {
       Ok(c) => {
         // remote mod sent delete to local community, forward it to followers
-        let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
+        let actor =
+          get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
         c.send_delete(actor, context).await?;
         c.id
       }
       Err(_) => {
         // refetch the remote community
         let community =
-          get_or_fetch_and_upsert_community(&self.inner.object, context, request_counter).await?;
+          get_or_fetch_and_upsert_community(&self.object, context, request_counter).await?;
         community.id
       }
     };
@@ -91,5 +88,9 @@ impl ActivityHandler for LemmyActivity<DeleteCommunity> {
       context,
     )
     .await
+  }
+
+  fn common(&self) -> &ActivityCommonFields {
+    &self.common
   }
 }

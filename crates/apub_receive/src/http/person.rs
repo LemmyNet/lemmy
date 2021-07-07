@@ -1,17 +1,15 @@
-use crate::{
-  activities::LemmyActivity,
-  http::{
-    create_apub_response,
-    create_apub_tombstone_response,
-    inbox_enums::PersonInboxActivities,
-    receive_activity,
-  },
+use crate::http::{
+  create_apub_response,
+  create_apub_tombstone_response,
+  inbox_enums::PersonInboxActivities,
+  payload_to_string,
+  receive_activity,
 };
 use activitystreams::{
   base::BaseExt,
   collection::{CollectionExt, OrderedCollection},
 };
-use actix_web::{body::Body, web, HttpRequest, HttpResponse};
+use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub::{extensions::context::lemmy_context, objects::ToApub, ActorType};
 use lemmy_db_queries::source::person::Person_;
@@ -49,12 +47,12 @@ pub(crate) async fn get_apub_person_http(
 
 pub async fn person_inbox(
   request: HttpRequest,
-  input: web::Json<LemmyActivity<PersonInboxActivities>>,
+  payload: Payload,
   path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  //receive_activity(request, input.into_inner(), Some(path.0), context).await
-  todo!()
+  let unparsed = payload_to_string(payload).await?;
+  receive_activity::<PersonInboxActivities>(request, &unparsed, Some(path.0), context).await
 }
 
 pub(crate) async fn get_apub_person_outbox(

@@ -1,4 +1,3 @@
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::ApubObject;
@@ -13,30 +12,6 @@ pub mod community;
 pub mod following;
 pub mod post;
 pub mod private_message;
-
-// TODO: remove this
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LemmyActivity<Kind> {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  id: Url,
-  pub(crate) actor: Url,
-
-  /// type-specific fields
-  #[serde(flatten)]
-  pub inner: Kind,
-
-  // unparsed fields
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-impl<Kind> LemmyActivity<Kind> {
-  pub fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-}
 
 async fn verify_mod_action(
   actor_id: Url,

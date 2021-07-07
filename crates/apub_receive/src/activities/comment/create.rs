@@ -1,11 +1,8 @@
-use crate::activities::{
-  comment::{get_notif_recipients, send_websocket_message},
-  LemmyActivity,
-};
+use crate::activities::comment::{get_notif_recipients, send_websocket_message};
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, ActorType, NoteExt};
-use lemmy_apub_lib::{verify_domains_match, ActivityHandler, PublicUrl};
-use lemmy_db_schema::source::{comment::Comment, person::Person};
+use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, NoteExt};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_db_schema::source::comment::Comment;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -18,33 +15,33 @@ pub struct CreateComment {
   cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: CreateType,
+  #[serde(flatten)]
+  common: ActivityCommonFields,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for LemmyActivity<CreateComment> {
-  type Actor = Person;
-
-  async fn verify(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    verify_domains_match(&self.actor, self.id_unchecked())?;
-    self.inner.object.id(self.actor.as_str())?;
-    check_is_apub_id_valid(&self.actor, false)
+impl ActivityHandlerNew for CreateComment {
+  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
+    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
+    self.object.id(self.common.actor.as_str())?;
+    check_is_apub_id_valid(&self.common.actor, false)
   }
 
   async fn receive(
     &self,
-    actor: Self::Actor,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment = Comment::from_apub(
-      &self.inner.object,
+      &self.object,
       context,
-      actor.actor_id(),
+      self.common.actor.clone(),
       request_counter,
       false,
     )
     .await?;
-    let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
+    let recipients =
+      get_notif_recipients(&self.common.actor, &comment, context, request_counter).await?;
     send_websocket_message(
       comment.id,
       recipients,
@@ -52,5 +49,9 @@ impl ActivityHandler for LemmyActivity<CreateComment> {
       context,
     )
     .await
+  }
+
+  fn common(&self) -> &ActivityCommonFields {
+    &self.common
   }
 }
