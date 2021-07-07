@@ -15,6 +15,7 @@ members = [
     "crates/api_crud",
     "crates/api_common",
     "crates/apub_lib",
+    "crates/apub_lib_derive",
     "crates/apub",
     "crates/apub_receive",
     "crates/utils",

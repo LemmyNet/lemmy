@@ -30,48 +30,12 @@ pub mod inbox_enums;
 pub mod person;
 pub mod post;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ActivityHandlerNew)]
 #[serde(untagged)]
 enum Ac {
   CreatePost(CreatePost),
   LikePost(LikePost),
   AcceptFollowCommunity(AcceptFollowCommunity),
-}
-
-// TODO: write a derive trait which creates this
-#[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for Ac {
-  async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    match self {
-      Ac::CreatePost(a) => a.verify(context, request_counter).await,
-      Ac::LikePost(a) => a.verify(context, request_counter).await,
-      Ac::AcceptFollowCommunity(a) => a.verify(context, request_counter).await,
-    }
-  }
-
-  async fn receive(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    match self {
-      Ac::CreatePost(a) => a.receive(context, request_counter).await,
-      Ac::LikePost(a) => a.receive(context, request_counter).await,
-      Ac::AcceptFollowCommunity(a) => a.receive(context, request_counter).await,
-    }
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    match self {
-      Ac::CreatePost(a) => a.common(),
-      Ac::LikePost(a) => a.common(),
-      Ac::AcceptFollowCommunity(a) => a.common(),
-    }
-  }
 }
 
 pub async fn shared_inbox(

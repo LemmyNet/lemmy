@@ -4,6 +4,7 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
+pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use std::marker::PhantomData;
