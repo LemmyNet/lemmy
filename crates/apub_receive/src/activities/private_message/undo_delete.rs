@@ -1,6 +1,5 @@
-use crate::activities::private_message::{
-  delete::DeletePrivateMessage,
-  send_websocket_message,
+use crate::activities::{
+  private_message::{delete::DeletePrivateMessage, send_websocket_message},
   verify_activity,
   verify_person,
 };

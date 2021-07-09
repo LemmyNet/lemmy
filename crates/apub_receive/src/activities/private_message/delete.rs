@@ -1,4 +1,4 @@
-use crate::activities::private_message::{send_websocket_message, verify_activity, verify_person};
+use crate::activities::{private_message::send_websocket_message, verify_activity, verify_person};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};

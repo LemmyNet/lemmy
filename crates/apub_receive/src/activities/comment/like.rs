@@ -31,7 +31,7 @@ impl ActivityHandlerNew for LikeComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     like_or_dislike_comment(
-      -1,
+      1,
       &self.common.actor,
       &self.object,
       context,

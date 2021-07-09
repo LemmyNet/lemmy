@@ -1,4 +1,4 @@
-use crate::activities::private_message::{send_websocket_message, verify_activity, verify_person};
+use crate::activities::{private_message::send_websocket_message, verify_activity, verify_person};
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use lemmy_apub::{objects::FromApub, NoteExt};
 use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandlerNew};

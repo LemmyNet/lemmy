@@ -1,11 +1,11 @@
-use crate::activities::following::follow::FollowCommunity;
+use crate::activities::{following::follow::FollowCommunity, verify_activity, verify_person};
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
-use lemmy_apub::{
-  check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+use lemmy_apub::fetcher::{
+  community::get_or_fetch_and_upsert_community,
+  person::get_or_fetch_and_upsert_person,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandlerNew};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::community::{CommunityFollower, CommunityFollowerForm};
 use lemmy_utils::LemmyError;
@@ -30,10 +30,12 @@ impl ActivityHandlerNew for UndoFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    verify_domains_match(&self.to, &self.object.object)?;
-    check_is_apub_id_valid(&self.common.actor, false)?;
-    self.object.verify(context, request_counter).await
+    verify_activity(self.common())?;
+    verify_urls_match(&self.to, &self.object.object)?;
+    verify_urls_match(&self.common.actor, &self.object.common.actor)?;
+    verify_person(&self.common.actor, context, request_counter).await?;
+    self.object.verify(context, request_counter).await?;
+    Ok(())
   }
 
   async fn receive(
