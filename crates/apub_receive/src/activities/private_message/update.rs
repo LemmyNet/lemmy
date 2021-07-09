@@ -1,7 +1,7 @@
-use crate::activities::private_message::send_websocket_message;
+use crate::activities::private_message::{send_websocket_message, verify_activity, verify_person};
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, NoteExt};
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub::{objects::FromApub, NoteExt};
+use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandlerNew};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
@@ -20,10 +20,15 @@ pub struct UpdatePrivateMessage {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandlerNew for UpdatePrivateMessage {
-  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(self.common.id_unchecked(), &self.common.actor)?;
-    self.object.id(self.common.actor.as_str())?;
-    check_is_apub_id_valid(&self.common.actor, false)
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_activity(self.common())?;
+    verify_person(&self.common.actor, context, request_counter).await?;
+    verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
+    Ok(())
   }
 
   async fn receive(

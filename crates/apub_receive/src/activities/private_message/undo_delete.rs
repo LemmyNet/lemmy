@@ -1,8 +1,17 @@
-use crate::activities::private_message::{delete::DeletePrivateMessage, send_websocket_message};
+use crate::activities::private_message::{
+  delete::DeletePrivateMessage,
+  send_websocket_message,
+  verify_activity,
+  verify_person,
+};
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
-use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::{
+  verify_domains_match,
+  verify_urls_match,
+  ActivityCommonFields,
+  ActivityHandlerNew,
+};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_utils::LemmyError;
@@ -27,10 +36,12 @@ impl ActivityHandlerNew for UndoDeletePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    verify_domains_match(&self.common.actor, self.object.common.id_unchecked())?;
-    check_is_apub_id_valid(&self.common.actor, false)?;
-    self.object.verify(context, request_counter).await
+    verify_activity(self.common())?;
+    verify_person(&self.common.actor, context, request_counter).await?;
+    verify_urls_match(&self.common.actor, &self.object.common.actor)?;
+    verify_domains_match(&self.common.actor, &self.object.object)?;
+    self.object.verify(context, request_counter).await?;
+    Ok(())
   }
 
   async fn receive(

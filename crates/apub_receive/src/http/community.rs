@@ -56,11 +56,11 @@ pub(crate) async fn get_apub_community_http(
 pub async fn community_inbox(
   request: HttpRequest,
   payload: Payload,
-  path: web::Path<String>,
+  _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<GroupInboxActivities>(request, &unparsed, Some(path.0), context).await
+  receive_activity::<GroupInboxActivities>(request, &unparsed, context).await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

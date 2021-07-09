@@ -1,7 +1,6 @@
-use crate::activities::private_message::send_websocket_message;
+use crate::activities::private_message::{send_websocket_message, verify_activity, verify_person};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
-use lemmy_apub::check_is_apub_id_valid;
 use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject};
 use lemmy_db_schema::source::private_message::PrivateMessage;
@@ -22,10 +21,15 @@ pub struct DeletePrivateMessage {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandlerNew for DeletePrivateMessage {
-  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_activity(self.common())?;
+    verify_person(&self.common.actor, context, request_counter).await?;
     verify_domains_match(&self.common.actor, &self.object)?;
-    check_is_apub_id_valid(&self.common.actor, false)
+    Ok(())
   }
 
   async fn receive(

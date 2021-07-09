@@ -50,7 +50,7 @@ pub async fn shared_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<Ac>(request, &unparsed, None, context).await
+  receive_activity::<Ac>(request, &unparsed, context).await
 }
 
 async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
@@ -65,7 +65,6 @@ async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
 async fn receive_activity<'a, T>(
   request: HttpRequest,
   activity: &'a str,
-  expected_name: Option<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError>
 where
@@ -85,11 +84,6 @@ where
   let request_counter = &mut 0;
   let actor =
     get_or_fetch_and_upsert_actor(&activity_data.actor, &context, request_counter).await?;
-  if let Some(expected) = expected_name {
-    if expected != actor.name() {
-      return Ok(HttpResponse::BadRequest().finish());
-    }
-  }
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
   activity.verify(&context, request_counter).await?;
 

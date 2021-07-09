@@ -48,11 +48,11 @@ pub(crate) async fn get_apub_person_http(
 pub async fn person_inbox(
   request: HttpRequest,
   payload: Payload,
-  path: web::Path<String>,
+  _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<PersonInboxActivities>(request, &unparsed, Some(path.0), context).await
+  receive_activity::<PersonInboxActivities>(request, &unparsed, context).await
 }
 
 pub(crate) async fn get_apub_person_outbox(
