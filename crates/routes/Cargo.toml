@@ -14,17 +14,17 @@ lemmy_db_views = { path = "../db_views" }
 lemmy_db_views_actor = { path = "../db_views_actor" }
 lemmy_db_schema = { path = "../db_schema" }
 lemmy_api_common = { path = "../api_common" }
-diesel = "1.4.5"
-actix = "0.10.0"
-actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "3.0.0", default-features = false }
-sha2 = "0.9.3"
+diesel = "1.4.7"
+actix = "0.12.0"
+actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "4.0.0-beta.6", default-features = false }
+sha2 = "0.9.5"
 log = "0.4.14"
-anyhow = "1.0.38"
+anyhow = "1.0.41"
 chrono = { version = "0.4.19", features = ["serde"] }
 rss = "1.10.0"
-serde = { version = "1.0.123", features = ["derive"] }
-awc = { version = "2.0.3", default-features = false }
-url = { version = "2.2.1", features = ["serde"] }
-strum = "0.20.0"
+serde = { version = "1.0.126", features = ["derive"] }
+awc = { version = "3.0.0-beta.7", default-features = false }
+url = { version = "2.2.2", features = ["serde"] }
+strum = "0.21.0"
 lazy_static = "1.4.0"
