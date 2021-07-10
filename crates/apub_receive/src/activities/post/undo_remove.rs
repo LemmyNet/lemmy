@@ -33,7 +33,7 @@ impl ActivityHandlerNew for UndoRemovePost {
   ) -> Result<(), LemmyError> {
     verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
     check_is_apub_id_valid(&self.common.actor, false)?;
-    verify_mod_action(self.common.actor.clone(), self.cc[0].clone(), context).await?;
+    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
     self.object.verify(context, request_counter).await
   }
 

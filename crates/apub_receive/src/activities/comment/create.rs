@@ -1,7 +1,16 @@
-use crate::activities::comment::{get_notif_recipients, send_websocket_message};
+use crate::activities::{
+  comment::{get_notif_recipients, send_websocket_message},
+  verify_activity,
+  verify_person_in_community,
+};
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApub, NoteExt};
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub::{objects::FromApub, NoteExt};
+use lemmy_apub_lib::{
+  verify_domains_match_opt,
+  ActivityCommonFields,
+  ActivityHandlerNew,
+  PublicUrl,
+};
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
@@ -21,10 +30,21 @@ pub struct CreateComment {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandlerNew for CreateComment {
-  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    self.object.id(self.common.actor.as_str())?;
-    check_is_apub_id_valid(&self.common.actor, false)
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    dbg!("1");
+    verify_activity(self.common())?;
+    dbg!("2");
+    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    dbg!("3");
+    verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
+    dbg!("4");
+    // TODO: should add a check that the correct community is in cc (probably needs changes to
+    //       comment deserialization)
+    Ok(())
   }
 
   async fn receive(
@@ -32,6 +52,7 @@ impl ActivityHandlerNew for CreateComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    dbg!("5");
     let comment = Comment::from_apub(
       &self.object,
       context,
@@ -40,6 +61,7 @@ impl ActivityHandlerNew for CreateComment {
       false,
     )
     .await?;
+    dbg!("6");
     let recipients =
       get_notif_recipients(&self.common.actor, &comment, context, request_counter).await?;
     send_websocket_message(

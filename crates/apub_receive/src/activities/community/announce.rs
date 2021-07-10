@@ -1,14 +1,17 @@
+use activitystreams::activity::kind::AnnounceType;
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
+use url::Url;
+
 use crate::{
   activities::{
     comment::{
       create::CreateComment,
       delete::DeleteComment,
-      dislike::DislikeComment,
-      like::LikeComment,
       remove::RemoveComment,
       undo_delete::UndoDeleteComment,
-      undo_dislike::UndoDislikeComment,
-      undo_like::UndoLikeComment,
       undo_remove::UndoRemoveComment,
       update::UpdateComment,
     },
@@ -16,48 +19,42 @@ use crate::{
     post::{
       create::CreatePost,
       delete::DeletePost,
-      dislike::DislikePost,
-      like::LikePost,
       remove::RemovePost,
       undo_delete::UndoDeletePost,
-      undo_dislike::UndoDislikePost,
-      undo_like::UndoLikePost,
       undo_remove::UndoRemovePost,
       update::UpdatePost,
     },
+    post_or_comment::{
+      dislike::DislikePostOrComment,
+      like::LikePostOrComment,
+      undo_dislike::UndoDislikePostOrComment,
+      undo_like::UndoLikePostOrComment,
+    },
+    verify_activity,
+    verify_community,
   },
   http::is_activity_already_known,
 };
-use activitystreams::activity::kind::RemoveType;
-use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
+#[serde(untagged)]
 pub enum AnnouncableActivities {
   CreateComment(CreateComment),
   UpdateComment(UpdateComment),
-  LikeComment(LikeComment),
-  DislikeComment(DislikeComment),
-  UndoLikeComment(UndoLikeComment),
-  UndoDislikeComment(UndoDislikeComment),
   DeleteComment(DeleteComment),
   UndoDeleteComment(UndoDeleteComment),
   RemoveComment(RemoveComment),
   UndoRemoveComment(UndoRemoveComment),
   CreatePost(CreatePost),
   UpdatePost(UpdatePost),
-  LikePost(LikePost),
-  DislikePost(DislikePost),
   DeletePost(DeletePost),
   UndoDeletePost(UndoDeletePost),
   RemovePost(RemovePost),
   UndoRemovePost(UndoRemovePost),
-  UndoLikePost(UndoLikePost),
-  UndoDislikePost(UndoDislikePost),
+  LikePostOrComment(LikePostOrComment),
+  DislikePostOrComment(DislikePostOrComment),
+  UndoLikePostOrComment(UndoLikePostOrComment),
+  UndoDislikePostOrComment(UndoDislikePostOrComment),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
 }
@@ -69,7 +66,7 @@ pub struct AnnounceActivity {
   object: AnnouncableActivities,
   cc: [Url; 1],
   #[serde(rename = "type")]
-  kind: RemoveType,
+  kind: AnnounceType,
   #[serde(flatten)]
   common: ActivityCommonFields,
 }
@@ -81,10 +78,9 @@ impl ActivityHandlerNew for AnnounceActivity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    verify_domains_match(&self.common.actor, &self.cc[0])?;
-    check_is_apub_id_valid(&self.common.actor, false)?;
-    self.object.verify(context, request_counter).await
+    verify_activity(self.common())?;
+    verify_community(&self.common.actor, context, request_counter).await?;
+    Ok(())
   }
 
   async fn receive(

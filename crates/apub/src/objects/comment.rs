@@ -123,17 +123,7 @@ impl FromApub for Comment {
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     check_object_for_community_or_site_ban(note, post.community_id, context, request_counter)
       .await?;
-    if post.locked {
-      // This is not very efficient because a comment gets inserted just to be deleted right
-      // afterwards, but it seems to be the easiest way to implement it.
-      blocking(context.pool(), move |conn| {
-        Comment::delete(conn, comment.id)
-      })
-      .await??;
-      Err(anyhow!("Post is locked").into())
-    } else {
-      Ok(comment)
-    }
+    Ok(comment)
   }
 }
 
@@ -174,6 +164,9 @@ impl FromApubToForm<NoteExt> for CommentForm {
       request_counter,
     ))
     .await?;
+    if post.locked {
+      return Err(anyhow!("Post is locked").into());
+    }
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively

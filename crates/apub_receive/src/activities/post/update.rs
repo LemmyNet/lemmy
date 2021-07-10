@@ -1,19 +1,26 @@
-use crate::activities::post::send_websocket_message;
+use crate::activities::{
+  post::send_websocket_message,
+  verify_activity,
+  verify_mod_action,
+  verify_person_in_community,
+};
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub::{
-  check_is_apub_id_valid,
   objects::{FromApub, FromApubToForm},
+  ActorType,
   PageExt,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
-use lemmy_db_queries::{ApubObject, Crud};
+use lemmy_apub_lib::{
+  verify_domains_match_opt,
+  ActivityCommonFields,
+  ActivityHandlerNew,
+  PublicUrl,
+};
+use lemmy_db_queries::ApubObject;
 use lemmy_db_schema::{
-  source::{
-    community::Community,
-    post::{Post, PostForm},
-  },
+  source::post::{Post, PostForm},
   DbUrl,
 };
 use lemmy_utils::{location_info, LemmyError};
@@ -34,17 +41,16 @@ pub struct UpdatePost {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandlerNew for UpdatePost {
-  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    self.object.id(self.common.actor.as_str())?;
-    check_is_apub_id_valid(&self.common.actor, false)
-  }
-
-  async fn receive(
+  async fn verify(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_activity(self.common())?;
+    let community =
+      verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
+
     let temp_post = PostForm::from_apub(
       &self.object,
       context,
@@ -53,36 +59,32 @@ impl ActivityHandlerNew for UpdatePost {
       false,
     )
     .await?;
-
     let post_id: DbUrl = temp_post.ap_id.context(location_info!())?;
     let old_post = blocking(context.pool(), move |conn| {
       Post::read_from_apub_id(conn, &post_id)
     })
     .await??;
-
-    // If sticked or locked state was changed, make sure the actor is a mod
     let stickied = temp_post.stickied.context(location_info!())?;
     let locked = temp_post.locked.context(location_info!())?;
-    let mut mod_action_allowed = false;
     if (stickied != old_post.stickied) || (locked != old_post.locked) {
-      let community = blocking(context.pool(), move |conn| {
-        Community::read(conn, old_post.community_id)
-      })
-      .await??;
-      // Only check mod status if the community is local, otherwise we trust that it was sent correctly.
-      if community.local {
-        // TODO
-        //verify_mod_activity(&update, announce, &community, context).await?;
-      }
-      mod_action_allowed = true;
+      verify_mod_action(&self.common.actor, community.actor_id(), context).await?;
     }
 
+    Ok(())
+  }
+
+  async fn receive(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
     let post = Post::from_apub(
       &self.object,
       context,
       self.common.actor.clone(),
       request_counter,
-      mod_action_allowed,
+      // TODO: we already check here if the mod action is valid, can remove that check param
+      true,
     )
     .await?;
 

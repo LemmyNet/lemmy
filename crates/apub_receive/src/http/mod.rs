@@ -1,7 +1,4 @@
-use crate::activities::{
-  following::accept::AcceptFollowCommunity,
-  post::{create::CreatePost, like::LikePost},
-};
+use crate::http::inbox_enums::SharedInboxActivities;
 use actix_web::{
   body::Body,
   web,
@@ -20,12 +17,11 @@ use lemmy_apub::{
   insert_activity,
   APUB_JSON_CONTENT_TYPE,
 };
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::ActivityHandlerNew;
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
 use url::Url;
@@ -36,21 +32,13 @@ pub mod inbox_enums;
 pub mod person;
 pub mod post;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ActivityHandlerNew)]
-#[serde(untagged)]
-enum Ac {
-  CreatePost(CreatePost),
-  LikePost(LikePost),
-  AcceptFollowCommunity(AcceptFollowCommunity),
-}
-
 pub async fn shared_inbox(
   request: HttpRequest,
   payload: Payload,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<Ac>(request, &unparsed, context).await
+  receive_activity::<SharedInboxActivities>(request, &unparsed, context).await
 }
 
 async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
@@ -70,22 +58,23 @@ async fn receive_activity<'a, T>(
 where
   T: ActivityHandlerNew + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
 {
-  debug!("Received activity {}", activity);
-  let activity = serde_json::from_str::<T>(activity)?;
+  let activity = serde_json::from_str::<T>(activity);
+  dbg!(&activity);
+  let activity = activity?;
   let activity_data = activity.common();
   // TODO: which order to check things?
   // Do nothing if we received the same activity before
   if is_activity_already_known(context.pool(), activity_data.id_unchecked()).await? {
     return Ok(HttpResponse::Ok().finish());
   }
-  assert_activity_not_local(&activity)?;
-  check_is_apub_id_valid(&activity_data.actor, false)?;
 
   let request_counter = &mut 0;
   let actor =
     get_or_fetch_and_upsert_actor(&activity_data.actor, &context, request_counter).await?;
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
   activity.verify(&context, request_counter).await?;
+  assert_activity_not_local(&activity)?;
+  check_is_apub_id_valid(&activity_data.actor, false)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.

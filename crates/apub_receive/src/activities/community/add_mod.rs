@@ -32,7 +32,7 @@ impl ActivityHandlerNew for AddMod {
     verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
     verify_domains_match(&self.target, &self.cc[0])?;
     check_is_apub_id_valid(&self.common.actor, false)?;
-    verify_mod_action(self.common.actor.clone(), self.cc[0].clone(), context).await?;
+    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
     verify_add_remove_moderator_target(&self.target, self.cc[0].clone())
   }
 

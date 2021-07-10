@@ -1,16 +1,19 @@
-use crate::activities::comment::{dislike::DislikeComment, undo_like_or_dislike_comment};
+use crate::activities::{
+  post_or_comment::{dislike::DislikePostOrComment, voting::receive_undo_like_or_dislike},
+  verify_activity,
+  verify_person_in_community,
+};
 use activitystreams::activity::kind::UndoType;
-use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UndoDislikeComment {
+pub struct UndoDislikePostOrComment {
   to: PublicUrl,
-  object: DislikeComment,
+  object: DislikePostOrComment,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
@@ -19,16 +22,17 @@ pub struct UndoDislikeComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UndoDislikeComment {
+impl ActivityHandlerNew for UndoDislikePostOrComment {
   async fn verify(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    verify_domains_match(&self.common.actor, &self.object.object)?;
-    check_is_apub_id_valid(&self.common.actor, false)?;
-    self.object.verify(context, request_counter).await
+    verify_activity(self.common())?;
+    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_urls_match(&self.common.actor, &self.object.common().actor)?;
+    self.object.verify(context, request_counter).await?;
+    Ok(())
   }
 
   async fn receive(
@@ -36,7 +40,7 @@ impl ActivityHandlerNew for UndoDislikeComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    undo_like_or_dislike_comment(
+    receive_undo_like_or_dislike(
       &self.common.actor,
       &self.object.object,
       context,

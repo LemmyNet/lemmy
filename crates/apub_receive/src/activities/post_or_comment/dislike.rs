@@ -1,16 +1,19 @@
-use crate::activities::comment::like_or_dislike_comment;
+use crate::activities::{
+  post_or_comment::voting::receive_like_or_dislike,
+  verify_activity,
+  verify_person_in_community,
+};
 use activitystreams::activity::kind::DislikeType;
-use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DislikeComment {
+pub struct DislikePostOrComment {
   to: PublicUrl,
-  pub(in crate::activities::comment) object: Url,
+  pub(in crate::activities) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DislikeType,
@@ -19,10 +22,15 @@ pub struct DislikeComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for DislikeComment {
-  async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    check_is_apub_id_valid(&self.common.actor, false)
+impl ActivityHandlerNew for DislikePostOrComment {
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_activity(self.common())?;
+    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    Ok(())
   }
 
   async fn receive(
@@ -30,7 +38,7 @@ impl ActivityHandlerNew for DislikeComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    like_or_dislike_comment(
+    receive_like_or_dislike(
       -1,
       &self.common.actor,
       &self.object,

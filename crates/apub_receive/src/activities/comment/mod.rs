@@ -1,30 +1,20 @@
 use lemmy_api_common::{blocking, comment::CommentResponse, send_local_notifs};
-use lemmy_apub::fetcher::{
-  objects::get_or_fetch_and_insert_comment,
-  person::get_or_fetch_and_upsert_person,
-};
-use lemmy_db_queries::{Crud, Likeable};
+use lemmy_apub::fetcher::person::get_or_fetch_and_upsert_person;
+use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentLike, CommentLikeForm},
-    post::Post,
-  },
+  source::{comment::Comment, post::Post},
   CommentId,
   LocalUserId,
 };
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{utils::scrape_text_for_mentions, LemmyError};
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::SendComment, LemmyContext};
 use url::Url;
 
 pub mod create;
 pub mod delete;
-pub mod dislike;
-pub mod like;
 pub mod remove;
 pub mod undo_delete;
-pub mod undo_dislike;
-pub mod undo_like;
 pub mod undo_remove;
 pub mod update;
 
@@ -49,7 +39,9 @@ async fn get_notif_recipients(
 
 // TODO: in many call sites we are setting an empty vec for recipient_ids, we should get the actual
 //       recipient actors from somewhere
-async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::OperationType + 'static>(
+pub(crate) async fn send_websocket_message<
+  OP: ToString + Send + lemmy_websocket::OperationType + 'static,
+>(
   comment_id: CommentId,
   recipient_ids: Vec<LocalUserId>,
   op: OP,
@@ -74,62 +66,4 @@ async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::Operation
   });
 
   Ok(())
-}
-
-async fn like_or_dislike_comment(
-  score: i16,
-  actor: &Url,
-  object: &Url,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-  let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
-
-  let comment_id = comment.id;
-  let like_form = CommentLikeForm {
-    comment_id,
-    post_id: comment.post_id,
-    person_id: actor.id,
-    score,
-  };
-  let person_id = actor.id;
-  blocking(context.pool(), move |conn| {
-    CommentLike::remove(conn, person_id, comment_id)?;
-    CommentLike::like(conn, &like_form)
-  })
-  .await??;
-
-  send_websocket_message(
-    comment_id,
-    vec![],
-    UserOperation::CreateCommentLike,
-    context,
-  )
-  .await
-}
-
-async fn undo_like_or_dislike_comment(
-  actor: &Url,
-  object: &Url,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-  let comment = get_or_fetch_and_insert_comment(object, context, request_counter).await?;
-
-  let comment_id = comment.id;
-  let person_id = actor.id;
-  blocking(context.pool(), move |conn| {
-    CommentLike::remove(conn, person_id, comment_id)
-  })
-  .await??;
-
-  send_websocket_message(
-    comment.id,
-    vec![],
-    UserOperation::CreateCommentLike,
-    context,
-  )
-  .await
 }

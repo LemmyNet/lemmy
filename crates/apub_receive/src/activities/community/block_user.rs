@@ -34,7 +34,7 @@ impl ActivityHandlerNew for BlockUserFromCommunity {
   async fn verify(&self, context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
     verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
     check_is_apub_id_valid(&self.common.actor, false)?;
-    verify_mod_action(self.common.actor.clone(), self.cc[0].clone(), context).await
+    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await
   }
 
   async fn receive(
