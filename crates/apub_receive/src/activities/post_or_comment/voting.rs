@@ -1,6 +1,6 @@
 use crate::activities::{
-  comment::send_websocket_message as send_comment_websocket_message,
-  post::send_websocket_message as send_post_websocket_message,
+  comment::send_websocket_message as send_comment_message,
+  post::send_websocket_message as send_post_message,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub::{
@@ -60,7 +60,7 @@ async fn like_or_dislike_comment(
   })
   .await??;
 
-  send_comment_websocket_message(
+  send_comment_message(
     comment_id,
     vec![],
     UserOperation::CreateCommentLike,
@@ -91,7 +91,7 @@ async fn like_or_dislike_post(
   })
   .await??;
 
-  send_post_websocket_message(post.id, UserOperation::CreatePostLike, context).await
+  send_post_message(post.id, UserOperation::CreatePostLike, context).await
 }
 
 pub(in crate::activities::post_or_comment) async fn receive_undo_like_or_dislike(
@@ -125,7 +125,7 @@ async fn undo_like_or_dislike_comment(
   })
   .await??;
 
-  send_comment_websocket_message(
+  send_comment_message(
     comment.id,
     vec![],
     UserOperation::CreateCommentLike,
@@ -148,5 +148,5 @@ async fn undo_like_or_dislike_post(
     PostLike::remove(conn, person_id, post_id)
   })
   .await??;
-  send_post_websocket_message(post.id, UserOperation::CreatePostLike, context).await
+  send_post_message(post.id, UserOperation::CreatePostLike, context).await
 }

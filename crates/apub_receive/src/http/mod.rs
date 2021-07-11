@@ -58,9 +58,7 @@ async fn receive_activity<'a, T>(
 where
   T: ActivityHandlerNew + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
 {
-  let activity = serde_json::from_str::<T>(activity);
-  dbg!(&activity);
-  let activity = activity?;
+  let activity = serde_json::from_str::<T>(activity)?;
   let activity_data = activity.common();
   // TODO: which order to check things?
   // Do nothing if we received the same activity before

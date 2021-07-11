@@ -5,10 +5,6 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendPost, LemmyContext};
 
 pub mod create;
-pub mod delete;
-pub mod remove;
-pub mod undo_delete;
-pub mod undo_remove;
 pub mod update;
 
 pub(crate) async fn send_websocket_message<

@@ -35,13 +35,9 @@ impl ActivityHandlerNew for CreateComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    dbg!("1");
     verify_activity(self.common())?;
-    dbg!("2");
     verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
-    dbg!("3");
     verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
-    dbg!("4");
     // TODO: should add a check that the correct community is in cc (probably needs changes to
     //       comment deserialization)
     Ok(())
@@ -52,7 +48,6 @@ impl ActivityHandlerNew for CreateComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    dbg!("5");
     let comment = Comment::from_apub(
       &self.object,
       context,
@@ -61,7 +56,6 @@ impl ActivityHandlerNew for CreateComment {
       false,
     )
     .await?;
-    dbg!("6");
     let recipients =
       get_notif_recipients(&self.common.actor, &comment, context, request_counter).await?;
     send_websocket_message(

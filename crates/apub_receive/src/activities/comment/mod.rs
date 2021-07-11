@@ -12,10 +12,6 @@ use lemmy_websocket::{messages::SendComment, LemmyContext};
 use url::Url;
 
 pub mod create;
-pub mod delete;
-pub mod remove;
-pub mod undo_delete;
-pub mod undo_remove;
 pub mod update;
 
 async fn get_notif_recipients(

@@ -1,3 +1,23 @@
+use crate::{
+  activities::{
+    comment::{create::CreateComment, update::UpdateComment},
+    community::{block_user::BlockUserFromCommunity, undo_block_user::UndoBlockUserFromCommunity},
+    post::{create::CreatePost, update::UpdatePost},
+    post_or_comment::{
+      delete::DeletePostOrComment,
+      dislike::DislikePostOrComment,
+      like::LikePostOrComment,
+      remove::RemovePostOrComment,
+      undo_delete::UndoDeletePostOrComment,
+      undo_dislike::UndoDislikePostOrComment,
+      undo_like::UndoLikePostOrComment,
+      undo_remove::UndoRemovePostOrComment,
+    },
+    verify_activity,
+    verify_community,
+  },
+  http::is_activity_already_known,
+};
 use activitystreams::activity::kind::AnnounceType;
 use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_utils::LemmyError;
@@ -5,56 +25,21 @@ use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{
-  activities::{
-    comment::{
-      create::CreateComment,
-      delete::DeleteComment,
-      remove::RemoveComment,
-      undo_delete::UndoDeleteComment,
-      undo_remove::UndoRemoveComment,
-      update::UpdateComment,
-    },
-    community::{block_user::BlockUserFromCommunity, undo_block_user::UndoBlockUserFromCommunity},
-    post::{
-      create::CreatePost,
-      delete::DeletePost,
-      remove::RemovePost,
-      undo_delete::UndoDeletePost,
-      undo_remove::UndoRemovePost,
-      update::UpdatePost,
-    },
-    post_or_comment::{
-      dislike::DislikePostOrComment,
-      like::LikePostOrComment,
-      undo_dislike::UndoDislikePostOrComment,
-      undo_like::UndoLikePostOrComment,
-    },
-    verify_activity,
-    verify_community,
-  },
-  http::is_activity_already_known,
-};
-
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
 #[serde(untagged)]
 pub enum AnnouncableActivities {
   CreateComment(CreateComment),
   UpdateComment(UpdateComment),
-  DeleteComment(DeleteComment),
-  UndoDeleteComment(UndoDeleteComment),
-  RemoveComment(RemoveComment),
-  UndoRemoveComment(UndoRemoveComment),
   CreatePost(CreatePost),
   UpdatePost(UpdatePost),
-  DeletePost(DeletePost),
-  UndoDeletePost(UndoDeletePost),
-  RemovePost(RemovePost),
-  UndoRemovePost(UndoRemovePost),
   LikePostOrComment(LikePostOrComment),
   DislikePostOrComment(DislikePostOrComment),
   UndoLikePostOrComment(UndoLikePostOrComment),
   UndoDislikePostOrComment(UndoDislikePostOrComment),
+  DeletePostOrComment(DeletePostOrComment),
+  RemovePostOrComment(RemovePostOrComment),
+  UndoRemovePostOrComment(UndoRemovePostOrComment),
+  UndoDeletePostOrComment(UndoDeletePostOrComment),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
 }
