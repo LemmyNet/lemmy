@@ -2,7 +2,7 @@ use crate::activities::community::{remove::RemoveCommunity, send_websocket_messa
 use activitystreams::activity::kind::RemoveType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{check_is_apub_id_valid, fetcher::community::get_or_fetch_and_upsert_community};
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::source::community::Community_;
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -22,7 +22,7 @@ pub struct UndoRemoveCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UndoRemoveCommunity {
+impl ActivityHandler for UndoRemoveCommunity {
   async fn verify(
     &self,
     context: &LemmyContext,

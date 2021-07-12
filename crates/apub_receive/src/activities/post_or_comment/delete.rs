@@ -11,7 +11,7 @@ use lemmy_apub::{
   ActorType,
   PostOrComment,
 };
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{
   source::{comment::Comment_, post::Post_},
   Crud,
@@ -34,7 +34,7 @@ pub struct DeletePostOrComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for DeletePostOrComment {
+impl ActivityHandler for DeletePostOrComment {
   async fn verify(
     &self,
     context: &LemmyContext,

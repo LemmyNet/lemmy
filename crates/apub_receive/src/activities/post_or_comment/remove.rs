@@ -8,7 +8,7 @@ use crate::activities::{
 use activitystreams::activity::kind::RemoveType;
 use lemmy_api_common::blocking;
 use lemmy_apub::{fetcher::objects::get_or_fetch_and_insert_post_or_comment, PostOrComment};
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::source::{comment::Comment_, post::Post_};
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::LemmyError;
@@ -28,7 +28,7 @@ pub struct RemovePostOrComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for RemovePostOrComment {
+impl ActivityHandler for RemovePostOrComment {
   async fn verify(
     &self,
     context: &LemmyContext,

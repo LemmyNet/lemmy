@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput};
 
-#[proc_macro_derive(ActivityHandlerNew)]
+#[proc_macro_derive(ActivityHandler)]
 pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Parse the input tokens into a syntax tree.
   let input = parse_macro_input!(input as DeriveInput);
@@ -34,7 +34,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
   // The generated impl.
   let expanded = quote! {
       #[async_trait::async_trait(?Send)]
-      impl #impl_generics lemmy_apub_lib::ActivityHandlerNew for #name #ty_generics #where_clause {
+      impl #impl_generics lemmy_apub_lib::ActivityHandler for #name #ty_generics #where_clause {
           async fn verify(
               &self,
               context: &LemmyContext,

@@ -1,7 +1,6 @@
-use crate::activities::community::{
-  delete::DeleteCommunity,
-  send_websocket_message,
-  verify_is_community_mod,
+use crate::activities::{
+  community::{delete::DeleteCommunity, send_websocket_message},
+  verify_mod_action,
 };
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
@@ -11,7 +10,7 @@ use lemmy_apub::{
   ActorType,
   CommunityType,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{source::community::Community_, ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -34,7 +33,7 @@ pub struct UndoDeleteCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UndoDeleteCommunity {
+impl ActivityHandler for UndoDeleteCommunity {
   async fn verify(
     &self,
     context: &LemmyContext,
@@ -50,7 +49,7 @@ impl ActivityHandlerNew for UndoDeleteCommunity {
     if let Ok(c) = community {
       verify_domains_match(&self.object.object, &self.cc[0])?;
       check_is_apub_id_valid(&self.common.actor, false)?;
-      verify_is_community_mod(self.common.actor.clone(), c.actor_id(), context).await?;
+      verify_mod_action(&self.common.actor, c.actor_id(), context).await?;
     }
     // community action sent to followers
     else {

@@ -12,12 +12,7 @@ use lemmy_apub::{
   ActorType,
   PageExt,
 };
-use lemmy_apub_lib::{
-  verify_domains_match_opt,
-  ActivityCommonFields,
-  ActivityHandlerNew,
-  PublicUrl,
-};
+use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::ApubObject;
 use lemmy_db_schema::{
   source::post::{Post, PostForm},
@@ -40,7 +35,7 @@ pub struct UpdatePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UpdatePost {
+impl ActivityHandler for UpdatePost {
   async fn verify(
     &self,
     context: &LemmyContext,

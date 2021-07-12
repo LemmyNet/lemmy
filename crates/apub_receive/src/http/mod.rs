@@ -17,7 +17,7 @@ use lemmy_apub::{
   insert_activity,
   APUB_JSON_CONTENT_TYPE,
 };
-use lemmy_apub_lib::ActivityHandlerNew;
+use lemmy_apub_lib::ActivityHandler;
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
@@ -26,11 +26,12 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
 use url::Url;
 
-pub mod comment;
-pub mod community;
-pub mod inbox_enums;
-pub mod person;
-pub mod post;
+mod comment;
+mod community;
+mod inbox_enums;
+mod person;
+mod post;
+pub mod routes;
 
 pub async fn shared_inbox(
   request: HttpRequest,
@@ -58,7 +59,7 @@ async fn receive_activity<'a, T>(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError>
 where
-  T: ActivityHandlerNew + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
+  T: ActivityHandler + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
 {
   let activity = serde_json::from_str::<T>(activity)?;
   let activity_data = activity.common();
@@ -167,9 +168,7 @@ pub(crate) async fn is_activity_already_known(
   }
 }
 
-fn assert_activity_not_local<T: Debug + ActivityHandlerNew>(
-  activity: &T,
-) -> Result<(), LemmyError> {
+fn assert_activity_not_local<T: Debug + ActivityHandler>(activity: &T) -> Result<(), LemmyError> {
   let activity_domain = activity
     .common()
     .id_unchecked()

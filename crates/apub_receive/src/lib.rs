@@ -1,3 +1,2 @@
 mod activities;
-mod http;
-pub mod routes;
+pub mod http;

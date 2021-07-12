@@ -5,7 +5,7 @@ use lemmy_apub::fetcher::{
   community::get_or_fetch_and_upsert_community,
   person::get_or_fetch_and_upsert_person,
 };
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{Bannable, Followable};
 use lemmy_db_schema::source::community::{
   CommunityFollower,
@@ -30,7 +30,7 @@ pub struct BlockUserFromCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for BlockUserFromCommunity {
+impl ActivityHandler for BlockUserFromCommunity {
   async fn verify(
     &self,
     context: &LemmyContext,

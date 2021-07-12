@@ -2,7 +2,7 @@ use crate::activities::community::send_websocket_message;
 use activitystreams::activity::kind::RemoveType;
 use lemmy_api_common::blocking;
 use lemmy_apub::check_is_apub_id_valid;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{source::community::Community_, ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -22,7 +22,7 @@ pub struct RemoveCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for RemoveCommunity {
+impl ActivityHandler for RemoveCommunity {
   async fn verify(&self, _context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
     verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
     check_is_apub_id_valid(&self.common.actor, false)?;

@@ -20,13 +20,13 @@ use crate::{
 };
 use activitystreams::activity::kind::AnnounceType;
 use lemmy_apub::insert_activity;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum AnnouncableActivities {
   CreateComment(CreateComment),
@@ -58,7 +58,7 @@ pub struct AnnounceActivity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for AnnounceActivity {
+impl ActivityHandler for AnnounceActivity {
   async fn verify(
     &self,
     context: &LemmyContext,

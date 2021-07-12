@@ -31,12 +31,12 @@ use crate::activities::{
     update::UpdatePrivateMessage,
   },
 };
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
@@ -47,7 +47,7 @@ pub enum PersonInboxActivities {
   AnnounceActivity(Box<AnnounceActivity>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
@@ -75,7 +75,7 @@ pub enum GroupInboxActivities {
   RemoveMod(RemoveMod),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandlerNew)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum SharedInboxActivities {
   // received by group

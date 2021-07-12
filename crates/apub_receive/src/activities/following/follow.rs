@@ -9,7 +9,7 @@ use lemmy_apub::{
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   CommunityType,
 };
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::community::{CommunityFollower, CommunityFollowerForm};
 use lemmy_utils::{location_info, LemmyError};
@@ -28,7 +28,7 @@ pub struct FollowCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for FollowCommunity {
+impl ActivityHandler for FollowCommunity {
   async fn verify(
     &self,
     context: &LemmyContext,

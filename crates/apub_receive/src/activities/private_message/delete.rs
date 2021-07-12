@@ -1,7 +1,7 @@
 use crate::activities::{private_message::send_websocket_message, verify_activity, verify_person};
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_utils::LemmyError;
@@ -20,7 +20,7 @@ pub struct DeletePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for DeletePrivateMessage {
+impl ActivityHandler for DeletePrivateMessage {
   async fn verify(
     &self,
     context: &LemmyContext,

@@ -1,7 +1,7 @@
 use crate::activities::{private_message::send_websocket_message, verify_activity, verify_person};
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
 use lemmy_apub::{objects::FromApub, NoteExt};
-use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandlerNew};
+use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandler};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
@@ -19,7 +19,7 @@ pub struct UpdatePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UpdatePrivateMessage {
+impl ActivityHandler for UpdatePrivateMessage {
   async fn verify(
     &self,
     context: &LemmyContext,

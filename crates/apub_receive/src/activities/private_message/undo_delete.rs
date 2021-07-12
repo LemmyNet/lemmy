@@ -9,7 +9,7 @@ use lemmy_apub_lib::{
   verify_domains_match,
   verify_urls_match,
   ActivityCommonFields,
-  ActivityHandlerNew,
+  ActivityHandler,
 };
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject};
 use lemmy_db_schema::source::private_message::PrivateMessage;
@@ -29,7 +29,7 @@ pub struct UndoDeletePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UndoDeletePrivateMessage {
+impl ActivityHandler for UndoDeletePrivateMessage {
   async fn verify(
     &self,
     context: &LemmyContext,

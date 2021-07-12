@@ -6,7 +6,7 @@ use lemmy_apub::{
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   CommunityType,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
 use lemmy_db_schema::source::community::{CommunityModerator, CommunityModeratorForm};
 use lemmy_utils::LemmyError;
@@ -27,7 +27,7 @@ pub struct AddMod {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for AddMod {
+impl ActivityHandler for AddMod {
   async fn verify(&self, context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
     verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
     verify_domains_match(&self.target, &self.cc[0])?;

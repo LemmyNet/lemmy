@@ -10,7 +10,7 @@ use lemmy_apub::fetcher::{
   community::get_or_fetch_and_upsert_community,
   person::get_or_fetch_and_upsert_person,
 };
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::Bannable;
 use lemmy_db_schema::source::community::{CommunityPersonBan, CommunityPersonBanForm};
 use lemmy_utils::LemmyError;
@@ -30,7 +30,7 @@ pub struct UndoBlockUserFromCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UndoBlockUserFromCommunity {
+impl ActivityHandler for UndoBlockUserFromCommunity {
   async fn verify(
     &self,
     context: &LemmyContext,

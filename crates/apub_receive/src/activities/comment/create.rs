@@ -5,12 +5,7 @@ use crate::activities::{
 };
 use activitystreams::{activity::kind::CreateType, base::BaseExt};
 use lemmy_apub::{objects::FromApub, NoteExt};
-use lemmy_apub_lib::{
-  verify_domains_match_opt,
-  ActivityCommonFields,
-  ActivityHandlerNew,
-  PublicUrl,
-};
+use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
@@ -29,7 +24,7 @@ pub struct CreateComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for CreateComment {
+impl ActivityHandler for CreateComment {
   async fn verify(
     &self,
     context: &LemmyContext,

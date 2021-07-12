@@ -4,7 +4,7 @@ use crate::activities::{
   verify_person_in_community,
 };
 use activitystreams::activity::kind::UndoType;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -22,7 +22,7 @@ pub struct UndoDislikePostOrComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for UndoDislikePostOrComment {
+impl ActivityHandler for UndoDislikePostOrComment {
   async fn verify(
     &self,
     context: &LemmyContext,

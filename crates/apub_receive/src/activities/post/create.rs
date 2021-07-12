@@ -10,12 +10,7 @@ use lemmy_apub::{
   ActorType,
   PageExt,
 };
-use lemmy_apub_lib::{
-  verify_domains_match_opt,
-  ActivityCommonFields,
-  ActivityHandlerNew,
-  PublicUrl,
-};
+use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_schema::source::post::Post;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
@@ -34,7 +29,7 @@ pub struct CreatePost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for CreatePost {
+impl ActivityHandler for CreatePost {
   async fn verify(
     &self,
     context: &LemmyContext,

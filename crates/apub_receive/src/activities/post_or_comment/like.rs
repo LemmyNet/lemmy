@@ -4,7 +4,7 @@ use crate::activities::{
   verify_person_in_community,
 };
 use activitystreams::activity::kind::LikeType;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -22,7 +22,7 @@ pub struct LikePostOrComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandlerNew for LikePostOrComment {
+impl ActivityHandler for LikePostOrComment {
   async fn verify(
     &self,
     context: &LemmyContext,
