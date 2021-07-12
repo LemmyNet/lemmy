@@ -50,6 +50,8 @@ async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
   Bytes::from(bytes).as_ref().read_to_string(&mut unparsed)?;
   Ok(unparsed)
 }
+
+// TODO: move most of this code to library
 async fn receive_activity<'a, T>(
   request: HttpRequest,
   activity: &'a str,
@@ -60,19 +62,23 @@ where
 {
   let activity = serde_json::from_str::<T>(activity)?;
   let activity_data = activity.common();
-  // TODO: which order to check things?
-  // Do nothing if we received the same activity before
-  if is_activity_already_known(context.pool(), activity_data.id_unchecked()).await? {
-    return Ok(HttpResponse::Ok().finish());
-  }
 
   let request_counter = &mut 0;
   let actor =
     get_or_fetch_and_upsert_actor(&activity_data.actor, &context, request_counter).await?;
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
+
+  // Do nothing if we received the same activity before
+  if is_activity_already_known(context.pool(), activity_data.id_unchecked()).await? {
+    return Ok(HttpResponse::Ok().finish());
+  }
+  check_is_apub_id_valid(&activity_data.actor, false)?;
+  println!(
+    "Verifying activity {}",
+    activity_data.id_unchecked().to_string()
+  );
   activity.verify(&context, request_counter).await?;
   assert_activity_not_local(&activity)?;
-  check_is_apub_id_valid(&activity_data.actor, false)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
@@ -85,6 +91,10 @@ where
   )
   .await?;
 
+  println!(
+    "Receiving activity {}",
+    activity_data.id_unchecked().to_string()
+  );
   activity.receive(&context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }

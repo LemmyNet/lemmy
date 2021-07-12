@@ -1,11 +1,16 @@
-use crate::activities::{community::block_user::BlockUserFromCommunity, verify_mod_action};
-use activitystreams::activity::kind::BlockType;
-use lemmy_api_common::blocking;
-use lemmy_apub::{
-  check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+use crate::activities::{
+  community::block_user::BlockUserFromCommunity,
+  verify_activity,
+  verify_mod_action,
+  verify_person_in_community,
 };
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use activitystreams::activity::kind::UndoType;
+use lemmy_api_common::blocking;
+use lemmy_apub::fetcher::{
+  community::get_or_fetch_and_upsert_community,
+  person::get_or_fetch_and_upsert_person,
+};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_db_queries::Bannable;
 use lemmy_db_schema::source::community::{CommunityPersonBan, CommunityPersonBanForm};
 use lemmy_utils::LemmyError;
@@ -19,7 +24,7 @@ pub struct UndoBlockUserFromCommunity {
   object: BlockUserFromCommunity,
   cc: [Url; 1],
   #[serde(rename = "type")]
-  kind: BlockType,
+  kind: UndoType,
   #[serde(flatten)]
   common: ActivityCommonFields,
 }
@@ -31,10 +36,11 @@ impl ActivityHandlerNew for UndoBlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    check_is_apub_id_valid(&self.common.actor, false)?;
+    verify_activity(self.common())?;
+    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
     verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
-    self.object.verify(context, request_counter).await
+    self.object.verify(context, request_counter).await?;
+    Ok(())
   }
 
   async fn receive(

@@ -19,6 +19,7 @@ use crate::{
   http::is_activity_already_known,
 };
 use activitystreams::activity::kind::AnnounceType;
+use lemmy_apub::insert_activity;
 use lemmy_apub_lib::{ActivityCommonFields, ActivityHandlerNew, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -49,7 +50,7 @@ pub enum AnnouncableActivities {
 pub struct AnnounceActivity {
   to: PublicUrl,
   object: AnnouncableActivities,
-  cc: [Url; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: AnnounceType,
   #[serde(flatten)]
@@ -65,6 +66,7 @@ impl ActivityHandlerNew for AnnounceActivity {
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
     verify_community(&self.common.actor, context, request_counter).await?;
+    self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
@@ -76,6 +78,14 @@ impl ActivityHandlerNew for AnnounceActivity {
     if is_activity_already_known(context.pool(), self.object.common().id_unchecked()).await? {
       return Ok(());
     }
+    insert_activity(
+      self.object.common().id_unchecked(),
+      self.object.clone(),
+      false,
+      true,
+      context.pool(),
+    )
+    .await?;
     self.object.receive(context, request_counter).await
   }
 

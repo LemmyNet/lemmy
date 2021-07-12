@@ -49,14 +49,13 @@ impl ActivityHandlerNew for UpdatePost {
     verify_activity(self.common())?;
     let community =
       verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
-    verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
 
     let temp_post = PostForm::from_apub(
       &self.object,
       context,
       self.common.actor.clone(),
       request_counter,
-      false,
+      true,
     )
     .await?;
     let post_id: DbUrl = temp_post.ap_id.context(location_info!())?;
@@ -66,8 +65,13 @@ impl ActivityHandlerNew for UpdatePost {
     .await??;
     let stickied = temp_post.stickied.context(location_info!())?;
     let locked = temp_post.locked.context(location_info!())?;
+    // community mod changed locked/sticky status
     if (stickied != old_post.stickied) || (locked != old_post.locked) {
       verify_mod_action(&self.common.actor, community.actor_id(), context).await?;
+    }
+    // user edited their own post
+    else {
+      verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
     }
 
     Ok(())
