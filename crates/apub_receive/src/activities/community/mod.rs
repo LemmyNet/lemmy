@@ -10,15 +10,13 @@ use url::Url;
 pub mod add_mod;
 pub mod announce;
 pub mod block_user;
-pub mod delete;
-pub mod remove;
 pub mod remove_mod;
 pub mod undo_block_user;
-pub mod undo_delete;
-pub mod undo_remove;
 pub mod update;
 
-async fn send_websocket_message<OP: ToString + Send + lemmy_websocket::OperationType + 'static>(
+pub(crate) async fn send_websocket_message<
+  OP: ToString + Send + lemmy_websocket::OperationType + 'static,
+>(
   community_id: CommunityId,
   op: OP,
   context: &LemmyContext,

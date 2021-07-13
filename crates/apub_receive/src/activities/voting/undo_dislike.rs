@@ -1,7 +1,7 @@
 use crate::activities::{
-  post_or_comment::{dislike::DislikePostOrComment, voting::receive_undo_like_or_dislike},
   verify_activity,
   verify_person_in_community,
+  voting::{dislike::DislikePostOrComment, receive_undo_like_or_dislike},
 };
 use activitystreams::activity::kind::UndoType;
 use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};

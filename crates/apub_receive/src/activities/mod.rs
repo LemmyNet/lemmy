@@ -18,10 +18,12 @@ use url::Url;
 
 pub mod comment;
 pub mod community;
+pub mod deletion;
 pub mod following;
 pub mod post;
-pub mod post_or_comment;
 pub mod private_message;
+pub mod removal;
+pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.

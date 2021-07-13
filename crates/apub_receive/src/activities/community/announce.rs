@@ -2,19 +2,23 @@ use crate::{
   activities::{
     comment::{create::CreateComment, update::UpdateComment},
     community::{block_user::BlockUserFromCommunity, undo_block_user::UndoBlockUserFromCommunity},
+    deletion::{
+      delete::DeletePostCommentOrCommunity,
+      undo_delete::UndoDeletePostCommentOrCommunity,
+    },
     post::{create::CreatePost, update::UpdatePost},
-    post_or_comment::{
-      delete::DeletePostOrComment,
-      dislike::DislikePostOrComment,
-      like::LikePostOrComment,
-      remove::RemovePostOrComment,
-      undo_delete::UndoDeletePostOrComment,
-      undo_dislike::UndoDislikePostOrComment,
-      undo_like::UndoLikePostOrComment,
-      undo_remove::UndoRemovePostOrComment,
+    removal::{
+      remove::RemovePostCommentOrCommunity,
+      undo_remove::UndoRemovePostCommentOrCommunity,
     },
     verify_activity,
     verify_community,
+    voting::{
+      dislike::DislikePostOrComment,
+      like::LikePostOrComment,
+      undo_dislike::UndoDislikePostOrComment,
+      undo_like::UndoLikePostOrComment,
+    },
   },
   http::is_activity_already_known,
 };
@@ -37,10 +41,10 @@ pub enum AnnouncableActivities {
   DislikePostOrComment(DislikePostOrComment),
   UndoLikePostOrComment(UndoLikePostOrComment),
   UndoDislikePostOrComment(UndoDislikePostOrComment),
-  DeletePostOrComment(DeletePostOrComment),
-  RemovePostOrComment(RemovePostOrComment),
-  UndoRemovePostOrComment(UndoRemovePostOrComment),
-  UndoDeletePostOrComment(UndoDeletePostOrComment),
+  DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
+  UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
+  RemovePostCommentOrCommunity(RemovePostCommentOrCommunity),
+  UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
 }

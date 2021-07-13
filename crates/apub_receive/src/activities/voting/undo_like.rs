@@ -1,28 +1,28 @@
 use crate::activities::{
-  post_or_comment::voting::receive_like_or_dislike,
   verify_activity,
   verify_person_in_community,
+  voting::{like::LikePostOrComment, receive_undo_like_or_dislike},
 };
-use activitystreams::activity::kind::LikeType;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use activitystreams::activity::kind::UndoType;
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LikePostOrComment {
+pub struct UndoLikePostOrComment {
   to: PublicUrl,
-  pub(in crate::activities::post_or_comment) object: Url,
+  object: LikePostOrComment,
   cc: [Url; 1],
   #[serde(rename = "type")]
-  kind: LikeType,
+  kind: UndoType,
   #[serde(flatten)]
   common: ActivityCommonFields,
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for LikePostOrComment {
+impl ActivityHandler for UndoLikePostOrComment {
   async fn verify(
     &self,
     context: &LemmyContext,
@@ -30,6 +30,8 @@ impl ActivityHandler for LikePostOrComment {
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
     verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_urls_match(&self.common.actor, &self.object.common().actor)?;
+    self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
@@ -38,10 +40,9 @@ impl ActivityHandler for LikePostOrComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    receive_like_or_dislike(
-      1,
+    receive_undo_like_or_dislike(
       &self.common.actor,
-      &self.object,
+      &self.object.object,
       context,
       request_counter,
     )

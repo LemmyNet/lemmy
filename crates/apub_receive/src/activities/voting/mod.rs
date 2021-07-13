@@ -20,7 +20,12 @@ use lemmy_websocket::{LemmyContext, UserOperation};
 use std::ops::Deref;
 use url::Url;
 
-pub(in crate::activities::post_or_comment) async fn receive_like_or_dislike(
+pub mod dislike;
+pub mod like;
+pub mod undo_dislike;
+pub mod undo_like;
+
+pub(in crate::activities::voting) async fn receive_like_or_dislike(
   score: i16,
   actor: &Url,
   object: &Url,
@@ -94,7 +99,7 @@ async fn like_or_dislike_post(
   send_post_message(post.id, UserOperation::CreatePostLike, context).await
 }
 
-pub(in crate::activities::post_or_comment) async fn receive_undo_like_or_dislike(
+pub(in crate::activities::voting) async fn receive_undo_like_or_dislike(
   actor: &Url,
   object: &Url,
   context: &LemmyContext,

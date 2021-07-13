@@ -1,7 +1,7 @@
 use crate::activities::{
-  post_or_comment::voting::receive_like_or_dislike,
   verify_activity,
   verify_person_in_community,
+  voting::receive_like_or_dislike,
 };
 use activitystreams::activity::kind::DislikeType;
 use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
