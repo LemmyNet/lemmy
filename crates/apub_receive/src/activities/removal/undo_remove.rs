@@ -2,7 +2,7 @@ use crate::activities::{
   comment::send_websocket_message as send_comment_message,
   community::send_websocket_message as send_community_message,
   post::send_websocket_message as send_post_message,
-  removal::remove::RemovePostCommentOrCommunity,
+  removal::remove::RemovePostCommentCommunityOrMod,
   verify_activity,
   verify_mod_action,
   verify_person_in_community,
@@ -28,7 +28,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoRemovePostCommentOrCommunity {
   to: PublicUrl,
-  object: RemovePostCommentOrCommunity,
+  object: RemovePostCommentCommunityOrMod,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,

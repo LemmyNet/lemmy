@@ -1,8 +1,13 @@
-use crate::activities::{community::send_websocket_message, verify_mod_action};
-use activitystreams::{activity::kind::UpdateType, base::BaseExt};
+use crate::activities::{
+  community::send_websocket_message,
+  verify_activity,
+  verify_mod_action,
+  verify_person_in_community,
+};
+use activitystreams::activity::kind::UpdateType;
 use lemmy_api_common::blocking;
-use lemmy_apub::{check_is_apub_id_valid, objects::FromApubToForm, GroupExt};
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub::{objects::FromApubToForm, GroupExt};
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::community::{Community, CommunityForm};
 use lemmy_utils::LemmyError;
@@ -25,11 +30,15 @@ pub struct UpdateCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UpdateCommunity {
-  async fn verify(&self, context: &LemmyContext, _: &mut i32) -> Result<(), LemmyError> {
-    verify_domains_match(&self.common.actor, self.common.id_unchecked())?;
-    self.object.id(self.cc[0].as_str())?;
-    check_is_apub_id_valid(&self.common.actor, false)?;
-    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await
+  async fn verify(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_activity(self.common())?;
+    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
+    Ok(())
   }
 
   async fn receive(

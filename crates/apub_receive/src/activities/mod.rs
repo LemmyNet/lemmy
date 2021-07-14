@@ -4,6 +4,7 @@ use lemmy_apub::{
   check_community_or_site_ban,
   check_is_apub_id_valid,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  generate_moderators_url,
 };
 use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields};
 use lemmy_db_queries::ApubObject;
@@ -106,6 +107,15 @@ async fn verify_mod_action(
     if !is_mod_or_admin {
       return Err(anyhow!("Not a mod").into());
     }
+  }
+  Ok(())
+}
+
+/// For Add/Remove community moderator activities, check that the target field actually contains
+/// /c/community/moderators. Any different values are unsupported.
+fn verify_add_remove_moderator_target(target: &Url, community: Url) -> Result<(), LemmyError> {
+  if target != &generate_moderators_url(&community.into())?.into_inner() {
+    return Err(anyhow!("Unkown target url").into());
   }
   Ok(())
 }

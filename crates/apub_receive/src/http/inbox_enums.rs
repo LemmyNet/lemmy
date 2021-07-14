@@ -4,7 +4,6 @@ use crate::activities::{
     add_mod::AddMod,
     announce::AnnounceActivity,
     block_user::BlockUserFromCommunity,
-    remove_mod::RemoveMod,
     undo_block_user::UndoBlockUserFromCommunity,
     update::UpdateCommunity,
   },
@@ -17,7 +16,10 @@ use crate::activities::{
     undo_delete::UndoDeletePrivateMessage,
     update::UpdatePrivateMessage,
   },
-  removal::{remove::RemovePostCommentOrCommunity, undo_remove::UndoRemovePostCommentOrCommunity},
+  removal::{
+    remove::RemovePostCommentCommunityOrMod,
+    undo_remove::UndoRemovePostCommentOrCommunity,
+  },
   voting::{
     dislike::DislikePostOrComment,
     like::LikePostOrComment,
@@ -56,13 +58,12 @@ pub enum GroupInboxActivities {
   UndoDislikePostOrComment(UndoDislikePostOrComment),
   DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
   UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
-  RemovePostCommentOrCommunity(RemovePostCommentOrCommunity),
+  RemovePostCommentOrCommunity(RemovePostCommentCommunityOrMod),
   UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   UpdateCommunity(Box<UpdateCommunity>),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
-  RemoveMod(RemoveMod),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
@@ -81,13 +82,12 @@ pub enum SharedInboxActivities {
   UndoLikePostOrComment(UndoLikePostOrComment),
   DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
   UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
-  RemovePostCommentOrCommunity(RemovePostCommentOrCommunity),
+  RemovePostCommentOrCommunity(RemovePostCommentCommunityOrMod),
   UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   UpdateCommunity(Box<UpdateCommunity>),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
-  RemoveMod(RemoveMod),
   // received by person
   AcceptFollowCommunity(AcceptFollowCommunity),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably

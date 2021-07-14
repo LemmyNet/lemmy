@@ -1,14 +1,18 @@
 use crate::{
   activities::{
     comment::{create::CreateComment, update::UpdateComment},
-    community::{block_user::BlockUserFromCommunity, undo_block_user::UndoBlockUserFromCommunity},
+    community::{
+      add_mod::AddMod,
+      block_user::BlockUserFromCommunity,
+      undo_block_user::UndoBlockUserFromCommunity,
+    },
     deletion::{
       delete::DeletePostCommentOrCommunity,
       undo_delete::UndoDeletePostCommentOrCommunity,
     },
     post::{create::CreatePost, update::UpdatePost},
     removal::{
-      remove::RemovePostCommentOrCommunity,
+      remove::RemovePostCommentCommunityOrMod,
       undo_remove::UndoRemovePostCommentOrCommunity,
     },
     verify_activity,
@@ -43,10 +47,11 @@ pub enum AnnouncableActivities {
   UndoDislikePostOrComment(UndoDislikePostOrComment),
   DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
   UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
-  RemovePostCommentOrCommunity(RemovePostCommentOrCommunity),
+  RemovePostCommentCommunityOrMod(RemovePostCommentCommunityOrMod),
   UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
+  AddMod(AddMod),
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
