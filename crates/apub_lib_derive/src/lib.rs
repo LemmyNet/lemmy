@@ -2,6 +2,53 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput};
 
+/// Generates implementation ActivityHandler for an enum, which looks like the following (handling
+/// all enum variants).
+///
+/// Based on this code:
+/// ```
+/// #[derive(serde::Deserialize, serde::Serialize, ActivityHandler)]
+/// #[serde(untagged)]
+/// pub enum PersonInboxActivities {
+///  CreateNote(CreateNote),
+///  UpdateNote(UpdateNote),
+/// ```
+/// It will generate this:
+/// ```
+/// impl ActivityHandler for PersonInboxActivities {
+///
+///     async fn verify(
+///     &self,
+///     context: &LemmyContext,
+///     request_counter: &mut i32,
+///   ) -> Result<(), LemmyError> {
+///     match self {
+///       PersonInboxActivities::CreateNote(a) => a.verify(context, request_counter).await,
+///       PersonInboxActivities::UpdateNote(a) => a.verify(context, request_counter).await,
+///     }
+///   }
+///
+///   async fn receive(
+///   &self,
+///   context: &LemmyContext,
+///   request_counter: &mut i32,
+/// ) -> Result<(), LemmyError> {
+///     match self {
+///       PersonInboxActivities::CreateNote(a) => a.receive(context, request_counter).await,
+///       PersonInboxActivities::UpdateNote(a) => a.receive(context, request_counter).await,
+///     }
+///   }
+/// fn common(&self) -> &ActivityCommonFields  {
+///     match self {
+///       PersonInboxActivities::CreateNote(a) => a.common(),
+///       PersonInboxActivities::UpdateNote(a) => a.common(),
+///     }
+///   }
+///
+/// ```
+///
+/// TODO: consider replacing this macro with https://crates.io/crates/typetag crate, though it
+///       doesnt support untagged enums which we need for apub.
 #[proc_macro_derive(ActivityHandler)]
 pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   // Parse the input tokens into a syntax tree.
