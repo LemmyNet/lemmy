@@ -6,7 +6,7 @@ use syn::{parse_macro_input, Data, DeriveInput};
 /// all enum variants).
 ///
 /// Based on this code:
-/// ```
+/// ```ignore
 /// #[derive(serde::Deserialize, serde::Serialize, ActivityHandler)]
 /// #[serde(untagged)]
 /// pub enum PersonInboxActivities {
@@ -14,7 +14,7 @@ use syn::{parse_macro_input, Data, DeriveInput};
 ///  UpdateNote(UpdateNote),
 /// ```
 /// It will generate this:
-/// ```
+/// ```ignore
 /// impl ActivityHandler for PersonInboxActivities {
 ///
 ///     async fn verify(
