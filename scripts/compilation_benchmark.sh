@@ -8,8 +8,8 @@ for ((i=0; i < times; i++)) ; do
     echo "cargo clean"
     # to benchmark incremental compilation time, do a full build with the same compiler version first,
     # and use the following clean command:
-    #cargo clean -p lemmy_utils
-    cargo clean
+    cargo clean -p lemmy_utils
+    #cargo clean
     echo "cargo build"
     start=$(date +%s.%N)
     RUSTC_WRAPPER='' cargo build -q
