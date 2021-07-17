@@ -1,4 +1,5 @@
 use crate::{
+  activities::community::announce::AnnounceActivity,
   fetcher::{
     fetch::fetch_remote_object,
     is_deleted,
@@ -15,6 +16,7 @@ use activitystreams::{
 use anyhow::Context;
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::ActivityHandler;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
 use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
@@ -84,7 +86,7 @@ async fn fetch_remote_community(
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {
     let outbox = group.inner.outbox()?.context(location_info!())?;
-    fetch_community_outbox(context, outbox, &community, request_counter).await?
+    fetch_community_outbox(context, outbox, request_counter).await?
   }
 
   Ok(community)
@@ -143,7 +145,6 @@ async fn update_community_mods(
 async fn fetch_community_outbox(
   context: &LemmyContext,
   outbox: &Url,
-  community: &Community,
   recursion_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let outbox =
@@ -154,9 +155,12 @@ async fn fetch_community_outbox(
     outbox_activities = outbox_activities[0..20].to_vec();
   }
 
-  for activity in outbox_activities {
-    todo!("{:?} {:?} {:?}", activity, community, recursion_counter);
-    //receive_announce(context, activity, community, recursion_counter).await?;
+  for announce in outbox_activities {
+    // TODO: instead of converting like this, we should create a struct CommunityOutbox with
+    //       AnnounceActivity as inner type, but that gives me stackoverflow
+    let ser = serde_json::to_string(&announce)?;
+    let announce: AnnounceActivity = serde_json::from_str(&ser)?;
+    announce.receive(context, recursion_counter).await?;
   }
 
   Ok(())
