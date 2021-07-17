@@ -5,6 +5,7 @@ pub mod activities;
 pub mod activity_queue;
 pub mod extensions;
 pub mod fetcher;
+pub mod http;
 pub mod objects;
 
 use crate::{
