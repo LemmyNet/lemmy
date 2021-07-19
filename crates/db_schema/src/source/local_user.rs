@@ -19,6 +19,7 @@ pub struct LocalUser {
   pub show_bot_accounts: bool,
   pub show_scores: bool,
   pub show_read_posts: bool,
+  pub show_new_post_notifs: bool,
 }
 
 // TODO redo these, check table defaults
@@ -38,6 +39,7 @@ pub struct LocalUserForm {
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
+  pub show_new_post_notifs: Option<bool>,
 }
 
 /// A local user view that removes password encrypted
@@ -58,4 +60,5 @@ pub struct LocalUserSettings {
   pub show_bot_accounts: bool,
   pub show_scores: bool,
   pub show_read_posts: bool,
+  pub show_new_post_notifs: bool,
 }

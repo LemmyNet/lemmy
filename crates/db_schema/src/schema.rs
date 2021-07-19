@@ -156,6 +156,7 @@ table! {
         show_bot_accounts -> Bool,
         show_scores -> Bool,
         show_read_posts -> Bool,
+        show_new_post_notifs -> Bool,
     }
 }
 

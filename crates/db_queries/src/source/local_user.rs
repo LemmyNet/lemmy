@@ -27,6 +27,7 @@ mod safe_settings_type {
     show_bot_accounts,
     show_scores,
     show_read_posts,
+    show_new_post_notifs,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -49,6 +50,7 @@ mod safe_settings_type {
         show_bot_accounts,
         show_scores,
         show_read_posts,
+        show_new_post_notifs,
       )
     }
   }
