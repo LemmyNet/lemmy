@@ -18,6 +18,8 @@ impl Default for Settings {
       pictrs_url: Some("http://pictrs:8080".into()),
       iframely_url: Some("http://iframely".into()),
       additional_slurs: None,
+      community_name_max_length: Some(20),
+      user_name_max_length: Some(20),
     }
   }
 }

@@ -39,6 +39,10 @@
   pictrs_url: "http://pictrs:8080"
   # address where iframely is available
   iframely_url: "http://iframely"
+  # maximum length of local community names (between 3 and 255)
+  community_name_max_length: 20
+  # maximum length of local user names (between 3 and 255)
+  user_name_max_length: 20
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval

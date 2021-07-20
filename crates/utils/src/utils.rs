@@ -22,8 +22,8 @@ lazy_static! {
   // TODO keep this old one, it didn't work with port well tho
   // static ref MENTIONS_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)").expect("compile regex");
   static ref MENTIONS_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex");
-  static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").expect("compile regex");
-  static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").expect("compile regex");
+  static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex");
+  static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,}$").expect("compile regex");
   static ref VALID_POST_TITLE_REGEX: Regex = Regex::new(r".*\S.*").expect("compile regex");
   static ref VALID_MATRIX_ID_REGEX: Regex = Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex");
   // taken from https://en.wikipedia.org/wiki/UTM_parameters
@@ -117,7 +117,10 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
 }
 
 pub fn is_valid_username(name: &str) -> bool {
-  VALID_USERNAME_REGEX.is_match(name)
+  let max_length = Settings::get()
+    .user_name_max_length
+    .unwrap_or_else(|| Settings::default().user_name_max_length.unwrap());
+  name.chars().count() <= max_length && VALID_USERNAME_REGEX.is_match(name)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
@@ -133,7 +136,10 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
 }
 
 pub fn is_valid_community_name(name: &str) -> bool {
-  VALID_COMMUNITY_NAME_REGEX.is_match(name)
+  let max_length = Settings::get()
+    .community_name_max_length
+    .unwrap_or_else(|| Settings::default().community_name_max_length.unwrap());
+  name.chars().count() <= max_length && VALID_COMMUNITY_NAME_REGEX.is_match(name)
 }
 
 pub fn is_valid_post_title(title: &str) -> bool {
