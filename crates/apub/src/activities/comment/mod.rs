@@ -5,7 +5,8 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::{blocking, send_local_notifs, WebFingerResponse};
+use lemmy_api_common::{blocking, send_local_notifs};
+use lemmy_apub_lib::webfinger::WebfingerResponse;
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post},
@@ -128,7 +129,7 @@ async fn fetch_webfinger_url(mention: &MentionData, client: &Client) -> Result<U
 
   let response = retry(|| client.get(&fetch_url).send()).await?;
 
-  let res: WebFingerResponse = response
+  let res: WebfingerResponse = response
     .json()
     .await
     .map_err(|e| RecvError(e.to_string()))?;

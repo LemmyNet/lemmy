@@ -50,6 +50,20 @@ pub struct SearchResponse {
   pub users: Vec<PersonViewSafe>,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct ResolveObject {
+  pub q: String,
+  pub auth: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+pub enum ResolveObjectResponse {
+  Comment(CommentView),
+  Post(PostView),
+  Community(CommunityView),
+  Person(PersonViewSafe),
+}
+
 #[derive(Deserialize)]
 pub struct GetModlog {
   pub mod_person_id: Option<PersonId>,

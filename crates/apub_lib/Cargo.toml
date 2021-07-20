@@ -14,3 +14,6 @@ serde = { version = "1.0.127", features = ["derive"] }
 async-trait = "0.1.51"
 url = { version = "2.2.2", features = ["serde"] }
 serde_json = { version = "1.0.66", features = ["preserve_order"] }
+anyhow = "1.0.41"
+reqwest = { version = "0.11.4", features = ["json"] }
+log = "0.4.14"

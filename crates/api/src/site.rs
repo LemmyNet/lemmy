@@ -50,7 +50,6 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::debug;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetModlog {
@@ -142,11 +141,6 @@ impl Perform for Search {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = self;
-
-    match search_by_apub_id(&data.q, context).await {
-      Ok(r) => return Ok(r),
-      Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
-    }
 
     let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
 
@@ -369,6 +363,20 @@ impl Perform for Search {
       communities,
       users,
     })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ResolveObject {
+  type Response = ResolveObjectResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<ResolveObjectResponse, LemmyError> {
+    let local_user_view = get_local_user_view_from_jwt_opt(&self.auth, context.pool()).await?;
+    search_by_apub_id(&self.q, local_user_view, context).await
   }
 }
 

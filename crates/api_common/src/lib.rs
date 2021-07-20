@@ -46,25 +46,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use log::error;
-use serde::{Deserialize, Serialize};
 use url::Url;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebFingerLink {
-  pub rel: Option<String>,
-  #[serde(rename(serialize = "type", deserialize = "type"))]
-  pub type_: Option<String>,
-  pub href: Option<Url>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub template: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebFingerResponse {
-  pub subject: String,
-  pub aliases: Vec<Url>,
-  pub links: Vec<WebFingerLink>,
-}
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where
