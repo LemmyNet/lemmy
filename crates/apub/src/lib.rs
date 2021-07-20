@@ -349,7 +349,7 @@ pub fn build_actor_id_from_shortname(
   let domain = if split.len() == 1 {
     Settings::get().get_protocol_and_hostname()
   } else {
-    format!("https://{}", split[1])
+    format!("{}://{}", Settings::get().get_protocol_string(), split[1])
   };
 
   generate_apub_endpoint_for_domain(endpoint_type, name, &domain)
