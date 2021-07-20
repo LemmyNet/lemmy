@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, comment::*, get_local_user_view_from_jwt_opt};
+use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
 use lemmy_db_queries::{from_opt_str_to_opt_enum, ListingType, SortType};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
@@ -27,7 +28,11 @@ impl PerformCrud for GetComments {
     let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.type_);
 
     let community_id = data.community_id;
-    let community_name = data.community_name.to_owned();
+    let community_actor_id = data
+      .community_name
+      .as_ref()
+      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t).ok())
+      .unwrap_or(None);
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
@@ -37,7 +42,7 @@ impl PerformCrud for GetComments {
         .sort(sort)
         .saved_only(saved_only)
         .community_id(community_id)
-        .community_name(community_name)
+        .community_actor_id(community_actor_id)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
         .page(page)

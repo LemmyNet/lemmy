@@ -82,6 +82,7 @@ pub struct LoginResponse {
 #[derive(Deserialize)]
 pub struct GetPersonDetails {
   pub person_id: Option<PersonId>, // One of these two are required
+  /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
   pub sort: Option<String>,
   pub page: Option<i64>,
