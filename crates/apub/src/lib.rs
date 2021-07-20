@@ -279,10 +279,11 @@ pub enum EndpointType {
   PrivateMessage,
 }
 
-/// Generates the ActivityPub ID for a given object type and ID.
-pub fn generate_apub_endpoint(
+/// Generates an apub endpoint for a given domain, IE xyz.tld
+pub fn generate_apub_endpoint_for_domain(
   endpoint_type: EndpointType,
   name: &str,
+  domain: &str,
 ) -> Result<DbUrl, ParseError> {
   let point = match endpoint_type {
     EndpointType::Community => "c",
@@ -292,14 +293,18 @@ pub fn generate_apub_endpoint(
     EndpointType::PrivateMessage => "private_message",
   };
 
-  Ok(
-    Url::parse(&format!(
-      "{}/{}/{}",
-      Settings::get().get_protocol_and_hostname(),
-      point,
-      name
-    ))?
-    .into(),
+  Ok(Url::parse(&format!("{}/{}/{}", domain, point, name))?.into())
+}
+
+/// Generates the ActivityPub ID for a given object type and ID.
+pub fn generate_apub_endpoint(
+  endpoint_type: EndpointType,
+  name: &str,
+) -> Result<DbUrl, ParseError> {
+  generate_apub_endpoint_for_domain(
+    endpoint_type,
+    name,
+    &Settings::get().get_protocol_and_hostname(),
   )
 }
 
@@ -328,6 +333,26 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
+}
+
+/// Takes in a shortname of the type dessalines@xyz.tld or dessalines (assumed to be local), and outputs the actor id.
+/// Used in the API for communities and users.
+pub fn build_actor_id_from_shortname(
+  endpoint_type: EndpointType,
+  short_name: &str,
+) -> Result<DbUrl, ParseError> {
+  let split = short_name.split('@').collect::<Vec<&str>>();
+
+  let name = split[0];
+
+  // If there's no @, its local
+  let domain = if split.len() == 1 {
+    Settings::get().get_protocol_and_hostname()
+  } else {
+    format!("https://{}", split[1])
+  };
+
+  generate_apub_endpoint_for_domain(endpoint_type, name, &domain)
 }
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not

@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, mark_post_as_read, post::*};
+use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
 use lemmy_db_queries::{from_opt_str_to_opt_enum, ListingType, SortType};
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
@@ -111,7 +112,11 @@ impl PerformCrud for GetPosts {
     let page = data.page;
     let limit = data.limit;
     let community_id = data.community_id;
-    let community_name = data.community_name.to_owned();
+    let community_actor_id = data
+      .community_name
+      .as_ref()
+      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t).ok())
+      .unwrap_or(None);
     let saved_only = data.saved_only;
 
     let posts = blocking(context.pool(), move |conn| {
@@ -122,7 +127,7 @@ impl PerformCrud for GetPosts {
         .show_bot_accounts(show_bot_accounts)
         .show_read_posts(show_read_posts)
         .community_id(community_id)
-        .community_name(community_name)
+        .community_actor_id(community_actor_id)
         .saved_only(saved_only)
         .my_person_id(person_id)
         .page(page)

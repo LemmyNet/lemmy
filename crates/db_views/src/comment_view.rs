@@ -32,6 +32,7 @@ use lemmy_db_schema::{
   },
   CommentId,
   CommunityId,
+  DbUrl,
   PersonId,
   PostId,
 };
@@ -175,7 +176,7 @@ pub struct CommentQueryBuilder<'a> {
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   community_id: Option<CommunityId>,
-  community_name: Option<String>,
+  community_actor_id: Option<DbUrl>,
   post_id: Option<PostId>,
   creator_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
@@ -195,7 +196,7 @@ impl<'a> CommentQueryBuilder<'a> {
       listing_type: None,
       sort: None,
       community_id: None,
-      community_name: None,
+      community_actor_id: None,
       post_id: None,
       creator_id: None,
       recipient_id: None,
@@ -244,8 +245,8 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn community_name<T: MaybeOptional<String>>(mut self, community_name: T) -> Self {
-    self.community_name = community_name.get_optional();
+  pub fn community_actor_id<T: MaybeOptional<DbUrl>>(mut self, community_actor_id: T) -> Self {
+    self.community_actor_id = community_actor_id.get_optional();
     self
   }
 
@@ -362,10 +363,8 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if let Some(community_name) = self.community_name {
-      query = query
-        .filter(community::name.eq(community_name))
-        .filter(comment::local.eq(true));
+    if let Some(community_actor_id) = self.community_actor_id {
+      query = query.filter(community::actor_id.eq(community_actor_id))
     }
 
     if let Some(post_id) = self.post_id {

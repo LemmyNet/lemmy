@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   CommunityId,
+  DbUrl,
   PersonId,
   PostId,
 };
@@ -159,7 +160,7 @@ pub struct PostQueryBuilder<'a> {
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
   community_id: Option<CommunityId>,
-  community_name: Option<String>,
+  community_actor_id: Option<DbUrl>,
   my_person_id: Option<PersonId>,
   search_term: Option<String>,
   url_search: Option<String>,
@@ -179,7 +180,7 @@ impl<'a> PostQueryBuilder<'a> {
       sort: None,
       creator_id: None,
       community_id: None,
-      community_name: None,
+      community_actor_id: None,
       my_person_id: None,
       search_term: None,
       url_search: None,
@@ -212,8 +213,8 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn community_name<T: MaybeOptional<String>>(mut self, community_name: T) -> Self {
-    self.community_name = community_name.get_optional();
+  pub fn community_actor_id<T: MaybeOptional<DbUrl>>(mut self, community_actor_id: T) -> Self {
+    self.community_actor_id = community_actor_id.get_optional();
     self
   }
 
@@ -334,10 +335,9 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(post_aggregates::stickied.desc());
     }
 
-    if let Some(community_name) = self.community_name {
+    if let Some(community_actor_id) = self.community_actor_id {
       query = query
-        .filter(community::name.eq(community_name))
-        .filter(community::local.eq(true))
+        .filter(community::actor_id.eq(community_actor_id))
         .then_order_by(post_aggregates::stickied.desc());
     }
 
