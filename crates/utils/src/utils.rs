@@ -119,10 +119,6 @@ pub fn is_valid_actor_name(name: &str) -> bool {
   let max_length = Settings::get()
     .actor_name_max_length
     .unwrap_or_else(|| Settings::default().actor_name_max_length.unwrap());
-  dbg!(&max_length);
-  dbg!(&name);
-  dbg!(name.chars().count() <= max_length);
-  dbg!(VALID_ACTOR_NAME_REGEX.is_match(name));
   name.chars().count() <= max_length && VALID_ACTOR_NAME_REGEX.is_match(name)
 }
 
