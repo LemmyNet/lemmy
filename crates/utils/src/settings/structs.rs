@@ -21,8 +21,6 @@ pub struct Settings {
   pub(crate) actor_name_max_length: Option<usize>,
 }
 
-impl Settings {}
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct CaptchaConfig {
   pub enabled: bool,
