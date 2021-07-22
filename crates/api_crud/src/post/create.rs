@@ -21,12 +21,15 @@ use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
 use lemmy_db_schema::source::post::*;
 use lemmy_utils::{
   request::fetch_site_data,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
   ApiError,
   ConnectionId,
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
+use webmention::Webmention;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePost {
@@ -125,6 +128,7 @@ impl PerformCrud for CreatePost {
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
+    let updated_post_url = updated_post.url.clone();
     let object = PostOrComment::Post(Box::new(updated_post));
     Vote::send(
       &object,
@@ -134,6 +138,12 @@ impl PerformCrud for CreatePost {
       context,
     )
     .await?;
+
+    if let Some(url) = updated_post_url {
+      let hostname = Url::parse(&Settings::get().get_protocol_and_hostname())?;
+      let mut webmention: Webmention = (hostname, url.clone().into_inner()).into();
+      webmention.send().await?;
+    }
 
     send_post_ws_message(
       inserted_post.id,
