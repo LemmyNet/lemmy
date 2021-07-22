@@ -132,6 +132,12 @@ impl Settings {
     Ok(Self::read_config_file()?)
   }
 
+  pub(crate) fn actor_name_max_length(&self) -> usize {
+    self
+      .actor_name_max_length
+      .unwrap_or_else(|| Settings::default().actor_name_max_length.unwrap())
+  }
+
   pub fn database(&self) -> DatabaseConfig {
     self.database.to_owned().unwrap_or_default()
   }

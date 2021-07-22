@@ -21,13 +21,7 @@ pub struct Settings {
   pub(crate) actor_name_max_length: Option<usize>,
 }
 
-impl Settings {
-  pub(crate) fn actor_name_max_length(&self) -> usize {
-    self
-      .actor_name_max_length
-      .unwrap_or_else(|| Settings::default().actor_name_max_length.unwrap())
-  }
-}
+impl Settings {}
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct CaptchaConfig {
