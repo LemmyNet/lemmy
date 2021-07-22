@@ -241,6 +241,7 @@ impl Perform for SaveUserSettings {
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
       show_read_posts: data.show_read_posts,
+      show_new_post_notifs: data.show_new_post_notifs,
       send_notifications_to_email: data.send_notifications_to_email,
     };
 
