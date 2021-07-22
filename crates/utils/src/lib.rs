@@ -89,12 +89,12 @@ impl actix_web::error::ResponseError for LemmyError {
 
 lazy_static! {
   pub static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
-    "^group:([a-z0-9_]{{3, 20}})@{}$",
+    "^group:([a-z0-9_]{{3,}})@{}$",
     Settings::get().hostname()
   ))
   .expect("compile webfinger regex");
   pub static ref WEBFINGER_USERNAME_REGEX: Regex = Regex::new(&format!(
-    "^acct:([a-z0-9_]{{3, 20}})@{}$",
+    "^acct:([a-z0-9_]{{3,}})@{}$",
     Settings::get().hostname()
   ))
   .expect("compile webfinger regex");
