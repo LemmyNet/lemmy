@@ -116,21 +116,16 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
 }
 
 pub fn is_valid_actor_name(name: &str) -> bool {
-  let max_length = Settings::get()
-    .actor_name_max_length
-    .unwrap_or_else(|| Settings::default().actor_name_max_length.unwrap());
-  name.chars().count() <= max_length && VALID_ACTOR_NAME_REGEX.is_match(name)
+  name.chars().count() <= Settings::get().actor_name_max_length()
+    && VALID_ACTOR_NAME_REGEX.is_match(name)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_display_name(name: &str) -> bool {
-  let max_length = Settings::get()
-    .actor_name_max_length
-    .unwrap_or_else(|| Settings::default().actor_name_max_length.unwrap());
   !name.starts_with('@')
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
-    && name.chars().count() <= max_length
+    && name.chars().count() <= Settings::get().actor_name_max_length()
 }
 
 pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
