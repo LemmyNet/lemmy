@@ -52,8 +52,8 @@ impl PerformCrud for EditPost {
 
     // Fetch Iframely and Pictrs cached image
     let data_url = data.url.as_ref();
-    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      fetch_iframely_and_pictrs_data(context.client(), data_url).await;
+    let (iframely_response, pictrs_thumbnail) =
+      fetch_iframely_and_pictrs_data(context.client(), data_url).await?;
 
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
@@ -63,9 +63,9 @@ impl PerformCrud for EditPost {
       body: data.body.to_owned(),
       nsfw: data.nsfw,
       updated: Some(naive_now()),
-      embed_title: iframely_title,
-      embed_description: iframely_description,
-      embed_html: iframely_html,
+      embed_title: iframely_response.title,
+      embed_description: iframely_response.description,
+      embed_html: iframely_response.html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ..PostForm::default()
     };

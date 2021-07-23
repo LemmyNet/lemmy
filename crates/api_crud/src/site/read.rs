@@ -28,7 +28,7 @@ impl PerformCrud for GetSite {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
-        if let Some(setup) = Settings::get().setup().as_ref() {
+        if let Some(setup) = Settings::get().setup.as_ref() {
           let register = Register {
             username: setup.admin_username.to_owned(),
             email: setup.admin_email.to_owned(),

@@ -185,12 +185,12 @@ impl FromApubToForm<PageExt> for PostForm {
       .flatten()
       .map(|u| u.to_owned());
 
-    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      if let Some(url) = &url {
-        fetch_iframely_and_pictrs_data(context.client(), Some(url)).await
-      } else {
-        (None, None, None, thumbnail_url)
-      };
+    let (embed_title, embed_description, embed_html, pictrs_thumbnail) = if let Some(url) = &url {
+      let (embed, thumb) = fetch_iframely_and_pictrs_data(context.client(), Some(url)).await?;
+      (embed.title, embed.description, embed.html, thumb)
+    } else {
+      (None, None, None, thumbnail_url)
+    };
 
     let name = page
       .inner
@@ -232,9 +232,9 @@ impl FromApubToForm<PageExt> for PostForm {
       deleted: None,
       nsfw: ext.sensitive,
       stickied: ext.stickied,
-      embed_title: iframely_title,
-      embed_description: iframely_description,
-      embed_html: iframely_html,
+      embed_title,
+      embed_description,
+      embed_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: Some(ap_id),
       local: Some(false),

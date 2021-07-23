@@ -109,7 +109,7 @@ impl FromApub for DbPerson {
   ) -> Result<DbPerson, LemmyError> {
     let person_id = person.id_unchecked().context(location_info!())?.to_owned();
     let domain = person_id.domain().context(location_info!())?;
-    if domain == Settings::get().hostname() {
+    if domain == Settings::get().hostname {
       let person = blocking(context.pool(), move |conn| {
         DbPerson::read_from_apub_id(conn, &person_id.into())
       })

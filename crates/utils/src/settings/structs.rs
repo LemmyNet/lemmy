@@ -1,68 +1,65 @@
-use merge::Merge;
 use serde::Deserialize;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 
-#[derive(Debug, Deserialize, Clone, Merge)]
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[serde(default)]
 pub struct Settings {
-  pub(crate) database: Option<DatabaseConfig>,
-  pub(crate) rate_limit: Option<RateLimitConfig>,
-  pub(crate) federation: Option<FederationConfig>,
-  pub(crate) hostname: Option<String>,
-  pub(crate) bind: Option<IpAddr>,
-  pub(crate) port: Option<u16>,
-  pub(crate) tls_enabled: Option<bool>,
-  pub(crate) jwt_secret: Option<String>,
-  pub(crate) pictrs_url: Option<String>,
-  pub(crate) iframely_url: Option<String>,
-  pub(crate) captcha: Option<CaptchaConfig>,
-  pub(crate) email: Option<EmailConfig>,
-  pub(crate) setup: Option<SetupConfig>,
-  pub(crate) additional_slurs: Option<String>,
-  pub(crate) actor_name_max_length: Option<usize>,
+  #[serde(default)]
+  pub database: DatabaseConfig,
+  #[default(Some(RateLimitConfig::default()))]
+  pub rate_limit: Option<RateLimitConfig>,
+  #[default(FederationConfig::default())]
+  pub federation: FederationConfig,
+  #[default(CaptchaConfig::default())]
+  pub captcha: CaptchaConfig,
+  #[default(None)]
+  pub email: Option<EmailConfig>,
+  #[default(None)]
+  pub setup: Option<SetupConfig>,
+  #[default("unset")]
+  pub hostname: String,
+  #[default(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)))]
+  pub bind: IpAddr,
+  #[default(8536)]
+  pub port: u16,
+  #[default(true)]
+  pub tls_enabled: bool,
+  #[default("changeme")]
+  pub jwt_secret: String,
+  #[default(None)]
+  pub pictrs_url: Option<String>,
+  #[default(None)]
+  pub iframely_url: Option<String>,
+  #[default(None)]
+  pub additional_slurs: Option<String>,
+  #[default(20)]
+  pub actor_name_max_length: usize,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[serde(default)]
 pub struct CaptchaConfig {
+  #[default(false)]
   pub enabled: bool,
+  #[default("medium")]
   pub difficulty: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[serde(default)]
 pub struct DatabaseConfig {
-  pub(super) user: Option<String>,
+  #[default("lemmy")]
+  pub(super) user: String,
+  #[default("password")]
   pub password: String,
+  #[default("localhost")]
   pub host: String,
-  pub(super) port: Option<i32>,
-  pub(super) database: Option<String>,
-  pub(super) pool_size: Option<u32>,
-}
-
-impl DatabaseConfig {
-  pub fn user(&self) -> String {
-    self
-      .user
-      .to_owned()
-      .unwrap_or_else(|| DatabaseConfig::default().user.expect("missing user"))
-  }
-  pub fn port(&self) -> i32 {
-    self
-      .port
-      .unwrap_or_else(|| DatabaseConfig::default().port.expect("missing port"))
-  }
-  pub fn database(&self) -> String {
-    self.database.to_owned().unwrap_or_else(|| {
-      DatabaseConfig::default()
-        .database
-        .expect("missing database")
-    })
-  }
-  pub fn pool_size(&self) -> u32 {
-    self.pool_size.unwrap_or_else(|| {
-      DatabaseConfig::default()
-        .pool_size
-        .expect("missing pool_size")
-    })
-  }
+  #[default(5432)]
+  pub(super) port: i32,
+  #[default("lemmy")]
+  pub(super) database: String,
+  #[default(5)]
+  pub pool_size: u32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -74,23 +71,37 @@ pub struct EmailConfig {
   pub use_tls: bool,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[serde(default)]
 pub struct FederationConfig {
+  #[default(false)]
   pub enabled: bool,
+  #[default(None)]
   pub allowed_instances: Option<Vec<String>>,
+  #[default(None)]
   pub blocked_instances: Option<Vec<String>>,
-  pub strict_allowlist: Option<bool>,
+  #[default(true)]
+  pub strict_allowlist: bool,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[serde(default)]
 pub struct RateLimitConfig {
+  #[default(180)]
   pub message: i32,
+  #[default(60)]
   pub message_per_second: i32,
+  #[default(6)]
   pub post: i32,
+  #[default(600)]
   pub post_per_second: i32,
+  #[default(3)]
   pub register: i32,
+  #[default(3600)]
   pub register_per_second: i32,
+  #[default(6)]
   pub image: i32,
+  #[default(3600)]
   pub image_per_second: i32,
 }
 

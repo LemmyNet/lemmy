@@ -2,6 +2,8 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate strum_macros;
+#[macro_use]
+extern crate smart_default;
 
 pub mod apub;
 pub mod claims;
@@ -90,12 +92,12 @@ impl actix_web::error::ResponseError for LemmyError {
 lazy_static! {
   pub static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
     "^group:([a-z0-9_]{{3,}})@{}$",
-    Settings::get().hostname()
+    Settings::get().hostname
   ))
   .expect("compile webfinger regex");
   pub static ref WEBFINGER_USERNAME_REGEX: Regex = Regex::new(&format!(
     "^acct:([a-z0-9_]{{3,}})@{}$",
-    Settings::get().hostname()
+    Settings::get().hostname
   ))
   .expect("compile webfinger regex");
 }

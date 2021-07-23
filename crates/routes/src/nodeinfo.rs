@@ -31,7 +31,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
-  let protocols = if Settings::get().federation().enabled {
+  let protocols = if Settings::get().federation.enabled {
     vec!["activitypub".to_string()]
   } else {
     vec![]

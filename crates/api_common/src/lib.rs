@@ -198,7 +198,7 @@ pub fn send_email_to_user(
     let subject = &format!(
       "{} - {} {}",
       subject_text,
-      Settings::get().hostname(),
+      Settings::get().hostname,
       local_user_view.person.name,
     );
     let html = &format!(
@@ -386,14 +386,14 @@ pub async fn collect_moderated_communities(
 pub async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
-  if Settings::get().federation().enabled {
+  if Settings::get().federation.enabled {
     let distinct_communities = blocking(pool, move |conn| {
       Community::distinct_federated_communities(conn)
     })
     .await??;
 
-    let allowed = Settings::get().get_allowed_instances();
-    let blocked = Settings::get().get_blocked_instances();
+    let allowed = Settings::get().federation.allowed_instances;
+    let blocked = Settings::get().federation.blocked_instances;
 
     let mut linked = distinct_communities
       .iter()
@@ -405,7 +405,7 @@ pub async fn build_federated_instances(
     }
 
     if let Some(blocked) = blocked.as_ref() {
-      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname()));
+      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname));
     }
 
     // Sort and remove dupes
