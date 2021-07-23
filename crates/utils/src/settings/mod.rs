@@ -132,29 +132,52 @@ impl Settings {
     Ok(Self::read_config_file()?)
   }
 
-  pub fn database(&self) -> DatabaseConfig {
-    self.database.to_owned().unwrap_or_default()
-  }
   pub fn hostname(&self) -> String {
-    self.hostname.to_owned().unwrap_or_default()
+    self.hostname.to_owned().expect("No hostname given")
   }
   pub fn bind(&self) -> IpAddr {
     self.bind.expect("return bind address")
   }
   pub fn port(&self) -> u16 {
-    self.port.unwrap_or_default()
+    self
+      .port
+      .unwrap_or_else(|| Settings::default().port.expect("missing port"))
   }
   pub fn tls_enabled(&self) -> bool {
-    self.tls_enabled.unwrap_or_default()
+    self.tls_enabled.unwrap_or_else(|| {
+      Settings::default()
+        .tls_enabled
+        .expect("missing tls_enabled")
+    })
   }
   pub fn jwt_secret(&self) -> String {
-    self.jwt_secret.to_owned().unwrap_or_default()
+    self
+      .jwt_secret
+      .to_owned()
+      .unwrap_or_else(|| Settings::default().jwt_secret.expect("missing jwt_secret"))
   }
   pub fn pictrs_url(&self) -> String {
-    self.pictrs_url.to_owned().unwrap_or_default()
+    self
+      .pictrs_url
+      .to_owned()
+      .unwrap_or_else(|| Settings::default().pictrs_url.expect("missing pictrs_url"))
   }
   pub fn iframely_url(&self) -> String {
-    self.iframely_url.to_owned().unwrap_or_default()
+    self.iframely_url.to_owned().unwrap_or_else(|| {
+      Settings::default()
+        .iframely_url
+        .expect("missing iframely_url")
+    })
+  }
+  pub fn actor_name_max_length(&self) -> usize {
+    self.actor_name_max_length.unwrap_or_else(|| {
+      Settings::default()
+        .actor_name_max_length
+        .expect("missing actor name length")
+    })
+  }
+  pub fn database(&self) -> DatabaseConfig {
+    self.database.to_owned().unwrap_or_default()
   }
   pub fn rate_limit(&self) -> RateLimitConfig {
     self.rate_limit.to_owned().unwrap_or_default()

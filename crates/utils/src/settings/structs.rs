@@ -18,6 +18,7 @@ pub struct Settings {
   pub(crate) email: Option<EmailConfig>,
   pub(crate) setup: Option<SetupConfig>,
   pub(crate) additional_slurs: Option<String>,
+  pub(crate) actor_name_max_length: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

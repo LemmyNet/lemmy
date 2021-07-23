@@ -22,8 +22,7 @@ lazy_static! {
   // TODO keep this old one, it didn't work with port well tho
   // static ref MENTIONS_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)").expect("compile regex");
   static ref MENTIONS_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex");
-  static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").expect("compile regex");
-  static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").expect("compile regex");
+  static ref VALID_ACTOR_NAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex");
   static ref VALID_POST_TITLE_REGEX: Regex = Regex::new(r".*\S.*").expect("compile regex");
   static ref VALID_MATRIX_ID_REGEX: Regex = Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex");
   // taken from https://en.wikipedia.org/wiki/UTM_parameters
@@ -116,8 +115,9 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
-pub fn is_valid_username(name: &str) -> bool {
-  VALID_USERNAME_REGEX.is_match(name)
+pub fn is_valid_actor_name(name: &str) -> bool {
+  name.chars().count() <= Settings::get().actor_name_max_length()
+    && VALID_ACTOR_NAME_REGEX.is_match(name)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
@@ -125,15 +125,11 @@ pub fn is_valid_display_name(name: &str) -> bool {
   !name.starts_with('@')
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
-    && name.chars().count() <= 20
+    && name.chars().count() <= Settings::get().actor_name_max_length()
 }
 
 pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
   VALID_MATRIX_ID_REGEX.is_match(matrix_id)
-}
-
-pub fn is_valid_community_name(name: &str) -> bool {
-  VALID_COMMUNITY_NAME_REGEX.is_match(name)
 }
 
 pub fn is_valid_post_title(title: &str) -> bool {

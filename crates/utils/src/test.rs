@@ -1,9 +1,8 @@
 use crate::utils::{
-  is_valid_community_name,
+  is_valid_actor_name,
   is_valid_display_name,
   is_valid_matrix_id,
   is_valid_post_title,
-  is_valid_username,
   remove_slurs,
   scrape_text_for_mentions,
   slur_check,
@@ -21,12 +20,12 @@ fn test_mentions_regex() {
 }
 
 #[test]
-fn test_valid_register_username() {
-  assert!(is_valid_username("Hello_98"));
-  assert!(is_valid_username("ten"));
-  assert!(!is_valid_username("Hello-98"));
-  assert!(!is_valid_username("a"));
-  assert!(!is_valid_username(""));
+fn test_valid_actor_name() {
+  assert!(is_valid_actor_name("Hello_98"));
+  assert!(is_valid_actor_name("ten"));
+  assert!(!is_valid_actor_name("Hello-98"));
+  assert!(!is_valid_actor_name("a"));
+  assert!(!is_valid_actor_name(""));
 }
 
 #[test]
@@ -39,15 +38,6 @@ fn test_valid_display_name() {
     "{}@my name is",
     '\u{200b}'
   )));
-}
-
-#[test]
-fn test_valid_community_name() {
-  assert!(is_valid_community_name("example"));
-  assert!(is_valid_community_name("example_community"));
-  assert!(!is_valid_community_name("Example"));
-  assert!(!is_valid_community_name("Ex"));
-  assert!(!is_valid_community_name(""));
 }
 
 #[test]
