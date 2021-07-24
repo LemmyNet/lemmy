@@ -1,12 +1,14 @@
 [package]
 name = "lemmy_apub_lib"
-version = "0.1.0"
+version = "0.11.3-rc.5"
 edition = "2018"
+description = "A link aggregator for the fediverse"
+license = "AGPL-3.0"
 
 [dependencies]
-lemmy_utils = { path = "../utils" }
-lemmy_websocket = { path = "../websocket" }
-lemmy_apub_lib_derive = { path = "../apub_lib_derive" }
+lemmy_utils = { version = "0.11.3-rc.5", path = "../utils" }
+lemmy_websocket = { version = "0.11.3-rc.5", path = "../websocket" }
+lemmy_apub_lib_derive = { version = "0.11.3-rc.5", path = "../apub_lib_derive" }
 activitystreams = "0.7.0-alpha.11"
 activitystreams-ext = "0.1.0-alpha.2"
 serde = { version = "1.0.123", features = ["derive"] }
