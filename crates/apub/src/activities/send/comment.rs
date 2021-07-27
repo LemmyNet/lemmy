@@ -1,5 +1,5 @@
 use crate::{
-  activities::send::generate_activity_id,
+  activities::generate_activity_id,
   activity_queue::{send_comment_mentions, send_to_community},
   extensions::context::lemmy_context,
   fetcher::person::get_or_fetch_and_upsert_person,

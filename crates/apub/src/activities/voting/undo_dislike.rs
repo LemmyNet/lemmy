@@ -29,7 +29,7 @@ impl ActivityHandler for UndoDislikePostOrComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
     verify_urls_match(&self.common.actor, &self.object.common().actor)?;
     self.object.verify(context, request_counter).await?;
     Ok(())

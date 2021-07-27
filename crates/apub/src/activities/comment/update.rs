@@ -1,10 +1,12 @@
 use crate::{
   activities::{
     comment::{get_notif_recipients, send_websocket_message},
+    extract_community,
     verify_activity,
     verify_person_in_community,
   },
   objects::FromApub,
+  ActorType,
   NoteExt,
 };
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
@@ -33,8 +35,16 @@ impl ActivityHandler for UpdateComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let community = extract_community(&self.cc, context, request_counter).await?;
+
     verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_person_in_community(
+      &self.common.actor,
+      &community.actor_id(),
+      context,
+      request_counter,
+    )
+    .await?;
     verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
     Ok(())
   }

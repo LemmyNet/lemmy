@@ -1,8 +1,7 @@
 use crate::{
   fetcher::fetch::fetch_remote_object,
-  objects::FromApub,
+  objects::{post::Page, FromApub},
   NoteExt,
-  PageExt,
   PostOrComment,
 };
 use anyhow::anyhow;
@@ -35,7 +34,7 @@ pub async fn get_or_fetch_and_insert_post(
     Err(NotFound {}) => {
       debug!("Fetching and creating remote post: {}", post_ap_id);
       let page =
-        fetch_remote_object::<PageExt>(context.client(), post_ap_id, recursion_counter).await?;
+        fetch_remote_object::<Page>(context.client(), post_ap_id, recursion_counter).await?;
       let post = Post::from_apub(
         &page,
         context,

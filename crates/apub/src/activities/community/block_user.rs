@@ -36,7 +36,7 @@ impl ActivityHandler for BlockUserFromCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
     Ok(())
   }

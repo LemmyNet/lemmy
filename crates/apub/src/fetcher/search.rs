@@ -6,11 +6,10 @@ use crate::{
     is_deleted,
   },
   find_object_by_id,
-  objects::FromApub,
+  objects::{post::Page, FromApub},
   GroupExt,
   NoteExt,
   Object,
-  PageExt,
   PersonExt,
 };
 use activitystreams::base::BaseExt;
@@ -46,7 +45,7 @@ use url::Url;
 enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
-  Page(Box<PageExt>),
+  Page(Box<Page>),
   Comment(Box<NoteExt>),
 }
 

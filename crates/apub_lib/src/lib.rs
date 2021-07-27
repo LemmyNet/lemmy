@@ -20,7 +20,7 @@ pub enum PublicUrl {
 pub struct ActivityCommonFields {
   #[serde(rename = "@context")]
   pub context: OneOrMany<AnyBase>,
-  id: Url,
+  pub id: Url,
   pub actor: Url,
 
   // unparsed fields

@@ -54,7 +54,8 @@ impl ActivityHandler for UndoDeletePostCommentOrCommunity {
     }
     // restoring a post or comment
     else {
-      verify_person_in_community(&self.common().actor, &self.cc, context, request_counter).await?;
+      verify_person_in_community(&self.common().actor, &self.cc[0], context, request_counter)
+        .await?;
       verify_urls_match(&self.common.actor, &self.object.common().actor)?;
     }
     Ok(())
@@ -71,7 +72,7 @@ impl ActivityHandler for UndoDeletePostCommentOrCommunity {
     if let Ok(community) = object_community {
       if community.local {
         // repeat these checks just to be sure
-        verify_person_in_community(&self.common().actor, &self.cc, context, request_counter)
+        verify_person_in_community(&self.common().actor, &self.cc[0], context, request_counter)
           .await?;
         verify_mod_action(&self.common.actor, self.object.object.clone(), context).await?;
         let mod_ =

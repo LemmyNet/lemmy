@@ -1,5 +1,5 @@
 use crate::{
-  activities::send::generate_activity_id,
+  activities::generate_activity_id,
   activity_queue::{send_activity_single_dest, send_to_community, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,

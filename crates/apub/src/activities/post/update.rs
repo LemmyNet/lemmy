@@ -1,24 +1,24 @@
 use crate::{
   activities::{
+    community::announce::AnnouncableActivities,
+    generate_activity_id,
     post::send_websocket_message,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
   },
-  objects::{FromApub, FromApubToForm},
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
+  fetcher::community::get_or_fetch_and_upsert_community,
+  objects::{post::Page, FromApub, ToApub},
   ActorType,
-  PageExt,
 };
-use activitystreams::{activity::kind::UpdateType, base::BaseExt};
-use anyhow::Context;
+use activitystreams::activity::kind::UpdateType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandler, PublicUrl};
-use lemmy_db_queries::ApubObject;
-use lemmy_db_schema::{
-  source::post::{Post, PostForm},
-  DbUrl,
-};
-use lemmy_utils::{location_info, LemmyError};
+use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_db_queries::Crud;
+use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
 
@@ -26,12 +26,37 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePost {
   to: PublicUrl,
-  object: PageExt,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: UpdateType,
+  object: Page,
+  cc: [Url; 1],
+  r#type: UpdateType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl UpdatePost {
+  pub async fn send(post: &Post, actor: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
+    let community_id = post.community_id;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+
+    let id = generate_activity_id(UpdateType::Update)?;
+    let update = UpdatePost {
+      to: PublicUrl::Public,
+      object: post.to_apub(context.pool()).await?,
+      cc: [community.actor_id()],
+      r#type: Default::default(),
+      common: ActivityCommonFields {
+        context: lemmy_context()?.into(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+    let activity = AnnouncableActivities::UpdatePost(update);
+    send_to_community_new(activity, &id, actor, &community, vec![], context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -41,34 +66,19 @@ impl ActivityHandler for UpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let community_id = get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter)
+      .await?
+      .actor_id();
+    let is_mod_action = self.object.is_mod_action(context.pool()).await?;
+
     verify_activity(self.common())?;
-    let community =
-      verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
-
-    let temp_post = PostForm::from_apub(
-      &self.object,
-      context,
-      self.common.actor.clone(),
-      request_counter,
-      true,
-    )
-    .await?;
-    let post_id: DbUrl = temp_post.ap_id.context(location_info!())?;
-    let old_post = blocking(context.pool(), move |conn| {
-      Post::read_from_apub_id(conn, &post_id)
-    })
-    .await??;
-    let stickied = temp_post.stickied.context(location_info!())?;
-    let locked = temp_post.locked.context(location_info!())?;
-    // community mod changed locked/sticky status
-    if (stickied != old_post.stickied) || (locked != old_post.locked) {
-      verify_mod_action(&self.common.actor, community.actor_id(), context).await?;
+    verify_person_in_community(&self.common.actor, &community_id, context, request_counter).await?;
+    if is_mod_action {
+      verify_mod_action(&self.common.actor, community_id, context).await?;
+    } else {
+      verify_urls_match(&self.common.actor, &self.object.attributed_to)?;
     }
-    // user edited their own post
-    else {
-      verify_domains_match_opt(&self.common.actor, self.object.id_unchecked())?;
-    }
-
+    self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
