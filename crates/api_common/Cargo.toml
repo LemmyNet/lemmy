@@ -18,7 +18,7 @@ lemmy_utils = { path = "../utils" }
 serde = { version = "1.0.126", features = ["derive"] }
 log = "0.4.14"
 diesel = "1.4.7"
-actix-web = "4.0.0-beta.8"
+actix-web = {version = "4.0.0-beta.8", default-features = false, features = ["cookies"] }
 chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.64", features = ["preserve_order"] }
 url = "2.2.2"
