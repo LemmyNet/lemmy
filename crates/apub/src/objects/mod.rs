@@ -70,6 +70,25 @@ pub trait FromApubToForm<ApubType> {
     Self: Sized;
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum MediaTypeMarkdown {
+  #[serde(rename = "text/markdown")]
+  Markdown,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum MediaTypeHtml {
+  #[serde(rename = "text/html")]
+  Markdown,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Source {
+  content: String,
+  media_type: MediaTypeMarkdown,
+}
+
 /// Updated is actually the deletion time
 fn create_tombstone<T>(
   deleted: bool,

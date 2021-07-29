@@ -78,7 +78,7 @@ impl UserType for Person {
 
     let mut follow = Follow::new(self.actor_id(), community.actor_id());
     follow
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(FollowType::Follow)?)
       .set_to(community.actor_id());
 
@@ -99,7 +99,7 @@ impl UserType for Person {
 
     let mut follow = Follow::new(self.actor_id(), community.actor_id());
     follow
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(FollowType::Follow)?)
       .set_to(community.actor_id());
 
@@ -109,7 +109,7 @@ impl UserType for Person {
       follow.into_any_base()?,
     );
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(community.actor_id());
 

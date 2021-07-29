@@ -86,7 +86,7 @@ impl AnnounceActivity {
       cc: vec![community.followers_url()],
       kind: AnnounceType::Announce,
       common: ActivityCommonFields {
-        context: lemmy_context()?.into(),
+        context: lemmy_context(),
         id: generate_activity_id(AnnounceType::Announce)?,
         actor: community.actor_id(),
         unparsed: Default::default(),

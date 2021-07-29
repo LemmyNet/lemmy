@@ -54,7 +54,7 @@ impl ApubObjectType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     delete
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -79,7 +79,7 @@ impl ApubObjectType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     delete
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -90,7 +90,7 @@ impl ApubObjectType for Post {
       delete.into_any_base()?,
     );
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -111,7 +111,7 @@ impl ApubObjectType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     remove
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -136,7 +136,7 @@ impl ApubObjectType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     remove
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -147,7 +147,7 @@ impl ApubObjectType for Post {
       remove.into_any_base()?,
     );
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -171,7 +171,7 @@ impl ApubLikeableType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     like
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -192,7 +192,7 @@ impl ApubLikeableType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     dislike
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -217,7 +217,7 @@ impl ApubLikeableType for Post {
       self.ap_id.to_owned().into_inner(),
     );
     like
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);
@@ -228,7 +228,7 @@ impl ApubLikeableType for Post {
       like.into_any_base()?,
     );
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()]);

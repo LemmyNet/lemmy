@@ -48,7 +48,7 @@ impl UpdatePost {
       cc: [community.actor_id()],
       r#type: Default::default(),
       common: ActivityCommonFields {
-        context: lemmy_context()?.into(),
+        context: lemmy_context(),
         id: id.clone(),
         actor: actor.actor_id(),
         unparsed: Default::default(),

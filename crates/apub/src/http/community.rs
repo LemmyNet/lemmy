@@ -81,7 +81,7 @@ pub(crate) async fn get_apub_community_followers(
 
   let mut collection = UnorderedCollection::new();
   collection
-    .set_many_contexts(lemmy_context()?)
+    .set_many_contexts(lemmy_context())
     .set_id(community.followers_url.into())
     .set_total_items(community_followers.len() as u64);
   Ok(create_apub_response(&collection))
@@ -112,7 +112,7 @@ pub(crate) async fn get_apub_community_outbox(
   let mut collection = OrderedCollection::new();
   collection
     .set_many_items(activities)
-    .set_many_contexts(lemmy_context()?)
+    .set_many_contexts(lemmy_context())
     .set_id(community.get_outbox_url()?)
     .set_total_items(len as u64);
   Ok(create_apub_response(&collection))
@@ -130,7 +130,7 @@ pub(crate) async fn get_apub_community_inbox(
   let mut collection = OrderedCollection::new();
   collection
     .set_id(community.inbox_url.into())
-    .set_many_contexts(lemmy_context()?);
+    .set_many_contexts(lemmy_context());
   Ok(create_apub_response(&collection))
 }
 
@@ -162,6 +162,6 @@ pub(crate) async fn get_apub_community_moderators(
     .set_id(generate_moderators_url(&community.actor_id)?.into())
     .set_total_items(moderators.len() as u64)
     .set_many_items(moderators)
-    .set_many_contexts(lemmy_context()?);
+    .set_many_contexts(lemmy_context());
   Ok(create_apub_response(&collection))
 }

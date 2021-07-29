@@ -2,7 +2,7 @@ use crate::{
   activities::extract_community,
   extensions::context::lemmy_context,
   fetcher::person::get_or_fetch_and_upsert_person,
-  objects::{create_tombstone, FromApub, ToApub},
+  objects::{create_tombstone, FromApub, MediaTypeHtml, MediaTypeMarkdown, Source, ToApub},
 };
 use activitystreams::{
   base::AnyBase,
@@ -34,84 +34,6 @@ use lemmy_utils::{
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
-impl ToApub for Post {
-  type ApubType = Page;
-
-  // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  async fn to_apub(&self, pool: &DbPool) -> Result<Page, LemmyError> {
-    let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
-    let community_id = self.community_id;
-    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
-
-    let source = self.body.clone().map(|body| Source {
-      content: body,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let image = self.thumbnail_url.clone().map(|thumb| ImageObject {
-      content: ImageType::Image,
-      url: thumb.into(),
-    });
-
-    let page = Page {
-      context: lemmy_context()?.into(),
-      r#type: PageType::Page,
-      id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into(),
-      to: [community.actor_id.into(), public()],
-      name: self.name.clone(),
-      content: self.body.as_ref().map(|b| markdown_to_html(b)),
-      media_type: MediaTypeHtml::Markdown,
-      source,
-      url: self.url.clone().map(|u| u.into()),
-      image,
-      comments_enabled: Some(!self.locked),
-      sensitive: Some(self.nsfw),
-      stickied: Some(self.stickied),
-      published: convert_datetime(self.published),
-      updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
-    };
-    Ok(page)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
-      PageType::Page,
-    )
-  }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum MediaTypeMarkdown {
-  #[serde(rename = "text/markdown")]
-  Markdown,
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum MediaTypeHtml {
-  #[serde(rename = "text/html")]
-  Markdown,
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Source {
-  content: String,
-  media_type: MediaTypeMarkdown,
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImageObject {
-  content: ImageType,
-  url: Url,
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Page {
@@ -136,6 +58,13 @@ pub struct Page {
   // unparsed fields
   #[serde(flatten)]
   unparsed: Unparsed,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageObject {
+  content: ImageType,
+  url: Url,
 }
 
 impl Page {
@@ -166,6 +95,58 @@ impl Page {
     check_slurs(&self.name)?;
     verify_domains_match(&self.attributed_to, &self.id)?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ToApub for Post {
+  type ApubType = Page;
+
+  // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
+  async fn to_apub(&self, pool: &DbPool) -> Result<Page, LemmyError> {
+    let creator_id = self.creator_id;
+    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
+    let community_id = self.community_id;
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
+
+    let source = self.body.clone().map(|body| Source {
+      content: body,
+      media_type: MediaTypeMarkdown::Markdown,
+    });
+    let image = self.thumbnail_url.clone().map(|thumb| ImageObject {
+      content: ImageType::Image,
+      url: thumb.into(),
+    });
+
+    let page = Page {
+      context: lemmy_context(),
+      r#type: PageType::Page,
+      id: self.ap_id.clone().into(),
+      attributed_to: creator.actor_id.into(),
+      to: [community.actor_id.into(), public()],
+      name: self.name.clone(),
+      content: self.body.as_ref().map(|b| markdown_to_html(b)),
+      media_type: MediaTypeHtml::Markdown,
+      source,
+      url: self.url.clone().map(|u| u.into()),
+      image,
+      comments_enabled: Some(!self.locked),
+      sensitive: Some(self.nsfw),
+      stickied: Some(self.stickied),
+      published: convert_datetime(self.published),
+      updated: self.updated.map(convert_datetime),
+      unparsed: Default::default(),
+    };
+    Ok(page)
+  }
+
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
+    create_tombstone(
+      self.deleted,
+      self.ap_id.to_owned().into(),
+      self.updated,
+      PageType::Page,
+    )
   }
 }
 

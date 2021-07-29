@@ -38,7 +38,7 @@ impl ApubObjectType for PrivateMessage {
     );
 
     create
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(recipient.actor_id());
 
@@ -59,7 +59,7 @@ impl ApubObjectType for PrivateMessage {
       note.into_any_base()?,
     );
     update
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(recipient.actor_id());
 
@@ -77,7 +77,7 @@ impl ApubObjectType for PrivateMessage {
       self.ap_id.to_owned().into_inner(),
     );
     delete
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(recipient.actor_id());
 
@@ -99,7 +99,7 @@ impl ApubObjectType for PrivateMessage {
       self.ap_id.to_owned().into_inner(),
     );
     delete
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(recipient.actor_id());
 
@@ -109,7 +109,7 @@ impl ApubObjectType for PrivateMessage {
       delete.into_any_base()?,
     );
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(recipient.actor_id());
 
