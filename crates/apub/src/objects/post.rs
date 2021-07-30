@@ -2,7 +2,7 @@ use crate::{
   activities::extract_community,
   extensions::context::lemmy_context,
   fetcher::person::get_or_fetch_and_upsert_person,
-  objects::{create_tombstone, FromApub, MediaTypeHtml, MediaTypeMarkdown, Source, ToApub},
+  objects::{create_tombstone, FromApub, Source, ToApub},
 };
 use activitystreams::{
   base::AnyBase,
@@ -16,7 +16,10 @@ use activitystreams::{
 };
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::verify_domains_match;
+use lemmy_apub_lib::{
+  values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify_domains_match,
+};
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_db_schema::{
   self,
@@ -126,7 +129,7 @@ impl ToApub for Post {
       to: [community.actor_id.into(), public()],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
-      media_type: MediaTypeHtml::Markdown,
+      media_type: MediaTypeHtml::Html,
       source,
       url: self.url.clone().map(|u| u.into()),
       image,

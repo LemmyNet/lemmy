@@ -15,7 +15,7 @@ use crate::{
 };
 use activitystreams::activity::kind::UpdateType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;

@@ -4,7 +4,7 @@ use crate::activities::{
   voting::receive_like_or_dislike,
 };
 use activitystreams::activity::kind::DislikeType;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

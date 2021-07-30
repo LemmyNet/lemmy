@@ -10,7 +10,7 @@ use crate::{
 };
 use activitystreams::{activity::kind::AddType, base::AnyBase};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
 use lemmy_db_schema::source::community::{CommunityModerator, CommunityModeratorForm};
 use lemmy_utils::LemmyError;

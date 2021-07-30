@@ -12,3 +12,4 @@ activitystreams-ext = "0.1.0-alpha.2"
 serde = { version = "1.0.123", features = ["derive"] }
 async-trait = "0.1.42"
 url = { version = "2.2.1", features = ["serde"] }
+serde_json = { version = "1.0.64", features = ["preserve_order"] }

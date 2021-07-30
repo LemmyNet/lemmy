@@ -1,3 +1,5 @@
+pub mod values;
+
 use activitystreams::{
   base::AnyBase,
   error::DomainError,
@@ -8,12 +10,6 @@ pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub enum PublicUrl {
-  #[serde(rename = "https://www.w3.org/ns/activitystreams#Public")]
-  Public,
-}
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]

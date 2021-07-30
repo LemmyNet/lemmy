@@ -4,7 +4,7 @@ use crate::activities::{
   voting::{dislike::DislikePostOrComment, receive_undo_like_or_dislike},
 };
 use activitystreams::activity::kind::UndoType;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

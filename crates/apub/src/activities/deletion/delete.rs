@@ -18,7 +18,7 @@ use crate::{
 };
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
   Crud,

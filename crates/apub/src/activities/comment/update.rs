@@ -10,7 +10,12 @@ use crate::{
   NoteExt,
 };
 use activitystreams::{activity::kind::UpdateType, base::BaseExt};
-use lemmy_apub_lib::{verify_domains_match_opt, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{
+  values::PublicUrl,
+  verify_domains_match_opt,
+  ActivityCommonFields,
+  ActivityHandler,
+};
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
