@@ -64,6 +64,7 @@ test('Delete a private message', async () => {
     pmRes.private_message_view.private_message.id
   );
   expect(deletedPmRes.private_message_view.private_message.deleted).toBe(true);
+  expect(deletedPmRes.private_message_view.private_message.content).toBe("");
 
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.

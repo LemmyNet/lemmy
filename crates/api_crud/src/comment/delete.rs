@@ -9,7 +9,7 @@ use lemmy_api_common::{
   send_local_notifs,
 };
 use lemmy_apub::ApubObjectType;
-use lemmy_db_queries::{source::comment::Comment_, Crud};
+use lemmy_db_queries::{source::comment::Comment_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::source::{comment::*, moderator::*};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
@@ -47,7 +47,7 @@ impl PerformCrud for DeleteComment {
 
     // Do the delete
     let deleted = data.deleted;
-    let updated_comment = blocking(context.pool(), move |conn| {
+    let mut updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
@@ -55,6 +55,7 @@ impl PerformCrud for DeleteComment {
 
     // Send the apub message
     if deleted {
+      updated_comment = updated_comment.blank_out_deleted_or_removed_info();
       updated_comment
         .send_delete(&local_user_view.person, context)
         .await?;
@@ -67,10 +68,15 @@ impl PerformCrud for DeleteComment {
     // Refetch it
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
+    let mut comment_view = blocking(context.pool(), move |conn| {
       CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if deleted {
+      comment_view.comment = comment_view.comment.blank_out_deleted_or_removed_info();
+    }
 
     // Build the recipients
     let comment_view_2 = comment_view.clone();
@@ -136,7 +142,7 @@ impl PerformCrud for RemoveComment {
 
     // Do the remove
     let removed = data.removed;
-    let updated_comment = blocking(context.pool(), move |conn| {
+    let mut updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
@@ -156,6 +162,7 @@ impl PerformCrud for RemoveComment {
 
     // Send the apub message
     if removed {
+      updated_comment = updated_comment.blank_out_deleted_or_removed_info();
       updated_comment
         .send_remove(&local_user_view.person, context)
         .await?;
@@ -168,10 +175,15 @@ impl PerformCrud for RemoveComment {
     // Refetch it
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
+    let mut comment_view = blocking(context.pool(), move |conn| {
       CommentView::read(conn, comment_id, Some(person_id))
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if removed {
+      comment_view.comment = comment_view.comment.blank_out_deleted_or_removed_info();
+    }
 
     // Build the recipients
     let comment_view_2 = comment_view.clone();

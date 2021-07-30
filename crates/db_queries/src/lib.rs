@@ -117,6 +117,10 @@ pub trait Reportable<Form> {
     Self: Sized;
 }
 
+pub trait DeleteableOrRemoveable {
+  fn blank_out_deleted_or_removed_info(self) -> Self;
+}
+
 pub trait ApubObject<Form> {
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where

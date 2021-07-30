@@ -2,7 +2,7 @@ use crate::{community::send_community_websocket, PerformCrud};
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt, is_admin};
 use lemmy_apub::CommunityType;
-use lemmy_db_queries::{source::community::Community_, Crud};
+use lemmy_db_queries::{source::community::Community_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::source::{
   community::*,
   moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
@@ -50,6 +50,7 @@ impl PerformCrud for DeleteCommunity {
     // Send apub messages
     if deleted {
       updated_community
+        .blank_out_deleted_or_removed_info()
         .send_delete(local_user_view.person.to_owned(), context)
         .await?;
     } else {
@@ -60,10 +61,15 @@ impl PerformCrud for DeleteCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
+    let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if deleted {
+      community_view.community = community_view.community.blank_out_deleted_or_removed_info();
+    }
 
     let res = CommunityResponse { community_view };
 
@@ -118,17 +124,25 @@ impl PerformCrud for RemoveCommunity {
 
     // Apub messages
     if removed {
-      updated_community.send_remove(context).await?;
+      updated_community
+        .blank_out_deleted_or_removed_info()
+        .send_remove(context)
+        .await?;
     } else {
       updated_community.send_undo_remove(context).await?;
     }
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
+    let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if removed {
+      community_view.community = community_view.community.blank_out_deleted_or_removed_info();
+    }
 
     let res = CommunityResponse { community_view };
 

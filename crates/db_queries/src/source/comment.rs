@@ -1,4 +1,4 @@
-use crate::{ApubObject, Crud, Likeable, Saveable};
+use crate::{ApubObject, Crud, DeleteableOrRemoveable, Likeable, Saveable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -225,6 +225,13 @@ impl Saveable<CommentSavedForm> for CommentSaved {
         .filter(person_id.eq(comment_saved_form.person_id)),
     )
     .execute(conn)
+  }
+}
+
+impl DeleteableOrRemoveable for Comment {
+  fn blank_out_deleted_or_removed_info(mut self) -> Self {
+    self.content = "".into();
+    self
   }
 }
 
