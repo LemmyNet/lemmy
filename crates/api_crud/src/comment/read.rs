@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, comment::*, get_local_user_view_from_jwt_opt};
 use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
-use lemmy_db_queries::{from_opt_str_to_opt_enum, ListingType, SortType};
+use lemmy_db_queries::{from_opt_str_to_opt_enum, DeleteableOrRemoveable, ListingType, SortType};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -36,7 +36,7 @@ impl PerformCrud for GetComments {
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
-    let comments = blocking(context.pool(), move |conn| {
+    let mut comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .listing_type(listing_type)
         .sort(sort)
@@ -51,6 +51,14 @@ impl PerformCrud for GetComments {
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_get_comments"))?;
+
+    // Blank out deleted or removed info
+    for cv in comments
+      .iter_mut()
+      .filter(|cv| cv.comment.deleted || cv.comment.removed)
+    {
+      cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+    }
 
     Ok(GetCommentsResponse { comments })
   }
