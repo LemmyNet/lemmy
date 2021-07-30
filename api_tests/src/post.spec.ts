@@ -210,6 +210,7 @@ test('Delete a post', async () => {
 
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
   expect(deletedPost.post_view.post.deleted).toBe(true);
+  expect(deletedPost.post_view.post.name).toBe("");
 
   // Make sure lemmy beta sees post is deleted
   let searchBeta = await searchPost(beta, postRes.post_view.post);
@@ -237,6 +238,7 @@ test('Remove a post from admin and community on different instance', async () =>
 
   let removedPost = await removePost(alpha, true, postRes.post_view.post);
   expect(removedPost.post_view.post.removed).toBe(true);
+  expect(removedPost.post_view.post.name).toBe("");
 
   // Make sure lemmy beta sees post is NOT removed
   let searchBeta = await searchPost(beta, postRes.post_view.post);

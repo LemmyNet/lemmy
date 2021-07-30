@@ -6,7 +6,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::CommunityType;
-use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud};
+use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
@@ -78,10 +78,15 @@ impl PerformCrud for EditCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
+    let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if community_view.community.deleted || community_view.community.removed {
+      community_view.community = community_view.community.blank_out_deleted_or_removed_info();
+    }
 
     let res = CommunityResponse { community_view };
 

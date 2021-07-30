@@ -8,7 +8,7 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::ApubObjectType;
-use lemmy_db_queries::{source::post::Post_, Crud};
+use lemmy_db_queries::{source::post::Post_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::source::{moderator::*, post::*};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
@@ -52,6 +52,7 @@ impl PerformCrud for DeletePost {
     // apub updates
     if deleted {
       updated_post
+        .blank_out_deleted_or_removed_info()
         .send_delete(&local_user_view.person, context)
         .await?;
     } else {
@@ -62,10 +63,14 @@ impl PerformCrud for DeletePost {
 
     // Refetch the post
     let post_id = data.post_id;
-    let post_view = blocking(context.pool(), move |conn| {
+    let mut post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, post_id, Some(local_user_view.person.id))
     })
     .await??;
+
+    if deleted {
+      post_view.post = post_view.post.blank_out_deleted_or_removed_info();
+    }
 
     let res = PostResponse { post_view };
 
@@ -132,6 +137,7 @@ impl PerformCrud for RemovePost {
     // apub updates
     if removed {
       updated_post
+        .blank_out_deleted_or_removed_info()
         .send_remove(&local_user_view.person, context)
         .await?;
     } else {
@@ -143,10 +149,15 @@ impl PerformCrud for RemovePost {
     // Refetch the post
     let post_id = data.post_id;
     let person_id = local_user_view.person.id;
-    let post_view = blocking(context.pool(), move |conn| {
+    let mut post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, post_id, Some(person_id))
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if removed {
+      post_view.post = post_view.post.blank_out_deleted_or_removed_info();
+    }
 
     let res = PostResponse { post_view };
 

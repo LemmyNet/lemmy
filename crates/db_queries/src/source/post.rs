@@ -1,4 +1,4 @@
-use crate::{ApubObject, Crud, Likeable, Readable, Saveable};
+use crate::{ApubObject, Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -257,6 +257,20 @@ impl Readable<PostReadForm> for PostRead {
         .filter(person_id.eq(post_read_form.person_id)),
     )
     .execute(conn)
+  }
+}
+
+impl DeleteableOrRemoveable for Post {
+  fn blank_out_deleted_or_removed_info(mut self) -> Self {
+    self.name = "".into();
+    self.url = None;
+    self.body = None;
+    self.embed_title = None;
+    self.embed_description = None;
+    self.embed_html = None;
+    self.thumbnail_url = None;
+
+    self
   }
 }
 

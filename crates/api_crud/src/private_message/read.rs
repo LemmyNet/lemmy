@@ -5,6 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{GetPrivateMessages, PrivateMessagesResponse},
 };
+use lemmy_db_queries::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -25,7 +26,7 @@ impl PerformCrud for GetPrivateMessages {
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let messages = blocking(context.pool(), move |conn| {
+    let mut messages = blocking(context.pool(), move |conn| {
       PrivateMessageQueryBuilder::create(conn, person_id)
         .page(page)
         .limit(limit)
@@ -33,6 +34,17 @@ impl PerformCrud for GetPrivateMessages {
         .list()
     })
     .await??;
+
+    // Blank out deleted or removed info
+    for pmv in messages
+      .iter_mut()
+      .filter(|pmv| pmv.private_message.deleted)
+    {
+      pmv.private_message = pmv
+        .to_owned()
+        .private_message
+        .blank_out_deleted_or_removed_info();
+    }
 
     Ok(PrivateMessagesResponse {
       private_messages: messages,
