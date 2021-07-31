@@ -9,7 +9,7 @@ use lemmy_api_common::{
   send_local_notifs,
 };
 use lemmy_apub::{
-  activities::comment::create::CreateComment as CreateApubComment,
+  activities::comment::create_or_update::{CreateOrUpdateComment, CreateOrUpdateType},
   generate_apub_endpoint,
   ApubLikeableType,
   EndpointType,
@@ -88,7 +88,13 @@ impl PerformCrud for CreateComment {
       .await?
       .map_err(|_| ApiError::err("couldnt_create_comment"))?;
 
-    CreateApubComment::send(&updated_comment, &local_user_view.person, context).await?;
+    CreateOrUpdateComment::send(
+      &updated_comment,
+      &local_user_view.person,
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await?;
 
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;

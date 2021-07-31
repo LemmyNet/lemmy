@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    comment::{create::CreateComment, update::UpdateComment},
+    comment::create_or_update::CreateOrUpdateComment,
     community::{
       add_mod::AddMod,
       block_user::BlockUserFromCommunity,
@@ -44,8 +44,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum AnnouncableActivities {
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
+  CreateOrUpdateComment(CreateOrUpdateComment),
   CreatePost(CreatePost),
   UpdatePost(UpdatePost),
   LikePostOrComment(LikePostOrComment),

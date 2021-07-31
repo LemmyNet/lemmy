@@ -24,8 +24,7 @@ use log::debug;
 use reqwest::Client;
 use url::Url;
 
-pub mod create;
-pub mod update;
+pub mod create_or_update;
 
 async fn get_notif_recipients(
   actor: &Url,

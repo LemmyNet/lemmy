@@ -24,28 +24,36 @@ use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CreateOrUpdateType {
+  Create,
+  Update,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateComment {
+pub struct CreateOrUpdateComment {
   to: PublicUrl,
   object: Note,
   cc: Vec<Url>,
   tag: Vec<Mention>,
   #[serde(rename = "type")]
-  kind: CreateType,
+  kind: CreateOrUpdateType,
   #[serde(flatten)]
   common: ActivityCommonFields,
 }
 
-impl CreateComment {
+impl CreateOrUpdateComment {
   pub async fn send(
     comment: &Comment,
     actor: &Person,
+    kind: CreateOrUpdateType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    // TODO: would be helpful to add a comment method to retrieve community directly
+    // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     let community_id = post.community_id;
@@ -53,15 +61,19 @@ impl CreateComment {
       Community::read(conn, community_id)
     })
     .await??;
-    let id = generate_activity_id(CreateType::Create)?;
+
+    let id = match kind {
+      CreateOrUpdateType::Create => generate_activity_id(CreateType::Create),
+      CreateOrUpdateType::Update => generate_activity_id(CreateType::Create),
+    }?;
     let maa = collect_non_local_mentions(comment, &community, context).await?;
 
-    let create = CreateComment {
+    let create_or_update = CreateOrUpdateComment {
       to: PublicUrl::Public,
       object: comment.to_apub(context.pool()).await?,
       cc: maa.ccs,
       tag: maa.tags,
-      kind: Default::default(),
+      kind,
       common: ActivityCommonFields {
         context: lemmy_context(),
         id: id.clone(),
@@ -70,13 +82,13 @@ impl CreateComment {
       },
     };
 
-    let activity = AnnouncableActivities::CreateComment(create);
+    let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
     send_to_community_new(activity, &id, actor, &community, maa.inboxes, context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for CreateComment {
+impl ActivityHandler for CreateOrUpdateComment {
   async fn verify(
     &self,
     context: &LemmyContext,
@@ -114,13 +126,11 @@ impl ActivityHandler for CreateComment {
     .await?;
     let recipients =
       get_notif_recipients(&self.common.actor, &comment, context, request_counter).await?;
-    send_websocket_message(
-      comment.id,
-      recipients,
-      UserOperationCrud::CreateComment,
-      context,
-    )
-    .await
+    let notif_type = match self.kind {
+      CreateOrUpdateType::Create => UserOperationCrud::CreateComment,
+      CreateOrUpdateType::Update => UserOperationCrud::EditComment,
+    };
+    send_websocket_message(comment.id, recipients, notif_type, context).await
   }
 
   fn common(&self) -> &ActivityCommonFields {

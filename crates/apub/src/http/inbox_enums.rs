@@ -1,5 +1,5 @@
 use crate::activities::{
-  comment::{create::CreateComment, update::UpdateComment},
+  comment::create_or_update::CreateOrUpdateComment,
   community::{
     add_mod::AddMod,
     announce::AnnounceActivity,
@@ -48,8 +48,7 @@ pub enum PersonInboxActivities {
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
+  CreateOrUpdateComment(CreateOrUpdateComment),
   CreatePost(CreatePost),
   UpdatePost(UpdatePost),
   LikePostOrComment(LikePostOrComment),
@@ -72,8 +71,7 @@ pub enum SharedInboxActivities {
   // received by group
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
+  CreateOrUpdateComment(CreateOrUpdateComment),
   CreatePost(CreatePost),
   UpdatePost(UpdatePost),
   LikePostOrComment(LikePostOrComment),
