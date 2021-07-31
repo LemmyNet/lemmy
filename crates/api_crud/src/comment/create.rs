@@ -9,7 +9,7 @@ use lemmy_api_common::{
   send_local_notifs,
 };
 use lemmy_apub::{
-  activities::comment::create_or_update::{CreateOrUpdateComment, CreateOrUpdateType},
+  activities::{comment::create_or_update::CreateOrUpdateComment, CreateOrUpdateType},
   generate_apub_endpoint,
   ApubLikeableType,
   EndpointType,

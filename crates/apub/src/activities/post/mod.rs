@@ -4,8 +4,7 @@ use lemmy_db_views::post_view::PostView;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendPost, LemmyContext};
 
-pub mod create;
-pub mod update;
+pub mod create_or_update;
 
 pub(crate) async fn send_websocket_message<
   OP: ToString + Send + lemmy_websocket::OperationType + 'static,

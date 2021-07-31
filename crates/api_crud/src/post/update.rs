@@ -1,7 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, check_community_ban, get_local_user_view_from_jwt, post::*};
-use lemmy_apub::activities::post::update::UpdatePost;
+use lemmy_apub::activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType};
 use lemmy_db_queries::{source::post::Post_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::{naive_now, source::post::*};
 use lemmy_db_views::post_view::PostView;
@@ -89,7 +89,13 @@ impl PerformCrud for EditPost {
     };
 
     // Send apub update
-    UpdatePost::send(&updated_post, &local_user_view.person, context).await?;
+    CreateOrUpdatePost::send(
+      &updated_post,
+      &local_user_view.person,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await?;
 
     let post_id = data.post_id;
     let mut post_view = blocking(context.pool(), move |conn| {

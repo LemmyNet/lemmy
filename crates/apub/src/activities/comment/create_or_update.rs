@@ -6,13 +6,14 @@ use crate::{
     generate_activity_id,
     verify_activity,
     verify_person_in_community,
+    CreateOrUpdateType,
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
   objects::{comment::Note, FromApub, ToApub},
   ActorType,
 };
-use activitystreams::{activity::kind::CreateType, link::Mention};
+use activitystreams::link::Mention;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::PublicUrl,
@@ -26,12 +27,6 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};
 use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum CreateOrUpdateType {
-  Create,
-  Update,
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,10 +57,7 @@ impl CreateOrUpdateComment {
     })
     .await??;
 
-    let id = match kind {
-      CreateOrUpdateType::Create => generate_activity_id(CreateType::Create),
-      CreateOrUpdateType::Update => generate_activity_id(CreateType::Create),
-    }?;
+    let id = generate_activity_id(kind.clone())?;
     let maa = collect_non_local_mentions(comment, &community, context).await?;
 
     let create_or_update = CreateOrUpdateComment {

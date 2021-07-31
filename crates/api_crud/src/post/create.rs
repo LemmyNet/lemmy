@@ -8,7 +8,7 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::{
-  activities::post::create::CreatePost as CreateApubPost,
+  activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType},
   generate_apub_endpoint,
   ApubLikeableType,
   EndpointType,
@@ -87,7 +87,13 @@ impl PerformCrud for CreatePost {
     .await?
     .map_err(|_| ApiError::err("couldnt_create_post"))?;
 
-    CreateApubPost::send(&updated_post, &local_user_view.person, context).await?;
+    CreateOrUpdatePost::send(
+      &updated_post,
+      &local_user_view.person,
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;

@@ -7,8 +7,8 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   send_local_notifs,
 };
-use lemmy_apub::activities::comment::create_or_update::{
-  CreateOrUpdateComment,
+use lemmy_apub::activities::{
+  comment::create_or_update::CreateOrUpdateComment,
   CreateOrUpdateType,
 };
 use lemmy_db_queries::{source::comment::Comment_, DeleteableOrRemoveable};
@@ -61,6 +61,7 @@ impl PerformCrud for EditComment {
     .await?
     .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
+    // Send the apub update
     CreateOrUpdateComment::send(
       &updated_comment,
       &local_user_view.person,
