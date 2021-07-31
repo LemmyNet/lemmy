@@ -50,7 +50,7 @@ impl ToApub for DbPerson {
     let mut person = ApObject::new(actor);
 
     person
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(self.actor_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published));
 

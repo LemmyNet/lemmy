@@ -9,7 +9,7 @@ use lemmy_api_common::{
   mark_post_as_read,
   post::*,
 };
-use lemmy_apub::{ApubLikeableType, ApubObjectType};
+use lemmy_apub::{activities::post::update::UpdatePost, ApubLikeableType};
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
 use lemmy_db_schema::source::{moderator::*, post::*};
 use lemmy_db_views::post_view::PostView;
@@ -140,9 +140,7 @@ impl Perform for LockPost {
     blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
 
     // apub updates
-    updated_post
-      .send_update(&local_user_view.person, context)
-      .await?;
+    UpdatePost::send(&updated_post, &local_user_view.person, context).await?;
 
     // Refetch the post
     let post_id = data.post_id;
@@ -214,9 +212,7 @@ impl Perform for StickyPost {
 
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
-    updated_post
-      .send_update(&local_user_view.person, context)
-      .await?;
+    UpdatePost::send(&updated_post, &local_user_view.person, context).await?;
 
     // Refetch the post
     let post_id = data.post_id;

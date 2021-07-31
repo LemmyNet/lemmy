@@ -19,7 +19,7 @@ use crate::{
 use activitystreams::{activity::kind::RemoveType, base::AnyBase};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
   Joinable,
@@ -64,13 +64,13 @@ impl ActivityHandler for RemovePostCommentCommunityOrMod {
     }
     // removing community mod
     else if let Some(target) = &self.target {
-      verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+      verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
       verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
       verify_add_remove_moderator_target(target, self.cc[0].clone())?;
     }
     // removing a post or comment
     else {
-      verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+      verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
       verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
     }
     Ok(())

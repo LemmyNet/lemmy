@@ -4,7 +4,7 @@ use crate::activities::{
   voting::receive_like_or_dislike,
 };
 use activitystreams::activity::kind::LikeType;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -29,7 +29,7 @@ impl ActivityHandler for LikePostOrComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }
 

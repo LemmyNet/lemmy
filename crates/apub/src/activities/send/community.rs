@@ -1,5 +1,5 @@
 use crate::{
-  activities::send::generate_activity_id,
+  activities::generate_activity_id,
   activity_queue::{send_activity_single_dest, send_to_community, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
@@ -98,7 +98,7 @@ impl CommunityType for Community {
       follow.into_any_base()?,
     );
     accept
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(AcceptType::Accept)?)
       .set_to(person.actor_id());
 
@@ -117,7 +117,7 @@ impl CommunityType for Community {
         self.to_apub(context.pool()).await?.into_any_base()?,
       );
       update
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(UpdateType::Update)?)
         .set_to(public())
         .set_many_ccs(vec![self.actor_id()]);
@@ -134,7 +134,7 @@ impl CommunityType for Community {
     if self.local {
       let mut delete = Delete::new(self.actor_id(), self.actor_id());
       delete
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(DeleteType::Delete)?)
         .set_to(public())
         .set_many_ccs(vec![self.followers_url()]);
@@ -145,7 +145,7 @@ impl CommunityType for Community {
     else {
       let mut delete = Delete::new(mod_.actor_id(), self.actor_id());
       delete
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(DeleteType::Delete)?)
         .set_to(public())
         .set_many_ccs(vec![self.actor_id()]);
@@ -163,14 +163,14 @@ impl CommunityType for Community {
     if self.local {
       let mut delete = Delete::new(self.actor_id(), self.actor_id());
       delete
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(DeleteType::Delete)?)
         .set_to(public())
         .set_many_ccs(vec![self.followers_url()]);
 
       let mut undo = Undo::new(self.actor_id(), delete.into_any_base()?);
       undo
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(UndoType::Undo)?)
         .set_to(public())
         .set_many_ccs(vec![self.followers_url()]);
@@ -181,14 +181,14 @@ impl CommunityType for Community {
     else {
       let mut delete = Delete::new(mod_.actor_id(), self.actor_id());
       delete
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(DeleteType::Delete)?)
         .set_to(public())
         .set_many_ccs(vec![self.actor_id()]);
 
       let mut undo = Undo::new(mod_.actor_id(), delete.into_any_base()?);
       undo
-        .set_many_contexts(lemmy_context()?)
+        .set_many_contexts(lemmy_context())
         .set_id(generate_activity_id(UndoType::Undo)?)
         .set_to(public())
         .set_many_ccs(vec![self.actor_id()]);
@@ -202,7 +202,7 @@ impl CommunityType for Community {
   async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut remove = Remove::new(self.actor_id(), self.actor_id());
     remove
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.followers_url()]);
@@ -215,7 +215,7 @@ impl CommunityType for Community {
   async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut remove = Remove::new(self.actor_id(), self.actor_id());
     remove
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.followers_url()]);
@@ -223,7 +223,7 @@ impl CommunityType for Community {
     // Undo that fake activity
     let mut undo = Undo::new(self.actor_id(), remove.into_any_base()?);
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![self.followers_url()]);
@@ -267,7 +267,7 @@ impl CommunityType for Community {
     }
     let mut announce = Announce::new(self.actor_id(), activity);
     announce
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(AnnounceType::Announce)?)
       .set_to(public())
       .set_many_ccs(ccs);
@@ -306,7 +306,7 @@ impl CommunityType for Community {
   ) -> Result<(), LemmyError> {
     let mut add = Add::new(actor.actor_id(), added_mod.actor_id());
     add
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(AddType::Add)?)
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()])
@@ -324,7 +324,7 @@ impl CommunityType for Community {
   ) -> Result<(), LemmyError> {
     let mut remove = Remove::new(actor.actor_id(), removed_mod.actor_id());
     remove
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()])
@@ -342,7 +342,7 @@ impl CommunityType for Community {
   ) -> Result<(), LemmyError> {
     let mut block = Block::new(actor.actor_id(), blocked_user.actor_id());
     block
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(BlockType::Block)?)
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()]);
@@ -359,7 +359,7 @@ impl CommunityType for Community {
   ) -> Result<(), LemmyError> {
     let mut block = Block::new(actor.actor_id(), unblocked_user.actor_id());
     block
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(BlockType::Block)?)
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()]);
@@ -367,7 +367,7 @@ impl CommunityType for Community {
     // Undo that fake activity
     let mut undo = Undo::new(actor.actor_id(), block.into_any_base()?);
     undo
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![self.actor_id()]);

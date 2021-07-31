@@ -69,7 +69,7 @@ impl ToApub for Comment {
 
     comment
       // Not needed when the Post is embedded in a collection (like for community outbox)
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
       // NOTE: included community id for compatibility with lemmy v0.9.9

@@ -18,7 +18,7 @@ use crate::{
 };
 use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
   Crud,
@@ -64,7 +64,8 @@ impl ActivityHandler for DeletePostCommentOrCommunity {
     }
     // deleting a post or comment
     else {
-      verify_person_in_community(&self.common().actor, &self.cc, context, request_counter).await?;
+      verify_person_in_community(&self.common().actor, &self.cc[0], context, request_counter)
+        .await?;
       let object_creator =
         get_post_or_comment_actor_id(&self.object, context, request_counter).await?;
       verify_urls_match(&self.common.actor, &object_creator)?;
@@ -83,7 +84,7 @@ impl ActivityHandler for DeletePostCommentOrCommunity {
     if let Ok(community) = object_community {
       if community.local {
         // repeat these checks just to be sure
-        verify_person_in_community(&self.common().actor, &self.cc, context, request_counter)
+        verify_person_in_community(&self.common().actor, &self.cc[0], context, request_counter)
           .await?;
         verify_mod_action(&self.common.actor, self.object.clone(), context).await?;
         let mod_ =

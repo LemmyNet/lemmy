@@ -11,7 +11,6 @@ pub mod objects;
 use crate::{
   extensions::{
     group_extension::GroupExtension,
-    page_extension::PageExtension,
     person_extension::PersonExtension,
     signatures::{PublicKey, PublicKeyExtension},
   },
@@ -21,9 +20,9 @@ use activitystreams::{
   activity::Follow,
   actor,
   base::AnyBase,
-  object::{ApObject, AsObject, Note, ObjectExt, Page},
+  object::{ApObject, AsObject, Note, ObjectExt},
 };
-use activitystreams_ext::{Ext1, Ext2};
+use activitystreams_ext::Ext2;
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
@@ -54,8 +53,6 @@ pub type GroupExt =
 type PersonExt =
   Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
 pub type SiteExt = actor::ApActor<ApObject<actor::Service>>;
-/// Activitystreams type for post
-pub type PageExt = Ext1<ApObject<Page>, PageExtension>;
 pub type NoteExt = ApObject<Note>;
 
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq)]

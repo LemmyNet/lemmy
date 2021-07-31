@@ -42,7 +42,7 @@ impl ToApub for PrivateMessage {
     let recipient = blocking(pool, move |conn| Person::read(conn, recipient_id)).await??;
 
     private_message
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(self.ap_id.to_owned().into_inner())
       .set_published(convert_datetime(self.published))
       .set_to(recipient.actor_id.into_inner())

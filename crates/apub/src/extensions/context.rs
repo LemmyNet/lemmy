@@ -1,9 +1,8 @@
-use activitystreams::{base::AnyBase, context};
-use lemmy_utils::LemmyError;
+use activitystreams::{base::AnyBase, context, primitives::OneOrMany};
 use serde_json::json;
 use url::Url;
 
-pub fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
+pub fn lemmy_context() -> OneOrMany<AnyBase> {
   let context_ext = AnyBase::from_arbitrary_json(json!(
   {
     "sc": "http://schema.org#",
@@ -19,10 +18,11 @@ pub fn lemmy_context() -> Result<Vec<AnyBase>, LemmyError> {
       "type": "sc:Text",
       "id": "as:alsoKnownAs"
     },
-  }))?;
-  Ok(vec![
+  }))
+  .expect("parse context");
+  OneOrMany::from(vec![
     AnyBase::from(context()),
     context_ext,
-    AnyBase::from(Url::parse("https://w3id.org/security/v1")?),
+    AnyBase::from(Url::parse("https://w3id.org/security/v1").expect("parse context")),
   ])
 }

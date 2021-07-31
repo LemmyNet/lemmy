@@ -71,7 +71,7 @@ pub(crate) async fn get_apub_person_outbox(
   let mut collection = OrderedCollection::new();
   collection
     .set_many_items(Vec::<Url>::new())
-    .set_many_contexts(lemmy_context()?)
+    .set_many_contexts(lemmy_context())
     .set_id(person.get_outbox_url()?)
     .set_total_items(0_u64);
   Ok(create_apub_response(&collection))
@@ -89,6 +89,6 @@ pub(crate) async fn get_apub_person_inbox(
   let mut collection = OrderedCollection::new();
   collection
     .set_id(person.inbox_url.into())
-    .set_many_contexts(lemmy_context()?);
+    .set_many_contexts(lemmy_context());
   Ok(create_apub_response(&collection))
 }

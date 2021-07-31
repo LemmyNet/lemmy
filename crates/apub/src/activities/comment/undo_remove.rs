@@ -1,11 +1,19 @@
-use crate::activities::{
-  comment::{remove::RemoveComment, send_websocket_message},
-  verify_mod_action,
+use crate::{
+  activities::{
+    comment::{remove::RemoveComment, send_websocket_message},
+    verify_mod_action,
+  },
+  check_is_apub_id_valid,
+  fetcher::objects::get_or_fetch_and_insert_comment,
 };
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
-use crate::{check_is_apub_id_valid, fetcher::objects::get_or_fetch_and_insert_comment};
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandlerNew, PublicUrl};
+use lemmy_apub_lib::{
+  values::PublicUrl,
+  verify_domains_match,
+  ActivityCommonFields,
+  ActivityHandlerNew,
+};
 use lemmy_db_queries::source::comment::Comment_;
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_utils::LemmyError;

@@ -4,7 +4,7 @@ use crate::activities::{
   voting::{like::LikePostOrComment, receive_undo_like_or_dislike},
 };
 use activitystreams::activity::kind::UndoType;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -29,7 +29,7 @@ impl ActivityHandler for UndoLikePostOrComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
     verify_urls_match(&self.common.actor, &self.object.common().actor)?;
     self.object.verify(context, request_counter).await?;
     Ok(())

@@ -12,6 +12,7 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_db_schema::{CommunityId, DbUrl};
 use lemmy_utils::{
@@ -68,6 +69,13 @@ pub trait FromApubToForm<ApubType> {
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Source {
+  content: String,
+  media_type: MediaTypeMarkdown,
 }
 
 /// Updated is actually the deletion time
