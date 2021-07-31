@@ -4,10 +4,9 @@ use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::Priva
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperationCrud};
 
-pub mod create;
+pub mod create_or_update;
 pub mod delete;
 pub mod undo_delete;
-pub mod update;
 
 async fn send_websocket_message(
   private_message_id: PrivateMessageId,

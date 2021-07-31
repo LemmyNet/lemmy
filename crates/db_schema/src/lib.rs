@@ -92,6 +92,7 @@ where
 }
 
 impl DbUrl {
+  // TODO: remove this method and just use into()
   pub fn into_inner(self) -> Url {
     self.0
   }
@@ -99,7 +100,7 @@ impl DbUrl {
 
 impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.to_owned().into_inner().fmt(f)
+    self.to_owned().0.fmt(f)
   }
 }
 

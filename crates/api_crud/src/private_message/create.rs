@@ -6,7 +6,14 @@ use lemmy_api_common::{
   person::{CreatePrivateMessage, PrivateMessageResponse},
   send_email_to_user,
 };
-use lemmy_apub::{generate_apub_endpoint, ApubObjectType, EndpointType};
+use lemmy_apub::{
+  activities::{
+    private_message::create_or_update::CreateOrUpdatePrivateMessage,
+    CreateOrUpdateType,
+  },
+  generate_apub_endpoint,
+  EndpointType,
+};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
 use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageForm};
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
@@ -63,9 +70,13 @@ impl PerformCrud for CreatePrivateMessage {
     .await?
     .map_err(|_| ApiError::err("couldnt_create_private_message"))?;
 
-    updated_private_message
-      .send_create(&local_user_view.person, context)
-      .await?;
+    CreateOrUpdatePrivateMessage::send(
+      &updated_private_message,
+      &local_user_view.person,
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await?;
 
     let private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, inserted_private_message.id)

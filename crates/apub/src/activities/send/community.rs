@@ -54,7 +54,7 @@ impl ActorType for Community {
     self.local
   }
   fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into_inner()
+    self.actor_id.to_owned().into()
   }
   fn name(&self) -> String {
     self.name.clone()
@@ -78,7 +78,7 @@ impl ActorType for Community {
 #[async_trait::async_trait(?Send)]
 impl CommunityType for Community {
   fn followers_url(&self) -> Url {
-    self.followers_url.clone().into_inner()
+    self.followers_url.clone().into()
   }
 
   /// As a local community, accept the follow request from a remote person.

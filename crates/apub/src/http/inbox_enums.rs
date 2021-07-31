@@ -11,10 +11,9 @@ use crate::activities::{
   following::{accept::AcceptFollowCommunity, follow::FollowCommunity, undo::UndoFollowCommunity},
   post::create_or_update::CreateOrUpdatePost,
   private_message::{
-    create::CreatePrivateMessage,
+    create_or_update::CreateOrUpdatePrivateMessage,
     delete::DeletePrivateMessage,
     undo_delete::UndoDeletePrivateMessage,
-    update::UpdatePrivateMessage,
   },
   removal::{
     remove::RemovePostCommentCommunityOrMod,
@@ -36,8 +35,7 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
-  CreatePrivateMessage(CreatePrivateMessage),
-  UpdatePrivateMessage(UpdatePrivateMessage),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
   AnnounceActivity(Box<AnnounceActivity>),
@@ -71,7 +69,7 @@ pub enum SharedInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
   CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(CreateOrUpdatePost),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   LikePostOrComment(LikePostOrComment),
   DislikePostOrComment(DislikePostOrComment),
   UndoDislikePostOrComment(UndoDislikePostOrComment),
@@ -88,8 +86,7 @@ pub enum SharedInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
   // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
-  CreatePrivateMessage(CreatePrivateMessage),
-  UpdatePrivateMessage(UpdatePrivateMessage),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
   AnnounceActivity(Box<AnnounceActivity>),

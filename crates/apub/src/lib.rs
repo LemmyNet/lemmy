@@ -20,7 +20,7 @@ use activitystreams::{
   activity::Follow,
   actor,
   base::AnyBase,
-  object::{ApObject, AsObject, Note, ObjectExt},
+  object::{ApObject, AsObject, ObjectExt},
 };
 use activitystreams_ext::Ext2;
 use anyhow::{anyhow, Context};
@@ -53,7 +53,6 @@ pub type GroupExt =
 type PersonExt =
   Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
 pub type SiteExt = actor::ApActor<ApObject<actor::Service>>;
-pub type NoteExt = ApObject<Note>;
 
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq)]
 pub enum UserTypes {
@@ -314,7 +313,7 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 }
 
 pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id = actor_id.clone().into_inner();
+  let actor_id: Url = actor_id.clone().into();
   let url = format!(
     "{}://{}{}/inbox",
     &actor_id.scheme(),
