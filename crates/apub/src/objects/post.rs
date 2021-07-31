@@ -1,8 +1,9 @@
 use crate::{
-  activities::extract_community,
+  activities::{extract_community, verify_person_in_community},
   extensions::context::lemmy_context,
   fetcher::person::get_or_fetch_and_upsert_person,
   objects::{create_tombstone, FromApub, Source, ToApub},
+  ActorType,
 };
 use activitystreams::{
   base::AnyBase,
@@ -35,9 +36,10 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Page {
   #[serde(rename = "@context")]
@@ -57,8 +59,6 @@ pub struct Page {
   pub(crate) stickied: Option<bool>,
   published: DateTime<FixedOffset>,
   updated: Option<DateTime<FixedOffset>>,
-
-  // unparsed fields
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -92,11 +92,20 @@ impl Page {
 
   pub(crate) async fn verify(
     &self,
-    _context: &LemmyContext,
-    _request_counter: &mut i32,
+    context: &LemmyContext,
+    request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let community = extract_community(&self.to, context, request_counter).await?;
+
     check_slurs(&self.name)?;
     verify_domains_match(&self.attributed_to, &self.id)?;
+    verify_person_in_community(
+      &self.attributed_to,
+      &community.actor_id(),
+      context,
+      request_counter,
+    )
+    .await?;
     Ok(())
   }
 }

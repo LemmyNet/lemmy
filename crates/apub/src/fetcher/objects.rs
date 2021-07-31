@@ -1,7 +1,6 @@
 use crate::{
   fetcher::fetch::fetch_remote_object,
-  objects::{post::Page, FromApub},
-  NoteExt,
+  objects::{comment::Note, post::Page, FromApub},
   PostOrComment,
 };
 use anyhow::anyhow;
@@ -73,7 +72,7 @@ pub async fn get_or_fetch_and_insert_comment(
         comment_ap_id
       );
       let comment =
-        fetch_remote_object::<NoteExt>(context.client(), comment_ap_id, recursion_counter).await?;
+        fetch_remote_object::<Note>(context.client(), comment_ap_id, recursion_counter).await?;
       let comment = Comment::from_apub(
         &comment,
         context,

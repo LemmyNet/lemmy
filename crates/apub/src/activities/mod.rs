@@ -61,7 +61,7 @@ pub(crate) async fn extract_community(
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
-async fn verify_person_in_community(
+pub(crate) async fn verify_person_in_community(
   person_id: &Url,
   community_id: &Url,
   context: &LemmyContext,
