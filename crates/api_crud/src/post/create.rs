@@ -8,10 +8,14 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::{
-  activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType},
+  activities::{
+    post::create_or_update::CreateOrUpdatePost,
+    voting::vote::{Vote, VoteType},
+    CreateOrUpdateType,
+  },
   generate_apub_endpoint,
-  ApubLikeableType,
   EndpointType,
+  PostOrComment,
 };
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
 use lemmy_db_schema::source::post::*;
@@ -112,9 +116,15 @@ impl PerformCrud for CreatePost {
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    updated_post
-      .send_like(&local_user_view.person, context)
-      .await?;
+    let object = PostOrComment::Post(Box::new(updated_post));
+    Vote::send(
+      &object,
+      &local_user_view.person,
+      inserted_post.community_id,
+      VoteType::Like,
+      context,
+    )
+    .await?;
 
     // Refetch the view
     let inserted_post_id = inserted_post.id;

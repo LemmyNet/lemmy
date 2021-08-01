@@ -1,17 +1,32 @@
 use crate::{
   activities::{
+    community::announce::AnnouncableActivities,
+    generate_activity_id,
     verify_activity,
     verify_person_in_community,
-    voting::{undo_vote_comment, undo_vote_post, vote::Vote},
+    voting::{
+      undo_vote_comment,
+      undo_vote_post,
+      vote::{Vote, VoteType},
+    },
   },
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
   fetcher::{
     objects::get_or_fetch_and_insert_post_or_comment,
     person::get_or_fetch_and_upsert_person,
   },
+  ActorType,
   PostOrComment,
 };
 use activitystreams::activity::kind::UndoType;
+use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
+use lemmy_db_queries::Crud;
+use lemmy_db_schema::{
+  source::{community::Community, person::Person},
+  CommunityId,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -27,6 +42,48 @@ pub struct UndoVote {
   kind: UndoType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl UndoVote {
+  pub async fn send(
+    object: &PostOrComment,
+    actor: &Person,
+    community_id: CommunityId,
+    kind: VoteType,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    let id = generate_activity_id(UndoType::Undo)?;
+
+    let undo_vote = UndoVote {
+      to: PublicUrl::Public,
+      object: Vote {
+        to: PublicUrl::Public,
+        object: object.ap_id(),
+        cc: [community.actor_id()],
+        kind: kind.clone(),
+        common: ActivityCommonFields {
+          context: lemmy_context(),
+          id: generate_activity_id(kind)?,
+          actor: actor.actor_id(),
+          unparsed: Default::default(),
+        },
+      },
+      cc: [community.actor_id()],
+      kind: UndoType::Undo,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+    let activity = AnnouncableActivities::UndoVote(undo_vote);
+    send_to_community_new(activity, &id, actor, &community, vec![], context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]

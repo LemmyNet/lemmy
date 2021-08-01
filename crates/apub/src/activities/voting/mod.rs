@@ -27,7 +27,7 @@ async fn vote_comment(
     comment_id,
     post_id: comment.post_id,
     person_id: actor.id,
-    score: vote_type.score(),
+    score: vote_type.into(),
   };
   let person_id = actor.id;
   blocking(context.pool(), move |conn| {
@@ -55,7 +55,7 @@ async fn vote_post(
   let like_form = PostLikeForm {
     post_id: post.id,
     person_id: actor.id,
-    score: vote_type.score(),
+    score: vote_type.into(),
   };
   let person_id = actor.id;
   blocking(context.pool(), move |conn| {

@@ -9,10 +9,14 @@ use lemmy_api_common::{
   send_local_notifs,
 };
 use lemmy_apub::{
-  activities::{comment::create_or_update::CreateOrUpdateComment, CreateOrUpdateType},
+  activities::{
+    comment::create_or_update::CreateOrUpdateComment,
+    voting::vote::{Vote, VoteType},
+    CreateOrUpdateType,
+  },
   generate_apub_endpoint,
-  ApubLikeableType,
   EndpointType,
+  PostOrComment,
 };
 use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
 use lemmy_db_schema::source::comment::*;
@@ -42,8 +46,9 @@ impl PerformCrud for CreateComment {
     // Check for a community ban
     let post_id = data.post_id;
     let post = get_post(post_id, context.pool()).await?;
+    let community_id = post.community_id;
 
-    check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
 
     // Check if post is locked, no new comments
     if post.locked {
@@ -122,9 +127,15 @@ impl PerformCrud for CreateComment {
       return Err(ApiError::err("couldnt_like_comment").into());
     }
 
-    updated_comment
-      .send_like(&local_user_view.person, context)
-      .await?;
+    let object = PostOrComment::Comment(Box::new(updated_comment));
+    Vote::send(
+      &object,
+      &local_user_view.person,
+      community_id,
+      VoteType::Like,
+      context,
+    )
+    .await?;
 
     let person_id = local_user_view.person.id;
     let mut comment_view = blocking(context.pool(), move |conn| {
