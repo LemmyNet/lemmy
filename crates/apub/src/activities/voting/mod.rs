@@ -1,62 +1,33 @@
-use crate::{
-  activities::{
-    comment::send_websocket_message as send_comment_message,
-    post::send_websocket_message as send_post_message,
-  },
-  fetcher::{
-    objects::get_or_fetch_and_insert_post_or_comment,
-    person::get_or_fetch_and_upsert_person,
-  },
-  PostOrComment,
+use crate::activities::{
+  comment::send_websocket_message as send_comment_message,
+  post::send_websocket_message as send_post_message,
+  voting::vote::VoteType,
 };
 use lemmy_api_common::blocking;
 use lemmy_db_queries::Likeable;
 use lemmy_db_schema::source::{
   comment::{Comment, CommentLike, CommentLikeForm},
+  person::Person,
   post::{Post, PostLike, PostLikeForm},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperation};
-use std::ops::Deref;
-use url::Url;
 
-pub mod dislike;
-pub mod like;
-pub mod undo_dislike;
-pub mod undo_like;
+pub mod undo_vote;
+pub mod vote;
 
-pub(in crate::activities::voting) async fn receive_like_or_dislike(
-  score: i16,
-  actor: &Url,
-  object: &Url,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  match get_or_fetch_and_insert_post_or_comment(object, context, request_counter).await? {
-    PostOrComment::Post(p) => {
-      like_or_dislike_post(score, actor, p.deref(), context, request_counter).await
-    }
-    PostOrComment::Comment(c) => {
-      like_or_dislike_comment(score, actor, c.deref(), context, request_counter).await
-    }
-  }
-}
-
-async fn like_or_dislike_comment(
-  score: i16,
-  actor: &Url,
+async fn vote_comment(
+  vote_type: &VoteType,
+  actor: Person,
   comment: &Comment,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
     person_id: actor.id,
-    score,
+    score: vote_type.score(),
   };
   let person_id = actor.id;
   blocking(context.pool(), move |conn| {
@@ -74,20 +45,17 @@ async fn like_or_dislike_comment(
   .await
 }
 
-async fn like_or_dislike_post(
-  score: i16,
-  actor: &Url,
+async fn vote_post(
+  vote_type: &VoteType,
+  actor: Person,
   post: &Post,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-
   let post_id = post.id;
   let like_form = PostLikeForm {
     post_id: post.id,
     person_id: actor.id,
-    score,
+    score: vote_type.score(),
   };
   let person_id = actor.id;
   blocking(context.pool(), move |conn| {
@@ -99,30 +67,11 @@ async fn like_or_dislike_post(
   send_post_message(post.id, UserOperation::CreatePostLike, context).await
 }
 
-pub(in crate::activities::voting) async fn receive_undo_like_or_dislike(
-  actor: &Url,
-  object: &Url,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  match get_or_fetch_and_insert_post_or_comment(object, context, request_counter).await? {
-    PostOrComment::Post(p) => {
-      undo_like_or_dislike_post(actor, p.deref(), context, request_counter).await
-    }
-    PostOrComment::Comment(c) => {
-      undo_like_or_dislike_comment(actor, c.deref(), context, request_counter).await
-    }
-  }
-}
-
-async fn undo_like_or_dislike_comment(
-  actor: &Url,
+async fn undo_vote_comment(
+  actor: Person,
   comment: &Comment,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-
   let comment_id = comment.id;
   let person_id = actor.id;
   blocking(context.pool(), move |conn| {
@@ -139,14 +88,11 @@ async fn undo_like_or_dislike_comment(
   .await
 }
 
-async fn undo_like_or_dislike_post(
-  actor: &Url,
+async fn undo_vote_post(
+  actor: Person,
   post: &Post,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-
   let post_id = post.id;
   let person_id = actor.id;
   blocking(context.pool(), move |conn| {
