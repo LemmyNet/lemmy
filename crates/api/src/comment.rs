@@ -7,12 +7,19 @@ use lemmy_api_common::{
   comment::*,
   get_local_user_view_from_jwt,
 };
-use lemmy_apub::ApubLikeableType;
+use lemmy_apub::{
+  activities::voting::{
+    undo_vote::UndoVote,
+    vote::{Vote, VoteType},
+  },
+  PostOrComment,
+};
 use lemmy_db_queries::{source::comment::Comment_, Likeable, Saveable};
 use lemmy_db_schema::{source::comment::*, LocalUserId};
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkCommentAsRead {
@@ -170,6 +177,7 @@ impl Perform for CreateCommentLike {
 
     // Only add the like if the score isnt 0
     let comment = orig_comment.comment;
+    let object = PostOrComment::Comment(Box::new(comment));
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
@@ -178,17 +186,24 @@ impl Perform for CreateCommentLike {
         return Err(ApiError::err("couldnt_like_comment").into());
       }
 
-      if like_form.score == 1 {
-        comment.send_like(&local_user_view.person, context).await?;
-      } else if like_form.score == -1 {
-        comment
-          .send_dislike(&local_user_view.person, context)
-          .await?;
-      }
+      Vote::send(
+        &object,
+        &local_user_view.person,
+        orig_comment.community.id,
+        like_form.score.try_into()?,
+        context,
+      )
+      .await?;
     } else {
-      comment
-        .send_undo_like(&local_user_view.person, context)
-        .await?;
+      // API doesn't distinguish between Undo/Like and Undo/Dislike
+      UndoVote::send(
+        &object,
+        &local_user_view.person,
+        orig_comment.community.id,
+        VoteType::Like,
+        context,
+      )
+      .await?;
     }
 
     // Have to refetch the comment to get the current state

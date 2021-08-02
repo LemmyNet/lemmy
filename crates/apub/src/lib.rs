@@ -11,7 +11,6 @@ pub mod objects;
 use crate::{
   extensions::{
     group_extension::GroupExtension,
-    page_extension::PageExtension,
     person_extension::PersonExtension,
     signatures::{PublicKey, PublicKeyExtension},
   },
@@ -21,9 +20,9 @@ use activitystreams::{
   activity::Follow,
   actor,
   base::AnyBase,
-  object::{ApObject, AsObject, Note, ObjectExt, Page},
+  object::{ApObject, AsObject, ObjectExt},
 };
-use activitystreams_ext::{Ext1, Ext2};
+use activitystreams_ext::Ext2;
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
@@ -54,9 +53,6 @@ pub type GroupExt =
 type PersonExt =
   Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
 pub type SiteExt = actor::ApActor<ApObject<actor::Service>>;
-/// Activitystreams type for post
-pub type PageExt = Ext1<ApObject<Page>, PageExtension>;
-pub type NoteExt = ApObject<Note>;
 
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq)]
 pub enum UserTypes {
@@ -133,10 +129,6 @@ pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Resu
 /// and actors in Lemmy.
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
-  async fn send_create(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
-  async fn send_update(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
   async fn send_delete(&self, creator: &DbPerson, context: &LemmyContext)
     -> Result<(), LemmyError>;
   async fn send_undo_delete(
@@ -148,21 +140,6 @@ pub trait ApubObjectType {
   async fn send_undo_remove(
     &self,
     mod_: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait ApubLikeableType {
-  async fn send_like(&self, creator: &DbPerson, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_dislike(
-    &self,
-    creator: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_undo_like(
-    &self,
-    creator: &DbPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 }
@@ -314,7 +291,7 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 }
 
 pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id = actor_id.clone().into_inner();
+  let actor_id: Url = actor_id.clone().into();
   let url = format!(
     "{}://{}{}/inbox",
     &actor_id.scheme(),
@@ -375,6 +352,16 @@ where
 pub enum PostOrComment {
   Comment(Box<Comment>),
   Post(Box<Post>),
+}
+
+impl PostOrComment {
+  pub(crate) fn ap_id(&self) -> Url {
+    match self {
+      PostOrComment::Post(p) => p.ap_id.clone(),
+      PostOrComment::Comment(c) => c.ap_id.clone(),
+    }
+    .into()
+  }
 }
 
 /// Tries to find a post or comment in the local database, without any network requests.

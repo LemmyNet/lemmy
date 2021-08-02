@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, mark_post_as_read, post::*};
 use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
-use lemmy_db_queries::{from_opt_str_to_opt_enum, ListingType, SortType};
+use lemmy_db_queries::{from_opt_str_to_opt_enum, DeleteableOrRemoveable, ListingType, SortType};
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
   post_view::{PostQueryBuilder, PostView},
@@ -32,11 +32,16 @@ impl PerformCrud for GetPost {
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
-    let post_view = blocking(context.pool(), move |conn| {
+    let mut post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, id, person_id)
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_find_post"))?;
+
+    // Blank out deleted info
+    if post_view.post.deleted || post_view.post.removed {
+      post_view.post = post_view.post.blank_out_deleted_or_removed_info();
+    }
 
     // Mark the post as read
     if let Some(person_id) = person_id {
@@ -44,7 +49,7 @@ impl PerformCrud for GetPost {
     }
 
     let id = data.id;
-    let comments = blocking(context.pool(), move |conn| {
+    let mut comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
@@ -54,6 +59,14 @@ impl PerformCrud for GetPost {
     })
     .await??;
 
+    // Blank out deleted or removed info
+    for cv in comments
+      .iter_mut()
+      .filter(|cv| cv.comment.deleted || cv.comment.removed)
+    {
+      cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+    }
+
     let community_id = post_view.community.id;
     let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
@@ -61,11 +74,16 @@ impl PerformCrud for GetPost {
     .await??;
 
     // Necessary for the sidebar
-    let community_view = blocking(context.pool(), move |conn| {
+    let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_find_community"))?;
+
+    // Blank out deleted or removed info
+    if community_view.community.deleted || community_view.community.removed {
+      community_view.community = community_view.community.blank_out_deleted_or_removed_info();
+    }
 
     let online = context
       .chat_server()
@@ -119,7 +137,7 @@ impl PerformCrud for GetPosts {
       .unwrap_or(None);
     let saved_only = data.saved_only;
 
-    let posts = blocking(context.pool(), move |conn| {
+    let mut posts = blocking(context.pool(), move |conn| {
       PostQueryBuilder::create(conn)
         .listing_type(listing_type)
         .sort(sort)
@@ -136,6 +154,14 @@ impl PerformCrud for GetPosts {
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_get_posts"))?;
+
+    // Blank out deleted or removed info
+    for pv in posts
+      .iter_mut()
+      .filter(|p| p.post.deleted || p.post.removed)
+    {
+      pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+    }
 
     Ok(GetPostsResponse { posts })
   }

@@ -13,9 +13,12 @@ use lemmy_db_schema::{
   DbUrl,
 };
 use lemmy_db_views_actor::community_view::CommunityView;
-use lemmy_utils::LemmyError;
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use url::Url;
+use serde::{Deserialize, Serialize};
+use strum_macros::ToString;
+use url::{ParseError, Url};
+use uuid::Uuid;
 
 pub mod comment;
 pub mod community;
@@ -26,6 +29,12 @@ pub mod private_message;
 pub mod removal;
 pub mod send;
 pub mod voting;
+
+#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
+pub enum CreateOrUpdateType {
+  Create,
+  Update,
+}
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
@@ -41,27 +50,34 @@ async fn verify_person(
   Ok(())
 }
 
-/// Fetches the person and community to verify their type, then checks if person is banned from site
-/// or community.
-async fn verify_person_in_community(
-  person_id: &Url,
+pub(crate) async fn extract_community(
   cc: &[Url],
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<Community, LemmyError> {
-  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
   let mut cc_iter = cc.iter();
-  let community: Community = loop {
+  loop {
     if let Some(cid) = cc_iter.next() {
       if let Ok(c) = get_or_fetch_and_upsert_community(cid, context, request_counter).await {
-        break c;
+        break Ok(c);
       }
     } else {
       return Err(anyhow!("No community found in cc").into());
     }
-  };
-  check_community_or_site_ban(&person, community.id, context.pool()).await?;
-  Ok(community)
+  }
+}
+
+/// Fetches the person and community to verify their type, then checks if person is banned from site
+/// or community.
+pub(crate) async fn verify_person_in_community(
+  person_id: &Url,
+  community_id: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let community = get_or_fetch_and_upsert_community(community_id, context, request_counter).await?;
+  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
+  check_community_or_site_ban(&person, community.id, context.pool()).await
 }
 
 /// Simply check that the url actually refers to a valid group.
@@ -80,13 +96,16 @@ fn verify_activity(common: &ActivityCommonFields) -> Result<(), LemmyError> {
   Ok(())
 }
 
-async fn verify_mod_action(
+/// Verify that the actor is a community mod. This check is only run if the community is local,
+/// because in case of remote communities, admins can also perform mod actions. As admin status
+/// is not federated, we cant verify their actions remotely.
+pub(crate) async fn verify_mod_action(
   actor_id: &Url,
-  activity_cc: Url,
+  community: Url,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &activity_cc.into())
+    Community::read_from_apub_id(conn, &community.into())
   })
   .await??;
 
@@ -119,4 +138,19 @@ fn verify_add_remove_moderator_target(target: &Url, community: Url) -> Result<()
     return Err(anyhow!("Unkown target url").into());
   }
   Ok(())
+}
+
+/// Generate a unique ID for an activity, in the format:
+/// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
+fn generate_activity_id<T>(kind: T) -> Result<Url, ParseError>
+where
+  T: ToString,
+{
+  let id = format!(
+    "{}/activities/{}/{}",
+    Settings::get().get_protocol_and_hostname(),
+    kind.to_string().to_lowercase(),
+    Uuid::new_v4()
+  );
+  Url::parse(&id)
 }

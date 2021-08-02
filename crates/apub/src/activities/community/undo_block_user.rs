@@ -9,7 +9,7 @@ use crate::{
 };
 use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::Bannable;
 use lemmy_db_schema::source::community::{CommunityPersonBan, CommunityPersonBanForm};
 use lemmy_utils::LemmyError;
@@ -36,7 +36,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc, context, request_counter).await?;
+    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())

@@ -47,7 +47,7 @@ where
   response.expect("retry http request")
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug)]
 pub struct IframelyResponse {
   pub title: Option<String>,
   pub description: Option<String>,
@@ -70,7 +70,7 @@ pub(crate) async fn fetch_iframely(
       .map_err(|e| RecvError(e.to_string()))?;
     Ok(res)
   } else {
-    Ok(IframelyResponse::default())
+    Err(anyhow!("Missing Iframely URL in config.").into())
   }
 }
 
@@ -119,18 +119,23 @@ pub(crate) async fn fetch_pictrs(
 pub async fn fetch_iframely_and_pictrs_data(
   client: &Client,
   url: Option<&Url>,
-) -> Result<(IframelyResponse, Option<Url>), LemmyError> {
+) -> Result<(Option<IframelyResponse>, Option<Url>), LemmyError> {
   match &url {
     Some(url) => {
       // Fetch iframely data
-      let iframely_response = fetch_iframely(client, url).await?;
+      let iframely_res_option = fetch_iframely(client, url).await.ok();
 
       // Fetch pictrs thumbnail
-      let pictrs_hash = match &iframely_response.thumbnail_url {
-        Some(iframely_thumbnail_url) => fetch_pictrs(client, iframely_thumbnail_url)
-          .await?
-          .map(|r| r.files[0].file.to_owned()),
-        // Try to generate a small thumbnail if iframely is not supported
+      let pictrs_hash = match &iframely_res_option {
+        Some(iframely_res) => match &iframely_res.thumbnail_url {
+          Some(iframely_thumbnail_url) => fetch_pictrs(client, iframely_thumbnail_url)
+            .await?
+            .map(|r| r.files[0].file.to_owned()),
+          // Try to generate a small thumbnail if iframely is not supported
+          None => fetch_pictrs(client, url)
+            .await?
+            .map(|r| r.files[0].file.to_owned()),
+        },
         None => fetch_pictrs(client, url)
           .await?
           .map(|r| r.files[0].file.to_owned()),
@@ -147,22 +152,10 @@ pub async fn fetch_iframely_and_pictrs_data(
           .ok()
         })
         .flatten();
-      /*
-      let pictrs_thumbnail = if let Some(pictrs_hash) = pictrs_hash {
-        Some(Url::parse(&format!(
-          "{}/pictrs/image/{}",
-          Settings::get().get_protocol_and_hostname(),
-          pictrs_hash
-        ))?)
-      } else {
-        None
-      };
 
-       */
-
-      Ok((iframely_response, pictrs_thumbnail))
+      Ok((iframely_res_option, pictrs_thumbnail))
     }
-    None => Ok((IframelyResponse::default(), None)),
+    None => Ok((None, None)),
   }
 }
 

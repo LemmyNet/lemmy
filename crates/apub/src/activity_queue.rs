@@ -1,4 +1,5 @@
 use crate::{
+  activities::community::announce::{AnnouncableActivities, AnnounceActivity},
   check_is_apub_id_valid,
   extensions::signatures::sign_and_send,
   insert_activity,
@@ -24,7 +25,7 @@ use itertools::Itertools;
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::{debug, warn};
+use log::{debug, info, warn};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, env, fmt::Debug, future::Future, pin::Pin};
@@ -137,37 +138,77 @@ where
   Ok(())
 }
 
-/// Sends notification to any persons mentioned in a comment
-///
-/// * `creator` person who created the comment
-/// * `mentions` list of inboxes of persons which are mentioned in the comment
-/// * `activity` either a `Create/Note` or `Update/Note`
-pub(crate) async fn send_comment_mentions<T, Kind>(
-  creator: &Person,
-  mentions: Vec<Url>,
-  activity: T,
+pub(crate) async fn send_to_community_new(
+  activity: AnnouncableActivities,
+  activity_id: &Url,
+  actor: &dyn ActorType,
+  community: &Community,
+  additional_inboxes: Vec<Url>,
   context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  // if this is a local community, we need to do an announce from the community instead
+  if community.local {
+    insert_activity(activity_id, activity.clone(), true, false, context.pool()).await?;
+    AnnounceActivity::send(activity, community, additional_inboxes, context).await?;
+  } else {
+    let mut inboxes = additional_inboxes;
+    inboxes.push(community.get_shared_inbox_or_inbox_url());
+    send_activity_new(context, &activity, activity_id, actor, inboxes, false).await?;
+  }
+
+  Ok(())
+}
+
+pub(crate) async fn send_activity_new<T>(
+  context: &LemmyContext,
+  activity: &T,
+  activity_id: &Url,
+  actor: &dyn ActorType,
+  inboxes: Vec<Url>,
+  sensitive: bool,
 ) -> Result<(), LemmyError>
 where
-  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
-  Kind: Serialize,
-  <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
+  T: Serialize,
 {
-  debug!(
-    "Sending mentions activity {:?} to {:?}",
-    &activity.id_unchecked(),
-    &mentions
-  );
-  let mentions = mentions
+  if !Settings::get().federation.enabled || inboxes.is_empty() {
+    return Ok(());
+  }
+
+  info!("Sending activity {}", activity_id.to_string());
+
+  // Don't send anything to ourselves
+  // TODO: this should be a debug assert
+  let hostname = Settings::get().get_hostname_without_port()?;
+  let inboxes: Vec<&Url> = inboxes
     .iter()
-    .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
-    .map(|i| i.to_owned())
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
     .collect();
-  send_activity_internal(
-    context, activity, creator, mentions, false, // Don't create a new DB row
-    false,
+
+  let serialised_activity = serde_json::to_string(&activity)?;
+
+  insert_activity(
+    activity_id,
+    serialised_activity.clone(),
+    true,
+    sensitive,
+    context.pool(),
   )
   .await?;
+
+  for i in inboxes {
+    let message = SendActivityTask {
+      activity: serialised_activity.to_owned(),
+      inbox: i.to_owned(),
+      actor_id: actor.actor_id(),
+      private_key: actor.private_key().context(location_info!())?,
+    };
+    if env::var("LEMMY_TEST_SEND_SYNC").is_ok() {
+      do_send(message, &Client::default()).await?;
+    } else {
+      context.activity_queue.queue::<SendActivityTask>(message)?;
+    }
+  }
+
   Ok(())
 }
 

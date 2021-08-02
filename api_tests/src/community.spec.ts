@@ -77,6 +77,7 @@ test('Delete community', async () => {
     communityRes.community_view.community.id
   );
   expect(deleteCommunityRes.community_view.community.deleted).toBe(true);
+  expect(deleteCommunityRes.community_view.community.title).toBe("");
 
   // Make sure it got deleted on A
   let communityOnAlphaDeleted = await getCommunity(
@@ -128,6 +129,7 @@ test('Remove community', async () => {
     communityRes.community_view.community.id
   );
   expect(removeCommunityRes.community_view.community.removed).toBe(true);
+  expect(removeCommunityRes.community_view.community.title).toBe("");
 
   // Make sure it got Removed on A
   let communityOnAlphaRemoved = await getCommunity(

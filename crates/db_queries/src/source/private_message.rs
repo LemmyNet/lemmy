@@ -1,4 +1,4 @@
-use crate::{ApubObject, Crud};
+use crate::{ApubObject, Crud, DeleteableOrRemoveable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl, PersonId, PrivateMessageId};
 
@@ -134,6 +134,13 @@ impl PrivateMessage_ for PrivateMessage {
     )
     .set(read.eq(true))
     .get_results::<Self>(conn)
+  }
+}
+
+impl DeleteableOrRemoveable for PrivateMessage {
+  fn blank_out_deleted_or_removed_info(mut self) -> Self {
+    self.content = "".into();
+    self
   }
 }
 

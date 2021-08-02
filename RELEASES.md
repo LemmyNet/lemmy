@@ -1,3 +1,68 @@
+# Lemmy v0.11.3 Release (2021-07-30)
+
+## Changes
+
+Since our last release, we've had [~30](https://github.com/LemmyNet/lemmy/compare/0.11.0...main) commits to Lemmy, and [~60](https://github.com/LemmyNet/lemmy-ui/compare/0.11.0...main) to Lemmy UI.
+
+### Lemmy Server
+
+- Blank out extra info for deleted or removed content. Fixes [#1679](https://github.com/LemmyNet/Lemmy/issues/1679) 
+- Add show_new_posts_notifs setting. Fixes [#1664](https://github.com/LemmyNet/Lemmy/issues/1664)
+- Fix issue with protocol string in actor id generation [#1668](https://github.com/LemmyNet/Lemmy/issues/1668)
+- Adding shortname fetching for users and communities. Fixes [#1662](https://github.com/LemmyNet/Lemmy/issues/1662)
+- Make captcha case-insensitive.
+- Remove tracking params from post url (fixes [#768](https://github.com/LemmyNet/Lemmy/issues/768))
+- Upgrade pictrs. Fixes [#1599](https://github.com/LemmyNet/Lemmy/issues/1599)
+- Invalidate current logins on account deletion. Fixes [#1602](https://github.com/LemmyNet/Lemmy/issues/1602)
+- Fix nsfw posts showing for non-logged in users. Fixes [#1614](https://github.com/LemmyNet/Lemmy/issues/1614)
+- Add additional slurs configuration option. Closes [#1464](https://github.com/LemmyNet/Lemmy/issues/1464).
+- Updating to rust 1.51.0
+
+### Lemmy UI
+
+- Have setting to disable notifs for new posts. Fixes [#132](https://github.com/LemmyNet/lemmy-ui/issues/132)
+- Remove max length constraints on actors. Fixes [#350](https://github.com/LemmyNet/lemmy-ui/issues/350)
+- Fix captcha replay bug. Fixes [#348](https://github.com/LemmyNet/lemmy-ui/issues/348)
+- Removing community and user routes in favor of shortnames. Fixes [#317](https://github.com/LemmyNet/lemmy-ui/issues/317)
+- Add front end helpers 1 [(#346](https://github.com/LemmyNet/lemmy-ui/issues/346))
+- Don't use default subscribed for communities page.
+- Adding Listing type to communities page, default local. [#190](https://github.com/LemmyNet/lemmy-ui/issues/190)
+- Fix language bug on mobile browsers.
+- Collapse sidebar on mobile. Fixes [#335](https://github.com/LemmyNet/lemmy-ui/issues/335)
+- Re-organized components folder. [(#339](https://github.com/LemmyNet/lemmy-ui/issues/339))
+- Moving comment link to top bar. Fixes [#307](https://github.com/LemmyNet/lemmy-ui/issues/307)
+- Make spinner bigger. Fixes [#203](https://github.com/LemmyNet/lemmy-ui/issues/203)
+- Fix preview description html. Fixes [#110](https://github.com/LemmyNet/lemmy-ui/issues/110)
+- Update darkly, make danger darker. Fixes [#16](https://github.com/LemmyNet/lemmy-ui/issues/16)
+- Always show previous paginator, extract paginator component.
+- Use better comment collapse icon, and add text. Fixes [#318](https://github.com/LemmyNet/lemmy-ui/issues/318)
+- Fix symbols issue. Fixes [#319](https://github.com/LemmyNet/lemmy-ui/issues/319)
+- Don't restore scroll position on page refresh. Fixes [#186](https://github.com/LemmyNet/lemmy-ui/issues/186)
+- Insert triple backticks for 'code' button when multiple lines are selected. [(#311](https://github.com/LemmyNet/lemmy-ui/issues/311))
+- Adding a comment here placeholder. Fixes [#301](https://github.com/LemmyNet/lemmy-ui/issues/301)
+- Fix non-local community and person links. Fixes [#290](https://github.com/LemmyNet/lemmy-ui/issues/290)
+- Fix navbar bug. Fixes [#289](https://github.com/LemmyNet/lemmy-ui/issues/289)
+- Hide names of mods / admins without priveleges. Fixes [#285](https://github.com/LemmyNet/lemmy-ui/issues/285)
+- Adding URL search type. Fixes [#286](https://github.com/LemmyNet/lemmy-ui/issues/286)
+- Add a link to joinlemmy on lemmy.ml signup. Fixes [#235](https://github.com/LemmyNet/lemmy-ui/issues/235)
+- Fix duped site description. Fixes [#281](https://github.com/LemmyNet/lemmy-ui/issues/281)
+
+### API
+
+- Added `show_new_posts_notifs` boolean to `SaveUserSettings`, and `LocalUserSettings`.
+- A full list of the API changes can be seen on this diff of [lemmy-js-client: 0.11.0 -> 0.11.3](https://github.com/LemmyNet/lemmy-js-client/compare/0.11.0...0.11.3-rc.4) .
+
+### Federation
+
+- No changes in this release, but there will be many soon.
+
+## Upgrade notes
+
+To upgrade your instance to `0.11.3`, simply follow the instructions in the documentation:
+
+- [Upgrade with manual Docker installation](https://join-lemmy.org/docs/en/administration/install_docker.html#updating)
+- [Upgrade with Ansible installation](https://join-lemmy.org/docs/en/administration/install_ansible.html)
+
 # Lemmy v0.11.0 Release (2021-04-27)
 
 ## Changes
@@ -48,7 +113,6 @@ Since our last release this month, we've had [~60](https://github.com/LemmyNet/l
 - Correctly render HTML in popup notifications
 - Fix html notif bug. Fixes [#254](https://github.com/LemmyNet/lemmy-ui/issues/254)
 - Fixing issue with debounce. Fixes [#236](https://github.com/LemmyNet/lemmy-ui/issues/236)
-
 
 ## Upgrade notes
 

@@ -1,34 +1,36 @@
 use crate::{
   activities::{
-    comment::{create::CreateComment, update::UpdateComment},
+    comment::create_or_update::CreateOrUpdateComment,
     community::{
       add_mod::AddMod,
       block_user::BlockUserFromCommunity,
+      list_community_follower_inboxes,
       undo_block_user::UndoBlockUserFromCommunity,
     },
     deletion::{
       delete::DeletePostCommentOrCommunity,
       undo_delete::UndoDeletePostCommentOrCommunity,
     },
-    post::{create::CreatePost, update::UpdatePost},
+    generate_activity_id,
+    post::create_or_update::CreateOrUpdatePost,
     removal::{
       remove::RemovePostCommentCommunityOrMod,
       undo_remove::UndoRemovePostCommentOrCommunity,
     },
     verify_activity,
     verify_community,
-    voting::{
-      dislike::DislikePostOrComment,
-      like::LikePostOrComment,
-      undo_dislike::UndoDislikePostOrComment,
-      undo_like::UndoLikePostOrComment,
-    },
+    voting::{undo_vote::UndoVote, vote::Vote},
   },
+  activity_queue::send_activity_new,
+  extensions::context::lemmy_context,
   http::is_activity_already_known,
   insert_activity,
+  ActorType,
+  CommunityType,
 };
 use activitystreams::activity::kind::AnnounceType;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler, PublicUrl};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -37,14 +39,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum AnnouncableActivities {
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
-  CreatePost(CreatePost),
-  UpdatePost(UpdatePost),
-  LikePostOrComment(LikePostOrComment),
-  DislikePostOrComment(DislikePostOrComment),
-  UndoLikePostOrComment(UndoLikePostOrComment),
-  UndoDislikePostOrComment(UndoDislikePostOrComment),
+  CreateOrUpdateComment(CreateOrUpdateComment),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
+  Vote(Vote),
+  UndoVote(UndoVote),
   DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
   UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
   RemovePostCommentCommunityOrMod(RemovePostCommentCommunityOrMod),
@@ -64,6 +62,38 @@ pub struct AnnounceActivity {
   kind: AnnounceType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl AnnounceActivity {
+  pub async fn send(
+    object: AnnouncableActivities,
+    community: &Community,
+    additional_inboxes: Vec<Url>,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let announce = AnnounceActivity {
+      to: PublicUrl::Public,
+      object,
+      cc: vec![community.followers_url()],
+      kind: AnnounceType::Announce,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: generate_activity_id(&AnnounceType::Announce)?,
+        actor: community.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+    let inboxes = list_community_follower_inboxes(community, additional_inboxes, context).await?;
+    send_activity_new(
+      context,
+      &announce,
+      &announce.common.id,
+      community,
+      inboxes,
+      false,
+    )
+    .await
+  }
 }
 
 #[async_trait::async_trait(?Send)]

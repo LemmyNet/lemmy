@@ -9,12 +9,23 @@ use lemmy_api_common::{
   mark_post_as_read,
   post::*,
 };
-use lemmy_apub::{ApubLikeableType, ApubObjectType};
+use lemmy_apub::{
+  activities::{
+    post::create_or_update::CreateOrUpdatePost,
+    voting::{
+      undo_vote::UndoVote,
+      vote::{Vote, VoteType},
+    },
+    CreateOrUpdateType,
+  },
+  PostOrComment,
+};
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
 use lemmy_db_schema::source::{moderator::*, post::*};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePostLike {
@@ -50,6 +61,9 @@ impl Perform for CreatePostLike {
     })
     .await??;
 
+    let community_id = post.community_id;
+    let object = PostOrComment::Post(Box::new(post));
+
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
@@ -59,15 +73,24 @@ impl Perform for CreatePostLike {
         return Err(ApiError::err("couldnt_like_post").into());
       }
 
-      if like_form.score == 1 {
-        post.send_like(&local_user_view.person, context).await?;
-      } else if like_form.score == -1 {
-        post.send_dislike(&local_user_view.person, context).await?;
-      }
+      Vote::send(
+        &object,
+        &local_user_view.person,
+        community_id,
+        like_form.score.try_into()?,
+        context,
+      )
+      .await?;
     } else {
-      post
-        .send_undo_like(&local_user_view.person, context)
-        .await?;
+      // API doesn't distinguish between Undo/Like and Undo/Dislike
+      UndoVote::send(
+        &object,
+        &local_user_view.person,
+        community_id,
+        VoteType::Like,
+        context,
+      )
+      .await?;
     }
 
     // Mark the post as read
@@ -140,9 +163,13 @@ impl Perform for LockPost {
     blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
 
     // apub updates
-    updated_post
-      .send_update(&local_user_view.person, context)
-      .await?;
+    CreateOrUpdatePost::send(
+      &updated_post,
+      &local_user_view.person,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await?;
 
     // Refetch the post
     let post_id = data.post_id;
@@ -214,9 +241,13 @@ impl Perform for StickyPost {
 
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
-    updated_post
-      .send_update(&local_user_view.person, context)
-      .await?;
+    CreateOrUpdatePost::send(
+      &updated_post,
+      &local_user_view.person,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await?;
 
     // Refetch the post
     let post_id = data.post_id;

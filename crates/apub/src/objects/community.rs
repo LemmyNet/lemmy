@@ -55,7 +55,7 @@ impl ToApub for Community {
 
     let mut group = ApObject::new(Group::new());
     group
-      .set_many_contexts(lemmy_context()?)
+      .set_many_contexts(lemmy_context())
       .set_id(self.actor_id.to_owned().into())
       .set_name(self.title.to_owned())
       .set_published(convert_datetime(self.published))

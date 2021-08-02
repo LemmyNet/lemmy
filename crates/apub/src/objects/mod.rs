@@ -1,8 +1,4 @@
-use crate::{
-  check_community_or_site_ban,
-  check_is_apub_id_valid,
-  fetcher::person::get_or_fetch_and_upsert_person,
-};
+use crate::{check_is_apub_id_valid, fetcher::person::get_or_fetch_and_upsert_person};
 use activitystreams::{
   base::{AsBase, BaseExt, ExtendsExt},
   markers::Base,
@@ -12,8 +8,9 @@ use activitystreams::{
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_db_queries::{ApubObject, Crud, DbPool};
-use lemmy_db_schema::{CommunityId, DbUrl};
+use lemmy_db_schema::DbUrl;
 use lemmy_utils::{
   location_info,
   settings::structs::Settings,
@@ -68,6 +65,13 @@ pub trait FromApubToForm<ApubType> {
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Source {
+  content: String,
+  media_type: MediaTypeMarkdown,
 }
 
 /// Updated is actually the deletion time
@@ -210,22 +214,4 @@ where
     let to = blocking(context.pool(), move |conn| To::upsert(conn, &to_form)).await??;
     Ok(to)
   }
-}
-
-pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
-  object: &T,
-  community_id: CommunityId,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError>
-where
-  T: ObjectExt<Kind>,
-{
-  let person_id = object
-    .attributed_to()
-    .context(location_info!())?
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
-  check_community_or_site_ban(&person, community_id, context.pool()).await
 }

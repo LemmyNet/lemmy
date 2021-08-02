@@ -1,4 +1,4 @@
-use crate::{ApubObject, Bannable, Crud, Followable, Joinable};
+use crate::{ApubObject, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -11,6 +11,7 @@ use lemmy_db_schema::{
     CommunityModeratorForm,
     CommunityPersonBan,
     CommunityPersonBanForm,
+    CommunitySafe,
   },
   CommunityId,
   DbUrl,
@@ -196,6 +197,26 @@ impl Joinable<CommunityModeratorForm> for CommunityModerator {
         .filter(person_id.eq(community_moderator_form.person_id)),
     )
     .execute(conn)
+  }
+}
+
+impl DeleteableOrRemoveable for CommunitySafe {
+  fn blank_out_deleted_or_removed_info(mut self) -> Self {
+    self.title = "".into();
+    self.description = None;
+    self.icon = None;
+    self.banner = None;
+    self
+  }
+}
+
+impl DeleteableOrRemoveable for Community {
+  fn blank_out_deleted_or_removed_info(mut self) -> Self {
+    self.title = "".into();
+    self.description = None;
+    self.icon = None;
+    self.banner = None;
+    self
   }
 }
 

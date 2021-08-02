@@ -5,8 +5,11 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{EditPrivateMessage, PrivateMessageResponse},
 };
-use lemmy_apub::ApubObjectType;
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
+use lemmy_apub::activities::{
+  private_message::create_or_update::CreateOrUpdatePrivateMessage,
+  CreateOrUpdateType,
+};
+use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
 use lemmy_utils::{utils::remove_slurs, ApiError, ConnectionId, LemmyError};
@@ -44,15 +47,26 @@ impl PerformCrud for EditPrivateMessage {
     .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // Send the apub update
-    updated_private_message
-      .send_update(&local_user_view.person, context)
-      .await?;
+    CreateOrUpdatePrivateMessage::send(
+      &updated_private_message,
+      &local_user_view.person,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await?;
 
     let private_message_id = data.private_message_id;
-    let private_message_view = blocking(context.pool(), move |conn| {
+    let mut private_message_view = blocking(context.pool(), move |conn| {
       PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
+
+    // Blank out deleted or removed info
+    if private_message_view.private_message.deleted {
+      private_message_view.private_message = private_message_view
+        .private_message
+        .blank_out_deleted_or_removed_info();
+    }
 
     let res = PrivateMessageResponse {
       private_message_view,
