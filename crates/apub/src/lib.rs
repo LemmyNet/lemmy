@@ -132,10 +132,6 @@ pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Resu
 /// and actors in Lemmy.
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
-  async fn send_create(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
-  async fn send_update(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
   async fn send_delete(&self, creator: &DbPerson, context: &LemmyContext)
     -> Result<(), LemmyError>;
   async fn send_undo_delete(

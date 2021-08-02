@@ -22,22 +22,6 @@ use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for PrivateMessage {
-  async fn send_create(
-    &self,
-    _creator: &Person,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_update(
-    &self,
-    _creator: &Person,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
   async fn send_delete(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let recipient_id = self.recipient_id;
     let recipient =

@@ -23,22 +23,6 @@ use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Post {
-  async fn send_create(
-    &self,
-    _creator: &Person,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  async fn send_update(
-    &self,
-    _creator: &Person,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
   async fn send_delete(&self, creator: &Person, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
