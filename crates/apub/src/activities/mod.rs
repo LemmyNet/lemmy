@@ -31,7 +31,6 @@ pub mod send;
 pub mod voting;
 
 #[derive(Clone, Debug, ToString, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum CreateOrUpdateType {
   Create,
   Update,

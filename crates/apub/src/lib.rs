@@ -132,10 +132,6 @@ pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Resu
 /// and actors in Lemmy.
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
-  async fn send_create(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
-  async fn send_update(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
   async fn send_delete(&self, creator: &DbPerson, context: &LemmyContext)
     -> Result<(), LemmyError>;
   async fn send_undo_delete(
@@ -147,21 +143,6 @@ pub trait ApubObjectType {
   async fn send_undo_remove(
     &self,
     mod_: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait ApubLikeableType {
-  async fn send_like(&self, creator: &DbPerson, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_dislike(
-    &self,
-    creator: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_undo_like(
-    &self,
-    creator: &DbPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 }
@@ -374,6 +355,16 @@ where
 pub enum PostOrComment {
   Comment(Box<Comment>),
   Post(Box<Post>),
+}
+
+impl PostOrComment {
+  pub(crate) fn ap_id(&self) -> Url {
+    match self {
+      PostOrComment::Post(p) => p.ap_id.clone(),
+      PostOrComment::Comment(c) => c.ap_id.clone(),
+    }
+    .into()
+  }
 }
 
 /// Tries to find a post or comment in the local database, without any network requests.
