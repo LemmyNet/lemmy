@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    comment::{create::CreateComment, update::UpdateComment},
+    comment::create_or_update::CreateOrUpdateComment,
     community::{
       add_mod::AddMod,
       block_user::BlockUserFromCommunity,
@@ -12,7 +12,7 @@ use crate::{
       undo_delete::UndoDeletePostCommentOrCommunity,
     },
     generate_activity_id,
-    post::{create::CreatePost, update::UpdatePost},
+    post::create_or_update::CreateOrUpdatePost,
     removal::{
       remove::RemovePostCommentCommunityOrMod,
       undo_remove::UndoRemovePostCommentOrCommunity,
@@ -44,10 +44,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 pub enum AnnouncableActivities {
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
-  CreatePost(CreatePost),
-  UpdatePost(UpdatePost),
+  CreateOrUpdateComment(CreateOrUpdateComment),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   LikePostOrComment(LikePostOrComment),
   DislikePostOrComment(DislikePostOrComment),
   UndoLikePostOrComment(UndoLikePostOrComment),
@@ -87,7 +85,7 @@ impl AnnounceActivity {
       kind: AnnounceType::Announce,
       common: ActivityCommonFields {
         context: lemmy_context(),
-        id: generate_activity_id(AnnounceType::Announce)?,
+        id: generate_activity_id(&AnnounceType::Announce)?,
         actor: community.actor_id(),
         unparsed: Default::default(),
       },

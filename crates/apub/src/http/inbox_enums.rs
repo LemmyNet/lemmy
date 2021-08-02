@@ -1,5 +1,5 @@
 use crate::activities::{
-  comment::{create::CreateComment, update::UpdateComment},
+  comment::create_or_update::CreateOrUpdateComment,
   community::{
     add_mod::AddMod,
     announce::AnnounceActivity,
@@ -9,12 +9,11 @@ use crate::activities::{
   },
   deletion::{delete::DeletePostCommentOrCommunity, undo_delete::UndoDeletePostCommentOrCommunity},
   following::{accept::AcceptFollowCommunity, follow::FollowCommunity, undo::UndoFollowCommunity},
-  post::{create::CreatePost, update::UpdatePost},
+  post::create_or_update::CreateOrUpdatePost,
   private_message::{
-    create::CreatePrivateMessage,
+    create_or_update::CreateOrUpdatePrivateMessage,
     delete::DeletePrivateMessage,
     undo_delete::UndoDeletePrivateMessage,
-    update::UpdatePrivateMessage,
   },
   removal::{
     remove::RemovePostCommentCommunityOrMod,
@@ -36,8 +35,7 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
-  CreatePrivateMessage(CreatePrivateMessage),
-  UpdatePrivateMessage(UpdatePrivateMessage),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
   AnnounceActivity(Box<AnnounceActivity>),
@@ -48,10 +46,8 @@ pub enum PersonInboxActivities {
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
-  CreatePost(CreatePost),
-  UpdatePost(UpdatePost),
+  CreateOrUpdateComment(CreateOrUpdateComment),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   LikePostOrComment(LikePostOrComment),
   DislikePostOrComment(DislikePostOrComment),
   UndoLikePostOrComment(UndoLikePostOrComment),
@@ -72,10 +68,8 @@ pub enum SharedInboxActivities {
   // received by group
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
-  CreateComment(CreateComment),
-  UpdateComment(UpdateComment),
-  CreatePost(CreatePost),
-  UpdatePost(UpdatePost),
+  CreateOrUpdateComment(CreateOrUpdateComment),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   LikePostOrComment(LikePostOrComment),
   DislikePostOrComment(DislikePostOrComment),
   UndoDislikePostOrComment(UndoDislikePostOrComment),
@@ -92,8 +86,7 @@ pub enum SharedInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
   // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
-  CreatePrivateMessage(CreatePrivateMessage),
-  UpdatePrivateMessage(UpdatePrivateMessage),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
   AnnounceActivity(Box<AnnounceActivity>),

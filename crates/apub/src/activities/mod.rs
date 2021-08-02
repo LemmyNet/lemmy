@@ -15,6 +15,8 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
+use strum_macros::ToString;
 use url::{ParseError, Url};
 use uuid::Uuid;
 
@@ -27,6 +29,13 @@ pub mod private_message;
 pub mod removal;
 pub mod send;
 pub mod voting;
+
+#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CreateOrUpdateType {
+  Create,
+  Update,
+}
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
@@ -61,7 +70,7 @@ pub(crate) async fn extract_community(
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
-async fn verify_person_in_community(
+pub(crate) async fn verify_person_in_community(
   person_id: &Url,
   community_id: &Url,
   context: &LemmyContext,

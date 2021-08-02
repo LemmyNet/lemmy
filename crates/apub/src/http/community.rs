@@ -155,7 +155,7 @@ pub(crate) async fn get_apub_community_moderators(
 
   let moderators: Vec<Url> = moderators
     .into_iter()
-    .map(|m| m.moderator.actor_id.into_inner())
+    .map(|m| m.moderator.actor_id.into())
     .collect();
   let mut collection = OrderedCollection::new();
   collection

@@ -138,40 +138,6 @@ where
   Ok(())
 }
 
-/// Sends notification to any persons mentioned in a comment
-///
-/// * `creator` person who created the comment
-/// * `mentions` list of inboxes of persons which are mentioned in the comment
-/// * `activity` either a `Create/Note` or `Update/Note`
-pub(crate) async fn send_comment_mentions<T, Kind>(
-  creator: &Person,
-  mentions: Vec<Url>,
-  activity: T,
-  context: &LemmyContext,
-) -> Result<(), LemmyError>
-where
-  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
-  Kind: Serialize,
-  <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
-{
-  debug!(
-    "Sending mentions activity {:?} to {:?}",
-    &activity.id_unchecked(),
-    &mentions
-  );
-  let mentions = mentions
-    .iter()
-    .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
-    .map(|i| i.to_owned())
-    .collect();
-  send_activity_internal(
-    context, activity, creator, mentions, false, // Don't create a new DB row
-    false,
-  )
-  .await?;
-  Ok(())
-}
-
 pub(crate) async fn send_to_community_new(
   activity: AnnouncableActivities,
   activity_id: &Url,

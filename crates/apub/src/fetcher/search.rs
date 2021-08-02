@@ -6,9 +6,8 @@ use crate::{
     is_deleted,
   },
   find_object_by_id,
-  objects::{post::Page, FromApub},
+  objects::{comment::Note, post::Page, FromApub},
   GroupExt,
-  NoteExt,
   Object,
   PersonExt,
 };
@@ -46,7 +45,7 @@ enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
   Page(Box<Page>),
-  Comment(Box<NoteExt>),
+  Comment(Box<Note>),
 }
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
