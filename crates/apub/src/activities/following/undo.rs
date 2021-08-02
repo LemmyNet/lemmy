@@ -1,12 +1,23 @@
 use crate::{
-  activities::{following::follow::FollowCommunity, verify_activity, verify_person},
+  activities::{
+    following::follow::FollowCommunity,
+    generate_activity_id,
+    verify_activity,
+    verify_person,
+  },
+  activity_queue::send_activity_new,
+  extensions::context::lemmy_context,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  ActorType,
 };
-use activitystreams::activity::kind::UndoType;
+use activitystreams::activity::kind::{FollowType, UndoType};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::Followable;
-use lemmy_db_schema::source::community::{CommunityFollower, CommunityFollowerForm};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityFollower, CommunityFollowerForm},
+  person::Person,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -20,6 +31,39 @@ pub struct UndoFollowCommunity {
   kind: UndoType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl UndoFollowCommunity {
+  pub async fn send(
+    actor: &Person,
+    community: &Community,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let id = generate_activity_id(UndoType::Undo)?;
+    let undo = UndoFollowCommunity {
+      to: community.actor_id(),
+      object: FollowCommunity {
+        to: community.actor_id(),
+        object: community.actor_id(),
+        kind: FollowType::Follow,
+        common: ActivityCommonFields {
+          context: lemmy_context(),
+          id: generate_activity_id(FollowType::Follow)?,
+          actor: actor.actor_id(),
+          unparsed: Default::default(),
+        },
+      },
+      kind: UndoType::Undo,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+    let inbox = vec![community.get_shared_inbox_or_inbox_url()];
+    send_activity_new(context, &undo, &id, actor, inbox, true).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -38,7 +82,7 @@ impl ActivityHandler for UndoFollowCommunity {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

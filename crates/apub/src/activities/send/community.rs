@@ -1,9 +1,9 @@
 use crate::{
   activities::generate_activity_id,
-  activity_queue::{send_activity_single_dest, send_to_community, send_to_community_followers},
+  activity_queue::{send_to_community, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::{get_or_fetch_and_upsert_actor, person::get_or_fetch_and_upsert_person},
+  fetcher::get_or_fetch_and_upsert_actor,
   generate_moderators_url,
   insert_activity,
   objects::ToApub,
@@ -13,7 +13,6 @@ use crate::{
 use activitystreams::{
   activity::{
     kind::{
-      AcceptType,
       AddType,
       AnnounceType,
       BlockType,
@@ -23,13 +22,10 @@ use activitystreams::{
       UndoType,
       UpdateType,
     },
-    Accept,
-    ActorAndObjectRefExt,
     Add,
     Announce,
     Block,
     Delete,
-    Follow,
     OptTargetRefExt,
     Remove,
     Undo,
@@ -79,31 +75,6 @@ impl ActorType for Community {
 impl CommunityType for Community {
   fn followers_url(&self) -> Url {
     self.followers_url.clone().into()
-  }
-
-  /// As a local community, accept the follow request from a remote person.
-  async fn send_accept_follow(
-    &self,
-    follow: Follow,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    let actor_uri = follow
-      .actor()?
-      .as_single_xsd_any_uri()
-      .context(location_info!())?;
-    let person = get_or_fetch_and_upsert_person(actor_uri, context, &mut 0).await?;
-
-    let mut accept = Accept::new(
-      self.actor_id.to_owned().into_inner(),
-      follow.into_any_base()?,
-    );
-    accept
-      .set_many_contexts(lemmy_context())
-      .set_id(generate_activity_id(AcceptType::Accept)?)
-      .set_to(person.actor_id());
-
-    send_activity_single_dest(accept, self, person.inbox_url.into(), context).await?;
-    Ok(())
   }
 
   /// If a remote community is updated by a local mod, send the updated info to the community's

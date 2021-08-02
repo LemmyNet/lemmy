@@ -8,7 +8,13 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   is_mod_or_admin,
 };
-use lemmy_apub::{ActorType, CommunityType, UserType};
+use lemmy_apub::{
+  activities::following::{
+    follow::FollowCommunity as FollowCommunityApub,
+    undo::UndoFollowCommunity,
+  },
+  CommunityType,
+};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::CommunityModerator_, post::Post_},
   Bannable,
@@ -74,15 +80,9 @@ impl Perform for FollowCommunity {
     } else if data.follow {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
-      local_user_view
-        .person
-        .send_follow(&community.actor_id(), context)
-        .await?;
+      FollowCommunityApub::send(&local_user_view.person, &community, context).await?;
     } else {
-      local_user_view
-        .person
-        .send_unfollow(&community.actor_id(), context)
-        .await?;
+      UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(context.pool(), unfollow).await?.is_err() {
         return Err(ApiError::err("community_follower_already_exists").into());

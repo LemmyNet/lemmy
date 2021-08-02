@@ -77,7 +77,7 @@ impl ActivityHandler for RemovePostCommentCommunityOrMod {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
@@ -115,7 +115,7 @@ impl ActivityHandler for RemovePostCommentCommunityOrMod {
         CommunityModerator::leave(conn, &form)
       })
       .await??;
-      let anybase = AnyBase::from_arbitrary_json(serde_json::to_string(self)?)?;
+      let anybase = AnyBase::from_arbitrary_json(serde_json::to_string(&self)?)?;
       community
         .send_announce(anybase, Some(self.object.clone()), context)
         .await?;

@@ -43,7 +43,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

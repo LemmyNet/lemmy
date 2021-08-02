@@ -104,7 +104,7 @@ impl ActivityHandler for CreateOrUpdateComment {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

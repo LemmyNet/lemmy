@@ -44,7 +44,7 @@ impl ActivityHandler for UndoDeletePrivateMessage {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

@@ -18,7 +18,6 @@ use crate::{
   fetcher::community::get_or_fetch_and_upsert_community,
 };
 use activitystreams::{
-  activity::Follow,
   actor,
   base::AnyBase,
   object::{ApObject, AsObject, ObjectExt},
@@ -185,11 +184,6 @@ pub trait ActorType {
 pub trait CommunityType {
   fn followers_url(&self) -> Url;
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
-  async fn send_accept_follow(
-    &self,
-    follow: Follow,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
 
   async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
   async fn send_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
@@ -228,20 +222,6 @@ pub trait CommunityType {
     &self,
     actor: &Person,
     blocked_user: Person,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait UserType {
-  async fn send_follow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_unfollow(
-    &self,
-    follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 }
