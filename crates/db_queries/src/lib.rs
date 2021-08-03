@@ -12,30 +12,34 @@ extern crate diesel_migrations;
 #[cfg(test)]
 extern crate serial_test;
 
-use diesel::{result::Error, *};
+use diesel::{*, r2d2::{ConnectionManager, Pool}, result::Error};
 use lemmy_db_schema::{CommunityId, DbUrl, PersonId};
-use lemmy_utils::ApiError;
+use lemmy_utils::{ApiError, settings::structs::Settings};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 use url::Url;
+use core::pin::Pin;
+use core::future::Future;
+use tokio_diesel::*;
 
 pub mod aggregates;
 pub mod source;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+pub type TokioDieselFuture<'a, T>= Pin<Box<dyn Future<Output = Result<T, AsyncError>> + Send + 'a>>;
 
-pub trait Crud<Form, IdType> {
-  fn create(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Crud<'a, Form, IdType> {
+  fn create(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn read(conn: &PgConnection, id: IdType) -> Result<Self, Error>
+  fn read(pool: &'a DbPool, id: IdType) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn update(conn: &PgConnection, id: IdType, form: &Form) -> Result<Self, Error>
+  fn update(pool: &'a DbPool, id: IdType, form: &'a Form) -> TokioDieselFuture<'a, Self>  
   where
     Self: Sized;
-  fn delete(_conn: &PgConnection, _id: IdType) -> Result<usize, Error>
+  fn delete(_pool: &'a DbPool, _id: IdType) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized,
   {
@@ -43,76 +47,76 @@ pub trait Crud<Form, IdType> {
   }
 }
 
-pub trait Followable<Form> {
-  fn follow(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Followable<'a, Form> {
+  fn follow(pool: &'a DbPool, form: &Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
   fn follow_accepted(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     community_id: CommunityId,
     person_id: PersonId,
-  ) -> Result<Self, Error>
+  ) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn unfollow(conn: &PgConnection, form: &Form) -> Result<usize, Error>
+  fn unfollow(pool: &'a DbPool, form: &Form) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized;
-  fn has_local_followers(conn: &PgConnection, community_id: CommunityId) -> Result<bool, Error>;
+  fn has_local_followers(pool: &'a DbPool, community_id: CommunityId) -> Result<bool, Error>;
 }
 
-pub trait Joinable<Form> {
-  fn join(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Joinable<'a, Form> {
+  fn join(pool: &'a DbPool, form: &Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn leave(conn: &PgConnection, form: &Form) -> Result<usize, Error>
-  where
-    Self: Sized;
-}
-
-pub trait Likeable<Form, IdType> {
-  fn like(conn: &PgConnection, form: &Form) -> Result<Self, Error>
-  where
-    Self: Sized;
-  fn remove(conn: &PgConnection, person_id: PersonId, item_id: IdType) -> Result<usize, Error>
+  fn leave(pool: &'a DbPool, form: &Form) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized;
 }
 
-pub trait Bannable<Form> {
-  fn ban(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Likeable<'a, Form, IdType> {
+  fn like(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn unban(conn: &PgConnection, form: &Form) -> Result<usize, Error>
-  where
-    Self: Sized;
-}
-
-pub trait Saveable<Form> {
-  fn save(conn: &PgConnection, form: &Form) -> Result<Self, Error>
-  where
-    Self: Sized;
-  fn unsave(conn: &PgConnection, form: &Form) -> Result<usize, Error>
+  fn remove(pool: &'a DbPool, person_id: PersonId, item_id: IdType) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized;
 }
 
-pub trait Readable<Form> {
-  fn mark_as_read(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Bannable<'a, Form> {
+  fn ban(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn mark_as_unread(conn: &PgConnection, form: &Form) -> Result<usize, Error>
+  fn unban(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized;
 }
 
-pub trait Reportable<Form> {
-  fn report(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Saveable<'a, Form> {
+  fn save(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn resolve(conn: &PgConnection, report_id: i32, resolver_id: PersonId) -> Result<usize, Error>
+  fn unsave(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized;
-  fn unresolve(conn: &PgConnection, report_id: i32, resolver_id: PersonId) -> Result<usize, Error>
+}
+
+pub trait Readable<'a, Form> {
+  fn mark_as_read(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, Self>
+  where
+    Self: Sized;
+  fn mark_as_unread(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, usize>
+  where
+    Self: Sized;
+}
+
+pub trait Reportable<'a, Form> {
+  fn report(pool: &'a DbPool, form: &'a Form) -> TokioDieselFuture<'a, Self>
+  where
+    Self: Sized;
+  fn resolve(pool: &'a DbPool, report_id: i32, resolver_id: PersonId) -> TokioDieselFuture<'a, usize>
+  where
+    Self: Sized;
+  fn unresolve(pool: &'a DbPool, report_id: i32, resolver_id: PersonId) -> TokioDieselFuture<'a, usize>
   where
     Self: Sized;
 }
@@ -121,11 +125,11 @@ pub trait DeleteableOrRemoveable {
   fn blank_out_deleted_or_removed_info(self) -> Self;
 }
 
-pub trait ApubObject<Form> {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
+pub trait ApubObject<'a, Form> {
+  fn read_from_apub_id(pool: &'a DbPool, object_id: &'a DbUrl) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
-  fn upsert(conn: &PgConnection, user_form: &Form) -> Result<Self, Error>
+  fn upsert(pool: &'a DbPool, user_form: &'a Form) -> TokioDieselFuture<'a, Self>
   where
     Self: Sized;
 }
@@ -249,7 +253,17 @@ pub fn diesel_option_overwrite_to_url(
 
 embed_migrations!();
 
-pub fn establish_unpooled_connection() -> PgConnection {
+/// Set up the r2d2 connection pool
+pub fn setup_connection_pool() -> DbPool {
+  let db_url = match get_database_url_from_env() {
+    Ok(url) => url,
+    Err(_) => Settings::get().get_database_url(),
+  };
+  build_connection_pool(&db_url, Settings::get().database().pool_size())
+}
+
+/// Set up the r2d2 connection pool for tests
+pub fn setup_connection_pool_for_tests() -> DbPool {
   let db_url = match get_database_url_from_env() {
     Ok(url) => url,
     Err(e) => panic!(
@@ -257,10 +271,21 @@ pub fn establish_unpooled_connection() -> PgConnection {
       e
     ),
   };
-  let conn =
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  build_connection_pool(&db_url, 10)
+}
+
+fn build_connection_pool(db_url: &str, pool_size: u32) -> DbPool {
+  let manager = ConnectionManager::<PgConnection>::new(db_url);
+  let pool = Pool::builder()
+    .max_size(pool_size)
+    .build(manager)
+    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  let conn = pool.get().expect("Missing connection in pool");
+
+  // Run the migrations
   embedded_migrations::run(&conn).expect("load migrations");
-  conn
+
+  pool
 }
 
 lazy_static! {

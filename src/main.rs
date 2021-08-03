@@ -3,15 +3,11 @@ extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_web::{web::Data, *};
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub::activity_queue::create_activity_queue;
-use lemmy_db_queries::get_database_url_from_env;
+use lemmy_db_queries::setup_connection_pool;
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_utils::{
@@ -32,18 +28,11 @@ async fn main() -> Result<(), LemmyError> {
   let settings = Settings::get();
 
   // Set up the r2d2 connection pool
-  let db_url = match get_database_url_from_env() {
-    Ok(url) => url,
-    Err(_) => settings.get_database_url(),
-  };
-  let manager = ConnectionManager::<PgConnection>::new(&db_url);
-  let pool = Pool::builder()
-    .max_size(settings.database().pool_size())
-    .build(manager)
-    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  let pool = setup_connection_pool();
 
   // Run the migrations from code
   blocking(&pool, move |conn| {
+    // TODO this is already done from the pool
     embedded_migrations::run(conn)?;
     run_advanced_migrations(conn)?;
     Ok(()) as Result<(), LemmyError>

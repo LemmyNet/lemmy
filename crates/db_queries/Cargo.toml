@@ -24,6 +24,8 @@ url = { version = "2.2.2", features = ["serde"] }
 lazy_static = "1.4.0"
 regex = "1.5.4"
 bcrypt = "0.10.0"
+tokio = { version = "1.8.0", features = ["rt", "macros"] }
+tokio-diesel = { git = "https://github.com/mehcode/tokio-diesel" }
 
 [dev-dependencies]
 serial_test = "0.5.1"

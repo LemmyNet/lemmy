@@ -1,4 +1,5 @@
-use crate::{ApubObject, Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable};
+use crate::{ApubObject, Crud, DbPool, TokioDieselFuture, DeleteableOrRemoveable, Likeable, Readable, Saveable};
+use tokio_diesel::*;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -18,86 +19,85 @@ use lemmy_db_schema::{
   PostId,
 };
 
-impl Crud<PostForm, PostId> for Post {
-  fn read(conn: &PgConnection, post_id: PostId) -> Result<Self, Error> {
+impl<'a> Crud<'a, PostForm, PostId> for Post {
+  fn read(pool: &'a DbPool, post_id: PostId) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
-    post.find(post_id).first::<Self>(conn)
+    post.find(post_id).first_async(pool)
   }
 
-  fn delete(conn: &PgConnection, post_id: PostId) -> Result<usize, Error> {
+  fn delete(pool: &'a DbPool, post_id: PostId) -> TokioDieselFuture<'a, usize> {
     use lemmy_db_schema::schema::post::dsl::*;
-    diesel::delete(post.find(post_id)).execute(conn)
+    diesel::delete(post.find(post_id)).execute_async(pool)
   }
 
-  fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
+  fn create(pool: &'a DbPool, new_post: &'a PostForm) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
-    insert_into(post).values(new_post).get_result::<Self>(conn)
+    insert_into(post).values(new_post).get_result_async(pool)
   }
 
-  fn update(conn: &PgConnection, post_id: PostId, new_post: &PostForm) -> Result<Self, Error> {
+  fn update(pool: &'a DbPool, post_id: PostId, new_post: &'a PostForm) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 }
 
-pub trait Post_ {
-  //fn read(conn: &PgConnection, post_id: i32) -> Result<Post, Error>;
+pub trait Post_<'a>{
   fn list_for_community(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     the_community_id: CommunityId,
-  ) -> Result<Vec<Post>, Error>;
-  fn update_ap_id(conn: &PgConnection, post_id: PostId, apub_id: DbUrl) -> Result<Post, Error>;
+  ) -> TokioDieselFuture<'a, Vec<Post>>;
+  fn update_ap_id(pool: &'a DbPool, post_id: PostId, apub_id: DbUrl) -> TokioDieselFuture<'a, Post>;
   fn permadelete_for_creator(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     for_creator_id: PersonId,
-  ) -> Result<Vec<Post>, Error>;
-  fn update_deleted(conn: &PgConnection, post_id: PostId, new_deleted: bool)
-    -> Result<Post, Error>;
-  fn update_removed(conn: &PgConnection, post_id: PostId, new_removed: bool)
-    -> Result<Post, Error>;
+  ) -> TokioDieselFuture<'a, Vec<Post>>;
+  fn update_deleted(pool: &'a DbPool, post_id: PostId, new_deleted: bool)
+    -> TokioDieselFuture<'a, Post>;
+  fn update_removed(pool: &'a DbPool, post_id: PostId, new_removed: bool)
+    -> TokioDieselFuture<'a, Post>;
   fn update_removed_for_creator(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
     new_removed: bool,
-  ) -> Result<Vec<Post>, Error>;
-  fn update_locked(conn: &PgConnection, post_id: PostId, new_locked: bool) -> Result<Post, Error>;
+  ) -> TokioDieselFuture<'a, Vec<Post>>;
+  fn update_locked(pool: &'a DbPool, post_id: PostId, new_locked: bool) -> TokioDieselFuture<'a, Post>;
   fn update_stickied(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     post_id: PostId,
     new_stickied: bool,
-  ) -> Result<Post, Error>;
+  ) -> TokioDieselFuture<'a, Post>;
   fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool;
 }
 
-impl Post_ for Post {
+impl<'a> Post_<'a> for Post {
   fn list_for_community(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     the_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> TokioDieselFuture<'a, Vec<Self>> {
     use lemmy_db_schema::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
       .then_order_by(published.desc())
       .then_order_by(stickied.desc())
       .limit(20)
-      .load::<Self>(conn)
+      .load_async(pool)
   }
 
-  fn update_ap_id(conn: &PgConnection, post_id: PostId, apub_id: DbUrl) -> Result<Self, Error> {
+  fn update_ap_id(pool: &'a DbPool, post_id: PostId, apub_id: DbUrl) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
       .set(ap_id.eq(apub_id))
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 
   fn permadelete_for_creator(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> TokioDieselFuture<'a, Vec<Self>> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     let perma_deleted = "*Permananently Deleted*";
@@ -111,37 +111,37 @@ impl Post_ for Post {
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
-      .get_results::<Self>(conn)
+      .get_results_async(pool)
   }
 
   fn update_deleted(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     post_id: PostId,
     new_deleted: bool,
-  ) -> Result<Self, Error> {
+  ) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((deleted.eq(new_deleted), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 
   fn update_removed(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     post_id: PostId,
     new_removed: bool,
-  ) -> Result<Self, Error> {
+  ) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 
   fn update_removed_for_creator(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
     new_removed: bool,
-  ) -> Result<Vec<Self>, Error> {
+  ) -> TokioDieselFuture<'a, Vec<Self>> {
     use lemmy_db_schema::schema::post::dsl::*;
 
     let mut update = diesel::update(post).into_boxed();
@@ -153,25 +153,25 @@ impl Post_ for Post {
 
     update
       .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_results::<Self>(conn)
+      .get_results_async(pool)
   }
 
-  fn update_locked(conn: &PgConnection, post_id: PostId, new_locked: bool) -> Result<Self, Error> {
+  fn update_locked(pool: &'a DbPool, post_id: PostId, new_locked: bool) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(locked.eq(new_locked))
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 
   fn update_stickied(
-    conn: &PgConnection,
+    pool: &'a DbPool,
     post_id: PostId,
     new_stickied: bool,
-  ) -> Result<Self, Error> {
+  ) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(stickied.eq(new_stickied))
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 
   fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool {
@@ -179,84 +179,84 @@ impl Post_ for Post {
   }
 }
 
-impl ApubObject<PostForm> for Post {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
+impl<'a> ApubObject<'a, PostForm> for Post {
+  fn read_from_apub_id(pool: &'a DbPool, object_id: &'a DbUrl) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post::dsl::*;
-    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
+    post.filter(ap_id.eq(object_id)).first_async(pool)
   }
 
-  fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
+  fn upsert(pool: &'a DbPool, post_form: &'a PostForm) -> TokioDieselFuture<'a, Post> {
     use lemmy_db_schema::schema::post::dsl::*;
     insert_into(post)
       .values(post_form)
       .on_conflict(ap_id)
       .do_update()
       .set(post_form)
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 }
 
-impl Likeable<PostLikeForm, PostId> for PostLike {
-  fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
+impl<'a> Likeable<'a, PostLikeForm, PostId> for PostLike {
+  fn like(pool: &'a DbPool, post_like_form: &'a PostLikeForm) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
       .on_conflict((post_id, person_id))
       .do_update()
       .set(post_like_form)
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
-  fn remove(conn: &PgConnection, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
+  fn remove(pool: &'a DbPool, person_id: PersonId, post_id: PostId) -> TokioDieselFuture<'a, usize> {
     use lemmy_db_schema::schema::post_like::dsl;
     diesel::delete(
       dsl::post_like
         .filter(dsl::post_id.eq(post_id))
         .filter(dsl::person_id.eq(person_id)),
     )
-    .execute(conn)
+    .execute_async(pool)
   }
 }
 
-impl Saveable<PostSavedForm> for PostSaved {
-  fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
+impl<'a> Saveable<'a, PostSavedForm> for PostSaved {
+  fn save(pool: &'a DbPool, post_saved_form: &'a PostSavedForm) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
       .on_conflict((post_id, person_id))
       .do_update()
       .set(post_saved_form)
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
-  fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
+  fn unsave(pool: &'a DbPool, post_saved_form: &PostSavedForm) -> TokioDieselFuture<'a, usize> {
     use lemmy_db_schema::schema::post_saved::dsl::*;
     diesel::delete(
       post_saved
         .filter(post_id.eq(post_saved_form.post_id))
         .filter(person_id.eq(post_saved_form.person_id)),
     )
-    .execute(conn)
+    .execute_async(pool)
   }
 }
 
-impl Readable<PostReadForm> for PostRead {
-  fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
+impl<'a> Readable<'a, PostReadForm> for PostRead {
+  fn mark_as_read(pool: &'a DbPool, post_read_form: &'a PostReadForm) -> TokioDieselFuture<'a, Self> {
     use lemmy_db_schema::schema::post_read::dsl::*;
     insert_into(post_read)
       .values(post_read_form)
       .on_conflict((post_id, person_id))
       .do_update()
       .set(post_read_form)
-      .get_result::<Self>(conn)
+      .get_result_async(pool)
   }
 
-  fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
+  fn mark_as_unread(pool: &'a DbPool, post_read_form: &'a PostReadForm) -> TokioDieselFuture<'a, usize> {
     use lemmy_db_schema::schema::post_read::dsl::*;
     diesel::delete(
       post_read
         .filter(post_id.eq(post_read_form.post_id))
         .filter(person_id.eq(post_read_form.person_id)),
     )
-    .execute(conn)
+    .execute_async(pool)
   }
 }
 
@@ -276,24 +276,22 @@ impl DeleteableOrRemoveable for Post {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::post::*};
+  use crate::{setup_connection_pool_for_tests, source::post::*};
   use lemmy_db_schema::source::{
     community::{Community, CommunityForm},
     person::*,
   };
-  use serial_test::serial;
 
-  #[test]
-  #[serial]
-  fn test_crud() {
-    let conn = establish_unpooled_connection();
+  #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+  async fn test_crud() {
+    let pool = setup_connection_pool_for_tests();
 
     let new_person = PersonForm {
       name: "jim".into(),
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(&pool, &new_person).await.unwrap();
 
     let new_community = CommunityForm {
       name: "test community_3".to_string(),
@@ -301,7 +299,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(&pool, &new_community).await.unwrap();
 
     let new_post = PostForm {
       name: "A test post".into(),
@@ -310,7 +308,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(&pool, &new_post).await.unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -341,7 +339,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
+    let inserted_post_like = PostLike::like(&pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -357,7 +355,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_saved = PostSaved::save(&conn, &post_saved_form).unwrap();
+    let inserted_post_saved = PostSaved::save(&pool, &post_saved_form).await.unwrap();
 
     let expected_post_saved = PostSaved {
       id: inserted_post_saved.id,
@@ -372,7 +370,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_read = PostRead::mark_as_read(&conn, &post_read_form).unwrap();
+    let inserted_post_read = PostRead::mark_as_read(&pool, &post_read_form).await.unwrap();
 
     let expected_post_read = PostRead {
       id: inserted_post_read.id,
@@ -381,14 +379,14 @@ mod tests {
       published: inserted_post_read.published,
     };
 
-    let read_post = Post::read(&conn, inserted_post.id).unwrap();
-    let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
-    let like_removed = PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
-    let saved_removed = PostSaved::unsave(&conn, &post_saved_form).unwrap();
-    let read_removed = PostRead::mark_as_unread(&conn, &post_read_form).unwrap();
-    let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
+    let read_post = Post::read(&pool, inserted_post.id).await.unwrap();
+    let updated_post = Post::update(&pool, inserted_post.id, &new_post).await.unwrap();
+    let like_removed = PostLike::remove(&pool, inserted_person.id, inserted_post.id).await.unwrap();
+    let saved_removed = PostSaved::unsave(&pool, &post_saved_form).await.unwrap();
+    let read_removed = PostRead::mark_as_unread(&pool, &post_read_form).await.unwrap();
+    let num_deleted = Post::delete(&pool, inserted_post.id).await.unwrap();
+    Community::delete(&pool, inserted_community.id).await.unwrap();
+    Person::delete(&pool, inserted_person.id).await.unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);
