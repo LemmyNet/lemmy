@@ -69,7 +69,7 @@ impl PerformCrud for Register {
     .await??;
 
     // If its not the admin, check the captcha
-    if !no_admins && Settings::get().captcha().enabled {
+    if !no_admins && Settings::get().captcha.enabled {
       let check = context
         .chat_server()
         .send(CheckCaptcha {

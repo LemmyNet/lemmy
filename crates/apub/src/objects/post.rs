@@ -178,12 +178,14 @@ impl FromApub for Post {
     let community = extract_community(&page.to, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
-    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
-      if let Some(url) = &page.url {
-        fetch_iframely_and_pictrs_data(context.client(), Some(url)).await
-      } else {
-        (None, None, None, thumbnail_url)
-      };
+    let (iframely_response, pictrs_thumbnail) = if let Some(url) = &page.url {
+      fetch_iframely_and_pictrs_data(context.client(), Some(url)).await?
+    } else {
+      (None, thumbnail_url)
+    };
+    let (embed_title, embed_description, embed_html) = iframely_response
+      .map(|u| (u.title, u.description, u.html))
+      .unwrap_or((None, None, None));
 
     let body_slurs_removed = page.source.as_ref().map(|s| remove_slurs(&s.content));
     let form = PostForm {
@@ -199,9 +201,9 @@ impl FromApub for Post {
       deleted: None,
       nsfw: page.sensitive,
       stickied: page.stickied,
-      embed_title: iframely_title,
-      embed_description: iframely_description,
-      embed_html: iframely_html,
+      embed_title,
+      embed_description,
+      embed_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ap_id: Some(page.id.clone().into()),
       local: Some(false),

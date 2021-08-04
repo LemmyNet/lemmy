@@ -1,22 +1,8 @@
-use crate::{
-  location_info,
-  settings::structs::{
-    CaptchaConfig,
-    DatabaseConfig,
-    EmailConfig,
-    FederationConfig,
-    RateLimitConfig,
-    Settings,
-    SetupConfig,
-  },
-  LemmyError,
-};
+use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use merge::Merge;
-use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
+use std::{env, fs, io::Error, sync::RwLock};
 
-pub mod defaults;
 pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
@@ -28,27 +14,18 @@ lazy_static! {
 
 impl Settings {
   /// Reads config from configuration file.
-  /// Then values from the environment (with prefix LEMMY) are added to the config.
-  /// And then default values are merged into config.
-  /// Defaults are controlled by Default trait implemntation for Settings structs.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
   fn init() -> Result<Self, LemmyError> {
     // Read the config file
-    let mut custom_config = from_str::<Settings>(&Self::read_config_file()?)?;
+    let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
-    // Merge with env vars
-    custom_config.merge(envy::prefixed("LEMMY_").from_env::<Settings>()?);
-
-    // Merge with default
-    custom_config.merge(Settings::default());
-
-    if custom_config.hostname == Settings::default().hostname {
+    if config.hostname == "unset" {
       return Err(anyhow!("Hostname variable is not set!").into());
     }
 
-    Ok(custom_config)
+    Ok(config)
   }
 
   /// Returns the config as a struct.
@@ -57,14 +34,10 @@ impl Settings {
   }
 
   pub fn get_database_url(&self) -> String {
-    let conf = self.database();
+    let conf = &self.database;
     format!(
       "postgres://{}:{}@{}:{}/{}",
-      conf.user(),
-      conf.password,
-      conf.host,
-      conf.port(),
-      conf.database(),
+      conf.user, conf.password, conf.host, conf.port, conf.database,
     )
   }
 
@@ -76,22 +49,10 @@ impl Settings {
     fs::read_to_string(Self::get_config_location())
   }
 
-  pub fn get_allowed_instances(&self) -> Option<Vec<String>> {
-    self.federation().allowed_instances
-  }
-
-  pub fn get_blocked_instances(&self) -> Option<Vec<String>> {
-    self.federation().blocked_instances
-  }
-
   /// Returns either "http" or "https", depending on tls_enabled setting
   pub fn get_protocol_string(&self) -> &'static str {
-    if let Some(tls_enabled) = self.tls_enabled {
-      if tls_enabled {
-        "https"
-      } else {
-        "http"
-      }
+    if self.tls_enabled {
+      "https"
     } else {
       "http"
     }
@@ -100,7 +61,7 @@ impl Settings {
   /// Returns something like `http://localhost` or `https://lemmy.ml`,
   /// with the correct protocol and hostname.
   pub fn get_protocol_and_hostname(&self) -> String {
-    format!("{}://{}", self.get_protocol_string(), self.hostname())
+    format!("{}://{}", self.get_protocol_string(), self.hostname)
   }
 
   /// When running the federation test setup in `api_tests/` or `docker/federation`, the `hostname`
@@ -109,7 +70,7 @@ impl Settings {
   pub fn get_hostname_without_port(&self) -> Result<String, anyhow::Error> {
     Ok(
       self
-        .hostname()
+        .hostname
         .split(':')
         .collect::<Vec<&str>>()
         .first()
@@ -130,68 +91,5 @@ impl Settings {
     };
 
     Ok(Self::read_config_file()?)
-  }
-
-  pub fn hostname(&self) -> String {
-    self.hostname.to_owned().expect("No hostname given")
-  }
-  pub fn bind(&self) -> IpAddr {
-    self.bind.expect("return bind address")
-  }
-  pub fn port(&self) -> u16 {
-    self
-      .port
-      .unwrap_or_else(|| Settings::default().port.expect("missing port"))
-  }
-  pub fn tls_enabled(&self) -> bool {
-    self.tls_enabled.unwrap_or_else(|| {
-      Settings::default()
-        .tls_enabled
-        .expect("missing tls_enabled")
-    })
-  }
-  pub fn jwt_secret(&self) -> String {
-    self
-      .jwt_secret
-      .to_owned()
-      .unwrap_or_else(|| Settings::default().jwt_secret.expect("missing jwt_secret"))
-  }
-  pub fn pictrs_url(&self) -> String {
-    self
-      .pictrs_url
-      .to_owned()
-      .unwrap_or_else(|| Settings::default().pictrs_url.expect("missing pictrs_url"))
-  }
-  pub fn iframely_url(&self) -> String {
-    self.iframely_url.to_owned().unwrap_or_else(|| {
-      Settings::default()
-        .iframely_url
-        .expect("missing iframely_url")
-    })
-  }
-  pub fn actor_name_max_length(&self) -> usize {
-    self.actor_name_max_length.unwrap_or_else(|| {
-      Settings::default()
-        .actor_name_max_length
-        .expect("missing actor name length")
-    })
-  }
-  pub fn database(&self) -> DatabaseConfig {
-    self.database.to_owned().unwrap_or_default()
-  }
-  pub fn rate_limit(&self) -> RateLimitConfig {
-    self.rate_limit.to_owned().unwrap_or_default()
-  }
-  pub fn federation(&self) -> FederationConfig {
-    self.federation.to_owned().unwrap_or_default()
-  }
-  pub fn captcha(&self) -> CaptchaConfig {
-    self.captcha.to_owned().unwrap_or_default()
-  }
-  pub fn email(&self) -> Option<EmailConfig> {
-    self.email.to_owned()
-  }
-  pub fn setup(&self) -> Option<SetupConfig> {
-    self.setup.to_owned()
   }
 }

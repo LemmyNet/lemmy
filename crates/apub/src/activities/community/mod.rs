@@ -50,7 +50,7 @@ async fn list_community_follower_inboxes(
     .iter()
     .flatten()
     .unique()
-    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
+    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname))
     .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
     .map(|inbox| inbox.to_owned())
     .collect(),

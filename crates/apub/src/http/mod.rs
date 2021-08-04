@@ -175,7 +175,7 @@ fn assert_activity_not_local<T: Debug + ActivityHandler>(activity: &T) -> Result
     .domain()
     .context(location_info!())?;
 
-  if activity_domain == Settings::get().hostname() {
+  if activity_domain == Settings::get().hostname {
     return Err(
       anyhow!(
         "Error: received activity which was sent by local instance: {:?}",

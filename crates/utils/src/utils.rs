@@ -97,7 +97,7 @@ pub struct MentionData {
 
 impl MentionData {
   pub fn is_local(&self) -> bool {
-    Settings::get().hostname().eq(&self.domain)
+    Settings::get().hostname.eq(&self.domain)
   }
   pub fn full_name(&self) -> String {
     format!("@{}@{}", &self.name, &self.domain)
@@ -116,7 +116,7 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
 }
 
 pub fn is_valid_actor_name(name: &str) -> bool {
-  name.chars().count() <= Settings::get().actor_name_max_length()
+  name.chars().count() <= Settings::get().actor_name_max_length
     && VALID_ACTOR_NAME_REGEX.is_match(name)
 }
 
@@ -125,7 +125,7 @@ pub fn is_valid_display_name(name: &str) -> bool {
   !name.starts_with('@')
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
-    && name.chars().count() <= Settings::get().actor_name_max_length()
+    && name.chars().count() <= Settings::get().actor_name_max_length
 }
 
 pub fn is_valid_matrix_id(matrix_id: &str) -> bool {

@@ -83,7 +83,7 @@ where
   .iter()
   .flatten()
   .unique()
-  .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname()))
+  .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname))
   .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
   .map(|inbox| inbox.to_owned())
   .collect();
@@ -170,7 +170,7 @@ pub(crate) async fn send_activity_new<T>(
 where
   T: Serialize,
 {
-  if !Settings::get().federation().enabled || inboxes.is_empty() {
+  if !Settings::get().federation.enabled || inboxes.is_empty() {
     return Ok(());
   }
 
@@ -230,7 +230,7 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if !Settings::get().federation().enabled || inboxes.is_empty() {
+  if !Settings::get().federation.enabled || inboxes.is_empty() {
     return Ok(());
   }
 

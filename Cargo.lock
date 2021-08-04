@@ -1002,15 +1002,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "envy"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f47e0157f2cb54f5ae1bd371b30a2ae4311e1c028f575cd4e81de7353215965"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "event-listener"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1882,7 +1873,6 @@ dependencies = [
  "comrak",
  "deser-hjson",
  "diesel",
- "envy",
  "futures",
  "http",
  "itertools",
@@ -1890,7 +1880,6 @@ dependencies = [
  "lazy_static",
  "lettre",
  "log",
- "merge",
  "openssl",
  "percent-encoding",
  "rand 0.8.4",
@@ -1898,6 +1887,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "smart-default",
  "strum",
  "strum_macros",
  "thiserror",
@@ -2035,28 +2025,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59accc507f1338036a0477ef61afdae33cde60840f4dfe481319ce3ad116ddf9"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "merge"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10bbef93abb1da61525bbc45eeaff6473a41907d19f8f9aa5168d214e10693e9"
-dependencies = [
- "merge_derive",
- "num-traits",
-]
-
-[[package]]
-name = "merge_derive"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "209d075476da2e63b4b29e72a2ef627b840589588e71400a25e3565c4f849d07"
-dependencies = [
- "proc-macro-error",
- "proc-macro2 1.0.27",
- "quote 1.0.9",
- "syn 1.0.73",
 ]
 
 [[package]]
@@ -2442,30 +2410,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ac25eee5a0582f45a67e837e350d784e7003bd29a5f460796772061ca49ffda"
 dependencies = [
  "vcpkg",
-]
-
-[[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2 1.0.27",
- "quote 1.0.9",
- "syn 1.0.73",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2 1.0.27",
- "quote 1.0.9",
- "version_check",
 ]
 
 [[package]]
@@ -3020,6 +2964,17 @@ name = "smallvec"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
+
+[[package]]
+name = "smart-default"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "133659a15339456eeeb07572eb02a91c91e9815e9cbc89566944d2c8d3efdbf6"
+dependencies = [
+ "proc-macro2 1.0.27",
+ "quote 1.0.9",
+ "syn 1.0.73",
+]
 
 [[package]]
 name = "socket2"

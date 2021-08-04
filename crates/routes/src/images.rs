@@ -1,6 +1,7 @@
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
+use anyhow::anyhow;
 use awc::Client;
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings};
+use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings, LemmyError};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -54,10 +55,7 @@ async fn upload(
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
-  let mut client_req = client.request_from(
-    format!("{}/image", Settings::get().pictrs_url()),
-    req.head(),
-  );
+  let mut client_req = client.request_from(format!("{}/image", pictrs_url()?), req.head());
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
@@ -83,17 +81,12 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}/image/original/{}", Settings::get().pictrs_url(), name,)
+    format!("{}/image/original/{}", pictrs_url()?, name,)
   } else {
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
-    let mut url = format!(
-      "{}/image/process.{}?src={}",
-      Settings::get().pictrs_url(),
-      format,
-      name,
-    );
+    let mut url = format!("{}/image/process.{}?src={}", pictrs_url()?, format, name,);
 
     if let Some(size) = params.thumbnail {
       url = format!("{}&thumbnail={}", url, size,);
@@ -141,12 +134,7 @@ async fn delete(
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
 
-  let url = format!(
-    "{}/image/delete/{}/{}",
-    Settings::get().pictrs_url(),
-    &token,
-    &file
-  );
+  let url = format!("{}/image/delete/{}/{}", pictrs_url()?, &token, &file);
 
   let mut client_req = client.request_from(url, req.head());
 
@@ -161,4 +149,10 @@ async fn delete(
     .map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res)))
+}
+
+fn pictrs_url() -> Result<String, LemmyError> {
+  Settings::get()
+    .pictrs_url
+    .ok_or_else(|| anyhow!("images_disabled").into())
 }

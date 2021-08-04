@@ -75,7 +75,7 @@ pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Resu
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
 
-  if !settings.federation().enabled {
+  if !settings.federation.enabled {
     return if domain == local_instance {
       Ok(())
     } else {
@@ -102,18 +102,15 @@ pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Resu
   // TODO: might be good to put the part above in one method, and below in another
   //       (which only gets called in apub::objects)
   //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
-  if let Some(blocked) = Settings::get().get_blocked_instances() {
+  if let Some(blocked) = Settings::get().federation.blocked_instances {
     if blocked.contains(&domain) {
       return Err(anyhow!("{} is in federation blocklist", domain).into());
     }
   }
 
-  if let Some(mut allowed) = Settings::get().get_allowed_instances() {
+  if let Some(mut allowed) = Settings::get().federation.allowed_instances {
     // Only check allowlist if this is a community, or strict allowlist is enabled.
-    let strict_allowlist = Settings::get()
-      .federation()
-      .strict_allowlist
-      .unwrap_or(true);
+    let strict_allowlist = Settings::get().federation.strict_allowlist;
     if use_strict_allowlist || strict_allowlist {
       // need to allow this explicitly because apub receive might contain objects from our local
       // instance.
