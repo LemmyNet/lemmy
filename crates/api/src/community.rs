@@ -118,7 +118,7 @@ impl Perform for BlockCommunity {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &BlockCommunity = &self;
+    let data: &BlockCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
