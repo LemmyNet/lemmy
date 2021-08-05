@@ -333,8 +333,8 @@ impl<'a> CommentQueryBuilder<'a> {
       .left_join(
         person_block::table.on(
           comment::creator_id
-            .eq(person_block::person_id)
-            .and(person_block::recipient_id.eq(person_id_join)),
+            .eq(person_block::recipient_id)
+            .and(person_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -489,10 +489,17 @@ mod tests {
   use lemmy_db_queries::{
     aggregates::comment_aggregates::CommentAggregates,
     establish_unpooled_connection,
+    Blockable,
     Crud,
     Likeable,
   };
-  use lemmy_db_schema::source::{comment::*, community::*, person::*, post::*};
+  use lemmy_db_schema::source::{
+    comment::*,
+    community::*,
+    person::*,
+    person_block::PersonBlockForm,
+    post::*,
+  };
   use serial_test::serial;
 
   #[test]
@@ -506,6 +513,13 @@ mod tests {
     };
 
     let inserted_person = Person::create(&conn, &new_person).unwrap();
+
+    let new_person_2 = PersonForm {
+      name: "sara".into(),
+      ..PersonForm::default()
+    };
+
+    let inserted_person_2 = Person::create(&conn, &new_person_2).unwrap();
 
     let new_community = CommunityForm {
       name: "test community 5".to_string(),
@@ -532,6 +546,32 @@ mod tests {
     };
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+
+    let comment_form_2 = CommentForm {
+      content: "A test blocked comment".into(),
+      creator_id: inserted_person_2.id,
+      post_id: inserted_post.id,
+      parent_id: Some(inserted_comment.id),
+      ..CommentForm::default()
+    };
+
+    let inserted_comment_2 = Comment::create(&conn, &comment_form_2).unwrap();
+
+    let timmy_blocks_sara_form = PersonBlockForm {
+      person_id: inserted_person.id,
+      recipient_id: inserted_person_2.id,
+    };
+
+    let inserted_block = PersonBlock::block(&conn, &timmy_blocks_sara_form).unwrap();
+
+    let expected_block = PersonBlock {
+      id: inserted_block.id,
+      person_id: inserted_person.id,
+      recipient_id: inserted_person_2.id,
+      published: inserted_block.published,
+    };
+
+    assert_eq!(expected_block, inserted_block);
 
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
@@ -644,20 +684,32 @@ mod tests {
       .list()
       .unwrap();
 
+    let read_comment_from_blocked_person =
+      CommentView::read(&conn, inserted_comment_2.id, Some(inserted_person.id)).unwrap();
+
     let like_removed = CommentLike::remove(&conn, inserted_person.id, inserted_comment.id).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
+    Comment::delete(&conn, inserted_comment_2.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
     Person::delete(&conn, inserted_person.id).unwrap();
+    Person::delete(&conn, inserted_person_2.id).unwrap();
+
+    // Make sure its 1, not showing the blocked comment
+    assert_eq!(1, read_comment_views_with_person.len());
 
     assert_eq!(
       expected_comment_view_no_person,
-      read_comment_views_no_person[0]
+      read_comment_views_no_person[1]
     );
     assert_eq!(
       expected_comment_view_with_person,
       read_comment_views_with_person[0]
     );
+
+    // Make sure block set the creator blocked
+    assert_eq!(true, read_comment_from_blocked_person.creator_blocked);
+
     assert_eq!(1, num_deleted);
     assert_eq!(1, like_removed);
   }
