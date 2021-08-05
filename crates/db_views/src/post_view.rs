@@ -121,8 +121,8 @@ impl PostView {
       .left_join(
         person_block::table.on(
           post::creator_id
-            .eq(person_block::person_id)
-            .and(person_block::recipient_id.eq(person_id_join)),
+            .eq(person_block::recipient_id)
+            .and(person_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
