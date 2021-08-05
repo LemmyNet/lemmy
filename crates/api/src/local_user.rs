@@ -494,6 +494,12 @@ impl Perform for BlockPerson {
 
     let recipient_id = data.person_id;
     let person_id = local_user_view.person.id;
+
+    // Don't let a person block themselves
+    if recipient_id == person_id {
+      return Err(ApiError::err("cant_block_yourself").into());
+    }
+
     let community_block_form = PersonBlockForm {
       person_id,
       recipient_id,
