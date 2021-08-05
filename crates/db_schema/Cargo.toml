@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_db_schema"
-version = "0.11.3-rc.5"
+version = "0.11.2-crates-test"
 edition = "2018"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
