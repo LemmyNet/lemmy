@@ -1,9 +1,15 @@
 use crate::{
   activities::verify_person_in_community,
   extensions::context::lemmy_context,
-  fetcher::objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+  fetcher::objects::{
+    get_or_fetch_and_insert_comment,
+    get_or_fetch_and_insert_post,
+    get_or_fetch_and_insert_post_or_comment,
+  },
+  migrations::CommentInReplyToMigration,
   objects::{create_tombstone, get_or_fetch_and_upsert_person, FromApub, Source, ToApub},
   ActorType,
+  PostOrComment,
 };
 use activitystreams::{
   base::AnyBase,
@@ -35,6 +41,7 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -52,7 +59,7 @@ pub struct Note {
   content: String,
   media_type: MediaTypeHtml,
   source: Source,
-  in_reply_to: Vec<Url>,
+  in_reply_to: CommentInReplyToMigration,
   published: DateTime<FixedOffset>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
@@ -65,32 +72,55 @@ impl Note {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(Post, Option<CommentId>), LemmyError> {
-    // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post_id = self.in_reply_to.get(0).context(location_info!())?;
-    let post = Box::pin(get_or_fetch_and_insert_post(
-      post_id,
-      context,
-      request_counter,
-    ))
-    .await?;
-
-    // The 2nd item, if it exists, is the parent comment apub_id
-    // Nested comments will automatically get fetched recursively
-    let parent_id: Option<CommentId> = match self.in_reply_to.get(1) {
-      Some(parent_comment_uri) => {
-        let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
-          parent_comment_uri,
+    match &self.in_reply_to {
+      CommentInReplyToMigration::Old(in_reply_to) => {
+        // This post, or the parent comment might not yet exist on this server yet, fetch them.
+        let post_id = in_reply_to.get(0).context(location_info!())?;
+        let post = Box::pin(get_or_fetch_and_insert_post(
+          post_id,
           context,
           request_counter,
         ))
         .await?;
 
-        Some(parent_comment.id)
-      }
-      None => None,
-    };
+        // The 2nd item, if it exists, is the parent comment apub_id
+        // Nested comments will automatically get fetched recursively
+        let parent_id: Option<CommentId> = match in_reply_to.get(1) {
+          Some(parent_comment_uri) => {
+            let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
+              parent_comment_uri,
+              context,
+              request_counter,
+            ))
+            .await?;
 
-    Ok((post, parent_id))
+            Some(parent_comment.id)
+          }
+          None => None,
+        };
+
+        Ok((post, parent_id))
+      }
+      CommentInReplyToMigration::New(in_reply_to) => {
+        let parent = Box::pin(
+          get_or_fetch_and_insert_post_or_comment(in_reply_to, context, request_counter).await?,
+        );
+        match parent.deref() {
+          PostOrComment::Post(p) => {
+            // Workaround because I cant figure ut how to get the post out of the box (and we dont
+            // want to stackoverflow in a deep comment hierarchy).
+            let post_id = p.id;
+            let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+            Ok((post, None))
+          }
+          PostOrComment::Comment(c) => {
+            let post_id = c.post_id;
+            let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+            Ok((post, Some(c.id)))
+          }
+        }
+      }
+    }
   }
 
   pub(crate) async fn verify(
@@ -153,7 +183,7 @@ impl ToApub for Comment {
         content: self.content.clone(),
         media_type: MediaTypeMarkdown::Markdown,
       },
-      in_reply_to: in_reply_to_vec,
+      in_reply_to: CommentInReplyToMigration::Old(in_reply_to_vec),
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
