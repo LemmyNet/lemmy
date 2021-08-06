@@ -6,10 +6,9 @@ use crate::{
     is_deleted,
   },
   find_object_by_id,
-  objects::{comment::Note, post::Page, FromApub},
+  objects::{comment::Note, person::Person as ApubPerson, post::Page, FromApub},
   GroupExt,
   Object,
-  PersonExt,
 };
 use activitystreams::base::BaseExt;
 use anyhow::{anyhow, Context};
@@ -42,7 +41,7 @@ use url::Url;
 #[derive(serde::Deserialize, Debug)]
 #[serde(untagged)]
 enum SearchAcceptedObjects {
-  Person(Box<PersonExt>),
+  Person(Box<ApubPerson>),
   Group(Box<GroupExt>),
   Page(Box<Page>),
   Comment(Box<Note>),
@@ -120,9 +119,8 @@ async fn build_response(
 
   match fetch_response {
     SearchAcceptedObjects::Person(p) => {
-      let person_uri = p.inner.id(domain)?.context("person has no id")?;
-
-      let person = get_or_fetch_and_upsert_person(person_uri, context, recursion_counter).await?;
+      let person_id = p.id(&query_url)?;
+      let person = get_or_fetch_and_upsert_person(person_id, context, recursion_counter).await?;
 
       response.users = vec![
         blocking(context.pool(), move |conn| {

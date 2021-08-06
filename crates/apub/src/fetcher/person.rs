@@ -1,7 +1,6 @@
 use crate::{
   fetcher::{fetch::fetch_remote_object, is_deleted, should_refetch_actor},
-  objects::FromApub,
-  PersonExt,
+  objects::{person::Person as ApubPerson, FromApub},
 };
 use anyhow::anyhow;
 use diesel::result::Error::NotFound;
@@ -33,7 +32,7 @@ pub async fn get_or_fetch_and_upsert_person(
     Ok(u) if !u.local && should_refetch_actor(u.last_refreshed_at) => {
       debug!("Fetching and updating from remote person: {}", apub_id);
       let person =
-        fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await;
+        fetch_remote_object::<ApubPerson>(context.client(), apub_id, recursion_counter).await;
 
       if is_deleted(&person) {
         // TODO: use Person::update_deleted() once implemented
@@ -67,7 +66,7 @@ pub async fn get_or_fetch_and_upsert_person(
     Err(NotFound {}) => {
       debug!("Fetching and creating remote person: {}", apub_id);
       let person =
-        fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await?;
+        fetch_remote_object::<ApubPerson>(context.client(), apub_id, recursion_counter).await?;
 
       let person = Person::from_apub(
         &person,

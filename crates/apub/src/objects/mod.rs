@@ -3,7 +3,7 @@ use activitystreams::{
   base::{AsBase, BaseExt, ExtendsExt},
   markers::Base,
   mime::{FromStrError, Mime},
-  object::{ApObjectExt, Object, ObjectExt, Tombstone, TombstoneExt},
+  object::{kind::ImageType, ApObjectExt, Object, ObjectExt, Tombstone, TombstoneExt},
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
@@ -72,6 +72,13 @@ pub trait FromApubToForm<ApubType> {
 pub struct Source {
   content: String,
   media_type: MediaTypeMarkdown,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageObject {
+  content: ImageType,
+  url: Url,
 }
 
 /// Updated is actually the deletion time

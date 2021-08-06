@@ -12,7 +12,6 @@ pub mod objects;
 use crate::{
   extensions::{
     group_extension::GroupExtension,
-    person_extension::PersonExtension,
     signatures::{PublicKey, PublicKeyExtension},
   },
   fetcher::community::get_or_fetch_and_upsert_community,
@@ -49,16 +48,7 @@ use url::{ParseError, Url};
 /// Activitystreams type for community
 pub type GroupExt =
   Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
-/// Activitystreams type for person
-type PersonExt =
-  Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
 pub type SiteExt = actor::ApActor<ApObject<actor::Service>>;
-
-#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq)]
-pub enum UserTypes {
-  Person,
-  Service,
-}
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
@@ -168,15 +158,17 @@ pub trait ActorType {
     Ok(Url::parse(&format!("{}/outbox", &self.actor_id()))?)
   }
 
+  fn get_public_key(&self) -> Result<PublicKey, LemmyError> {
+    Ok(PublicKey {
+      id: format!("{}#main-key", self.actor_id()),
+      owner: self.actor_id(),
+      public_key_pem: self.public_key().context(location_info!())?,
+    })
+  }
+
+  // TODO: can delete this
   fn get_public_key_ext(&self) -> Result<PublicKeyExtension, LemmyError> {
-    Ok(
-      PublicKey {
-        id: format!("{}#main-key", self.actor_id()),
-        owner: self.actor_id(),
-        public_key_pem: self.public_key().context(location_info!())?,
-      }
-      .to_ext(),
-    )
+    Ok(self.get_public_key()?.to_ext())
   }
 }
 

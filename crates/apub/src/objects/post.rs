@@ -2,7 +2,7 @@ use crate::{
   activities::{extract_community, verify_person_in_community},
   extensions::context::lemmy_context,
   fetcher::person::get_or_fetch_and_upsert_person,
-  objects::{create_tombstone, FromApub, Source, ToApub},
+  objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
   ActorType,
 };
 use activitystreams::{
@@ -37,8 +37,10 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Page {
@@ -61,13 +63,6 @@ pub struct Page {
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImageObject {
-  content: ImageType,
-  url: Url,
 }
 
 impl Page {

@@ -41,9 +41,11 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
