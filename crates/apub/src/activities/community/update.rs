@@ -5,8 +5,7 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  objects::FromApubToForm,
-  GroupExt,
+  objects::community::Group,
 };
 use activitystreams::activity::kind::UpdateType;
 use lemmy_api_common::blocking;
@@ -23,7 +22,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   to: PublicUrl,
-  object: GroupExt,
+  object: Group,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UpdateType,
@@ -47,7 +46,7 @@ impl ActivityHandler for UpdateCommunity {
   async fn receive(
     self,
     context: &LemmyContext,
-    request_counter: &mut i32,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let cc = self.cc[0].clone().into();
     let community = blocking(context.pool(), move |conn| {
@@ -55,14 +54,8 @@ impl ActivityHandler for UpdateCommunity {
     })
     .await??;
 
-    let updated_community = CommunityForm::from_apub(
-      &self.object,
-      context,
-      community.actor_id.clone().into(),
-      request_counter,
-      false,
-    )
-    .await?;
+    let updated_community =
+      Group::from_apub_to_form(&self.object, &community.actor_id.clone().into()).await?;
     let cf = CommunityForm {
       name: updated_community.name,
       title: updated_community.title,

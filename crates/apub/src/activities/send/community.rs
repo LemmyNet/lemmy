@@ -85,7 +85,7 @@ impl CommunityType for Community {
     } else {
       let mut update = Update::new(
         mod_.actor_id(),
-        self.to_apub(context.pool()).await?.into_any_base()?,
+        AnyBase::from_arbitrary_json(self.to_apub(context.pool()).await?)?,
       );
       update
         .set_many_contexts(lemmy_context())

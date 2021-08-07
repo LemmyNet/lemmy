@@ -73,7 +73,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
     verify_person(&self.common.actor, context, request_counter).await?;
-    verify_domains_match(&self.common.actor, &self.object.id)?;
+    verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -83,14 +83,8 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let private_message = PrivateMessage::from_apub(
-      &self.object,
-      context,
-      self.common.actor.clone(),
-      request_counter,
-      false,
-    )
-    .await?;
+    let private_message =
+      PrivateMessage::from_apub(&self.object, context, &self.common.actor, request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,

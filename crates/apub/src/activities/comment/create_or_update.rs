@@ -96,7 +96,7 @@ impl ActivityHandler for CreateOrUpdateComment {
       request_counter,
     )
     .await?;
-    verify_domains_match(&self.common.actor, &self.object.id)?;
+    verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
     // TODO: should add a check that the correct community is in cc (probably needs changes to
     //       comment deserialization)
     self.object.verify(context, request_counter).await?;
@@ -108,14 +108,8 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let comment = Comment::from_apub(
-      &self.object,
-      context,
-      self.common.actor.clone(),
-      request_counter,
-      false,
-    )
-    .await?;
+    let comment =
+      Comment::from_apub(&self.object, context, &self.common.actor, request_counter).await?;
     let recipients =
       get_notif_recipients(&self.common.actor, &comment, context, request_counter).await?;
     let notif_type = match self.kind {

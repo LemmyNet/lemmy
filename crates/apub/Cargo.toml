@@ -19,7 +19,6 @@ lemmy_api_common = { path = "../api_common" }
 lemmy_websocket = { path = "../websocket" }
 diesel = "1.4.7"
 activitystreams = "0.7.0-alpha.11"
-activitystreams-ext = "0.1.0-alpha.2"
 bcrypt = "0.10.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.64", features = ["preserve_order"] }

@@ -6,12 +6,10 @@ use crate::{
     is_deleted,
   },
   find_object_by_id,
-  objects::{comment::Note, person::Person as ApubPerson, post::Page, FromApub},
-  GroupExt,
+  objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
   Object,
 };
-use activitystreams::base::BaseExt;
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use lemmy_api_common::{blocking, site::SearchResponse};
 use lemmy_db_queries::{
   source::{
@@ -42,7 +40,7 @@ use url::Url;
 #[serde(untagged)]
 enum SearchAcceptedObjects {
   Person(Box<ApubPerson>),
-  Group(Box<GroupExt>),
+  Group(Box<Group>),
   Page(Box<Page>),
   Comment(Box<Note>),
 }
@@ -108,7 +106,6 @@ async fn build_response(
   recursion_counter: &mut i32,
   context: &LemmyContext,
 ) -> Result<SearchResponse, LemmyError> {
-  let domain = query_url.domain().context("url has no domain")?;
   let mut response = SearchResponse {
     type_: SearchType::All.to_string(),
     comments: vec![],
@@ -130,8 +127,7 @@ async fn build_response(
       ];
     }
     SearchAcceptedObjects::Group(g) => {
-      let community_uri = g.inner.id(domain)?.context("group has no id")?;
-
+      let community_uri = g.id(&query_url)?;
       let community =
         get_or_fetch_and_upsert_community(community_uri, context, recursion_counter).await?;
 
@@ -143,13 +139,13 @@ async fn build_response(
       ];
     }
     SearchAcceptedObjects::Page(p) => {
-      let p = Post::from_apub(&p, context, query_url, recursion_counter, false).await?;
+      let p = Post::from_apub(&p, context, &query_url, recursion_counter).await?;
 
       response.posts =
         vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
     }
     SearchAcceptedObjects::Comment(c) => {
-      let c = Comment::from_apub(&c, context, query_url, recursion_counter, false).await?;
+      let c = Comment::from_apub(&c, context, &query_url, recursion_counter).await?;
 
       response.comments = vec![
         blocking(context.pool(), move |conn| {

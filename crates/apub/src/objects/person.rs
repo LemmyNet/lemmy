@@ -43,6 +43,7 @@ pub enum UserTypes {
 pub struct Person {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
+  #[serde(rename = "type")]
   kind: UserTypes,
   id: Url,
   /// username, set at account creation and can never be changed
@@ -50,7 +51,7 @@ pub struct Person {
   /// displayname (can be changed at any time)
   name: Option<String>,
   content: Option<String>,
-  media_type: MediaTypeHtml,
+  media_type: Option<MediaTypeHtml>,
   source: Option<Source>,
   /// user avatar
   icon: Option<ImageObject>,
@@ -91,11 +92,11 @@ impl ToApub for DbPerson {
       media_type: MediaTypeMarkdown::Markdown,
     });
     let icon = self.avatar.clone().map(|url| ImageObject {
-      content: ImageType::Image,
+      kind: ImageType::Image,
       url: url.into(),
     });
     let image = self.banner.clone().map(|url| ImageObject {
-      content: ImageType::Image,
+      kind: ImageType::Image,
       url: url.into(),
     });
 
@@ -106,7 +107,7 @@ impl ToApub for DbPerson {
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       content: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      media_type: MediaTypeHtml::Html,
+      media_type: self.bio.as_ref().map(|_| MediaTypeHtml::Html),
       source,
       icon,
       image,
@@ -114,7 +115,7 @@ impl ToApub for DbPerson {
       published: convert_datetime(self.published),
       outbox: self.get_outbox_url()?,
       endpoints: Endpoints {
-        shared_inbox: Some(self.get_shared_inbox_or_inbox_url()),
+        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
         ..Default::default()
       },
       public_key: self.get_public_key()?,
@@ -136,10 +137,10 @@ impl FromApub for DbPerson {
   async fn from_apub(
     person: &Person,
     context: &LemmyContext,
-    _expected_domain: Url,
+    expected_domain: &Url,
     _request_counter: &mut i32,
-    _mod_action_allowed: bool,
   ) -> Result<DbPerson, LemmyError> {
+    let actor_id = Some(person.id(expected_domain)?.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
     let bio = person.source.clone().map(|s| s.content);
@@ -163,7 +164,7 @@ impl FromApub for DbPerson {
       banner: Some(person.image.clone().map(|i| i.url.into())),
       published: Some(person.published.naive_local()),
       updated: person.updated.map(|u| u.clone().naive_local()),
-      actor_id: Some(person.id.clone().into()),
+      actor_id,
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),

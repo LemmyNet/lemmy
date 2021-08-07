@@ -1696,7 +1696,6 @@ name = "lemmy_apub"
 version = "0.1.0"
 dependencies = [
  "activitystreams",
- "activitystreams-ext",
  "actix",
  "actix-rt",
  "actix-web",

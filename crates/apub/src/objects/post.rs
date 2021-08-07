@@ -47,7 +47,7 @@ pub struct Page {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
   r#type: PageType,
-  pub(crate) id: Url,
+  id: Url,
   pub(crate) attributed_to: Url,
   to: [Url; 2],
   name: String,
@@ -66,6 +66,14 @@ pub struct Page {
 }
 
 impl Page {
+  pub(crate) fn id_unchecked(&self) -> &Url {
+    &self.id
+  }
+  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
+    verify_domains_match(&self.id, expected_domain)?;
+    Ok(&self.id)
+  }
+
   /// Only mods can change the post's stickied/locked status. So if either of these is changed from
   /// the current value, it is a mod action and needs to be verified as such.
   ///
@@ -121,7 +129,7 @@ impl ToApub for Post {
       media_type: MediaTypeMarkdown::Markdown,
     });
     let image = self.thumbnail_url.clone().map(|thumb| ImageObject {
-      content: ImageType::Image,
+      kind: ImageType::Image,
       url: thumb.into(),
     });
 
@@ -164,10 +172,17 @@ impl FromApub for Post {
   async fn from_apub(
     page: &Page,
     context: &LemmyContext,
-    _expected_domain: Url,
+    expected_domain: &Url,
     request_counter: &mut i32,
-    _mod_action_allowed: bool,
   ) -> Result<Post, LemmyError> {
+    // We can't verify the domain in case of mod action, because the mod may be on a different
+    // instance from the post author.
+    let ap_id = if page.is_mod_action(context.pool()).await? {
+      page.id_unchecked()
+    } else {
+      page.id(expected_domain)?
+    };
+    let ap_id = Some(ap_id.clone().into());
     let creator =
       get_or_fetch_and_upsert_person(&page.attributed_to, context, request_counter).await?;
     let community = extract_community(&page.to, context, request_counter).await?;
@@ -200,7 +215,7 @@ impl FromApub for Post {
       embed_description,
       embed_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(page.id.clone().into()),
+      ap_id,
       local: Some(false),
     };
     Ok(blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??)

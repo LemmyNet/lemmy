@@ -6,13 +6,9 @@ use crate::{
     person::get_or_fetch_and_upsert_person,
     should_refetch_actor,
   },
-  objects::FromApub,
-  GroupExt,
+  objects::{community::Group, FromApub},
 };
-use activitystreams::{
-  actor::ApActorExt,
-  collection::{CollectionExt, OrderedCollection},
-};
+use activitystreams::collection::{CollectionExt, OrderedCollection};
 use anyhow::Context;
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
@@ -63,7 +59,7 @@ async fn fetch_remote_community(
   old_community: Option<Community>,
   request_counter: &mut i32,
 ) -> Result<Community, LemmyError> {
-  let group = fetch_remote_object::<GroupExt>(context.client(), apub_id, request_counter).await;
+  let group = fetch_remote_object::<Group>(context.client(), apub_id, request_counter).await;
 
   if let Some(c) = old_community.to_owned() {
     if is_deleted(&group) {
@@ -78,22 +74,20 @@ async fn fetch_remote_community(
   }
 
   let group = group?;
-  let community =
-    Community::from_apub(&group, context, apub_id.to_owned(), request_counter, false).await?;
+  let community = Community::from_apub(&group, context, apub_id, request_counter).await?;
 
   update_community_mods(&group, &community, context, request_counter).await?;
 
   // only fetch outbox for new communities, otherwise this can create an infinite loop
   if old_community.is_none() {
-    let outbox = group.inner.outbox()?.context(location_info!())?;
-    fetch_community_outbox(context, outbox, request_counter).await?
+    fetch_community_outbox(context, &group.outbox, request_counter).await?
   }
 
   Ok(community)
 }
 
 async fn update_community_mods(
-  group: &GroupExt,
+  group: &Group,
   community: &Community,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -168,10 +162,10 @@ async fn fetch_community_outbox(
 
 pub(crate) async fn fetch_community_mods(
   context: &LemmyContext,
-  group: &GroupExt,
+  group: &Group,
   recursion_counter: &mut i32,
 ) -> Result<Vec<Url>, LemmyError> {
-  if let Some(mods_url) = &group.ext_one.moderators {
+  if let Some(mods_url) = &group.moderators {
     let mods =
       fetch_remote_object::<OrderedCollection>(context.client(), mods_url, recursion_counter)
         .await?;
