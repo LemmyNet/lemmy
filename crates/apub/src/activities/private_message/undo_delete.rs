@@ -1,9 +1,15 @@
-use crate::activities::{
-  private_message::{delete::DeletePrivateMessage, send_websocket_message},
-  verify_activity,
-  verify_person,
+use crate::{
+  activities::{
+    generate_activity_id,
+    private_message::{delete::DeletePrivateMessage, send_websocket_message},
+    verify_activity,
+    verify_person,
+  },
+  activity_queue::send_activity_new,
+  extensions::context::lemmy_context,
+  ActorType,
 };
-use activitystreams::activity::kind::UndoType;
+use activitystreams::activity::kind::{DeleteType, UndoType};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   verify_domains_match,
@@ -11,8 +17,8 @@ use lemmy_apub_lib::{
   ActivityCommonFields,
   ActivityHandler,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject, Crud};
+use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{LemmyContext, UserOperationCrud};
 use url::Url;
@@ -26,6 +32,45 @@ pub struct UndoDeletePrivateMessage {
   kind: UndoType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl UndoDeletePrivateMessage {
+  pub async fn send(
+    actor: &Person,
+    pm: &PrivateMessage,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let recipient_id = pm.recipient_id;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+
+    let object = DeletePrivateMessage {
+      to: recipient.actor_id(),
+      object: pm.ap_id.clone().into(),
+      kind: DeleteType::Delete,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: generate_activity_id(DeleteType::Delete)?,
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+
+    let id = generate_activity_id(UndoType::Undo)?;
+    let undo = UndoDeletePrivateMessage {
+      to: recipient.actor_id(),
+      object,
+      kind: UndoType::Undo,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+    let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
+    send_activity_new(context, &undo, &id, actor, inbox, true).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]

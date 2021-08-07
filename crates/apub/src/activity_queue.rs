@@ -31,34 +31,6 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, env, fmt::Debug, future::Future, pin::Pin};
 use url::Url;
 
-/// Sends a local activity to a single, remote actor.
-///
-/// * `activity` the apub activity to be sent
-/// * `creator` the local actor which created the activity
-/// * `inbox` the inbox url where the activity should be delivered to
-pub(crate) async fn send_activity_single_dest<T, Kind>(
-  activity: T,
-  creator: &dyn ActorType,
-  inbox: Url,
-  context: &LemmyContext,
-) -> Result<(), LemmyError>
-where
-  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
-  Kind: Serialize,
-  <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
-{
-  if check_is_apub_id_valid(&inbox, false).is_ok() {
-    debug!(
-      "Sending activity {:?} to {}",
-      &activity.id_unchecked().map(ToString::to_string),
-      &inbox
-    );
-    send_activity_internal(context, activity, creator, vec![inbox], true, true).await?;
-  }
-
-  Ok(())
-}
-
 /// From a local community, send activity to all remote followers.
 ///
 /// * `activity` the apub activity to send

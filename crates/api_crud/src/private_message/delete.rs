@@ -5,7 +5,10 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{DeletePrivateMessage, PrivateMessageResponse},
 };
-use lemmy_apub::ApubObjectType;
+use lemmy_apub::activities::private_message::{
+  delete::DeletePrivateMessage as DeletePrivateMessageApub,
+  undo_delete::UndoDeletePrivateMessage,
+};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::source::private_message::PrivateMessage;
 use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
@@ -45,13 +48,14 @@ impl PerformCrud for DeletePrivateMessage {
 
     // Send the apub update
     if data.deleted {
-      updated_private_message
-        .blank_out_deleted_or_removed_info()
-        .send_delete(&local_user_view.person, context)
-        .await?;
+      DeletePrivateMessageApub::send(
+        &local_user_view.person,
+        &updated_private_message.blank_out_deleted_or_removed_info(),
+        context,
+      )
+      .await?;
     } else {
-      updated_private_message
-        .send_undo_delete(&local_user_view.person, context)
+      UndoDeletePrivateMessage::send(&local_user_view.person, &updated_private_message, context)
         .await?;
     }
 

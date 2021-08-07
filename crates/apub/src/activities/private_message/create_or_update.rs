@@ -53,15 +53,8 @@ impl CreateOrUpdatePrivateMessage {
         unparsed: Default::default(),
       },
     };
-    send_activity_new(
-      context,
-      &create_or_update,
-      &id,
-      actor,
-      vec![recipient.get_shared_inbox_or_inbox_url()],
-      true,
-    )
-    .await
+    let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
+    send_activity_new(context, &create_or_update, &id, actor, inbox, true).await
   }
 }
 #[async_trait::async_trait(?Send)]
