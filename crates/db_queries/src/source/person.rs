@@ -158,7 +158,9 @@ mod safe_type_alias_2 {
   }
 }
 
-impl Crud<PersonForm, PersonId> for Person {
+impl Crud for Person {
+  type Form = PersonForm;
+  type IdType = PersonId;
   fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     person
       .filter(deleted.eq(false))
@@ -178,7 +180,8 @@ impl Crud<PersonForm, PersonId> for Person {
   }
 }
 
-impl ApubObject<PersonForm> for Person {
+impl ApubObject for Person {
+  type Form = PersonForm;
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::person::dsl::*;
     person

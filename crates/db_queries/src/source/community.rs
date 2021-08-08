@@ -60,7 +60,9 @@ mod safe_type {
   }
 }
 
-impl Crud<CommunityForm, CommunityId> for Community {
+impl Crud for Community {
+  type Form = CommunityForm;
+  type IdType = CommunityId;
   fn read(conn: &PgConnection, community_id: CommunityId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community.find(community_id).first::<Self>(conn)
@@ -90,7 +92,8 @@ impl Crud<CommunityForm, CommunityId> for Community {
   }
 }
 
-impl ApubObject<CommunityForm> for Community {
+impl ApubObject for Community {
+  type Form = CommunityForm;
   fn read_from_apub_id(conn: &PgConnection, for_actor_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community
@@ -175,7 +178,8 @@ impl Community_ for Community {
   }
 }
 
-impl Joinable<CommunityModeratorForm> for CommunityModerator {
+impl Joinable for CommunityModerator {
+  type Form = CommunityModeratorForm;
   fn join(
     conn: &PgConnection,
     community_moderator_form: &CommunityModeratorForm,
@@ -252,7 +256,8 @@ impl CommunityModerator_ for CommunityModerator {
   }
 }
 
-impl Bannable<CommunityPersonBanForm> for CommunityPersonBan {
+impl Bannable for CommunityPersonBan {
+  type Form = CommunityPersonBanForm;
   fn ban(
     conn: &PgConnection,
     community_person_ban_form: &CommunityPersonBanForm,
@@ -277,7 +282,8 @@ impl Bannable<CommunityPersonBanForm> for CommunityPersonBan {
   }
 }
 
-impl Followable<CommunityFollowerForm> for CommunityFollower {
+impl Followable for CommunityFollower {
+  type Form = CommunityFollowerForm;
   fn follow(
     conn: &PgConnection,
     community_follower_form: &CommunityFollowerForm,

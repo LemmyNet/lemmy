@@ -135,7 +135,9 @@ impl Comment_ for Comment {
   }
 }
 
-impl Crud<CommentForm, CommentId> for Comment {
+impl Crud for Comment {
+  type Form = CommentForm;
+  type IdType = CommentId;
   fn read(conn: &PgConnection, comment_id: CommentId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.find(comment_id).first::<Self>(conn)
@@ -165,7 +167,8 @@ impl Crud<CommentForm, CommentId> for Comment {
   }
 }
 
-impl ApubObject<CommentForm> for Comment {
+impl ApubObject for Comment {
+  type Form = CommentForm;
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
@@ -182,7 +185,9 @@ impl ApubObject<CommentForm> for Comment {
   }
 }
 
-impl Likeable<CommentLikeForm, CommentId> for CommentLike {
+impl Likeable for CommentLike {
+  type Form = CommentLikeForm;
+  type IdType = CommentId;
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment_like::dsl::*;
     insert_into(comment_like)
@@ -207,7 +212,8 @@ impl Likeable<CommentLikeForm, CommentId> for CommentLike {
   }
 }
 
-impl Saveable<CommentSavedForm> for CommentSaved {
+impl Saveable for CommentSaved {
+  type Form = CommentSavedForm;
   fn save(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment_saved::dsl::*;
     insert_into(comment_saved)

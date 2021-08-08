@@ -91,7 +91,9 @@ impl LocalUser_ for LocalUser {
   }
 }
 
-impl Crud<LocalUserForm, LocalUserId> for LocalUser {
+impl Crud for LocalUser {
+  type Form = LocalUserForm;
+  type IdType = LocalUserId;
   fn read(conn: &PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
     local_user.find(local_user_id).first::<Self>(conn)
   }

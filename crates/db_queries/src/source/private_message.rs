@@ -2,7 +2,9 @@ use crate::{ApubObject, Crud, DeleteableOrRemoveable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl, PersonId, PrivateMessageId};
 
-impl Crud<PrivateMessageForm, PrivateMessageId> for PrivateMessage {
+impl Crud for PrivateMessage {
+  type Form = PrivateMessageForm;
+  type IdType = PrivateMessageId;
   fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::private_message::dsl::*;
     private_message.find(private_message_id).first::<Self>(conn)
@@ -27,7 +29,8 @@ impl Crud<PrivateMessageForm, PrivateMessageId> for PrivateMessage {
   }
 }
 
-impl ApubObject<PrivateMessageForm> for PrivateMessage {
+impl ApubObject for PrivateMessage {
+  type Form = PrivateMessageForm;
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized,
