@@ -42,7 +42,7 @@ where
 ///
 /// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
 /// Otherwise it is fetched from the remote instance, stored and returned.
-pub async fn get_or_fetch_and_upsert_actor(
+pub(crate) async fn get_or_fetch_and_upsert_actor(
   apub_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,

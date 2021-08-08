@@ -17,7 +17,7 @@ use url::Url;
 /// pulled from its apub ID, inserted and returned.
 ///
 /// The parent community is also pulled if necessary. Comments are not pulled.
-pub async fn get_or_fetch_and_insert_post(
+pub(crate) async fn get_or_fetch_and_insert_post(
   post_ap_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
@@ -46,7 +46,7 @@ pub async fn get_or_fetch_and_insert_post(
 /// pulled from its apub ID, inserted and returned.
 ///
 /// The parent community, post and comment are also pulled if necessary.
-pub async fn get_or_fetch_and_insert_comment(
+pub(crate) async fn get_or_fetch_and_insert_comment(
   comment_ap_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
@@ -80,7 +80,7 @@ pub async fn get_or_fetch_and_insert_comment(
   }
 }
 
-pub async fn get_or_fetch_and_insert_post_or_comment(
+pub(crate) async fn get_or_fetch_and_insert_post_or_comment(
   ap_id: &Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,

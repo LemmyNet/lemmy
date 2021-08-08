@@ -19,14 +19,14 @@ pub(crate) mod private_message;
 
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
-pub trait ToApub {
+pub(crate) trait ToApub {
   type ApubType;
   async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]
-pub trait FromApub {
+pub(crate) trait FromApub {
   type ApubType;
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///

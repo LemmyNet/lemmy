@@ -62,7 +62,7 @@ pub(crate) async fn sign_and_send(
 }
 
 /// Verifies the HTTP signature on an incoming inbox request.
-pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), LemmyError> {
+pub(crate) fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), LemmyError> {
   let verified = CONFIG2
     .begin_verify(
       request.method(),
