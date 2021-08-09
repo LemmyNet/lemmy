@@ -2,6 +2,7 @@
 #git checkout main
 
 # Creating the new tag
+old_tag=$(cat "ansible/VERSION")
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
 
@@ -18,6 +19,21 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   git add "ansible/VERSION"
   popd
 fi
+
+# Update crate versions for crates.io
+for crate in crates/*; do
+  pushd $crate
+  # update version of the crate itself (only first occurence)
+  # https://stackoverflow.com/a/9453461
+  sed -i "0,/version = \"$old_tag\"/s//version = \"$new_tag\"/g" Cargo.toml
+  # update version of lemmy dependencies
+  sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
+  popd
+done
+# same as above, for the main cargo.toml
+sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
+sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
+
 
 # The commit
 git commit -m"Version $new_tag"

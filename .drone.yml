@@ -120,6 +120,17 @@ steps:
       ref:
         - refs/tags/*
 
+  # using https://github.com/pksunkara/cargo-workspaces
+  - name: publish to crates.io
+    image: rust:1.51-slim-buster
+    commands:
+      - cargo install cargo-workspaces
+      - cp -r migrations crates/db_queries/
+      - cargo workspaces publish --no-git-commit --allow-branch main --yes custom "${DRONE_TAG}"
+    when:
+      ref:
+        - refs/tags/*
+
 services:
   - name: database
     image: postgres:12-alpine
