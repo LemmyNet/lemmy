@@ -28,6 +28,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use log::warn;
 use url::Url;
 use webmention::Webmention;
 
@@ -141,8 +142,11 @@ impl PerformCrud for CreatePost {
 
     if let Some(url) = updated_post_url {
       let hostname = Url::parse(&Settings::get().get_protocol_and_hostname())?;
-      let mut webmention: Webmention = (hostname, url.clone().into_inner()).into();
-      webmention.send().await?;
+      let mut webmention: Webmention = (hostname, url.into_inner()).into();
+      webmention.set_checked(true);
+      if let Err(e) = webmention.send().await {
+        warn!("Failed to send webmention: {}", e);
+      }
     }
 
     send_post_ws_message(
