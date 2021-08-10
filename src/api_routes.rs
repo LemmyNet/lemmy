@@ -151,20 +151,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", web::get().to(route_get_crud::<GetPersonDetails>))
           .route("/mention", web::get().to(route_get::<GetPersonMentions>))
-          .route("/block", web::get().to(route_get::<GetBlockedPersons>))
           .route(
             "/mention/mark_as_read",
             web::post().to(route_post::<MarkPersonMentionAsRead>),
           )
           .route("/replies", web::get().to(route_get::<GetReplies>))
-          .route(
-            "/followed_communities",
-            web::get().to(route_get::<GetFollowedCommunities>),
-          )
-          .route(
-            "/blocked_communities",
-            web::get().to(route_get::<GetBlockedCommunities>),
-          )
           .route("/join", web::post().to(route_post::<UserJoin>))
           // Admin action. I don't like that it's in /user
           .route("/ban", web::post().to(route_post::<BanPerson>))

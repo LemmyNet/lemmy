@@ -45,9 +45,6 @@ pub async fn match_websocket_operation(
     UserOperation::GetPersonMentions => {
       do_websocket_operation::<GetPersonMentions>(context, id, op, data).await
     }
-    UserOperation::GetBlockedPersons => {
-      do_websocket_operation::<GetBlockedPersons>(context, id, op, data).await
-    }
     UserOperation::MarkPersonMentionAsRead => {
       do_websocket_operation::<MarkPersonMentionAsRead>(context, id, op, data).await
     }
@@ -103,12 +100,6 @@ pub async fn match_websocket_operation(
     }
     UserOperation::BlockCommunity => {
       do_websocket_operation::<BlockCommunity>(context, id, op, data).await
-    }
-    UserOperation::GetFollowedCommunities => {
-      do_websocket_operation::<GetFollowedCommunities>(context, id, op, data).await
-    }
-    UserOperation::GetBlockedCommunities => {
-      do_websocket_operation::<GetBlockedCommunities>(context, id, op, data).await
     }
     UserOperation::BanFromCommunity => {
       do_websocket_operation::<BanFromCommunity>(context, id, op, data).await

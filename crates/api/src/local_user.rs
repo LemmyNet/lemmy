@@ -7,12 +7,6 @@ use chrono::Duration;
 use lemmy_api_common::{
   blocking,
   collect_moderated_communities,
-  community::{
-    GetBlockedCommunities,
-    GetBlockedCommunitiesResponse,
-    GetFollowedCommunities,
-    GetFollowedCommunitiesResponse,
-  },
   get_local_user_view_from_jwt,
   is_admin,
   password_length_check,
@@ -59,10 +53,7 @@ use lemmy_db_views::{
   post_report_view::PostReportView,
 };
 use lemmy_db_views_actor::{
-  community_block_view::CommunityBlockView,
-  community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
-  person_block_view::PersonBlockView,
   person_mention_view::{PersonMentionQueryBuilder, PersonMentionView},
   person_view::PersonViewSafe,
 };
@@ -838,77 +829,5 @@ impl Perform for GetReportCount {
     });
 
     Ok(res)
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for GetFollowedCommunities {
-  type Response = GetFollowedCommunitiesResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
-    let data: &GetFollowedCommunities = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
-
-    let person_id = local_user_view.person.id;
-    let communities = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_person(conn, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("system_err_login"))?;
-
-    // Return the jwt
-    Ok(GetFollowedCommunitiesResponse { communities })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for GetBlockedCommunities {
-  type Response = GetBlockedCommunitiesResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetBlockedCommunitiesResponse, LemmyError> {
-    let data: &GetBlockedCommunities = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
-
-    let person_id = local_user_view.person.id;
-    let communities = blocking(context.pool(), move |conn| {
-      CommunityBlockView::for_person(conn, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("system_err_login"))?;
-
-    // Return the jwt
-    Ok(GetBlockedCommunitiesResponse { communities })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for GetBlockedPersons {
-  type Response = GetBlockedPersonsResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetBlockedPersonsResponse, LemmyError> {
-    let data: &GetBlockedPersons = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
-
-    let person_id = local_user_view.person.id;
-    let persons = blocking(context.pool(), move |conn| {
-      PersonBlockView::for_person(conn, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("system_err_login"))?;
-
-    // Return the jwt
-    Ok(GetBlockedPersonsResponse { persons })
   }
 }

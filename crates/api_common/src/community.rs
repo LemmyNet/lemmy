@@ -1,7 +1,5 @@
 use lemmy_db_schema::{CommunityId, PersonId};
 use lemmy_db_views_actor::{
-  community_block_view::CommunityBlockView,
-  community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
   person_view::PersonViewSafe,
@@ -122,26 +120,6 @@ pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
   pub auth: String,
-}
-
-#[derive(Deserialize)]
-pub struct GetFollowedCommunities {
-  pub auth: String,
-}
-
-#[derive(Serialize)]
-pub struct GetFollowedCommunitiesResponse {
-  pub communities: Vec<CommunityFollowerView>,
-}
-
-#[derive(Deserialize)]
-pub struct GetBlockedCommunities {
-  pub auth: String,
-}
-
-#[derive(Serialize)]
-pub struct GetBlockedCommunitiesResponse {
-  pub communities: Vec<CommunityBlockView>,
 }
 
 #[derive(Deserialize)]

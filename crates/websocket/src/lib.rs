@@ -101,7 +101,6 @@ pub enum UserOperation {
   ListPostReports,
   GetReportCount,
   FollowCommunity,
-  GetFollowedCommunities,
   GetReplies,
   GetPersonMentions,
   MarkPersonMentionAsRead,
@@ -128,8 +127,6 @@ pub enum UserOperation {
   GetSiteMetadata,
   BlockCommunity,
   BlockPerson,
-  GetBlockedCommunities,
-  GetBlockedPersons,
 }
 
 #[derive(EnumString, ToString, Debug, Clone)]

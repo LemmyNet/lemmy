@@ -4,10 +4,7 @@ use lemmy_db_views::{
   private_message_view::PrivateMessageView,
 };
 use lemmy_db_views_actor::{
-  community_block_view::CommunityBlockView,
-  community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
-  person_block_view::PersonBlockView,
   person_mention_view::PersonMentionView,
   person_view::PersonViewSafe,
 };
@@ -98,12 +95,9 @@ pub struct GetPersonDetails {
 #[derive(Serialize)]
 pub struct GetPersonDetailsResponse {
   pub person_view: PersonViewSafe,
-  pub follows: Vec<CommunityFollowerView>,
-  pub community_blocks: Vec<CommunityBlockView>,
-  pub person_blocks: Vec<PersonBlockView>,
-  pub moderates: Vec<CommunityModeratorView>,
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
+  pub moderates: Vec<CommunityModeratorView>,
 }
 
 #[derive(Serialize)]
@@ -270,14 +264,4 @@ pub struct GetReportCountResponse {
   pub community: Option<CommunityId>,
   pub comment_reports: i64,
   pub post_reports: i64,
-}
-
-#[derive(Deserialize)]
-pub struct GetBlockedPersons {
-  pub auth: String,
-}
-
-#[derive(Serialize)]
-pub struct GetBlockedPersonsResponse {
-  pub persons: Vec<PersonBlockView>,
 }

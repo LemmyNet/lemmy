@@ -4,7 +4,6 @@ use anyhow::Context;
 use lemmy_api_common::{
   blocking,
   build_federated_instances,
-  get_local_user_settings_view_from_jwt,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
@@ -422,15 +421,13 @@ impl Perform for TransferSite {
     let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
     let federated_instances = build_federated_instances(context.pool()).await?;
 
-    let my_user = Some(get_local_user_settings_view_from_jwt(&data.auth, context.pool()).await?);
-
     Ok(GetSiteResponse {
       site_view: Some(site_view),
       admins,
       banned,
       online: 0,
       version: version::VERSION.to_string(),
-      my_user,
+      my_user: None,
       federated_instances,
     })
   }
