@@ -114,7 +114,7 @@ impl PerformCrud for GetSite {
       .map_err(|_| ApiError::err("system_err_login"))?;
 
       Some(MyUserInfo {
-        local_user: local_user_view,
+        local_user_view,
         follows,
         community_blocks,
         person_blocks,

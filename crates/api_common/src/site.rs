@@ -122,7 +122,7 @@ pub struct GetSiteResponse {
 
 #[derive(Serialize)]
 pub struct MyUserInfo {
-  pub local_user: LocalUserSettingsView,
+  pub local_user_view: LocalUserSettingsView,
   pub follows: Vec<CommunityFollowerView>,
   pub community_blocks: Vec<CommunityBlockView>,
   pub person_blocks: Vec<PersonBlockView>,
