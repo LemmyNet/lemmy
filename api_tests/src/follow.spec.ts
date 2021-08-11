@@ -4,8 +4,8 @@ import {
   setupLogins,
   searchForBetaCommunity,
   followCommunity,
-  checkFollowedCommunities,
   unfollowRemotes,
+  getSite,
 } from './shared';
 
 beforeAll(async () => {
@@ -29,8 +29,8 @@ test('Follow federated community', async () => {
   expect(follow.community_view.community.name).toBe('main');
 
   // Check it from local
-  let followCheck = await checkFollowedCommunities(alpha);
-  let remoteCommunityId = followCheck.communities.find(
+  let site = await getSite(alpha);
+  let remoteCommunityId = site.my_user.follows.find(
     c => c.community.local == false
   ).community.id;
   expect(remoteCommunityId).toBeDefined();
@@ -40,6 +40,6 @@ test('Follow federated community', async () => {
   expect(unfollow.community_view.community.local).toBe(false);
 
   // Make sure you are unsubbed locally
-  let unfollowCheck = await checkFollowedCommunities(alpha);
-  expect(unfollowCheck.communities.length).toBeGreaterThanOrEqual(1);
+  let siteUnfollowCheck = await getSite(alpha);
+  expect(siteUnfollowCheck.my_user.follows.length).toBeGreaterThanOrEqual(1);
 });

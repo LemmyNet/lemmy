@@ -12,7 +12,6 @@ import {
   SearchResponse,
   FollowCommunity,
   CommunityResponse,
-  GetFollowedCommunitiesResponse,
   GetPostResponse,
   Register,
   Comment,
@@ -30,7 +29,6 @@ import {
   CreatePostLike,
   EditPrivateMessage,
   DeletePrivateMessage,
-  GetFollowedCommunities,
   GetPrivateMessages,
   GetSite,
   GetPost,
@@ -336,15 +334,6 @@ export async function followCommunity(
   return api.client.followCommunity(form);
 }
 
-export async function checkFollowedCommunities(
-  api: API
-): Promise<GetFollowedCommunitiesResponse> {
-  let form: GetFollowedCommunities = {
-    auth: api.auth,
-  };
-  return api.client.getFollowedCommunities(form);
-}
-
 export async function likePost(
   api: API,
   score: number,
@@ -543,8 +532,7 @@ export async function registerUser(
 }
 
 export async function saveUserSettingsBio(
-  api: API,
-  auth: string
+  api: API
 ): Promise<LoginResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
@@ -555,7 +543,7 @@ export async function saveUserSettingsBio(
     show_avatars: true,
     send_notifications_to_email: false,
     bio: 'a changed bio',
-    auth,
+    auth: api.auth,
   };
   return saveUserSettings(api, form);
 }
@@ -568,11 +556,10 @@ export async function saveUserSettings(
 }
 
 export async function getSite(
-  api: API,
-  auth: string
+  api: API
 ): Promise<GetSiteResponse> {
   let form: GetSite = {
-    auth,
+    auth: api.auth,
   };
   return api.client.getSite(form);
 }
@@ -590,17 +577,17 @@ export async function listPrivateMessages(
 
 export async function unfollowRemotes(
   api: API
-): Promise<GetFollowedCommunitiesResponse> {
+): Promise<GetSiteResponse> {
   // Unfollow all remote communities
-  let followed = await checkFollowedCommunities(api);
-  let remoteFollowed = followed.communities.filter(
+  let site = await getSite(api);
+  let remoteFollowed = site.my_user.follows.filter(
     c => c.community.local == false
   );
   for (let cu of remoteFollowed) {
     await followCommunity(api, false, cu.community.id);
   }
-  let followed2 = await checkFollowedCommunities(api);
-  return followed2;
+  let siteRes = await getSite(api);
+  return siteRes;
 }
 
 export async function followBeta(api: API): Promise<CommunityResponse> {
