@@ -111,13 +111,13 @@ impl Perform for FollowCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockCommunity {
-  type Response = CommunityResponse;
+  type Response = BlockCommunityResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommunityResponse, LemmyError> {
+  ) -> Result<BlockCommunityResponse, LemmyError> {
     let data: &BlockCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
@@ -147,7 +147,10 @@ impl Perform for BlockCommunity {
     })
     .await??;
 
-    Ok(CommunityResponse { community_view })
+    Ok(BlockCommunityResponse {
+      blocked: data.block,
+      community_view,
+    })
   }
 }
 

@@ -122,6 +122,12 @@ pub struct BlockCommunity {
   pub auth: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct BlockCommunityResponse {
+  pub community_view: CommunityView,
+  pub blocked: bool,
+}
+
 #[derive(Deserialize)]
 pub struct TransferCommunity {
   pub community_id: CommunityId,
