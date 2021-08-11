@@ -8,6 +8,7 @@ use lemmy_db_views::{
 use lemmy_db_views_actor::{
   community_block_view::CommunityBlockView,
   community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
   person_block_view::PersonBlockView,
   person_view::PersonViewSafe,
@@ -124,6 +125,7 @@ pub struct GetSiteResponse {
 pub struct MyUserInfo {
   pub local_user_view: LocalUserSettingsView,
   pub follows: Vec<CommunityFollowerView>,
+  pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,
   pub person_blocks: Vec<PersonBlockView>,
 }

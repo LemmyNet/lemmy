@@ -11,6 +11,7 @@ use lemmy_db_views::site_view::SiteView;
 use lemmy_db_views_actor::{
   community_block_view::CommunityBlockView,
   community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
   person_block_view::PersonBlockView,
   person_view::PersonViewSafe,
 };
@@ -113,9 +114,16 @@ impl PerformCrud for GetSite {
       .await?
       .map_err(|_| ApiError::err("system_err_login"))?;
 
+      let moderates = blocking(context.pool(), move |conn| {
+        CommunityModeratorView::for_person(conn, person_id)
+      })
+      .await?
+      .map_err(|_| ApiError::err("system_err_login"))?;
+
       Some(MyUserInfo {
         local_user_view,
         follows,
+        moderates,
         community_blocks,
         person_blocks,
       })
