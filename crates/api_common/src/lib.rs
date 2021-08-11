@@ -360,8 +360,8 @@ pub async fn check_person_block(
   recipient_id: PersonId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  // TODO the person and recipient might be reversed
-  let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, person_id, recipient_id).is_ok();
+  // Flip the recipient and the person
+  let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, recipient_id, person_id).is_ok();
   if blocking(pool, is_blocked).await? {
     Err(ApiError::err("person_block").into())
   } else {

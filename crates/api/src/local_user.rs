@@ -491,18 +491,18 @@ impl Perform for BlockPerson {
       return Err(ApiError::err("cant_block_yourself").into());
     }
 
-    let community_block_form = PersonBlockForm {
+    let person_block_form = PersonBlockForm {
       person_id,
       recipient_id,
     };
 
     if data.block {
-      let block = move |conn: &'_ _| PersonBlock::block(conn, &community_block_form);
+      let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
       if blocking(context.pool(), block).await?.is_err() {
         return Err(ApiError::err("person_block_already_exists").into());
       }
     } else {
-      let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &community_block_form);
+      let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
       if blocking(context.pool(), unblock).await?.is_err() {
         return Err(ApiError::err("person_block_already_exists").into());
       }
