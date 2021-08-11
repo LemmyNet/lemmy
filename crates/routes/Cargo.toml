@@ -1,19 +1,21 @@
 [package]
 name = "lemmy_routes"
-version = "0.1.0"
+version = "0.11.3"
 edition = "2018"
+description = "A link aggregator for the fediverse"
+license = "AGPL-3.0"
 
 [lib]
 doctest = false
 
 [dependencies]
-lemmy_utils = { path = "../utils" }
-lemmy_websocket = { path = "../websocket" }
-lemmy_db_queries = { path = "../db_queries" }
-lemmy_db_views = { path = "../db_views" }
-lemmy_db_views_actor = { path = "../db_views_actor" }
-lemmy_db_schema = { path = "../db_schema" }
-lemmy_api_common = { path = "../api_common" }
+lemmy_utils = { version = "=0.11.3", path = "../utils" }
+lemmy_websocket = { version = "=0.11.3", path = "../websocket" }
+lemmy_db_queries = { version = "=0.11.3", path = "../db_queries" }
+lemmy_db_views = { version = "=0.11.3", path = "../db_views" }
+lemmy_db_views_actor = { version = "=0.11.3", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.11.3", path = "../db_schema" }
+lemmy_api_common = { version = "=0.11.3", path = "../api_common" }
 diesel = "1.4.7"
 actix = "0.12.0"
 actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }

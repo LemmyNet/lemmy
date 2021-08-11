@@ -1,7 +1,9 @@
 [package]
 name = "lemmy_websocket"
-version = "0.1.0"
+version = "0.11.3"
 edition = "2018"
+description = "A link aggregator for the fediverse"
+license = "AGPL-3.0"
 
 [lib]
 name = "lemmy_websocket"
@@ -9,10 +11,10 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { path = "../utils" }
-lemmy_api_common = { path = "../api_common" }
-lemmy_db_queries = { path = "../db_queries" }
-lemmy_db_schema = { path = "../db_schema" }
+lemmy_utils = { version = "=0.11.3", path = "../utils" }
+lemmy_api_common = { version = "=0.11.3", path = "../api_common" }
+lemmy_db_queries = { version = "=0.11.3", path = "../db_queries" }
+lemmy_db_schema = { version = "=0.11.3", path = "../db_schema" }
 reqwest = { version = "0.11.4", features = ["json"] }
 log = "0.4.14"
 rand = "0.8.4"

@@ -1,13 +1,15 @@
 [package]
 name = "lemmy_db_views_moderator"
-version = "0.1.0"
+version = "0.11.3"
 edition = "2018"
+description = "A link aggregator for the fediverse"
+license = "AGPL-3.0"
 
 [lib]
 doctest = false
 
 [dependencies]
-lemmy_db_queries = { path = "../db_queries" }
-lemmy_db_schema = { path = "../db_schema" }
+lemmy_db_queries = { version = "=0.11.3", path = "../db_queries" }
+lemmy_db_schema = { version = "=0.11.3", path = "../db_schema" }
 diesel = { version = "1.4.7", features = ["postgres","chrono","r2d2","serde_json"] }
 serde = { version = "1.0.126", features = ["derive"] }
