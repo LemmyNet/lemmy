@@ -62,7 +62,7 @@ impl ActivityHandler for UndoRemovePostCommentOrCommunity {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {

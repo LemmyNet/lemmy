@@ -87,7 +87,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     verify_person_in_community(&self.common.actor, &community_id, context, request_counter).await?;
     match self.kind {
       CreateOrUpdateType::Create => {
-        verify_domains_match(&self.common.actor, &self.object.id)?;
+        verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
         verify_urls_match(&self.common.actor, &self.object.attributed_to)?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
@@ -104,7 +104,7 @@ impl ActivityHandler for CreateOrUpdatePost {
         if is_mod_action {
           verify_mod_action(&self.common.actor, community_id, context).await?;
         } else {
-          verify_domains_match(&self.common.actor, &self.object.id)?;
+          verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
           verify_urls_match(&self.common.actor, &self.object.attributed_to)?;
         }
       }
@@ -114,20 +114,13 @@ impl ActivityHandler for CreateOrUpdatePost {
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor =
       get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
-    let post = Post::from_apub(
-      &self.object,
-      context,
-      actor.actor_id(),
-      request_counter,
-      false,
-    )
-    .await?;
+    let post = Post::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

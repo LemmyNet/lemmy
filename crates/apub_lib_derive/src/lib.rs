@@ -92,7 +92,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
             }
           }
           async fn receive(
-            &self,
+            self,
             context: &LemmyContext,
             request_counter: &mut i32,
           ) -> Result<(), LemmyError> {

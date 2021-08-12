@@ -9,21 +9,8 @@ pub mod http;
 pub mod migrations;
 pub mod objects;
 
-use crate::{
-  extensions::{
-    group_extension::GroupExtension,
-    person_extension::PersonExtension,
-    signatures::{PublicKey, PublicKeyExtension},
-  },
-  fetcher::community::get_or_fetch_and_upsert_community,
-};
-use activitystreams::{
-  activity::Follow,
-  actor,
-  base::AnyBase,
-  object::{ApObject, AsObject, ObjectExt},
-};
-use activitystreams_ext::Ext2;
+use crate::extensions::signatures::PublicKey;
+use activitystreams::base::AnyBase;
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
@@ -47,20 +34,6 @@ use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
 
-/// Activitystreams type for community
-pub type GroupExt =
-  Ext2<actor::ApActor<ApObject<actor::Group>>, GroupExtension, PublicKeyExtension>;
-/// Activitystreams type for person
-type PersonExt =
-  Ext2<actor::ApActor<ApObject<actor::Actor<UserTypes>>>, PersonExtension, PublicKeyExtension>;
-pub type SiteExt = actor::ApActor<ApObject<actor::Service>>;
-
-#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, PartialEq)]
-pub enum UserTypes {
-  Person,
-  Service,
-}
-
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
 /// Checks if the ID is allowed for sending or receiving.
@@ -71,7 +44,10 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 ///
-pub fn check_is_apub_id_valid(apub_id: &Url, use_strict_allowlist: bool) -> Result<(), LemmyError> {
+pub(crate) fn check_is_apub_id_valid(
+  apub_id: &Url,
+  use_strict_allowlist: bool,
+) -> Result<(), LemmyError> {
   let settings = Settings::get();
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
@@ -169,15 +145,12 @@ pub trait ActorType {
     Ok(Url::parse(&format!("{}/outbox", &self.actor_id()))?)
   }
 
-  fn get_public_key_ext(&self) -> Result<PublicKeyExtension, LemmyError> {
-    Ok(
-      PublicKey {
-        id: format!("{}#main-key", self.actor_id()),
-        owner: self.actor_id(),
-        public_key_pem: self.public_key().context(location_info!())?,
-      }
-      .to_ext(),
-    )
+  fn get_public_key(&self) -> Result<PublicKey, LemmyError> {
+    Ok(PublicKey {
+      id: format!("{}#main-key", self.actor_id()),
+      owner: self.actor_id(),
+      public_key_pem: self.public_key().context(location_info!())?,
+    })
   }
 }
 
@@ -185,11 +158,6 @@ pub trait ActorType {
 pub trait CommunityType {
   fn followers_url(&self) -> Url;
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
-  async fn send_accept_follow(
-    &self,
-    follow: Follow,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
 
   async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
   async fn send_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
@@ -232,20 +200,6 @@ pub trait CommunityType {
   ) -> Result<(), LemmyError>;
 }
 
-#[async_trait::async_trait(?Send)]
-pub trait UserType {
-  async fn send_follow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_unfollow(
-    &self,
-    follow_actor_id: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-}
-
 pub enum EndpointType {
   Community,
   Person,
@@ -255,7 +209,7 @@ pub enum EndpointType {
 }
 
 /// Generates an apub endpoint for a given domain, IE xyz.tld
-pub fn generate_apub_endpoint_for_domain(
+pub(crate) fn generate_apub_endpoint_for_domain(
   endpoint_type: EndpointType,
   name: &str,
   domain: &str,
@@ -332,7 +286,7 @@ pub fn build_actor_id_from_shortname(
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-pub async fn insert_activity<T>(
+pub(crate) async fn insert_activity<T>(
   ap_id: &Url,
   activity: T,
   local: bool,
@@ -368,7 +322,7 @@ impl PostOrComment {
 /// Tries to find a post or comment in the local database, without any network requests.
 /// This is used to handle deletions and removals, because in case we dont have the object, we can
 /// simply ignore the activity.
-pub async fn find_post_or_comment_by_id(
+pub(crate) async fn find_post_or_comment_by_id(
   context: &LemmyContext,
   apub_id: Url,
 ) -> Result<PostOrComment, LemmyError> {
@@ -402,7 +356,10 @@ pub enum Object {
   PrivateMessage(Box<PrivateMessage>),
 }
 
-pub async fn find_object_by_id(context: &LemmyContext, apub_id: Url) -> Result<Object, LemmyError> {
+pub(crate) async fn find_object_by_id(
+  context: &LemmyContext,
+  apub_id: Url,
+) -> Result<Object, LemmyError> {
   let ap_id = apub_id.clone();
   if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
     return Ok(match pc {
@@ -440,7 +397,7 @@ pub async fn find_object_by_id(context: &LemmyContext, apub_id: Url) -> Result<O
   Err(NotFound.into())
 }
 
-pub async fn check_community_or_site_ban(
+pub(crate) async fn check_community_or_site_ban(
   person: &Person,
   community_id: CommunityId,
   pool: &DbPool,
@@ -456,49 +413,4 @@ pub async fn check_community_or_site_ban(
   }
 
   Ok(())
-}
-
-pub fn get_activity_to_and_cc<T, Kind>(activity: &T) -> Vec<Url>
-where
-  T: AsObject<Kind>,
-{
-  let mut to_and_cc = vec![];
-  if let Some(to) = activity.to() {
-    let to = to.to_owned().unwrap_to_vec();
-    let mut to = to
-      .iter()
-      .map(|t| t.as_xsd_any_uri())
-      .flatten()
-      .map(|t| t.to_owned())
-      .collect();
-    to_and_cc.append(&mut to);
-  }
-  if let Some(cc) = activity.cc() {
-    let cc = cc.to_owned().unwrap_to_vec();
-    let mut cc = cc
-      .iter()
-      .map(|c| c.as_xsd_any_uri())
-      .flatten()
-      .map(|c| c.to_owned())
-      .collect();
-    to_and_cc.append(&mut cc);
-  }
-  to_and_cc
-}
-
-pub async fn get_community_from_to_or_cc<T, Kind>(
-  activity: &T,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<Community, LemmyError>
-where
-  T: AsObject<Kind>,
-{
-  for cid in get_activity_to_and_cc(activity) {
-    let community = get_or_fetch_and_upsert_community(&cid, context, request_counter).await;
-    if community.is_ok() {
-      return community;
-    }
-  }
-  Err(NotFound.into())
 }

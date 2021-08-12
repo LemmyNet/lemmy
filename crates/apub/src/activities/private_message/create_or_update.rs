@@ -53,15 +53,8 @@ impl CreateOrUpdatePrivateMessage {
         unparsed: Default::default(),
       },
     };
-    send_activity_new(
-      context,
-      &create_or_update,
-      &id,
-      actor,
-      vec![recipient.get_shared_inbox_or_inbox_url()],
-      true,
-    )
-    .await
+    let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
+    send_activity_new(context, &create_or_update, &id, actor, inbox, true).await
   }
 }
 #[async_trait::async_trait(?Send)]
@@ -73,24 +66,18 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
     verify_person(&self.common.actor, context, request_counter).await?;
-    verify_domains_match(&self.common.actor, &self.object.id)?;
+    verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
   async fn receive(
-    &self,
+    self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let private_message = PrivateMessage::from_apub(
-      &self.object,
-      context,
-      self.common.actor.clone(),
-      request_counter,
-      false,
-    )
-    .await?;
+    let private_message =
+      PrivateMessage::from_apub(&self.object, context, &self.common.actor, request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,

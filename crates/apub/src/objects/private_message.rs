@@ -24,15 +24,17 @@ use lemmy_db_schema::source::{
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
   r#type: NoteType,
-  pub(crate) id: Url,
+  id: Url,
   pub(crate) attributed_to: Url,
   to: Url,
   content: String,
@@ -45,6 +47,14 @@ pub struct Note {
 }
 
 impl Note {
+  pub(crate) fn id_unchecked(&self) -> &Url {
+    &self.id
+  }
+  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
+    verify_domains_match(&self.id, expected_domain)?;
+    Ok(&self.id)
+  }
+
   pub(crate) async fn verify(
     &self,
     context: &LemmyContext,
@@ -107,10 +117,10 @@ impl FromApub for PrivateMessage {
   async fn from_apub(
     note: &Note,
     context: &LemmyContext,
-    _expected_domain: Url,
+    expected_domain: &Url,
     request_counter: &mut i32,
-    _mod_action_allowed: bool,
   ) -> Result<PrivateMessage, LemmyError> {
+    let ap_id = Some(note.id(expected_domain)?.clone().into());
     let creator =
       get_or_fetch_and_upsert_person(&note.attributed_to, context, request_counter).await?;
     let recipient = get_or_fetch_and_upsert_person(&note.to, context, request_counter).await?;
@@ -123,7 +133,7 @@ impl FromApub for PrivateMessage {
       updated: note.updated.map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
-      ap_id: Some(note.id.clone().into()),
+      ap_id,
       local: Some(false),
     };
     Ok(

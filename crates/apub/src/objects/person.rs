@@ -1,95 +1,129 @@
 use crate::{
-  extensions::{context::lemmy_context, person_extension::PersonExtension},
-  objects::{
-    check_object_domain,
-    get_source_markdown_value,
-    set_content_and_source,
-    FromApub,
-    FromApubToForm,
-    ToApub,
-  },
+  check_is_apub_id_valid,
+  extensions::{context::lemmy_context, signatures::PublicKey},
+  objects::{FromApub, ImageObject, Source, ToApub},
   ActorType,
-  PersonExt,
-  UserTypes,
 };
 use activitystreams::{
-  actor::{Actor, ApActor, ApActorExt, Endpoints},
-  base::{BaseExt, ExtendsExt},
-  object::{ApObject, Image, Object, ObjectExt, Tombstone},
+  actor::Endpoints,
+  base::AnyBase,
+  chrono::{DateTime, FixedOffset},
+  object::{kind::ImageType, Tombstone},
+  primitives::OneOrMany,
+  unparsed::Unparsed,
 };
-use activitystreams_ext::Ext2;
-use anyhow::Context;
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify_domains_match,
+};
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::person::{Person as DbPerson, PersonForm},
 };
 use lemmy_utils::{
-  location_info,
-  settings::structs::Settings,
-  utils::{check_slurs, check_slurs_opt, convert_datetime},
+  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+pub enum UserTypes {
+  Person,
+  Service,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Person {
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
+  #[serde(rename = "type")]
+  kind: UserTypes,
+  id: Url,
+  /// username, set at account creation and can never be changed
+  preferred_username: String,
+  /// displayname (can be changed at any time)
+  name: Option<String>,
+  content: Option<String>,
+  media_type: Option<MediaTypeHtml>,
+  source: Option<Source>,
+  /// user avatar
+  icon: Option<ImageObject>,
+  /// user banner
+  image: Option<ImageObject>,
+  matrix_user_id: Option<String>,
+  inbox: Url,
+  /// mandatory field in activitypub, currently empty in lemmy
+  outbox: Url,
+  endpoints: Endpoints<Url>,
+  public_key: PublicKey,
+  published: DateTime<FixedOffset>,
+  updated: Option<DateTime<FixedOffset>>,
+  #[serde(flatten)]
+  unparsed: Unparsed,
+}
+
+// TODO: can generate this with a derive macro
+impl Person {
+  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
+    verify_domains_match(&self.id, expected_domain)?;
+    Ok(&self.id)
+  }
+}
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for DbPerson {
-  type ApubType = PersonExt;
+  type ApubType = Person;
 
-  async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
-    let object = Object::<UserTypes>::new_none_type();
-    let mut actor = Actor(object);
+  async fn to_apub(&self, _pool: &DbPool) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
       UserTypes::Person
     };
-    actor.set_kind(kind);
-    let mut person = ApObject::new(actor);
+    let source = self.bio.clone().map(|bio| Source {
+      content: bio,
+      media_type: MediaTypeMarkdown::Markdown,
+    });
+    let icon = self.avatar.clone().map(|url| ImageObject {
+      kind: ImageType::Image,
+      url: url.into(),
+    });
+    let image = self.banner.clone().map(|url| ImageObject {
+      kind: ImageType::Image,
+      url: url.into(),
+    });
 
-    person
-      .set_many_contexts(lemmy_context())
-      .set_id(self.actor_id.to_owned().into_inner())
-      .set_published(convert_datetime(self.published));
-
-    if let Some(u) = self.updated {
-      person.set_updated(convert_datetime(u));
-    }
-
-    if let Some(avatar_url) = &self.avatar {
-      let mut image = Image::new();
-      image.set_url::<Url>(avatar_url.to_owned().into());
-      person.set_icon(image.into_any_base()?);
-    }
-
-    if let Some(banner_url) = &self.banner {
-      let mut image = Image::new();
-      image.set_url::<Url>(banner_url.to_owned().into());
-      person.set_image(image.into_any_base()?);
-    }
-
-    if let Some(bio) = &self.bio {
-      set_content_and_source(&mut person, bio)?;
-    }
-
-    // In apub, the "name" is a display name
-    if let Some(i) = self.display_name.to_owned() {
-      person.set_name(i);
-    }
-
-    let mut ap_actor = ApActor::new(self.inbox_url.clone().into(), person);
-    ap_actor
-      .set_preferred_username(self.name.to_owned())
-      .set_outbox(self.get_outbox_url()?)
-      .set_endpoints(Endpoints {
-        shared_inbox: Some(self.get_shared_inbox_or_inbox_url()),
+    let person = Person {
+      context: lemmy_context(),
+      kind,
+      id: self.actor_id.to_owned().into_inner(),
+      preferred_username: self.name.clone(),
+      name: self.display_name.clone(),
+      content: self.bio.as_ref().map(|b| markdown_to_html(b)),
+      media_type: self.bio.as_ref().map(|_| MediaTypeHtml::Html),
+      source,
+      icon,
+      image,
+      matrix_user_id: self.matrix_user_id.clone(),
+      published: convert_datetime(self.published),
+      outbox: self.get_outbox_url()?,
+      endpoints: Endpoints {
+        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
         ..Default::default()
-      });
-
-    let person_ext = PersonExtension::new(self.matrix_user_id.to_owned())?;
-    Ok(Ext2::new(ap_actor, person_ext, self.get_public_key_ext()?))
+      },
+      public_key: self.get_public_key()?,
+      updated: self.updated.map(convert_datetime),
+      unparsed: Default::default(),
+      inbox: self.inbox_url.clone().into(),
+    };
+    Ok(person)
   }
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
     unimplemented!()
@@ -98,118 +132,54 @@ impl ToApub for DbPerson {
 
 #[async_trait::async_trait(?Send)]
 impl FromApub for DbPerson {
-  type ApubType = PersonExt;
+  type ApubType = Person;
 
   async fn from_apub(
-    person: &PersonExt,
+    person: &Person,
     context: &LemmyContext,
-    expected_domain: Url,
-    request_counter: &mut i32,
-    mod_action_allowed: bool,
-  ) -> Result<DbPerson, LemmyError> {
-    let person_id = person.id_unchecked().context(location_info!())?.to_owned();
-    let domain = person_id.domain().context(location_info!())?;
-    if domain == Settings::get().hostname {
-      let person = blocking(context.pool(), move |conn| {
-        DbPerson::read_from_apub_id(conn, &person_id.into())
-      })
-      .await??;
-      Ok(person)
-    } else {
-      let person_form = PersonForm::from_apub(
-        person,
-        context,
-        expected_domain,
-        request_counter,
-        mod_action_allowed,
-      )
-      .await?;
-      let person = blocking(context.pool(), move |conn| {
-        DbPerson::upsert(conn, &person_form)
-      })
-      .await??;
-      Ok(person)
-    }
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApubToForm<PersonExt> for PersonForm {
-  async fn from_apub(
-    person: &PersonExt,
-    _context: &LemmyContext,
-    expected_domain: Url,
+    expected_domain: &Url,
     _request_counter: &mut i32,
-    _mod_action_allowed: bool,
-  ) -> Result<Self, LemmyError> {
-    let avatar = match person.icon() {
-      Some(any_image) => Some(
-        Image::from_any_base(any_image.as_one().context(location_info!())?.clone())?
-          .context(location_info!())?
-          .url()
-          .context(location_info!())?
-          .as_single_xsd_any_uri()
-          .map(|url| url.to_owned()),
-      ),
-      None => None,
+  ) -> Result<DbPerson, LemmyError> {
+    let actor_id = Some(person.id(expected_domain)?.clone().into());
+    let name = person.preferred_username.clone();
+    let display_name: Option<String> = person.name.clone();
+    let bio = person.source.clone().map(|s| s.content);
+    let shared_inbox = person.endpoints.shared_inbox.clone().map(|s| s.into());
+    let bot_account = match person.kind {
+      UserTypes::Person => false,
+      UserTypes::Service => true,
     };
-
-    let banner = match person.image() {
-      Some(any_image) => Some(
-        Image::from_any_base(any_image.as_one().context(location_info!())?.clone())
-          .context(location_info!())?
-          .context(location_info!())?
-          .url()
-          .context(location_info!())?
-          .as_single_xsd_any_uri()
-          .map(|url| url.to_owned()),
-      ),
-      None => None,
-    };
-
-    let name: String = person
-      .inner
-      .preferred_username()
-      .context(location_info!())?
-      .to_string();
-    let display_name: Option<String> = person
-      .name()
-      .map(|n| n.one())
-      .flatten()
-      .map(|n| n.to_owned().xsd_string())
-      .flatten();
-    let bio = get_source_markdown_value(person)?;
-    let shared_inbox = person
-      .inner
-      .endpoints()?
-      .map(|e| e.shared_inbox)
-      .flatten()
-      .map(|s| s.to_owned().into());
 
     check_slurs(&name)?;
     check_slurs_opt(&display_name)?;
     check_slurs_opt(&bio)?;
+    check_is_apub_id_valid(&person.id, false)?;
 
-    Ok(PersonForm {
+    let person_form = PersonForm {
       name,
       display_name: Some(display_name),
       banned: None,
       deleted: None,
-      avatar: avatar.map(|o| o.map(|i| i.into())),
-      banner: banner.map(|o| o.map(|i| i.into())),
-      published: person.inner.published().map(|u| u.to_owned().naive_local()),
-      updated: person.updated().map(|u| u.to_owned().naive_local()),
-      actor_id: Some(check_object_domain(person, expected_domain, false)?),
+      avatar: Some(person.icon.clone().map(|i| i.url.into())),
+      banner: Some(person.image.clone().map(|i| i.url.into())),
+      published: Some(person.published.naive_local()),
+      updated: person.updated.map(|u| u.clone().naive_local()),
+      actor_id,
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),
-      bot_account: Some(person.inner.is_kind(&UserTypes::Service)),
+      bot_account: Some(bot_account),
       private_key: None,
-      public_key: Some(Some(person.ext_two.public_key.to_owned().public_key_pem)),
+      public_key: Some(Some(person.public_key.public_key_pem.clone())),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(person.inner.inbox()?.to_owned().into()),
+      inbox_url: Some(person.inbox.to_owned().into()),
       shared_inbox_url: Some(shared_inbox),
-      matrix_user_id: Some(person.ext_one.matrix_user_id.to_owned()),
+      matrix_user_id: Some(person.matrix_user_id.clone()),
+    };
+    let person = blocking(context.pool(), move |conn| {
+      DbPerson::upsert(conn, &person_form)
     })
+    .await??;
+    Ok(person)
   }
 }
