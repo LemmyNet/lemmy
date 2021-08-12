@@ -1,7 +1,7 @@
 use crate::{community::send_community_websocket, PerformCrud};
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt, is_admin};
-use lemmy_apub::CommunityType;
+use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
 use lemmy_db_queries::{source::community::Community_, Crud, DeleteableOrRemoveable};
 use lemmy_db_schema::source::{
   community::*,
@@ -48,16 +48,14 @@ impl PerformCrud for DeleteCommunity {
     .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
     // Send apub messages
-    if deleted {
-      updated_community
-        .blank_out_deleted_or_removed_info()
-        .send_delete(local_user_view.person.to_owned(), context)
-        .await?;
-    } else {
-      updated_community
-        .send_undo_delete(local_user_view.person.to_owned(), context)
-        .await?;
-    }
+    send_apub_delete(
+      &local_user_view.person,
+      &updated_community,
+      updated_community.actor_id.clone().into(),
+      deleted,
+      context,
+    )
+    .await?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
@@ -123,14 +121,15 @@ impl PerformCrud for RemoveCommunity {
     .await??;
 
     // Apub messages
-    if removed {
-      updated_community
-        .blank_out_deleted_or_removed_info()
-        .send_remove(context)
-        .await?;
-    } else {
-      updated_community.send_undo_remove(context).await?;
-    }
+    send_apub_remove(
+      &local_user_view.person,
+      &updated_community,
+      updated_community.actor_id.clone().into(),
+      data.reason.clone().unwrap_or_else(|| "".to_string()),
+      removed,
+      context,
+    )
+    .await?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;

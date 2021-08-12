@@ -8,9 +8,9 @@ use lemmy_api_common::{
   is_mod_or_admin,
   send_local_notifs,
 };
-use lemmy_apub::ApubObjectType;
+use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
 use lemmy_db_queries::{source::comment::Comment_, Crud, DeleteableOrRemoveable};
-use lemmy_db_schema::source::{comment::*, moderator::*};
+use lemmy_db_schema::source::{comment::*, community::Community, moderator::*};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperationCrud};
@@ -47,23 +47,25 @@ impl PerformCrud for DeleteComment {
 
     // Do the delete
     let deleted = data.deleted;
-    let mut updated_comment = blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Send the apub message
-    if deleted {
-      updated_comment = updated_comment.blank_out_deleted_or_removed_info();
-      updated_comment
-        .send_delete(&local_user_view.person, context)
-        .await?;
-    } else {
-      updated_comment
-        .send_undo_delete(&local_user_view.person, context)
-        .await?;
-    }
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, orig_comment.post.community_id)
+    })
+    .await??;
+    send_apub_delete(
+      &local_user_view.person,
+      &community,
+      updated_comment.ap_id.clone().into(),
+      deleted,
+      context,
+    )
+    .await?;
 
     // Refetch it
     let comment_id = data.comment_id;
@@ -142,7 +144,7 @@ impl PerformCrud for RemoveComment {
 
     // Do the remove
     let removed = data.removed;
-    let mut updated_comment = blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
@@ -161,16 +163,19 @@ impl PerformCrud for RemoveComment {
     .await??;
 
     // Send the apub message
-    if removed {
-      updated_comment = updated_comment.blank_out_deleted_or_removed_info();
-      updated_comment
-        .send_remove(&local_user_view.person, context)
-        .await?;
-    } else {
-      updated_comment
-        .send_undo_remove(&local_user_view.person, context)
-        .await?;
-    }
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, orig_comment.post.community_id)
+    })
+    .await??;
+    send_apub_remove(
+      &local_user_view.person,
+      &community,
+      updated_comment.ap_id.clone().into(),
+      data.reason.clone().unwrap_or_else(|| "".to_string()),
+      removed,
+      context,
+    )
+    .await?;
 
     // Refetch it
     let comment_id = data.comment_id;

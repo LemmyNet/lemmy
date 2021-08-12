@@ -1,12 +1,16 @@
 use crate::{
-  activities::{verify_mod_action, verify_person_in_community},
+  activities::{
+    deletion::{delete::Delete, undo_delete::UndoDelete},
+    verify_mod_action,
+    verify_person_in_community,
+  },
   ActorType,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields};
 use lemmy_db_queries::ApubObject;
 use lemmy_db_schema::{
-  source::{comment::Comment, community::Community, post::Post},
+  source::{comment::Comment, community::Community, person::Person, post::Post},
   DbUrl,
 };
 use lemmy_utils::LemmyError;
@@ -15,6 +19,37 @@ use url::Url;
 
 pub mod delete;
 pub mod undo_delete;
+
+pub async fn send_apub_delete(
+  actor: &Person,
+  community: &Community,
+  object_id: Url,
+  deleted: bool,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  if deleted {
+    Delete::send(actor, community, object_id, None, context).await
+  } else {
+    UndoDelete::send(actor, community, object_id, None, context).await
+  }
+}
+
+// TODO: remove reason is actually optional in lemmy. we set an empty string in that case, but its
+//       ugly
+pub async fn send_apub_remove(
+  actor: &Person,
+  community: &Community,
+  object_id: Url,
+  reason: String,
+  removed: bool,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  if removed {
+    Delete::send(actor, community, object_id, Some(reason), context).await
+  } else {
+    UndoDelete::send(actor, community, object_id, Some(reason), context).await
+  }
+}
 
 pub enum DeletableObjects {
   Community(Box<Community>),
@@ -53,10 +88,11 @@ impl DeletableObjects {
   }
 }
 
-pub(in crate::activities::deletion) async fn verify_delete_activity(
+pub(in crate::activities) async fn verify_delete_activity(
   object: &Url,
   cc: &Url,
   common: &ActivityCommonFields,
+  is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
@@ -68,17 +104,49 @@ pub(in crate::activities::deletion) async fn verify_delete_activity(
         // deleted community (which fails)
         verify_person_in_community(&common.actor, cc, context, request_counter).await?;
       }
+      // community deletion is always a mod (or admin) action
       verify_mod_action(&common.actor, c.actor_id(), context).await?;
     }
     DeletableObjects::Post(p) => {
-      verify_person_in_community(&common.actor, cc, context, request_counter).await?;
-      // domain of post ap_id and post.creator ap_id are identical, so we just check the former
-      verify_domains_match(&common.actor, &p.ap_id.into())?;
+      verify_delete_activity_post_or_comment(
+        cc,
+        common,
+        &p.ap_id.into(),
+        is_mod_action,
+        context,
+        request_counter,
+      )
+      .await?;
     }
     DeletableObjects::Comment(c) => {
-      verify_person_in_community(&common.actor, cc, context, request_counter).await?;
-      verify_domains_match(&common.actor, &c.ap_id.into())?;
+      verify_delete_activity_post_or_comment(
+        cc,
+        common,
+        &c.ap_id.into(),
+        is_mod_action,
+        context,
+        request_counter,
+      )
+      .await?;
     }
+  }
+  Ok(())
+}
+
+async fn verify_delete_activity_post_or_comment(
+  cc: &Url,
+  common: &ActivityCommonFields,
+  object_id: &Url,
+  is_mod_action: bool,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  verify_person_in_community(&common.actor, cc, context, request_counter).await?;
+  if is_mod_action {
+    verify_mod_action(&common.actor, cc.clone(), context).await?;
+  } else {
+    // domain of post ap_id and post.creator ap_id are identical, so we just check the former
+    verify_domains_match(&common.actor, object_id)?;
   }
   Ok(())
 }

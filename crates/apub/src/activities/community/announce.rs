@@ -7,16 +7,10 @@ use crate::{
       list_community_follower_inboxes,
       undo_block_user::UndoBlockUserFromCommunity,
     },
-    deletion::{
-      delete::DeletePostCommentOrCommunity,
-      undo_delete::UndoDeletePostCommentOrCommunity,
-    },
+    deletion::{delete::Delete, undo_delete::UndoDelete},
     generate_activity_id,
     post::create_or_update::CreateOrUpdatePost,
-    removal::{
-      remove::RemovePostCommentCommunityOrMod,
-      undo_remove::UndoRemovePostCommentOrCommunity,
-    },
+    removal::{remove::RemoveMod, undo_remove::UndoRemovePostCommentOrCommunity},
     verify_activity,
     verify_community,
     voting::{undo_vote::UndoVote, vote::Vote},
@@ -43,13 +37,13 @@ pub enum AnnouncableActivities {
   CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   Vote(Vote),
   UndoVote(UndoVote),
-  DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
-  UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
-  RemovePostCommentCommunityOrMod(RemovePostCommentCommunityOrMod),
+  Delete(Delete),
+  UndoDelete(UndoDelete),
   UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
+  RemoveMod(RemoveMod),
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]

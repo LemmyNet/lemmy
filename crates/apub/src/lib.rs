@@ -102,25 +102,6 @@ pub(crate) fn check_is_apub_id_valid(
   Ok(())
 }
 
-/// Common functions for ActivityPub objects, which are implemented by most (but not all) objects
-/// and actors in Lemmy.
-#[async_trait::async_trait(?Send)]
-pub trait ApubObjectType {
-  async fn send_delete(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
-  async fn send_undo_delete(
-    &self,
-    creator: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_remove(&self, mod_: &DbPerson, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(
-    &self,
-    mod_: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-}
-
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
 trait ActorType {
@@ -160,11 +141,6 @@ pub trait CommunityType {
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
 
   async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 
   async fn send_announce(
     &self,
