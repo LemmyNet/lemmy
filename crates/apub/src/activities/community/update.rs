@@ -1,10 +1,5 @@
 use crate::{
-  activities::{
-    community::send_websocket_message,
-    verify_activity,
-    verify_mod_action,
-    verify_person_in_community,
-  },
+  activities::{verify_activity, verify_mod_action, verify_person_in_community},
   objects::community::Group,
 };
 use activitystreams::activity::kind::UpdateType;
@@ -13,7 +8,7 @@ use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::community::{Community, CommunityForm};
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 /// This activity is received from a remote community mod, and updates the description or other
@@ -71,12 +66,15 @@ impl ActivityHandler for UpdateCommunity {
     })
     .await??;
 
-    send_websocket_message(
+    send_community_ws_message(
       updated_community.id,
       UserOperationCrud::EditCommunity,
+      None,
+      None,
       context,
     )
-    .await
+    .await?;
+    Ok(())
   }
 
   fn common(&self) -> &ActivityCommonFields {

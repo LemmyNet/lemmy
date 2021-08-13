@@ -75,7 +75,7 @@ pub struct SendModRoomMessage<Response> {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendPost<OP: ToString> {
+pub(crate) struct SendPost<OP: ToString> {
   pub op: OP,
   pub post: PostResponse,
   pub websocket_id: Option<ConnectionId>,
@@ -83,7 +83,7 @@ pub struct SendPost<OP: ToString> {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SendComment<OP: ToString> {
+pub(crate) struct SendComment<OP: ToString> {
   pub op: OP,
   pub comment: CommentResponse,
   pub websocket_id: Option<ConnectionId>,

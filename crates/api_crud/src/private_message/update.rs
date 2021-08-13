@@ -9,11 +9,10 @@ use lemmy_apub::activities::{
   private_message::create_or_update::CreateOrUpdatePrivateMessage,
   CreateOrUpdateType,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DeleteableOrRemoveable};
+use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
 use lemmy_db_schema::source::private_message::PrivateMessage;
-use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
 use lemmy_utils::{utils::remove_slurs, ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPrivateMessage {
@@ -55,39 +54,7 @@ impl PerformCrud for EditPrivateMessage {
     )
     .await?;
 
-    let private_message_id = data.private_message_id;
-    let mut private_message_view = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, private_message_id)
-    })
-    .await??;
-
-    // Blank out deleted or removed info
-    if private_message_view.private_message.deleted {
-      private_message_view.private_message = private_message_view
-        .private_message
-        .blank_out_deleted_or_removed_info();
-    }
-
-    let res = PrivateMessageResponse {
-      private_message_view,
-    };
-
-    // Send notifications to the local recipient, if one exists
-    let recipient_id = orig_private_message.recipient_id;
-    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
-    })
-    .await?
-    {
-      let local_recipient_id = local_recipient.local_user.id;
-      context.chat_server().do_send(SendUserRoomMessage {
-        op: UserOperationCrud::EditPrivateMessage,
-        response: res.clone(),
-        local_recipient_id,
-        websocket_id,
-      });
-    }
-
-    Ok(res)
+    let op = UserOperationCrud::EditPrivateMessage;
+    send_pm_ws_message(data.private_message_id, op, websocket_id, context).await
   }
 }

@@ -18,7 +18,7 @@ use lemmy_db_queries::{source::comment::Comment_, Likeable, Saveable};
 use lemmy_db_schema::{source::comment::*, LocalUserId};
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
 use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
@@ -206,26 +206,15 @@ impl Perform for CreateCommentLike {
       .await?;
     }
 
-    // Have to refetch the comment to get the current state
-    let comment_id = data.comment_id;
-    let person_id = local_user_view.person.id;
-    let liked_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
-
-    let res = CommentResponse {
-      comment_view: liked_comment,
-      recipient_ids,
-      form_id: None,
-    };
-
-    context.chat_server().do_send(SendComment {
-      op: UserOperation::CreateCommentLike,
-      comment: res.clone(),
+    send_comment_ws_message(
+      data.comment_id,
+      UserOperation::CreateCommentLike,
       websocket_id,
-    });
-
-    Ok(res)
+      None,
+      Some(local_user_view.person.id),
+      recipient_ids,
+      context,
+    )
+    .await
   }
 }

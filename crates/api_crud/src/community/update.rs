@@ -1,4 +1,4 @@
-use crate::{community::send_community_websocket, PerformCrud};
+use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
@@ -6,18 +6,15 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::CommunityType;
-use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud, DeleteableOrRemoveable};
+use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud};
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
   PersonId,
 };
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  community_view::CommunityView,
-};
+use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditCommunity {
@@ -76,27 +73,7 @@ impl PerformCrud for EditCommunity {
       .send_update(local_user_view.person.to_owned(), context)
       .await?;
 
-    let community_id = data.community_id;
-    let person_id = local_user_view.person.id;
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(person_id))
-    })
-    .await??;
-
-    // Blank out deleted or removed info
-    if community_view.community.deleted || community_view.community.removed {
-      community_view.community = community_view.community.blank_out_deleted_or_removed_info();
-    }
-
-    let res = CommunityResponse { community_view };
-
-    send_community_websocket(
-      &res,
-      context,
-      websocket_id,
-      UserOperationCrud::EditCommunity,
-    );
-
-    Ok(res)
+    let op = UserOperationCrud::EditCommunity;
+    send_community_ws_message(data.community_id, op, websocket_id, None, context).await
   }
 }

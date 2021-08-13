@@ -4,17 +4,25 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
+  fetcher::person::get_or_fetch_and_upsert_person,
   ActorType,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields};
-use lemmy_db_queries::ApubObject;
+use lemmy_db_queries::{
+  source::{comment::Comment_, community::Community_, post::Post_},
+  ApubObject,
+};
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post},
   DbUrl,
 };
 use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{
+  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+  LemmyContext,
+  UserOperationCrud,
+};
 use url::Url;
 
 pub mod delete;
@@ -147,6 +155,55 @@ async fn verify_delete_activity_post_or_comment(
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(&common.actor, object_id)?;
+  }
+  Ok(())
+}
+
+struct WebsocketMessages {
+  community: UserOperationCrud,
+  post: UserOperationCrud,
+  comment: UserOperationCrud,
+}
+
+/// Write deletion or restoring of an object to the database, and send websocket message.
+/// TODO: we should do something similar for receive_remove_action(), but its much more complicated
+///       because of the mod log
+async fn receive_delete_action(
+  object: &Url,
+  actor: &Url,
+  ws_messages: WebsocketMessages,
+  deleted: bool,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  match DeletableObjects::read_from_db(object, context).await? {
+    DeletableObjects::Community(community) => {
+      if community.local {
+        let mod_ = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+        let object = community.actor_id();
+        send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
+      }
+
+      let community = blocking(context.pool(), move |conn| {
+        Community::update_deleted(conn, community.id, deleted)
+      })
+      .await??;
+      send_community_ws_message(community.id, ws_messages.community, None, None, context).await?;
+    }
+    DeletableObjects::Post(post) => {
+      let deleted_post = blocking(context.pool(), move |conn| {
+        Post::update_deleted(conn, post.id, deleted)
+      })
+      .await??;
+      send_post_ws_message(deleted_post.id, ws_messages.post, None, None, context).await?;
+    }
+    DeletableObjects::Comment(comment) => {
+      let deleted_comment = blocking(context.pool(), move |conn| {
+        Comment::update_deleted(conn, comment.id, deleted)
+      })
+      .await??;
+      send_comment_ws_message_simple(deleted_comment.id, ws_messages.comment, context).await?;
+    }
   }
   Ok(())
 }

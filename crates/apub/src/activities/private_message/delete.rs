@@ -1,10 +1,5 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    private_message::send_websocket_message,
-    verify_activity,
-    verify_person,
-  },
+  activities::{generate_activity_id, verify_activity, verify_person},
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
   ActorType,
@@ -15,7 +10,7 @@ use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject, Crud};
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -84,9 +79,10 @@ impl ActivityHandler for DeletePrivateMessage {
     })
     .await??;
 
-    send_websocket_message(
+    send_pm_ws_message(
       deleted_private_message.id,
       UserOperationCrud::DeletePrivateMessage,
+      None,
       context,
     )
     .await?;

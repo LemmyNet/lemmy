@@ -20,14 +20,13 @@ use lemmy_apub::{
 };
 use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
 use lemmy_db_schema::source::comment::*;
-use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
   ApiError,
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -137,37 +136,25 @@ impl PerformCrud for CreateComment {
     )
     .await?;
 
-    let person_id = local_user_view.person.id;
-    let mut comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, inserted_comment.id, Some(person_id))
-    })
-    .await??;
-
     // If its a comment to yourself, mark it as read
-    let comment_id = comment_view.comment.id;
-    if local_user_view.person.id == comment_view.get_recipient_id() {
+    if local_user_view.person.id == inserted_comment.creator_id {
+      let comment_id = inserted_comment.id;
       blocking(context.pool(), move |conn| {
         Comment::update_read(conn, comment_id, true)
       })
       .await?
       .map_err(|_| ApiError::err("couldnt_update_comment"))?;
-      comment_view.comment.read = true;
     }
 
-    let mut res = CommentResponse {
-      comment_view,
-      recipient_ids,
-      form_id: data.form_id.to_owned(),
-    };
-
-    context.chat_server().do_send(SendComment {
-      op: UserOperationCrud::CreateComment,
-      comment: res.clone(),
+    send_comment_ws_message(
+      inserted_comment.id,
+      UserOperationCrud::CreateComment,
       websocket_id,
-    });
-
-    res.recipient_ids = Vec::new(); // Necessary to avoid doubles
-
-    Ok(res)
+      data.form_id.to_owned(),
+      Some(local_user_view.person.id),
+      recipient_ids,
+      context,
+    )
+    .await
   }
 }

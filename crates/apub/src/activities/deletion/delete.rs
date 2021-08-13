@@ -1,13 +1,13 @@
 use crate::{
   activities::{
-    comment::send_websocket_message as send_comment_message,
-    community::{
-      announce::AnnouncableActivities,
-      send_websocket_message as send_community_message,
+    community::announce::AnnouncableActivities,
+    deletion::{
+      receive_delete_action,
+      verify_delete_activity,
+      DeletableObjects,
+      WebsocketMessages,
     },
-    deletion::{send_apub_delete, verify_delete_activity, DeletableObjects},
     generate_activity_id,
-    post::send_websocket_message as send_post_message,
     verify_activity,
   },
   activity_queue::send_to_community_new,
@@ -38,7 +38,11 @@ use lemmy_db_schema::source::{
   post::Post,
 };
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+  LemmyContext,
+  UserOperationCrud,
+};
 use url::Url;
 
 /// This is very confusing, because there are four distinct cases to handle:
@@ -99,7 +103,19 @@ impl ActivityHandler for Delete {
       )
       .await
     } else {
-      self.receive_delete_action(context, request_counter).await
+      receive_delete_action(
+        &self.object,
+        &self.common.actor,
+        WebsocketMessages {
+          community: UserOperationCrud::DeleteCommunity,
+          post: UserOperationCrud::DeletePost,
+          comment: UserOperationCrud::DeleteComment,
+        },
+        true,
+        context,
+        request_counter,
+      )
+      .await
     }
   }
 
@@ -134,46 +150,6 @@ impl Delete {
     let activity = AnnouncableActivities::Delete(delete);
     send_to_community_new(activity, &id, actor, community, vec![], context).await
   }
-
-  // TODO: would be nice if we could merge this and receive_delete_action() into a single method
-  //       (or merge with receive_undo_delete_action() instead)
-  async fn receive_delete_action(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    use UserOperationCrud::*;
-    match DeletableObjects::read_from_db(&self.object, context).await? {
-      DeletableObjects::Community(community) => {
-        if community.local {
-          let mod_ =
-            get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
-          let object = community.actor_id();
-          send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
-        }
-
-        let deleted_community = blocking(context.pool(), move |conn| {
-          Community::update_deleted(conn, community.id, true)
-        })
-        .await??;
-        send_community_message(deleted_community.id, DeleteCommunity, context).await
-      }
-      DeletableObjects::Post(post) => {
-        let deleted_post = blocking(context.pool(), move |conn| {
-          Post::update_deleted(conn, post.id, true)
-        })
-        .await??;
-        send_post_message(deleted_post.id, DeletePost, context).await
-      }
-      DeletableObjects::Comment(comment) => {
-        let deleted_comment = blocking(context.pool(), move |conn| {
-          Comment::update_deleted(conn, comment.id, true)
-        })
-        .await??;
-        send_comment_message(deleted_comment.id, vec![], DeleteComment, context).await
-      }
-    }
-  }
 }
 
 // TODO: reason is optional for compat with v0.11, make it mandatory after removing the migration
@@ -207,7 +183,7 @@ pub(in crate::activities) async fn receive_remove_action(
       })
       .await??;
 
-      send_community_message(deleted_community.id, RemoveCommunity, context).await
+      send_community_ws_message(deleted_community.id, RemoveCommunity, None, None, context).await?;
     }
     DeletableObjects::Post(post) => {
       let form = ModRemovePostForm {
@@ -224,7 +200,8 @@ pub(in crate::activities) async fn receive_remove_action(
         Post::update_removed(conn, post.id, true)
       })
       .await??;
-      send_post_message(removed_post.id, RemovePost, context).await
+
+      send_post_ws_message(removed_post.id, RemovePost, None, None, context).await?;
     }
     DeletableObjects::Comment(comment) => {
       let form = ModRemoveCommentForm {
@@ -241,7 +218,9 @@ pub(in crate::activities) async fn receive_remove_action(
         Comment::update_removed(conn, comment.id, true)
       })
       .await??;
-      send_comment_message(removed_comment.id, vec![], RemoveComment, context).await
+
+      send_comment_ws_message_simple(removed_comment.id, RemoveComment, context).await?;
     }
   }
+  Ok(())
 }
