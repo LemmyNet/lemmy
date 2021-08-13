@@ -133,14 +133,29 @@ impl Perform for BlockCommunity {
       if blocking(context.pool(), block).await?.is_err() {
         return Err(ApiError::err("community_block_already_exists").into());
       }
+
+      // Also, unfollow the community, and send a federated unfollow
+      let community_follower_form = CommunityFollowerForm {
+        community_id: data.community_id,
+        person_id,
+        pending: false,
+      };
+      blocking(context.pool(), move |conn: &'_ _| {
+        CommunityFollower::unfollow(conn, &community_follower_form)
+      })
+      .await?
+      .ok();
+      let community = blocking(context.pool(), move |conn| {
+        Community::read(conn, community_id)
+      })
+      .await??;
+      UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
     } else {
       let unblock = move |conn: &'_ _| CommunityBlock::unblock(conn, &community_block_form);
       if blocking(context.pool(), unblock).await?.is_err() {
         return Err(ApiError::err("community_block_already_exists").into());
       }
     }
-
-    // TODO does any federated stuff need to be done here?
 
     let community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(person_id))

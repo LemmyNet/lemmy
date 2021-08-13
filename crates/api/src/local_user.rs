@@ -483,17 +483,17 @@ impl Perform for BlockPerson {
     let data: &BlockPerson = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let recipient_id = data.person_id;
+    let target_id = data.person_id;
     let person_id = local_user_view.person.id;
 
     // Don't let a person block themselves
-    if recipient_id == person_id {
+    if target_id == person_id {
       return Err(ApiError::err("cant_block_yourself").into());
     }
 
     let person_block_form = PersonBlockForm {
       person_id,
-      recipient_id,
+      target_id,
     };
 
     if data.block {
@@ -511,7 +511,7 @@ impl Perform for BlockPerson {
     // TODO does any federated stuff need to be done here?
 
     let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, recipient_id)
+      PersonViewSafe::read(conn, target_id)
     })
     .await??;
 

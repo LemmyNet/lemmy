@@ -10,7 +10,7 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct PersonBlockView {
   pub person: PersonSafe,
-  pub recipient: PersonSafeAlias1,
+  pub target: PersonSafeAlias1,
 }
 
 type PersonBlockViewTuple = (PersonSafe, PersonSafeAlias1);
@@ -39,7 +39,7 @@ impl ViewToVec for PersonBlockView {
       .iter()
       .map(|a| Self {
         person: a.0.to_owned(),
-        recipient: a.1.to_owned(),
+        target: a.1.to_owned(),
       })
       .collect::<Vec<Self>>()
   }

@@ -121,7 +121,7 @@ impl PersonMentionView {
       .left_join(
         person_block::table.on(
           comment::creator_id
-            .eq(person_block::recipient_id)
+            .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
@@ -255,7 +255,7 @@ impl<'a> PersonMentionQueryBuilder<'a> {
       .left_join(
         person_block::table.on(
           comment::creator_id
-            .eq(person_block::recipient_id)
+            .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )

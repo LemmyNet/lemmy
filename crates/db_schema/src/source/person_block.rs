@@ -6,7 +6,7 @@ use serde::Serialize;
 pub struct PersonBlock {
   pub id: PersonBlockId,
   pub person_id: PersonId,
-  pub recipient_id: PersonId,
+  pub target_id: PersonId,
   pub published: chrono::NaiveDateTime,
 }
 
@@ -14,5 +14,5 @@ pub struct PersonBlock {
 #[table_name = "person_block"]
 pub struct PersonBlockForm {
   pub person_id: PersonId,
-  pub recipient_id: PersonId,
+  pub target_id: PersonId,
 }

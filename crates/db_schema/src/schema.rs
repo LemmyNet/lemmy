@@ -469,7 +469,7 @@ table! {
     person_block (id) {
         id -> Int4,
         person_id -> Int4,
-        recipient_id -> Int4,
+        target_id -> Int4,
         published -> Timestamp,
     }
 }
@@ -561,7 +561,7 @@ joinable!(post_report -> person_alias_2 (resolver_id));
 joinable!(comment_report -> person_alias_2 (resolver_id));
 
 joinable!(person_block -> person (person_id));
-joinable!(person_block -> person_alias_1 (recipient_id));
+joinable!(person_block -> person_alias_1 (target_id));
 
 joinable!(comment -> person (creator_id));
 joinable!(comment -> post (post_id));

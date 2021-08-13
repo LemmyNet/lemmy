@@ -121,7 +121,7 @@ impl PostView {
       .left_join(
         person_block::table.on(
           post::creator_id
-            .eq(person_block::recipient_id)
+            .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
@@ -319,7 +319,7 @@ impl<'a> PostQueryBuilder<'a> {
       .left_join(
         person_block::table.on(
           post::creator_id
-            .eq(person_block::recipient_id)
+            .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
@@ -557,7 +557,7 @@ mod tests {
     // block that person
     let person_block = PersonBlockForm {
       person_id: inserted_person.id,
-      recipient_id: inserted_blocked_person.id,
+      target_id: inserted_blocked_person.id,
     };
 
     PersonBlock::block(&conn, &person_block).unwrap();

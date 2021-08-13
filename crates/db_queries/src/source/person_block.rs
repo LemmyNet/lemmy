@@ -9,7 +9,7 @@ pub trait PersonBlock_ {
   fn read(
     conn: &PgConnection,
     person_id: PersonId,
-    recipient_id: PersonId,
+    target_id: PersonId,
   ) -> Result<PersonBlock, Error>;
 }
 
@@ -22,7 +22,7 @@ impl PersonBlock_ for PersonBlock {
     use lemmy_db_schema::schema::person_block::dsl::*;
     person_block
       .filter(person_id.eq(for_person_id))
-      .filter(recipient_id.eq(for_recipient_id))
+      .filter(target_id.eq(for_recipient_id))
       .first::<Self>(conn)
   }
 }
@@ -33,7 +33,7 @@ impl Blockable for PersonBlock {
     use lemmy_db_schema::schema::person_block::dsl::*;
     insert_into(person_block)
       .values(person_block_form)
-      .on_conflict((person_id, recipient_id))
+      .on_conflict((person_id, target_id))
       .do_update()
       .set(person_block_form)
       .get_result::<Self>(conn)
@@ -43,7 +43,7 @@ impl Blockable for PersonBlock {
     diesel::delete(
       person_block
         .filter(person_id.eq(person_block_form.person_id))
-        .filter(recipient_id.eq(person_block_form.recipient_id)),
+        .filter(target_id.eq(person_block_form.target_id)),
     )
     .execute(conn)
   }

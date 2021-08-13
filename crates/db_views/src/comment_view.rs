@@ -126,7 +126,7 @@ impl CommentView {
       .left_join(
         person_block::table.on(
           comment::creator_id
-            .eq(person_block::recipient_id)
+            .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
@@ -333,7 +333,7 @@ impl<'a> CommentQueryBuilder<'a> {
       .left_join(
         person_block::table.on(
           comment::creator_id
-            .eq(person_block::recipient_id)
+            .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
@@ -559,7 +559,7 @@ mod tests {
 
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: inserted_person.id,
-      recipient_id: inserted_person_2.id,
+      target_id: inserted_person_2.id,
     };
 
     let inserted_block = PersonBlock::block(&conn, &timmy_blocks_sara_form).unwrap();
@@ -567,7 +567,7 @@ mod tests {
     let expected_block = PersonBlock {
       id: inserted_block.id,
       person_id: inserted_person.id,
-      recipient_id: inserted_person_2.id,
+      target_id: inserted_person_2.id,
       published: inserted_block.published,
     };
 

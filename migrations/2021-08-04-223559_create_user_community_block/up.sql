@@ -1,9 +1,9 @@
 create table person_block (
   id serial primary key,
   person_id int references person on update cascade on delete cascade not null,
-  recipient_id int references person on update cascade on delete cascade not null,
+  target_id int references person on update cascade on delete cascade not null,
   published timestamp not null default now(),
-  unique(person_id, recipient_id)
+  unique(person_id, target_id)
 );
 
 create table community_block (
