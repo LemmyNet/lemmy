@@ -356,12 +356,11 @@ pub async fn check_community_ban(
 }
 
 pub async fn check_person_block(
-  person_id: PersonId,
-  recipient_id: PersonId,
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  // Flip the recipient and the person
-  let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, recipient_id, person_id).is_ok();
+  let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, potential_blocker_id, my_id).is_ok();
   if blocking(pool, is_blocked).await? {
     Err(ApiError::err("person_block").into())
   } else {

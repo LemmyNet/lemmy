@@ -38,7 +38,7 @@ impl Blockable for PersonBlock {
       .set(person_block_form)
       .get_result::<Self>(conn)
   }
-  fn unblock(conn: &PgConnection, person_block_form: &PersonBlockForm) -> Result<usize, Error> {
+  fn unblock(conn: &PgConnection, person_block_form: &Self::Form) -> Result<usize, Error> {
     use lemmy_db_schema::schema::person_block::dsl::*;
     diesel::delete(
       person_block
