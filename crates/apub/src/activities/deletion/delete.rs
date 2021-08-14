@@ -94,10 +94,17 @@ impl ActivityHandler for Delete {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if let Some(reason) = self.summary {
+      // We set reason to empty string if it doesn't exist, to distinguish between delete and
+      // remove. Here we change it back to option, so we don't write it to db.
+      let reason = if reason.is_empty() {
+        None
+      } else {
+        Some(reason)
+      };
       receive_remove_action(
         &self.common.actor,
         &self.object,
-        Some(reason),
+        reason,
         context,
         request_counter,
       )
@@ -152,7 +159,6 @@ impl Delete {
   }
 }
 
-// TODO: reason is optional for compat with v0.11, make it mandatory after removing the migration
 pub(in crate::activities) async fn receive_remove_action(
   actor: &Url,
   object: &Url,
