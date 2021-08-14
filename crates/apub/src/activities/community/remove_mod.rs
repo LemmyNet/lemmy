@@ -1,19 +1,27 @@
 use crate::{
   activities::{
+    community::announce::AnnouncableActivities,
     deletion::{delete::receive_remove_action, verify_delete_activity},
+    generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
     verify_mod_action,
     verify_person_in_community,
   },
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  CommunityType,
+  generate_moderators_url,
+  ActorType,
 };
-use activitystreams::{activity::kind::RemoveType, base::AnyBase};
+use activitystreams::activity::kind::RemoveType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::Joinable;
-use lemmy_db_schema::source::community::{CommunityModerator, CommunityModeratorForm};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityModerator, CommunityModeratorForm},
+  person::Person,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -22,14 +30,42 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
   to: PublicUrl,
-  pub(in crate::activities::removal) object: Url,
+  pub(in crate::activities) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
   // if target is set, this is means remove mod from community
-  pub(in crate::activities::removal) target: Option<Url>,
+  pub(in crate::activities) target: Option<Url>,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl RemoveMod {
+  pub async fn send(
+    community: &Community,
+    removed_mod: &Person,
+    actor: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let id = generate_activity_id(RemoveType::Remove)?;
+    let remove = RemoveMod {
+      to: PublicUrl::Public,
+      object: removed_mod.actor_id(),
+      target: Some(generate_moderators_url(&community.actor_id)?.into()),
+      cc: [community.actor_id()],
+      kind: RemoveType::Remove,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+
+    let activity = AnnouncableActivities::RemoveMod(remove);
+    let inboxes = vec![removed_mod.get_shared_inbox_or_inbox_url()];
+    send_to_community_new(activity, &id, actor, community, inboxes, context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -77,10 +113,6 @@ impl ActivityHandler for RemoveMod {
         CommunityModerator::leave(conn, &form)
       })
       .await??;
-      let anybase = AnyBase::from_arbitrary_json(serde_json::to_string(&self)?)?;
-      community
-        .send_announce(anybase, Some(self.object.clone()), context)
-        .await?;
       // TODO: send websocket notification about removed mod
       Ok(())
     } else {

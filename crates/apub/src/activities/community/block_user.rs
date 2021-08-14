@@ -1,16 +1,29 @@
 use crate::{
-  activities::{verify_activity, verify_mod_action, verify_person_in_community},
+  activities::{
+    community::announce::AnnouncableActivities,
+    generate_activity_id,
+    verify_activity,
+    verify_mod_action,
+    verify_person_in_community,
+  },
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  ActorType,
 };
 use activitystreams::activity::kind::BlockType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{Bannable, Followable};
-use lemmy_db_schema::source::community::{
-  CommunityFollower,
-  CommunityFollowerForm,
-  CommunityPersonBan,
-  CommunityPersonBanForm,
+use lemmy_db_schema::source::{
+  community::{
+    Community,
+    CommunityFollower,
+    CommunityFollowerForm,
+    CommunityPersonBan,
+    CommunityPersonBanForm,
+  },
+  person::Person,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -26,6 +39,42 @@ pub struct BlockUserFromCommunity {
   kind: BlockType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl BlockUserFromCommunity {
+  pub(in crate::activities::community) fn new(
+    id: Url,
+    community: &Community,
+    target: &Person,
+    actor: &Person,
+  ) -> BlockUserFromCommunity {
+    BlockUserFromCommunity {
+      to: PublicUrl::Public,
+      object: target.actor_id(),
+      cc: [community.actor_id()],
+      kind: BlockType::Block,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id,
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    }
+  }
+
+  pub async fn send(
+    community: &Community,
+    target: &Person,
+    actor: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let id = generate_activity_id(BlockType::Block)?;
+    let block = BlockUserFromCommunity::new(id.clone(), community, target, actor);
+
+    let activity = AnnouncableActivities::BlockUserFromCommunity(block);
+    let inboxes = vec![target.get_shared_inbox_or_inbox_url()];
+    send_to_community_new(activity, &id, actor, community, inboxes, context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]

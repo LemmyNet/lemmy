@@ -4,6 +4,7 @@ use crate::activities::{
     add_mod::AddMod,
     announce::AnnounceActivity,
     block_user::BlockUserFromCommunity,
+    remove_mod::RemoveMod,
     undo_block_user::UndoBlockUserFromCommunity,
     update::UpdateCommunity,
   },
@@ -15,7 +16,7 @@ use crate::activities::{
     delete::DeletePrivateMessage,
     undo_delete::UndoDeletePrivateMessage,
   },
-  removal::{remove::RemoveMod, undo_remove::UndoRemovePostCommentOrCommunity},
+  undo_remove::UndoRemovePostCommentOrCommunity,
   voting::{undo_vote::UndoVote, vote::Vote},
 };
 use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};

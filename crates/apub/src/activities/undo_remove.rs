@@ -1,6 +1,6 @@
 use crate::activities::{
+  community::remove_mod::RemoveMod,
   deletion::{undo_delete::UndoDelete, verify_delete_activity},
-  removal::remove::RemoveMod,
   verify_activity,
 };
 use activitystreams::activity::kind::UndoType;

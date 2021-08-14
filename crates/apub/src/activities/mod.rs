@@ -26,8 +26,8 @@ pub mod deletion;
 pub mod following;
 pub mod post;
 pub mod private_message;
-pub mod removal;
 pub mod send;
+pub mod undo_remove;
 pub mod voting;
 
 #[derive(Clone, Debug, ToString, Deserialize, Serialize)]

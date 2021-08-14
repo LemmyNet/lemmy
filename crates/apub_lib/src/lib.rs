@@ -53,13 +53,6 @@ pub fn verify_domains_match(a: &Url, b: &Url) -> Result<(), LemmyError> {
   Ok(())
 }
 
-pub fn verify_domains_match_opt(a: &Url, b: Option<&Url>) -> Result<(), LemmyError> {
-  if let Some(b2) = b {
-    return verify_domains_match(a, b2);
-  }
-  Ok(())
-}
-
 pub fn verify_urls_match(a: &Url, b: &Url) -> Result<(), LemmyError> {
   if a != b {
     return Err(DomainError.into());

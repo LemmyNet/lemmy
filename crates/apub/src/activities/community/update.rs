@@ -1,12 +1,24 @@
 use crate::{
-  activities::{verify_activity, verify_mod_action, verify_person_in_community},
-  objects::community::Group,
+  activities::{
+    community::announce::AnnouncableActivities,
+    generate_activity_id,
+    verify_activity,
+    verify_mod_action,
+    verify_person_in_community,
+  },
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
+  objects::{community::Group, ToApub},
+  ActorType,
 };
 use activitystreams::activity::kind::UpdateType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{ApubObject, Crud};
-use lemmy_db_schema::source::community::{Community, CommunityForm};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityForm},
+  person::Person,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
@@ -23,6 +35,31 @@ pub struct UpdateCommunity {
   kind: UpdateType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl UpdateCommunity {
+  pub async fn send(
+    community: &Community,
+    actor: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let id = generate_activity_id(UpdateType::Update)?;
+    let update = UpdateCommunity {
+      to: PublicUrl::Public,
+      object: community.to_apub(context.pool()).await?,
+      cc: [community.actor_id()],
+      kind: UpdateType::Update,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+
+    let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
+    send_to_community_new(activity, &id, actor, community, vec![], context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]

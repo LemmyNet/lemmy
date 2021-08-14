@@ -1,18 +1,26 @@
 use crate::{
   activities::{
+    community::announce::AnnouncableActivities,
+    generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
     verify_mod_action,
     verify_person_in_community,
   },
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  CommunityType,
+  generate_moderators_url,
+  ActorType,
 };
-use activitystreams::{activity::kind::AddType, base::AnyBase};
+use activitystreams::activity::kind::AddType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
-use lemmy_db_schema::source::community::{CommunityModerator, CommunityModeratorForm};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityModerator, CommunityModeratorForm},
+  person::Person,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -28,6 +36,34 @@ pub struct AddMod {
   kind: AddType,
   #[serde(flatten)]
   common: ActivityCommonFields,
+}
+
+impl AddMod {
+  pub async fn send(
+    community: &Community,
+    added_mod: &Person,
+    actor: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let id = generate_activity_id(AddType::Add)?;
+    let add = AddMod {
+      to: PublicUrl::Public,
+      object: added_mod.actor_id(),
+      target: generate_moderators_url(&community.actor_id)?.into(),
+      cc: [community.actor_id()],
+      kind: AddType::Add,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+
+    let activity = AnnouncableActivities::AddMod(add);
+    let inboxes = vec![added_mod.get_shared_inbox_or_inbox_url()];
+    send_to_community_new(activity, &id, actor, community, inboxes, context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -69,12 +105,6 @@ impl ActivityHandler for AddMod {
         CommunityModerator::join(conn, &form)
       })
       .await??;
-    }
-    if community.local {
-      let anybase = AnyBase::from_arbitrary_json(serde_json::to_string(&self)?)?;
-      community
-        .send_announce(anybase, Some(self.object.clone()), context)
-        .await?;
     }
     // TODO: send websocket notification about added mod
     Ok(())

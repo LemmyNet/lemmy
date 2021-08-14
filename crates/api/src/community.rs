@@ -8,12 +8,14 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   is_mod_or_admin,
 };
-use lemmy_apub::{
-  activities::following::{
-    follow::FollowCommunity as FollowCommunityApub,
-    undo::UndoFollowCommunity,
+use lemmy_apub::activities::{
+  community::{
+    add_mod::AddMod,
+    block_user::BlockUserFromCommunity,
+    remove_mod::RemoveMod,
+    undo_block_user::UndoBlockUserFromCommunity,
   },
-  CommunityType,
+  following::{follow::FollowCommunity as FollowCommunityApub, undo::UndoFollowCommunity},
 };
 use lemmy_db_queries::{
   source::{comment::Comment_, community::CommunityModerator_, post::Post_},
@@ -157,17 +159,20 @@ impl Perform for BanFromCommunity {
       .await?
       .ok();
 
-      community
-        .send_block_user(&local_user_view.person, banned_person, context)
+      BlockUserFromCommunity::send(&community, &banned_person, &local_user_view.person, context)
         .await?;
     } else {
       let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
       if blocking(context.pool(), unban).await?.is_err() {
         return Err(ApiError::err("community_user_already_banned").into());
       }
-      community
-        .send_undo_block_user(&local_user_view.person, banned_person, context)
-        .await?;
+      UndoBlockUserFromCommunity::send(
+        &community,
+        &banned_person,
+        &local_user_view.person,
+        context,
+      )
+      .await?;
     }
 
     // Remove/Restore their data if that's desired
@@ -294,13 +299,9 @@ impl Perform for AddModToCommunity {
     })
     .await??;
     if data.added {
-      community
-        .send_add_mod(&local_user_view.person, updated_mod, context)
-        .await?;
+      AddMod::send(&community, &updated_mod, &local_user_view.person, context).await?;
     } else {
-      community
-        .send_remove_mod(&local_user_view.person, updated_mod, context)
-        .await?;
+      RemoveMod::send(&community, &updated_mod, &local_user_view.person, context).await?;
     }
 
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get
