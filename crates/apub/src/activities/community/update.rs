@@ -29,6 +29,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   to: PublicUrl,
+  // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
   cc: [Url; 1],
   #[serde(rename = "type")]

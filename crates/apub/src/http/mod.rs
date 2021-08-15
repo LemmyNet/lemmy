@@ -2,7 +2,10 @@ use crate::{
   check_is_apub_id_valid,
   extensions::signatures::verify_signature,
   fetcher::get_or_fetch_and_upsert_actor,
-  http::inbox_enums::SharedInboxActivities,
+  http::{
+    community::{receive_group_inbox, GroupInboxActivities},
+    person::{receive_person_inbox, PersonInboxActivities},
+  },
   insert_activity,
   APUB_JSON_CONTENT_TYPE,
 };
@@ -17,21 +20,30 @@ use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::ActivityHandler;
+use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
 use url::Url;
 
 mod comment;
 mod community;
-mod inbox_enums;
 mod person;
 mod post;
 pub mod routes;
+
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[serde(untagged)]
+pub enum SharedInboxActivities {
+  GroupInboxActivities(GroupInboxActivities),
+  // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
+  // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
+  PersonInboxActivities(PersonInboxActivities),
+}
 
 pub async fn shared_inbox(
   request: HttpRequest,
@@ -39,7 +51,16 @@ pub async fn shared_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<SharedInboxActivities>(request, &unparsed, context).await
+  trace!("Received shared inbox activity {}", unparsed);
+  let activity = serde_json::from_str::<SharedInboxActivities>(&unparsed)?;
+  match activity {
+    SharedInboxActivities::GroupInboxActivities(g) => {
+      receive_group_inbox(g, request, context).await
+    }
+    SharedInboxActivities::PersonInboxActivities(p) => {
+      receive_person_inbox(p, request, context).await
+    }
+  }
 }
 
 async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
@@ -55,18 +76,16 @@ async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
 // TODO: move most of this code to library
 async fn receive_activity<'a, T>(
   request: HttpRequest,
-  activity: &'a str,
-  context: web::Data<LemmyContext>,
+  activity: T,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError>
 where
   T: ActivityHandler + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
 {
-  let activity = serde_json::from_str::<T>(activity)?;
   let activity_data = activity.common();
 
   let request_counter = &mut 0;
-  let actor =
-    get_or_fetch_and_upsert_actor(&activity_data.actor, &context, request_counter).await?;
+  let actor = get_or_fetch_and_upsert_actor(&activity_data.actor, context, request_counter).await?;
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
 
   // Do nothing if we received the same activity before
@@ -74,11 +93,11 @@ where
     return Ok(HttpResponse::Ok().finish());
   }
   check_is_apub_id_valid(&activity_data.actor, false)?;
-  println!(
+  info!(
     "Verifying activity {}",
     activity_data.id_unchecked().to_string()
   );
-  activity.verify(&context, request_counter).await?;
+  activity.verify(context, request_counter).await?;
   assert_activity_not_local(&activity)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
@@ -92,11 +111,11 @@ where
   )
   .await?;
 
-  println!(
+  info!(
     "Receiving activity {}",
     activity_data.id_unchecked().to_string()
   );
-  activity.receive(&context, request_counter).await?;
+  activity.receive(context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
