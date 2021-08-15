@@ -124,7 +124,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
 - [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
-- [Dart API client ( under development )](https://github.com/krawieck/lemmy_api_client)
+- [Dart API client](https://github.com/krawieck/lemmy_api_client)
 
 ## Support / Donate
 
