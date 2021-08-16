@@ -23,7 +23,6 @@ services:
     depends_on:
       - postgres
       - pictrs
-      - iframely
 
   lemmy-ui:
     image: dessalines/lemmy-ui:0.11.3
@@ -46,11 +45,3 @@ services:
       - ./volumes/pictrs:/mnt
     restart: always
 
-  iframely:
-    image: dogbin/iframely:latest
-    ports:
-      - "127.0.0.1:8061:80"
-    volumes:
-      - ./iframely.config.local.js:/iframely/config.local.js:ro
-    restart: always
-    mem_limit: 200m

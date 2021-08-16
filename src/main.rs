@@ -12,7 +12,7 @@ use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub::activity_queue::create_activity_queue;
 use lemmy_db_queries::get_database_url_from_env;
-use lemmy_routes::{feeds, images, nodeinfo, webfinger};
+use lemmy_routes::{feeds, images, nodeinfo, post_link_tags, webfinger};
 use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
@@ -20,7 +20,6 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
-use reqwest::Client;
 use std::{sync::Arc, thread};
 use tokio::sync::Mutex;
 
@@ -66,12 +65,18 @@ async fn main() -> Result<(), LemmyError> {
   );
 
   let activity_queue = create_activity_queue();
+
+  // Required because docker installs try to use TLS, which is disabled as a reqwest feature flag
+  let client = reqwest::ClientBuilder::new()
+    .danger_accept_invalid_certs(true)
+    .build()?;
+
   let chat_server = ChatServer::startup(
     pool.clone(),
     rate_limiter.clone(),
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
-    Client::default(),
+    client.clone(),
     activity_queue.clone(),
   )
   .start();
@@ -81,7 +86,7 @@ async fn main() -> Result<(), LemmyError> {
     let context = LemmyContext::create(
       pool.clone(),
       chat_server.to_owned(),
-      Client::default(),
+      client.to_owned(),
       activity_queue.to_owned(),
     );
     let rate_limiter = rate_limiter.clone();
@@ -95,6 +100,7 @@ async fn main() -> Result<(), LemmyError> {
       .configure(|cfg| images::config(cfg, &rate_limiter))
       .configure(nodeinfo::config)
       .configure(webfinger::config)
+      .configure(post_link_tags::config)
   })
   .bind((settings.bind, settings.port))?
   .run()

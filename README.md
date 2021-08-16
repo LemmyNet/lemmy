@@ -101,7 +101,6 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
   - Can transfer site and communities to others.
 - Can fully erase your data, replacing all posts and comments.
 - NSFW post / community support.
-- OEmbed support via Iframely.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.

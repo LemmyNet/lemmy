@@ -3,10 +3,11 @@ use anyhow::anyhow;
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::future::Future;
 use thiserror::Error;
 use url::Url;
+use webpage::HTML;
 
 #[derive(Clone, Debug, Error)]
 #[error("Error sending request, {0}")]
@@ -47,31 +48,61 @@ where
   response.expect("retry http request")
 }
 
-#[derive(Deserialize, Debug)]
-pub struct IframelyResponse {
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct PostLinkTags {
   pub title: Option<String>,
   pub description: Option<String>,
   thumbnail_url: Option<Url>,
   pub html: Option<String>,
 }
 
-pub(crate) async fn fetch_iframely(
-  client: &Client,
-  url: &Url,
-) -> Result<IframelyResponse, LemmyError> {
-  if let Some(iframely_url) = Settings::get().iframely_url {
-    let fetch_url = format!("{}/oembed?url={}", iframely_url, url);
+/// Fetches the post link html tags (like title, description, thumbnail, etc)
+pub async fn fetch_post_link_tags(client: &Client, url: &Url) -> Result<PostLinkTags, LemmyError> {
+  let response = retry(|| client.get(url.as_str()).send()).await?;
 
-    let response = retry(|| client.get(&fetch_url).send()).await?;
+  let html = response
+    .text()
+    .await
+    .map_err(|e| RecvError(e.to_string()))?;
 
-    let res: IframelyResponse = response
-      .json()
-      .await
-      .map_err(|e| RecvError(e.to_string()))?;
-    Ok(res)
-  } else {
-    Err(anyhow!("Missing Iframely URL in config.").into())
-  }
+  let tags = html_to_post_link_tags(&html)?;
+
+  Ok(tags)
+}
+
+fn html_to_post_link_tags(html: &str) -> Result<PostLinkTags, LemmyError> {
+  let page = HTML::from_string(html.to_string(), None)?;
+
+  let page_title = page.title;
+  let page_description = page.description;
+
+  let og_description = page
+    .opengraph
+    .properties
+    .get("description")
+    .map(|t| t.to_string());
+  let og_title = page
+    .opengraph
+    .properties
+    .get("title")
+    .map(|t| t.to_string());
+  let og_image = page
+    .opengraph
+    .images
+    .get(0)
+    .map(|ogo| Url::parse(&ogo.url).ok())
+    .flatten();
+
+  let title = og_title.or(page_title);
+  let description = og_description.or(page_description);
+  let thumbnail_url = og_image;
+
+  Ok(PostLinkTags {
+    title,
+    description,
+    thumbnail_url,
+    html: None,
+  })
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -116,22 +147,23 @@ pub(crate) async fn fetch_pictrs(
   }
 }
 
-pub async fn fetch_iframely_and_pictrs_data(
+/// Both are options, since the URL might be either an html page, or an image
+pub async fn fetch_post_links_and_pictrs_data(
   client: &Client,
   url: Option<&Url>,
-) -> Result<(Option<IframelyResponse>, Option<Url>), LemmyError> {
+) -> Result<(Option<PostLinkTags>, Option<Url>), LemmyError> {
   match &url {
     Some(url) => {
-      // Fetch iframely data
-      let iframely_res_option = fetch_iframely(client, url).await.ok();
+      // Fetch post-links data
+      let post_links_res_option = fetch_post_link_tags(client, url).await.ok();
 
       // Fetch pictrs thumbnail
-      let pictrs_hash = match &iframely_res_option {
-        Some(iframely_res) => match &iframely_res.thumbnail_url {
-          Some(iframely_thumbnail_url) => fetch_pictrs(client, iframely_thumbnail_url)
+      let pictrs_hash = match &post_links_res_option {
+        Some(post_link_res) => match &post_link_res.thumbnail_url {
+          Some(post_links_thumbnail_url) => fetch_pictrs(client, post_links_thumbnail_url)
             .await?
             .map(|r| r.files[0].file.to_owned()),
-          // Try to generate a small thumbnail if iframely is not supported
+          // Try to generate a small thumbnail if there's a full sized one from post-links
           None => fetch_pictrs(client, url)
             .await?
             .map(|r| r.files[0].file.to_owned()),
@@ -153,7 +185,7 @@ pub async fn fetch_iframely_and_pictrs_data(
         })
         .flatten();
 
-      Ok((iframely_res_option, pictrs_thumbnail))
+      Ok((post_links_res_option, pictrs_thumbnail))
     }
     None => Ok((None, None)),
   }
@@ -176,12 +208,35 @@ async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyE
 
 #[cfg(test)]
 mod tests {
+  use crate::request::fetch_post_link_tags;
+  use url::Url;
+
+  use super::PostLinkTags;
+
   // These helped with testing
-  // #[test]
-  // fn test_iframely() {
-  //   let res = fetch_iframely(client, "https://www.redspark.nu/?p=15341").await;
-  //   assert!(res.is_ok());
-  // }
+  #[actix_rt::test]
+  async fn test_post_links() {
+    let client = reqwest::Client::default();
+    let sample_url = Url::parse("https://www.redspark.nu/en/peoples-war/district-leader-of-chand-led-cpn-arrested-in-bhojpur/").unwrap();
+    let sample_res = fetch_post_link_tags(&client, &sample_url).await.unwrap();
+    assert_eq!(
+      PostLinkTags {
+        title: Some("District Leader Of Chand Led CPN Arrested In Bhojpur - Redspark".to_string()),
+        description: Some("BHOJPUR: A district leader of the outlawed Netra Bikram Chand alias Biplav-led outfit has been arrested. According to District Police".to_string()),
+        thumbnail_url: Some(Url::parse("https://www.redspark.nu/wp-content/uploads/2020/03/netra-bikram-chand-attends-program-1272019033653-1000x0-845x653-1.jpg").unwrap()),
+        html: None,
+      }, sample_res);
+
+    let youtube_url = Url::parse("https://www.youtube.com/watch?v=IquO_TcMZIQ").unwrap();
+    let youtube_res = fetch_post_link_tags(&client, &youtube_url).await.unwrap();
+    assert_eq!(
+      PostLinkTags {
+        title: Some("A Hard Look at Rent and Rent Seeking with Michael Hudson & Pepe Escobar".to_string()),
+        description: Some("An interactive discussion on wealth inequality and the “Great Game” on the control of natural resources.In this webinar organized jointly by the Henry George...".to_string()),
+        thumbnail_url: Some(Url::parse("https://i.ytimg.com/vi/IquO_TcMZIQ/maxresdefault.jpg").unwrap()),
+        html: None,
+      }, youtube_res);
+  }
 
   // #[test]
   // fn test_pictshare() {
