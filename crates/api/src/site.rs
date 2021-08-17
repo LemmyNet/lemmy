@@ -40,6 +40,7 @@ use lemmy_db_views_moderator::{
   mod_remove_community_view::ModRemoveCommunityView,
   mod_remove_post_view::ModRemovePostView,
   mod_sticky_post_view::ModStickyPostView,
+  mod_transfer_community_view::ModTransferCommunityView,
 };
 use lemmy_utils::{
   location_info,
@@ -97,6 +98,11 @@ impl Perform for GetModlog {
     })
     .await??;
 
+    let transferred_to_community = blocking(context.pool(), move |conn| {
+      ModTransferCommunityView::list(conn, community_id, mod_person_id, page, limit)
+    })
+    .await??;
+
     // These arrays are only for the full modlog, when a community isn't given
     let (removed_communities, banned, added) = if data.community_id.is_none() {
       blocking(context.pool(), move |conn| {
@@ -122,6 +128,7 @@ impl Perform for GetModlog {
       banned,
       added_to_community,
       added,
+      transferred_to_community,
     })
   }
 }

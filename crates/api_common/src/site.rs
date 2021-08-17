@@ -16,6 +16,7 @@ use lemmy_db_views_moderator::{
   mod_remove_community_view::ModRemoveCommunityView,
   mod_remove_post_view::ModRemovePostView,
   mod_sticky_post_view::ModStickyPostView,
+  mod_transfer_community_view::ModTransferCommunityView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -60,6 +61,7 @@ pub struct GetModlogResponse {
   pub banned_from_community: Vec<ModBanFromCommunityView>,
   pub banned: Vec<ModBanView>,
   pub added_to_community: Vec<ModAddCommunityView>,
+  pub transferred_to_community: Vec<ModTransferCommunityView>,
   pub added: Vec<ModAddView>,
 }
 
