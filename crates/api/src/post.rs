@@ -23,7 +23,7 @@ use lemmy_apub::{
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
 use lemmy_db_schema::source::{moderator::*, post::*};
 use lemmy_db_views::post_view::PostView;
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{request::fetch_site_metadata, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};
 use std::convert::TryInto;
 
@@ -283,5 +283,22 @@ impl Perform for SavePost {
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
     Ok(PostResponse { post_view })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for GetSiteMetadata {
+  type Response = GetSiteMetadataResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<GetSiteMetadataResponse, LemmyError> {
+    let data: &Self = self;
+
+    let metadata = fetch_site_metadata(context.client(), &data.url).await?;
+
+    Ok(GetSiteMetadataResponse { metadata })
   }
 }

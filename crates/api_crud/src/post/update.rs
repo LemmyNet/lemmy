@@ -5,7 +5,7 @@ use lemmy_apub::activities::{post::create_or_update::CreateOrUpdatePost, CreateO
 use lemmy_db_queries::{source::post::Post_, Crud};
 use lemmy_db_schema::{naive_now, source::post::*};
 use lemmy_utils::{
-  request::fetch_post_links_and_pictrs_data,
+  request::fetch_site_metadata_and_pictrs_data,
   utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
   ApiError,
   ConnectionId,
@@ -51,9 +51,9 @@ impl PerformCrud for EditPost {
 
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
-    let (post_links_res, pictrs_thumbnail) =
-      fetch_post_links_and_pictrs_data(context.client(), data_url).await?;
-    let (embed_title, embed_description, embed_html) = post_links_res
+    let (metadata_res, pictrs_thumbnail) =
+      fetch_site_metadata_and_pictrs_data(context.client(), data_url).await?;
+    let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
 

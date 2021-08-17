@@ -8,6 +8,7 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
 };
+use lemmy_utils::request::SiteMetadata;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -147,4 +148,14 @@ pub struct ListPostReports {
 #[derive(Serialize, Clone, Debug)]
 pub struct ListPostReportsResponse {
   pub posts: Vec<PostReportView>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct GetSiteMetadata {
+  pub url: Url,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct GetSiteMetadataResponse {
+  pub metadata: SiteMetadata,
 }

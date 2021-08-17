@@ -48,16 +48,16 @@ where
   response.expect("retry http request")
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-pub struct PostLinkTags {
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub struct SiteMetadata {
   pub title: Option<String>,
   pub description: Option<String>,
-  thumbnail_url: Option<Url>,
+  image: Option<Url>,
   pub html: Option<String>,
 }
 
-/// Fetches the post link html tags (like title, description, thumbnail, etc)
-pub async fn fetch_post_link_tags(client: &Client, url: &Url) -> Result<PostLinkTags, LemmyError> {
+/// Fetches the post link html tags (like title, description, image, etc)
+pub async fn fetch_site_metadata(client: &Client, url: &Url) -> Result<SiteMetadata, LemmyError> {
   let response = retry(|| client.get(url.as_str()).send()).await?;
 
   let html = response
@@ -65,12 +65,12 @@ pub async fn fetch_post_link_tags(client: &Client, url: &Url) -> Result<PostLink
     .await
     .map_err(|e| RecvError(e.to_string()))?;
 
-  let tags = html_to_post_link_tags(&html)?;
+  let tags = html_to_site_metadata(&html)?;
 
   Ok(tags)
 }
 
-fn html_to_post_link_tags(html: &str) -> Result<PostLinkTags, LemmyError> {
+fn html_to_site_metadata(html: &str) -> Result<SiteMetadata, LemmyError> {
   let page = HTML::from_string(html.to_string(), None)?;
 
   let page_title = page.title;
@@ -95,12 +95,12 @@ fn html_to_post_link_tags(html: &str) -> Result<PostLinkTags, LemmyError> {
 
   let title = og_title.or(page_title);
   let description = og_description.or(page_description);
-  let thumbnail_url = og_image;
+  let image = og_image;
 
-  Ok(PostLinkTags {
+  Ok(SiteMetadata {
     title,
     description,
-    thumbnail_url,
+    image,
     html: None,
   })
 }
@@ -148,19 +148,21 @@ pub(crate) async fn fetch_pictrs(
 }
 
 /// Both are options, since the URL might be either an html page, or an image
-pub async fn fetch_post_links_and_pictrs_data(
+pub async fn fetch_site_metadata_and_pictrs_data(
   client: &Client,
   url: Option<&Url>,
-) -> Result<(Option<PostLinkTags>, Option<Url>), LemmyError> {
+) -> Result<(Option<SiteMetadata>, Option<Url>), LemmyError> {
   match &url {
     Some(url) => {
-      // Fetch post-links data
-      let post_links_res_option = fetch_post_link_tags(client, url).await.ok();
+      // Fetch metadata
+      // Ignore errors, since it may be an image, or not have the data.
+      // Warning, this may ignore SSL errors
+      let metadata_option = fetch_site_metadata(client, url).await.ok();
 
       // Fetch pictrs thumbnail
-      let pictrs_hash = match &post_links_res_option {
-        Some(post_link_res) => match &post_link_res.thumbnail_url {
-          Some(post_links_thumbnail_url) => fetch_pictrs(client, post_links_thumbnail_url)
+      let pictrs_hash = match &metadata_option {
+        Some(metadata_res) => match &metadata_res.image {
+          Some(metadata_image) => fetch_pictrs(client, metadata_image)
             .await?
             .map(|r| r.files[0].file.to_owned()),
           // Try to generate a small thumbnail if there's a full sized one from post-links
@@ -185,7 +187,7 @@ pub async fn fetch_post_links_and_pictrs_data(
         })
         .flatten();
 
-      Ok((post_links_res_option, pictrs_thumbnail))
+      Ok((metadata_option, pictrs_thumbnail))
     }
     None => Ok((None, None)),
   }
@@ -208,32 +210,32 @@ async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyE
 
 #[cfg(test)]
 mod tests {
-  use crate::request::fetch_post_link_tags;
+  use crate::request::fetch_site_metadata;
   use url::Url;
 
-  use super::PostLinkTags;
+  use super::SiteMetadata;
 
   // These helped with testing
   #[actix_rt::test]
-  async fn test_post_links() {
+  async fn test_site_metadata() {
     let client = reqwest::Client::default();
     let sample_url = Url::parse("https://www.redspark.nu/en/peoples-war/district-leader-of-chand-led-cpn-arrested-in-bhojpur/").unwrap();
-    let sample_res = fetch_post_link_tags(&client, &sample_url).await.unwrap();
+    let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(
-      PostLinkTags {
+      SiteMetadata {
         title: Some("District Leader Of Chand Led CPN Arrested In Bhojpur - Redspark".to_string()),
         description: Some("BHOJPUR: A district leader of the outlawed Netra Bikram Chand alias Biplav-led outfit has been arrested. According to District Police".to_string()),
-        thumbnail_url: Some(Url::parse("https://www.redspark.nu/wp-content/uploads/2020/03/netra-bikram-chand-attends-program-1272019033653-1000x0-845x653-1.jpg").unwrap()),
+        image: Some(Url::parse("https://www.redspark.nu/wp-content/uploads/2020/03/netra-bikram-chand-attends-program-1272019033653-1000x0-845x653-1.jpg").unwrap()),
         html: None,
       }, sample_res);
 
     let youtube_url = Url::parse("https://www.youtube.com/watch?v=IquO_TcMZIQ").unwrap();
-    let youtube_res = fetch_post_link_tags(&client, &youtube_url).await.unwrap();
+    let youtube_res = fetch_site_metadata(&client, &youtube_url).await.unwrap();
     assert_eq!(
-      PostLinkTags {
+      SiteMetadata {
         title: Some("A Hard Look at Rent and Rent Seeking with Michael Hudson & Pepe Escobar".to_string()),
         description: Some("An interactive discussion on wealth inequality and the “Great Game” on the control of natural resources.In this webinar organized jointly by the Henry George...".to_string()),
-        thumbnail_url: Some(Url::parse("https://i.ytimg.com/vi/IquO_TcMZIQ/maxresdefault.jpg").unwrap()),
+        image: Some(Url::parse("https://i.ytimg.com/vi/IquO_TcMZIQ/maxresdefault.jpg").unwrap()),
         html: None,
       }, youtube_res);
   }

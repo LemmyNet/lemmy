@@ -31,7 +31,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_utils::{
-  request::fetch_post_links_and_pictrs_data,
+  request::fetch_site_metadata_and_pictrs_data,
   utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
@@ -188,12 +188,12 @@ impl FromApub for Post {
     let community = extract_community(&page.to, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
-    let (post_links_res, pictrs_thumbnail) = if let Some(url) = &page.url {
-      fetch_post_links_and_pictrs_data(context.client(), Some(url)).await?
+    let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
+      fetch_site_metadata_and_pictrs_data(context.client(), Some(url)).await?
     } else {
       (None, thumbnail_url)
     };
-    let (embed_title, embed_description, embed_html) = post_links_res
+    let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
 
