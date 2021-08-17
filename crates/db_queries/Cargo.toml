@@ -16,8 +16,8 @@ lemmy_db_schema = { version = "=0.11.3", path = "../db_schema" }
 diesel = { version = "1.4.7", features = ["postgres","chrono","r2d2","serde_json"] }
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.126", features = ["derive"] }
-serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde = { version = "1.0.127", features = ["derive"] }
+serde_json = { version = "1.0.66", features = ["preserve_order"] }
 strum = "0.21.0"
 strum_macros = "0.21.1"
 log = "0.4.14"
@@ -25,7 +25,7 @@ sha2 = "0.9.5"
 url = { version = "2.2.2", features = ["serde"] }
 lazy_static = "1.4.0"
 regex = "1.5.4"
-bcrypt = "0.10.0"
+bcrypt = "0.10.1"
 
 [dev-dependencies]
 serial_test = "0.5.1"
