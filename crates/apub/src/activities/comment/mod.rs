@@ -5,21 +5,19 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::{blocking, comment::CommentResponse, send_local_notifs, WebFingerResponse};
+use lemmy_api_common::{blocking, send_local_notifs, WebFingerResponse};
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post},
-  CommentId,
   LocalUserId,
 };
-use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   request::{retry, RecvError},
   settings::structs::Settings,
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };
-use lemmy_websocket::{messages::SendComment, LemmyContext};
+use lemmy_websocket::LemmyContext;
 use log::debug;
 use reqwest::Client;
 use url::Url;
@@ -43,37 +41,6 @@ async fn get_notif_recipients(
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
   send_local_notifs(mentions, comment.clone(), actor, post, context.pool(), true).await
-}
-
-// TODO: in many call sites we are setting an empty vec for recipient_ids, we should get the actual
-//       recipient actors from somewhere
-pub(crate) async fn send_websocket_message<
-  OP: ToString + Send + lemmy_websocket::OperationType + 'static,
->(
-  comment_id: CommentId,
-  recipient_ids: Vec<LocalUserId>,
-  op: OP,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
-  // Refetch the view
-  let comment_view = blocking(context.pool(), move |conn| {
-    CommentView::read(conn, comment_id, None)
-  })
-  .await??;
-
-  let res = CommentResponse {
-    comment_view,
-    recipient_ids,
-    form_id: None,
-  };
-
-  context.chat_server().do_send(SendComment {
-    op,
-    comment: res,
-    websocket_id: None,
-  });
-
-  Ok(())
 }
 
 pub struct MentionsAndAddresses {

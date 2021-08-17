@@ -7,7 +7,7 @@ use crate::activities::{
     undo_block_user::UndoBlockUserFromCommunity,
     update::UpdateCommunity,
   },
-  deletion::{delete::DeletePostCommentOrCommunity, undo_delete::UndoDeletePostCommentOrCommunity},
+  deletion::{delete::Delete, undo_delete::UndoDelete},
   following::{accept::AcceptFollowCommunity, follow::FollowCommunity, undo::UndoFollowCommunity},
   post::create_or_update::CreateOrUpdatePost,
   private_message::{
@@ -15,10 +15,7 @@ use crate::activities::{
     delete::DeletePrivateMessage,
     undo_delete::UndoDeletePrivateMessage,
   },
-  removal::{
-    remove::RemovePostCommentCommunityOrMod,
-    undo_remove::UndoRemovePostCommentOrCommunity,
-  },
+  removal::{remove::RemoveMod, undo_remove::UndoRemovePostCommentOrCommunity},
   voting::{undo_vote::UndoVote, vote::Vote},
 };
 use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};
@@ -45,14 +42,14 @@ pub enum GroupInboxActivities {
   CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   Vote(Vote),
   UndoVote(UndoVote),
-  DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
-  UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
-  RemovePostCommentOrCommunity(RemovePostCommentCommunityOrMod),
+  DeletePostCommentOrCommunity(Delete),
+  UndoDeletePostCommentOrCommunity(UndoDelete),
   UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   UpdateCommunity(Box<UpdateCommunity>),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
+  RemoveMod(RemoveMod),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
@@ -65,14 +62,14 @@ pub enum SharedInboxActivities {
   CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   Vote(Vote),
   UndoVote(UndoVote),
-  DeletePostCommentOrCommunity(DeletePostCommentOrCommunity),
-  UndoDeletePostCommentOrCommunity(UndoDeletePostCommentOrCommunity),
-  RemovePostCommentOrCommunity(RemovePostCommentCommunityOrMod),
+  Delete(Delete),
+  UndoDelete(UndoDelete),
   UndoRemovePostCommentOrCommunity(UndoRemovePostCommentOrCommunity),
   UpdateCommunity(Box<UpdateCommunity>),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
+  RemoveMod(RemoveMod),
   // received by person
   AcceptFollowCommunity(AcceptFollowCommunity),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably

@@ -24,7 +24,7 @@ use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
 use lemmy_db_schema::source::{moderator::*, post::*};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};
 use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
@@ -96,23 +96,14 @@ impl Perform for CreatePostLike {
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    let post_id = data.post_id;
-    let person_id = local_user_view.person.id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(person_id))
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_post"))?;
-
-    let res = PostResponse { post_view };
-
-    context.chat_server().do_send(SendPost {
-      op: UserOperation::CreatePostLike,
-      post: res.clone(),
+    send_post_ws_message(
+      data.post_id,
+      UserOperation::CreatePostLike,
       websocket_id,
-    });
-
-    Ok(res)
+      Some(local_user_view.person.id),
+      context,
+    )
+    .await
   }
 }
 
@@ -171,22 +162,14 @@ impl Perform for LockPost {
     )
     .await?;
 
-    // Refetch the post
-    let post_id = data.post_id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(local_user_view.person.id))
-    })
-    .await??;
-
-    let res = PostResponse { post_view };
-
-    context.chat_server().do_send(SendPost {
-      op: UserOperation::LockPost,
-      post: res.clone(),
+    send_post_ws_message(
+      data.post_id,
+      UserOperation::LockPost,
       websocket_id,
-    });
-
-    Ok(res)
+      Some(local_user_view.person.id),
+      context,
+    )
+    .await
   }
 }
 
@@ -249,22 +232,14 @@ impl Perform for StickyPost {
     )
     .await?;
 
-    // Refetch the post
-    let post_id = data.post_id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(local_user_view.person.id))
-    })
-    .await??;
-
-    let res = PostResponse { post_view };
-
-    context.chat_server().do_send(SendPost {
-      op: UserOperation::StickyPost,
-      post: res.clone(),
+    send_post_ws_message(
+      data.post_id,
+      UserOperation::StickyPost,
       websocket_id,
-    });
-
-    Ok(res)
+      Some(local_user_view.person.id),
+      context,
+    )
+    .await
   }
 }
 

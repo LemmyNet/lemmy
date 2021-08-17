@@ -2,7 +2,9 @@ use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{naive_now, source::site::*, PersonId};
 
-impl Crud<SiteForm, i32> for Site {
+impl Crud for Site {
+  type Form = SiteForm;
+  type IdType = i32;
   fn read(conn: &PgConnection, _site_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::site::dsl::*;
     site.first::<Self>(conn)

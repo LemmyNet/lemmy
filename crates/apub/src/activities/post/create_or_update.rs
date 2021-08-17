@@ -3,7 +3,6 @@ use crate::{
     community::announce::AnnouncableActivities,
     extract_community,
     generate_activity_id,
-    post::send_websocket_message,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
@@ -27,7 +26,7 @@ use lemmy_apub_lib::{
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -126,7 +125,8 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,
       CreateOrUpdateType::Update => UserOperationCrud::EditPost,
     };
-    send_websocket_message(post.id, notif_type, context).await
+    send_post_ws_message(post.id, notif_type, None, None, context).await?;
+    Ok(())
   }
 
   fn common(&self) -> &ActivityCommonFields {

@@ -1,8 +1,4 @@
-use crate::activities::{
-  comment::send_websocket_message as send_comment_message,
-  post::send_websocket_message as send_post_message,
-  voting::vote::VoteType,
-};
+use crate::activities::voting::vote::VoteType;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::Likeable;
 use lemmy_db_schema::source::{
@@ -11,7 +7,11 @@ use lemmy_db_schema::source::{
   post::{Post, PostLike, PostLikeForm},
 };
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperation};
+use lemmy_websocket::{
+  send::{send_comment_ws_message_simple, send_post_ws_message},
+  LemmyContext,
+  UserOperation,
+};
 
 pub mod undo_vote;
 pub mod vote;
@@ -36,13 +36,8 @@ async fn vote_comment(
   })
   .await??;
 
-  send_comment_message(
-    comment_id,
-    vec![],
-    UserOperation::CreateCommentLike,
-    context,
-  )
-  .await
+  send_comment_ws_message_simple(comment_id, UserOperation::CreateCommentLike, context).await?;
+  Ok(())
 }
 
 async fn vote_post(
@@ -64,7 +59,8 @@ async fn vote_post(
   })
   .await??;
 
-  send_post_message(post.id, UserOperation::CreatePostLike, context).await
+  send_post_ws_message(post.id, UserOperation::CreatePostLike, None, None, context).await?;
+  Ok(())
 }
 
 async fn undo_vote_comment(
@@ -79,13 +75,8 @@ async fn undo_vote_comment(
   })
   .await??;
 
-  send_comment_message(
-    comment.id,
-    vec![],
-    UserOperation::CreateCommentLike,
-    context,
-  )
-  .await
+  send_comment_ws_message_simple(comment_id, UserOperation::CreateCommentLike, context).await?;
+  Ok(())
 }
 
 async fn undo_vote_post(
@@ -99,5 +90,7 @@ async fn undo_vote_post(
     PostLike::remove(conn, person_id, post_id)
   })
   .await??;
-  send_post_message(post.id, UserOperation::CreatePostLike, context).await
+
+  send_post_ws_message(post_id, UserOperation::CreatePostLike, None, None, context).await?;
+  Ok(())
 }

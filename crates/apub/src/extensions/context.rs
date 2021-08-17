@@ -2,7 +2,7 @@ use activitystreams::{base::AnyBase, context, primitives::OneOrMany};
 use serde_json::json;
 use url::Url;
 
-pub fn lemmy_context() -> OneOrMany<AnyBase> {
+pub(crate) fn lemmy_context() -> OneOrMany<AnyBase> {
   let context_ext = AnyBase::from_arbitrary_json(json!(
   {
     "sc": "http://schema.org#",

@@ -7,12 +7,11 @@ use lemmy_api_common::{
   is_mod_or_admin,
   post::*,
 };
-use lemmy_apub::ApubObjectType;
-use lemmy_db_queries::{source::post::Post_, Crud, DeleteableOrRemoveable};
-use lemmy_db_schema::source::{moderator::*, post::*};
-use lemmy_db_views::post_view::PostView;
+use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
+use lemmy_db_queries::{source::post::Post_, Crud};
+use lemmy_db_schema::source::{community::Community, moderator::*, post::*};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePost {
@@ -50,37 +49,27 @@ impl PerformCrud for DeletePost {
     .await??;
 
     // apub updates
-    if deleted {
-      updated_post
-        .blank_out_deleted_or_removed_info()
-        .send_delete(&local_user_view.person, context)
-        .await?;
-    } else {
-      updated_post
-        .send_undo_delete(&local_user_view.person, context)
-        .await?;
-    }
-
-    // Refetch the post
-    let post_id = data.post_id;
-    let mut post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(local_user_view.person.id))
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, orig_post.community_id)
     })
     .await??;
+    send_apub_delete(
+      &local_user_view.person,
+      &community,
+      updated_post.ap_id.into(),
+      deleted,
+      context,
+    )
+    .await?;
 
-    if deleted {
-      post_view.post = post_view.post.blank_out_deleted_or_removed_info();
-    }
-
-    let res = PostResponse { post_view };
-
-    context.chat_server().do_send(SendPost {
-      op: UserOperationCrud::DeletePost,
-      post: res.clone(),
+    send_post_ws_message(
+      data.post_id,
+      UserOperationCrud::DeletePost,
       websocket_id,
-    });
-
-    Ok(res)
+      Some(local_user_view.person.id),
+      context,
+    )
+    .await
   }
 }
 
@@ -135,38 +124,27 @@ impl PerformCrud for RemovePost {
     .await??;
 
     // apub updates
-    if removed {
-      updated_post
-        .blank_out_deleted_or_removed_info()
-        .send_remove(&local_user_view.person, context)
-        .await?;
-    } else {
-      updated_post
-        .send_undo_remove(&local_user_view.person, context)
-        .await?;
-    }
-
-    // Refetch the post
-    let post_id = data.post_id;
-    let person_id = local_user_view.person.id;
-    let mut post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(person_id))
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, orig_post.community_id)
     })
     .await??;
+    send_apub_remove(
+      &local_user_view.person,
+      &community,
+      updated_post.ap_id.into(),
+      data.reason.clone().unwrap_or_else(|| "".to_string()),
+      removed,
+      context,
+    )
+    .await?;
 
-    // Blank out deleted or removed info
-    if removed {
-      post_view.post = post_view.post.blank_out_deleted_or_removed_info();
-    }
-
-    let res = PostResponse { post_view };
-
-    context.chat_server().do_send(SendPost {
-      op: UserOperationCrud::RemovePost,
-      post: res.clone(),
+    send_post_ws_message(
+      data.post_id,
+      UserOperationCrud::RemovePost,
       websocket_id,
-    });
-
-    Ok(res)
+      Some(local_user_view.person.id),
+      context,
+    )
+    .await
   }
 }

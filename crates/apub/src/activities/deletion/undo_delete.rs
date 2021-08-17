@@ -1,35 +1,39 @@
 use crate::{
   activities::{
-    comment::send_websocket_message as send_comment_message,
-    community::send_websocket_message as send_community_message,
-    deletion::delete::DeletePostCommentOrCommunity,
-    post::send_websocket_message as send_post_message,
+    community::announce::AnnouncableActivities,
+    deletion::{
+      delete::Delete,
+      receive_delete_action,
+      verify_delete_activity,
+      DeletableObjects,
+      WebsocketMessages,
+    },
+    generate_activity_id,
     verify_activity,
-    verify_mod_action,
-    verify_person_in_community,
   },
-  fetcher::{
-    community::get_or_fetch_and_upsert_community,
-    objects::get_or_fetch_and_insert_post_or_comment,
-    person::get_or_fetch_and_upsert_person,
-  },
-  CommunityType,
-  PostOrComment,
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
+  ActorType,
 };
-use activitystreams::activity::kind::UndoType;
+use activitystreams::activity::kind::{DeleteType, UndoType};
+use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
 use lemmy_db_queries::source::{comment::Comment_, community::Community_, post::Post_};
-use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
+use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+  LemmyContext,
+  UserOperationCrud,
+};
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UndoDeletePostCommentOrCommunity {
+pub struct UndoDelete {
   to: PublicUrl,
-  object: DeletePostCommentOrCommunity,
+  object: Delete,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
@@ -38,7 +42,7 @@ pub struct UndoDeletePostCommentOrCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for UndoDeletePostCommentOrCommunity {
+impl ActivityHandler for UndoDelete {
   async fn verify(
     &self,
     context: &LemmyContext,
@@ -46,18 +50,15 @@ impl ActivityHandler for UndoDeletePostCommentOrCommunity {
   ) -> Result<(), LemmyError> {
     verify_activity(self.common())?;
     self.object.verify(context, request_counter).await?;
-    let object_community =
-      get_or_fetch_and_upsert_community(&self.object.object, context, request_counter).await;
-    // restoring a community
-    if object_community.is_ok() {
-      verify_mod_action(&self.common.actor, self.object.object.clone(), context).await?;
-    }
-    // restoring a post or comment
-    else {
-      verify_person_in_community(&self.common().actor, &self.cc[0], context, request_counter)
-        .await?;
-      verify_urls_match(&self.common.actor, &self.object.common().actor)?;
-    }
+    verify_delete_activity(
+      &self.object.object,
+      &self.cc[0],
+      &self.common,
+      self.object.summary.is_some(),
+      context,
+      request_counter,
+    )
+    .await?;
     Ok(())
   }
 
@@ -66,61 +67,101 @@ impl ActivityHandler for UndoDeletePostCommentOrCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let object_community =
-      get_or_fetch_and_upsert_community(&self.object.object, context, request_counter).await;
-    // restoring a community
-    if let Ok(community) = object_community {
-      if community.local {
-        // repeat these checks just to be sure
-        verify_person_in_community(&self.common().actor, &self.cc[0], context, request_counter)
-          .await?;
-        verify_mod_action(&self.common.actor, self.object.object.clone(), context).await?;
-        let mod_ =
-          get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
-        community.send_undo_delete(mod_, context).await?;
-      }
-      let deleted_community = blocking(context.pool(), move |conn| {
-        Community::update_deleted(conn, community.id, false)
-      })
-      .await??;
-
-      send_community_message(
-        deleted_community.id,
-        UserOperationCrud::EditCommunity,
+    if self.object.summary.is_some() {
+      UndoDelete::receive_undo_remove_action(&self.object.object, context).await
+    } else {
+      receive_delete_action(
+        &self.object.object,
+        &self.common.actor,
+        WebsocketMessages {
+          community: UserOperationCrud::EditCommunity,
+          post: UserOperationCrud::EditPost,
+          comment: UserOperationCrud::EditComment,
+        },
+        false,
         context,
+        request_counter,
       )
       .await
-    }
-    // restoring a post or comment
-    else {
-      match get_or_fetch_and_insert_post_or_comment(&self.object.object, context, request_counter)
-        .await?
-      {
-        PostOrComment::Post(post) => {
-          let deleted_post = blocking(context.pool(), move |conn| {
-            Post::update_deleted(conn, post.id, false)
-          })
-          .await??;
-          send_post_message(deleted_post.id, UserOperationCrud::EditPost, context).await
-        }
-        PostOrComment::Comment(comment) => {
-          let deleted_comment = blocking(context.pool(), move |conn| {
-            Comment::update_deleted(conn, comment.id, false)
-          })
-          .await??;
-          send_comment_message(
-            deleted_comment.id,
-            vec![],
-            UserOperationCrud::EditComment,
-            context,
-          )
-          .await
-        }
-      }
     }
   }
 
   fn common(&self) -> &ActivityCommonFields {
     &self.common
+  }
+}
+
+impl UndoDelete {
+  pub(in crate::activities::deletion) async fn send(
+    actor: &Person,
+    community: &Community,
+    object_id: Url,
+    summary: Option<String>,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let delete = Delete {
+      to: PublicUrl::Public,
+      object: object_id,
+      cc: [community.actor_id()],
+      kind: DeleteType::Delete,
+      summary,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: generate_activity_id(DeleteType::Delete)?,
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+
+    let id = generate_activity_id(UndoType::Undo)?;
+    let undo = UndoDelete {
+      to: PublicUrl::Public,
+      object: delete,
+      cc: [community.actor_id()],
+      kind: UndoType::Undo,
+      common: ActivityCommonFields {
+        context: lemmy_context(),
+        id: id.clone(),
+        actor: actor.actor_id(),
+        unparsed: Default::default(),
+      },
+    };
+
+    let activity = AnnouncableActivities::UndoDelete(undo);
+    send_to_community_new(activity, &id, actor, community, vec![], context).await
+  }
+
+  pub(in crate::activities) async fn receive_undo_remove_action(
+    object: &Url,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    use UserOperationCrud::*;
+    match DeletableObjects::read_from_db(object, context).await? {
+      DeletableObjects::Community(community) => {
+        if community.local {
+          return Err(anyhow!("Only local admin can restore community").into());
+        }
+        let deleted_community = blocking(context.pool(), move |conn| {
+          Community::update_removed(conn, community.id, false)
+        })
+        .await??;
+        send_community_ws_message(deleted_community.id, EditCommunity, None, None, context).await?;
+      }
+      DeletableObjects::Post(post) => {
+        let removed_post = blocking(context.pool(), move |conn| {
+          Post::update_removed(conn, post.id, false)
+        })
+        .await??;
+        send_post_ws_message(removed_post.id, EditPost, None, None, context).await?;
+      }
+      DeletableObjects::Comment(comment) => {
+        let removed_comment = blocking(context.pool(), move |conn| {
+          Comment::update_removed(conn, comment.id, false)
+        })
+        .await??;
+        send_comment_ws_message_simple(removed_comment.id, EditComment, context).await?;
+      }
+    }
+    Ok(())
   }
 }

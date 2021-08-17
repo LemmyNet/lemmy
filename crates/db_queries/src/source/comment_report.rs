@@ -6,7 +6,8 @@ use lemmy_db_schema::{
   PersonId,
 };
 
-impl Reportable<CommentReportForm> for CommentReport {
+impl Reportable for CommentReport {
+  type Form = CommentReportForm;
   /// creates a comment report and returns it
   ///
   /// * `conn` - the postgres connection

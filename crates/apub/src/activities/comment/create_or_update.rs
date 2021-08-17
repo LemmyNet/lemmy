@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    comment::{collect_non_local_mentions, get_notif_recipients, send_websocket_message},
+    comment::{collect_non_local_mentions, get_notif_recipients},
     community::announce::AnnouncableActivities,
     extract_community,
     generate_activity_id,
@@ -24,7 +24,7 @@ use lemmy_apub_lib::{
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -116,7 +116,11 @@ impl ActivityHandler for CreateOrUpdateComment {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,
       CreateOrUpdateType::Update => UserOperationCrud::EditComment,
     };
-    send_websocket_message(comment.id, recipients, notif_type, context).await
+    send_comment_ws_message(
+      comment.id, notif_type, None, None, None, recipients, context,
+    )
+    .await?;
+    Ok(())
   }
 
   fn common(&self) -> &ActivityCommonFields {

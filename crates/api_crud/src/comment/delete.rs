@@ -8,12 +8,12 @@ use lemmy_api_common::{
   is_mod_or_admin,
   send_local_notifs,
 };
-use lemmy_apub::ApubObjectType;
-use lemmy_db_queries::{source::comment::Comment_, Crud, DeleteableOrRemoveable};
-use lemmy_db_schema::source::{comment::*, moderator::*};
+use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
+use lemmy_db_queries::{source::comment::Comment_, Crud};
+use lemmy_db_schema::source::{comment::*, community::Community, moderator::*, post::Post};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteComment {
@@ -47,63 +47,48 @@ impl PerformCrud for DeleteComment {
 
     // Do the delete
     let deleted = data.deleted;
-    let mut updated_comment = blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
     .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Send the apub message
-    if deleted {
-      updated_comment = updated_comment.blank_out_deleted_or_removed_info();
-      updated_comment
-        .send_delete(&local_user_view.person, context)
-        .await?;
-    } else {
-      updated_comment
-        .send_undo_delete(&local_user_view.person, context)
-        .await?;
-    }
-
-    // Refetch it
-    let comment_id = data.comment_id;
-    let person_id = local_user_view.person.id;
-    let mut comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, orig_comment.post.community_id)
     })
     .await??;
+    send_apub_delete(
+      &local_user_view.person,
+      &community,
+      updated_comment.ap_id.clone().into(),
+      deleted,
+      context,
+    )
+    .await?;
 
-    // Blank out deleted or removed info
-    if deleted {
-      comment_view.comment = comment_view.comment.blank_out_deleted_or_removed_info();
-    }
-
-    // Build the recipients
-    let comment_view_2 = comment_view.clone();
-    let mentions = vec![];
+    let post_id = updated_comment.post_id;
+    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     let recipient_ids = send_local_notifs(
-      mentions,
+      vec![],
       updated_comment,
       local_user_view.person.clone(),
-      comment_view_2.post,
+      post,
       context.pool(),
       false,
     )
     .await?;
 
-    let res = CommentResponse {
-      comment_view,
-      recipient_ids,
-      form_id: None, // TODO a comment delete might clear forms?
-    };
-
-    context.chat_server().do_send(SendComment {
-      op: UserOperationCrud::DeleteComment,
-      comment: res.clone(),
+    send_comment_ws_message(
+      data.comment_id,
+      UserOperationCrud::DeleteComment,
       websocket_id,
-    });
-
-    Ok(res)
+      None, // TODO a comment delete might clear forms?
+      Some(local_user_view.person.id),
+      recipient_ids,
+      context,
+    )
+    .await
   }
 }
 
@@ -142,7 +127,7 @@ impl PerformCrud for RemoveComment {
 
     // Do the remove
     let removed = data.removed;
-    let mut updated_comment = blocking(context.pool(), move |conn| {
+    let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
@@ -161,56 +146,41 @@ impl PerformCrud for RemoveComment {
     .await??;
 
     // Send the apub message
-    if removed {
-      updated_comment = updated_comment.blank_out_deleted_or_removed_info();
-      updated_comment
-        .send_remove(&local_user_view.person, context)
-        .await?;
-    } else {
-      updated_comment
-        .send_undo_remove(&local_user_view.person, context)
-        .await?;
-    }
-
-    // Refetch it
-    let comment_id = data.comment_id;
-    let person_id = local_user_view.person.id;
-    let mut comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, orig_comment.post.community_id)
     })
     .await??;
+    send_apub_remove(
+      &local_user_view.person,
+      &community,
+      updated_comment.ap_id.clone().into(),
+      data.reason.clone().unwrap_or_else(|| "".to_string()),
+      removed,
+      context,
+    )
+    .await?;
 
-    // Blank out deleted or removed info
-    if removed {
-      comment_view.comment = comment_view.comment.blank_out_deleted_or_removed_info();
-    }
-
-    // Build the recipients
-    let comment_view_2 = comment_view.clone();
-
-    let mentions = vec![];
+    let post_id = updated_comment.post_id;
+    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     let recipient_ids = send_local_notifs(
-      mentions,
+      vec![],
       updated_comment,
       local_user_view.person.clone(),
-      comment_view_2.post,
+      post,
       context.pool(),
       false,
     )
     .await?;
 
-    let res = CommentResponse {
-      comment_view,
-      recipient_ids,
-      form_id: None, // TODO maybe this might clear other forms
-    };
-
-    context.chat_server().do_send(SendComment {
-      op: UserOperationCrud::RemoveComment,
-      comment: res.clone(),
+    send_comment_ws_message(
+      data.comment_id,
+      UserOperationCrud::RemoveComment,
       websocket_id,
-    });
-
-    Ok(res)
+      None, // TODO maybe this might clear other forms
+      Some(local_user_view.person.id),
+      recipient_ids,
+      context,
+    )
+    .await
   }
 }

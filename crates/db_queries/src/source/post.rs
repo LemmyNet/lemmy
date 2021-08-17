@@ -18,7 +18,9 @@ use lemmy_db_schema::{
   PostId,
 };
 
-impl Crud<PostForm, PostId> for Post {
+impl Crud for Post {
+  type Form = PostForm;
+  type IdType = PostId;
   fn read(conn: &PgConnection, post_id: PostId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     post.find(post_id).first::<Self>(conn)
@@ -179,7 +181,8 @@ impl Post_ for Post {
   }
 }
 
-impl ApubObject<PostForm> for Post {
+impl ApubObject for Post {
+  type Form = PostForm;
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
     post.filter(ap_id.eq(object_id)).first::<Self>(conn)
@@ -196,7 +199,9 @@ impl ApubObject<PostForm> for Post {
   }
 }
 
-impl Likeable<PostLikeForm, PostId> for PostLike {
+impl Likeable for PostLike {
+  type Form = PostLikeForm;
+  type IdType = PostId;
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post_like::dsl::*;
     insert_into(post_like)
@@ -217,7 +222,8 @@ impl Likeable<PostLikeForm, PostId> for PostLike {
   }
 }
 
-impl Saveable<PostSavedForm> for PostSaved {
+impl Saveable for PostSaved {
+  type Form = PostSavedForm;
   fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post_saved::dsl::*;
     insert_into(post_saved)
@@ -238,7 +244,8 @@ impl Saveable<PostSavedForm> for PostSaved {
   }
 }
 
-impl Readable<PostReadForm> for PostRead {
+impl Readable for PostRead {
+  type Form = PostReadForm;
   fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
     use lemmy_db_schema::schema::post_read::dsl::*;
     insert_into(post_read)

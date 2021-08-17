@@ -7,7 +7,9 @@ use lemmy_db_schema::{
 };
 use sha2::{Digest, Sha256};
 
-impl Crud<PasswordResetRequestForm, i32> for PasswordResetRequest {
+impl Crud for PasswordResetRequest {
+  type Form = PasswordResetRequestForm;
+  type IdType = i32;
   fn read(conn: &PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
     password_reset_request
       .find(password_reset_request_id)

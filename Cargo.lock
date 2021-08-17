@@ -1944,6 +1944,8 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
  "lemmy_utils",
  "log",
  "rand 0.8.4",

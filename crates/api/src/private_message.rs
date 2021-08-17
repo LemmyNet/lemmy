@@ -7,9 +7,8 @@ use lemmy_api_common::{
 };
 use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
 use lemmy_db_schema::source::private_message::PrivateMessage;
-use lemmy_db_views::{local_user_view::LocalUserView, private_message_view::PrivateMessageView};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
+use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPrivateMessageAsRead {
@@ -43,32 +42,7 @@ impl Perform for MarkPrivateMessageAsRead {
     .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // No need to send an apub update
-    let private_message_id = data.private_message_id;
-    let private_message_view = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, private_message_id)
-    })
-    .await??;
-
-    let res = PrivateMessageResponse {
-      private_message_view,
-    };
-
-    // Send notifications to the local recipient, if one exists
-    let recipient_id = orig_private_message.recipient_id;
-    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
-    })
-    .await?
-    {
-      let local_recipient_id = local_recipient.local_user.id;
-      context.chat_server().do_send(SendUserRoomMessage {
-        op: UserOperation::MarkPrivateMessageAsRead,
-        response: res.clone(),
-        local_recipient_id,
-        websocket_id,
-      });
-    }
-
-    Ok(res)
+    let op = UserOperation::MarkPrivateMessageAsRead;
+    send_pm_ws_message(data.private_message_id, op, websocket_id, context).await
   }
 }

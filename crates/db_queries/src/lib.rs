@@ -25,17 +25,19 @@ pub mod source;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-pub trait Crud<Form, IdType> {
-  fn create(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Crud {
+  type Form;
+  type IdType;
+  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn read(conn: &PgConnection, id: IdType) -> Result<Self, Error>
+  fn read(conn: &PgConnection, id: Self::IdType) -> Result<Self, Error>
   where
     Self: Sized;
-  fn update(conn: &PgConnection, id: IdType, form: &Form) -> Result<Self, Error>
+  fn update(conn: &PgConnection, id: Self::IdType, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn delete(_conn: &PgConnection, _id: IdType) -> Result<usize, Error>
+  fn delete(_conn: &PgConnection, _id: Self::IdType) -> Result<usize, Error>
   where
     Self: Sized,
   {
@@ -43,8 +45,9 @@ pub trait Crud<Form, IdType> {
   }
 }
 
-pub trait Followable<Form> {
-  fn follow(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Followable {
+  type Form;
+  fn follow(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   fn follow_accepted(
@@ -54,59 +57,70 @@ pub trait Followable<Form> {
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  fn unfollow(conn: &PgConnection, form: &Form) -> Result<usize, Error>
+  fn unfollow(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
   fn has_local_followers(conn: &PgConnection, community_id: CommunityId) -> Result<bool, Error>;
 }
 
-pub trait Joinable<Form> {
-  fn join(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Joinable {
+  type Form;
+  fn join(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn leave(conn: &PgConnection, form: &Form) -> Result<usize, Error>
-  where
-    Self: Sized;
-}
-
-pub trait Likeable<Form, IdType> {
-  fn like(conn: &PgConnection, form: &Form) -> Result<Self, Error>
-  where
-    Self: Sized;
-  fn remove(conn: &PgConnection, person_id: PersonId, item_id: IdType) -> Result<usize, Error>
+  fn leave(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
 
-pub trait Bannable<Form> {
-  fn ban(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Likeable {
+  type Form;
+  type IdType;
+  fn like(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn unban(conn: &PgConnection, form: &Form) -> Result<usize, Error>
-  where
-    Self: Sized;
-}
-
-pub trait Saveable<Form> {
-  fn save(conn: &PgConnection, form: &Form) -> Result<Self, Error>
-  where
-    Self: Sized;
-  fn unsave(conn: &PgConnection, form: &Form) -> Result<usize, Error>
+  fn remove(
+    conn: &PgConnection,
+    person_id: PersonId,
+    item_id: Self::IdType,
+  ) -> Result<usize, Error>
   where
     Self: Sized;
 }
 
-pub trait Readable<Form> {
-  fn mark_as_read(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Bannable {
+  type Form;
+  fn ban(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn mark_as_unread(conn: &PgConnection, form: &Form) -> Result<usize, Error>
+  fn unban(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
 
-pub trait Reportable<Form> {
-  fn report(conn: &PgConnection, form: &Form) -> Result<Self, Error>
+pub trait Saveable {
+  type Form;
+  fn save(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  where
+    Self: Sized;
+  fn unsave(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  where
+    Self: Sized;
+}
+
+pub trait Readable {
+  type Form;
+  fn mark_as_read(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  where
+    Self: Sized;
+  fn mark_as_unread(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  where
+    Self: Sized;
+}
+
+pub trait Reportable {
+  type Form;
+  fn report(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   fn resolve(conn: &PgConnection, report_id: i32, resolver_id: PersonId) -> Result<usize, Error>
@@ -121,11 +135,12 @@ pub trait DeleteableOrRemoveable {
   fn blank_out_deleted_or_removed_info(self) -> Self;
 }
 
-pub trait ApubObject<Form> {
+pub trait ApubObject {
+  type Form;
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized;
-  fn upsert(conn: &PgConnection, user_form: &Form) -> Result<Self, Error>
+  fn upsert(conn: &PgConnection, user_form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
 }

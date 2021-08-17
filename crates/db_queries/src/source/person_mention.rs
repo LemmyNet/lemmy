@@ -2,7 +2,9 @@ use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{source::person_mention::*, PersonId, PersonMentionId};
 
-impl Crud<PersonMentionForm, PersonMentionId> for PersonMention {
+impl Crud for PersonMention {
+  type Form = PersonMentionForm;
+  type IdType = PersonMentionId;
   fn read(conn: &PgConnection, person_mention_id: PersonMentionId) -> Result<Self, Error> {
     use lemmy_db_schema::schema::person_mention::dsl::*;
     person_mention.find(person_mention_id).first::<Self>(conn)

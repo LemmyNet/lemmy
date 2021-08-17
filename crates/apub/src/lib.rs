@@ -34,7 +34,7 @@ use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
 
-pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
+static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
 /// Checks if the ID is allowed for sending or receiving.
 ///
@@ -102,28 +102,9 @@ pub(crate) fn check_is_apub_id_valid(
   Ok(())
 }
 
-/// Common functions for ActivityPub objects, which are implemented by most (but not all) objects
-/// and actors in Lemmy.
-#[async_trait::async_trait(?Send)]
-pub trait ApubObjectType {
-  async fn send_delete(&self, creator: &DbPerson, context: &LemmyContext)
-    -> Result<(), LemmyError>;
-  async fn send_undo_delete(
-    &self,
-    creator: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_remove(&self, mod_: &DbPerson, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(
-    &self,
-    mod_: &DbPerson,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-}
-
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
-pub trait ActorType {
+trait ActorType {
   fn is_local(&self) -> bool;
   fn actor_id(&self) -> Url;
   fn name(&self) -> String;
@@ -160,11 +141,6 @@ pub trait CommunityType {
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
 
   async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_delete(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 
   async fn send_announce(
     &self,
@@ -209,7 +185,7 @@ pub enum EndpointType {
 }
 
 /// Generates an apub endpoint for a given domain, IE xyz.tld
-pub(crate) fn generate_apub_endpoint_for_domain(
+fn generate_apub_endpoint_for_domain(
   endpoint_type: EndpointType,
   name: &str,
   domain: &str,
@@ -260,7 +236,7 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
-pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
+fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
 }
 
@@ -286,7 +262,7 @@ pub fn build_actor_id_from_shortname(
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-pub(crate) async fn insert_activity<T>(
+async fn insert_activity<T>(
   ap_id: &Url,
   activity: T,
   local: bool,
@@ -348,7 +324,7 @@ pub(crate) async fn find_post_or_comment_by_id(
 }
 
 #[derive(Debug)]
-pub enum Object {
+enum Object {
   Comment(Box<Comment>),
   Post(Box<Post>),
   Community(Box<Community>),
@@ -356,10 +332,7 @@ pub enum Object {
   PrivateMessage(Box<PrivateMessage>),
 }
 
-pub(crate) async fn find_object_by_id(
-  context: &LemmyContext,
-  apub_id: Url,
-) -> Result<Object, LemmyError> {
+async fn find_object_by_id(context: &LemmyContext, apub_id: Url) -> Result<Object, LemmyError> {
   let ap_id = apub_id.clone();
   if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
     return Ok(match pc {
@@ -397,7 +370,7 @@ pub(crate) async fn find_object_by_id(
   Err(NotFound.into())
 }
 
-pub(crate) async fn check_community_or_site_ban(
+async fn check_community_or_site_ban(
   person: &Person,
   community_id: CommunityId,
   pool: &DbPool,

@@ -19,7 +19,6 @@ use lemmy_apub::{
 };
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
 use lemmy_db_schema::source::post::*;
-use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{
   request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
@@ -27,7 +26,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePost {
@@ -129,22 +128,13 @@ impl PerformCrud for CreatePost {
     )
     .await?;
 
-    // Refetch the view
-    let inserted_post_id = inserted_post.id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, inserted_post_id, Some(local_user_view.person.id))
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_post"))?;
-
-    let res = PostResponse { post_view };
-
-    context.chat_server().do_send(SendPost {
-      op: UserOperationCrud::CreatePost,
-      post: res.clone(),
+    send_post_ws_message(
+      inserted_post.id,
+      UserOperationCrud::CreatePost,
       websocket_id,
-    });
-
-    Ok(res)
+      Some(local_user_view.person.id),
+      context,
+    )
+    .await
   }
 }

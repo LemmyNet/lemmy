@@ -1,11 +1,5 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    private_message::send_websocket_message,
-    verify_activity,
-    verify_person,
-    CreateOrUpdateType,
-  },
+  activities::{generate_activity_id, verify_activity, verify_person, CreateOrUpdateType},
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
   objects::{private_message::Note, FromApub, ToApub},
@@ -16,7 +10,7 @@ use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields, ActivityHandler
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
-use lemmy_websocket::{LemmyContext, UserOperationCrud};
+use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -83,7 +77,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,
       CreateOrUpdateType::Update => UserOperationCrud::EditPrivateMessage,
     };
-    send_websocket_message(private_message.id, notif_type, context).await?;
+    send_pm_ws_message(private_message.id, notif_type, None, context).await?;
 
     Ok(())
   }
