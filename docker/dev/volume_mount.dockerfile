@@ -22,7 +22,7 @@ FROM ubuntu:20.10
 
 # Install libpq for postgres
 RUN apt-get update -y
-RUN apt-get install -y libpq-dev
+RUN apt-get install -y libpq-dev ca-certificates
 
 # Copy resources
 COPY --from=rust /app/lemmy_server /app/lemmy
