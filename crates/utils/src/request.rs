@@ -163,15 +163,21 @@ pub async fn fetch_site_metadata_and_pictrs_data(
       let pictrs_hash = match &metadata_option {
         Some(metadata_res) => match &metadata_res.image {
           Some(metadata_image) => fetch_pictrs(client, metadata_image)
-            .await?
+            .await
+            // Ignore the error, just return None
+            .unwrap_or(None)
             .map(|r| r.files[0].file.to_owned()),
           // Try to generate a small thumbnail if there's a full sized one from post-links
           None => fetch_pictrs(client, url)
-            .await?
+            .await
+            // Ignore the error, just return None
+            .unwrap_or(None)
             .map(|r| r.files[0].file.to_owned()),
         },
         None => fetch_pictrs(client, url)
-          .await?
+          .await
+          // Ignore the error, just return None
+          .unwrap_or(None)
           .map(|r| r.files[0].file.to_owned()),
       };
 
