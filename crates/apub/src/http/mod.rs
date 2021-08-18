@@ -20,7 +20,7 @@ use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
@@ -36,7 +36,7 @@ mod person;
 mod post;
 pub mod routes;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
 pub enum SharedInboxActivities {
   GroupInboxActivities(GroupInboxActivities),
@@ -80,30 +80,32 @@ async fn receive_activity<'a, T>(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError>
 where
-  T: ActivityHandler + Clone + Deserialize<'a> + Serialize + std::fmt::Debug + Send + 'static,
+  T: ActivityHandler
+    + ActivityFields
+    + Clone
+    + Deserialize<'a>
+    + Serialize
+    + std::fmt::Debug
+    + Send
+    + 'static,
 {
-  let activity_data = activity.common();
-
   let request_counter = &mut 0;
-  let actor = get_or_fetch_and_upsert_actor(&activity_data.actor, context, request_counter).await?;
+  let actor = get_or_fetch_and_upsert_actor(activity.actor(), context, request_counter).await?;
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
 
   // Do nothing if we received the same activity before
-  if is_activity_already_known(context.pool(), activity_data.id_unchecked()).await? {
+  if is_activity_already_known(context.pool(), activity.id_unchecked()).await? {
     return Ok(HttpResponse::Ok().finish());
   }
-  check_is_apub_id_valid(&activity_data.actor, false)?;
-  info!(
-    "Verifying activity {}",
-    activity_data.id_unchecked().to_string()
-  );
+  check_is_apub_id_valid(activity.actor(), false)?;
+  info!("Verifying activity {}", activity.id_unchecked().to_string());
   activity.verify(context, request_counter).await?;
   assert_activity_not_local(&activity)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
   insert_activity(
-    activity_data.id_unchecked(),
+    activity.id_unchecked(),
     activity.clone(),
     false,
     true,
@@ -111,10 +113,7 @@ where
   )
   .await?;
 
-  info!(
-    "Receiving activity {}",
-    activity_data.id_unchecked().to_string()
-  );
+  info!("Receiving activity {}", activity.id_unchecked().to_string());
   activity.receive(context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
@@ -187,12 +186,8 @@ pub(crate) async fn is_activity_already_known(
   }
 }
 
-fn assert_activity_not_local<T: Debug + ActivityHandler>(activity: &T) -> Result<(), LemmyError> {
-  let activity_domain = activity
-    .common()
-    .id_unchecked()
-    .domain()
-    .context(location_info!())?;
+fn assert_activity_not_local<T: Debug + ActivityFields>(activity: &T) -> Result<(), LemmyError> {
+  let activity_domain = activity.id_unchecked().domain().context(location_info!())?;
 
   if activity_domain == Settings::get().hostname {
     return Err(

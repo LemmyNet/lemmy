@@ -15,9 +15,10 @@ use crate::{
   ActorType,
   PostOrComment,
 };
+use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -57,19 +58,41 @@ impl From<&VoteType> for i16 {
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
-  pub(in crate::activities::voting) to: PublicUrl,
+  actor: Url,
+  to: PublicUrl,
   pub(in crate::activities::voting) object: Url,
-  pub(in crate::activities::voting) cc: [Url; 1],
+  cc: [Url; 1],
   #[serde(rename = "type")]
   pub(in crate::activities::voting) kind: VoteType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  pub(in crate::activities::voting) common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl Vote {
+  pub(in crate::activities::voting) fn new(
+    object: &PostOrComment,
+    actor: &Person,
+    community: &Community,
+    kind: VoteType,
+  ) -> Result<Vote, LemmyError> {
+    Ok(Vote {
+      actor: actor.actor_id(),
+      to: PublicUrl::Public,
+      object: object.ap_id(),
+      cc: [community.actor_id()],
+      kind: kind.clone(),
+      id: generate_activity_id(kind)?,
+      context: lemmy_context(),
+      unparsed: Default::default(),
+    })
+  }
+
   pub async fn send(
     object: &PostOrComment,
     actor: &Person,
@@ -81,22 +104,11 @@ impl Vote {
       Community::read(conn, community_id)
     })
     .await??;
-    let id = generate_activity_id(kind.clone())?;
+    let vote = Vote::new(object, actor, &community, kind)?;
+    let vote_id = vote.id.clone();
 
-    let vote = Vote {
-      to: PublicUrl::Public,
-      object: object.ap_id(),
-      cc: [community.actor_id()],
-      kind,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
-    };
     let activity = AnnouncableActivities::Vote(vote);
-    send_to_community_new(activity, &id, actor, &community, vec![], context).await
+    send_to_community_new(activity, &vote_id, actor, &community, vec![], context).await
   }
 }
 
@@ -107,8 +119,8 @@ impl ActivityHandler for Vote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
+    verify_activity(self)?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }
 
@@ -117,17 +129,12 @@ impl ActivityHandler for Vote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor =
-      get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
+    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let object =
       get_or_fetch_and_insert_post_or_comment(&self.object, context, request_counter).await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, c.deref(), context).await,
     }
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

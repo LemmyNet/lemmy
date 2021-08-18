@@ -14,31 +14,37 @@ use crate::{
   objects::{post::Page, FromApub, ToApub},
   ActorType,
 };
+use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::PublicUrl,
   verify_domains_match,
   verify_urls_match,
-  ActivityCommonFields,
+  ActivityFields,
   ActivityHandler,
 };
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePost {
+  actor: Url,
   to: PublicUrl,
   object: Page,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl CreateOrUpdatePost {
@@ -56,16 +62,14 @@ impl CreateOrUpdatePost {
 
     let id = generate_activity_id(kind.clone())?;
     let create_or_update = CreateOrUpdatePost {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
       object: post.to_apub(context.pool()).await?,
       cc: [community.actor_id()],
       kind,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
@@ -80,14 +84,14 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
+    verify_activity(self)?;
     let community = extract_community(&self.cc, context, request_counter).await?;
     let community_id = community.actor_id();
-    verify_person_in_community(&self.common.actor, &community_id, context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
     match self.kind {
       CreateOrUpdateType::Create => {
-        verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
-        verify_urls_match(&self.common.actor, &self.object.attributed_to)?;
+        verify_domains_match(&self.actor, self.object.id_unchecked())?;
+        verify_urls_match(&self.actor, &self.object.attributed_to)?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
@@ -101,10 +105,10 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context.pool()).await?;
         if is_mod_action {
-          verify_mod_action(&self.common.actor, community_id, context).await?;
+          verify_mod_action(&self.actor, community_id, context).await?;
         } else {
-          verify_domains_match(&self.common.actor, self.object.id_unchecked())?;
-          verify_urls_match(&self.common.actor, &self.object.attributed_to)?;
+          verify_domains_match(&self.actor, self.object.id_unchecked())?;
+          verify_urls_match(&self.actor, &self.object.attributed_to)?;
         }
       }
     }
@@ -117,8 +121,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor =
-      get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
+    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let post = Post::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
 
     let notif_type = match self.kind {
@@ -127,9 +130,5 @@ impl ActivityHandler for CreateOrUpdatePost {
     };
     send_post_ws_message(post.id, notif_type, None, None, context).await?;
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

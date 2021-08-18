@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::announce::AnnounceActivity,
+    community::announce::{AnnouncableActivities, AnnounceActivity},
     following::accept::AcceptFollowCommunity,
     private_message::{
       create_or_update::CreateOrUpdatePrivateMessage,
@@ -24,7 +24,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::person::Person_;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
@@ -59,10 +59,12 @@ pub(crate) async fn get_apub_person_http(
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
+  /// Some activities can also be sent from user to user, eg a comment with mentions
+  AnnouncableActivities(AnnouncableActivities),
   CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),

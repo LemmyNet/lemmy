@@ -15,10 +15,15 @@ use crate::{
   fetcher::person::get_or_fetch_and_upsert_person,
   ActorType,
 };
-use activitystreams::activity::kind::DeleteType;
+use activitystreams::{
+  activity::kind::DeleteType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
   Crud,
@@ -43,6 +48,7 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 /// This is very confusing, because there are four distinct cases to handle:
@@ -53,19 +59,23 @@ use url::Url;
 ///
 /// TODO: we should probably change how community deletions work to simplify this. Probably by
 /// wrapping it in an announce just like other activities, instead of having the community send it.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
-  pub(in crate::activities::deletion) to: PublicUrl,
+  actor: Url,
+  to: PublicUrl,
   pub(in crate::activities::deletion) object: Url,
-  pub(in crate::activities::deletion) cc: [Url; 1],
+  cc: [Url; 1],
   #[serde(rename = "type")]
-  pub(in crate::activities::deletion) kind: DeleteType,
+  kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
   /// deleting their own content.
   pub(in crate::activities::deletion) summary: Option<String>,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  pub(in crate::activities::deletion) common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 #[async_trait::async_trait(?Send)]
@@ -75,11 +85,11 @@ impl ActivityHandler for Delete {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
+    verify_activity(self)?;
     verify_delete_activity(
       &self.object,
+      self,
       &self.cc[0],
-      &self.common,
       self.summary.is_some(),
       context,
       request_counter,
@@ -101,18 +111,11 @@ impl ActivityHandler for Delete {
       } else {
         Some(reason)
       };
-      receive_remove_action(
-        &self.common.actor,
-        &self.object,
-        reason,
-        context,
-        request_counter,
-      )
-      .await
+      receive_remove_action(&self.actor, &self.object, reason, context, request_counter).await
     } else {
       receive_delete_action(
         &self.object,
-        &self.common.actor,
+        &self.actor,
         WebsocketMessages {
           community: UserOperationCrud::DeleteCommunity,
           post: UserOperationCrud::DeletePost,
@@ -125,13 +128,27 @@ impl ActivityHandler for Delete {
       .await
     }
   }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
-  }
 }
 
 impl Delete {
+  pub(in crate::activities::deletion) fn new(
+    actor: &Person,
+    community: &Community,
+    object_id: Url,
+    summary: Option<String>,
+  ) -> Result<Delete, LemmyError> {
+    Ok(Delete {
+      actor: actor.actor_id(),
+      to: PublicUrl::Public,
+      object: object_id,
+      cc: [community.actor_id()],
+      kind: DeleteType::Delete,
+      summary,
+      id: generate_activity_id(DeleteType::Delete)?,
+      context: lemmy_context(),
+      unparsed: Default::default(),
+    })
+  }
   pub(in crate::activities::deletion) async fn send(
     actor: &Person,
     community: &Community,
@@ -139,23 +156,11 @@ impl Delete {
     summary: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let id = generate_activity_id(DeleteType::Delete)?;
-    let delete = Delete {
-      to: PublicUrl::Public,
-      object: object_id,
-      cc: [community.actor_id()],
-      kind: DeleteType::Delete,
-      summary,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
-    };
+    let delete = Delete::new(actor, community, object_id, summary)?;
+    let delete_id = delete.id.clone();
 
     let activity = AnnouncableActivities::Delete(delete);
-    send_to_community_new(activity, &id, actor, community, vec![], context).await
+    send_to_community_new(activity, &delete_id, actor, community, vec![], context).await
   }
 }
 

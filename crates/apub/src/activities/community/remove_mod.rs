@@ -14,9 +14,14 @@ use crate::{
   generate_moderators_url,
   ActorType,
 };
-use activitystreams::activity::kind::RemoveType;
+use activitystreams::{
+  activity::kind::RemoveType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Joinable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},
@@ -24,11 +29,13 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
+  actor: Url,
   to: PublicUrl,
   pub(in crate::activities) object: Url,
   cc: [Url; 1],
@@ -36,8 +43,11 @@ pub struct RemoveMod {
   kind: RemoveType,
   // if target is set, this is means remove mod from community
   pub(in crate::activities) target: Option<Url>,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl RemoveMod {
@@ -49,17 +59,15 @@ impl RemoveMod {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(RemoveType::Remove)?;
     let remove = RemoveMod {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
       object: removed_mod.actor_id(),
       target: Some(generate_moderators_url(&community.actor_id)?.into()),
+      id: id.clone(),
+      context: lemmy_context(),
       cc: [community.actor_id()],
       kind: RemoveType::Remove,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::RemoveMod(remove);
@@ -75,16 +83,16 @@ impl ActivityHandler for RemoveMod {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
+    verify_activity(self)?;
     if let Some(target) = &self.target {
-      verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
-      verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
+      verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+      verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
       verify_add_remove_moderator_target(target, self.cc[0].clone())?;
     } else {
       verify_delete_activity(
         &self.object,
+        self,
         &self.cc[0],
-        self.common(),
         true,
         context,
         request_counter,
@@ -116,18 +124,7 @@ impl ActivityHandler for RemoveMod {
       // TODO: send websocket notification about removed mod
       Ok(())
     } else {
-      receive_remove_action(
-        &self.common.actor,
-        &self.object,
-        None,
-        context,
-        request_counter,
-      )
-      .await
+      receive_remove_action(&self.actor, &self.object, None, context, request_counter).await
     }
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

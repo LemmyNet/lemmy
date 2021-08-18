@@ -21,7 +21,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{
@@ -57,7 +57,7 @@ pub(crate) async fn get_apub_community_http(
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),

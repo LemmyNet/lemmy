@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput};
+use syn::{parse_macro_input, Data, DeriveInput, Fields::Unnamed, Ident, Variant};
 
 /// Generates implementation ActivityHandler for an enum, which looks like the following (handling
 /// all enum variants).
@@ -46,104 +46,118 @@ use syn::{parse_macro_input, Data, DeriveInput};
 ///   }
 ///
 /// ```
-///
-/// TODO: consider replacing this macro with https://crates.io/crates/typetag crate, though it
-///       doesnt support untagged enums which we need for apub.
 #[proc_macro_derive(ActivityHandler)]
 pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  // Parse the input tokens into a syntax tree.
   let input = parse_macro_input!(input as DeriveInput);
 
-  // Used in the quasi-quotation below as `#name`.
-  let name = input.ident;
+  let enum_name = input.ident;
 
   let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
-  let input_enum = if let Data::Enum(d) = input.data {
-    d
+  let enum_variants = if let Data::Enum(d) = input.data {
+    d.variants
   } else {
     unimplemented!()
   };
 
-  let impl_verify = input_enum
-    .variants
+  let body_verify = quote! {a.verify(context, request_counter).await};
+  let impl_verify = enum_variants
     .iter()
-    .map(|variant| variant_impl_verify(&name, variant));
-  let impl_receive = input_enum
-    .variants
+    .map(|v| generate_match_arm(&enum_name, v, &body_verify));
+  let body_receive = quote! {a.receive(context, request_counter).await};
+  let impl_receive = enum_variants
     .iter()
-    .map(|variant| variant_impl_receive(&name, variant));
-  let impl_common = input_enum
-    .variants
-    .iter()
-    .map(|variant| variant_impl_common(&name, variant));
+    .map(|v| generate_match_arm(&enum_name, v, &body_receive));
 
-  // The generated impl.
   let expanded = quote! {
       #[async_trait::async_trait(?Send)]
-      impl #impl_generics lemmy_apub_lib::ActivityHandler for #name #ty_generics #where_clause {
+      impl #impl_generics lemmy_apub_lib::ActivityHandler for #enum_name #ty_generics #where_clause {
           async fn verify(
               &self,
-              context: &LemmyContext,
+              context: &lemmy_websocket::LemmyContext,
               request_counter: &mut i32,
-            ) -> Result<(), LemmyError> {
+            ) -> Result<(), lemmy_utils::LemmyError> {
             match self {
               #(#impl_verify)*
             }
           }
           async fn receive(
             self,
-            context: &LemmyContext,
+            context: &lemmy_websocket::LemmyContext,
             request_counter: &mut i32,
-          ) -> Result<(), LemmyError> {
+          ) -> Result<(), lemmy_utils::LemmyError> {
             match self {
               #(#impl_receive)*
             }
           }
-          fn common(&self) -> &ActivityCommonFields {
-            match self {
-              #(#impl_common)*
-            }
-          }
       }
   };
-
-  // Hand the output tokens back to the compiler.
-  proc_macro::TokenStream::from(expanded)
+  expanded.into()
 }
 
-fn variant_impl_common(name: &syn::Ident, variant: &syn::Variant) -> TokenStream {
+fn generate_match_arm(enum_name: &Ident, variant: &Variant, body: &TokenStream) -> TokenStream {
   let id = &variant.ident;
   match &variant.fields {
-    syn::Fields::Unnamed(_) => {
+    Unnamed(_) => {
       quote! {
-        #name::#id(a) => a.common(),
+        #enum_name::#id(a) => #body,
       }
     }
     _ => unimplemented!(),
   }
 }
 
-fn variant_impl_verify(name: &syn::Ident, variant: &syn::Variant) -> TokenStream {
-  let id = &variant.ident;
-  match &variant.fields {
-    syn::Fields::Unnamed(_) => {
-      quote! {
-        #name::#id(a) => a.verify(context, request_counter).await,
-      }
-    }
-    _ => unimplemented!(),
-  }
-}
+#[proc_macro_derive(ActivityFields)]
+pub fn derive_activity_fields(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  let input = parse_macro_input!(input as DeriveInput);
 
-fn variant_impl_receive(name: &syn::Ident, variant: &syn::Variant) -> TokenStream {
-  let id = &variant.ident;
-  match &variant.fields {
-    syn::Fields::Unnamed(_) => {
+  let name = input.ident;
+
+  let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+  let expanded = match input.data {
+    Data::Enum(e) => {
+      let variants = e.variants;
+      let impl_id = variants
+        .iter()
+        .map(|v| generate_match_arm(&name, v, &quote! {a.id_unchecked()}));
+      let impl_actor = variants
+        .iter()
+        .map(|v| generate_match_arm(&name, v, &quote! {a.actor()}));
+      let impl_cc = variants
+        .iter()
+        .map(|v| generate_match_arm(&name, v, &quote! {a.cc()}));
       quote! {
-        #name::#id(a) => a.receive(context, request_counter).await,
+          impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
+              fn id_unchecked(&self) -> &url::Url { match self { #(#impl_id)* } }
+              fn actor(&self) -> &url::Url { match self { #(#impl_actor)* } }
+              fn cc(&self) -> Vec<url::Url> { match self { #(#impl_cc)* } }
+          }
+      }
+    }
+    Data::Struct(s) => {
+      // check if the struct has a field "cc", and generate impl for cc() function depending on that
+      let has_cc = if let syn::Fields::Named(n) = s.fields {
+        n.named
+          .iter()
+          .any(|i| format!("{}", i.ident.as_ref().unwrap()) == "cc")
+      } else {
+        unimplemented!()
+      };
+      let cc_impl = if has_cc {
+        quote! {self.cc.clone().into()}
+      } else {
+        quote! {vec![]}
+      };
+      quote! {
+          impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
+              fn id_unchecked(&self) -> &url::Url { &self.id }
+              fn actor(&self) -> &url::Url { &self.actor }
+              fn cc(&self) -> Vec<url::Url> { #cc_impl }
+          }
       }
     }
     _ => unimplemented!(),
-  }
+  };
+  expanded.into()
 }

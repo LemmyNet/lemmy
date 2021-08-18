@@ -24,15 +24,20 @@ use crate::{
   ActorType,
   CommunityType,
 };
-use activitystreams::activity::kind::AnnounceType;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use activitystreams::{
+  activity::kind::AnnounceType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
@@ -49,16 +54,20 @@ pub enum AnnouncableActivities {
   RemoveMod(RemoveMod),
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
+  actor: Url,
   to: PublicUrl,
   object: AnnouncableActivities,
   cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: AnnounceType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl AnnounceActivity {
@@ -69,27 +78,17 @@ impl AnnounceActivity {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity {
+      actor: community.actor_id(),
       to: PublicUrl::Public,
       object,
       cc: vec![community.followers_url()],
       kind: AnnounceType::Announce,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: generate_activity_id(&AnnounceType::Announce)?,
-        actor: community.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: generate_activity_id(&AnnounceType::Announce)?,
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
     let inboxes = list_community_follower_inboxes(community, additional_inboxes, context).await?;
-    send_activity_new(
-      context,
-      &announce,
-      &announce.common.id,
-      community,
-      inboxes,
-      false,
-    )
-    .await
+    send_activity_new(context, &announce, &announce.id, community, inboxes, false).await
   }
 }
 
@@ -100,8 +99,8 @@ impl ActivityHandler for AnnounceActivity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_community(&self.common.actor, context, request_counter).await?;
+    verify_activity(self)?;
+    verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -111,11 +110,11 @@ impl ActivityHandler for AnnounceActivity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    if is_activity_already_known(context.pool(), self.object.common().id_unchecked()).await? {
+    if is_activity_already_known(context.pool(), self.object.id_unchecked()).await? {
       return Ok(());
     }
     insert_activity(
-      self.object.common().id_unchecked(),
+      self.object.id_unchecked(),
       self.object.clone(),
       false,
       true,
@@ -123,9 +122,5 @@ impl ActivityHandler for AnnounceActivity {
     )
     .await?;
     self.object.receive(context, request_counter).await
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

@@ -11,9 +11,14 @@ use crate::{
   objects::{community::Group, ToApub},
   ActorType,
 };
-use activitystreams::activity::kind::UpdateType;
+use activitystreams::{
+  activity::kind::UpdateType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::{
   community::{Community, CommunityForm},
@@ -21,21 +26,26 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 /// This activity is received from a remote community mod, and updates the description or other
 /// fields of a local community.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
+  actor: Url,
   to: PublicUrl,
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UpdateType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl UpdateCommunity {
@@ -46,16 +56,14 @@ impl UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(UpdateType::Update)?;
     let update = UpdateCommunity {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
       object: community.to_apub(context.pool()).await?,
       cc: [community.actor_id()],
       kind: UpdateType::Update,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
@@ -70,9 +78,9 @@ impl ActivityHandler for UpdateCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
+    verify_activity(self)?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     Ok(())
   }
 
@@ -113,9 +121,5 @@ impl ActivityHandler for UpdateCommunity {
     )
     .await?;
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

@@ -11,9 +11,14 @@ use crate::{
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   ActorType,
 };
-use activitystreams::activity::kind::{BlockType, UndoType};
+use activitystreams::{
+  activity::kind::UndoType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Bannable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityPersonBan, CommunityPersonBanForm},
@@ -21,18 +26,23 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
+  actor: Url,
   to: PublicUrl,
   object: BlockUserFromCommunity,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl UndoBlockUserFromCommunity {
@@ -42,25 +52,18 @@ impl UndoBlockUserFromCommunity {
     actor: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUserFromCommunity::new(
-      generate_activity_id(BlockType::Block)?,
-      community,
-      target,
-      actor,
-    );
+    let block = BlockUserFromCommunity::new(community, target, actor)?;
 
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoBlockUserFromCommunity {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
       object: block,
       cc: [community.actor_id()],
       kind: UndoType::Undo,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::UndoBlockUserFromCommunity(undo);
@@ -76,9 +79,9 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
+    verify_activity(self)?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -104,9 +107,5 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     .await??;
 
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

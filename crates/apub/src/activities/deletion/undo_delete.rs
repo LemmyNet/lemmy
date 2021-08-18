@@ -15,10 +15,15 @@ use crate::{
   extensions::context::lemmy_context,
   ActorType,
 };
-use activitystreams::activity::kind::{DeleteType, UndoType};
+use activitystreams::{
+  activity::kind::UndoType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{comment::Comment_, community::Community_, post::Post_};
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
@@ -27,18 +32,23 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDelete {
+  actor: Url,
   to: PublicUrl,
   object: Delete,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 #[async_trait::async_trait(?Send)]
@@ -48,12 +58,12 @@ impl ActivityHandler for UndoDelete {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
+    verify_activity(self)?;
     self.object.verify(context, request_counter).await?;
     verify_delete_activity(
       &self.object.object,
+      self,
       &self.cc[0],
-      &self.common,
       self.object.summary.is_some(),
       context,
       request_counter,
@@ -72,7 +82,7 @@ impl ActivityHandler for UndoDelete {
     } else {
       receive_delete_action(
         &self.object.object,
-        &self.common.actor,
+        &self.actor,
         WebsocketMessages {
           community: UserOperationCrud::EditCommunity,
           post: UserOperationCrud::EditPost,
@@ -85,10 +95,6 @@ impl ActivityHandler for UndoDelete {
       .await
     }
   }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
-  }
 }
 
 impl UndoDelete {
@@ -99,32 +105,18 @@ impl UndoDelete {
     summary: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let delete = Delete {
-      to: PublicUrl::Public,
-      object: object_id,
-      cc: [community.actor_id()],
-      kind: DeleteType::Delete,
-      summary,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: generate_activity_id(DeleteType::Delete)?,
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
-    };
+    let object = Delete::new(actor, community, object_id, summary)?;
 
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoDelete {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
-      object: delete,
+      object,
       cc: [community.actor_id()],
       kind: UndoType::Undo,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::UndoDelete(undo);

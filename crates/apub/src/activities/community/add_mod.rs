@@ -13,9 +13,14 @@ use crate::{
   generate_moderators_url,
   ActorType,
 };
-use activitystreams::activity::kind::AddType;
+use activitystreams::{
+  activity::kind::AddType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},
@@ -23,19 +28,24 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AddMod {
+  actor: Url,
   to: PublicUrl,
   object: Url,
   target: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: AddType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl AddMod {
@@ -47,17 +57,15 @@ impl AddMod {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(AddType::Add)?;
     let add = AddMod {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
       object: added_mod.actor_id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: [community.actor_id()],
       kind: AddType::Add,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::AddMod(add);
@@ -73,9 +81,9 @@ impl ActivityHandler for AddMod {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
+    verify_activity(self)?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     verify_add_remove_moderator_target(&self.target, self.cc[0].clone())?;
     Ok(())
   }
@@ -108,9 +116,5 @@ impl ActivityHandler for AddMod {
     }
     // TODO: send websocket notification about added mod
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }
