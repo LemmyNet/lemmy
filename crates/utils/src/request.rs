@@ -120,7 +120,7 @@ pub(crate) struct PictrsFile {
 pub(crate) async fn fetch_pictrs(
   client: &Client,
   image_url: &Url,
-) -> Result<Option<PictrsResponse>, LemmyError> {
+) -> Result<PictrsResponse, LemmyError> {
   if let Some(pictrs_url) = Settings::get().pictrs_url {
     is_image_content_type(client, image_url).await?;
 
@@ -138,12 +138,12 @@ pub(crate) async fn fetch_pictrs(
       .map_err(|e| RecvError(e.to_string()))?;
 
     if response.msg == "ok" {
-      Ok(Some(response))
+      Ok(response)
     } else {
       Err(anyhow!("{}", &response.msg).into())
     }
   } else {
-    Ok(None)
+    Err(anyhow!("pictrs_url not set up in config").into())
   }
 }
 
@@ -151,7 +151,7 @@ pub(crate) async fn fetch_pictrs(
 pub async fn fetch_site_metadata_and_pictrs_data(
   client: &Client,
   url: Option<&Url>,
-) -> Result<(Option<SiteMetadata>, Option<Url>), LemmyError> {
+) -> (Option<SiteMetadata>, Option<Url>) {
   match &url {
     Some(url) => {
       // Fetch metadata
@@ -162,22 +162,19 @@ pub async fn fetch_site_metadata_and_pictrs_data(
       // Fetch pictrs thumbnail
       let pictrs_hash = match &metadata_option {
         Some(metadata_res) => match &metadata_res.image {
+          // Metadata, with image
+          // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => fetch_pictrs(client, metadata_image)
             .await
-            // Ignore the error, just return None
-            .unwrap_or(None)
             .map(|r| r.files[0].file.to_owned()),
-          // Try to generate a small thumbnail if there's a full sized one from post-links
+          // Metadata, but no image
           None => fetch_pictrs(client, url)
             .await
-            // Ignore the error, just return None
-            .unwrap_or(None)
             .map(|r| r.files[0].file.to_owned()),
         },
+        // No metadata, try to fetch the URL as an image
         None => fetch_pictrs(client, url)
           .await
-          // Ignore the error, just return None
-          .unwrap_or(None)
           .map(|r| r.files[0].file.to_owned()),
       };
 
@@ -191,11 +188,12 @@ pub async fn fetch_site_metadata_and_pictrs_data(
           ))
           .ok()
         })
+        .ok()
         .flatten();
 
-      Ok((metadata_option, pictrs_thumbnail))
+      (metadata_option, pictrs_thumbnail)
     }
-    None => Ok((None, None)),
+    None => (None, None),
   }
 }
 
