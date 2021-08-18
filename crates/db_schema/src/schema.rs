@@ -182,6 +182,17 @@ table! {
 }
 
 table! {
+    mod_transfer_community (id) {
+        id -> Int4,
+        mod_person_id -> Int4,
+        other_person_id -> Int4,
+        community_id -> Int4,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
     mod_ban (id) {
         id -> Int4,
         mod_person_id -> Int4,
@@ -549,6 +560,7 @@ joinable!(community_person_ban -> community (community_id));
 joinable!(community_person_ban -> person (person_id));
 joinable!(local_user -> person (person_id));
 joinable!(mod_add_community -> community (community_id));
+joinable!(mod_transfer_community -> community (community_id));
 joinable!(mod_ban_from_community -> community (community_id));
 joinable!(mod_lock_post -> person (mod_person_id));
 joinable!(mod_lock_post -> post (post_id));
@@ -593,6 +605,7 @@ allow_tables_to_appear_in_same_query!(
   local_user,
   mod_add,
   mod_add_community,
+  mod_transfer_community,
   mod_ban,
   mod_ban_from_community,
   mod_lock_post,
