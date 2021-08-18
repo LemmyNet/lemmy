@@ -1880,7 +1880,6 @@ dependencies = [
  "lemmy_websocket",
  "log",
  "openssl",
- "openssl-probe",
  "reqwest",
  "serde",
  "serde_json",

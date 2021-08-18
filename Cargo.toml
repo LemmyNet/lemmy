@@ -63,7 +63,6 @@ activitystreams = "0.7.0-alpha.11"
 actix-rt = { version = "2.2.0", default-features = false }
 serde_json = { version = "1.0.66", features = ["preserve_order"] }
 clokwerk = "0.3.5"
-openssl-probe = "0.1.2"
 
 [dev-dependencies.cargo-husky]
 version = "1.5.0"

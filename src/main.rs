@@ -20,8 +20,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
-use log::warn;
-use reqwest::{Client, ClientBuilder};
+use reqwest::Client;
 use std::{sync::Arc, thread};
 use tokio::sync::Mutex;
 
@@ -68,21 +67,12 @@ async fn main() -> Result<(), LemmyError> {
 
   let activity_queue = create_activity_queue();
 
-  let client = if !openssl_probe::has_ssl_cert_env_vars() {
-    warn!("No OpenSSL certs found, accepting invalid certs.");
-    ClientBuilder::new()
-      .danger_accept_invalid_certs(true)
-      .build()?
-  } else {
-    Client::default()
-  };
-
   let chat_server = ChatServer::startup(
     pool.clone(),
     rate_limiter.clone(),
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
-    client.clone(),
+    Client::default(),
     activity_queue.clone(),
   )
   .start();
@@ -92,7 +82,7 @@ async fn main() -> Result<(), LemmyError> {
     let context = LemmyContext::create(
       pool.clone(),
       chat_server.to_owned(),
-      client.clone(),
+      Client::default(),
       activity_queue.to_owned(),
     );
     let rate_limiter = rate_limiter.clone();
