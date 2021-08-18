@@ -18,7 +18,7 @@ RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
 RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
 
 # The alpine runner
-FROM alpine:3.12 as lemmy
+FROM alpine:3.14 as lemmy
 
 # Install libpq for postgres
 RUN apk add libpq

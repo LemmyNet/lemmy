@@ -47,24 +47,27 @@ lemmy_routes = { version = "=0.11.3", path = "./crates/routes" }
 diesel = "1.4.7"
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.126", features = ["derive"] }
+serde = { version = "1.0.127", features = ["derive"] }
 actix = "0.12.0"
 actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
 log = "0.4.14"
-env_logger = "0.8.4"
+env_logger = "0.9.0"
 strum = "0.21.0"
 url = { version = "2.2.2", features = ["serde"] }
-openssl = "0.10.35"
+openssl = "0.10.36"
 http-signature-normalization-actix = { version = "0.5.0-beta.7", default-features = false, features = ["sha-2"] }
-tokio = { version = "1.8.0", features = ["sync"] }
-anyhow = "1.0.41"
+tokio = { version = "1.10.0", features = ["sync"] }
+anyhow = "1.0.43"
 reqwest = { version = "0.11.4", features = ["json"] }
 activitystreams = "0.7.0-alpha.11"
 actix-rt = { version = "2.2.0", default-features = false }
-serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde_json = { version = "1.0.66", features = ["preserve_order"] }
 clokwerk = "0.3.5"
 
 [dev-dependencies.cargo-husky]
 version = "1.5.0"
 default-features = false # Disable features which are enabled by default
 features = ["precommit-hook", "run-cargo-fmt", "run-cargo-clippy"]
+
+[package.metadata.cargo-udeps.ignore]
+development = ["cargo-husky"]

@@ -12,4 +12,4 @@ doctest = false
 lemmy_db_queries = { version = "=0.11.3", path = "../db_queries" }
 lemmy_db_schema = { version = "=0.11.3", path = "../db_schema" }
 diesel = { version = "1.4.7", features = ["postgres","chrono","r2d2","serde_json"] }
-serde = { version = "1.0.126", features = ["derive"] }
+serde = { version = "1.0.127", features = ["derive"] }
