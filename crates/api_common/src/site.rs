@@ -5,7 +5,14 @@ use lemmy_db_views::{
   post_view::PostView,
   site_view::SiteView,
 };
-use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};
+use lemmy_db_views_actor::{
+  community_block_view::CommunityBlockView,
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
+  person_block_view::PersonBlockView,
+  person_view::PersonViewSafe,
+};
 use lemmy_db_views_moderator::{
   mod_add_community_view::ModAddCommunityView,
   mod_add_view::ModAddView,
@@ -110,8 +117,17 @@ pub struct GetSiteResponse {
   pub banned: Vec<PersonViewSafe>,
   pub online: usize,
   pub version: String,
-  pub my_user: Option<LocalUserSettingsView>,
+  pub my_user: Option<MyUserInfo>,
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
+}
+
+#[derive(Serialize)]
+pub struct MyUserInfo {
+  pub local_user_view: LocalUserSettingsView,
+  pub follows: Vec<CommunityFollowerView>,
+  pub moderates: Vec<CommunityModeratorView>,
+  pub community_blocks: Vec<CommunityBlockView>,
+  pub person_blocks: Vec<PersonBlockView>,
 }
 
 #[derive(Deserialize)]

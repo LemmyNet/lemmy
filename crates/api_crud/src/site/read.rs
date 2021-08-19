@@ -8,8 +8,14 @@ use lemmy_api_common::{
   site::*,
 };
 use lemmy_db_views::site_view::SiteView;
-use lemmy_db_views_actor::person_view::PersonViewSafe;
-use lemmy_utils::{settings::structs::Settings, version, ConnectionId, LemmyError};
+use lemmy_db_views_actor::{
+  community_block_view::CommunityBlockView,
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+  person_block_view::PersonBlockView,
+  person_view::PersonViewSafe,
+};
+use lemmy_utils::{settings::structs::Settings, version, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 use log::info;
 
@@ -83,7 +89,48 @@ impl PerformCrud for GetSite {
       .await
       .unwrap_or(1);
 
-    let my_user = get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    // Build the local user
+    let my_user = if let Some(local_user_view) =
+      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?
+    {
+      let person_id = local_user_view.person.id;
+      let follows = blocking(context.pool(), move |conn| {
+        CommunityFollowerView::for_person(conn, person_id)
+      })
+      .await?
+      .map_err(|_| ApiError::err("system_err_login"))?;
+
+      let person_id = local_user_view.person.id;
+      let community_blocks = blocking(context.pool(), move |conn| {
+        CommunityBlockView::for_person(conn, person_id)
+      })
+      .await?
+      .map_err(|_| ApiError::err("system_err_login"))?;
+
+      let person_id = local_user_view.person.id;
+      let person_blocks = blocking(context.pool(), move |conn| {
+        PersonBlockView::for_person(conn, person_id)
+      })
+      .await?
+      .map_err(|_| ApiError::err("system_err_login"))?;
+
+      let moderates = blocking(context.pool(), move |conn| {
+        CommunityModeratorView::for_person(conn, person_id)
+      })
+      .await?
+      .map_err(|_| ApiError::err("system_err_login"))?;
+
+      Some(MyUserInfo {
+        local_user_view,
+        follows,
+        moderates,
+        community_blocks,
+        person_blocks,
+      })
+    } else {
+      None
+    };
+
     let federated_instances = build_federated_instances(context.pool()).await?;
 
     Ok(GetSiteResponse {

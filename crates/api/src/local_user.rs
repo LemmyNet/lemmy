@@ -7,7 +7,6 @@ use chrono::Duration;
 use lemmy_api_common::{
   blocking,
   collect_moderated_communities,
-  community::{GetFollowedCommunities, GetFollowedCommunitiesResponse},
   get_local_user_view_from_jwt,
   is_admin,
   password_length_check,
@@ -27,6 +26,7 @@ use lemmy_db_queries::{
     post::Post_,
     private_message::PrivateMessage_,
   },
+  Blockable,
   Crud,
   SortType,
 };
@@ -39,6 +39,7 @@ use lemmy_db_schema::{
     moderator::*,
     password_reset_request::*,
     person::*,
+    person_block::{PersonBlock, PersonBlockForm},
     person_mention::*,
     post::Post,
     private_message::PrivateMessage,
@@ -52,7 +53,6 @@ use lemmy_db_views::{
   post_report_view::PostReportView,
 };
 use lemmy_db_views_actor::{
-  community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
   person_mention_view::{PersonMentionQueryBuilder, PersonMentionView},
   person_view::PersonViewSafe,
@@ -472,6 +472,59 @@ impl Perform for BanPerson {
 }
 
 #[async_trait::async_trait(?Send)]
+impl Perform for BlockPerson {
+  type Response = BlockPersonResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<BlockPersonResponse, LemmyError> {
+    let data: &BlockPerson = self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+
+    let target_id = data.person_id;
+    let person_id = local_user_view.person.id;
+
+    // Don't let a person block themselves
+    if target_id == person_id {
+      return Err(ApiError::err("cant_block_yourself").into());
+    }
+
+    let person_block_form = PersonBlockForm {
+      person_id,
+      target_id,
+    };
+
+    if data.block {
+      let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
+      if blocking(context.pool(), block).await?.is_err() {
+        return Err(ApiError::err("person_block_already_exists").into());
+      }
+    } else {
+      let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
+      if blocking(context.pool(), unblock).await?.is_err() {
+        return Err(ApiError::err("person_block_already_exists").into());
+      }
+    }
+
+    // TODO does any federated stuff need to be done here?
+
+    let person_view = blocking(context.pool(), move |conn| {
+      PersonViewSafe::read(conn, target_id)
+    })
+    .await??;
+
+    let res = BlockPersonResponse {
+      person_view,
+      blocked: data.block,
+    };
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
 impl Perform for GetReplies {
   type Response = GetRepliesResponse;
 
@@ -776,29 +829,5 @@ impl Perform for GetReportCount {
     });
 
     Ok(res)
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for GetFollowedCommunities {
-  type Response = GetFollowedCommunitiesResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
-    let data: &GetFollowedCommunities = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
-
-    let person_id = local_user_view.person.id;
-    let communities = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_person(conn, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("system_err_login"))?;
-
-    // Return the jwt
-    Ok(GetFollowedCommunitiesResponse { communities })
   }
 }

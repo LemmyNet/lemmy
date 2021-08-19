@@ -108,6 +108,16 @@ pub trait Saveable {
     Self: Sized;
 }
 
+pub trait Blockable {
+  type Form;
+  fn block(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  where
+    Self: Sized;
+  fn unblock(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  where
+    Self: Sized;
+}
+
 pub trait Readable {
   type Form;
   fn mark_as_read(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>

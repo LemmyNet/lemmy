@@ -18,6 +18,7 @@ use lemmy_apub::{
 use lemmy_db_queries::{
   source::{comment::Comment_, community::CommunityModerator_, post::Post_},
   Bannable,
+  Blockable,
   Crud,
   Followable,
   Joinable,
@@ -25,6 +26,7 @@ use lemmy_db_queries::{
 use lemmy_db_schema::source::{
   comment::Comment,
   community::*,
+  community_block::{CommunityBlock, CommunityBlockForm},
   moderator::*,
   person::Person,
   post::Post,
@@ -104,6 +106,66 @@ impl Perform for FollowCommunity {
     }
 
     Ok(CommunityResponse { community_view })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for BlockCommunity {
+  type Response = BlockCommunityResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<BlockCommunityResponse, LemmyError> {
+    let data: &BlockCommunity = self;
+    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+
+    let community_id = data.community_id;
+    let person_id = local_user_view.person.id;
+    let community_block_form = CommunityBlockForm {
+      person_id,
+      community_id,
+    };
+
+    if data.block {
+      let block = move |conn: &'_ _| CommunityBlock::block(conn, &community_block_form);
+      if blocking(context.pool(), block).await?.is_err() {
+        return Err(ApiError::err("community_block_already_exists").into());
+      }
+
+      // Also, unfollow the community, and send a federated unfollow
+      let community_follower_form = CommunityFollowerForm {
+        community_id: data.community_id,
+        person_id,
+        pending: false,
+      };
+      blocking(context.pool(), move |conn: &'_ _| {
+        CommunityFollower::unfollow(conn, &community_follower_form)
+      })
+      .await?
+      .ok();
+      let community = blocking(context.pool(), move |conn| {
+        Community::read(conn, community_id)
+      })
+      .await??;
+      UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
+    } else {
+      let unblock = move |conn: &'_ _| CommunityBlock::unblock(conn, &community_block_form);
+      if blocking(context.pool(), unblock).await?.is_err() {
+        return Err(ApiError::err("community_block_already_exists").into());
+      }
+    }
+
+    let community_view = blocking(context.pool(), move |conn| {
+      CommunityView::read(conn, community_id, Some(person_id))
+    })
+    .await??;
+
+    Ok(BlockCommunityResponse {
+      blocked: data.block,
+      community_view,
+    })
   }
 }
 
