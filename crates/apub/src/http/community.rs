@@ -1,10 +1,14 @@
 use crate::{
+  activities::{
+    community::announce::{AnnouncableActivities, AnnounceActivity},
+    extract_community,
+    following::{follow::FollowCommunity, undo::UndoFollowCommunity},
+  },
   extensions::context::lemmy_context,
   generate_moderators_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
-    inbox_enums::GroupInboxActivities,
     payload_to_string,
     receive_activity,
   },
@@ -18,6 +22,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{
@@ -26,7 +31,8 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
+use log::trace;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub(crate) struct CommunityQuery {
@@ -52,6 +58,14 @@ pub(crate) async fn get_apub_community_http(
   }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[serde(untagged)]
+pub enum GroupInboxActivities {
+  FollowCommunity(FollowCommunity),
+  UndoFollowCommunity(UndoFollowCommunity),
+  AnnouncableActivities(AnnouncableActivities),
+}
+
 /// Handler for all incoming receive to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
@@ -60,7 +74,26 @@ pub async fn community_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<GroupInboxActivities>(request, &unparsed, context).await
+  trace!("Received community inbox activity {}", unparsed);
+  let activity = serde_json::from_str::<GroupInboxActivities>(&unparsed)?;
+
+  receive_group_inbox(activity.clone(), request, &context).await?;
+
+  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
+    let community = extract_community(&announcable.cc(), &context, &mut 0).await?;
+    if community.local {
+      AnnounceActivity::send(announcable, &community, vec![], &context).await?;
+    }
+  }
+  Ok(HttpResponse::Ok().finish())
+}
+
+pub(in crate::http) async fn receive_group_inbox(
+  activity: GroupInboxActivities,
+  request: HttpRequest,
+  context: &LemmyContext,
+) -> Result<HttpResponse, LemmyError> {
+  receive_activity(request, activity.clone(), context).await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

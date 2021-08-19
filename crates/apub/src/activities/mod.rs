@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityCommonFields};
+use lemmy_apub_lib::{verify_domains_match, ActivityFields};
 use lemmy_db_queries::ApubObject;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -26,8 +26,8 @@ pub mod deletion;
 pub mod following;
 pub mod post;
 pub mod private_message;
-pub mod removal;
 pub mod send;
+pub mod undo_remove;
 pub mod voting;
 
 #[derive(Clone, Debug, ToString, Deserialize, Serialize)]
@@ -90,9 +90,9 @@ async fn verify_community(
   Ok(())
 }
 
-fn verify_activity(common: &ActivityCommonFields) -> Result<(), LemmyError> {
-  check_is_apub_id_valid(&common.actor, false)?;
-  verify_domains_match(common.id_unchecked(), &common.actor)?;
+fn verify_activity(activity: &dyn ActivityFields) -> Result<(), LemmyError> {
+  check_is_apub_id_valid(activity.actor(), false)?;
+  verify_domains_match(activity.id_unchecked(), activity.actor())?;
   Ok(())
 }
 

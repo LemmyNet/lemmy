@@ -9,29 +9,34 @@ use crate::{
   extensions::context::lemmy_context,
   ActorType,
 };
-use activitystreams::activity::kind::{DeleteType, UndoType};
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  verify_domains_match,
-  verify_urls_match,
-  ActivityCommonFields,
-  ActivityHandler,
+use activitystreams::{
+  activity::kind::UndoType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
 };
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{verify_domains_match, verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject, Crud};
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeletePrivateMessage {
+  actor: Url,
   to: Url,
   object: DeletePrivateMessage,
   #[serde(rename = "type")]
   kind: UndoType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl UndoDeletePrivateMessage {
@@ -44,29 +49,16 @@ impl UndoDeletePrivateMessage {
     let recipient =
       blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
-    let object = DeletePrivateMessage {
-      to: recipient.actor_id(),
-      object: pm.ap_id.clone().into(),
-      kind: DeleteType::Delete,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: generate_activity_id(DeleteType::Delete)?,
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
-    };
-
+    let object = DeletePrivateMessage::new(actor, pm)?;
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoDeletePrivateMessage {
+      actor: actor.actor_id(),
       to: recipient.actor_id(),
       object,
       kind: UndoType::Undo,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
     let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
     send_activity_new(context, &undo, &id, actor, inbox, true).await
@@ -80,10 +72,10 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person(&self.common.actor, context, request_counter).await?;
-    verify_urls_match(&self.common.actor, &self.object.common.actor)?;
-    verify_domains_match(&self.common.actor, &self.object.object)?;
+    verify_activity(self)?;
+    verify_person(&self.actor, context, request_counter).await?;
+    verify_urls_match(&self.actor, self.object.actor())?;
+    verify_domains_match(&self.actor, &self.object.object)?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -113,9 +105,5 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     .await?;
 
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

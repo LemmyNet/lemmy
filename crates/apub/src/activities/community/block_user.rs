@@ -1,31 +1,87 @@
 use crate::{
-  activities::{verify_activity, verify_mod_action, verify_person_in_community},
+  activities::{
+    community::announce::AnnouncableActivities,
+    generate_activity_id,
+    verify_activity,
+    verify_mod_action,
+    verify_person_in_community,
+  },
+  activity_queue::send_to_community_new,
+  extensions::context::lemmy_context,
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  ActorType,
 };
-use activitystreams::activity::kind::BlockType;
+use activitystreams::{
+  activity::kind::BlockType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{Bannable, Followable};
-use lemmy_db_schema::source::community::{
-  CommunityFollower,
-  CommunityFollowerForm,
-  CommunityPersonBan,
-  CommunityPersonBanForm,
+use lemmy_db_schema::source::{
+  community::{
+    Community,
+    CommunityFollower,
+    CommunityFollowerForm,
+    CommunityPersonBan,
+    CommunityPersonBanForm,
+  },
+  person::Person,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockUserFromCommunity {
+  actor: Url,
   to: PublicUrl,
   pub(in crate::activities::community) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: BlockType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
+}
+
+impl BlockUserFromCommunity {
+  pub(in crate::activities::community) fn new(
+    community: &Community,
+    target: &Person,
+    actor: &Person,
+  ) -> Result<BlockUserFromCommunity, LemmyError> {
+    Ok(BlockUserFromCommunity {
+      actor: actor.actor_id(),
+      to: PublicUrl::Public,
+      object: target.actor_id(),
+      cc: [community.actor_id()],
+      kind: BlockType::Block,
+      id: generate_activity_id(BlockType::Block)?,
+      context: lemmy_context(),
+      unparsed: Default::default(),
+    })
+  }
+
+  pub async fn send(
+    community: &Community,
+    target: &Person,
+    actor: &Person,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let block = BlockUserFromCommunity::new(community, target, actor)?;
+    let block_id = block.id.clone();
+
+    let activity = AnnouncableActivities::BlockUserFromCommunity(block);
+    let inboxes = vec![target.get_shared_inbox_or_inbox_url()];
+    send_to_community_new(activity, &block_id, actor, community, inboxes, context).await
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -35,9 +91,9 @@ impl ActivityHandler for BlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.common.actor, self.cc[0].clone(), context).await?;
+    verify_activity(self)?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     Ok(())
   }
 
@@ -74,9 +130,5 @@ impl ActivityHandler for BlockUserFromCommunity {
     .ok();
 
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

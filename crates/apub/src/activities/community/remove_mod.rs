@@ -1,6 +1,7 @@
 use crate::{
   activities::{
     community::announce::AnnouncableActivities,
+    deletion::{delete::receive_remove_action, verify_delete_activity},
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
@@ -14,14 +15,14 @@ use crate::{
   ActorType,
 };
 use activitystreams::{
-  activity::kind::AddType,
+  activity::kind::RemoveType,
   base::AnyBase,
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
-use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
+use lemmy_db_queries::Joinable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},
   person::Person,
@@ -33,14 +34,15 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
-pub struct AddMod {
+pub struct RemoveMod {
   actor: Url,
   to: PublicUrl,
-  object: Url,
-  target: Url,
+  pub(in crate::activities) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
-  kind: AddType,
+  kind: RemoveType,
+  // if target is set, this is means remove mod from community
+  pub(in crate::activities) target: Option<Url>,
   id: Url,
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
@@ -48,43 +50,55 @@ pub struct AddMod {
   unparsed: Unparsed,
 }
 
-impl AddMod {
+impl RemoveMod {
   pub async fn send(
     community: &Community,
-    added_mod: &Person,
+    removed_mod: &Person,
     actor: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let id = generate_activity_id(AddType::Add)?;
-    let add = AddMod {
+    let id = generate_activity_id(RemoveType::Remove)?;
+    let remove = RemoveMod {
       actor: actor.actor_id(),
       to: PublicUrl::Public,
-      object: added_mod.actor_id(),
-      target: generate_moderators_url(&community.actor_id)?.into(),
-      cc: [community.actor_id()],
-      kind: AddType::Add,
+      object: removed_mod.actor_id(),
+      target: Some(generate_moderators_url(&community.actor_id)?.into()),
       id: id.clone(),
       context: lemmy_context(),
+      cc: [community.actor_id()],
+      kind: RemoveType::Remove,
       unparsed: Default::default(),
     };
 
-    let activity = AnnouncableActivities::AddMod(add);
-    let inboxes = vec![added_mod.get_shared_inbox_or_inbox_url()];
+    let activity = AnnouncableActivities::RemoveMod(remove);
+    let inboxes = vec![removed_mod.get_shared_inbox_or_inbox_url()];
     send_to_community_new(activity, &id, actor, community, inboxes, context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for AddMod {
+impl ActivityHandler for RemoveMod {
   async fn verify(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
-    verify_add_remove_moderator_target(&self.target, self.cc[0].clone())?;
+    if let Some(target) = &self.target {
+      verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+      verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
+      verify_add_remove_moderator_target(target, self.cc[0].clone())?;
+    } else {
+      verify_delete_activity(
+        &self.object,
+        self,
+        &self.cc[0],
+        true,
+        context,
+        request_counter,
+      )
+      .await?;
+    }
     Ok(())
   }
 
@@ -93,28 +107,24 @@ impl ActivityHandler for AddMod {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community =
-      get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
-    let new_mod = get_or_fetch_and_upsert_person(&self.object, context, request_counter).await?;
+    if self.target.is_some() {
+      let community =
+        get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
+      let remove_mod =
+        get_or_fetch_and_upsert_person(&self.object, context, request_counter).await?;
 
-    // If we had to refetch the community while parsing the activity, then the new mod has already
-    // been added. Skip it here as it would result in a duplicate key error.
-    let new_mod_id = new_mod.id;
-    let moderated_communities = blocking(context.pool(), move |conn| {
-      CommunityModerator::get_person_moderated_communities(conn, new_mod_id)
-    })
-    .await??;
-    if !moderated_communities.contains(&community.id) {
       let form = CommunityModeratorForm {
         community_id: community.id,
-        person_id: new_mod.id,
+        person_id: remove_mod.id,
       };
       blocking(context.pool(), move |conn| {
-        CommunityModerator::join(conn, &form)
+        CommunityModerator::leave(conn, &form)
       })
       .await??;
+      // TODO: send websocket notification about removed mod
+      Ok(())
+    } else {
+      receive_remove_action(&self.actor, &self.object, None, context, request_counter).await
     }
-    // TODO: send websocket notification about added mod
-    Ok(())
   }
 }

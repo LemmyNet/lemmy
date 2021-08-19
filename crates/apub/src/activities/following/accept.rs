@@ -10,9 +10,14 @@ use crate::{
   fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
   ActorType,
 };
-use activitystreams::activity::kind::AcceptType;
+use activitystreams::{
+  activity::kind::AcceptType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
@@ -20,17 +25,22 @@ use lemmy_db_schema::source::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AcceptFollowCommunity {
+  actor: Url,
   to: Url,
   object: FollowCommunity,
   #[serde(rename = "type")]
   kind: AcceptType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl AcceptFollowCommunity {
@@ -40,26 +50,23 @@ impl AcceptFollowCommunity {
       Community::read_from_apub_id(conn, &community_id.into())
     })
     .await??;
-    let person_id = follow.common.actor.clone();
+    let person_id = follow.actor().clone();
     let person = blocking(context.pool(), move |conn| {
       Person::read_from_apub_id(conn, &person_id.into())
     })
     .await??;
 
-    let id = generate_activity_id(AcceptType::Accept)?;
     let accept = AcceptFollowCommunity {
+      actor: community.actor_id(),
       to: person.actor_id(),
       object: follow,
       kind: AcceptType::Accept,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: community.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: generate_activity_id(AcceptType::Accept)?,
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
     let inbox = vec![person.inbox_url.into()];
-    send_activity_new(context, &accept, &id, &community, inbox, true).await
+    send_activity_new(context, &accept, &accept.id, &community, inbox, true).await
   }
 }
 /// Handle accepted follows
@@ -70,10 +77,10 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_urls_match(&self.to, &self.object.common.actor)?;
-    verify_urls_match(&self.common.actor, &self.object.to)?;
-    verify_community(&self.common.actor, context, request_counter).await?;
+    verify_activity(self)?;
+    verify_urls_match(&self.to, self.object.actor())?;
+    verify_urls_match(&self.actor, &self.object.to)?;
+    verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -83,8 +90,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor =
-      get_or_fetch_and_upsert_community(&self.common.actor, context, request_counter).await?;
+    let actor = get_or_fetch_and_upsert_community(&self.actor, context, request_counter).await?;
     let to = get_or_fetch_and_upsert_person(&self.to, context, request_counter).await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {
@@ -93,9 +99,5 @@ impl ActivityHandler for AcceptFollowCommunity {
     .await??;
 
     Ok(())
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

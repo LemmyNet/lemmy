@@ -19,9 +19,14 @@ use crate::{
   ActorType,
   PostOrComment,
 };
-use activitystreams::activity::kind::UndoType;
+use activitystreams::{
+  activity::kind::UndoType,
+  base::AnyBase,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityCommonFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -29,19 +34,24 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoVote {
+  actor: Url,
   to: PublicUrl,
   object: Vote,
   cc: [Url; 1],
   #[serde(rename = "type")]
   kind: UndoType,
+  id: Url,
+  #[serde(rename = "@context")]
+  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
-  common: ActivityCommonFields,
+  unparsed: Unparsed,
 }
 
 impl UndoVote {
@@ -56,30 +66,18 @@ impl UndoVote {
       Community::read(conn, community_id)
     })
     .await??;
-    let id = generate_activity_id(UndoType::Undo)?;
 
+    let object = Vote::new(object, actor, &community, kind.clone())?;
+    let id = generate_activity_id(UndoType::Undo)?;
     let undo_vote = UndoVote {
+      actor: actor.actor_id(),
       to: PublicUrl::Public,
-      object: Vote {
-        to: PublicUrl::Public,
-        object: object.ap_id(),
-        cc: [community.actor_id()],
-        kind: kind.clone(),
-        common: ActivityCommonFields {
-          context: lemmy_context(),
-          id: generate_activity_id(kind)?,
-          actor: actor.actor_id(),
-          unparsed: Default::default(),
-        },
-      },
+      object,
       cc: [community.actor_id()],
       kind: UndoType::Undo,
-      common: ActivityCommonFields {
-        context: lemmy_context(),
-        id: id.clone(),
-        actor: actor.actor_id(),
-        unparsed: Default::default(),
-      },
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
     send_to_community_new(activity, &id, actor, &community, vec![], context).await
@@ -93,9 +91,9 @@ impl ActivityHandler for UndoVote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self.common())?;
-    verify_person_in_community(&self.common.actor, &self.cc[0], context, request_counter).await?;
-    verify_urls_match(&self.common.actor, &self.object.common().actor)?;
+    verify_activity(self)?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_urls_match(&self.actor, self.object.actor())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -105,8 +103,7 @@ impl ActivityHandler for UndoVote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor =
-      get_or_fetch_and_upsert_person(&self.common.actor, context, request_counter).await?;
+    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let object =
       get_or_fetch_and_insert_post_or_comment(&self.object.object, context, request_counter)
         .await?;
@@ -114,9 +111,5 @@ impl ActivityHandler for UndoVote {
       PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, c.deref(), context).await,
     }
-  }
-
-  fn common(&self) -> &ActivityCommonFields {
-    &self.common
   }
 }

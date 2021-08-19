@@ -1,9 +1,17 @@
 use crate::{
+  activities::{
+    community::announce::{AnnouncableActivities, AnnounceActivity},
+    following::accept::AcceptFollowCommunity,
+    private_message::{
+      create_or_update::CreateOrUpdatePrivateMessage,
+      delete::DeletePrivateMessage,
+      undo_delete::UndoDeletePrivateMessage,
+    },
+  },
   extensions::context::lemmy_context,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
-    inbox_enums::PersonInboxActivities,
     payload_to_string,
     receive_activity,
   },
@@ -16,11 +24,13 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::person::Person_;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
+use log::trace;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[derive(Deserialize)]
@@ -49,6 +59,18 @@ pub(crate) async fn get_apub_person_http(
   }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[serde(untagged)]
+pub enum PersonInboxActivities {
+  AcceptFollowCommunity(AcceptFollowCommunity),
+  /// Some activities can also be sent from user to user, eg a comment with mentions
+  AnnouncableActivities(AnnouncableActivities),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
+  DeletePrivateMessage(DeletePrivateMessage),
+  UndoDeletePrivateMessage(UndoDeletePrivateMessage),
+  AnnounceActivity(Box<AnnounceActivity>),
+}
+
 pub async fn person_inbox(
   request: HttpRequest,
   payload: Payload,
@@ -56,7 +78,17 @@ pub async fn person_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  receive_activity::<PersonInboxActivities>(request, &unparsed, context).await
+  trace!("Received person inbox activity {}", unparsed);
+  let activity = serde_json::from_str::<PersonInboxActivities>(&unparsed)?;
+  receive_person_inbox(activity, request, &context).await
+}
+
+pub(in crate::http) async fn receive_person_inbox(
+  activity: PersonInboxActivities,
+  request: HttpRequest,
+  context: &LemmyContext,
+) -> Result<HttpResponse, LemmyError> {
+  receive_activity(request, activity, context).await
 }
 
 pub(crate) async fn get_apub_person_outbox(

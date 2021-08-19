@@ -10,7 +10,6 @@ pub mod migrations;
 pub mod objects;
 
 use crate::extensions::signatures::PublicKey;
-use activitystreams::base::AnyBase;
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
@@ -139,41 +138,6 @@ trait ActorType {
 pub trait CommunityType {
   fn followers_url(&self) -> Url;
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
-
-  async fn send_update(&self, mod_: Person, context: &LemmyContext) -> Result<(), LemmyError>;
-
-  async fn send_announce(
-    &self,
-    activity: AnyBase,
-    object: Option<Url>,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  async fn send_add_mod(
-    &self,
-    actor: &Person,
-    added_mod: Person,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_remove_mod(
-    &self,
-    actor: &Person,
-    removed_mod: Person,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-
-  async fn send_block_user(
-    &self,
-    actor: &Person,
-    blocked_user: Person,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
-  async fn send_undo_block_user(
-    &self,
-    actor: &Person,
-    blocked_user: Person,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
 }
 
 pub enum EndpointType {
