@@ -148,7 +148,8 @@ pub(crate) async fn fetch_pictrs(
 }
 
 /// Both are options, since the URL might be either an html page, or an image
-pub async fn fetch_site_metadata_and_pictrs_data(
+/// Returns the SiteMetadata, and a Pictrs URL, if there is a picture associated
+pub async fn fetch_site_data(
   client: &Client,
   url: Option<&Url>,
 ) -> (Option<SiteMetadata>, Option<Url>) {

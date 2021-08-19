@@ -20,7 +20,7 @@ use lemmy_apub::{
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
 use lemmy_db_schema::source::post::*;
 use lemmy_utils::{
-  request::fetch_site_metadata_and_pictrs_data,
+  request::fetch_site_data,
   utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
   ApiError,
   ConnectionId,
@@ -51,8 +51,7 @@ impl PerformCrud for CreatePost {
 
     // Fetch post links and pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) =
-      fetch_site_metadata_and_pictrs_data(context.client(), data_url).await;
+    let (metadata_res, pictrs_thumbnail) = fetch_site_data(context.client(), data_url).await;
     let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
