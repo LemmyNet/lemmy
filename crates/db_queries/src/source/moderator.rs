@@ -192,6 +192,33 @@ impl Crud for ModAddCommunity {
   }
 }
 
+impl Crud for ModTransferCommunity {
+  type Form = ModTransferCommunityForm;
+  type IdType = i32;
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::mod_transfer_community::dsl::*;
+    mod_transfer_community.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &ModTransferCommunityForm) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::mod_transfer_community::dsl::*;
+    insert_into(mod_transfer_community)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(
+    conn: &PgConnection,
+    from_id: i32,
+    form: &ModTransferCommunityForm,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::mod_transfer_community::dsl::*;
+    diesel::update(mod_transfer_community.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
 impl Crud for ModAdd {
   type Form = ModAddForm;
   type IdType = i32;

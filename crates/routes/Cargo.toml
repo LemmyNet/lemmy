@@ -22,10 +22,10 @@ actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["r
 actix-web-actors = { version = "4.0.0-beta.6", default-features = false }
 sha2 = "0.9.5"
 log = "0.4.14"
-anyhow = "1.0.41"
+anyhow = "1.0.43"
 chrono = { version = "0.4.19", features = ["serde"] }
 rss = "1.10.0"
-serde = { version = "1.0.126", features = ["derive"] }
+serde = { version = "1.0.127", features = ["derive"] }
 awc = { version = "3.0.0-beta.7", default-features = false }
 url = { version = "2.2.2", features = ["serde"] }
 strum = "0.21.0"

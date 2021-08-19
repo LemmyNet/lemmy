@@ -19,6 +19,7 @@ use lemmy_db_queries::{
   from_opt_str_to_opt_enum,
   source::{
     comment::Comment_,
+    community::Community_,
     local_user::LocalUser_,
     password_reset_request::PasswordResetRequest_,
     person::Person_,
@@ -33,6 +34,7 @@ use lemmy_db_schema::{
   naive_now,
   source::{
     comment::Comment,
+    community::Community,
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
     password_reset_request::*,
@@ -51,6 +53,7 @@ use lemmy_db_views::{
 };
 use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
   person_mention_view::{PersonMentionQueryBuilder, PersonMentionView},
   person_view::PersonViewSafe,
 };
@@ -408,8 +411,24 @@ impl Perform for BanPerson {
 
       // Communities
       // Remove all communities where they're the top mod
-      // TODO couldn't get group by's working in diesel,
       // for now, remove the communities manually
+      let first_mod_communities = blocking(context.pool(), move |conn: &'_ _| {
+        CommunityModeratorView::get_community_first_mods(conn)
+      })
+      .await??;
+
+      // Filter to only this banned users top communities
+      let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
+        .into_iter()
+        .filter(|fmc| fmc.moderator.id == banned_person_id)
+        .collect();
+
+      for first_mod_community in banned_user_first_communities {
+        blocking(context.pool(), move |conn: &'_ _| {
+          Community::update_removed(conn, first_mod_community.community.id, true)
+        })
+        .await??;
+      }
 
       // Comments
       blocking(context.pool(), move |conn: &'_ _| {

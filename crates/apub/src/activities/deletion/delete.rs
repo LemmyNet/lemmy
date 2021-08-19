@@ -65,7 +65,7 @@ pub struct Delete {
   actor: Url,
   to: PublicUrl,
   pub(in crate::activities::deletion) object: Url,
-  cc: [Url; 1],
+  pub(in crate::activities::deletion) cc: [Url; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user

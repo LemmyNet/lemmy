@@ -37,8 +37,6 @@
   jwt_secret: "changeme"
   # address where pictrs is available
   pictrs_url: "http://pictrs:8080"
-  # address where iframely is available
-  iframely_url: "http://iframely"
   # maximum length of local community and user names
   actor_name_max_length: 20
   # rate limits for various user actions, by user ip

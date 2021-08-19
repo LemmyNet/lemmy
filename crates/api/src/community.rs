@@ -400,16 +400,14 @@ impl Perform for TransferCommunity {
     }
 
     // Mod tables
-    // TODO there should probably be another table for transfer community
-    // Right now, it will just look like it modded them twice
-    let form = ModAddCommunityForm {
+    let form = ModTransferCommunityForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
       community_id: data.community_id,
       removed: Some(false),
     };
     blocking(context.pool(), move |conn| {
-      ModAddCommunity::create(conn, &form)
+      ModTransferCommunity::create(conn, &form)
     })
     .await??;
 

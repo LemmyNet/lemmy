@@ -13,7 +13,6 @@ services:
     depends_on:
       - postgres
       - pictrs
-      - iframely
 
   lemmy-ui:
     image: {{ lemmy_docker_ui_image }}
@@ -44,15 +43,6 @@ services:
       - "127.0.0.1:8537:8080"
     volumes:
       - ./volumes/pictrs:/mnt
-    restart: always
-    mem_limit: 200m
-
-  iframely:
-    image: dogbin/iframely:latest
-    ports:
-      - "127.0.0.1:8061:80"
-    volumes:
-      - ./iframely.config.local.js:/iframely/config.local.js:ro
     restart: always
     mem_limit: 200m
 

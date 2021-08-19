@@ -20,6 +20,8 @@
   # json web token for authorization between server and client
   jwt_secret: "changeme"
   # settings related to the postgresql database
+  # address where pictrs is available
+  pictrs_url: "http://pictrs:8080"
   database: {
     # name of the postgres database for lemmy
     database: "lemmy"

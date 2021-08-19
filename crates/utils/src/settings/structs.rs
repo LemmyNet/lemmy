@@ -29,8 +29,6 @@ pub struct Settings {
   #[default(None)]
   pub pictrs_url: Option<String>,
   #[default(None)]
-  pub iframely_url: Option<String>,
-  #[default(None)]
   pub additional_slurs: Option<String>,
   #[default(20)]
   pub actor_name_max_length: usize,

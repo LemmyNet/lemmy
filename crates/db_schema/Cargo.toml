@@ -11,8 +11,8 @@ doctest = false
 [dependencies]
 diesel = { version = "1.4.7", features = ["postgres","chrono","r2d2","serde_json"] }
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.126", features = ["derive"] }
-serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde = { version = "1.0.127", features = ["derive"] }
+serde_json = { version = "1.0.66", features = ["preserve_order"] }
 log = "0.4.14"
 url = { version = "2.2.2", features = ["serde"] }
 diesel-derive-newtype = "0.1.2"

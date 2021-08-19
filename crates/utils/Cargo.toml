@@ -18,23 +18,24 @@ log = "0.4.14"
 itertools = "0.10.1"
 rand = "0.8.4"
 percent-encoding = "2.1.0"
-serde = { version = "1.0.126", features = ["derive"] }
-serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde = { version = "1.0.127", features = ["derive"] }
+serde_json = { version = "1.0.66", features = ["preserve_order"] }
 thiserror = "1.0.26"
-comrak = { version = "0.10.1", default-features = false }
+comrak = { version = "0.11.0", default-features = false }
 lazy_static = "1.4.0"
-openssl = "0.10.35"
+openssl = "0.10.36"
 url = { version = "2.2.2", features = ["serde"] }
 actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
 actix-rt = { version = "2.2.0", default-features = false }
-anyhow = "1.0.41"
+anyhow = "1.0.43"
 reqwest = { version = "0.11.4", features = ["json"] }
-tokio = { version = "1.8.0", features = ["sync"] }
+tokio = { version = "1.10.0", features = ["sync"] }
 strum = "0.21.0"
 strum_macros = "0.21.1"
-futures = "0.3.15"
+futures = "0.3.16"
 diesel = "1.4.7"
 http = "0.2.4"
 jsonwebtoken = "7.2.0"
-deser-hjson = "1.0.1"
+deser-hjson = "1.0.2"
 smart-default = "0.6.0"
+webpage = { version = "1.1", default-features = false, features = ["serde"] }

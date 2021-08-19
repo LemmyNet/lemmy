@@ -272,6 +272,11 @@ pub async fn get_local_user_view_from_jwt(
     return Err(ApiError::err("site_ban").into());
   }
 
+  // Check for user deletion
+  if local_user_view.person.deleted {
+    return Err(ApiError::err("deleted").into());
+  }
+
   check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
 
   Ok(local_user_view)
