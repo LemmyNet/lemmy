@@ -1,6 +1,7 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::announce::{AnnouncableActivities, AnnounceActivity},
+    extract_community,
     following::{follow::FollowCommunity, undo::UndoFollowCommunity},
   },
   extensions::context::lemmy_context,
@@ -76,15 +77,23 @@ pub async fn community_inbox(
   trace!("Received community inbox activity {}", unparsed);
   let activity = serde_json::from_str::<GroupInboxActivities>(&unparsed)?;
 
-  receive_group_inbox(activity.clone(), request, context).await
+  receive_group_inbox(activity.clone(), request, &context).await?;
+
+  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
+    let community = extract_community(&announcable.cc(), &context, &mut 0).await?;
+    if community.local {
+      AnnounceActivity::send(announcable, &community, vec![], &context).await?;
+    }
+  }
+  Ok(HttpResponse::Ok().finish())
 }
 
 pub(in crate::http) async fn receive_group_inbox(
   activity: GroupInboxActivities,
   request: HttpRequest,
-  context: web::Data<LemmyContext>,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, activity.clone(), context.get_ref()).await
+  receive_activity(request, activity.clone(), context).await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

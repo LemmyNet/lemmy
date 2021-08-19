@@ -80,15 +80,15 @@ pub async fn person_inbox(
   let unparsed = payload_to_string(payload).await?;
   trace!("Received person inbox activity {}", unparsed);
   let activity = serde_json::from_str::<PersonInboxActivities>(&unparsed)?;
-  receive_person_inbox(activity, request, context).await
+  receive_person_inbox(activity, request, &context).await
 }
 
 pub(in crate::http) async fn receive_person_inbox(
   activity: PersonInboxActivities,
   request: HttpRequest,
-  context: web::Data<LemmyContext>,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, activity, context.get_ref()).await
+  receive_activity(request, activity, context).await
 }
 
 pub(crate) async fn get_apub_person_outbox(

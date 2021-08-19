@@ -55,10 +55,10 @@ pub async fn shared_inbox(
   let activity = serde_json::from_str::<SharedInboxActivities>(&unparsed)?;
   match activity {
     SharedInboxActivities::GroupInboxActivities(g) => {
-      receive_group_inbox(g, request, context).await
+      receive_group_inbox(g, request, &context).await
     }
     SharedInboxActivities::PersonInboxActivities(p) => {
-      receive_person_inbox(p, request, context).await
+      receive_person_inbox(p, request, &context).await
     }
   }
 }
