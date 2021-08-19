@@ -88,7 +88,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/report/resolve",
             web::put().to(route_post::<ResolvePostReport>),
           )
-          .route("/report/list", web::get().to(route_get::<ListPostReports>)),
+          .route("/report/list", web::get().to(route_get::<ListPostReports>))
+          .route(
+            "/site_metadata",
+            web::get().to(route_get::<GetSiteMetadata>),
+          ),
       )
       // Comment
       .service(

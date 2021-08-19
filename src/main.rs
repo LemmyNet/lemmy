@@ -66,6 +66,7 @@ async fn main() -> Result<(), LemmyError> {
   );
 
   let activity_queue = create_activity_queue();
+
   let chat_server = ChatServer::startup(
     pool.clone(),
     rate_limiter.clone(),

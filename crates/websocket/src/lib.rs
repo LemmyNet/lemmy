@@ -125,6 +125,7 @@ pub enum UserOperation {
   CommunityJoin,
   ModJoin,
   ChangePassword,
+  GetSiteMetadata,
 }
 
 #[derive(EnumString, ToString, Debug, Clone)]

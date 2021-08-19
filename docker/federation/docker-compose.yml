@@ -14,7 +14,6 @@ services:
     restart: on-failure
     depends_on:
       - pictrs
-      - iframely
       - lemmy-alpha-ui
       - lemmy-beta-ui
       - lemmy-gamma-ui
@@ -174,9 +173,3 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_epsilon:/var/lib/postgresql/data
-
-  iframely:
-    image: dogbin/iframely:latest
-    volumes:
-      - ../iframely.config.local.js:/iframely/config.local.js:ro
-    restart: always

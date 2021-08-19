@@ -121,6 +121,9 @@ pub async fn match_websocket_operation(
     UserOperation::ResolvePostReport => {
       do_websocket_operation::<ResolvePostReport>(context, id, op, data).await
     }
+    UserOperation::GetSiteMetadata => {
+      do_websocket_operation::<GetSiteMetadata>(context, id, op, data).await
+    }
 
     // Comment ops
     UserOperation::MarkCommentAsRead => {
