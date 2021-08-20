@@ -17,7 +17,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::{
@@ -90,10 +89,7 @@ impl ActivityHandler for UpdateCommunity {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let cc = self.cc[0].clone().into();
-    let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &cc)
-    })
-    .await??;
+    let community = Community::read_from_apub_id(&&context.pool.get().await?, &cc)?;
 
     let updated_community =
       Group::from_apub_to_form(&self.object, &community.actor_id.clone().into()).await?;
@@ -107,10 +103,7 @@ impl ActivityHandler for UpdateCommunity {
       banner: updated_community.banner,
       ..CommunityForm::default()
     };
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(conn, community.id, &cf)
-    })
-    .await??;
+    let updated_community = Community::update(&&context.pool.get().await?, community.id, &cf)?;
 
     send_community_ws_message(
       updated_community.id,

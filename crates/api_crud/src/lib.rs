@@ -1,3 +1,5 @@
+#![allow(clippy::needless_borrow)]
+
 use actix_web::{web, web::Data};
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*};
 use lemmy_utils::{ConnectionId, LemmyError};

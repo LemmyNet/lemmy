@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_person_block,
   comment::*,
@@ -60,8 +59,7 @@ impl PerformCrud for CreateComment {
     // If there's a parent_id, check to make sure that comment is in that post
     if let Some(parent_id) = data.parent_id {
       // Make sure the parent comment exists
-      let parent = blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
-        .await?
+      let parent = Comment::read(&&context.pool.get().await?, parent_id)
         .map_err(|_| ApiError::err("couldnt_create_comment"))?;
 
       check_person_block(local_user_view.person.id, parent.creator_id, context.pool()).await?;
@@ -82,22 +80,15 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let comment_form2 = comment_form.clone();
-    let inserted_comment = blocking(context.pool(), move |conn| {
-      Comment::create(conn, &comment_form2)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_create_comment"))?;
+    let inserted_comment = Comment::create(&&context.pool.get().await?, &comment_form2)
+      .map_err(|_| ApiError::err("couldnt_create_comment"))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
-    let updated_comment: Comment =
-      blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
-        let apub_id =
-          generate_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string())?;
-        Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
-      })
-      .await?
-      .map_err(|_| ApiError::err("couldnt_create_comment"))?;
+    let apub_id = generate_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string())?;
+    let updated_comment =
+      Comment::update_ap_id(&&context.pool.get().await?, inserted_comment_id, apub_id)
+        .map_err(|_| ApiError::err("couldnt_create_comment"))?;
 
     CreateOrUpdateComment::send(
       &updated_comment,
@@ -128,8 +119,8 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    let like = move |conn: &'_ _| CommentLike::like(conn, &like_form);
-    if blocking(context.pool(), like).await?.is_err() {
+    let like = CommentLike::like(&&context.pool.get().await?, &like_form);
+    if like.is_err() {
       return Err(ApiError::err("couldnt_like_comment").into());
     }
 
@@ -146,11 +137,8 @@ impl PerformCrud for CreateComment {
     // If its a comment to yourself, mark it as read
     if local_user_view.person.id == inserted_comment.creator_id {
       let comment_id = inserted_comment.id;
-      blocking(context.pool(), move |conn| {
-        Comment::update_read(conn, comment_id, true)
-      })
-      .await?
-      .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+      Comment::update_read(&&context.pool.get().await?, comment_id, true)
+        .map_err(|_| ApiError::err("couldnt_update_comment"))?;
     }
 
     send_comment_ws_message(

@@ -1,7 +1,6 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_downvotes_enabled,
   check_person_block,
@@ -45,7 +44,7 @@ impl Perform for CreatePostLike {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(&&context.pool.get().await?, post_id)?;
 
     check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
 
@@ -59,10 +58,7 @@ impl Perform for CreatePostLike {
 
     // Remove any likes first
     let person_id = local_user_view.person.id;
-    blocking(context.pool(), move |conn| {
-      PostLike::remove(conn, person_id, post_id)
-    })
-    .await??;
+    PostLike::remove(&&context.pool.get().await?, person_id, post_id)?;
 
     let community_id = post.community_id;
     let object = PostOrComment::Post(Box::new(post));
@@ -71,8 +67,8 @@ impl Perform for CreatePostLike {
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let like = move |conn: &'_ _| PostLike::like(conn, &like_form2);
-      if blocking(context.pool(), like).await?.is_err() {
+      let like = PostLike::like(&&context.pool.get().await?, &like_form2);
+      if like.is_err() {
         return Err(ApiError::err("couldnt_like_post").into());
       }
 
@@ -123,7 +119,7 @@ impl Perform for LockPost {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(&&context.pool.get().await?, post_id)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -143,10 +139,7 @@ impl Perform for LockPost {
     // Update the post
     let post_id = data.post_id;
     let locked = data.locked;
-    let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_locked(conn, post_id, locked)
-    })
-    .await??;
+    let updated_post = Post::update_locked(&&context.pool.get().await?, post_id, locked)?;
 
     // Mod tables
     let form = ModLockPostForm {
@@ -154,7 +147,7 @@ impl Perform for LockPost {
       post_id: data.post_id,
       locked: Some(locked),
     };
-    blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
+    ModLockPost::create(&&context.pool.get().await?, &form)?;
 
     // apub updates
     CreateOrUpdatePost::send(
@@ -189,7 +182,7 @@ impl Perform for StickyPost {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(&&context.pool.get().await?, post_id)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -209,10 +202,7 @@ impl Perform for StickyPost {
     // Update the post
     let post_id = data.post_id;
     let stickied = data.stickied;
-    let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_stickied(conn, post_id, stickied)
-    })
-    .await??;
+    let updated_post = Post::update_stickied(&&context.pool.get().await?, post_id, stickied)?;
 
     // Mod tables
     let form = ModStickyPostForm {
@@ -220,10 +210,7 @@ impl Perform for StickyPost {
       post_id: data.post_id,
       stickied: Some(stickied),
     };
-    blocking(context.pool(), move |conn| {
-      ModStickyPost::create(conn, &form)
-    })
-    .await??;
+    ModStickyPost::create(&&context.pool.get().await?, &form)?;
 
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
@@ -264,23 +251,20 @@ impl Perform for SavePost {
     };
 
     if data.save {
-      let save = move |conn: &'_ _| PostSaved::save(conn, &post_saved_form);
-      if blocking(context.pool(), save).await?.is_err() {
+      let save = PostSaved::save(&&context.pool.get().await?, &post_saved_form);
+      if save.is_err() {
         return Err(ApiError::err("couldnt_save_post").into());
       }
     } else {
-      let unsave = move |conn: &'_ _| PostSaved::unsave(conn, &post_saved_form);
-      if blocking(context.pool(), unsave).await?.is_err() {
+      let unsave = PostSaved::unsave(&&context.pool.get().await?, &post_saved_form);
+      if unsave.is_err() {
         return Err(ApiError::err("couldnt_save_post").into());
       }
     }
 
     let post_id = data.post_id;
     let person_id = local_user_view.person.id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(person_id))
-    })
-    .await??;
+    let post_view = PostView::read(&&context.pool.get().await?, post_id, Some(person_id))?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;

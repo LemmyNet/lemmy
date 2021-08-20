@@ -1,3 +1,5 @@
+#![allow(clippy::needless_borrow)]
+
 pub mod comment;
 pub mod community;
 pub mod person;
@@ -66,22 +68,6 @@ pub struct WebFingerResponse {
   pub links: Vec<WebFingerLink>,
 }
 
-pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
-where
-  F: FnOnce(&diesel::PgConnection) -> T + Send + 'static,
-  T: Send + 'static,
-{
-  let pool = pool.clone();
-  let res = actix_web::web::block(move || {
-    let conn = pool.get()?;
-    let res = (f)(&conn);
-    Ok(res) as Result<T, LemmyError>
-  })
-  .await?;
-
-  res
-}
-
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   comment: Comment,
@@ -90,10 +76,14 @@ pub async fn send_local_notifs(
   pool: &DbPool,
   do_send_email: bool,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
-  let ids = blocking(pool, move |conn| {
-    do_send_local_notifs(conn, &mentions, &comment, &person, &post, do_send_email)
-  })
-  .await?;
+  let ids = do_send_local_notifs(
+    &&pool.get().await?,
+    &mentions,
+    &comment,
+    &person,
+    &post,
+    do_send_email,
+  );
 
   Ok(ids)
 }
@@ -222,10 +212,8 @@ pub async fn is_mod_or_admin(
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
-  let is_mod_or_admin = blocking(pool, move |conn| {
-    CommunityView::is_mod_or_admin(conn, person_id, community_id)
-  })
-  .await?;
+  let is_mod_or_admin =
+    CommunityView::is_mod_or_admin(&&pool.get().await?, person_id, community_id);
   if !is_mod_or_admin {
     return Err(ApiError::err("not_a_mod_or_admin").into());
   }
@@ -240,9 +228,7 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
 }
 
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
-  blocking(pool, move |conn| Post::read(conn, post_id))
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_post").into())
+  Post::read(&&pool.get().await?, post_id).map_err(|_| ApiError::err("couldnt_find_post").into())
 }
 
 pub async fn mark_post_as_read(
@@ -251,12 +237,8 @@ pub async fn mark_post_as_read(
   pool: &DbPool,
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
-
-  blocking(pool, move |conn| {
-    PostRead::mark_as_read(conn, &post_read_form)
-  })
-  .await?
-  .map_err(|_| ApiError::err("couldnt_mark_post_as_read").into())
+  PostRead::mark_as_read(&&pool.get().await?, &post_read_form)
+    .map_err(|_| ApiError::err("couldnt_mark_post_as_read").into())
 }
 
 pub async fn get_local_user_view_from_jwt(
@@ -267,8 +249,7 @@ pub async fn get_local_user_view_from_jwt(
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
-  let local_user_view =
-    blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
+  let local_user_view = LocalUserView::read(&&pool.get().await?, local_user_id)?;
   // Check for a site ban
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
@@ -315,10 +296,8 @@ pub async fn get_local_user_settings_view_from_jwt(
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = blocking(pool, move |conn| {
-    LocalUserSettingsView::read(conn, local_user_id)
-  })
-  .await??;
+  let local_user_view = LocalUserSettingsView::read(&&pool.get().await?, local_user_id)?;
+
   // Check for a site ban
   if local_user_view.person.banned {
     return Err(ApiError::err("site_ban").into());
@@ -346,9 +325,8 @@ pub async fn check_community_ban(
   community_id: CommunityId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
+  let is_banned = CommunityPersonBanView::get(&&pool.get().await?, person_id, community_id).is_ok();
+  if is_banned {
     Err(ApiError::err("community_ban").into())
   } else {
     Ok(())
@@ -360,8 +338,8 @@ pub async fn check_person_block(
   potential_blocker_id: PersonId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, potential_blocker_id, my_id).is_ok();
-  if blocking(pool, is_blocked).await? {
+  let is_blocked = PersonBlock::read(&&pool.get().await?, potential_blocker_id, my_id).is_ok();
+  if is_blocked {
     Err(ApiError::err("person_block").into())
   } else {
     Ok(())
@@ -370,7 +348,7 @@ pub async fn check_person_block(
 
 pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
   if score == -1 {
-    let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
+    let site = Site::read_simple(&&pool.get().await?)?;
     if !site.enable_downvotes {
       return Err(ApiError::err("downvotes_disabled").into());
     }
@@ -395,10 +373,7 @@ pub async fn collect_moderated_communities(
     is_mod_or_admin(pool, person_id, community_id).await?;
     Ok(vec![community_id])
   } else {
-    let ids = blocking(pool, move |conn: &'_ _| {
-      CommunityModerator::get_person_moderated_communities(conn, person_id)
-    })
-    .await??;
+    let ids = CommunityModerator::get_person_moderated_communities(&&pool.get().await?, person_id)?;
     Ok(ids)
   }
 }
@@ -407,10 +382,7 @@ pub async fn build_federated_instances(
   pool: &DbPool,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if Settings::get().federation.enabled {
-    let distinct_communities = blocking(pool, move |conn| {
-      Community::distinct_federated_communities(conn)
-    })
-    .await??;
+    let distinct_communities = Community::distinct_federated_communities(&&pool.get().await?)?;
 
     let allowed = Settings::get().federation.allowed_instances;
     let blocked = Settings::get().federation.blocked_instances;

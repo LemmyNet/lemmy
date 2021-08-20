@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   get_local_user_view_from_jwt,
   is_admin,
   site::{EditSite, SiteResponse},
@@ -38,7 +37,7 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
+    let found_site = Site::read_simple(&&context.pool.get().await?)?;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
@@ -63,12 +62,12 @@ impl PerformCrud for EditSite {
       community_creation_admin_only: data.community_creation_admin_only,
     };
 
-    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    if blocking(context.pool(), update_site).await?.is_err() {
+    let update_site = Site::update(&&context.pool.get().await?, 1, &site_form);
+    if update_site.is_err() {
       return Err(ApiError::err("couldnt_update_site").into());
     }
 
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+    let site_view = SiteView::read(&&context.pool.get().await?)?;
 
     let res = SiteResponse { site_view };
 

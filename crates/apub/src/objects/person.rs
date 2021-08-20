@@ -12,7 +12,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
@@ -176,10 +175,7 @@ impl FromApub for DbPerson {
       shared_inbox_url: Some(shared_inbox),
       matrix_user_id: Some(person.matrix_user_id.clone()),
     };
-    let person = blocking(context.pool(), move |conn| {
-      DbPerson::upsert(conn, &person_form)
-    })
-    .await??;
+    let person = DbPerson::upsert(&&context.pool.get().await?, &person_form)?;
     Ok(person)
   }
 }

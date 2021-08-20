@@ -10,7 +10,7 @@ use crate::{
   Object,
 };
 use anyhow::anyhow;
-use lemmy_api_common::{blocking, site::SearchResponse};
+use lemmy_api_common::site::SearchResponse;
 use lemmy_db_queries::{
   source::{
     comment::Comment_,
@@ -119,40 +119,31 @@ async fn build_response(
       let person_id = p.id(&query_url)?;
       let person = get_or_fetch_and_upsert_person(person_id, context, recursion_counter).await?;
 
-      response.users = vec![
-        blocking(context.pool(), move |conn| {
-          PersonViewSafe::read(conn, person.id)
-        })
-        .await??,
-      ];
+      response.users = vec![PersonViewSafe::read(
+        &&context.pool.get().await?,
+        person.id,
+      )?];
     }
     SearchAcceptedObjects::Group(g) => {
       let community_uri = g.id(&query_url)?;
       let community =
         get_or_fetch_and_upsert_community(community_uri, context, recursion_counter).await?;
 
-      response.communities = vec![
-        blocking(context.pool(), move |conn| {
-          CommunityView::read(conn, community.id, None)
-        })
-        .await??,
-      ];
+      response.communities = vec![CommunityView::read(
+        &&context.pool.get().await?,
+        community.id,
+        None,
+      )?];
     }
     SearchAcceptedObjects::Page(p) => {
       let p = Post::from_apub(&p, context, &query_url, recursion_counter).await?;
 
-      response.posts =
-        vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
+      response.posts = vec![PostView::read(&&context.pool.get().await?, p.id, None)?];
     }
     SearchAcceptedObjects::Comment(c) => {
       let c = Comment::from_apub(&c, context, &query_url, recursion_counter).await?;
 
-      response.comments = vec![
-        blocking(context.pool(), move |conn| {
-          CommentView::read(conn, c.id, None)
-        })
-        .await??,
-      ];
+      response.comments = vec![CommentView::read(&&context.pool.get().await?, c.id, None)?];
     }
   };
 
@@ -163,35 +154,20 @@ async fn delete_object_locally(query_url: &Url, context: &LemmyContext) -> Resul
   let res = find_object_by_id(context, query_url.to_owned()).await?;
   match res {
     Object::Comment(c) => {
-      blocking(context.pool(), move |conn| {
-        Comment::update_deleted(conn, c.id, true)
-      })
-      .await??;
+      Comment::update_deleted(&&context.pool.get().await?, c.id, true)?;
     }
     Object::Post(p) => {
-      blocking(context.pool(), move |conn| {
-        Post::update_deleted(conn, p.id, true)
-      })
-      .await??;
+      Post::update_deleted(&&context.pool.get().await?, p.id, true)?;
     }
     Object::Person(u) => {
       // TODO: implement update_deleted() for user, move it to ApubObject trait
-      blocking(context.pool(), move |conn| {
-        Person::delete_account(conn, u.id)
-      })
-      .await??;
+      Person::delete_account(&&context.pool.get().await?, u.id)?;
     }
     Object::Community(c) => {
-      blocking(context.pool(), move |conn| {
-        Community::update_deleted(conn, c.id, true)
-      })
-      .await??;
+      Community::update_deleted(&&context.pool.get().await?, c.id, true)?;
     }
     Object::PrivateMessage(pm) => {
-      blocking(context.pool(), move |conn| {
-        PrivateMessage::update_deleted(conn, pm.id, true)
-      })
-      .await??;
+      PrivateMessage::update_deleted(&&context.pool.get().await?, pm.id, true)?;
     }
   }
   Err(anyhow!("Object was deleted").into())

@@ -19,7 +19,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
 use lemmy_db_schema::source::{
@@ -100,19 +99,16 @@ impl ActivityHandler for AddMod {
     // If we had to refetch the community while parsing the activity, then the new mod has already
     // been added. Skip it here as it would result in a duplicate key error.
     let new_mod_id = new_mod.id;
-    let moderated_communities = blocking(context.pool(), move |conn| {
-      CommunityModerator::get_person_moderated_communities(conn, new_mod_id)
-    })
-    .await??;
+    let moderated_communities = CommunityModerator::get_person_moderated_communities(
+      &&context.pool.get().await?,
+      new_mod_id,
+    )?;
     if !moderated_communities.contains(&community.id) {
       let form = CommunityModeratorForm {
         community_id: community.id,
         person_id: new_mod.id,
       };
-      blocking(context.pool(), move |conn| {
-        CommunityModerator::join(conn, &form)
-      })
-      .await??;
+      CommunityModerator::join(&&context.pool.get().await?, &form)?;
     }
     // TODO: send websocket notification about added mod
     Ok(())

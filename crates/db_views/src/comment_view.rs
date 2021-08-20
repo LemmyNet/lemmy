@@ -708,7 +708,7 @@ mod tests {
     );
 
     // Make sure block set the creator blocked
-    assert_eq!(true, read_comment_from_blocked_person.creator_blocked);
+    assert!(read_comment_from_blocked_person.creator_blocked);
 
     assert_eq!(1, num_deleted);
     assert_eq!(1, like_removed);

@@ -1,6 +1,5 @@
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{settings::structs::Settings, version, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -27,8 +26,7 @@ async fn node_info_well_known() -> Result<HttpResponse<Body>, LemmyError> {
 }
 
 async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Error> {
-  let site_view = blocking(context.pool(), SiteView::read)
-    .await?
+  let site_view = SiteView::read(&&context.pool.get().await.map_err(ErrorBadRequest)?)
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
   let protocols = if Settings::get().federation.enabled {

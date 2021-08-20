@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
@@ -26,7 +25,7 @@ impl PerformCrud for DeletePost {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(&&context.pool.get().await?, post_id)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -43,16 +42,10 @@ impl PerformCrud for DeletePost {
     // Update the post
     let post_id = data.post_id;
     let deleted = data.deleted;
-    let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_deleted(conn, post_id, deleted)
-    })
-    .await??;
+    let updated_post = Post::update_deleted(&&context.pool.get().await?, post_id, deleted)?;
 
     // apub updates
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_post.community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, orig_post.community_id)?;
     send_apub_delete(
       &local_user_view.person,
       &community,
@@ -86,7 +79,7 @@ impl PerformCrud for RemovePost {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(&&context.pool.get().await?, post_id)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -106,10 +99,7 @@ impl PerformCrud for RemovePost {
     // Update the post
     let post_id = data.post_id;
     let removed = data.removed;
-    let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_removed(conn, post_id, removed)
-    })
-    .await??;
+    let updated_post = Post::update_removed(&&context.pool.get().await?, post_id, removed)?;
 
     // Mod tables
     let form = ModRemovePostForm {
@@ -118,16 +108,10 @@ impl PerformCrud for RemovePost {
       removed: Some(removed),
       reason: data.reason.to_owned(),
     };
-    blocking(context.pool(), move |conn| {
-      ModRemovePost::create(conn, &form)
-    })
-    .await??;
+    ModRemovePost::create(&&context.pool.get().await?, &form)?;
 
     // apub updates
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_post.community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, orig_post.community_id)?;
     send_apub_remove(
       &local_user_view.person,
       &community,

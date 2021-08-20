@@ -14,7 +14,6 @@ use crate::{
   ActorType,
 };
 use activitystreams::{base::AnyBase, link::Mention, primitives::OneOrMany, unparsed::Unparsed};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, verify_domains_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
@@ -49,12 +48,9 @@ impl CreateOrUpdateComment {
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(&&context.pool.get().await?, post_id)?;
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
 
     let id = generate_activity_id(kind.clone())?;
     let maa = collect_non_local_mentions(comment, &community, context).await?;

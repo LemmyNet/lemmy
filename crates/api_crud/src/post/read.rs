@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, mark_post_as_read, post::*};
+use lemmy_api_common::{get_local_user_view_from_jwt_opt, mark_post_as_read, post::*};
 use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
 use lemmy_db_queries::{from_opt_str_to_opt_enum, DeleteableOrRemoveable, ListingType, SortType};
 use lemmy_db_views::{
@@ -32,11 +32,8 @@ impl PerformCrud for GetPost {
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
-    let mut post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, id, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_post"))?;
+    let mut post_view = PostView::read(&&context.pool.get().await?, id, person_id)
+      .map_err(|_| ApiError::err("couldnt_find_post"))?;
 
     // Blank out deleted info
     if post_view.post.deleted || post_view.post.removed {
@@ -49,15 +46,12 @@ impl PerformCrud for GetPost {
     }
 
     let id = data.id;
-    let mut comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
-        .post_id(id)
-        .limit(9999)
-        .list()
-    })
-    .await??;
+    let mut comments = CommentQueryBuilder::create(&&context.pool.get().await?)
+      .my_person_id(person_id)
+      .show_bot_accounts(show_bot_accounts)
+      .post_id(id)
+      .limit(9999)
+      .list()?;
 
     // Blank out deleted or removed info
     for cv in comments
@@ -68,17 +62,13 @@ impl PerformCrud for GetPost {
     }
 
     let community_id = post_view.community.id;
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let moderators =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)?;
 
     // Necessary for the sidebar
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    let mut community_view =
+      CommunityView::read(&&context.pool.get().await?, community_id, person_id)
+        .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     // Blank out deleted or removed info
     if community_view.community.deleted || community_view.community.removed {
@@ -137,23 +127,20 @@ impl PerformCrud for GetPosts {
       .unwrap_or(None);
     let saved_only = data.saved_only;
 
-    let mut posts = blocking(context.pool(), move |conn| {
-      PostQueryBuilder::create(conn)
-        .listing_type(listing_type)
-        .sort(sort)
-        .show_nsfw(show_nsfw)
-        .show_bot_accounts(show_bot_accounts)
-        .show_read_posts(show_read_posts)
-        .community_id(community_id)
-        .community_actor_id(community_actor_id)
-        .saved_only(saved_only)
-        .my_person_id(person_id)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_get_posts"))?;
+    let mut posts = PostQueryBuilder::create(&&context.pool.get().await?)
+      .listing_type(listing_type)
+      .sort(sort)
+      .show_nsfw(show_nsfw)
+      .show_bot_accounts(show_bot_accounts)
+      .show_read_posts(show_read_posts)
+      .community_id(community_id)
+      .community_actor_id(community_actor_id)
+      .saved_only(saved_only)
+      .my_person_id(person_id)
+      .page(page)
+      .limit(limit)
+      .list()
+      .map_err(|_| ApiError::err("couldnt_get_posts"))?;
 
     // Blank out deleted or removed info
     for pv in posts

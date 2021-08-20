@@ -3,12 +3,8 @@ extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_web::{web::Data, *};
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
+use deadpool_diesel::postgres::{Manager, Pool};
 use lemmy_api::match_websocket_operation;
-use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub::activity_queue::create_activity_queue;
 use lemmy_db_queries::get_database_url_from_env;
@@ -31,28 +27,26 @@ async fn main() -> Result<(), LemmyError> {
   env_logger::init();
   let settings = Settings::get();
 
-  // Set up the r2d2 connection pool
+  // Set up the deadpool connection pool
   let db_url = match get_database_url_from_env() {
     Ok(url) => url,
     Err(_) => settings.get_database_url(),
   };
-  let manager = ConnectionManager::<PgConnection>::new(&db_url);
-  let pool = Pool::builder()
-    .max_size(settings.database.pool_size)
-    .build(manager)
-    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+
+  let manager = Manager::new(db_url);
+  let pool = Pool::new(manager, settings.database.pool_size);
+  let conn = &pool.get().await?;
 
   // Run the migrations from code
-  blocking(&pool, move |conn| {
-    embedded_migrations::run(conn)?;
-    run_advanced_migrations(conn)?;
-    Ok(()) as Result<(), LemmyError>
-  })
-  .await??;
+  embedded_migrations::run(conn)?;
+  run_advanced_migrations(conn)?;
 
-  let pool2 = pool.clone();
+  // TODO can't move the pool into clokwerk, it doesn't yet support async
+  let c1 = pool.get().await?;
+  let c2 = pool.get().await?;
+  let c3 = pool.get().await?;
   thread::spawn(move || {
-    scheduled_tasks::setup(pool2);
+    scheduled_tasks::setup(c1, c2, c3);
   });
 
   // Set up the rate limiter

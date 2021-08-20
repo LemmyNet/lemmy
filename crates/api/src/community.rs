@@ -2,7 +2,6 @@ use crate::Perform;
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   community::*,
   get_local_user_view_from_jwt,
@@ -56,10 +55,7 @@ impl Perform for FollowCommunity {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let community_id = data.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
@@ -70,14 +66,15 @@ impl Perform for FollowCommunity {
       if data.follow {
         check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
 
-        let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-        if blocking(context.pool(), follow).await?.is_err() {
+        let follow =
+          CommunityFollower::follow(&&context.pool.get().await?, &community_follower_form);
+        if follow.is_err() {
           return Err(ApiError::err("community_follower_already_exists").into());
         }
       } else {
         let unfollow =
-          move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
-        if blocking(context.pool(), unfollow).await?.is_err() {
+          CommunityFollower::unfollow(&&context.pool.get().await?, &community_follower_form);
+        if unfollow.is_err() {
           return Err(ApiError::err("community_follower_already_exists").into());
         }
       }
@@ -87,18 +84,17 @@ impl Perform for FollowCommunity {
       FollowCommunityApub::send(&local_user_view.person, &community, context).await?;
     } else {
       UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
-      let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
-      if blocking(context.pool(), unfollow).await?.is_err() {
+      let unfollow =
+        CommunityFollower::unfollow(&&context.pool.get().await?, &community_follower_form);
+      if unfollow.is_err() {
         return Err(ApiError::err("community_follower_already_exists").into());
       }
     }
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(person_id))
-    })
-    .await??;
+    let mut community_view =
+      CommunityView::read(&&context.pool.get().await?, community_id, Some(person_id))?;
 
     // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     // For now, just assume that remote follows are accepted.
@@ -131,8 +127,8 @@ impl Perform for BlockCommunity {
     };
 
     if data.block {
-      let block = move |conn: &'_ _| CommunityBlock::block(conn, &community_block_form);
-      if blocking(context.pool(), block).await?.is_err() {
+      let block = CommunityBlock::block(&&context.pool.get().await?, &community_block_form);
+      if block.is_err() {
         return Err(ApiError::err("community_block_already_exists").into());
       }
 
@@ -142,27 +138,18 @@ impl Perform for BlockCommunity {
         person_id,
         pending: false,
       };
-      blocking(context.pool(), move |conn: &'_ _| {
-        CommunityFollower::unfollow(conn, &community_follower_form)
-      })
-      .await?
-      .ok();
-      let community = blocking(context.pool(), move |conn| {
-        Community::read(conn, community_id)
-      })
-      .await??;
+      CommunityFollower::unfollow(&&context.pool.get().await?, &community_follower_form).ok();
+      let community = Community::read(&&context.pool.get().await?, community_id)?;
       UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
     } else {
-      let unblock = move |conn: &'_ _| CommunityBlock::unblock(conn, &community_block_form);
-      if blocking(context.pool(), unblock).await?.is_err() {
+      let unblock = CommunityBlock::unblock(&&context.pool.get().await?, &community_block_form);
+      if unblock.is_err() {
         return Err(ApiError::err("community_block_already_exists").into());
       }
     }
 
-    let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(person_id))
-    })
-    .await??;
+    let community_view =
+      CommunityView::read(&&context.pool.get().await?, community_id, Some(person_id))?;
 
     Ok(BlockCommunityResponse {
       blocked: data.block,
@@ -194,18 +181,12 @@ impl Perform for BanFromCommunity {
       person_id: data.person_id,
     };
 
-    let community = blocking(context.pool(), move |conn: &'_ _| {
-      Community::read(conn, community_id)
-    })
-    .await??;
-    let banned_person = blocking(context.pool(), move |conn: &'_ _| {
-      Person::read(conn, banned_person_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
+    let banned_person = Person::read(&&context.pool.get().await?, banned_person_id)?;
 
     if data.ban {
-      let ban = move |conn: &'_ _| CommunityPersonBan::ban(conn, &community_user_ban_form);
-      if blocking(context.pool(), ban).await?.is_err() {
+      let ban = CommunityPersonBan::ban(&&context.pool.get().await?, &community_user_ban_form);
+      if ban.is_err() {
         return Err(ApiError::err("community_user_already_banned").into());
       }
 
@@ -215,17 +196,13 @@ impl Perform for BanFromCommunity {
         person_id: banned_person_id,
         pending: false,
       };
-      blocking(context.pool(), move |conn: &'_ _| {
-        CommunityFollower::unfollow(conn, &community_follower_form)
-      })
-      .await?
-      .ok();
+      CommunityFollower::unfollow(&&context.pool.get().await?, &community_follower_form).ok();
 
       BlockUserFromCommunity::send(&community, &banned_person, &local_user_view.person, context)
         .await?;
     } else {
-      let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
-      if blocking(context.pool(), unban).await?.is_err() {
+      let unban = CommunityPersonBan::unban(&&context.pool.get().await?, &community_user_ban_form);
+      if unban.is_err() {
         return Err(ApiError::err("community_user_already_banned").into());
       }
       UndoBlockUserFromCommunity::send(
@@ -240,28 +217,24 @@ impl Perform for BanFromCommunity {
     // Remove/Restore their data if that's desired
     if data.remove_data.unwrap_or(false) {
       // Posts
-      blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)
-      })
-      .await??;
+      Post::update_removed_for_creator(
+        &&context.pool.get().await?,
+        banned_person_id,
+        Some(community_id),
+        true,
+      )?;
 
       // Comments
       // TODO Diesel doesn't allow updates with joins, so this has to be a loop
-      let comments = blocking(context.pool(), move |conn| {
-        CommentQueryBuilder::create(conn)
-          .creator_id(banned_person_id)
-          .community_id(community_id)
-          .limit(std::i64::MAX)
-          .list()
-      })
-      .await??;
+      let comments = CommentQueryBuilder::create(&&context.pool.get().await?)
+        .creator_id(banned_person_id)
+        .community_id(community_id)
+        .limit(std::i64::MAX)
+        .list()?;
 
       for comment_view in &comments {
         let comment_id = comment_view.comment.id;
-        blocking(context.pool(), move |conn: &'_ _| {
-          Comment::update_removed(conn, comment_id, true)
-        })
-        .await??;
+        Comment::update_removed(&&context.pool.get().await?, comment_id, true)?;
       }
     }
 
@@ -277,16 +250,10 @@ impl Perform for BanFromCommunity {
       banned: Some(data.ban),
       expires,
     };
-    blocking(context.pool(), move |conn| {
-      ModBanFromCommunity::create(conn, &form)
-    })
-    .await??;
+    ModBanFromCommunity::create(&&context.pool.get().await?, &form)?;
 
     let person_id = data.person_id;
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_id)
-    })
-    .await??;
+    let person_view = PersonViewSafe::read(&&context.pool.get().await?, person_id)?;
 
     let res = BanFromCommunityResponse {
       person_view,
@@ -327,13 +294,13 @@ impl Perform for AddModToCommunity {
       person_id: data.person_id,
     };
     if data.added {
-      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-      if blocking(context.pool(), join).await?.is_err() {
+      let join = CommunityModerator::join(&&context.pool.get().await?, &community_moderator_form);
+      if join.is_err() {
         return Err(ApiError::err("community_moderator_already_exists").into());
       }
     } else {
-      let leave = move |conn: &'_ _| CommunityModerator::leave(conn, &community_moderator_form);
-      if blocking(context.pool(), leave).await?.is_err() {
+      let leave = CommunityModerator::leave(&&context.pool.get().await?, &community_moderator_form);
+      if leave.is_err() {
         return Err(ApiError::err("community_moderator_already_exists").into());
       }
     }
@@ -345,21 +312,12 @@ impl Perform for AddModToCommunity {
       community_id: data.community_id,
       removed: Some(!data.added),
     };
-    blocking(context.pool(), move |conn| {
-      ModAddCommunity::create(conn, &form)
-    })
-    .await??;
+    ModAddCommunity::create(&&context.pool.get().await?, &form)?;
 
     // Send to federated instances
     let updated_mod_id = data.person_id;
-    let updated_mod = blocking(context.pool(), move |conn| {
-      Person::read(conn, updated_mod_id)
-    })
-    .await??;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let updated_mod = Person::read(&&context.pool.get().await?, updated_mod_id)?;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
     if data.added {
       AddMod::send(&community, &updated_mod, &local_user_view.person, context).await?;
     } else {
@@ -369,10 +327,8 @@ impl Perform for AddModToCommunity {
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get
     //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
     let community_id = data.community_id;
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let moderators =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)?;
 
     let res = AddModToCommunityResponse { moderators };
     context.chat_server().do_send(SendCommunityRoomMessage {
@@ -399,12 +355,9 @@ impl Perform for TransferCommunity {
     let data: &TransferCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let site_creator_id = blocking(context.pool(), move |conn| {
-      Site::read(conn, 1).map(|s| s.creator_id)
-    })
-    .await??;
+    let site_creator_id = Site::read(&&context.pool.get().await?, 1).map(|s| s.creator_id)?;
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = PersonViewSafe::admins(&&context.pool.get().await?)?;
 
     // Making sure the site creator, if an admin, is at the top
     let creator_index = admins
@@ -416,10 +369,8 @@ impl Perform for TransferCommunity {
 
     // Fetch the community mods
     let community_id = data.community_id;
-    let mut community_mods = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let mut community_mods =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)?;
 
     // Make sure transferrer is either the top community mod, or an admin
     if local_user_view.person.id != community_mods[0].moderator.id
@@ -442,10 +393,7 @@ impl Perform for TransferCommunity {
 
     // Delete all the mods
     let community_id = data.community_id;
-    blocking(context.pool(), move |conn| {
-      CommunityModerator::delete_for_community(conn, community_id)
-    })
-    .await??;
+    CommunityModerator::delete_for_community(&&context.pool.get().await?, community_id)?;
 
     // TODO: this should probably be a bulk operation
     // Re-add the mods, in the new order
@@ -455,8 +403,8 @@ impl Perform for TransferCommunity {
         person_id: cmod.moderator.id,
       };
 
-      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-      if blocking(context.pool(), join).await?.is_err() {
+      let join = CommunityModerator::join(&&context.pool.get().await?, &community_moderator_form);
+      if join.is_err() {
         return Err(ApiError::err("community_moderator_already_exists").into());
       }
     }
@@ -468,25 +416,18 @@ impl Perform for TransferCommunity {
       community_id: data.community_id,
       removed: Some(false),
     };
-    blocking(context.pool(), move |conn| {
-      ModTransferCommunity::create(conn, &form)
-    })
-    .await??;
+    ModTransferCommunity::create(&&context.pool.get().await?, &form)?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, Some(person_id))
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    let community_view =
+      CommunityView::read(&&context.pool.get().await?, community_id, Some(person_id))
+        .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     let community_id = data.community_id;
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    let moderators =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)
+        .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     // Return the jwt
     Ok(GetCommunityResponse {

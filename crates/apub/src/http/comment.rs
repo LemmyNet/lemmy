@@ -4,7 +4,6 @@ use crate::{
 };
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{source::comment::Comment, CommentId};
 use lemmy_utils::LemmyError;
@@ -22,7 +21,7 @@ pub(crate) async fn get_apub_comment(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
-  let comment = blocking(context.pool(), move |conn| Comment::read(conn, id)).await??;
+  let comment = Comment::read(&&context.pool.get().await?, id)?;
   if !comment.local {
     return Err(NotFound.into());
   }

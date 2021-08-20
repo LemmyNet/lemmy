@@ -57,7 +57,7 @@ pub struct DatabaseConfig {
   #[default("lemmy")]
   pub(super) database: String,
   #[default(5)]
-  pub pool_size: u32,
+  pub pool_size: usize,
 }
 
 #[derive(Debug, Deserialize, Clone)]

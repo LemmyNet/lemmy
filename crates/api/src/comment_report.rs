@@ -1,7 +1,6 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   collect_moderated_communities,
   comment::*,
@@ -45,10 +44,7 @@ impl Perform for CreateCommentReport {
 
     let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let comment_view = CommentView::read(&&context.pool.get().await?, comment_id, None)?;
 
     check_community_ban(person_id, comment_view.community.id, context.pool()).await?;
 
@@ -59,11 +55,8 @@ impl Perform for CreateCommentReport {
       reason: data.reason.to_owned(),
     };
 
-    let report = blocking(context.pool(), move |conn| {
-      CommentReport::report(conn, &report_form)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_create_report"))?;
+    let report = CommentReport::report(&&context.pool.get().await?, &report_form)
+      .map_err(|_| ApiError::err("couldnt_create_report"))?;
 
     let res = CreateCommentReportResponse { success: true };
 
@@ -99,24 +92,19 @@ impl Perform for ResolveCommentReport {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let report_id = data.report_id;
-    let report = blocking(context.pool(), move |conn| {
-      CommentReportView::read(conn, report_id)
-    })
-    .await??;
+    let report = CommentReportView::read(&&context.pool.get().await?, report_id)?;
 
     let person_id = local_user_view.person.id;
     is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
 
     let resolved = data.resolved;
-    let resolve_fun = move |conn: &'_ _| {
-      if resolved {
-        CommentReport::resolve(conn, report_id, person_id)
-      } else {
-        CommentReport::unresolve(conn, report_id, person_id)
-      }
+    let resolve_fun = if resolved {
+      CommentReport::resolve(&&context.pool.get().await?, report_id, person_id)
+    } else {
+      CommentReport::unresolve(&&context.pool.get().await?, report_id, person_id)
     };
 
-    if blocking(context.pool(), resolve_fun).await?.is_err() {
+    if resolve_fun.is_err() {
       return Err(ApiError::err("couldnt_resolve_report").into());
     };
 
@@ -158,14 +146,11 @@ impl Perform for ListCommentReports {
 
     let page = data.page;
     let limit = data.limit;
-    let comments = blocking(context.pool(), move |conn| {
-      CommentReportQueryBuilder::create(conn)
-        .community_ids(community_ids)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await??;
+    let comments = CommentReportQueryBuilder::create(&&context.pool.get().await?)
+      .community_ids(community_ids)
+      .page(page)
+      .limit(limit)
+      .list()?;
 
     let res = ListCommentReportsResponse { comments };
 

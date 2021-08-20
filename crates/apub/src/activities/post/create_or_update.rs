@@ -16,7 +16,6 @@ use crate::{
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::PublicUrl,
   verify_domains_match,
@@ -55,10 +54,7 @@ impl CreateOrUpdatePost {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
 
     let id = generate_activity_id(kind.clone())?;
     let create_or_update = CreateOrUpdatePost {

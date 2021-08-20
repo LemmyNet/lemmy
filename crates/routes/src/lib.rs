@@ -1,3 +1,5 @@
+#![allow(clippy::needless_borrow)]
+
 #[macro_use]
 extern crate lazy_static;
 

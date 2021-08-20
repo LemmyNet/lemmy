@@ -1,3 +1,8 @@
+// Clippy needless_borrow linting is broken currently. Example:
+// PersonViewSafe::read(&&context.pool.get().await?, person_details_id)?;
+// change this to: `&&context.pool.get().await?`
+#![allow(clippy::needless_borrow)]
+
 use actix_web::{web, web::Data};
 use captcha::Captcha;
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};

@@ -25,7 +25,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
@@ -62,10 +61,7 @@ impl UndoVote {
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
 
     let object = Vote::new(object, actor, &community, kind.clone())?;
     let id = generate_activity_id(UndoType::Undo)?;

@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{CommunityResponse, CreateCommunity},
   get_local_user_view_from_jwt,
   is_admin,
@@ -47,7 +46,7 @@ impl PerformCrud for CreateCommunity {
     let data: &CreateCommunity = self;
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
-    let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
+    let site = Site::read(&&context.pool.get().await?, 0)?;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(ApiError::err("only_admins_can_create_communities").into());
     }
@@ -63,10 +62,8 @@ impl PerformCrud for CreateCommunity {
     // Double check for duplicate community actor_ids
     let community_actor_id = generate_apub_endpoint(EndpointType::Community, &data.name)?;
     let actor_id_cloned = community_actor_id.to_owned();
-    let community_dupe = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &actor_id_cloned)
-    })
-    .await?;
+    let community_dupe =
+      Community::read_from_apub_id(&&context.pool.get().await?, &actor_id_cloned);
     if community_dupe.is_ok() {
       return Err(ApiError::err("community_already_exists").into());
     }
@@ -94,11 +91,8 @@ impl PerformCrud for CreateCommunity {
       ..CommunityForm::default()
     };
 
-    let inserted_community = blocking(context.pool(), move |conn| {
-      Community::create(conn, &community_form)
-    })
-    .await?
-    .map_err(|_| ApiError::err("community_already_exists"))?;
+    let inserted_community = Community::create(&&context.pool.get().await?, &community_form)
+      .map_err(|_| ApiError::err("community_already_exists"))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -106,8 +100,8 @@ impl PerformCrud for CreateCommunity {
       person_id: local_user_view.person.id,
     };
 
-    let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-    if blocking(context.pool(), join).await?.is_err() {
+    let join = CommunityModerator::join(&&context.pool.get().await?, &community_moderator_form);
+    if join.is_err() {
       return Err(ApiError::err("community_moderator_already_exists").into());
     }
 
@@ -118,16 +112,17 @@ impl PerformCrud for CreateCommunity {
       pending: false,
     };
 
-    let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-    if blocking(context.pool(), follow).await?.is_err() {
+    let follow = CommunityFollower::follow(&&context.pool.get().await?, &community_follower_form);
+    if follow.is_err() {
       return Err(ApiError::err("community_follower_already_exists").into());
     }
 
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, inserted_community.id, Some(person_id))
-    })
-    .await??;
+    let community_view = CommunityView::read(
+      &&context.pool.get().await?,
+      inserted_community.id,
+      Some(person_id),
+    )?;
 
     Ok(CommunityResponse { community_view })
   }

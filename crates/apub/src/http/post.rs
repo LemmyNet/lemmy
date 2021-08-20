@@ -4,7 +4,6 @@ use crate::{
 };
 use actix_web::{body::Body, web, HttpResponse};
 use diesel::result::Error::NotFound;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{source::post::Post, PostId};
 use lemmy_utils::LemmyError;
@@ -22,7 +21,7 @@ pub(crate) async fn get_apub_post(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
-  let post = blocking(context.pool(), move |conn| Post::read(conn, id)).await??;
+  let post = Post::read(&&context.pool.get().await?, id)?;
   if !post.local {
     return Err(NotFound.into());
   }

@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
+use lemmy_api_common::{community::*, get_local_user_view_from_jwt_opt};
 use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
 use lemmy_db_queries::{
   from_opt_str_to_opt_enum,
@@ -36,31 +36,24 @@ impl PerformCrud for GetCommunity {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
         let community_actor_id = build_actor_id_from_shortname(EndpointType::Community, &name)?;
 
-        blocking(context.pool(), move |conn| {
-          Community::read_from_apub_id(conn, &community_actor_id)
-        })
-        .await?
-        .map_err(|_| ApiError::err("couldnt_find_community"))?
-        .id
+        Community::read_from_apub_id(&&context.pool.get().await?, &community_actor_id)
+          .map_err(|_| ApiError::err("couldnt_find_community"))?
+          .id
       }
     };
 
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, person_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    let mut community_view =
+      CommunityView::read(&&context.pool.get().await?, community_id, person_id)
+        .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     // Blank out deleted or removed info
     if community_view.community.deleted || community_view.community.removed {
       community_view.community = community_view.community.blank_out_deleted_or_removed_info();
     }
 
-    let moderators: Vec<CommunityModeratorView> = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    let moderators: Vec<CommunityModeratorView> =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)
+        .map_err(|_| ApiError::err("couldnt_find_community"))?;
 
     let online = context
       .chat_server()
@@ -104,17 +97,14 @@ impl PerformCrud for ListCommunities {
 
     let page = data.page;
     let limit = data.limit;
-    let mut communities = blocking(context.pool(), move |conn| {
-      CommunityQueryBuilder::create(conn)
-        .listing_type(listing_type)
-        .sort(sort)
-        .show_nsfw(show_nsfw)
-        .my_person_id(person_id)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await??;
+    let mut communities = CommunityQueryBuilder::create(&&context.pool.get().await?)
+      .listing_type(listing_type)
+      .sort(sort)
+      .show_nsfw(show_nsfw)
+      .my_person_id(person_id)
+      .page(page)
+      .limit(limit)
+      .list()?;
 
     // Blank out deleted or removed info
     for cv in communities

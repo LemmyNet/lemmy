@@ -2,7 +2,6 @@ use crate::Perform;
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_common::{
-  blocking,
   build_federated_instances,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
@@ -67,51 +66,69 @@ impl Perform for GetModlog {
     let mod_person_id = data.mod_person_id;
     let page = data.page;
     let limit = data.limit;
-    let removed_posts = blocking(context.pool(), move |conn| {
-      ModRemovePostView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let removed_posts = ModRemovePostView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
-    let locked_posts = blocking(context.pool(), move |conn| {
-      ModLockPostView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let locked_posts = ModLockPostView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
-    let stickied_posts = blocking(context.pool(), move |conn| {
-      ModStickyPostView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let stickied_posts = ModStickyPostView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
-    let removed_comments = blocking(context.pool(), move |conn| {
-      ModRemoveCommentView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let removed_comments = ModRemoveCommentView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
-    let banned_from_community = blocking(context.pool(), move |conn| {
-      ModBanFromCommunityView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let banned_from_community = ModBanFromCommunityView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
-    let added_to_community = blocking(context.pool(), move |conn| {
-      ModAddCommunityView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let added_to_community = ModAddCommunityView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
-    let transferred_to_community = blocking(context.pool(), move |conn| {
-      ModTransferCommunityView::list(conn, community_id, mod_person_id, page, limit)
-    })
-    .await??;
+    let transferred_to_community = ModTransferCommunityView::list(
+      &&context.pool.get().await?,
+      community_id,
+      mod_person_id,
+      page,
+      limit,
+    )?;
 
     // These arrays are only for the full modlog, when a community isn't given
     let (removed_communities, banned, added) = if data.community_id.is_none() {
-      blocking(context.pool(), move |conn| {
-        Ok((
-          ModRemoveCommunityView::list(conn, mod_person_id, page, limit)?,
-          ModBanView::list(conn, mod_person_id, page, limit)?,
-          ModAddView::list(conn, mod_person_id, page, limit)?,
-        )) as Result<_, LemmyError>
-      })
-      .await??
+      (
+        ModRemoveCommunityView::list(&&context.pool.get().await?, mod_person_id, page, limit)?,
+        ModBanView::list(&&context.pool.get().await?, mod_person_id, page, limit)?,
+        ModAddView::list(&&context.pool.get().await?, mod_person_id, page, limit)?,
+      )
     } else {
       (Vec::new(), Vec::new(), Vec::new())
     };
@@ -182,64 +199,52 @@ impl Perform for Search {
     let creator_id = data.creator_id;
     match search_type {
       SearchType::Posts => {
-        posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
-            .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
-            .listing_type(listing_type)
-            .community_id(community_id)
-            .community_actor_id(community_actor_id)
-            .creator_id(creator_id)
-            .my_person_id(person_id)
-            .search_term(q)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        posts = PostQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .show_nsfw(show_nsfw)
+          .show_bot_accounts(show_bot_accounts)
+          .show_read_posts(show_read_posts)
+          .listing_type(listing_type)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id)
+          .creator_id(creator_id)
+          .my_person_id(person_id)
+          .search_term(q)
+          .page(page)
+          .limit(limit)
+          .list()?;
       }
       SearchType::Comments => {
-        comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(conn)
-            .sort(sort)
-            .listing_type(listing_type)
-            .search_term(q)
-            .show_bot_accounts(show_bot_accounts)
-            .community_id(community_id)
-            .community_actor_id(community_actor_id)
-            .creator_id(creator_id)
-            .my_person_id(person_id)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        comments = CommentQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .listing_type(listing_type)
+          .search_term(q)
+          .show_bot_accounts(show_bot_accounts)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id)
+          .creator_id(creator_id)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit)
+          .list()?;
       }
       SearchType::Communities => {
-        communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn)
-            .sort(sort)
-            .listing_type(listing_type)
-            .search_term(q)
-            .my_person_id(person_id)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        communities = CommunityQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .listing_type(listing_type)
+          .search_term(q)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit)
+          .list()?;
       }
       SearchType::Users => {
-        users = blocking(context.pool(), move |conn| {
-          PersonQueryBuilder::create(conn)
-            .sort(sort)
-            .search_term(q)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        users = PersonQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .search_term(q)
+          .page(page)
+          .limit(limit)
+          .list()?;
       }
       SearchType::All => {
         // If the community or creator is included, dont search communities or users
@@ -247,59 +252,50 @@ impl Perform for Search {
           data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
         let community_actor_id_2 = community_actor_id.to_owned();
 
-        posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
-            .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
-            .listing_type(listing_type)
-            .community_id(community_id)
-            .community_actor_id(community_actor_id_2)
-            .creator_id(creator_id)
-            .my_person_id(person_id)
-            .search_term(q)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        posts = PostQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .show_nsfw(show_nsfw)
+          .show_bot_accounts(show_bot_accounts)
+          .show_read_posts(show_read_posts)
+          .listing_type(listing_type)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id_2)
+          .creator_id(creator_id)
+          .my_person_id(person_id)
+          .search_term(q)
+          .page(page)
+          .limit(limit)
+          .list()?;
 
         let q = data.q.to_owned();
         let community_actor_id = community_actor_id.to_owned();
 
-        comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(conn)
-            .sort(sort)
-            .listing_type(listing_type)
-            .search_term(q)
-            .show_bot_accounts(show_bot_accounts)
-            .community_id(community_id)
-            .community_actor_id(community_actor_id)
-            .creator_id(creator_id)
-            .my_person_id(person_id)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        comments = CommentQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .listing_type(listing_type)
+          .search_term(q)
+          .show_bot_accounts(show_bot_accounts)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id)
+          .creator_id(creator_id)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit)
+          .list()?;
 
         let q = data.q.to_owned();
 
         communities = if community_or_creator_included {
           vec![]
         } else {
-          blocking(context.pool(), move |conn| {
-            CommunityQueryBuilder::create(conn)
-              .sort(sort)
-              .listing_type(listing_type)
-              .search_term(q)
-              .my_person_id(person_id)
-              .page(page)
-              .limit(limit)
-              .list()
-          })
-          .await??
+          CommunityQueryBuilder::create(&&context.pool.get().await?)
+            .sort(sort)
+            .listing_type(listing_type)
+            .search_term(q)
+            .my_person_id(person_id)
+            .page(page)
+            .limit(limit)
+            .list()?
         };
 
         let q = data.q.to_owned();
@@ -307,35 +303,29 @@ impl Perform for Search {
         users = if community_or_creator_included {
           vec![]
         } else {
-          blocking(context.pool(), move |conn| {
-            PersonQueryBuilder::create(conn)
-              .sort(sort)
-              .search_term(q)
-              .page(page)
-              .limit(limit)
-              .list()
-          })
-          .await??
+          PersonQueryBuilder::create(&&context.pool.get().await?)
+            .sort(sort)
+            .search_term(q)
+            .page(page)
+            .limit(limit)
+            .list()?
         };
       }
       SearchType::Url => {
-        posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
-            .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
-            .listing_type(listing_type)
-            .my_person_id(person_id)
-            .community_id(community_id)
-            .community_actor_id(community_actor_id)
-            .creator_id(creator_id)
-            .url_search(q)
-            .page(page)
-            .limit(limit)
-            .list()
-        })
-        .await??;
+        posts = PostQueryBuilder::create(&&context.pool.get().await?)
+          .sort(sort)
+          .show_nsfw(show_nsfw)
+          .show_bot_accounts(show_bot_accounts)
+          .show_read_posts(show_read_posts)
+          .listing_type(listing_type)
+          .my_person_id(person_id)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id)
+          .creator_id(creator_id)
+          .url_search(q)
+          .page(page)
+          .limit(limit)
+          .list()?;
       }
     };
 
@@ -386,7 +376,7 @@ impl Perform for TransferSite {
 
     is_admin(&local_user_view)?;
 
-    let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
+    let read_site = Site::read_simple(&&context.pool.get().await?)?;
 
     // Make sure user is the creator
     if read_site.creator_id != local_user_view.person.id {
@@ -394,8 +384,8 @@ impl Perform for TransferSite {
     }
 
     let new_creator_id = data.person_id;
-    let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
-    if blocking(context.pool(), transfer_site).await?.is_err() {
+    let transfer_site = Site::transfer(&&context.pool.get().await?, new_creator_id);
+    if transfer_site.is_err() {
       return Err(ApiError::err("couldnt_update_site").into());
     };
 
@@ -406,11 +396,11 @@ impl Perform for TransferSite {
       removed: Some(false),
     };
 
-    blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
+    ModAdd::create(&&context.pool.get().await?, &form)?;
 
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+    let site_view = SiteView::read(&&context.pool.get().await?)?;
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = PersonViewSafe::admins(&&context.pool.get().await?)?;
     let creator_index = admins
       .iter()
       .position(|r| r.person.id == site_view.creator.id)
@@ -418,7 +408,7 @@ impl Perform for TransferSite {
     let creator_person = admins.remove(creator_index);
     admins.insert(0, creator_person);
 
-    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
+    let banned = PersonViewSafe::banned(&&context.pool.get().await?)?;
     let federated_instances = build_federated_instances(context.pool()).await?;
 
     Ok(GetSiteResponse {

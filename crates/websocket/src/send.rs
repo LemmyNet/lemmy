@@ -4,7 +4,6 @@ use crate::{
   OperationType,
 };
 use lemmy_api_common::{
-  blocking,
   comment::CommentResponse,
   community::CommunityResponse,
   person::PrivateMessageResponse,
@@ -28,10 +27,7 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<PostResponse, LemmyError> {
-  let mut post_view = blocking(context.pool(), move |conn| {
-    PostView::read(conn, post_id, person_id)
-  })
-  .await??;
+  let mut post_view = PostView::read(&&context.pool.get().await?, post_id, person_id)?;
 
   if post_view.post.deleted || post_view.post.removed {
     post_view.post = post_view.post.blank_out_deleted_or_removed_info();
@@ -67,10 +63,7 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
   recipient_ids: Vec<LocalUserId>,
   context: &LemmyContext,
 ) -> Result<CommentResponse, LemmyError> {
-  let mut view = blocking(context.pool(), move |conn| {
-    CommentView::read(conn, comment_id, person_id)
-  })
-  .await??;
+  let mut view = CommentView::read(&&context.pool.get().await?, comment_id, person_id)?;
 
   if view.comment.deleted || view.comment.removed {
     view.comment = view.comment.blank_out_deleted_or_removed_info();
@@ -98,10 +91,9 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
-  let mut community_view = blocking(context.pool(), move |conn| {
-    CommunityView::read(conn, community_id, person_id)
-  })
-  .await??;
+  let mut community_view =
+    CommunityView::read(&&context.pool.get().await?, community_id, person_id)?;
+
   // Blank out deleted or removed info
   if community_view.community.deleted || community_view.community.removed {
     community_view.community = community_view.community.blank_out_deleted_or_removed_info();
@@ -129,10 +121,7 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   websocket_id: Option<ConnectionId>,
   context: &LemmyContext,
 ) -> Result<PrivateMessageResponse, LemmyError> {
-  let mut view = blocking(context.pool(), move |conn| {
-    PrivateMessageView::read(conn, private_message_id)
-  })
-  .await??;
+  let mut view = PrivateMessageView::read(&&context.pool.get().await?, private_message_id)?;
 
   // Blank out deleted or removed info
   if view.private_message.deleted {
@@ -146,10 +135,7 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   // Send notifications to the local recipient, if one exists
   if res.private_message_view.recipient.local {
     let recipient_id = res.private_message_view.recipient.id;
-    let local_recipient = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
-    })
-    .await??;
+    let local_recipient = LocalUserView::read_person(&&context.pool.get().await?, recipient_id)?;
     context.chat_server().do_send(SendUserRoomMessage {
       op,
       response: res.clone(),

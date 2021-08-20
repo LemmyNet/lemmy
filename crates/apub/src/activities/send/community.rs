@@ -1,6 +1,5 @@
 use crate::{check_is_apub_id_valid, ActorType, CommunityType};
 use itertools::Itertools;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
@@ -43,10 +42,7 @@ impl CommunityType for Community {
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let follows = blocking(pool, move |conn| {
-      CommunityFollowerView::for_community(conn, id)
-    })
-    .await??;
+    let follows = CommunityFollowerView::for_community(&&pool.get().await?, id)?;
     let inboxes = follows
       .into_iter()
       .filter(|f| !f.follower.local)

@@ -1,7 +1,6 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   get_local_user_view_from_jwt,
   person::{MarkPrivateMessageAsRead, PrivateMessageResponse},
 };
@@ -24,10 +23,8 @@ impl Perform for MarkPrivateMessageAsRead {
 
     // Checking permissions
     let private_message_id = data.private_message_id;
-    let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, private_message_id)
-    })
-    .await??;
+    let orig_private_message =
+      PrivateMessage::read(&&context.pool.get().await?, private_message_id)?;
     if local_user_view.person.id != orig_private_message.recipient_id {
       return Err(ApiError::err("couldnt_update_private_message").into());
     }
@@ -35,11 +32,8 @@ impl Perform for MarkPrivateMessageAsRead {
     // Doing the update
     let private_message_id = data.private_message_id;
     let read = data.read;
-    blocking(context.pool(), move |conn| {
-      PrivateMessage::update_read(conn, private_message_id, read)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
+    PrivateMessage::update_read(&&context.pool.get().await?, private_message_id, read)
+      .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // No need to send an apub update
     let op = UserOperation::MarkPrivateMessageAsRead;

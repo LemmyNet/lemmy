@@ -16,7 +16,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{ApubObject, Followable};
 use lemmy_db_schema::source::{
@@ -46,15 +45,10 @@ pub struct AcceptFollowCommunity {
 impl AcceptFollowCommunity {
   pub async fn send(follow: FollowCommunity, context: &LemmyContext) -> Result<(), LemmyError> {
     let community_id = follow.object.clone();
-    let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &community_id.into())
-    })
-    .await??;
+    let community =
+      Community::read_from_apub_id(&&context.pool.get().await?, &community_id.into())?;
     let person_id = follow.actor().clone();
-    let person = blocking(context.pool(), move |conn| {
-      Person::read_from_apub_id(conn, &person_id.into())
-    })
-    .await??;
+    let person = Person::read_from_apub_id(&&context.pool.get().await?, &person_id.into())?;
 
     let accept = AcceptFollowCommunity {
       actor: community.actor_id(),
@@ -93,10 +87,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     let actor = get_or_fetch_and_upsert_community(&self.actor, context, request_counter).await?;
     let to = get_or_fetch_and_upsert_person(&self.to, context, request_counter).await?;
     // This will throw an error if no follow was requested
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow_accepted(conn, actor.id, to.id)
-    })
-    .await??;
+    CommunityFollower::follow_accepted(&&context.pool.get().await?, actor.id, to.id)?;
 
     Ok(())
   }

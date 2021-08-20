@@ -7,7 +7,6 @@ use crate::{
   fetcher::person::get_or_fetch_and_upsert_person,
   ActorType,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_domains_match, ActivityFields};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
@@ -89,10 +88,7 @@ impl DeletableObjects {
     ap_id: DbUrl,
     context: &LemmyContext,
   ) -> Result<Option<Type>, LemmyError> {
-    blocking(context.pool(), move |conn| {
-      Type::read_from_apub_id(conn, &ap_id).ok()
-    })
-    .await
+    Ok(Type::read_from_apub_id(&&context.pool.get().await?, &ap_id).ok())
   }
 }
 
@@ -185,24 +181,17 @@ async fn receive_delete_action(
         send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
       }
 
-      let community = blocking(context.pool(), move |conn| {
-        Community::update_deleted(conn, community.id, deleted)
-      })
-      .await??;
+      let community =
+        Community::update_deleted(&&context.pool.get().await?, community.id, deleted)?;
       send_community_ws_message(community.id, ws_messages.community, None, None, context).await?;
     }
     DeletableObjects::Post(post) => {
-      let deleted_post = blocking(context.pool(), move |conn| {
-        Post::update_deleted(conn, post.id, deleted)
-      })
-      .await??;
+      let deleted_post = Post::update_deleted(&&context.pool.get().await?, post.id, deleted)?;
       send_post_ws_message(deleted_post.id, ws_messages.post, None, None, context).await?;
     }
     DeletableObjects::Comment(comment) => {
-      let deleted_comment = blocking(context.pool(), move |conn| {
-        Comment::update_deleted(conn, comment.id, deleted)
-      })
-      .await??;
+      let deleted_comment =
+        Comment::update_deleted(&&context.pool.get().await?, comment.id, deleted)?;
       send_comment_ws_message_simple(deleted_comment.id, ws_messages.comment, context).await?;
     }
   }

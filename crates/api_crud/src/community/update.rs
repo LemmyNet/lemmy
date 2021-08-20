@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{CommunityResponse, EditCommunity},
   get_local_user_view_from_jwt,
 };
@@ -33,20 +32,15 @@ impl PerformCrud for EditCommunity {
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
-    let mods: Vec<PersonId> = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())
-    })
-    .await??;
+    let mods: Vec<PersonId> =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)
+        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
     if !mods.contains(&local_user_view.person.id) {
       return Err(ApiError::err("not_a_moderator").into());
     }
 
     let community_id = data.community_id;
-    let read_community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let read_community = Community::read(&&context.pool.get().await?, community_id)?;
 
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -63,11 +57,9 @@ impl PerformCrud for EditCommunity {
     };
 
     let community_id = data.community_id;
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(conn, community_id, &community_form)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_update_community"))?;
+    let updated_community =
+      Community::update(&&context.pool.get().await?, community_id, &community_form)
+        .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
     UpdateCommunity::send(&updated_community, &local_user_view.person, context).await?;
 

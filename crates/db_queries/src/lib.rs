@@ -12,6 +12,7 @@ extern crate diesel_migrations;
 #[cfg(test)]
 extern crate serial_test;
 
+use deadpool_diesel::postgres::Pool;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{CommunityId, DbUrl, PersonId};
 use lemmy_utils::ApiError;
@@ -23,7 +24,7 @@ use url::Url;
 pub mod aggregates;
 pub mod source;
 
-pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+pub type DbPool = Pool;
 
 pub trait Crud {
   type Form;
