@@ -83,7 +83,10 @@ pub async fn search_by_apub_id(
               CommunityView::read(conn, community.id, local_user_view.map(|l| l.person.id))
             })
             .await??;
-            Ok(ResolveObjectResponse::Community(res))
+            Ok(ResolveObjectResponse {
+              community: Some(res),
+              ..ResolveObjectResponse::default()
+            })
           }
           WebfingerType::Person => {
             let res = blocking(context.pool(), move |conn| {
@@ -91,7 +94,10 @@ pub async fn search_by_apub_id(
               PersonViewSafe::read(conn, person.id)
             })
             .await??;
-            Ok(ResolveObjectResponse::Person(res))
+            Ok(ResolveObjectResponse {
+              person: Some(res),
+              ..ResolveObjectResponse::default()
+            })
           }
         };
       }
@@ -126,36 +132,47 @@ async fn build_response(
       let person_uri = p.id(&query_url)?;
 
       let person = get_or_fetch_and_upsert_person(person_uri, context, recursion_counter).await?;
-      ROR::Person(
-        blocking(context.pool(), move |conn| {
+      ROR {
+        person: blocking(context.pool(), move |conn| {
           PersonViewSafe::read(conn, person.id)
         })
-        .await??,
-      )
+        .await?
+        .ok(),
+        ..ROR::default()
+      }
     }
     SearchAcceptedObjects::Group(g) => {
       let community_uri = g.id(&query_url)?;
       let community =
         get_or_fetch_and_upsert_community(community_uri, context, recursion_counter).await?;
-      ROR::Community(
-        blocking(context.pool(), move |conn| {
+      ROR {
+        community: blocking(context.pool(), move |conn| {
           CommunityView::read(conn, community.id, None)
         })
-        .await??,
-      )
+        .await?
+        .ok(),
+        ..ROR::default()
+      }
     }
     SearchAcceptedObjects::Page(p) => {
       let p = Post::from_apub(&p, context, &query_url, recursion_counter).await?;
-      ROR::Post(blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??)
+      ROR {
+        post: blocking(context.pool(), move |conn| PostView::read(conn, p.id, None))
+          .await?
+          .ok(),
+        ..ROR::default()
+      }
     }
     SearchAcceptedObjects::Comment(c) => {
       let c = Comment::from_apub(&c, context, &query_url, recursion_counter).await?;
-      ROR::Comment(
-        blocking(context.pool(), move |conn| {
+      ROR {
+        comment: blocking(context.pool(), move |conn| {
           CommentView::read(conn, c.id, None)
         })
-        .await??,
-      )
+        .await?
+        .ok(),
+        ..ROR::default()
+      }
     }
   })
 }

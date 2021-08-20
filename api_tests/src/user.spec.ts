@@ -3,7 +3,7 @@ import {
   alpha,
   beta,
   registerUser,
-  searchForUser,
+  resolvePerson,
   saveUserSettings,
   getSite,
 } from './shared';
@@ -56,9 +56,7 @@ test('Set some user settings, check that they are federated', async () => {
   };
   await saveUserSettings(alpha, form);
 
-  let searchAlpha = await searchForUser(alpha, apShortname);
-  let userOnAlpha = searchAlpha.users[0];
-  let searchBeta = await searchForUser(beta, apShortname);
-  let userOnBeta = searchBeta.users[0];
-  assertUserFederation(userOnAlpha, userOnBeta);
+  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
+  let betaPerson = (await resolvePerson(beta, apShortname)).person;
+  assertUserFederation(alphaPerson, betaPerson);
 });
