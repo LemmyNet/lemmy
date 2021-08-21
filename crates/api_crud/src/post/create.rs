@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   get_local_user_view_from_jwt,
   mark_post_as_read,
@@ -70,27 +69,20 @@ impl PerformCrud for CreatePost {
       ..PostForm::default()
     };
 
-    let inserted_post =
-      match blocking(context.pool(), move |conn| Post::create(conn, &post_form)).await? {
-        Ok(post) => post,
-        Err(e) => {
-          let err_type = if e.to_string() == "value too long for type character varying(200)" {
-            "post_title_too_long"
-          } else {
-            "couldnt_create_post"
-          };
-
-          return Err(ApiError::err(err_type).into());
-        }
+    let inserted_post = Post::create(&&context.pool.get().await?, &post_form).map_err(|e| {
+      let err_type = if e.to_string() == "value too long for type character varying(200)" {
+        "post_title_too_long"
+      } else {
+        "couldnt_create_post"
       };
 
+      ApiError::err(err_type)
+    })?;
+
     let inserted_post_id = inserted_post.id;
-    let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
-      let apub_id = generate_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string())?;
-      Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_create_post"))?;
+    let apub_id = generate_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string())?;
+    let updated_post = Post::update_ap_id(&&context.pool.get().await?, inserted_post_id, apub_id)
+      .map_err(|_| ApiError::err("couldnt_create_post"))?;
 
     CreateOrUpdatePost::send(
       &updated_post,
@@ -109,8 +101,8 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
-    if blocking(context.pool(), like).await?.is_err() {
+    let like = PostLike::like(&&context.pool.get().await?, &like_form);
+    if like.is_err() {
       return Err(ApiError::err("couldnt_like_post").into());
     }
 

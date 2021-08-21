@@ -19,7 +19,6 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
   verify_domains_match,
@@ -120,12 +119,12 @@ impl Note {
             // Workaround because I cant figure ut how to get the post out of the box (and we dont
             // want to stackoverflow in a deep comment hierarchy).
             let post_id = p.id;
-            let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+            let post = Post::read(&&context.pool.get().await?, post_id)?;
             Ok((post, None))
           }
           PostOrComment::Comment(c) => {
             let post_id = c.post_id;
-            let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+            let post = Post::read(&&context.pool.get().await?, post_id)?;
             Ok((post, Some(c.id)))
           }
         }
@@ -140,10 +139,7 @@ impl Note {
   ) -> Result<(), LemmyError> {
     let (post, _parent_comment_id) = self.get_parents(context, request_counter).await?;
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(&&context.pool.get().await?, community_id)?;
 
     if post.locked {
       return Err(anyhow!("Post is locked").into());
@@ -166,17 +162,17 @@ impl ToApub for Comment {
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
+    let creator = Person::read(&&pool.get().await?, creator_id)?;
 
     let post_id = self.post_id;
-    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(&&pool.get().await?, post_id)?;
 
     // Add a vector containing some important info to the "in_reply_to" field
     // [post_ap_id, Option(parent_comment_ap_id)]
     let mut in_reply_to_vec = vec![post.ap_id.into_inner()];
 
     if let Some(parent_id) = self.parent_id {
-      let parent_comment = blocking(pool, move |conn| Comment::read(conn, parent_id)).await??;
+      let parent_comment = Comment::read(&&pool.get().await?, parent_id)?;
 
       in_reply_to_vec.push(parent_comment.ap_id.into_inner());
     }
@@ -246,6 +242,6 @@ impl FromApub for Comment {
       ap_id,
       local: Some(false),
     };
-    Ok(blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??)
+    Ok(Comment::upsert(&&context.pool.get().await?, &form)?)
   }
 }

@@ -1,7 +1,6 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_downvotes_enabled,
   check_person_block,
@@ -35,10 +34,7 @@ impl Perform for MarkCommentAsRead {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(&&context.pool.get().await?, comment_id, None)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -54,19 +50,13 @@ impl Perform for MarkCommentAsRead {
 
     // Do the mark as read
     let read = data.read;
-    blocking(context.pool(), move |conn| {
-      Comment::update_read(conn, comment_id, read)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+    Comment::update_read(&&context.pool.get().await?, comment_id, read)
+      .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
+    let comment_view = CommentView::read(&&context.pool.get().await?, comment_id, Some(person_id))?;
 
     let res = CommentResponse {
       comment_view,
@@ -96,23 +86,20 @@ impl Perform for SaveComment {
     };
 
     if data.save {
-      let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
-      if blocking(context.pool(), save_comment).await?.is_err() {
+      let save_comment = CommentSaved::save(&&context.pool.get().await?, &comment_saved_form);
+      if save_comment.is_err() {
         return Err(ApiError::err("couldnt_save_comment").into());
       }
     } else {
-      let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
-      if blocking(context.pool(), unsave_comment).await?.is_err() {
+      let unsave_comment = CommentSaved::unsave(&&context.pool.get().await?, &comment_saved_form);
+      if unsave_comment.is_err() {
         return Err(ApiError::err("couldnt_save_comment").into());
       }
     }
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
+    let comment_view = CommentView::read(&&context.pool.get().await?, comment_id, Some(person_id))?;
 
     Ok(CommentResponse {
       comment_view,
@@ -140,10 +127,7 @@ impl Perform for CreateCommentLike {
     check_downvotes_enabled(data.score, context.pool()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(&&context.pool.get().await?, comment_id, None)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -161,10 +145,8 @@ impl Perform for CreateCommentLike {
 
     // Add parent user to recipients
     let recipient_id = orig_comment.get_recipient_id();
-    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
-    })
-    .await?
+    if let Ok(local_recipient) =
+      LocalUserView::read_person(&&context.pool.get().await?, recipient_id)
     {
       recipient_ids.push(local_recipient.local_user.id);
     }
@@ -178,10 +160,7 @@ impl Perform for CreateCommentLike {
 
     // Remove any likes first
     let person_id = local_user_view.person.id;
-    blocking(context.pool(), move |conn| {
-      CommentLike::remove(conn, person_id, comment_id)
-    })
-    .await??;
+    CommentLike::remove(&&context.pool.get().await?, person_id, comment_id)?;
 
     // Only add the like if the score isnt 0
     let comment = orig_comment.comment;
@@ -189,8 +168,8 @@ impl Perform for CreateCommentLike {
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
-      if blocking(context.pool(), like).await?.is_err() {
+      let like = CommentLike::like(&&context.pool.get().await?, &like_form2);
+      if like.is_err() {
         return Err(ApiError::err("couldnt_like_comment").into());
       }
 

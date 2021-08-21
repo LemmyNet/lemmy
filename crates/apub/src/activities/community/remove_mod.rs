@@ -20,7 +20,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Joinable;
 use lemmy_db_schema::source::{
@@ -117,10 +116,7 @@ impl ActivityHandler for RemoveMod {
         community_id: community.id,
         person_id: remove_mod.id,
       };
-      blocking(context.pool(), move |conn| {
-        CommunityModerator::leave(conn, &form)
-      })
-      .await??;
+      CommunityModerator::leave(&&context.pool.get().await?, &form)?;
       // TODO: send websocket notification about removed mod
       Ok(())
     } else {

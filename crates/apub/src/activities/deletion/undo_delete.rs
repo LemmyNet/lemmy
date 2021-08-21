@@ -22,7 +22,6 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{comment::Comment_, community::Community_, post::Post_};
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
@@ -133,24 +132,17 @@ impl UndoDelete {
         if community.local {
           return Err(anyhow!("Only local admin can restore community").into());
         }
-        let deleted_community = blocking(context.pool(), move |conn| {
-          Community::update_removed(conn, community.id, false)
-        })
-        .await??;
+        let deleted_community =
+          Community::update_removed(&&context.pool.get().await?, community.id, false)?;
         send_community_ws_message(deleted_community.id, EditCommunity, None, None, context).await?;
       }
       DeletableObjects::Post(post) => {
-        let removed_post = blocking(context.pool(), move |conn| {
-          Post::update_removed(conn, post.id, false)
-        })
-        .await??;
+        let removed_post = Post::update_removed(&&context.pool.get().await?, post.id, false)?;
         send_post_ws_message(removed_post.id, EditPost, None, None, context).await?;
       }
       DeletableObjects::Comment(comment) => {
-        let removed_comment = blocking(context.pool(), move |conn| {
-          Comment::update_removed(conn, comment.id, false)
-        })
-        .await??;
+        let removed_comment =
+          Comment::update_removed(&&context.pool.get().await?, comment.id, false)?;
         send_comment_ws_message_simple(removed_comment.id, EditComment, context).await?;
       }
     }

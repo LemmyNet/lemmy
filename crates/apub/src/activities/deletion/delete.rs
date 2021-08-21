@@ -22,7 +22,6 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
@@ -185,14 +184,9 @@ pub(in crate::activities) async fn receive_remove_action(
         reason,
         expires: None,
       };
-      blocking(context.pool(), move |conn| {
-        ModRemoveCommunity::create(conn, &form)
-      })
-      .await??;
-      let deleted_community = blocking(context.pool(), move |conn| {
-        Community::update_removed(conn, community.id, true)
-      })
-      .await??;
+      ModRemoveCommunity::create(&&context.pool.get().await?, &form)?;
+      let deleted_community =
+        Community::update_removed(&&context.pool.get().await?, community.id, true)?;
 
       send_community_ws_message(deleted_community.id, RemoveCommunity, None, None, context).await?;
     }
@@ -203,14 +197,8 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      blocking(context.pool(), move |conn| {
-        ModRemovePost::create(conn, &form)
-      })
-      .await??;
-      let removed_post = blocking(context.pool(), move |conn| {
-        Post::update_removed(conn, post.id, true)
-      })
-      .await??;
+      ModRemovePost::create(&&context.pool.get().await?, &form)?;
+      let removed_post = Post::update_removed(&&context.pool.get().await?, post.id, true)?;
 
       send_post_ws_message(removed_post.id, RemovePost, None, None, context).await?;
     }
@@ -221,14 +209,8 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      blocking(context.pool(), move |conn| {
-        ModRemoveComment::create(conn, &form)
-      })
-      .await??;
-      let removed_comment = blocking(context.pool(), move |conn| {
-        Comment::update_removed(conn, comment.id, true)
-      })
-      .await??;
+      ModRemoveComment::create(&&context.pool.get().await?, &form)?;
+      let removed_comment = Comment::update_removed(&&context.pool.get().await?, comment.id, true)?;
 
       send_comment_ws_message_simple(removed_comment.id, RemoveComment, context).await?;
     }

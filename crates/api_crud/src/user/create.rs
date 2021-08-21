@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, password_length_check, person::*};
+use lemmy_api_common::{password_length_check, person::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -49,7 +49,7 @@ impl PerformCrud for Register {
     let data: &Register = self;
 
     // Make sure site has open registration
-    if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
+    if let Ok(site) = Site::read_simple(&&context.pool.get().await?) {
       if !site.open_registration {
         return Err(ApiError::err("registration_closed").into());
       }
@@ -63,10 +63,7 @@ impl PerformCrud for Register {
     }
 
     // Check if there are admins. False if admins exist
-    let no_admins = blocking(context.pool(), move |conn| {
-      PersonViewSafe::admins(conn).map(|a| a.is_empty())
-    })
-    .await??;
+    let no_admins = PersonViewSafe::admins(&&context.pool.get().await?).map(|a| a.is_empty())?;
 
     // If its not the admin, check the captcha
     if !no_admins && Settings::get().captcha.enabled {
@@ -111,11 +108,8 @@ impl PerformCrud for Register {
     };
 
     // insert the person
-    let inserted_person = blocking(context.pool(), move |conn| {
-      Person::create(conn, &person_form)
-    })
-    .await?
-    .map_err(|_| ApiError::err("user_already_exists"))?;
+    let inserted_person = Person::create(&&context.pool.get().await?, &person_form)
+      .map_err(|_| ApiError::err("user_already_exists"))?;
 
     // Create the local user
     // TODO some of these could probably use the DB defaults
@@ -136,39 +130,29 @@ impl PerformCrud for Register {
       send_notifications_to_email: Some(false),
     };
 
-    let inserted_local_user = match blocking(context.pool(), move |conn| {
-      LocalUser::register(conn, &local_user_form)
-    })
-    .await?
-    {
-      Ok(lu) => lu,
-      Err(e) => {
-        let err_type = if e.to_string()
-          == "duplicate key value violates unique constraint \"local_user_email_key\""
-        {
-          "email_already_exists"
-        } else {
-          "user_already_exists"
-        };
+    let inserted_local_user =
+      match LocalUser::register(&&context.pool.get().await?, &local_user_form) {
+        Ok(lu) => lu,
+        Err(e) => {
+          let err_type = if e.to_string()
+            == "duplicate key value violates unique constraint \"local_user_email_key\""
+          {
+            "email_already_exists"
+          } else {
+            "user_already_exists"
+          };
 
-        // If the local user creation errored, then delete that person
-        blocking(context.pool(), move |conn| {
-          Person::delete(conn, inserted_person.id)
-        })
-        .await??;
+          // If the local user creation errored, then delete that person
+          Person::delete(&&context.pool.get().await?, inserted_person.id)?;
 
-        return Err(ApiError::err(err_type).into());
-      }
-    };
+          return Err(ApiError::err(err_type).into());
+        }
+      };
 
     let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
-    let main_community = match blocking(context.pool(), move |conn| {
-      Community::read(conn, CommunityId(2))
-    })
-    .await?
-    {
+    let main_community = match Community::read(&&context.pool.get().await?, CommunityId(2)) {
       Ok(c) => c,
       Err(_e) => {
         let default_community_name = "main";
@@ -185,10 +169,7 @@ impl PerformCrud for Register {
           shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
           ..CommunityForm::default()
         };
-        blocking(context.pool(), move |conn| {
-          Community::create(conn, &community_form)
-        })
-        .await??
+        Community::create(&&context.pool.get().await?, &community_form)?
       }
     };
 
@@ -199,8 +180,8 @@ impl PerformCrud for Register {
       pending: false,
     };
 
-    let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-    if blocking(context.pool(), follow).await?.is_err() {
+    let follow = CommunityFollower::follow(&&context.pool.get().await?, &community_follower_form);
+    if follow.is_err() {
       return Err(ApiError::err("community_follower_already_exists").into());
     };
 
@@ -211,8 +192,8 @@ impl PerformCrud for Register {
         person_id: inserted_person.id,
       };
 
-      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-      if blocking(context.pool(), join).await?.is_err() {
+      let join = CommunityModerator::join(&&context.pool.get().await?, &community_moderator_form);
+      if join.is_err() {
         return Err(ApiError::err("community_moderator_already_exists").into());
       }
     }

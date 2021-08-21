@@ -17,7 +17,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::{Bannable, Followable};
 use lemmy_db_schema::source::{
@@ -112,10 +111,7 @@ impl ActivityHandler for BlockUserFromCommunity {
       person_id: blocked_user.id,
     };
 
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityPersonBan::ban(conn, &community_user_ban_form)
-    })
-    .await??;
+    CommunityPersonBan::ban(&&context.pool.get().await?, &community_user_ban_form)?;
 
     // Also unsubscribe them from the community, if they are subscribed
     let community_follower_form = CommunityFollowerForm {
@@ -123,11 +119,7 @@ impl ActivityHandler for BlockUserFromCommunity {
       person_id: blocked_user.id,
       pending: false,
     };
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityFollower::unfollow(conn, &community_follower_form)
-    })
-    .await?
-    .ok();
+    CommunityFollower::unfollow(&&context.pool.get().await?, &community_follower_form).ok();
 
     Ok(())
   }

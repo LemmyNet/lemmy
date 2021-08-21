@@ -21,7 +21,6 @@ use activitystreams::{
   url::Url,
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
@@ -44,10 +43,7 @@ pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = Community::read_from_name(&&context.pool.get().await?, &info.community_name)?;
 
   if !community.deleted {
     let apub = community.to_apub(context.pool()).await?;
@@ -101,16 +97,11 @@ pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = Community::read_from_name(&&context.pool.get().await?, &info.community_name)?;
 
   let community_id = community.id;
-  let community_followers = blocking(context.pool(), move |conn| {
-    CommunityFollowerView::for_community(conn, community_id)
-  })
-  .await??;
+  let community_followers =
+    CommunityFollowerView::for_community(&&context.pool.get().await?, community_id)?;
 
   let mut collection = UnorderedCollection::new();
   collection
@@ -126,16 +117,11 @@ pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = Community::read_from_name(&&context.pool.get().await?, &info.community_name)?;
 
   let community_actor_id = community.actor_id.to_owned();
-  let activities = blocking(context.pool(), move |conn| {
-    Activity::read_community_outbox(conn, &community_actor_id)
-  })
-  .await??;
+  let activities =
+    Activity::read_community_outbox(&&context.pool.get().await?, &community_actor_id)?;
 
   let activities = activities
     .iter()
@@ -155,10 +141,7 @@ pub(crate) async fn get_apub_community_inbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = Community::read_from_name(&&context.pool.get().await?, &info.community_name)?;
 
   let mut collection = OrderedCollection::new();
   collection
@@ -171,20 +154,14 @@ pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = Community::read_from_name(&&context.pool.get().await?, &info.community_name)?;
 
   // The attributed to, is an ordered vector with the creator actor_ids first,
   // then the rest of the moderators
   // TODO Technically the instance admins can mod the community, but lets
   // ignore that for now
   let cid = community.id;
-  let moderators = blocking(context.pool(), move |conn| {
-    CommunityModeratorView::for_community(conn, cid)
-  })
-  .await??;
+  let moderators = CommunityModeratorView::for_community(&&context.pool.get().await?, cid)?;
 
   let moderators: Vec<Url> = moderators
     .into_iter()

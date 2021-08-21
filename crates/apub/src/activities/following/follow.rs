@@ -16,7 +16,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::{
@@ -68,10 +67,7 @@ impl FollowCommunity {
       person_id: actor.id,
       pending: true,
     };
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::follow(&&context.pool.get().await?, &community_follower_form).ok();
 
     let follow = FollowCommunity::new(actor, community)?;
     let inbox = vec![community.inbox_url.clone().into()];
@@ -107,10 +103,7 @@ impl ActivityHandler for FollowCommunity {
     };
 
     // This will fail if they're already a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::follow(&&context.pool.get().await?, &community_follower_form).ok();
 
     AcceptFollowCommunity::send(self, context).await
   }

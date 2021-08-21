@@ -13,7 +13,6 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
@@ -178,7 +177,7 @@ impl FromApub for Community {
     fetch_community_mods(context, group, request_counter).await?;
     let form = Group::from_apub_to_form(group, expected_domain).await?;
 
-    let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
+    let community = Community::upsert(&&context.pool.get().await?, &form)?;
     Ok(community)
   }
 }

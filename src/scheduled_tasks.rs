@@ -2,27 +2,32 @@
 use clokwerk::{Scheduler, TimeUnits};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
-use lemmy_db_queries::{source::activity::Activity_, DbPool};
+use lemmy_db_queries::{establish_unpooled_connection_with_db_url, source::activity::Activity_};
 use lemmy_db_schema::source::activity::Activity;
 use log::info;
 use std::{thread, time::Duration};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(pool: DbPool) {
+pub fn setup(db_url: &str) {
   let mut scheduler = Scheduler::new();
 
-  let conn = pool.get().unwrap();
-  active_counts(&conn);
-  reindex_aggregates_tables(&conn);
+  let conn = &establish_unpooled_connection_with_db_url(db_url);
+
+  active_counts(conn);
+  reindex_aggregates_tables(conn);
+  clear_old_activities(conn);
+
+  let db_url2 = db_url.to_owned();
   scheduler.every(1.hour()).run(move || {
-    active_counts(&conn);
-    reindex_aggregates_tables(&conn);
+    let conn = &establish_unpooled_connection_with_db_url(&db_url2);
+    active_counts(conn);
+    reindex_aggregates_tables(conn);
   });
 
-  let conn = pool.get().unwrap();
-  clear_old_activities(&conn);
+  let db_url3 = db_url.to_owned();
   scheduler.every(1.weeks()).run(move || {
-    clear_old_activities(&conn);
+    let conn = &establish_unpooled_connection_with_db_url(&db_url3);
+    clear_old_activities(conn);
   });
 
   // Manually run the scheduler in an event loop

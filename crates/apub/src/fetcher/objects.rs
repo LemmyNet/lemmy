@@ -5,7 +5,6 @@ use crate::{
 };
 use anyhow::anyhow;
 use diesel::result::Error::NotFound;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::LemmyError;
@@ -23,10 +22,7 @@ pub(crate) async fn get_or_fetch_and_insert_post(
   recursion_counter: &mut i32,
 ) -> Result<Post, LemmyError> {
   let post_ap_id_owned = post_ap_id.to_owned();
-  let post = blocking(context.pool(), move |conn| {
-    Post::read_from_apub_id(conn, &post_ap_id_owned.into())
-  })
-  .await?;
+  let post = Post::read_from_apub_id(&&context.pool.get().await?, &post_ap_id_owned.into());
 
   match post {
     Ok(p) => Ok(p),
@@ -52,10 +48,8 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
   recursion_counter: &mut i32,
 ) -> Result<Comment, LemmyError> {
   let comment_ap_id_owned = comment_ap_id.to_owned();
-  let comment = blocking(context.pool(), move |conn| {
-    Comment::read_from_apub_id(conn, &comment_ap_id_owned.into())
-  })
-  .await?;
+  let comment =
+    Comment::read_from_apub_id(&&context.pool.get().await?, &comment_ap_id_owned.into());
 
   match comment {
     Ok(p) => Ok(p),
@@ -69,7 +63,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       let comment = Comment::from_apub(&comment, context, comment_ap_id, recursion_counter).await?;
 
       let post_id = comment.post_id;
-      let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+      let post = Post::read(&&context.pool.get().await?, post_id)?;
       if post.locked {
         return Err(anyhow!("Post is locked").into());
       }

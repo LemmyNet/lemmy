@@ -5,7 +5,6 @@ use crate::{
   generate_moderators_url,
 };
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_domains_match, ActivityFields};
 use lemmy_db_queries::ApubObject;
 use lemmy_db_schema::{
@@ -104,26 +103,18 @@ pub(crate) async fn verify_mod_action(
   community: Url,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &community.into())
-  })
-  .await??;
+  let community = Community::read_from_apub_id(&&context.pool.get().await?, &community.into())?;
 
   if community.local {
     let actor_id: DbUrl = actor_id.clone().into();
-    let actor = blocking(context.pool(), move |conn| {
-      Person::read_from_apub_id(conn, &actor_id)
-    })
-    .await??;
+    let actor = Person::read_from_apub_id(&&context.pool.get().await?, &actor_id)?;
 
     // Note: this will also return true for admins in addition to mods, but as we dont know about
     //       remote admins, it doesnt make any difference.
     let community_id = community.id;
     let actor_id = actor.id;
-    let is_mod_or_admin = blocking(context.pool(), move |conn| {
-      CommunityView::is_mod_or_admin(conn, actor_id, community_id)
-    })
-    .await?;
+    let is_mod_or_admin =
+      CommunityView::is_mod_or_admin(&&context.pool.get().await?, actor_id, community_id);
     if !is_mod_or_admin {
       return Err(anyhow!("Not a mod").into());
     }

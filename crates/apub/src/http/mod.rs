@@ -19,7 +19,6 @@ use actix_web::{
 use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
@@ -158,10 +157,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = blocking(context.pool(), move |conn| {
-    Activity::read_from_apub_id(conn, &activity_id)
-  })
-  .await??;
+  let activity = Activity::read_from_apub_id(&&context.pool.get().await?, &activity_id)?;
 
   let sensitive = activity.sensitive.unwrap_or(true);
   if !activity.local || sensitive {
@@ -176,10 +172,7 @@ pub(crate) async fn is_activity_already_known(
   activity_id: &Url,
 ) -> Result<bool, LemmyError> {
   let activity_id = activity_id.to_owned().into();
-  let existing = blocking(pool, move |conn| {
-    Activity::read_from_apub_id(conn, &activity_id)
-  })
-  .await?;
+  let existing = Activity::read_from_apub_id(&&pool.get().await?, &activity_id);
   match existing {
     Ok(_) => Ok(true),
     Err(_) => Ok(false),

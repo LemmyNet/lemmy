@@ -6,7 +6,6 @@ use crate::{
   ActorType,
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
@@ -39,8 +38,7 @@ impl CreateOrUpdatePrivateMessage {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
-    let recipient =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient = Person::read(&&context.pool.get().await?, recipient_id)?;
 
     let id = generate_activity_id(kind.clone())?;
     let create_or_update = CreateOrUpdatePrivateMessage {

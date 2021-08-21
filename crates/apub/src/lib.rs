@@ -1,3 +1,5 @@
+#![allow(clippy::needless_borrow)]
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -12,7 +14,6 @@ pub mod objects;
 use crate::extensions::signatures::PublicKey;
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
 use lemmy_db_schema::{
   source::{
@@ -237,10 +238,7 @@ where
   T: Serialize + std::fmt::Debug + Send + 'static,
 {
   let ap_id = ap_id.to_owned().into();
-  blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, &activity, local, sensitive)
-  })
-  .await??;
+  Activity::insert(&&pool.get().await?, ap_id, &activity, local, sensitive)?;
   Ok(())
 }
 
@@ -267,19 +265,13 @@ pub(crate) async fn find_post_or_comment_by_id(
   apub_id: Url,
 ) -> Result<PostOrComment, LemmyError> {
   let ap_id = apub_id.clone();
-  let post = blocking(context.pool(), move |conn| {
-    Post::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
+  let post = Post::read_from_apub_id(&&context.pool.get().await?, &ap_id.into());
   if let Ok(p) = post {
     return Ok(PostOrComment::Post(Box::new(p)));
   }
 
   let ap_id = apub_id.clone();
-  let comment = blocking(context.pool(), move |conn| {
-    Comment::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
+  let comment = Comment::read_from_apub_id(&&context.pool.get().await?, &ap_id.into());
   if let Ok(c) = comment {
     return Ok(PostOrComment::Comment(Box::new(c)));
   }
@@ -306,27 +298,19 @@ async fn find_object_by_id(context: &LemmyContext, apub_id: Url) -> Result<Objec
   }
 
   let ap_id = apub_id.clone();
-  let person = blocking(context.pool(), move |conn| {
-    DbPerson::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
+  let person = DbPerson::read_from_apub_id(&&context.pool.get().await?, &ap_id.into());
   if let Ok(u) = person {
     return Ok(Object::Person(Box::new(u)));
   }
 
   let ap_id = apub_id.clone();
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
+  let community = Community::read_from_apub_id(&&context.pool.get().await?, &ap_id.into());
   if let Ok(c) = community {
     return Ok(Object::Community(Box::new(c)));
   }
 
-  let private_message = blocking(context.pool(), move |conn| {
-    PrivateMessage::read_from_apub_id(conn, &apub_id.into())
-  })
-  .await?;
+  let private_message =
+    PrivateMessage::read_from_apub_id(&&context.pool.get().await?, &apub_id.into());
   if let Ok(pm) = private_message {
     return Ok(Object::PrivateMessage(Box::new(pm)));
   }
@@ -343,9 +327,8 @@ async fn check_community_or_site_ban(
     return Err(anyhow!("Person is banned from site").into());
   }
   let person_id = person.id;
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
+  let is_banned = CommunityPersonBanView::get(&&pool.get().await?, person_id, community_id).is_ok();
+  if is_banned {
     return Err(anyhow!("Person is banned from community").into());
   }
 

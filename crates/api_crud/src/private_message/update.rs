@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   get_local_user_view_from_jwt,
   person::{EditPrivateMessage, PrivateMessageResponse},
 };
@@ -28,10 +27,8 @@ impl PerformCrud for EditPrivateMessage {
 
     // Checking permissions
     let private_message_id = data.private_message_id;
-    let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, private_message_id)
-    })
-    .await??;
+    let orig_private_message =
+      PrivateMessage::read(&&context.pool.get().await?, private_message_id)?;
     if local_user_view.person.id != orig_private_message.creator_id {
       return Err(ApiError::err("no_private_message_edit_allowed").into());
     }
@@ -39,10 +36,11 @@ impl PerformCrud for EditPrivateMessage {
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content);
     let private_message_id = data.private_message_id;
-    let updated_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
-    })
-    .await?
+    let updated_private_message = PrivateMessage::update_content(
+      &&context.pool.get().await?,
+      private_message_id,
+      &content_slurs_removed,
+    )
     .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
 
     // Send the apub update

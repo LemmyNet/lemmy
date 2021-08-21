@@ -17,7 +17,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Bannable;
 use lemmy_db_schema::source::{
@@ -101,10 +100,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
       person_id: blocked_user.id,
     };
 
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityPersonBan::unban(conn, &community_user_ban_form)
-    })
-    .await??;
+    CommunityPersonBan::unban(&&context.pool.get().await?, &community_user_ban_form)?;
 
     Ok(())
   }

@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, check_community_ban, get_local_user_view_from_jwt, post::*};
+use lemmy_api_common::{check_community_ban, get_local_user_view_from_jwt, post::*};
 use lemmy_apub::activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType};
 use lemmy_db_queries::{source::post::Post_, Crud};
 use lemmy_db_schema::{naive_now, source::post::*};
@@ -35,7 +35,7 @@ impl PerformCrud for EditPost {
     }
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(&&context.pool.get().await?, post_id)?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -72,22 +72,16 @@ impl PerformCrud for EditPost {
     };
 
     let post_id = data.post_id;
-    let res = blocking(context.pool(), move |conn| {
-      Post::update(conn, post_id, &post_form)
-    })
-    .await?;
-    let updated_post: Post = match res {
-      Ok(post) => post,
-      Err(e) => {
+    let updated_post =
+      Post::update(&&context.pool.get().await?, post_id, &post_form).map_err(|e| {
         let err_type = if e.to_string() == "value too long for type character varying(200)" {
           "post_title_too_long"
         } else {
           "couldnt_update_post"
         };
 
-        return Err(ApiError::err(err_type).into());
-      }
-    };
+        ApiError::err(err_type)
+      })?;
 
     // Send apub update
     CreateOrUpdatePost::send(

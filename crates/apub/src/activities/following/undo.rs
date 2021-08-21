@@ -16,7 +16,6 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::{
@@ -94,10 +93,7 @@ impl ActivityHandler for UndoFollowCommunity {
     };
 
     // This will fail if they aren't a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::unfollow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::unfollow(&&context.pool.get().await?, &community_follower_form).ok();
     Ok(())
   }
 }

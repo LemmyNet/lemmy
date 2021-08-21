@@ -23,7 +23,6 @@ use activitystreams::{
   collection::{CollectionExt, OrderedCollection},
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::person::Person_;
 use lemmy_db_schema::source::person::Person;
@@ -45,10 +44,7 @@ pub(crate) async fn get_apub_person_http(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
-  let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &user_name)
-  })
-  .await??;
+  let person = Person::find_by_name(&&context.pool.get().await?, &user_name)?;
 
   if !person.deleted {
     let apub = person.to_apub(context.pool()).await?;
@@ -95,10 +91,7 @@ pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &info.user_name)
-  })
-  .await??;
+  let person = Person::find_by_name(&&context.pool.get().await?, &info.user_name)?;
   // TODO: populate the person outbox
   let mut collection = OrderedCollection::new();
   collection
@@ -113,10 +106,7 @@ pub(crate) async fn get_apub_person_inbox(
   info: web::Path<PersonQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &info.user_name)
-  })
-  .await??;
+  let person = Person::find_by_name(&&context.pool.get().await?, &info.user_name)?;
 
   let mut collection = OrderedCollection::new();
   collection

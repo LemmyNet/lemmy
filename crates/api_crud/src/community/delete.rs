@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt, is_admin};
+use lemmy_api_common::{community::*, get_local_user_view_from_jwt, is_admin};
 use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
 use lemmy_db_queries::{source::community::Community_, Crud};
 use lemmy_db_schema::source::{
@@ -25,10 +25,8 @@ impl PerformCrud for DeleteCommunity {
 
     // Fetch the community mods
     let community_id = data.community_id;
-    let community_mods = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let community_mods =
+      CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)?;
 
     // Make sure deleter is the top mod
     if local_user_view.person.id != community_mods[0].moderator.id {
@@ -38,11 +36,9 @@ impl PerformCrud for DeleteCommunity {
     // Do the delete
     let community_id = data.community_id;
     let deleted = data.deleted;
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update_deleted(conn, community_id, deleted)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_update_community"))?;
+    let updated_community =
+      Community::update_deleted(&&context.pool.get().await?, community_id, deleted)
+        .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
     // Send apub messages
     send_apub_delete(
@@ -83,11 +79,9 @@ impl PerformCrud for RemoveCommunity {
     // Do the remove
     let community_id = data.community_id;
     let removed = data.removed;
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update_removed(conn, community_id, removed)
-    })
-    .await?
-    .map_err(|_| ApiError::err("couldnt_update_community"))?;
+    let updated_community =
+      Community::update_removed(&&context.pool.get().await?, community_id, removed)
+        .map_err(|_| ApiError::err("couldnt_update_community"))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);
@@ -98,10 +92,7 @@ impl PerformCrud for RemoveCommunity {
       reason: data.reason.to_owned(),
       expires,
     };
-    blocking(context.pool(), move |conn| {
-      ModRemoveCommunity::create(conn, &form)
-    })
-    .await??;
+    ModRemoveCommunity::create(&&context.pool.get().await?, &form)?;
 
     // Apub messages
     send_apub_remove(

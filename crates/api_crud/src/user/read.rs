@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*};
+use lemmy_api_common::{get_local_user_view_from_jwt_opt, person::*};
 use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
 use lemmy_db_queries::{from_opt_str_to_opt_enum, ApubObject, SortType};
 use lemmy_db_schema::source::person::*;
@@ -43,31 +43,24 @@ impl PerformCrud for GetPersonDetails {
           .unwrap_or_else(|| "admin".to_string());
         let actor_id = build_actor_id_from_shortname(EndpointType::Person, &name)?;
 
-        let person = blocking(context.pool(), move |conn| {
-          Person::read_from_apub_id(conn, &actor_id)
-        })
-        .await?;
-        person
-          .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?
-          .id
+        let person = Person::read_from_apub_id(&&context.pool.get().await?, &actor_id)
+          .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?;
+        person.id
       }
     };
 
     let person_id = local_user_view.map(|uv| uv.person.id);
 
     // You don't need to return settings for the user, since this comes back with GetSite
-    // `my_user`
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_details_id)
-    })
-    .await??;
+    let person_view = PersonViewSafe::read(&&context.pool.get().await?, person_details_id)?;
 
     let page = data.page;
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
 
-    let (posts, comments) = blocking(context.pool(), move |conn| {
+    let (posts, comments) = {
+      let conn = &&context.pool.get().await?;
       let mut posts_query = PostQueryBuilder::create(conn)
         .sort(sort)
         .show_nsfw(show_nsfw)
@@ -79,7 +72,8 @@ impl PerformCrud for GetPersonDetails {
         .page(page)
         .limit(limit);
 
-      let mut comments_query = CommentQueryBuilder::create(conn)
+      let conn2 = &&context.pool.get().await?;
+      let mut comments_query = CommentQueryBuilder::create(conn2)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
         .sort(sort)
@@ -98,14 +92,11 @@ impl PerformCrud for GetPersonDetails {
       let posts = posts_query.list()?;
       let comments = comments_query.list()?;
 
-      Ok((posts, comments)) as Result<_, LemmyError>
-    })
-    .await??;
+      (posts, comments)
+    };
 
-    let moderates = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_person(conn, person_details_id)
-    })
-    .await??;
+    let moderates =
+      CommunityModeratorView::for_person(&&context.pool.get().await?, person_details_id)?;
 
     // Return the jwt
     Ok(GetPersonDetailsResponse {

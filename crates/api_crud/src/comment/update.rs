@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   comment::*,
   get_local_user_view_from_jwt,
@@ -35,10 +34,7 @@ impl PerformCrud for EditComment {
     let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(&&context.pool.get().await?, comment_id, None)?;
 
     // TODO is this necessary? It should really only need to check on create
     check_community_ban(
@@ -56,10 +52,11 @@ impl PerformCrud for EditComment {
     // Do the update
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
     let comment_id = data.comment_id;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_content(conn, comment_id, &content_slurs_removed)
-    })
-    .await?
+    let updated_comment = Comment::update_content(
+      &&context.pool.get().await?,
+      comment_id,
+      &content_slurs_removed,
+    )
     .map_err(|_| ApiError::err("couldnt_update_comment"))?;
 
     // Send the apub update

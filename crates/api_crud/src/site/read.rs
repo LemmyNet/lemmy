@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   build_federated_instances,
   get_local_user_settings_view_from_jwt_opt,
   person::Register,
@@ -30,7 +29,7 @@ impl PerformCrud for GetSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
-    let site_view = match blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
+    let site_view = match SiteView::read(&&context.pool.get().await?) {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
@@ -61,14 +60,14 @@ impl PerformCrud for GetSite {
           };
           create_site.perform(context, websocket_id).await?;
           info!("Site {} created", setup.site_name);
-          Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
+          Some(SiteView::read(&&context.pool.get().await?)?)
         } else {
           None
         }
       }
     };
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = PersonViewSafe::admins(&&context.pool.get().await?)?;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
@@ -81,7 +80,7 @@ impl PerformCrud for GetSite {
       }
     }
 
-    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
+    let banned = PersonViewSafe::banned(&&context.pool.get().await?)?;
 
     let online = context
       .chat_server()
@@ -94,31 +93,19 @@ impl PerformCrud for GetSite {
       get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?
     {
       let person_id = local_user_view.person.id;
-      let follows = blocking(context.pool(), move |conn| {
-        CommunityFollowerView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      let follows = CommunityFollowerView::for_person(&&context.pool.get().await?, person_id)
+        .map_err(|_| ApiError::err("system_err_login"))?;
 
       let person_id = local_user_view.person.id;
-      let community_blocks = blocking(context.pool(), move |conn| {
-        CommunityBlockView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      let community_blocks = CommunityBlockView::for_person(&&context.pool.get().await?, person_id)
+        .map_err(|_| ApiError::err("system_err_login"))?;
 
       let person_id = local_user_view.person.id;
-      let person_blocks = blocking(context.pool(), move |conn| {
-        PersonBlockView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      let person_blocks = PersonBlockView::for_person(&&context.pool.get().await?, person_id)
+        .map_err(|_| ApiError::err("system_err_login"))?;
 
-      let moderates = blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      let moderates = CommunityModeratorView::for_person(&&context.pool.get().await?, person_id)
+        .map_err(|_| ApiError::err("system_err_login"))?;
 
       Some(MyUserInfo {
         local_user_view,

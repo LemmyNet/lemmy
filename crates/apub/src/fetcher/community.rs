@@ -11,7 +11,6 @@ use crate::{
 use activitystreams::collection::{CollectionExt, OrderedCollection};
 use anyhow::Context;
 use diesel::result::Error::NotFound;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::ActivityHandler;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
 use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
@@ -31,10 +30,7 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
   recursion_counter: &mut i32,
 ) -> Result<Community, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &apub_id_owned.into())
-  })
-  .await?;
+  let community = Community::read_from_apub_id(&&context.pool.get().await?, &apub_id_owned.into());
 
   match community {
     Ok(c) if !c.local && should_refetch_actor(c.last_refreshed_at) => {
@@ -63,10 +59,7 @@ async fn fetch_remote_community(
 
   if let Some(c) = old_community.to_owned() {
     if is_deleted(&group) {
-      blocking(context.pool(), move |conn| {
-        Community::update_deleted(conn, c.id, true)
-      })
-      .await??;
+      Community::update_deleted(&&context.pool.get().await?, c.id, true)?;
     } else if group.is_err() {
       // If fetching failed, return the existing data.
       return Ok(c);
@@ -94,10 +87,8 @@ async fn update_community_mods(
 ) -> Result<(), LemmyError> {
   let new_moderators = fetch_community_mods(context, group, request_counter).await?;
   let community_id = community.id;
-  let current_moderators = blocking(context.pool(), move |conn| {
-    CommunityModeratorView::for_community(conn, community_id)
-  })
-  .await??;
+  let current_moderators =
+    CommunityModeratorView::for_community(&&context.pool.get().await?, community_id)?;
   // Remove old mods from database which arent in the moderators collection anymore
   for mod_user in &current_moderators {
     if !new_moderators.contains(&mod_user.moderator.actor_id.clone().into()) {
@@ -105,10 +96,7 @@ async fn update_community_mods(
         community_id: mod_user.community.id,
         person_id: mod_user.moderator.id,
       };
-      blocking(context.pool(), move |conn| {
-        CommunityModerator::leave(conn, &community_moderator_form)
-      })
-      .await??;
+      CommunityModerator::leave(&&context.pool.get().await?, &community_moderator_form)?;
     }
   }
 
@@ -126,10 +114,7 @@ async fn update_community_mods(
         community_id: community.id,
         person_id: mod_user.id,
       };
-      blocking(context.pool(), move |conn| {
-        CommunityModerator::join(conn, &community_moderator_form)
-      })
-      .await??;
+      CommunityModerator::join(&&context.pool.get().await?, &community_moderator_form)?;
     }
   }
 

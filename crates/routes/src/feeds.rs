@@ -2,7 +2,6 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::{
   source::{community::Community_, person::Person_},
   Crud,
@@ -88,15 +87,12 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+  let site_view = SiteView::read(&&context.pool.get().await?)?;
 
-  let posts = blocking(context.pool(), move |conn| {
-    PostQueryBuilder::create(conn)
-      .listing_type(listing_type)
-      .sort(sort_type)
-      .list()
-  })
-  .await??;
+  let posts = PostQueryBuilder::create(&&context.pool.get().await?)
+    .listing_type(listing_type)
+    .sort(sort_type)
+    .list()?;
 
   let items = create_post_items(posts)?;
 
@@ -141,13 +137,13 @@ async fn get_feed(
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
-  let builder = blocking(context.pool(), move |conn| match request_type {
+  let conn = &&context.pool.get().await.map_err(ErrorBadRequest)?;
+  let builder = match request_type {
     RequestType::User => get_feed_user(conn, &sort_type, param),
     RequestType::Community => get_feed_community(conn, &sort_type, param),
     RequestType::Front => get_feed_front(conn, &sort_type, param),
     RequestType::Inbox => get_feed_inbox(conn, param),
-  })
-  .await?
+  }
   .map_err(ErrorBadRequest)?;
 
   let rss = builder.build().map_err(ErrorBadRequest)?.to_string();

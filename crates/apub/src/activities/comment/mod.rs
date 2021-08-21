@@ -5,7 +5,7 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::{blocking, send_local_notifs, WebFingerResponse};
+use lemmy_api_common::{send_local_notifs, WebFingerResponse};
 use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post},
@@ -31,7 +31,7 @@ async fn get_notif_recipients(
   request_counter: &mut i32,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
-  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+  let post = Post::read(&&context.pool.get().await?, post_id)?;
   let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
 
   // Note:
@@ -103,15 +103,14 @@ async fn get_comment_parent_creator(
   comment: &Comment,
 ) -> Result<Person, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
-    let parent_comment =
-      blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
+    let parent_comment = Comment::read(&&pool.get().await?, parent_comment_id)?;
     parent_comment.creator_id
   } else {
     let parent_post_id = comment.post_id;
-    let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
+    let parent_post = Post::read(&&pool.get().await?, parent_post_id)?;
     parent_post.creator_id
   };
-  Ok(blocking(pool, move |conn| Person::read(conn, parent_creator_id)).await??)
+  Ok(Person::read(&&pool.get().await?, parent_creator_id)?)
 }
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,

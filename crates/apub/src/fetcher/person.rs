@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::anyhow;
 use diesel::result::Error::NotFound;
-use lemmy_api_common::blocking;
 use lemmy_db_queries::{source::person::Person_, ApubObject};
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
@@ -22,10 +21,7 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
   recursion_counter: &mut i32,
 ) -> Result<Person, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
-  let person = blocking(context.pool(), move |conn| {
-    Person::read_from_apub_id(conn, &apub_id_owned.into())
-  })
-  .await?;
+  let person = Person::read_from_apub_id(&&context.pool.get().await?, &apub_id_owned.into());
 
   match person {
     // If its older than a day, re-fetch it
@@ -36,10 +32,7 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
 
       if is_deleted(&person) {
         // TODO: use Person::update_deleted() once implemented
-        blocking(context.pool(), move |conn| {
-          Person::delete_account(conn, u.id)
-        })
-        .await??;
+        Person::delete_account(&&context.pool.get().await?, u.id)?;
         return Err(anyhow!("Person was deleted by remote instance").into());
       } else if person.is_err() {
         return Ok(u);
@@ -48,10 +41,7 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
       let person = Person::from_apub(&person?, context, apub_id, recursion_counter).await?;
 
       let person_id = person.id;
-      blocking(context.pool(), move |conn| {
-        Person::mark_as_updated(conn, person_id)
-      })
-      .await??;
+      Person::mark_as_updated(&&context.pool.get().await?, person_id)?;
 
       Ok(person)
     }

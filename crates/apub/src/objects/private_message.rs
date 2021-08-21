@@ -11,7 +11,6 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
@@ -76,10 +75,10 @@ impl ToApub for PrivateMessage {
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
+    let creator = Person::read(&&pool.get().await?, creator_id)?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(pool, move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient = Person::read(&&pool.get().await?, recipient_id)?;
 
     let note = Note {
       context: lemmy_context(),
@@ -136,11 +135,6 @@ impl FromApub for PrivateMessage {
       ap_id,
       local: Some(false),
     };
-    Ok(
-      blocking(context.pool(), move |conn| {
-        PrivateMessage::upsert(conn, &form)
-      })
-      .await??,
-    )
+    Ok(PrivateMessage::upsert(&&context.pool.get().await?, &form)?)
   }
 }
