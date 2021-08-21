@@ -33,7 +33,7 @@ async fn main() -> Result<(), LemmyError> {
     Err(_) => settings.get_database_url(),
   };
 
-  let manager = Manager::new(db_url);
+  let manager = Manager::new(&db_url);
   let pool = Pool::new(manager, settings.database.pool_size);
   let conn = &pool.get().await?;
 
@@ -41,13 +41,7 @@ async fn main() -> Result<(), LemmyError> {
   embedded_migrations::run(conn)?;
   run_advanced_migrations(conn)?;
 
-  // TODO can't move the pool into clokwerk, it doesn't yet support async
-  let c1 = pool.get().await?;
-  let c2 = pool.get().await?;
-  let c3 = pool.get().await?;
-  thread::spawn(move || {
-    scheduled_tasks::setup(c1, c2, c3);
-  });
+  thread::spawn(move || scheduled_tasks::setup(&db_url));
 
   // Set up the rate limiter
   let rate_limiter = RateLimit {

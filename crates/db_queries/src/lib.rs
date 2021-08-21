@@ -283,8 +283,12 @@ pub fn establish_unpooled_connection() -> PgConnection {
       e
     ),
   };
+  establish_unpooled_connection_with_db_url(&db_url)
+}
+
+pub fn establish_unpooled_connection_with_db_url(db_url: &str) -> PgConnection {
   let conn =
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
   embedded_migrations::run(&conn).expect("load migrations");
   conn
 }
