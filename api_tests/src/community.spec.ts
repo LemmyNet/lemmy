@@ -3,7 +3,7 @@ import {
   alpha,
   beta,
   setupLogins,
-  searchForCommunity,
+  resolveCommunity,
   createCommunity,
   deleteCommunity,
   removeCommunity,
@@ -47,9 +47,8 @@ test('Create community', async () => {
 
   // Cache the community on beta, make sure it has the other fields
   let searchShort = `!${prevName}@lemmy-alpha:8541`;
-  let search = await searchForCommunity(beta, searchShort);
-  let communityOnBeta = search.communities[0];
-  assertCommunityFederation(communityOnBeta, communityRes.community_view);
+  let betaCommunity = (await resolveCommunity(beta, searchShort)).community;
+  assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
 test('Delete community', async () => {
@@ -57,15 +56,14 @@ test('Delete community', async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let search = await searchForCommunity(alpha, searchShort);
-  let communityOnAlpha = search.communities[0];
-  assertCommunityFederation(communityOnAlpha, communityRes.community_view);
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
   // Follow the community from alpha
   let follow = await followCommunity(
     alpha,
     true,
-    communityOnAlpha.community.id
+    alphaCommunity.community.id
   );
 
   // Make sure the follow response went through
@@ -82,7 +80,7 @@ test('Delete community', async () => {
   // Make sure it got deleted on A
   let communityOnAlphaDeleted = await getCommunity(
     alpha,
-    communityOnAlpha.community.id
+    alphaCommunity.community.id
   );
   expect(communityOnAlphaDeleted.community_view.community.deleted).toBe(true);
 
@@ -97,7 +95,7 @@ test('Delete community', async () => {
   // Make sure it got undeleted on A
   let communityOnAlphaUnDeleted = await getCommunity(
     alpha,
-    communityOnAlpha.community.id
+    alphaCommunity.community.id
   );
   expect(communityOnAlphaUnDeleted.community_view.community.deleted).toBe(
     false
@@ -109,15 +107,14 @@ test('Remove community', async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let search = await searchForCommunity(alpha, searchShort);
-  let communityOnAlpha = search.communities[0];
-  assertCommunityFederation(communityOnAlpha, communityRes.community_view);
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
   // Follow the community from alpha
   let follow = await followCommunity(
     alpha,
     true,
-    communityOnAlpha.community.id
+    alphaCommunity.community.id
   );
 
   // Make sure the follow response went through
@@ -134,7 +131,7 @@ test('Remove community', async () => {
   // Make sure it got Removed on A
   let communityOnAlphaRemoved = await getCommunity(
     alpha,
-    communityOnAlpha.community.id
+    alphaCommunity.community.id
   );
   expect(communityOnAlphaRemoved.community_view.community.removed).toBe(true);
 
@@ -149,7 +146,7 @@ test('Remove community', async () => {
   // Make sure it got undeleted on A
   let communityOnAlphaUnRemoved = await getCommunity(
     alpha,
-    communityOnAlpha.community.id
+    alphaCommunity.community.id
   );
   expect(communityOnAlphaUnRemoved.community_view.community.removed).toBe(
     false
@@ -161,7 +158,6 @@ test('Search for beta community', async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
 
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let search = await searchForCommunity(alpha, searchShort);
-  let communityOnAlpha = search.communities[0];
-  assertCommunityFederation(communityOnAlpha, communityRes.community_view);
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  assertCommunityFederation(alphaCommunity, communityRes.community_view);
 });

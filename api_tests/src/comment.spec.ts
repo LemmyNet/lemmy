@@ -6,16 +6,16 @@ import {
   setupLogins,
   createPost,
   getPost,
-  searchComment,
+  resolveComment,
   likeComment,
   followBeta,
-  searchForBetaCommunity,
+  resolveBetaCommunity,
   createComment,
   editComment,
   deleteComment,
   removeComment,
   getMentions,
-  searchPost,
+  resolvePost,
   unfollowRemotes,
   createCommunity,
   registerUser,
@@ -31,10 +31,10 @@ beforeAll(async () => {
   await setupLogins();
   await followBeta(alpha);
   await followBeta(gamma);
-  let search = await searchForBetaCommunity(alpha);
+  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
   postRes = await createPost(
     alpha,
-    search.communities.find(c => c.community.local == false).community.id
+    betaCommunity.community.id
   );
 });
 
@@ -65,8 +65,7 @@ test('Create a comment', async () => {
   expect(commentRes.comment_view.counts.score).toBe(1);
 
   // Make sure that comment is liked on beta
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment = searchBeta.comments[0];
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
   expect(betaComment).toBeDefined();
   expect(betaComment.community.local).toBe(true);
   expect(betaComment.creator.local).toBe(false);
@@ -82,8 +81,8 @@ test('Create a comment in a non-existent post', async () => {
 test('Update a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
   // Federate the comment first
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  assertCommentFederation(searchBeta.comments[0], commentRes.comment_view);
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
+  assertCommentFederation(betaComment, commentRes.comment_view);
 
   let updateCommentRes = await editComment(
     alpha,
@@ -96,12 +95,12 @@ test('Update a comment', async () => {
   expect(updateCommentRes.comment_view.creator.local).toBe(true);
 
   // Make sure that post is updated on beta
-  let searchBetaUpdated = await searchComment(
+  let betaCommentUpdated = (await resolveComment(
     beta,
     commentRes.comment_view.comment
-  );
+  )).comment;
   assertCommentFederation(
-    searchBetaUpdated.comments[0],
+    betaCommentUpdated,
     updateCommentRes.comment_view
   );
 });
@@ -118,9 +117,8 @@ test('Delete a comment', async () => {
   expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is undefined on beta
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment = searchBeta.comments[0];
-  expect(betaComment).toBeUndefined();
+  let betaCommentRes: any = await resolveComment(beta, commentRes.comment_view.comment);
+  expect(betaCommentRes).toStrictEqual({ error: 'couldnt_find_object' });
 
   let undeleteCommentRes = await deleteComment(
     alpha,
@@ -130,11 +128,10 @@ test('Delete a comment', async () => {
   expect(undeleteCommentRes.comment_view.comment.deleted).toBe(false);
 
   // Make sure that comment is undeleted on beta
-  let searchBeta2 = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment2 = searchBeta2.comments[0];
+  let betaComment2 = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
   expect(betaComment2.comment.deleted).toBe(false);
   assertCommentFederation(
-    searchBeta2.comments[0],
+    betaComment2,
     undeleteCommentRes.comment_view
   );
 });
@@ -144,8 +141,8 @@ test('Remove a comment from admin and community on the same instance', async () 
 
   // Get the id for beta
   let betaCommentId = (
-    await searchComment(beta, commentRes.comment_view.comment)
-  ).comments[0].comment.id;
+    await resolveComment(beta, commentRes.comment_view.comment)
+  ).comment.comment.id;
 
   // The beta admin removes it (the community lives on beta)
   let removeCommentRes = await removeComment(beta, true, betaCommentId);
@@ -185,8 +182,7 @@ test('Remove a comment from admin and community on different instance', async ()
   expect(commentRes.comment_view.comment.content).toBeDefined();
 
   // Beta searches that to cache it, then removes it
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment = searchBeta.comments[0];
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
   let removeCommentRes = await removeComment(
     beta,
     true,
@@ -206,8 +202,7 @@ test('Unlike a comment', async () => {
   expect(unlike.comment_view.counts.score).toBe(0);
 
   // Make sure that post is unliked on beta
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment = searchBeta.comments[0];
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
   expect(betaComment).toBeDefined();
   expect(betaComment.community.local).toBe(true);
   expect(betaComment.creator.local).toBe(false);
@@ -218,8 +213,7 @@ test('Federated comment like', async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   // Find the comment on beta
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment = searchBeta.comments[0];
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
 
   let like = await likeComment(beta, 1, betaComment.comment);
   expect(like.comment_view.counts.score).toBe(2);
@@ -232,8 +226,7 @@ test('Federated comment like', async () => {
 test('Reply to a comment', async () => {
   // Create a comment on alpha, find it on beta
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  let betaComment = searchBeta.comments[0];
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
 
   // find that comment id on beta
 
@@ -287,8 +280,8 @@ test('Mention beta', async () => {
 
 test('Comment Search', async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
-  let searchBeta = await searchComment(beta, commentRes.comment_view.comment);
-  assertCommentFederation(searchBeta.comments[0], commentRes.comment_view);
+  let betaComment = (await resolveComment(beta, commentRes.comment_view.comment)).comment;
+  assertCommentFederation(betaComment, commentRes.comment_view);
 });
 
 test('A and G subscribe to B (center) A posts, G mentions B, it gets announced to A', async () => {
@@ -297,8 +290,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it
-  let search = await searchPost(gamma, alphaPost.post_view.post);
-  let gammaPost = search.posts[0];
+  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post)).post;
 
   let commentContent =
     'A jest test federated comment announce, lets mention @lemmy_beta@lemmy-beta:8551';
@@ -379,8 +371,7 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   expect(updateRes.comment_view.comment.content).toBe(updatedCommentContent);
 
   // Get the post from alpha
-  let search = await searchPost(alpha, postRes.post_view.post);
-  let alphaPostB = search.posts[0];
+  let alphaPostB = (await resolvePost(alpha, postRes.post_view.post)).post;
 
   let alphaPost = await getPost(alpha, alphaPostB.post.id);
   expect(alphaPost.post_view.post.name).toBeDefined();

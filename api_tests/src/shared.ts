@@ -47,6 +47,8 @@ import {
   BanFromCommunityResponse,
   Post,
   CreatePrivateMessage,
+  ResolveObjectResponse,
+  ResolveObject,
 } from 'lemmy-js-client';
 
 export interface API {
@@ -201,16 +203,14 @@ export async function lockPost(
   return api.client.lockPost(form);
 }
 
-export async function searchPost(
+export async function resolvePost(
   api: API,
   post: Post
-): Promise<SearchResponse> {
-  let form: Search = {
+): Promise<ResolveObjectResponse> {
+  let form: ResolveObject = {
     q: post.ap_id,
-    type_: SearchType.Posts,
-    sort: SortType.TopAll,
   };
-  return api.client.search(form);
+  return api.client.resolveObject(form);
 }
 
 export async function searchPostLocal(
@@ -235,56 +235,44 @@ export async function getPost(
   return api.client.getPost(form);
 }
 
-export async function searchComment(
+export async function resolveComment(
   api: API,
   comment: Comment
-): Promise<SearchResponse> {
-  let form: Search = {
+): Promise<ResolveObjectResponse> {
+  let form: ResolveObject = {
     q: comment.ap_id,
-    type_: SearchType.Comments,
-    sort: SortType.TopAll,
   };
-  return api.client.search(form);
+  return api.client.resolveObject(form);
 }
 
-export async function searchForBetaCommunity(
+export async function resolveBetaCommunity(
   api: API
-): Promise<SearchResponse> {
-  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
+): Promise<ResolveObjectResponse> {
   // Use short-hand search url
-  let form: Search = {
+  let form: ResolveObject = {
     q: '!main@lemmy-beta:8551',
-    type_: SearchType.Communities,
-    sort: SortType.TopAll,
   };
-  return api.client.search(form);
+  return api.client.resolveObject(form);
 }
 
-export async function searchForCommunity(
+export async function resolveCommunity(
   api: API,
   q: string
-): Promise<SearchResponse> {
-  // Use short-hand search url
-  let form: Search = {
+): Promise<ResolveObjectResponse> {
+  let form: ResolveObject = {
     q,
-    type_: SearchType.Communities,
-    sort: SortType.TopAll,
   };
-  return api.client.search(form);
+  return api.client.resolveObject(form);
 }
 
-export async function searchForUser(
+export async function resolvePerson(
   api: API,
   apShortname: string
-): Promise<SearchResponse> {
-  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
-  // Use short-hand search url
-  let form: Search = {
+): Promise<ResolveObjectResponse> {
+  let form: ResolveObject = {
     q: apShortname,
-    type_: SearchType.Users,
-    sort: SortType.TopAll,
   };
-  return api.client.search(form);
+  return api.client.resolveObject(form);
 }
 
 export async function banPersonFromSite(
@@ -293,7 +281,6 @@ export async function banPersonFromSite(
   ban: boolean
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
-  // Use short-hand search url
   let form: BanPerson = {
     person_id,
     ban,
@@ -310,7 +297,6 @@ export async function banPersonFromCommunity(
   ban: boolean
 ): Promise<BanFromCommunityResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
-  // Use short-hand search url
   let form: BanFromCommunity = {
     person_id,
     community_id,
@@ -591,11 +577,9 @@ export async function unfollowRemotes(
 }
 
 export async function followBeta(api: API): Promise<CommunityResponse> {
-  // Cache it
-  let search = await searchForBetaCommunity(api);
-  let com = search.communities.find(c => c.community.local == false);
-  if (com) {
-    let follow = await followCommunity(api, true, com.community.id);
+  let betaCommunity = (await resolveBetaCommunity(api)).community;
+  if (betaCommunity) {
+    let follow = await followCommunity(api, true, betaCommunity.community.id);
     return follow;
   }
 }

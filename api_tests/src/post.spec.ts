@@ -10,16 +10,16 @@ import {
   editPost,
   stickyPost,
   lockPost,
-  searchPost,
+  resolvePost,
   likePost,
   followBeta,
-  searchForBetaCommunity,
+  resolveBetaCommunity,
   createComment,
   deletePost,
   removePost,
   getPost,
   unfollowRemotes,
-  searchForUser,
+  resolvePerson,
   banPersonFromSite,
   searchPostLocal,
   followCommunity,
@@ -31,8 +31,8 @@ let betaCommunity: CommunityView;
 
 beforeAll(async () => {
   await setupLogins();
-  let search = await searchForBetaCommunity(alpha);
-  betaCommunity = search.communities[0];
+  betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  expect(betaCommunity).toBeDefined();
   await unfollows();
 });
 
@@ -71,8 +71,7 @@ test('Create a post', async () => {
   expect(postRes.post_view.counts.score).toBe(1);
 
   // Make sure that post is liked on beta
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
 
   expect(betaPost).toBeDefined();
   expect(betaPost.community.local).toBe(true);
@@ -81,12 +80,12 @@ test('Create a post', async () => {
   assertPostFederation(betaPost, postRes.post_view);
 
   // Delta only follows beta, so it should not see an alpha ap_id
-  let searchDelta = await searchPost(delta, postRes.post_view.post);
-  expect(searchDelta.posts[0]).toBeUndefined();
+  let deltaPost = (await resolvePost(delta, postRes.post_view.post)).post;
+  expect(deltaPost).toBeUndefined();
 
   // Epsilon has alpha blocked, it should not see the alpha post
-  let searchEpsilon = await searchPost(epsilon, postRes.post_view.post);
-  expect(searchEpsilon.posts[0]).toBeUndefined();
+  let epsilonPost = (await resolvePost(epsilon, postRes.post_view.post)).post;
+  expect(epsilonPost).toBeUndefined();
 });
 
 test('Create a post in a non-existent community', async () => {
@@ -104,8 +103,7 @@ test('Unlike a post', async () => {
   expect(unlike2.post_view.counts.score).toBe(0);
 
   // Make sure that post is unliked on beta
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost).toBeDefined();
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
@@ -123,8 +121,7 @@ test('Update a post', async () => {
   expect(updatedPost.post_view.creator.local).toBe(true);
 
   // Make sure that post is updated on beta
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
   expect(betaPost.post.name).toBe(updatedName);
@@ -142,8 +139,7 @@ test('Sticky a post', async () => {
   expect(stickiedPostRes.post_view.post.stickied).toBe(true);
 
   // Make sure that post is stickied on beta
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
   expect(betaPost.post.stickied).toBe(true);
@@ -153,18 +149,15 @@ test('Sticky a post', async () => {
   expect(unstickiedPost.post_view.post.stickied).toBe(false);
 
   // Make sure that post is unstickied on beta
-  let searchBeta2 = await searchPost(beta, postRes.post_view.post);
-  let betaPost2 = searchBeta2.posts[0];
+  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost2.community.local).toBe(true);
   expect(betaPost2.creator.local).toBe(false);
   expect(betaPost2.post.stickied).toBe(false);
 
   // Make sure that gamma cannot sticky the post on beta
-  let searchGamma = await searchPost(gamma, postRes.post_view.post);
-  let gammaPost = searchGamma.posts[0];
+  let gammaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
   let gammaTrySticky = await stickyPost(gamma, true, gammaPost.post);
-  let searchBeta3 = await searchPost(beta, postRes.post_view.post);
-  let betaPost3 = searchBeta3.posts[0];
+  let betaPost3 = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(gammaTrySticky.post_view.post.stickied).toBe(true);
   expect(betaPost3.post.stickied).toBe(false);
 });
@@ -174,8 +167,7 @@ test('Lock a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
   // Lock the post
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost1 = searchBeta.posts[0];
+  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
   let lockedPostRes = await lockPost(beta, true, betaPost1.post);
   expect(lockedPostRes.post_view.post.locked).toBe(true);
 
@@ -213,8 +205,7 @@ test('Delete a post', async () => {
   expect(deletedPost.post_view.post.name).toBe("");
 
   // Make sure lemmy beta sees post is deleted
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   // This will be undefined because of the tombstone
   expect(betaPost).toBeUndefined();
 
@@ -223,8 +214,7 @@ test('Delete a post', async () => {
   expect(undeletedPost.post_view.post.deleted).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
-  let searchBeta2 = await searchPost(beta, postRes.post_view.post);
-  let betaPost2 = searchBeta2.posts[0];
+  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost2.post.deleted).toBe(false);
   assertPostFederation(betaPost2, undeletedPost.post_view);
 
@@ -241,8 +231,7 @@ test('Remove a post from admin and community on different instance', async () =>
   expect(removedPost.post_view.post.name).toBe("");
 
   // Make sure lemmy beta sees post is NOT removed
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost.post.removed).toBe(false);
 
   // Undelete
@@ -250,8 +239,7 @@ test('Remove a post from admin and community on different instance', async () =>
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
-  let searchBeta2 = await searchPost(beta, postRes.post_view.post);
-  let betaPost2 = searchBeta2.posts[0];
+  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost2.post.removed).toBe(false);
   assertPostFederation(betaPost2, undeletedPost.post_view);
 });
@@ -291,27 +279,26 @@ test('Search for a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let searchBeta = await searchPost(beta, postRes.post_view.post);
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
 
-  expect(searchBeta.posts[0].post.name).toBeDefined();
+  expect(betaPost.post.name).toBeDefined();
 });
 
 test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let search2 = await searchPost(gamma, postRes.post_view.post);
-  expect(search2.posts[0].post.name).toBeDefined();
+  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  expect(betaPost.post.name).toBeDefined();
 });
 
 test('Enforce site ban for federated user', async () => {
   let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
-  let userSearch = await searchForUser(beta, alphaShortname);
-  let alphaUser = userSearch.users[0];
-  expect(alphaUser).toBeDefined();
+  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
+  expect(alphaPerson).toBeDefined();
 
   // ban alpha from beta site
-  let banAlpha = await banPersonFromSite(beta, alphaUser.person.id, true);
+  let banAlpha = await banPersonFromSite(beta, alphaPerson.person.id, true);
   expect(banAlpha.banned).toBe(true);
 
   // Alpha makes post on beta
@@ -327,19 +314,18 @@ test('Enforce site ban for federated user', async () => {
   expect(betaPost).toBeUndefined();
 
   // Unban alpha
-  let unBanAlpha = await banPersonFromSite(beta, alphaUser.person.id, false);
+  let unBanAlpha = await banPersonFromSite(beta, alphaPerson.person.id, false);
   expect(unBanAlpha.banned).toBe(false);
 });
 
 test('Enforce community ban for federated user', async () => {
   let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
-  let userSearch = await searchForUser(beta, alphaShortname);
-  let alphaUser = userSearch.users[0];
-  expect(alphaUser).toBeDefined();
+  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
+  expect(alphaPerson).toBeDefined();
 
   // ban alpha from beta site
-  await banPersonFromCommunity(beta, alphaUser.person.id, 2, false);
-  let banAlpha = await banPersonFromCommunity(beta, alphaUser.person.id, 2, true);
+  await banPersonFromCommunity(beta, alphaPerson.person.id, 2, false);
+  let banAlpha = await banPersonFromCommunity(beta, alphaPerson.person.id, 2, true);
   expect(banAlpha.banned).toBe(true);
 
   // Alpha tries to make post on beta, but it fails because of ban
@@ -349,7 +335,7 @@ test('Enforce community ban for federated user', async () => {
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(
     beta,
-    alphaUser.person.id,
+    alphaPerson.person.id,
     2,
     false
   );

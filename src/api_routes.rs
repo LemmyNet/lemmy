@@ -33,6 +33,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route(web::get().to(route_get::<Search>)),
       )
+      .service(
+        web::resource("/resolve_object")
+          .wrap(rate_limit.message())
+          .route(web::get().to(route_get::<ResolveObject>)),
+      )
       // Community
       .service(
         web::resource("/community")

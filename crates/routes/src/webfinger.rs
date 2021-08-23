@@ -1,6 +1,7 @@
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
-use lemmy_api_common::{blocking, WebFingerLink, WebFingerResponse};
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::webfinger::{WebfingerLink, WebfingerResponse};
 use lemmy_db_queries::source::{community::Community_, person::Person_};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{
@@ -68,17 +69,17 @@ async fn get_webfinger_response(
     return Err(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))));
   };
 
-  let json = WebFingerResponse {
+  let json = WebfingerResponse {
     subject: info.resource.to_owned(),
     aliases: vec![url.to_owned().into()],
     links: vec![
-      WebFingerLink {
+      WebfingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         type_: Some("text/html".to_string()),
         href: Some(url.to_owned().into()),
         template: None,
       },
-      WebFingerLink {
+      WebfingerLink {
         rel: Some("self".to_string()),
         type_: Some("application/activity+json".to_string()),
         href: Some(url.into()),

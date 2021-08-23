@@ -6,6 +6,8 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
+pub mod webfinger;
+
 pub trait ActivityFields {
   fn id_unchecked(&self) -> &Url;
   fn actor(&self) -> &Url;

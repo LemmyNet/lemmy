@@ -2,7 +2,7 @@ jest.setTimeout(120000);
 import {
   alpha,
   setupLogins,
-  searchForBetaCommunity,
+  resolveBetaCommunity,
   followCommunity,
   unfollowRemotes,
   getSite,
@@ -17,11 +17,11 @@ afterAll(async () => {
 });
 
 test('Follow federated community', async () => {
-  let search = await searchForBetaCommunity(alpha); // TODO sometimes this is returning null?
+  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
   let follow = await followCommunity(
     alpha,
     true,
-    search.communities[0].community.id
+    betaCommunity.community.id
   );
 
   // Make sure the follow response went through

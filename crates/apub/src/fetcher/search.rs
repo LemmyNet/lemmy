@@ -1,25 +1,24 @@
 use crate::{
   fetcher::{
+    community::get_or_fetch_and_upsert_community,
     fetch::fetch_remote_object,
-    get_or_fetch_and_upsert_community,
-    get_or_fetch_and_upsert_person,
     is_deleted,
+    person::get_or_fetch_and_upsert_person,
   },
   find_object_by_id,
   objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
   Object,
 };
 use anyhow::anyhow;
-use lemmy_api_common::{blocking, site::SearchResponse};
-use lemmy_db_queries::{
-  source::{
-    comment::Comment_,
-    community::Community_,
-    person::Person_,
-    post::Post_,
-    private_message::PrivateMessage_,
-  },
-  SearchType,
+use itertools::Itertools;
+use lemmy_api_common::{blocking, site::ResolveObjectResponse};
+use lemmy_apub_lib::webfinger::{webfinger_resolve_actor, WebfingerType};
+use lemmy_db_queries::source::{
+  comment::Comment_,
+  community::Community_,
+  person::Person_,
+  post::Post_,
+  private_message::PrivateMessage_,
 };
 use lemmy_db_schema::source::{
   comment::Comment,
@@ -28,11 +27,14 @@ use lemmy_db_schema::source::{
   post::Post,
   private_message::PrivateMessage,
 };
-use lemmy_db_views::{comment_view::CommentView, post_view::PostView};
+use lemmy_db_views::{
+  comment_view::CommentView,
+  local_user_view::LocalUserView,
+  post_view::PostView,
+};
 use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use url::Url;
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
@@ -54,50 +56,68 @@ enum SearchAcceptedObjects {
 /// http://lemmy_delta:8571/comment/2
 pub async fn search_by_apub_id(
   query: &str,
+  local_user_view: Option<LocalUserView>,
   context: &LemmyContext,
-) -> Result<SearchResponse, LemmyError> {
-  // Parse the shorthand query url
-  let query_url = if query.contains('@') {
-    debug!("Search for {}", query);
-    let split = query.split('@').collect::<Vec<&str>>();
-
-    // Person type will look like ['', username, instance]
-    // Community will look like [!community, instance]
-    let (name, instance) = if split.len() == 3 {
-      (format!("/u/{}", split[1]), split[2])
-    } else if split.len() == 2 {
-      if split[0].contains('!') {
-        let split2 = split[0].split('!').collect::<Vec<&str>>();
-        (format!("/c/{}", split2[1]), split[1])
-      } else {
-        return Err(anyhow!("Invalid search query: {}", query).into());
+) -> Result<ResolveObjectResponse, LemmyError> {
+  let query_url = match Url::parse(query) {
+    Ok(u) => u,
+    Err(_) => {
+      let (kind, name) = query.split_at(1);
+      let kind = match kind {
+        "@" => WebfingerType::Person,
+        "!" => WebfingerType::Group,
+        _ => return Err(anyhow!("invalid query").into()),
+      };
+      // remote actor, use webfinger to resolve url
+      if name.contains('@') {
+        let (name, domain) = name.splitn(2, '@').collect_tuple().expect("invalid query");
+        webfinger_resolve_actor(name, domain, kind, context.client()).await?
       }
-    } else {
-      return Err(anyhow!("Invalid search query: {}", query).into());
-    };
-
-    let url = format!(
-      "{}://{}{}",
-      Settings::get().get_protocol_string(),
-      instance,
-      name
-    );
-    Url::parse(&url)?
-  } else {
-    Url::parse(query)?
+      // local actor, read from database and return
+      else {
+        let name: String = name.into();
+        return match kind {
+          WebfingerType::Group => {
+            let res = blocking(context.pool(), move |conn| {
+              let community = Community::read_from_name(conn, &name)?;
+              CommunityView::read(conn, community.id, local_user_view.map(|l| l.person.id))
+            })
+            .await??;
+            Ok(ResolveObjectResponse {
+              community: Some(res),
+              ..ResolveObjectResponse::default()
+            })
+          }
+          WebfingerType::Person => {
+            let res = blocking(context.pool(), move |conn| {
+              let person = Person::find_by_name(conn, &name)?;
+              PersonViewSafe::read(conn, person.id)
+            })
+            .await??;
+            Ok(ResolveObjectResponse {
+              person: Some(res),
+              ..ResolveObjectResponse::default()
+            })
+          }
+        };
+      }
+    }
   };
 
-  let recursion_counter = &mut 0;
+  let request_counter = &mut 0;
+  // this does a fetch (even for local objects), just to determine its type and fetch it again
+  // below. we need to fix this when rewriting the fetcher.
   let fetch_response =
-    fetch_remote_object::<SearchAcceptedObjects>(context.client(), &query_url, recursion_counter)
+    fetch_remote_object::<SearchAcceptedObjects>(context.client(), &query_url, request_counter)
       .await;
   if is_deleted(&fetch_response) {
     delete_object_locally(&query_url, context).await?;
+    return Err(anyhow!("Object was deleted").into());
   }
 
   // Necessary because we get a stack overflow using FetchError
   let fet_res = fetch_response.map_err(|e| LemmyError::from(e.inner))?;
-  build_response(fet_res, query_url, recursion_counter, context).await
+  build_response(fet_res, query_url, request_counter, context).await
 }
 
 async fn build_response(
@@ -105,58 +125,56 @@ async fn build_response(
   query_url: Url,
   recursion_counter: &mut i32,
   context: &LemmyContext,
-) -> Result<SearchResponse, LemmyError> {
-  let mut response = SearchResponse {
-    type_: SearchType::All.to_string(),
-    comments: vec![],
-    posts: vec![],
-    communities: vec![],
-    users: vec![],
-  };
-
-  match fetch_response {
+) -> Result<ResolveObjectResponse, LemmyError> {
+  use ResolveObjectResponse as ROR;
+  Ok(match fetch_response {
     SearchAcceptedObjects::Person(p) => {
-      let person_id = p.id(&query_url)?;
-      let person = get_or_fetch_and_upsert_person(person_id, context, recursion_counter).await?;
+      let person_uri = p.id(&query_url)?;
 
-      response.users = vec![
-        blocking(context.pool(), move |conn| {
+      let person = get_or_fetch_and_upsert_person(person_uri, context, recursion_counter).await?;
+      ROR {
+        person: blocking(context.pool(), move |conn| {
           PersonViewSafe::read(conn, person.id)
         })
-        .await??,
-      ];
+        .await?
+        .ok(),
+        ..ROR::default()
+      }
     }
     SearchAcceptedObjects::Group(g) => {
       let community_uri = g.id(&query_url)?;
       let community =
         get_or_fetch_and_upsert_community(community_uri, context, recursion_counter).await?;
-
-      response.communities = vec![
-        blocking(context.pool(), move |conn| {
+      ROR {
+        community: blocking(context.pool(), move |conn| {
           CommunityView::read(conn, community.id, None)
         })
-        .await??,
-      ];
+        .await?
+        .ok(),
+        ..ROR::default()
+      }
     }
     SearchAcceptedObjects::Page(p) => {
       let p = Post::from_apub(&p, context, &query_url, recursion_counter).await?;
-
-      response.posts =
-        vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
+      ROR {
+        post: blocking(context.pool(), move |conn| PostView::read(conn, p.id, None))
+          .await?
+          .ok(),
+        ..ROR::default()
+      }
     }
     SearchAcceptedObjects::Comment(c) => {
       let c = Comment::from_apub(&c, context, &query_url, recursion_counter).await?;
-
-      response.comments = vec![
-        blocking(context.pool(), move |conn| {
+      ROR {
+        comment: blocking(context.pool(), move |conn| {
           CommentView::read(conn, c.id, None)
         })
-        .await??,
-      ];
+        .await?
+        .ok(),
+        ..ROR::default()
+      }
     }
-  };
-
-  Ok(response)
+  })
 }
 
 async fn delete_object_locally(query_url: &Url, context: &LemmyContext) -> Result<(), LemmyError> {
@@ -194,5 +212,5 @@ async fn delete_object_locally(query_url: &Url, context: &LemmyContext) -> Resul
       .await??;
     }
   }
-  Err(anyhow!("Object was deleted").into())
+  Ok(())
 }

@@ -87,6 +87,9 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<SaveSiteConfig>(context, id, op, data).await
     }
     UserOperation::Search => do_websocket_operation::<Search>(context, id, op, data).await,
+    UserOperation::ResolveObject => {
+      do_websocket_operation::<ResolveObject>(context, id, op, data).await
+    }
     UserOperation::TransferCommunity => {
       do_websocket_operation::<TransferCommunity>(context, id, op, data).await
     }
