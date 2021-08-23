@@ -49,15 +49,15 @@ impl PerformCrud for GetSite {
 
           let create_site = CreateSite {
             name: setup.site_name.to_owned(),
-            sidebar: None,
-            description: None,
-            icon: None,
-            banner: None,
-            enable_downvotes: None,
-            open_registration: None,
-            enable_nsfw: None,
+            sidebar: setup.sidebar.to_owned(),
+            description: setup.description.to_owned(),
+            icon: setup.icon.to_owned(),
+            banner: setup.banner.to_owned(),
+            enable_downvotes: setup.enable_downvotes,
+            open_registration: setup.open_registration,
+            enable_nsfw: setup.enable_nsfw,
+            community_creation_admin_only: setup.community_creation_admin_only,
             auth: login_response.jwt,
-            community_creation_admin_only: None,
           };
           create_site.perform(context, websocket_id).await?;
           info!("Site {} created", setup.site_name);

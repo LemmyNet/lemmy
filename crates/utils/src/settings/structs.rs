@@ -103,10 +103,27 @@ pub struct RateLimitConfig {
   pub image_per_second: i32,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
 pub struct SetupConfig {
   pub admin_username: String,
   pub admin_password: String,
-  pub admin_email: Option<String>,
   pub site_name: String,
+  #[default(None)]
+  pub admin_email: Option<String>,
+  #[default(None)]
+  pub sidebar: Option<String>,
+  #[default(None)]
+  pub description: Option<String>,
+  #[default(None)]
+  pub icon: Option<String>,
+  #[default(None)]
+  pub banner: Option<String>,
+  #[default(None)]
+  pub enable_downvotes: Option<bool>,
+  #[default(None)]
+  pub open_registration: Option<bool>,
+  #[default(None)]
+  pub enable_nsfw: Option<bool>,
+  #[default(None)]
+  pub community_creation_admin_only: Option<bool>,
 }
