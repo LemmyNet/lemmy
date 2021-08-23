@@ -21,6 +21,7 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
 fi
 
 # Update crate versions for crates.io
+pushd ../../
 for crate in crates/*; do
   pushd $crate
   # update version of the crate itself (only first occurence)
@@ -33,7 +34,7 @@ done
 # same as above, for the main cargo.toml
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
-
+popd
 
 # The commit
 git commit -m"Version $new_tag"
