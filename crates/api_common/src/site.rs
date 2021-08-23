@@ -56,12 +56,12 @@ pub struct ResolveObject {
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Debug)]
-pub enum ResolveObjectResponse {
-  Comment(CommentView),
-  Post(PostView),
-  Community(CommunityView),
-  Person(PersonViewSafe),
+#[derive(Serialize, Default)]
+pub struct ResolveObjectResponse {
+  pub comment: Option<CommentView>,
+  pub post: Option<PostView>,
+  pub community: Option<CommunityView>,
+  pub person: Option<PersonViewSafe>,
 }
 
 #[derive(Deserialize)]

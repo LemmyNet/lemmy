@@ -376,7 +376,10 @@ impl Perform for ResolveObject {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view = get_local_user_view_from_jwt_opt(&self.auth, context.pool()).await?;
-    search_by_apub_id(&self.q, local_user_view, context).await
+    let res = search_by_apub_id(&self.q, local_user_view, context)
+      .await
+      .map_err(|_| ApiError::err("couldnt_find_object"))?;
+    Ok(res)
   }
 }
 
