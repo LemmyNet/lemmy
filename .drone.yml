@@ -122,7 +122,7 @@ steps:
 
   # using https://github.com/pksunkara/cargo-workspaces
   - name: publish to crates.io
-    image: rust:1.51-slim-buster
+    image: rust:1.51-buster
     commands:
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_queries/
