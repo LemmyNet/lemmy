@@ -21,7 +21,7 @@ fi
 
 # Update crate versions for crates.io
 pushd ../../
-old_tag=$(cat "ansible/VERSION")
+old_tag=$(head -3 Cargo.toml | tail -1 | cut -d'"' -f 2)
 for crate in crates/*; do
   pushd $crate
   # update version of the crate itself (only first occurence)
