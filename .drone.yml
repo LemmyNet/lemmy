@@ -123,9 +123,13 @@ steps:
   # using https://github.com/pksunkara/cargo-workspaces
   - name: publish to crates.io
     image: rust:1
+    environment:
+      CARGO_TOKEN:
+        from_secret: cargo_api_token
     commands:
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_queries/
+      - cargo login "${CARGO_TOKEN}"
       - cargo workspaces publish --from-git --allow-branch main --yes custom "${DRONE_TAG}"
     when:
       ref:
