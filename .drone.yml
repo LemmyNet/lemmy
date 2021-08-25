@@ -130,7 +130,7 @@ steps:
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_queries/
       - cargo login "$CARGO_TOKEN"
-      - cargo workspaces publish --from-git --allow-branch "${DRONE_TAG}" --yes custom "${DRONE_TAG}"
+      - cargo workspaces publish --from-git --allow-dirty --allow-branch "${DRONE_TAG}" --yes custom "${DRONE_TAG}"
     when:
       ref:
         - refs/tags/*
