@@ -2,7 +2,6 @@
 #git checkout main
 
 # Creating the new tag
-old_tag=$(cat "ansible/VERSION")
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
 
@@ -22,6 +21,7 @@ fi
 
 # Update crate versions for crates.io
 pushd ../../
+old_tag=$(cat "ansible/VERSION")
 for crate in crates/*; do
   pushd $crate
   # update version of the crate itself (only first occurence)
