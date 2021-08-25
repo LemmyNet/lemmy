@@ -36,6 +36,7 @@ done
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
 git add Cargo.toml
+cargo check
 git add Cargo.lock
 popd
 
