@@ -13,10 +13,12 @@ pub fn setup(pool: DbPool) {
 
   let conn = pool.get().unwrap();
   active_counts(&conn);
-  reindex_aggregates_tables(&conn);
+
+  // On startup, reindex the tables non-concurrently
+  reindex_aggregates_tables(&conn, false);
   scheduler.every(1.hour()).run(move || {
     active_counts(&conn);
-    reindex_aggregates_tables(&conn);
+    reindex_aggregates_tables(&conn, true);
   });
 
   let conn = pool.get().unwrap();
@@ -35,19 +37,20 @@ pub fn setup(pool: DbPool) {
 /// Reindex the aggregates tables every one hour
 /// This is necessary because hot_rank is actually a mutable function:
 /// https://dba.stackexchange.com/questions/284052/how-to-create-an-index-based-on-a-time-based-function-in-postgres?noredirect=1#comment555727_284052
-fn reindex_aggregates_tables(conn: &PgConnection) {
+fn reindex_aggregates_tables(conn: &PgConnection, concurrently: bool) {
   for table_name in &[
     "post_aggregates",
     "comment_aggregates",
     "community_aggregates",
   ] {
-    reindex_table(conn, table_name);
+    reindex_table(conn, table_name, concurrently);
   }
 }
 
-fn reindex_table(conn: &PgConnection, table_name: &str) {
-  info!("Reindexing table {} ...", table_name);
-  let query = format!("reindex table concurrently {}", table_name);
+fn reindex_table(conn: &PgConnection, table_name: &str, concurrently: bool) {
+  let concurrently_str = if concurrently { "concurrently" } else { "" };
+  info!("Reindexing table {} {} ...", concurrently_str, table_name);
+  let query = format!("reindex table {} {}", concurrently_str, table_name);
   sql_query(query).execute(conn).expect("reindex table");
   info!("Done.");
 }
