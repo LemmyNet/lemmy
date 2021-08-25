@@ -17,7 +17,7 @@ lemmy_db_views_moderator = { version = "=0.12.0-rc.1", path = "../db_views_moder
 lemmy_db_views_actor = { version = "=0.12.0-rc.1", path = "../db_views_actor" }
 lemmy_db_schema = { version = "=0.12.0-rc.1", path = "../db_schema" }
 lemmy_utils = { version = "=0.12.0-rc.1", path = "../utils" }
-serde = { version = "1.0.127", features = ["derive"] }
+serde = { version = "1.0.129", features = ["derive"] }
 log = "0.4.14"
 diesel = "1.4.7"
 actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["cookies"] }

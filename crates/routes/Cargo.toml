@@ -26,7 +26,7 @@ log = "0.4.14"
 anyhow = "1.0.43"
 chrono = { version = "0.4.19", features = ["serde"] }
 rss = "1.10.0"
-serde = { version = "1.0.127", features = ["derive"] }
+serde = { version = "1.0.129", features = ["derive"] }
 # TODO awc should use default-features = false, because gzip is a heavy dependency.
 # This must wait for pictrs to have a configurable disabled gzip
 awc = "3.0.0-beta.7"
