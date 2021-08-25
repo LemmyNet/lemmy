@@ -29,11 +29,13 @@ for crate in crates/*; do
   sed -i "0,/version = \"$old_tag\"/s//version = \"$new_tag\"/g" Cargo.toml
   # update version of lemmy dependencies
   sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
+  git add Cargo.toml
   popd
 done
 # same as above, for the main cargo.toml
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
+git add Cargo.toml
 popd
 
 # The commit
