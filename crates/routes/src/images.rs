@@ -66,9 +66,7 @@ async fn upload(
     .await
     .map_err(error::ErrorBadRequest)?;
 
-  // Note: res.json() is currently broken.
-  let body = res.body().await?;
-  let images: Images = serde_json::from_slice(&body)?;
+  let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).json(images))
 }

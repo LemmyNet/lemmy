@@ -1885,7 +1885,6 @@ dependencies = [
  "log",
  "rss",
  "serde",
- "serde_json",
  "sha2",
  "strum",
  "url",
