@@ -1,3 +1,4 @@
+use actix_http::http::header::ACCEPT_ENCODING;
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use anyhow::anyhow;
 use awc::Client;
@@ -56,6 +57,8 @@ async fn upload(
   };
 
   let mut client_req = client.request_from(format!("{}/image", pictrs_url()?), req.head());
+  // remove content-encoding header so that pictrs doesnt send gzipped response
+  client_req.headers_mut().remove(ACCEPT_ENCODING);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
@@ -103,6 +106,7 @@ async fn image(
   client: web::Data<Client>,
 ) -> Result<HttpResponse, Error> {
   let mut client_req = client.request_from(url, req.head());
+  client_req.headers_mut().remove(ACCEPT_ENCODING);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
@@ -137,6 +141,7 @@ async fn delete(
   let url = format!("{}/image/delete/{}/{}", pictrs_url()?, &token, &file);
 
   let mut client_req = client.request_from(url, req.head());
+  client_req.headers_mut().remove(ACCEPT_ENCODING);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
