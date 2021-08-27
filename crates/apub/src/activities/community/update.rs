@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
   cc: [Url; 1],
@@ -57,7 +57,7 @@ impl UpdateCommunity {
     let id = generate_activity_id(UpdateType::Update)?;
     let update = UpdateCommunity {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: community.to_apub(context.pool()).await?,
       cc: [community.actor_id()],
       kind: UpdateType::Update,

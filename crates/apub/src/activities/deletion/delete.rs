@@ -63,7 +63,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   pub(in crate::activities::deletion) object: Url,
   pub(in crate::activities::deletion) cc: [Url; 1],
   #[serde(rename = "type")]
@@ -139,7 +139,7 @@ impl Delete {
   ) -> Result<Delete, LemmyError> {
     Ok(Delete {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: object_id,
       cc: [community.actor_id()],
       kind: DeleteType::Delete,

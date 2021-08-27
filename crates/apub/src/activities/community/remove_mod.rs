@@ -36,7 +36,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   pub(in crate::activities) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
@@ -60,7 +60,7 @@ impl RemoveMod {
     let id = generate_activity_id(RemoveType::Remove)?;
     let remove = RemoveMod {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: removed_mod.actor_id(),
       target: Some(generate_moderators_url(&community.actor_id)?.into()),
       id: id.clone(),

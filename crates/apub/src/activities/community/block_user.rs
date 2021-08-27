@@ -39,7 +39,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct BlockUserFromCommunity {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   pub(in crate::activities::community) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
@@ -59,7 +59,7 @@ impl BlockUserFromCommunity {
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: target.actor_id(),
       cc: [community.actor_id()],
       kind: BlockType::Block,

@@ -58,7 +58,7 @@ pub enum AnnouncableActivities {
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   object: AnnouncableActivities,
   cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -79,7 +79,7 @@ impl AnnounceActivity {
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity {
       actor: community.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object,
       cc: vec![community.followers_url()],
       kind: AnnounceType::Announce,

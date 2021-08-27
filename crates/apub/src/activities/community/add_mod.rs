@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct AddMod {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   object: Url,
   target: Url,
   cc: [Url; 1],
@@ -58,7 +58,7 @@ impl AddMod {
     let id = generate_activity_id(AddType::Add)?;
     let add = AddMod {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: added_mod.actor_id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: [community.actor_id()],
