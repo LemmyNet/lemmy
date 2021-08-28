@@ -19,7 +19,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoRemovePostCommentOrCommunity {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   // Note, there is no such thing as Undo/Remove/Mod, so we ignore that
   object: RemoveMod,
   cc: [Url; 1],

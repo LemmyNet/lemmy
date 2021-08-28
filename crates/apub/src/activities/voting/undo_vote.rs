@@ -42,7 +42,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoVote {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   object: Vote,
   cc: [Url; 1],
   #[serde(rename = "type")]
@@ -71,7 +71,7 @@ impl UndoVote {
     let id = generate_activity_id(UndoType::Undo)?;
     let undo_vote = UndoVote {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object,
       cc: [community.actor_id()],
       kind: UndoType::Undo,

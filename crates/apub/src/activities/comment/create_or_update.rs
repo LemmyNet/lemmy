@@ -27,7 +27,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdateComment {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   object: Note,
   cc: Vec<Url>,
   tag: Vec<Mention>,
@@ -61,7 +61,7 @@ impl CreateOrUpdateComment {
 
     let create_or_update = CreateOrUpdateComment {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: comment.to_apub(context.pool()).await?,
       cc: maa.ccs,
       tag: maa.tags,

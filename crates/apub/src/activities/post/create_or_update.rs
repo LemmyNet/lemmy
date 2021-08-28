@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePost {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   object: Page,
   cc: [Url; 1],
   #[serde(rename = "type")]
@@ -63,7 +63,7 @@ impl CreateOrUpdatePost {
     let id = generate_activity_id(kind.clone())?;
     let create_or_update = CreateOrUpdatePost {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: post.to_apub(context.pool()).await?,
       cc: [community.actor_id()],
       kind,

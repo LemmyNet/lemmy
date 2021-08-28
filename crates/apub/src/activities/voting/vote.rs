@@ -62,7 +62,7 @@ impl From<&VoteType> for i16 {
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   pub(in crate::activities::voting) object: Url,
   cc: [Url; 1],
   #[serde(rename = "type")]
@@ -83,7 +83,7 @@ impl Vote {
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: object.ap_id(),
       cc: [community.actor_id()],
       kind: kind.clone(),

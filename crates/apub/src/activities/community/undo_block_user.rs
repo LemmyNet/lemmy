@@ -33,7 +33,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
   actor: Url,
-  to: PublicUrl,
+  to: [PublicUrl; 1],
   object: BlockUserFromCommunity,
   cc: [Url; 1],
   #[serde(rename = "type")]
@@ -57,7 +57,7 @@ impl UndoBlockUserFromCommunity {
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoBlockUserFromCommunity {
       actor: actor.actor_id(),
-      to: PublicUrl::Public,
+      to: [PublicUrl::Public],
       object: block,
       cc: [community.actor_id()],
       kind: UndoType::Undo,
