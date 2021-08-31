@@ -8,7 +8,7 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 # The ansible and docker installs should only update for non release-candidates
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
-  sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
+  sed -i "s/richardarpanet\/lemmy:.*/richardarpanet\/lemmy:$new_tag/" ../prod/docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
   git add ../prod/docker-compose.yml
 

@@ -11,7 +11,7 @@ services:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_queries=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     volumes:
       - ../lemmy.hjson:/config/config.hjson
-    depends_on: 
+    depends_on:
       - pictrs
       - postgres
 
@@ -24,7 +24,7 @@ services:
       - LEMMY_INTERNAL_HOST=lemmy:8536
       - LEMMY_EXTERNAL_HOST=localhost:8536
       - LEMMY_HTTPS=false
-    depends_on: 
+    depends_on:
       - lemmy
 
   postgres:
@@ -42,7 +42,7 @@ services:
 
   pictrs:
     image: asonix/pictrs:v0.2.6-r2
-    ports: 
+    ports:
       - "8537:8080"
     user: 991:991
     volumes:

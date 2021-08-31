@@ -62,7 +62,7 @@
           dest: '/etc/nginx/sites-enabled/lemmy.conf'
           mode: '0644'
       vars:
-        lemmy_docker_image: "dessalines/lemmy:dev"
+        lemmy_docker_image: "richardarpanet/lemmy:dev"
         lemmy_docker_ui_image: "dessalines/lemmy-ui:{{ lookup('file', 'VERSION') }}"
         lemmy_port: "8536"
         lemmy_ui_port: "1235"

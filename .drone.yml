@@ -78,8 +78,8 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      target: "dessalines/lemmy:dev"
-      template: "dessalines/lemmy:dev-OS-ARCH"
+      target: "richardarpanet/lemmy:dev"
+      template: "richardarpanet/lemmy:dev-OS-ARCH"
       platforms:
         - linux/amd64
         - linux/arm64
@@ -105,13 +105,13 @@ steps:
 
   - name: publish release docker manifest
     image: plugins/manifest
-    settings: 
+    settings:
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      target: "dessalines/lemmy:${DRONE_TAG}"
-      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      target: "richardarpanet/lemmy:${DRONE_TAG}"
+      template: "richardarpanet/lemmy:${DRONE_TAG}-OS-ARCH"
       platforms:
         - linux/amd64
         - linux/arm64
@@ -219,8 +219,8 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      target: "dessalines/lemmy:dev"
-      template: "dessalines/lemmy:dev-OS-ARCH"
+      target: "richardarpanet/lemmy:dev"
+      template: "richardarpanet/lemmy:dev-OS-ARCH"
       platforms:
         - linux/amd64
         - linux/arm64
@@ -246,13 +246,13 @@ steps:
 
   - name: publish release docker manifest
     image: plugins/manifest
-    settings: 
+    settings:
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      target: "dessalines/lemmy:${DRONE_TAG}"
-      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      target: "richardarpanet/lemmy:${DRONE_TAG}"
+      template: "richardarpanet/lemmy:${DRONE_TAG}-OS-ARCH"
       platforms:
         - linux/amd64
         - linux/arm64
