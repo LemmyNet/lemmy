@@ -153,6 +153,8 @@ platform:
 steps:
 
   - name: prepare repo
+    # Not sure why, but rust ARM64 builds are failing on drone for rust:1.54 and later:
+    # https://discourse.drone.io/t/arm-build-stalls-out-on-cloud-drone-io-ram-issue/9701
     image: rust:1.51-slim
     user: root
     commands:
