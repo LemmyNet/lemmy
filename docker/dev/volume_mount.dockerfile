@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:experimental
 
 # Warning: this will not pick up migrations unless there are code changes
-FROM rust:1-slim as rust
+FROM rust:1 as rust
 
 ENV HOME=/home/root
 
