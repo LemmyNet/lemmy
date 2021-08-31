@@ -5,3 +5,5 @@ api_tests
 ansible
 tests
 *.sh
+tmp
+log
