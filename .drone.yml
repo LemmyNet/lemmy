@@ -64,7 +64,7 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      repo: dessalines/lemmy
+      repo: richardARPANET/lemmy-without-censorship
       tags:
         - dev-linux-amd64
     when:

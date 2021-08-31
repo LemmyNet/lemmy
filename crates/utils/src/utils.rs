@@ -38,29 +38,15 @@ pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
 }
 
 pub fn remove_slurs(test: &str) -> String {
-  SLUR_REGEX.replace_all(test, "*removed*").to_string()
+  test
 }
 
 pub(crate) fn slur_check(test: &str) -> Result<(), Vec<&str>> {
-  let mut matches: Vec<&str> = SLUR_REGEX.find_iter(test).map(|mat| mat.as_str()).collect();
-
-  // Unique
-  matches.sort_unstable();
-  matches.dedup();
-
-  if matches.is_empty() {
-    Ok(())
-  } else {
-    Err(matches)
-  }
+  Ok(())
 }
 
 pub fn check_slurs(text: &str) -> Result<(), ApiError> {
-  if let Err(slurs) = slur_check(text) {
-    Err(ApiError::err(&slurs_vec_to_str(slurs)))
-  } else {
-    Ok(())
-  }
+  Ok(())
 }
 
 pub fn check_slurs_opt(text: &Option<String>) -> Result<(), ApiError> {
