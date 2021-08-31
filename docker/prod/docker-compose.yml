@@ -32,7 +32,7 @@ services:
     environment:
       - LEMMY_INTERNAL_HOST=lemmy:8536
       - LEMMY_EXTERNAL_HOST=localhost:8536
-      - LEMMY_HTTPS=false
+      - LEMMY_HTTPS=true
     depends_on: 
       - lemmy
 
