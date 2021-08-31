@@ -38,7 +38,7 @@ pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
 }
 
 pub fn remove_slurs(test: &str) -> String {
-  test
+  return test.to_string();
 }
 
 pub(crate) fn slur_check(test: &str) -> Result<(), Vec<&str>> {
