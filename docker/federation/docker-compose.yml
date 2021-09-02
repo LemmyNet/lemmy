@@ -2,7 +2,7 @@ version: '3.3'
 
 services:
   nginx:
-    image: nginx:1.17-alpine
+    image: nginx:1-alpine
     ports:
       - "8540:8540"
       - "8550:8550"
