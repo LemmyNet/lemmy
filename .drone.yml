@@ -153,7 +153,9 @@ platform:
 steps:
 
   - name: prepare repo
-    image: rust:1-slim
+    # Not sure why, but rust ARM64 builds are failing on drone for rust:1.54 and later:
+    # https://discourse.drone.io/t/arm-build-stalls-out-on-cloud-drone-io-ram-issue/9701
+    image: rust:1.51-slim
     user: root
     commands:
       - chown 1000:1000 . -R
@@ -162,7 +164,7 @@ steps:
       - git fetch --tags
 
   - name: cargo test
-    image: rust:1-slim
+    image: rust:1.51-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -176,7 +178,7 @@ steps:
 
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
   - name: cargo build
-    image: rust:1-slim
+    image: rust:1.51-slim
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
