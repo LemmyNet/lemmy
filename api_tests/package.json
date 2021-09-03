@@ -16,7 +16,7 @@
     "eslint": "^7.30.0",
     "eslint-plugin-jane": "^9.0.3",
     "jest": "^27.0.6",
-    "lemmy-js-client": "0.12.0-rc.1",
+    "lemmy-js-client": "0.12.0",
     "node-fetch": "^2.6.1",
     "prettier": "^2.3.2",
     "ts-jest": "^27.0.3",
