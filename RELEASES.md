@@ -105,6 +105,10 @@ Since our last release in April, we've had [~80](https://github.com/LemmyNet/lem
 
 ### Servers
 
+You may need to add this to your `lemmy.hjson`:
+
+`pictrs_url: "http://pictrs:8080"`
+
 If you'd like to make a DB backup before upgrading, follow [this guide](https://join.lemmy.ml/docs/en/administration/backup_and_restore.html).
 
 To upgrade your instance to `v0.12.0`, simply follow the instructions in the documentation:
