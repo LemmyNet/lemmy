@@ -21,6 +21,7 @@ use lemmy_apub::{
 };
 use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
 use lemmy_db_schema::source::comment::*;
+use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
   ApiError,
@@ -143,8 +144,15 @@ impl PerformCrud for CreateComment {
     )
     .await?;
 
+    let person_id = local_user_view.person.id;
+    let comment_id = inserted_comment.id;
+    let comment_view = blocking(context.pool(), move |conn| {
+      CommentView::read(conn, comment_id, Some(person_id))
+    })
+    .await??;
+
     // If its a comment to yourself, mark it as read
-    if local_user_view.person.id == inserted_comment.creator_id {
+    if local_user_view.person.id == comment_view.get_recipient_id() {
       let comment_id = inserted_comment.id;
       blocking(context.pool(), move |conn| {
         Comment::update_read(conn, comment_id, true)

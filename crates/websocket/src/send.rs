@@ -76,10 +76,11 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
     view.comment = view.comment.blank_out_deleted_or_removed_info();
   }
 
-  let res = CommentResponse {
+  let mut res = CommentResponse {
     comment_view: view,
     recipient_ids,
-    form_id,
+    // The sent out form id should be null
+    form_id: None,
   };
 
   context.chat_server().do_send(SendComment {
@@ -87,6 +88,10 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
     comment: res.clone(),
     websocket_id,
   });
+
+  // The recipient_ids should be empty for returns
+  res.recipient_ids = Vec::new();
+  res.form_id = form_id;
 
   Ok(res)
 }
