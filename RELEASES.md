@@ -1,3 +1,11 @@
+# Lemmy v0.12.1 Release (2021-09-04)
+
+Fixed several critical websocket bugs.
+
+- Wasn't correctly getting comment parent user for mark as read. Fixes [#1767](https://github.com/LemmyNet/lemmy/issues/1767)
+- Was using all recipients for simple comment return. Fixes [#1766](https://github.com/LemmyNet/lemmy/issues/1766)
+- Fix comment scrolling bug. Fixes [#394](https://github.com/LemmyNet/lemmy-ui/issues/394)
+
 # Lemmy v0.12.0 Release (2021-09-03)
 
 ## Changes
