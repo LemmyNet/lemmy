@@ -1,3 +1,10 @@
+# Lemmy v0.12.2 Release (2021-09-06)
+
+- Fixing ARM64 builds.
+- Fixing missing Arabic language in UI.
+- Fixing wrongly shown subscribed communities on other user's profiles. [#402](https://github.com/LemmyNet/lemmy-ui/issues/402)
+- Adding a robots.txt, thanks to @mahanstreamer. [#401](https://github.com/LemmyNet/lemmy-ui/pull/401)
+
 # Lemmy v0.12.1 Release (2021-09-04)
 
 Fixed several critical websocket bugs.
