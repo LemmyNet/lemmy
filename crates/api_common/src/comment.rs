@@ -79,42 +79,35 @@ pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CreateCommentReportResponse {
-  pub success: bool,
+#[derive(Serialize, Clone)]
+pub struct CommentReportResponse {
+  pub comment_report_view: CommentReportView,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct ResolveCommentReport {
   pub report_id: i32,
   pub resolved: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ResolveCommentReportResponse {
-  // TODO this should probably return the view
-  pub report_id: i32,
-  pub resolved: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct ListCommentReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
-  pub community: Option<CommunityId>,
+  pub community_id: Option<CommunityId>,
   pub auth: String,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize)]
 pub struct ListCommentReportsResponse {
-  pub comments: Vec<CommentReportView>,
+  pub comment_reports: Vec<CommentReportView>,
 }
