@@ -112,42 +112,37 @@ pub struct SavePost {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CreatePostReportResponse {
-  pub success: bool,
+#[derive(Serialize, Clone)]
+pub struct PostReportResponse {
+  pub post_report_view: PostReportView,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct ResolvePostReport {
   pub report_id: i32,
   pub resolved: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ResolvePostReportResponse {
-  pub report_id: i32,
-  pub resolved: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct ListPostReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub community: Option<CommunityId>,
+  /// if no community is given, it returns reports for all communities moderated by the auth user
+  pub community_id: Option<CommunityId>,
   pub auth: String,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize)]
 pub struct ListPostReportsResponse {
-  pub posts: Vec<PostReportView>,
+  pub post_reports: Vec<PostReportView>,
 }
 
 #[derive(Deserialize, Debug)]

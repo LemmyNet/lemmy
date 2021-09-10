@@ -1,7 +1,16 @@
 use diesel::{result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{comment, comment_report, community, person, person_alias_1, person_alias_2, post},
+  schema::{
+    comment,
+    comment_report,
+    community,
+    community_moderator,
+    person,
+    person_alias_1,
+    person_alias_2,
+    post,
+  },
   source::{
     comment::Comment,
     comment_report::CommentReport,
@@ -10,6 +19,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   CommunityId,
+  PersonId,
 };
 use serde::Serialize;
 
@@ -76,46 +86,60 @@ impl CommentReportView {
   ///
   /// * `community_ids` - a Vec<i32> of community_ids to get a count for
   /// TODO this eq_any is a bad way to do this, would be better to join to communitymoderator
+  /// TODO FIX THIS NOW
   /// for a person id
   pub fn get_report_count(
     conn: &PgConnection,
-    community_ids: &[CommunityId],
+    my_person_id: PersonId,
+    community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
     use diesel::dsl::*;
-    comment_report::table
+
+    let mut query = comment_report::table
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .filter(
-        comment_report::resolved
-          .eq(false)
-          .and(post::community_id.eq_any(community_ids)),
+      // Test this join
+      .inner_join(
+        community_moderator::table.on(
+          community_moderator::community_id
+            .eq(post::community_id)
+            .and(community_moderator::person_id.eq(my_person_id)),
+        ),
       )
-      .select(count(comment_report::id))
-      .first::<i64>(conn)
+      .filter(comment_report::resolved.eq(false))
+      .into_boxed();
+
+    if let Some(community_id) = community_id {
+      query = query.filter(post::community_id.eq(community_id))
+    }
+
+    query.select(count(comment_report::id)).first::<i64>(conn)
   }
 }
 
 pub struct CommentReportQueryBuilder<'a> {
   conn: &'a PgConnection,
-  community_ids: Option<Vec<CommunityId>>, // TODO bad way to do this
+  my_person_id: PersonId,
+  community_id: Option<CommunityId>,
   page: Option<i64>,
   limit: Option<i64>,
   resolved: Option<bool>,
 }
 
 impl<'a> CommentReportQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
+  pub fn create(conn: &'a PgConnection, my_person_id: PersonId) -> Self {
     CommentReportQueryBuilder {
       conn,
-      community_ids: None,
+      my_person_id,
+      community_id: None,
       page: None,
       limit: None,
       resolved: Some(false),
     }
   }
 
-  pub fn community_ids<T: MaybeOptional<Vec<CommunityId>>>(mut self, community_ids: T) -> Self {
-    self.community_ids = community_ids.get_optional();
+  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
+    self.community_id = community_id.get_optional();
     self
   }
 
@@ -141,6 +165,14 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
       .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      // Test this join
+      .inner_join(
+        community_moderator::table.on(
+          community_moderator::community_id
+            .eq(post::community_id)
+            .and(community_moderator::person_id.eq(self.my_person_id)),
+        ),
+      )
       .left_join(
         person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
       )
@@ -155,8 +187,8 @@ impl<'a> CommentReportQueryBuilder<'a> {
       ))
       .into_boxed();
 
-    if let Some(comm_ids) = self.community_ids {
-      query = query.filter(post::community_id.eq_any(comm_ids));
+    if let Some(community_id) = self.community_id {
+      query = query.filter(post::community_id.eq(community_id));
     }
 
     if let Some(resolved_flag) = self.resolved {
