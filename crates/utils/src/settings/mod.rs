@@ -6,7 +6,7 @@ use std::{env, fs, io::Error, sync::RwLock};
 
 pub mod structs;
 
-static CONFIG_FILE: &str = "config/config.hjson";
+static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
 lazy_static! {
   static ref SETTINGS: RwLock<Settings> =
@@ -54,7 +54,7 @@ impl Settings {
   }
 
   pub fn get_config_location() -> String {
-    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE.to_string())
+    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| DEFAULT_CONFIG_FILE.to_string())
   }
 
   pub fn read_config_file() -> Result<String, Error> {
@@ -92,7 +92,7 @@ impl Settings {
   }
 
   pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
-    fs::write(CONFIG_FILE, data)?;
+    fs::write(Settings::get_config_location(), data)?;
 
     // Reload the new settings
     // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
