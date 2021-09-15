@@ -1,0 +1,29 @@
+---
+- hosts: all
+
+  tasks:
+  - name: check if config file was already fetched from server before
+    local_action: stat path='lemmy-{{domain}}.hjson'
+    register: stat_local_config_file
+
+  - name: on first run, fetch lemmy config for local editing
+    fetch:
+      src: '{{lemmy_base_dir}}/lemmy.hjson'
+      dest: 'lemmy-{{domain}}.hjson'
+      flat: yes
+    when: stat_local_config_file.stat.exists == False
+
+  - name: copy local lemmy config to server
+    copy:
+      src: 'lemmy-{{domain}}.hjson'
+      dest: '{{lemmy_base_dir}}/lemmy.hjson'
+      mode: '0600'
+      owner: '1000'
+      group: '1000'
+
+
+  - name: restart lemmy to apply new config
+    docker_compose:
+      project_src: '{{lemmy_base_dir}}'
+      state: present
+      restarted: yes
