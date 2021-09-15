@@ -1,6 +1,5 @@
 # local ansible configuration
 ansible/inventory
-ansible/inventory_dev
 ansible/passwords/
 
 # docker build files
