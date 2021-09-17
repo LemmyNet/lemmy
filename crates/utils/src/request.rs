@@ -114,6 +114,7 @@ pub(crate) struct PictrsResponse {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct PictrsFile {
   file: String,
+  #[allow(dead_code)]
   delete_token: String,
 }
 

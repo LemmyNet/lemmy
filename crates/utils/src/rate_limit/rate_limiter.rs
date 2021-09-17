@@ -18,17 +18,9 @@ pub(crate) enum RateLimitType {
 }
 
 /// Rate limiting based on rate type and IP addr
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RateLimiter {
   buckets: HashMap<RateLimitType, HashMap<IpAddr, RateLimitBucket>>,
-}
-
-impl Default for RateLimiter {
-  fn default() -> Self {
-    Self {
-      buckets: HashMap::<RateLimitType, HashMap<IpAddr, RateLimitBucket>>::new(),
-    }
-  }
 }
 
 impl RateLimiter {
