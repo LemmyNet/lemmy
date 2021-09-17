@@ -1,6 +1,16 @@
 version: '3.3'
 
 services:
+  nginx:
+    image: nginx:1-alpine
+    ports:
+      - "1236:1236"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    restart: always
+    depends_on:
+      - pictrs
+      - lemmy-ui
 
   lemmy:
     image: lemmy-dev:latest
@@ -17,12 +27,10 @@ services:
 
   lemmy-ui:
     image: dessalines/lemmy-ui:dev
-    ports:
-      - "1235:1234"
     restart: always
     environment:
       - LEMMY_INTERNAL_HOST=lemmy:8536
-      - LEMMY_EXTERNAL_HOST=localhost:8536
+      - LEMMY_EXTERNAL_HOST=localhost:1234
       - LEMMY_HTTPS=false
     depends_on: 
       - lemmy
@@ -42,8 +50,6 @@ services:
 
   pictrs:
     image: asonix/pictrs:v0.2.6-r2
-    ports: 
-      - "8537:8080"
     user: 991:991
     volumes:
       - ./volumes/pictrs:/mnt

@@ -11,7 +11,7 @@ services:
       - "8580:8580"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-    restart: on-failure
+    restart: always
     depends_on:
       - pictrs
       - lemmy-alpha-ui
