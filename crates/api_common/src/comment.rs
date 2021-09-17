@@ -1,4 +1,4 @@
-use lemmy_db_schema::{CommentId, CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId};
 use lemmy_db_views::{comment_report_view::CommentReportView, comment_view::CommentView};
 use serde::{Deserialize, Serialize};
 
@@ -93,7 +93,7 @@ pub struct CommentReportResponse {
 
 #[derive(Deserialize)]
 pub struct ResolveCommentReport {
-  pub report_id: i32,
+  pub report_id: CommentReportId,
   pub resolved: bool,
   pub auth: String,
 }

@@ -131,13 +131,22 @@ pub trait Readable {
 
 pub trait Reportable {
   type Form;
+  type IdType;
   fn report(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn resolve(conn: &PgConnection, report_id: i32, resolver_id: PersonId) -> Result<usize, Error>
+  fn resolve(
+    conn: &PgConnection,
+    report_id: Self::IdType,
+    resolver_id: PersonId,
+  ) -> Result<usize, Error>
   where
     Self: Sized;
-  fn unresolve(conn: &PgConnection, report_id: i32, resolver_id: PersonId) -> Result<usize, Error>
+  fn unresolve(
+    conn: &PgConnection,
+    report_id: Self::IdType,
+    resolver_id: PersonId,
+  ) -> Result<usize, Error>
   where
     Self: Sized;
 }

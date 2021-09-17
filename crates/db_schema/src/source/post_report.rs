@@ -1,4 +1,4 @@
-use crate::{schema::post_report, source::post::Post, DbUrl, PersonId, PostId};
+use crate::{schema::post_report, source::post::Post, DbUrl, PersonId, PostId, PostReportId};
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[belongs_to(Post)]
 #[table_name = "post_report"]
 pub struct PostReport {
-  pub id: i32,
+  pub id: PostReportId,
   pub creator_id: PersonId,
   pub post_id: PostId,
   pub original_post_name: String,

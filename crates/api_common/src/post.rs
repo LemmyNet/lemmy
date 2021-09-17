@@ -1,4 +1,4 @@
-use lemmy_db_schema::{CommunityId, PostId};
+use lemmy_db_schema::{CommunityId, PostId, PostReportId};
 use lemmy_db_views::{
   comment_view::CommentView,
   post_report_view::PostReportView,
@@ -126,7 +126,7 @@ pub struct PostReportResponse {
 
 #[derive(Deserialize)]
 pub struct ResolvePostReport {
-  pub report_id: i32,
+  pub report_id: PostReportId,
   pub resolved: bool,
   pub auth: String,
 }
