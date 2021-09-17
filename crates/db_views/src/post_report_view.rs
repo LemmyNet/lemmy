@@ -404,7 +404,7 @@ mod tests {
     let read_jessica_report_view_after_resolve =
       PostReportView::read(&conn, inserted_jessica_report.id).unwrap();
 
-    let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view.clone();
+    let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
       .post_report
       .resolved = true;
