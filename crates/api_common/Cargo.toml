@@ -24,3 +24,4 @@ actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["c
 chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.66", features = ["preserve_order"] }
 url = "2.2.2"
+jsonwebtoken = "7.2.0"

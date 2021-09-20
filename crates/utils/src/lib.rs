@@ -6,7 +6,6 @@ extern crate strum_macros;
 extern crate smart_default;
 
 pub mod apub;
-pub mod claims;
 pub mod email;
 pub mod rate_limit;
 pub mod request;
