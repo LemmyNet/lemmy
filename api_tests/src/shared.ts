@@ -76,34 +76,36 @@ export let epsilon: API = {
   client: new LemmyHttp('http://localhost:8581'),
 };
 
+const password = 'lemmylemmy'
+
 export async function setupLogins() {
   let formAlpha: Login = {
     username_or_email: 'lemmy_alpha',
-    password: 'lemmy',
+    password,
   };
   let resAlpha = alpha.client.login(formAlpha);
 
   let formBeta = {
     username_or_email: 'lemmy_beta',
-    password: 'lemmy',
+    password,
   };
   let resBeta = beta.client.login(formBeta);
 
   let formGamma = {
     username_or_email: 'lemmy_gamma',
-    password: 'lemmy',
+    password,
   };
   let resGamma = gamma.client.login(formGamma);
 
   let formDelta = {
     username_or_email: 'lemmy_delta',
-    password: 'lemmy',
+    password,
   };
   let resDelta = delta.client.login(formDelta);
 
   let formEpsilon = {
     username_or_email: 'lemmy_epsilon',
-    password: 'lemmy',
+    password,
   };
   let resEpsilon = epsilon.client.login(formEpsilon);
 
@@ -510,8 +512,8 @@ export async function registerUser(
 ): Promise<LoginResponse> {
   let form: Register = {
     username,
-    password: 'test',
-    password_verify: 'test',
+    password,
+    password_verify: password,
     show_nsfw: true,
   };
   return api.client.register(form);

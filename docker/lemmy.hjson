@@ -6,7 +6,7 @@
     # username for the admin user
     admin_username: "lemmy"
     # password for the admin user
-    admin_password: "lemmy"
+    admin_password: "lemmylemmy"
     # name of the site (can be changed later)
     site_name: "lemmy-test"
   }

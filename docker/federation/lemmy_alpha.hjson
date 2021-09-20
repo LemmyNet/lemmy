@@ -5,7 +5,7 @@
   jwt_secret: changeme
   setup: {
     admin_username: lemmy_alpha
-    admin_password: lemmy
+    admin_password: lemmylemmy
     site_name: lemmy-alpha
     sidebar: alphas sidebar
   }
