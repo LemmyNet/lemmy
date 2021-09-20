@@ -551,6 +551,13 @@ table! {
     }
 }
 
+table! {
+  secrets(id) {
+    id -> Int4,
+    jwt_secret -> Varchar,
+  }
+}
+
 joinable!(comment_alias_1 -> person_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(person_mention -> person_alias_1 (recipient_id));

@@ -6,6 +6,7 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
   blocking,
+  claims::Claims,
   collect_moderated_communities,
   get_local_user_view_from_jwt,
   is_admin,
@@ -58,7 +59,6 @@ use lemmy_db_views_actor::{
   person_view::PersonViewSafe,
 };
 use lemmy_utils::{
-  claims::Claims,
   email::send_email,
   location_info,
   settings::structs::Settings,
@@ -104,7 +104,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.local_user.id.0)?,
+      jwt: Claims::jwt(local_user_view.local_user.id.0, context.pool()).await?,
     })
   }
 }
@@ -269,7 +269,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0)?,
+      jwt: Claims::jwt(updated_local_user.id.0, context.pool()).await?,
     })
   }
 }
@@ -312,7 +312,7 @@ impl Perform for ChangePassword {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0)?,
+      jwt: Claims::jwt(updated_local_user.id.0, context.pool()).await?,
     })
   }
 }
@@ -771,7 +771,7 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0)?,
+      jwt: Claims::jwt(updated_local_user.id.0, context.pool()).await?,
     })
   }
 }
