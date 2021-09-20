@@ -39,3 +39,4 @@ deser-hjson = "1.0.2"
 smart-default = "0.6.0"
 webpage = { version = "1.3.0", default-features = false, features = ["serde"] }
 jsonwebtoken = "7.2.0"
+doku = { git = "https://github.com/anixe/doku", branch = "issue/1" }

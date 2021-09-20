@@ -23,13 +23,19 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
-use std::{sync::Arc, thread};
+use std::{env, sync::Arc, thread};
 use tokio::sync::Mutex;
 
 embed_migrations!();
 
 #[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
+  let args: Vec<String> = env::args().collect();
+  if args.len() == 2 && args[1] == "--print-config-docs" {
+    println!("{}", doku::to_json_val(&Settings::default()));
+    return Ok(());
+  }
+
   env_logger::init();
   let settings = Settings::init().expect("Couldn't initialize settings.");
 
