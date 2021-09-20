@@ -4,13 +4,13 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::{
-  source::{community::Community_, person::Person_},
+  source::{community::Community_, person::Person_, secret::SecretSingleton},
   Crud,
   ListingType,
   SortType,
 };
 use lemmy_db_schema::{
-  source::{community::Community, local_user::LocalUser, person::Person},
+  source::{community::Community, local_user::LocalUser, person::Person, secret::Secret},
   LocalUserId,
 };
 use lemmy_db_views::{
@@ -229,17 +229,15 @@ fn get_feed_front(
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.sub);
+  let jwt_secret = Secret::get().jwt_secret;
+  let local_user_id = LocalUserId(Claims::decode(&jwt, &jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
-  let person_id = local_user.person_id;
-  let show_bot_accounts = local_user.show_bot_accounts;
-  let show_read_posts = local_user.show_read_posts;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::Subscribed)
-    .my_person_id(person_id)
-    .show_bot_accounts(show_bot_accounts)
-    .show_read_posts(show_read_posts)
+    .my_person_id(local_user.person_id)
+    .show_bot_accounts(local_user.show_bot_accounts)
+    .show_read_posts(local_user.show_read_posts)
     .sort(*sort_type)
     .list()?;
 
@@ -261,7 +259,8 @@ fn get_feed_front(
 
 fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let local_user_id = LocalUserId(Claims::decode(&jwt)?.claims.sub);
+  let jwt_secret = Secret::get().jwt_secret;
+  let local_user_id = LocalUserId(Claims::decode(&jwt, &jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;

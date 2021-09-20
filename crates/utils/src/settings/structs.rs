@@ -24,8 +24,6 @@ pub struct Settings {
   pub port: u16,
   #[default(true)]
   pub tls_enabled: bool,
-  #[default("changeme")]
-  pub jwt_secret: String,
   #[default(None)]
   pub pictrs_url: Option<String>,
   #[default(None)]

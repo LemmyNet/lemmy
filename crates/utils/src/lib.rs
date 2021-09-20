@@ -6,12 +6,12 @@ extern crate strum_macros;
 extern crate smart_default;
 
 pub mod apub;
-pub mod claims;
 pub mod email;
 pub mod rate_limit;
 pub mod request;
 pub mod settings;
 
+pub mod claims;
 #[cfg(test)]
 mod test;
 pub mod utils;

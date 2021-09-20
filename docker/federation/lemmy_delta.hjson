@@ -2,7 +2,6 @@
   hostname: lemmy-delta:8571
   port: 8571
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_delta
     admin_password: lemmylemmy
