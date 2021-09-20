@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, password_length_check, person::*};
+use lemmy_api_common::{blocking, claims::Claims, password_length_check, person::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -28,7 +28,6 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
   apub::generate_actor_keypair,
-  claims::Claims,
   settings::structs::Settings,
   utils::{check_slurs, is_valid_actor_name},
   ApiError,
@@ -219,7 +218,7 @@ impl PerformCrud for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_local_user.id.0)?,
+      jwt: Claims::jwt(inserted_local_user.id.0, context.pool()).await?,
     })
   }
 }
