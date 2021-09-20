@@ -1,7 +1,7 @@
 # local ansible configuration
 ansible/inventory
-ansible/inventory_dev
 ansible/passwords/
+ansible/lemmy-*.hjson
 
 # docker build files
 docker/lemmy_mine.hjson
