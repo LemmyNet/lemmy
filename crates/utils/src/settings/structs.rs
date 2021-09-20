@@ -1,7 +1,8 @@
+use doku::prelude::*;
 use serde::Deserialize;
 use std::net::{IpAddr, Ipv4Addr};
 
-#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
 #[serde(default)]
 pub struct Settings {
   #[serde(default)]
@@ -17,8 +18,10 @@ pub struct Settings {
   #[default(None)]
   pub setup: Option<SetupConfig>,
   #[default("unset")]
+  #[doku(example = "example.com")]
   pub hostname: String,
   #[default(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)))]
+  #[doku(as = "String")]
   pub bind: IpAddr,
   #[default(8536)]
   pub port: u16,
@@ -27,6 +30,7 @@ pub struct Settings {
   #[default("changeme")]
   pub jwt_secret: String,
   #[default(None)]
+  #[doku(example = "http://localhost:8080")]
   pub pictrs_url: Option<String>,
   #[default(None)]
   pub additional_slurs: Option<String>,
@@ -34,7 +38,7 @@ pub struct Settings {
   pub actor_name_max_length: usize,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
 #[serde(default)]
 pub struct CaptchaConfig {
   #[default(false)]
@@ -43,7 +47,7 @@ pub struct CaptchaConfig {
   pub difficulty: String,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
 #[serde(default)]
 pub struct DatabaseConfig {
   #[default("lemmy")]
@@ -60,16 +64,18 @@ pub struct DatabaseConfig {
   pub pool_size: u32,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Doku)]
 pub struct EmailConfig {
+  #[doku(example = "localhost:25")]
   pub smtp_server: String,
   pub smtp_login: Option<String>,
   pub smtp_password: Option<String>,
+  #[doku(example = "noreply@example.com")]
   pub smtp_from_address: String,
   pub use_tls: bool,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
 #[serde(default)]
 pub struct FederationConfig {
   #[default(false)]
@@ -82,7 +88,7 @@ pub struct FederationConfig {
   pub strict_allowlist: bool,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
 #[serde(default)]
 pub struct RateLimitConfig {
   #[default(180)]
@@ -103,10 +109,13 @@ pub struct RateLimitConfig {
   pub image_per_second: i32,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault)]
+#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
 pub struct SetupConfig {
+  #[doku(example = "admin")]
   pub admin_username: String,
+  #[doku(example = "my_passwd")]
   pub admin_password: String,
+  #[doku(example = "My Lemmy Instance")]
   pub site_name: String,
   #[default(None)]
   pub admin_email: Option<String>,

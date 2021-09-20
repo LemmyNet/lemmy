@@ -978,6 +978,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc4b29f4b9bb94bf267d57269fd0706d343a160937108e9619fe380645428abb"
 
 [[package]]
+name = "doku"
+version = "0.9.0"
+source = "git+https://github.com/anixe/doku?branch=issue/1#97e58175aa2972c003a8155d6f58aca91a9bfe88"
+dependencies = [
+ "doku-derive",
+]
+
+[[package]]
+name = "doku-derive"
+version = "0.9.0"
+source = "git+https://github.com/anixe/doku?branch=issue/1#97e58175aa2972c003a8155d6f58aca91a9bfe88"
+dependencies = [
+ "darling 0.13.0",
+ "proc-macro-error",
+ "proc-macro2 1.0.28",
+ "quote 1.0.9",
+ "syn 1.0.75",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1869,6 +1889,7 @@ dependencies = [
  "clokwerk",
  "diesel",
  "diesel_migrations",
+ "doku",
  "env_logger",
  "http-signature-normalization-actix",
  "lemmy_api",
@@ -1904,6 +1925,7 @@ dependencies = [
  "comrak",
  "deser-hjson",
  "diesel",
+ "doku",
  "futures",
  "http",
  "itertools",
@@ -2508,6 +2530,30 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2 1.0.28",
+ "quote 1.0.9",
+ "syn 1.0.75",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2 1.0.28",
+ "quote 1.0.9",
+ "version_check",
+]
 
 [[package]]
 name = "proc-macro-hack"
