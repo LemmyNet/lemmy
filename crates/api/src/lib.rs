@@ -187,30 +187,22 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 
 #[cfg(test)]
 mod tests {
-  use diesel::{
-    r2d2::{ConnectionManager, Pool},
-    PgConnection,
-  };
-  use lemmy_api_common::{check_validator_time, claims::Claims};
+  use lemmy_api_common::check_validator_time;
   use lemmy_db_queries::{
     establish_unpooled_connection,
-    get_database_url_from_env,
-    source::local_user::LocalUser_,
+    source::{local_user::LocalUser_, secrets::Secrets_},
     Crud,
   };
   use lemmy_db_schema::source::{
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
+    secrets::Secrets,
   };
-  use lemmy_utils::settings::structs::Settings;
+  use lemmy_utils::claims::Claims;
 
-  #[actix_rt::test]
-  async fn test_should_not_validate_user_token_after_password_change() {
+  #[test]
+  fn test_should_not_validate_user_token_after_password_change() {
     let conn = establish_unpooled_connection();
-    let db_url = get_database_url_from_env().unwrap_or_else(|_| Settings::get().get_database_url());
-    let pool = Pool::builder()
-      .build(ConnectionManager::<PgConnection>::new(&db_url))
-      .unwrap();
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),
@@ -227,8 +219,9 @@ mod tests {
 
     let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();
 
-    let jwt = Claims::jwt(inserted_local_user.id.0, &pool).await.unwrap();
-    let claims = Claims::decode(&jwt, &pool).await.unwrap().claims;
+    let jwt_secret = Secrets::read_jwt_secret(&conn).unwrap();
+    let jwt = Claims::jwt(inserted_local_user.id.0, jwt_secret.as_ref()).unwrap();
+    let claims = Claims::decode(&jwt, jwt_secret.as_ref()).unwrap().claims;
     let check = check_validator_time(&inserted_local_user.validator_time, &claims);
     assert!(check.is_ok());
 

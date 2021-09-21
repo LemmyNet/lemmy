@@ -6,7 +6,6 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
   blocking,
-  claims::Claims,
   collect_moderated_communities,
   get_local_user_view_from_jwt,
   is_admin,
@@ -26,6 +25,7 @@ use lemmy_db_queries::{
     person_mention::PersonMention_,
     post::Post_,
     private_message::PrivateMessage_,
+    secrets::Secrets_,
   },
   Blockable,
   Crud,
@@ -44,6 +44,7 @@ use lemmy_db_schema::{
     person_mention::*,
     post::Post,
     private_message::PrivateMessage,
+    secrets::Secrets,
     site::*,
   },
 };
@@ -59,6 +60,7 @@ use lemmy_db_views_actor::{
   person_view::PersonViewSafe,
 };
 use lemmy_utils::{
+  claims::Claims,
   email::send_email,
   location_info,
   settings::structs::Settings,
@@ -103,8 +105,9 @@ impl Perform for Login {
     }
 
     // Return the jwt
+    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.local_user.id.0, context.pool()).await?,
+      jwt: Claims::jwt(local_user_view.local_user.id.0, jwt_secret.as_ref())?,
     })
   }
 }
@@ -268,8 +271,9 @@ impl Perform for SaveUserSettings {
     };
 
     // Return the jwt
+    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, context.pool()).await?,
+      jwt: Claims::jwt(updated_local_user.id.0, jwt_secret.as_ref())?,
     })
   }
 }
@@ -311,8 +315,9 @@ impl Perform for ChangePassword {
     .await??;
 
     // Return the jwt
+    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, context.pool()).await?,
+      jwt: Claims::jwt(updated_local_user.id.0, jwt_secret.as_ref())?,
     })
   }
 }
@@ -770,8 +775,9 @@ impl Perform for PasswordChange {
     .map_err(|_| ApiError::err("couldnt_update_user"))?;
 
     // Return the jwt
+    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, context.pool()).await?,
+      jwt: Claims::jwt(updated_local_user.id.0, jwt_secret.as_ref())?,
     })
   }
 }

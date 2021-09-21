@@ -11,6 +11,7 @@ pub mod rate_limit;
 pub mod request;
 pub mod settings;
 
+pub mod claims;
 #[cfg(test)]
 mod test;
 pub mod utils;
