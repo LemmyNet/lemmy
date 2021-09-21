@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, claims::Claims, password_length_check, person::*};
+use lemmy_api_common::{blocking, password_length_check, person::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -9,7 +9,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_queries::{
-  source::{local_user::LocalUser_, site::Site_},
+  source::{local_user::LocalUser_, secrets::Secrets_, site::Site_},
   Crud,
   Followable,
   Joinable,
@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     community::*,
     local_user::{LocalUser, LocalUserForm},
     person::*,
+    secrets::Secrets,
     site::*,
   },
   CommunityId,
@@ -28,6 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
   apub::generate_actor_keypair,
+  claims::Claims,
   settings::structs::Settings,
   utils::{check_slurs, is_valid_actor_name},
   ApiError,
@@ -217,8 +219,9 @@ impl PerformCrud for Register {
     }
 
     // Return the jwt
+    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_local_user.id.0, context.pool()).await?,
+      jwt: Claims::jwt(inserted_local_user.id.0, jwt_secret.as_ref())?,
     })
   }
 }

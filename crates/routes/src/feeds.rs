@@ -1,16 +1,16 @@
 use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use lemmy_api_common::{blocking, claims::Claims};
+use diesel::PgConnection;
+use lemmy_api_common::blocking;
 use lemmy_db_queries::{
-  source::{community::Community_, person::Person_},
+  source::{community::Community_, person::Person_, secrets::Secrets_},
   Crud,
-  DbPool,
   ListingType,
   SortType,
 };
 use lemmy_db_schema::{
-  source::{community::Community, local_user::LocalUser, person::Person},
+  source::{community::Community, local_user::LocalUser, person::Person, secrets::Secrets},
   LocalUserId,
 };
 use lemmy_db_views::{
@@ -19,7 +19,12 @@ use lemmy_db_views::{
   site_view::SiteView,
 };
 use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
-use lemmy_utils::{settings::structs::Settings, utils::markdown_to_html, LemmyError};
+use lemmy_utils::{
+  claims::Claims,
+  settings::structs::Settings,
+  utils::markdown_to_html,
+  LemmyError,
+};
 use lemmy_websocket::LemmyContext;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -136,12 +141,13 @@ async fn get_feed(
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
-  let builder = match request_type {
-    RequestType::User => get_feed_user(context.pool(), sort_type, param).await,
-    RequestType::Community => get_feed_community(context.pool(), sort_type, param).await,
-    RequestType::Front => get_feed_front(context.pool(), sort_type, param).await,
-    RequestType::Inbox => get_feed_inbox(context.pool(), param).await,
-  }
+  let builder = blocking(context.pool(), move |conn| match request_type {
+    RequestType::User => get_feed_user(conn, &sort_type, param),
+    RequestType::Community => get_feed_community(conn, &sort_type, param),
+    RequestType::Front => get_feed_front(conn, &sort_type, param),
+    RequestType::Inbox => get_feed_inbox(conn, param),
+  })
+  .await?
   .map_err(ErrorBadRequest)?;
 
   let rss = builder.build().map_err(ErrorBadRequest)?.to_string();
@@ -161,23 +167,19 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   SortType::from_str(&sort_query)
 }
 
-async fn get_feed_user(
-  pool: &DbPool,
-  sort_type: SortType,
+fn get_feed_user(
+  conn: &PgConnection,
+  sort_type: &SortType,
   user_name: String,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
-  let person = blocking(pool, move |conn| Person::find_by_name(conn, &user_name)).await??;
+  let site_view = SiteView::read(conn)?;
+  let person = Person::find_by_name(conn, &user_name)?;
 
-  let person_id = person.id;
-  let posts = blocking(pool, move |conn| {
-    PostQueryBuilder::create(conn)
-      .listing_type(ListingType::All)
-      .sort(sort_type)
-      .creator_id(person_id)
-      .list()
-  })
-  .await??;
+  let posts = PostQueryBuilder::create(conn)
+    .listing_type(ListingType::All)
+    .sort(*sort_type)
+    .creator_id(person.id)
+    .list()?;
 
   let items = create_post_items(posts)?;
 
@@ -191,26 +193,19 @@ async fn get_feed_user(
   Ok(channel_builder)
 }
 
-async fn get_feed_community(
-  pool: &DbPool,
-  sort_type: SortType,
+fn get_feed_community(
+  conn: &PgConnection,
+  sort_type: &SortType,
   community_name: String,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
-  let community = blocking(pool, move |conn| {
-    Community::read_from_name(conn, &community_name)
-  })
-  .await??;
+  let site_view = SiteView::read(conn)?;
+  let community = Community::read_from_name(conn, &community_name)?;
 
-  let community_id = community.id;
-  let posts = blocking(pool, move |conn| {
-    PostQueryBuilder::create(conn)
-      .listing_type(ListingType::All)
-      .sort(sort_type)
-      .community_id(community_id)
-      .list()
-  })
-  .await??;
+  let posts = PostQueryBuilder::create(conn)
+    .listing_type(ListingType::All)
+    .sort(*sort_type)
+    .community_id(community.id)
+    .list()?;
 
   let items = create_post_items(posts)?;
 
@@ -228,25 +223,23 @@ async fn get_feed_community(
   Ok(channel_builder)
 }
 
-async fn get_feed_front(
-  pool: &DbPool,
-  sort_type: SortType,
+fn get_feed_front(
+  conn: &PgConnection,
+  sort_type: &SortType,
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
-  let local_user_id = LocalUserId(Claims::decode(&jwt, pool).await?.claims.sub);
+  let site_view = SiteView::read(conn)?;
+  let jwt_secret = Secrets::read_jwt_secret(conn)?;
+  let local_user_id = LocalUserId(Claims::decode(&jwt, jwt_secret.as_ref())?.claims.sub);
+  let local_user = LocalUser::read(conn, local_user_id)?;
 
-  let posts = blocking(pool, move |conn| {
-    let local_user = LocalUser::read(conn, local_user_id)?;
-    PostQueryBuilder::create(conn)
-      .listing_type(ListingType::Subscribed)
-      .my_person_id(local_user.person_id)
-      .show_bot_accounts(local_user.show_bot_accounts)
-      .show_read_posts(local_user.show_read_posts)
-      .sort(sort_type)
-      .list()
-  })
-  .await??;
+  let posts = PostQueryBuilder::create(conn)
+    .listing_type(ListingType::Subscribed)
+    .my_person_id(local_user.person_id)
+    .show_bot_accounts(local_user.show_bot_accounts)
+    .show_read_posts(local_user.show_read_posts)
+    .sort(*sort_type)
+    .list()?;
 
   let items = create_post_items(posts)?;
 
@@ -264,33 +257,28 @@ async fn get_feed_front(
   Ok(channel_builder)
 }
 
-async fn get_feed_inbox(pool: &DbPool, jwt: String) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
-  let local_user_id = LocalUserId(Claims::decode(&jwt, pool).await?.claims.sub);
-  let local_user = blocking(pool, move |conn| LocalUser::read(conn, local_user_id)).await??;
+fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
+  let site_view = SiteView::read(conn)?;
+  let jwt_secret = Secrets::read_jwt_secret(conn)?;
+  let local_user_id = LocalUserId(Claims::decode(&jwt, jwt_secret.as_ref())?.claims.sub);
+  let local_user = LocalUser::read(conn, local_user_id)?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
 
   let sort = SortType::New;
 
-  let replies = blocking(pool, move |conn| {
-    CommentQueryBuilder::create(conn)
-      .recipient_id(person_id)
-      .my_person_id(person_id)
-      .show_bot_accounts(show_bot_accounts)
-      .sort(sort)
-      .list()
-  })
-  .await??;
+  let replies = CommentQueryBuilder::create(conn)
+    .recipient_id(person_id)
+    .my_person_id(person_id)
+    .show_bot_accounts(show_bot_accounts)
+    .sort(sort)
+    .list()?;
 
-  let mentions = blocking(pool, move |conn| {
-    PersonMentionQueryBuilder::create(conn)
-      .recipient_id(person_id)
-      .my_person_id(person_id)
-      .sort(sort)
-      .list()
-  })
-  .await??;
+  let mentions = PersonMentionQueryBuilder::create(conn)
+    .recipient_id(person_id)
+    .my_person_id(person_id)
+    .sort(sort)
+    .list()?;
 
   let items = create_reply_and_mention_items(replies, mentions)?;
 
