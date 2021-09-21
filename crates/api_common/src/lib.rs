@@ -11,7 +11,7 @@ use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     person_block::PersonBlock_,
-    secrets::Secrets_,
+    secret::SecretSingleton,
     site::Site_,
   },
   Crud,
@@ -26,7 +26,7 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     person_mention::{PersonMention, PersonMentionForm},
     post::{Post, PostRead, PostReadForm},
-    secrets::Secrets,
+    secret::Secret,
     site::Site,
   },
   CommunityId,
@@ -247,8 +247,8 @@ pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserView, LemmyError> {
-  let jwt_secret = blocking(pool, move |conn| Secrets::read_jwt_secret(conn)).await??;
-  let claims = Claims::decode(jwt, jwt_secret.as_ref())
+  let jwt_secret = Secret::get().jwt_secret;
+  let claims = Claims::decode(jwt, &jwt_secret)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -296,8 +296,8 @@ pub async fn get_local_user_settings_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let jwt_secret = blocking(pool, move |conn| Secrets::read_jwt_secret(conn)).await??;
-  let claims = Claims::decode(jwt, jwt_secret.as_ref())
+  let jwt_secret = Secret::get().jwt_secret;
+  let claims = Claims::decode(jwt, &jwt_secret)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);

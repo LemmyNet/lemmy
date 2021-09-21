@@ -552,7 +552,7 @@ table! {
 }
 
 table! {
-  secrets(id) {
+  secret(id) {
     id -> Int4,
     jwt_secret -> Varchar,
   }

@@ -15,23 +15,23 @@ pub struct Claims {
 }
 
 impl Claims {
-  pub fn decode(jwt: &str, jwt_secret: &[u8]) -> Result<TokenData<Claims>, LemmyError> {
+  pub fn decode(jwt: &str, jwt_secret: &str) -> Result<TokenData<Claims>, LemmyError> {
     let v = Validation {
       validate_exp: false,
       ..Validation::default()
     };
-    let key = DecodingKey::from_secret(jwt_secret);
+    let key = DecodingKey::from_secret(jwt_secret.as_ref());
     Ok(decode::<Claims>(jwt, &key, &v)?)
   }
 
-  pub fn jwt(local_user_id: i32, jwt_secret: &[u8]) -> Result<Jwt, LemmyError> {
+  pub fn jwt(local_user_id: i32, jwt_secret: &str) -> Result<Jwt, LemmyError> {
     let my_claims = Claims {
       sub: local_user_id,
       iss: Settings::get().hostname,
       iat: Utc::now().timestamp(),
     };
 
-    let key = EncodingKey::from_secret(jwt_secret);
+    let key = EncodingKey::from_secret(jwt_secret.as_ref());
     Ok(encode(&Header::default(), &my_claims, &key)?)
   }
 }
