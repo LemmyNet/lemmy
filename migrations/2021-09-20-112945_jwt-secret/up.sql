@@ -1,10 +1,9 @@
--- generate a jwt secret with 62 possible characters and length 43.
--- this gives an entropy of 256 bits
--- log2(62^43) = 256
+-- generate a jwt secret
+create extension if not exists pgcrypto;
 
-create table secrets(
+create table secret(
   id serial primary key,
-  jwt_secret varchar(43) not null
+  jwt_secret varchar not null default gen_random_uuid()
 );
--- TODO: generate a random string from A-Za-z0-9, length 43, and insert
-insert into secrets(jwt_secret) values('123');
+
+insert into secret default values;

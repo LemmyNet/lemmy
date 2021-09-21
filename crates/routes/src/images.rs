@@ -2,11 +2,9 @@ use actix_http::http::header::ACCEPT_ENCODING;
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use anyhow::anyhow;
 use awc::Client;
-use lemmy_api_common::blocking;
-use lemmy_db_queries::source::secrets::Secrets_;
-use lemmy_db_schema::source::secrets::Secrets;
+use lemmy_db_queries::source::secret::SecretSingleton;
+use lemmy_db_schema::source::secret::Secret;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings, LemmyError};
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -49,7 +47,6 @@ struct PictrsParams {
 async fn upload(
   req: HttpRequest,
   body: web::Payload,
-  context: web::Data<LemmyContext>,
   client: web::Data<Client>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
@@ -57,8 +54,8 @@ async fn upload(
     .cookie("jwt")
     .expect("No auth header for picture upload");
 
-  let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
-  if Claims::decode(jwt.value(), jwt_secret.as_ref()).is_err() {
+  let jwt_secret = Secret::get().jwt_secret;
+  if Claims::decode(jwt.value(), &jwt_secret).is_err() {
     return Ok(HttpResponse::Unauthorized().finish());
   };
 

@@ -25,7 +25,7 @@ use lemmy_db_queries::{
     person_mention::PersonMention_,
     post::Post_,
     private_message::PrivateMessage_,
-    secrets::Secrets_,
+    secret::SecretSingleton,
   },
   Blockable,
   Crud,
@@ -44,7 +44,7 @@ use lemmy_db_schema::{
     person_mention::*,
     post::Post,
     private_message::PrivateMessage,
-    secrets::Secrets,
+    secret::Secret,
     site::*,
   },
 };
@@ -105,9 +105,9 @@ impl Perform for Login {
     }
 
     // Return the jwt
-    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
+    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.local_user.id.0, jwt_secret.as_ref())?,
+      jwt: Claims::jwt(local_user_view.local_user.id.0, &jwt_secret)?,
     })
   }
 }
@@ -271,9 +271,9 @@ impl Perform for SaveUserSettings {
     };
 
     // Return the jwt
-    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
+    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, jwt_secret.as_ref())?,
+      jwt: Claims::jwt(updated_local_user.id.0, &jwt_secret)?,
     })
   }
 }
@@ -315,9 +315,9 @@ impl Perform for ChangePassword {
     .await??;
 
     // Return the jwt
-    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
+    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, jwt_secret.as_ref())?,
+      jwt: Claims::jwt(updated_local_user.id.0, &jwt_secret)?,
     })
   }
 }
@@ -775,9 +775,9 @@ impl Perform for PasswordChange {
     .map_err(|_| ApiError::err("couldnt_update_user"))?;
 
     // Return the jwt
-    let jwt_secret = blocking(context.pool(), move |conn| Secrets::read_jwt_secret(conn)).await??;
+    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, jwt_secret.as_ref())?,
+      jwt: Claims::jwt(updated_local_user.id.0, &jwt_secret)?,
     })
   }
 }

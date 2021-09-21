@@ -1,1 +1,1 @@
-drop table secrets;
+drop table secret;
