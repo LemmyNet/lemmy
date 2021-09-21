@@ -1629,6 +1629,7 @@ dependencies = [
  "chrono",
  "diesel",
  "jsonwebtoken",
+ "lazy_static",
  "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
