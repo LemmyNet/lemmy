@@ -1,4 +1,3 @@
-pub mod claims;
 pub mod comment;
 pub mod community;
 pub mod person;
@@ -6,12 +5,13 @@ pub mod post;
 pub mod site;
 pub mod websocket;
 
-use crate::{claims::Claims, site::FederatedInstances};
+use crate::site::FederatedInstances;
 use diesel::PgConnection;
 use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     person_block::PersonBlock_,
+    secrets::Secrets_,
     site::Site_,
   },
   Crud,
@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     person_mention::{PersonMention, PersonMentionForm},
     post::{Post, PostRead, PostReadForm},
+    secrets::Secrets,
     site::Site,
   },
   CommunityId,
@@ -39,6 +40,7 @@ use lemmy_db_views_actor::{
   community_view::CommunityView,
 };
 use lemmy_utils::{
+  claims::Claims,
   email::send_email,
   settings::structs::Settings,
   utils::MentionData,
@@ -245,8 +247,8 @@ pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt, pool)
-    .await
+  let jwt_secret = blocking(pool, move |conn| Secrets::read_jwt_secret(conn)).await??;
+  let claims = Claims::decode(jwt, jwt_secret.as_ref())
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -294,8 +296,8 @@ pub async fn get_local_user_settings_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = Claims::decode(jwt, pool)
-    .await
+  let jwt_secret = blocking(pool, move |conn| Secrets::read_jwt_secret(conn)).await??;
+  let claims = Claims::decode(jwt, jwt_secret.as_ref())
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
