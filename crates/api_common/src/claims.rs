@@ -1,10 +1,13 @@
 use crate::blocking;
 use chrono::Utc;
+use diesel::PgConnection;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use lazy_static::lazy_static;
 use lemmy_db_queries::{source::secrets::Secrets_, DbPool};
 use lemmy_db_schema::source::secrets::Secrets;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use serde::{Deserialize, Serialize};
+use std::{ops::Deref, sync::RwLock};
 
 type Jwt = String;
 
@@ -23,7 +26,7 @@ impl Claims {
       validate_exp: false,
       ..Validation::default()
     };
-    let secret = get_jwt_secret(pool).await?;
+    let secret = blocking(pool, move |conn| get_jwt_secret(conn)).await??;
     let key = DecodingKey::from_secret(secret.as_ref());
     Ok(decode::<Claims>(jwt, &key, &v)?)
   }
@@ -34,15 +37,27 @@ impl Claims {
       iss: Settings::get().hostname,
       iat: Utc::now().timestamp(),
     };
-    let key = EncodingKey::from_secret(get_jwt_secret(pool).await?.as_ref());
+
+    let secret = blocking(pool, move |conn| get_jwt_secret(conn)).await??;
+    let key = EncodingKey::from_secret(secret.as_ref());
     Ok(encode(&Header::default(), &my_claims, &key)?)
   }
 }
 
-/// TODO: would be good if we could store the jwt secret in memory, so we dont have to run db
-///       queries all the time (which probably affects performance). but its tricky, we cant use a
-///       static because it requires a db connection to initialize.
-async fn get_jwt_secret(pool: &DbPool) -> Result<String, LemmyError> {
-  let jwt_secret = blocking(pool, move |conn| Secrets::read(conn)).await??;
-  Ok(jwt_secret)
+lazy_static! {
+  static ref JWT_SECRET: RwLock<Option<String>> = RwLock::new(None);
+}
+
+fn get_jwt_secret(conn: &PgConnection) -> Result<String, LemmyError> {
+  let jwt_option: Option<String> = JWT_SECRET.read().unwrap().deref().clone();
+  match jwt_option {
+    Some(j) => Ok(j),
+    None => {
+      let jwt = Secrets::read(conn)?;
+      let jwt_static = JWT_SECRET.write();
+      let mut jwt_static = jwt_static.unwrap();
+      *jwt_static = Some(jwt.clone());
+      Ok(jwt)
+    }
+  }
 }

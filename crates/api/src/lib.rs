@@ -207,7 +207,7 @@ mod tests {
   #[actix_rt::test]
   async fn test_should_not_validate_user_token_after_password_change() {
     let conn = establish_unpooled_connection();
-    let db_url = get_database_url_from_env().unwrap_or(Settings::get().get_database_url());
+    let db_url = get_database_url_from_env().unwrap_or_else(|_| Settings::get().get_database_url());
     let pool = Pool::builder()
       .build(ConnectionManager::<PgConnection>::new(&db_url))
       .unwrap();
