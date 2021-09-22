@@ -43,10 +43,6 @@ async fn main() -> Result<(), LemmyError> {
     .build(manager)
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 
-  // Initialize the secrets
-  let conn = pool.get()?;
-  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
-
   // Run the migrations from code
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   blocking(&pool, move |conn| {
@@ -66,6 +62,10 @@ async fn main() -> Result<(), LemmyError> {
     rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
     rate_limit_config: settings.rate_limit.to_owned().unwrap_or_default(),
   };
+
+  // Initialize the secrets
+  let conn = pool.get()?;
+  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
 
   println!(
     "Starting http server at {}:{}",
