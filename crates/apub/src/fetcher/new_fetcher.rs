@@ -27,7 +27,6 @@ where
   let db_object = dereference_locally::<Kind>(id.clone(), context.pool()).await?;
   // if its a local object, only fetch it from the database and not over http
   if id.domain() == Some(&Settings::get().get_hostname_without_port()?) {
-    dbg!("is local object", db_object.is_some());
     return match db_object {
       None => Err(NotFound {}.into()),
       Some(o) => Ok(o),

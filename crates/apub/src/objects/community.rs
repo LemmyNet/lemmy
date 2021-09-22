@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, signatures::PublicKey},
-  fetcher::community::fetch_community_mods,
+  fetcher::community::{fetch_community_mods, fetch_community_outbox, update_community_mods},
   generate_moderators_url,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
   ActorType,
@@ -179,6 +179,11 @@ impl FromApub for Community {
     let form = Group::from_apub_to_form(group, expected_domain).await?;
 
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
+    update_community_mods(group, &community, context, request_counter).await?;
+
+    // TODO: doing this unconditionally might cause infinite loop for some reason
+    fetch_community_outbox(context, &group.outbox, request_counter).await?;
+
     Ok(community)
   }
 }

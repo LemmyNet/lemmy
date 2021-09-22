@@ -10,7 +10,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
+  fetcher::new_fetcher::dereference,
   generate_moderators_url,
   ActorType,
 };
@@ -108,8 +108,7 @@ impl ActivityHandler for RemoveMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if self.target.is_some() {
-      let community =
-        get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
+      let community = dereference::<Community>(&self.cc[0], context, request_counter).await?;
       let remove_mod = dereference::<Person>(&self.object, context, request_counter).await?;
 
       let form = CommunityModeratorForm {

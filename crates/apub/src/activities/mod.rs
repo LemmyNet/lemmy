@@ -1,7 +1,7 @@
 use crate::{
   check_community_or_site_ban,
   check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
+  fetcher::new_fetcher::dereference,
   generate_moderators_url,
 };
 use anyhow::anyhow;
@@ -58,7 +58,7 @@ pub(crate) async fn extract_community(
   let mut cc_iter = cc.iter();
   loop {
     if let Some(cid) = cc_iter.next() {
-      if let Ok(c) = get_or_fetch_and_upsert_community(cid, context, request_counter).await {
+      if let Ok(c) = dereference(cid, context, request_counter).await {
         break Ok(c);
       }
     } else {
@@ -75,7 +75,7 @@ pub(crate) async fn verify_person_in_community(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let community = get_or_fetch_and_upsert_community(community_id, context, request_counter).await?;
+  let community = dereference::<Community>(community_id, context, request_counter).await?;
   let person = dereference::<Person>(person_id, context, request_counter).await?;
   check_community_or_site_ban(&person, community.id, context.pool()).await
 }
@@ -86,7 +86,7 @@ async fn verify_community(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  get_or_fetch_and_upsert_community(community_id, context, request_counter).await?;
+  dereference::<Community>(community_id, context, request_counter).await?;
   Ok(())
 }
 

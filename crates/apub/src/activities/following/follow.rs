@@ -7,7 +7,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
+  fetcher::new_fetcher::dereference,
   ActorType,
 };
 use activitystreams::{
@@ -98,8 +98,7 @@ impl ActivityHandler for FollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = dereference::<Person>(&self.actor, context, request_counter).await?;
-    let community =
-      get_or_fetch_and_upsert_community(&self.object, context, request_counter).await?;
+    let community = dereference::<Community>(&self.object, context, request_counter).await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: actor.id,

@@ -7,7 +7,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
+  fetcher::new_fetcher::dereference,
   ActorType,
 };
 use activitystreams::{
@@ -90,7 +90,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_community(&self.actor, context, request_counter).await?;
+    let actor = dereference::<Community>(&self.actor, context, request_counter).await?;
     let to = dereference::<Person>(&self.to, context, request_counter).await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {

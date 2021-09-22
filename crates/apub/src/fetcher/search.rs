@@ -1,10 +1,5 @@
 use crate::{
-  fetcher::{
-    community::get_or_fetch_and_upsert_community,
-    fetch::fetch_remote_object,
-    is_deleted,
-    new_fetcher::dereference,
-  },
+  fetcher::{fetch::fetch_remote_object, is_deleted, new_fetcher::dereference},
   find_object_by_id,
   objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
   Object,
@@ -143,8 +138,7 @@ async fn build_response(
     }
     SearchAcceptedObjects::Group(g) => {
       let community_uri = g.id(&query_url)?;
-      let community =
-        get_or_fetch_and_upsert_community(community_uri, context, recursion_counter).await?;
+      let community = dereference::<Community>(community_uri, context, recursion_counter).await?;
       ROR {
         community: blocking(context.pool(), move |conn| {
           CommunityView::read(conn, community.id, None)
