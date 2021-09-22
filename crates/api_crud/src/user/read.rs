@@ -22,7 +22,8 @@ impl PerformCrud for GetPersonDetails {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let data: &GetPersonDetails = self;
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view

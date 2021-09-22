@@ -14,7 +14,7 @@ use diesel::{
   PgConnection,
 };
 use lemmy_api_common::{comment::*, post::*};
-use lemmy_db_schema::{CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::{source::secret::Secret, CommunityId, LocalUserId, PostId};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,
@@ -71,6 +71,9 @@ pub struct ChatServer {
   /// The DB Pool
   pub(super) pool: Pool<ConnectionManager<PgConnection>>,
 
+  /// The Secrets
+  pub(super) secret: Secret,
+
   /// Rate limiting based on rate type and IP addr
   pub(super) rate_limiter: RateLimit,
 
@@ -102,6 +105,7 @@ impl ChatServer {
     message_handler_crud: MessageHandlerCrudType,
     client: Client,
     activity_queue: QueueHandle,
+    secret: Secret,
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -117,6 +121,7 @@ impl ChatServer {
       message_handler_crud,
       client,
       activity_queue,
+      secret,
     }
   }
 
@@ -452,6 +457,7 @@ impl ChatServer {
       chat_server: ctx.address(),
       client: self.client.to_owned(),
       activity_queue: self.activity_queue.to_owned(),
+      secret: self.secret.to_owned(),
     };
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;

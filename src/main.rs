@@ -11,7 +11,8 @@ use lemmy_api::match_websocket_operation;
 use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub::activity_queue::create_activity_queue;
-use lemmy_db_queries::get_database_url_from_env;
+use lemmy_db_queries::{get_database_url_from_env, source::secret::Secret_};
+use lemmy_db_schema::source::secret::Secret;
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_utils::{
@@ -41,6 +42,12 @@ async fn main() -> Result<(), LemmyError> {
     .max_size(settings.database.pool_size)
     .build(manager)
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+
+  // Initialize the secrets
+  let conn = pool.get()?;
+  let secret = Secret::init(&conn).expect("Couldn't initialize secrets");
+
+  // TODO init settings
 
   // Run the migrations from code
   blocking(&pool, move |conn| {
@@ -74,6 +81,7 @@ async fn main() -> Result<(), LemmyError> {
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     Client::default(),
     activity_queue.clone(),
+    secret.clone(),
   )
   .start();
 
@@ -84,6 +92,7 @@ async fn main() -> Result<(), LemmyError> {
       chat_server.to_owned(),
       Client::default(),
       activity_queue.to_owned(),
+      secret.to_owned(),
     );
     let rate_limiter = rate_limiter.clone();
     App::new()

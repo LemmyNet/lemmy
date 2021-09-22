@@ -45,7 +45,8 @@ impl PerformCrud for CreateCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {

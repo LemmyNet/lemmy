@@ -25,7 +25,6 @@ use lemmy_db_queries::{
     person_mention::PersonMention_,
     post::Post_,
     private_message::PrivateMessage_,
-    secret::SecretSingleton,
   },
   Blockable,
   Crud,
@@ -44,7 +43,6 @@ use lemmy_db_schema::{
     person_mention::*,
     post::Post,
     private_message::PrivateMessage,
-    secret::Secret,
     site::*,
   },
 };
@@ -105,9 +103,11 @@ impl Perform for Login {
     }
 
     // Return the jwt
-    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(local_user_view.local_user.id.0, &jwt_secret)?,
+      jwt: Claims::jwt(
+        local_user_view.local_user.id.0,
+        &context.secret().jwt_secret,
+      )?,
     })
   }
 }
@@ -167,7 +167,8 @@ impl Perform for SaveUserSettings {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -271,9 +272,8 @@ impl Perform for SaveUserSettings {
     };
 
     // Return the jwt
-    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, &jwt_secret)?,
+      jwt: Claims::jwt(updated_local_user.id.0, &context.secret().jwt_secret)?,
     })
   }
 }
@@ -288,7 +288,8 @@ impl Perform for ChangePassword {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &ChangePassword = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     password_length_check(&data.new_password)?;
 
@@ -315,9 +316,8 @@ impl Perform for ChangePassword {
     .await??;
 
     // Return the jwt
-    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, &jwt_secret)?,
+      jwt: Claims::jwt(updated_local_user.id.0, &context.secret().jwt_secret)?,
     })
   }
 }
@@ -332,7 +332,8 @@ impl Perform for AddAdmin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddAdminResponse, LemmyError> {
     let data: &AddAdmin = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
@@ -394,7 +395,8 @@ impl Perform for BanPerson {
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanPersonResponse, LemmyError> {
     let data: &BanPerson = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
@@ -486,7 +488,8 @@ impl Perform for BlockPerson {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<BlockPersonResponse, LemmyError> {
     let data: &BlockPerson = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let target_id = data.person_id;
     let person_id = local_user_view.person.id;
@@ -539,7 +542,8 @@ impl Perform for GetReplies {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &GetReplies = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
@@ -576,7 +580,8 @@ impl Perform for GetPersonMentions {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonMentionsResponse, LemmyError> {
     let data: &GetPersonMentions = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
 
@@ -610,7 +615,8 @@ impl Perform for MarkPersonMentionAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PersonMentionResponse, LemmyError> {
     let data: &MarkPersonMentionAsRead = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_mention_id = data.person_mention_id;
     let read_person_mention = blocking(context.pool(), move |conn| {
@@ -653,7 +659,8 @@ impl Perform for MarkAllAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &MarkAllAsRead = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
     let replies = blocking(context.pool(), move |conn| {
@@ -775,9 +782,8 @@ impl Perform for PasswordChange {
     .map_err(|_| ApiError::err("couldnt_update_user"))?;
 
     // Return the jwt
-    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, &jwt_secret)?,
+      jwt: Claims::jwt(updated_local_user.id.0, &context.secret().jwt_secret)?,
     })
   }
 }
@@ -792,7 +798,8 @@ impl Perform for GetReportCount {
     websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
     let data: &GetReportCount = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
     let community_id = data.community;

@@ -38,7 +38,8 @@ impl Perform for CreatePostLike {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Don't do a downvote if site has downvotes disabled
     check_downvotes_enabled(data.score, context.pool()).await?;
@@ -120,7 +121,8 @@ impl Perform for LockPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &LockPost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -186,7 +188,8 @@ impl Perform for StickyPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &StickyPost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -256,7 +259,8 @@ impl Perform for SavePost {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &SavePost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_saved_form = PostSavedForm {
       post_id: data.post_id,

@@ -91,7 +91,8 @@ impl PerformCrud for GetSite {
 
     // Build the local user
     let my_user = if let Some(local_user_view) =
-      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?
+      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool(), context.secret())
+        .await?
     {
       let person_id = local_user_view.person.id;
       let follows = blocking(context.pool(), move |conn| {

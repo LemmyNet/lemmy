@@ -151,7 +151,8 @@ impl Perform for Search {
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = self;
 
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
@@ -384,7 +385,8 @@ impl Perform for ResolveObject {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
-    let local_user_view = get_local_user_view_from_jwt_opt(&self.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&self.auth, context.pool(), context.secret()).await?;
     let res = search_by_apub_id(&self.q, context)
       .await
       .map_err(|_| ApiError::err("couldnt_find_object"))?;
@@ -443,7 +445,8 @@ impl Perform for TransferSite {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     is_admin(&local_user_view)?;
 
@@ -504,7 +507,8 @@ impl Perform for GetSiteConfig {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &GetSiteConfig = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Only let admins read this
     is_admin(&local_user_view)?;
@@ -525,7 +529,8 @@ impl Perform for SaveSiteConfig {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &SaveSiteConfig = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Only let admins read this
     is_admin(&local_user_view)?;

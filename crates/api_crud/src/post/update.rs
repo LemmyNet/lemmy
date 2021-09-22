@@ -23,7 +23,8 @@ impl PerformCrud for EditPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     check_slurs_opt(&data.name)?;
     check_slurs_opt(&data.body)?;

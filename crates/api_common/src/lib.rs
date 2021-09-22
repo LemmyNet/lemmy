@@ -11,7 +11,6 @@ use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     person_block::PersonBlock_,
-    secret::SecretSingleton,
     site::Site_,
   },
   Crud,
@@ -246,9 +245,9 @@ pub async fn mark_post_as_read(
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<LocalUserView, LemmyError> {
-  let jwt_secret = Secret::get().jwt_secret;
-  let claims = Claims::decode(jwt, &jwt_secret)
+  let claims = Claims::decode(jwt, &secret.jwt_secret)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -285,9 +284,10 @@ pub fn check_validator_time(
 pub async fn get_local_user_view_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
-    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool).await?)),
+    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool, secret).await?)),
     None => Ok(None),
   }
 }
@@ -295,9 +295,9 @@ pub async fn get_local_user_view_from_jwt_opt(
 pub async fn get_local_user_settings_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let jwt_secret = Secret::get().jwt_secret;
-  let claims = Claims::decode(jwt, &jwt_secret)
+  let claims = Claims::decode(jwt, &secret.jwt_secret)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -318,10 +318,11 @@ pub async fn get_local_user_settings_view_from_jwt(
 pub async fn get_local_user_settings_view_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<Option<LocalUserSettingsView>, LemmyError> {
   match jwt {
     Some(jwt) => Ok(Some(
-      get_local_user_settings_view_from_jwt(jwt, pool).await?,
+      get_local_user_settings_view_from_jwt(jwt, pool, secret).await?,
     )),
     None => Ok(None),
   }

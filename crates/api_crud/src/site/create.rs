@@ -39,7 +39,8 @@ impl PerformCrud for CreateSite {
       return Err(ApiError::err("site_already_exists").into());
     };
 
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.description)?;

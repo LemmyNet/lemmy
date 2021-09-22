@@ -9,7 +9,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_queries::{
-  source::{local_user::LocalUser_, secret::SecretSingleton, site::Site_},
+  source::{local_user::LocalUser_, site::Site_},
   Crud,
   Followable,
   Joinable,
@@ -21,7 +21,6 @@ use lemmy_db_schema::{
     community::*,
     local_user::{LocalUser, LocalUserForm},
     person::*,
-    secret::Secret,
     site::*,
   },
   CommunityId,
@@ -219,9 +218,8 @@ impl PerformCrud for Register {
     }
 
     // Return the jwt
-    let jwt_secret = Secret::get().jwt_secret;
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_local_user.id.0, &jwt_secret)?,
+      jwt: Claims::jwt(inserted_local_user.id.0, &context.secret().jwt_secret)?,
     })
   }
 }

@@ -27,7 +27,8 @@ impl PerformCrud for GetCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
     let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = match data.id {
@@ -89,7 +90,8 @@ impl PerformCrud for ListCommunities {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);
 

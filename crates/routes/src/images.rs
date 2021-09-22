@@ -2,9 +2,8 @@ use actix_http::http::header::ACCEPT_ENCODING;
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use anyhow::anyhow;
 use awc::Client;
-use lemmy_db_queries::source::secret::SecretSingleton;
-use lemmy_db_schema::source::secret::Secret;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings, LemmyError};
+use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -48,14 +47,14 @@ async fn upload(
   req: HttpRequest,
   body: web::Payload,
   client: web::Data<Client>,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
   let jwt = req
     .cookie("jwt")
     .expect("No auth header for picture upload");
 
-  let jwt_secret = Secret::get().jwt_secret;
-  if Claims::decode(jwt.value(), &jwt_secret).is_err() {
+  if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
     return Ok(HttpResponse::Unauthorized().finish());
   };
 

@@ -4,13 +4,13 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::{
-  source::{community::Community_, person::Person_, secret::SecretSingleton},
+  source::{community::Community_, person::Person_},
   Crud,
   ListingType,
   SortType,
 };
 use lemmy_db_schema::{
-  source::{community::Community, local_user::LocalUser, person::Person, secret::Secret},
+  source::{community::Community, local_user::LocalUser, person::Person},
   LocalUserId,
 };
 use lemmy_db_views::{
@@ -141,11 +141,13 @@ async fn get_feed(
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
+  let jwt_secret = context.secret().jwt_secret.to_owned();
+
   let builder = blocking(context.pool(), move |conn| match request_type {
     RequestType::User => get_feed_user(conn, &sort_type, param),
     RequestType::Community => get_feed_community(conn, &sort_type, param),
-    RequestType::Front => get_feed_front(conn, &sort_type, param),
-    RequestType::Inbox => get_feed_inbox(conn, param),
+    RequestType::Front => get_feed_front(conn, &jwt_secret, &sort_type, param),
+    RequestType::Inbox => get_feed_inbox(conn, &jwt_secret, param),
   })
   .await?
   .map_err(ErrorBadRequest)?;
@@ -225,12 +227,12 @@ fn get_feed_community(
 
 fn get_feed_front(
   conn: &PgConnection,
+  jwt_secret: &str,
   sort_type: &SortType,
   jwt: String,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let jwt_secret = Secret::get().jwt_secret;
-  let local_user_id = LocalUserId(Claims::decode(&jwt, &jwt_secret)?.claims.sub);
+  let local_user_id = LocalUserId(Claims::decode(&jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
 
   let posts = PostQueryBuilder::create(conn)
@@ -257,10 +259,13 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
-fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
+fn get_feed_inbox(
+  conn: &PgConnection,
+  jwt_secret: &str,
+  jwt: String,
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let jwt_secret = Secret::get().jwt_secret;
-  let local_user_id = LocalUserId(Claims::decode(&jwt, &jwt_secret)?.claims.sub);
+  let local_user_id = LocalUserId(Claims::decode(&jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
