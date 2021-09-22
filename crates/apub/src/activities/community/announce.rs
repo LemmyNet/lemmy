@@ -84,7 +84,10 @@ impl AnnounceActivity {
       object,
       cc: vec![community.followers_url()],
       kind: AnnounceType::Announce,
-      id: generate_activity_id(&AnnounceType::Announce)?,
+      id: generate_activity_id(
+        &AnnounceType::Announce,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     };
@@ -100,7 +103,7 @@ impl ActivityHandler for AnnounceActivity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())

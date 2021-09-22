@@ -23,7 +23,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{info, trace};
 use serde::{Deserialize, Serialize};
@@ -98,10 +98,10 @@ where
   if is_activity_already_known(context.pool(), activity.id_unchecked()).await? {
     return Ok(HttpResponse::Ok().finish());
   }
-  check_is_apub_id_valid(activity.actor(), false)?;
+  check_is_apub_id_valid(activity.actor(), false, &context.settings())?;
   info!("Verifying activity {}", activity.id_unchecked().to_string());
   activity.verify(context, request_counter).await?;
-  assert_activity_not_local(&activity)?;
+  assert_activity_not_local(&activity, &context.settings().hostname)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
@@ -151,7 +151,7 @@ pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let settings = Settings::get();
+  let settings = context.settings();
   let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",
     settings.get_protocol_and_hostname(),
@@ -187,10 +187,13 @@ pub(crate) async fn is_activity_already_known(
   }
 }
 
-fn assert_activity_not_local<T: Debug + ActivityFields>(activity: &T) -> Result<(), LemmyError> {
+fn assert_activity_not_local<T: Debug + ActivityFields>(
+  activity: &T,
+  hostname: &str,
+) -> Result<(), LemmyError> {
   let activity_domain = activity.id_unchecked().domain().context(location_info!())?;
 
-  if activity_domain == Settings::get().hostname {
+  if activity_domain == hostname {
     return Err(
       anyhow!(
         "Error: received activity which was sent by local instance: {:?}",

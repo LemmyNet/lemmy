@@ -50,8 +50,11 @@ impl UndoDeletePrivateMessage {
     let recipient =
       blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
-    let object = DeletePrivateMessage::new(actor, pm)?;
-    let id = generate_activity_id(UndoType::Undo)?;
+    let object = DeletePrivateMessage::new(actor, pm, context)?;
+    let id = generate_activity_id(
+      UndoType::Undo,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let undo = UndoDeletePrivateMessage {
       actor: ObjectId::new(actor.actor_id()),
       to: ObjectId::new(recipient.actor_id()),
@@ -73,7 +76,7 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_urls_match(self.actor(), self.object.actor())?;
     verify_domains_match(self.actor(), &self.object.object)?;

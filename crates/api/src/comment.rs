@@ -32,7 +32,8 @@ impl Perform for MarkCommentAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &MarkCommentAsRead = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -88,7 +89,8 @@ impl Perform for SaveComment {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &SaveComment = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_saved_form = CommentSavedForm {
       comment_id: data.comment_id,
@@ -132,7 +134,8 @@ impl Perform for CreateCommentLike {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateCommentLike = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let mut recipient_ids = Vec::<LocalUserId>::new();
 

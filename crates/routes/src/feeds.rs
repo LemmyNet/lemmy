@@ -4,13 +4,13 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::{
-  source::{community::Community_, person::Person_, secret::SecretSingleton},
+  source::{community::Community_, person::Person_},
   Crud,
   ListingType,
   SortType,
 };
 use lemmy_db_schema::{
-  source::{community::Community, local_user::LocalUser, person::Person, secret::Secret},
+  source::{community::Community, local_user::LocalUser, person::Person},
   LocalUserId,
 };
 use lemmy_db_views::{
@@ -19,12 +19,7 @@ use lemmy_db_views::{
   site_view::SiteView,
 };
 use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
-use lemmy_utils::{
-  claims::Claims,
-  settings::structs::Settings,
-  utils::markdown_to_html,
-  LemmyError,
-};
+use lemmy_utils::{claims::Claims, utils::markdown_to_html, LemmyError};
 use lemmy_websocket::LemmyContext;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -98,7 +93,7 @@ async fn get_feed_data(
   })
   .await??;
 
-  let items = create_post_items(posts)?;
+  let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -108,7 +103,7 @@ async fn get_feed_data(
       site_view.site.name,
       listing_type.to_string()
     ))
-    .link(Settings::get().get_protocol_and_hostname())
+    .link(context.settings().get_protocol_and_hostname())
     .items(items);
 
   if let Some(site_desc) = site_view.site.description {
@@ -141,11 +136,20 @@ async fn get_feed(
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
+  let jwt_secret = context.secret().jwt_secret.to_owned();
+  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+
   let builder = blocking(context.pool(), move |conn| match request_type {
-    RequestType::User => get_feed_user(conn, &sort_type, param),
-    RequestType::Community => get_feed_community(conn, &sort_type, param),
-    RequestType::Front => get_feed_front(conn, &sort_type, param),
-    RequestType::Inbox => get_feed_inbox(conn, param),
+    RequestType::User => get_feed_user(conn, &sort_type, &param, &protocol_and_hostname),
+    RequestType::Community => get_feed_community(conn, &sort_type, &param, &protocol_and_hostname),
+    RequestType::Front => get_feed_front(
+      conn,
+      &jwt_secret,
+      &sort_type,
+      &param,
+      &protocol_and_hostname,
+    ),
+    RequestType::Inbox => get_feed_inbox(conn, &jwt_secret, &param, &protocol_and_hostname),
   })
   .await?
   .map_err(ErrorBadRequest)?;
@@ -170,10 +174,11 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
 fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
-  user_name: String,
+  user_name: &str,
+  protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let person = Person::find_by_name(conn, &user_name)?;
+  let person = Person::find_by_name(conn, user_name)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)
@@ -181,7 +186,7 @@ fn get_feed_user(
     .creator_id(person.id)
     .list()?;
 
-  let items = create_post_items(posts)?;
+  let items = create_post_items(posts, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -196,10 +201,11 @@ fn get_feed_user(
 fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
-  community_name: String,
+  community_name: &str,
+  protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let community = Community::read_from_name(conn, &community_name)?;
+  let community = Community::read_from_name(conn, community_name)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)
@@ -207,7 +213,7 @@ fn get_feed_community(
     .community_id(community.id)
     .list()?;
 
-  let items = create_post_items(posts)?;
+  let items = create_post_items(posts, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -225,12 +231,13 @@ fn get_feed_community(
 
 fn get_feed_front(
   conn: &PgConnection,
+  jwt_secret: &str,
   sort_type: &SortType,
-  jwt: String,
+  jwt: &str,
+  protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let jwt_secret = Secret::get().jwt_secret;
-  let local_user_id = LocalUserId(Claims::decode(&jwt, &jwt_secret)?.claims.sub);
+  let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
 
   let posts = PostQueryBuilder::create(conn)
@@ -241,13 +248,13 @@ fn get_feed_front(
     .sort(*sort_type)
     .list()?;
 
-  let items = create_post_items(posts)?;
+  let items = create_post_items(posts, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
     .title(&format!("{} - Subscribed", site_view.site.name))
-    .link(Settings::get().get_protocol_and_hostname())
+    .link(protocol_and_hostname)
     .items(items);
 
   if let Some(site_desc) = site_view.site.description {
@@ -257,10 +264,14 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
-fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
+fn get_feed_inbox(
+  conn: &PgConnection,
+  jwt_secret: &str,
+  jwt: &str,
+  protocol_and_hostname: &str,
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let jwt_secret = Secret::get().jwt_secret;
-  let local_user_id = LocalUserId(Claims::decode(&jwt, &jwt_secret)?.claims.sub);
+  let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
@@ -280,16 +291,13 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
     .sort(sort)
     .list()?;
 
-  let items = create_reply_and_mention_items(replies, mentions)?;
+  let items = create_reply_and_mention_items(replies, mentions, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
     .title(&format!("{} - Inbox", site_view.site.name))
-    .link(format!(
-      "{}/inbox",
-      Settings::get().get_protocol_and_hostname()
-    ))
+    .link(format!("{}/inbox", protocol_and_hostname,))
     .items(items);
 
   if let Some(site_desc) = site_view.site.description {
@@ -302,21 +310,21 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 fn create_reply_and_mention_items(
   replies: Vec<CommentView>,
   mentions: Vec<PersonMentionView>,
+  protocol_and_hostname: &str,
 ) -> Result<Vec<Item>, LemmyError> {
   let mut reply_items: Vec<Item> = replies
     .iter()
     .map(|r| {
       let reply_url = format!(
         "{}/post/{}/comment/{}",
-        Settings::get().get_protocol_and_hostname(),
-        r.post.id,
-        r.comment.id
+        protocol_and_hostname, r.post.id, r.comment.id
       );
       build_item(
         &r.creator.name,
         &r.comment.published,
         &reply_url,
         &r.comment.content,
+        protocol_and_hostname,
       )
     })
     .collect::<Result<Vec<Item>, LemmyError>>()?;
@@ -326,15 +334,14 @@ fn create_reply_and_mention_items(
     .map(|m| {
       let mention_url = format!(
         "{}/post/{}/comment/{}",
-        Settings::get().get_protocol_and_hostname(),
-        m.post.id,
-        m.comment.id
+        protocol_and_hostname, m.post.id, m.comment.id
       );
       build_item(
         &m.creator.name,
         &m.comment.published,
         &mention_url,
         &m.comment.content,
+        protocol_and_hostname,
       )
     })
     .collect::<Result<Vec<Item>, LemmyError>>()?;
@@ -348,14 +355,11 @@ fn build_item(
   published: &NaiveDateTime,
   url: &str,
   content: &str,
+  protocol_and_hostname: &str,
 ) -> Result<Item, LemmyError> {
   let mut i = ItemBuilder::default();
   i.title(format!("Reply from {}", creator_name));
-  let author_url = format!(
-    "{}/u/{}",
-    Settings::get().get_protocol_and_hostname(),
-    creator_name
-  );
+  let author_url = format!("{}/u/{}", protocol_and_hostname, creator_name);
   i.author(format!(
     "/u/{} <a href=\"{}\">(link)</a>",
     creator_name, author_url
@@ -376,7 +380,10 @@ fn build_item(
   Ok(i.build().map_err(|e| anyhow!(e))?)
 }
 
-fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
+fn create_post_items(
+  posts: Vec<PostView>,
+  protocol_and_hostname: &str,
+) -> Result<Vec<Item>, LemmyError> {
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
@@ -390,11 +397,7 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
     let dt = DateTime::<Utc>::from_utc(p.post.published, Utc);
     i.pub_date(dt.to_rfc2822());
 
-    let post_url = format!(
-      "{}/post/{}",
-      Settings::get().get_protocol_and_hostname(),
-      p.post.id
-    );
+    let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
     i.link(post_url.to_owned());
     i.comments(post_url.to_owned());
     let guid = GuidBuilder::default()
@@ -404,11 +407,7 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
       .map_err(|e| anyhow!(e))?;
     i.guid(guid);
 
-    let community_url = format!(
-      "{}/c/{}",
-      Settings::get().get_protocol_and_hostname(),
-      p.community.name
-    );
+    let community_url = format!("{}/c/{}", protocol_and_hostname, p.community.name);
 
     // TODO add images
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
