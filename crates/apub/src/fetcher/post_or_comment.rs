@@ -1,4 +1,5 @@
 use crate::objects::{comment::Note, post::Page, FromApub};
+use activitystreams::chrono::NaiveDateTime;
 use diesel::{result::Error, PgConnection};
 use lemmy_db_queries::ApubObject;
 use lemmy_db_schema::{
@@ -32,6 +33,10 @@ pub enum PageOrNote {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for PostOrComment {
   type Form = PostOrCommentForm;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
 
   // TODO: this can probably be implemented using a single sql query
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>

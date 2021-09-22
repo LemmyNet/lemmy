@@ -1,7 +1,7 @@
 use crate::{
   check_community_or_site_ban,
   check_is_apub_id_valid,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
   generate_moderators_url,
 };
 use anyhow::anyhow;
@@ -43,7 +43,7 @@ async fn verify_person(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
+  let person = dereference::<Person>(person_id, context, request_counter).await?;
   if person.banned {
     return Err(anyhow!("Person {} is banned", person_id).into());
   }
@@ -76,7 +76,7 @@ pub(crate) async fn verify_person_in_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let community = get_or_fetch_and_upsert_community(community_id, context, request_counter).await?;
-  let person = get_or_fetch_and_upsert_person(person_id, context, request_counter).await?;
+  let person = dereference::<Person>(person_id, context, request_counter).await?;
   check_community_or_site_ban(&person, community.id, context.pool()).await
 }
 

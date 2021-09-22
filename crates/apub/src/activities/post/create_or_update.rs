@@ -10,7 +10,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::new_fetcher::dereference,
   objects::{post::Page, FromApub, ToApub},
   ActorType,
 };
@@ -121,7 +121,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
+    let actor = dereference::<Person>(&self.actor, context, request_counter).await?;
     let post = Post::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
 
     let notif_type = match self.kind {

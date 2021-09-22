@@ -3,7 +3,7 @@ use crate::{
   fetcher::{
     fetch::fetch_remote_object,
     is_deleted,
-    person::get_or_fetch_and_upsert_person,
+    new_fetcher::dereference,
     should_refetch_actor,
   },
   objects::{community::Group, FromApub},
@@ -14,7 +14,10 @@ use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::ActivityHandler;
 use lemmy_db_queries::{source::community::Community_, ApubObject, Joinable};
-use lemmy_db_schema::source::community::{Community, CommunityModerator, CommunityModeratorForm};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityModerator, CommunityModeratorForm},
+  person::Person,
+};
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -114,7 +117,7 @@ async fn update_community_mods(
 
   // Add new mods to database which have been added to moderators collection
   for mod_uri in new_moderators {
-    let mod_user = get_or_fetch_and_upsert_person(&mod_uri, context, request_counter).await?;
+    let mod_user = dereference::<Person>(&mod_uri, context, request_counter).await?;
 
     if !current_moderators
       .clone()

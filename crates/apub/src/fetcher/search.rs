@@ -3,7 +3,7 @@ use crate::{
     community::get_or_fetch_and_upsert_community,
     fetch::fetch_remote_object,
     is_deleted,
-    person::get_or_fetch_and_upsert_person,
+    new_fetcher::dereference,
   },
   find_object_by_id,
   objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
@@ -131,7 +131,7 @@ async fn build_response(
     SearchAcceptedObjects::Person(p) => {
       let person_uri = p.id(&query_url)?;
 
-      let person = get_or_fetch_and_upsert_person(person_uri, context, recursion_counter).await?;
+      let person = dereference::<Person>(person_uri, context, recursion_counter).await?;
       ROR {
         person: blocking(context.pool(), move |conn| {
           PersonViewSafe::read(conn, person.id)

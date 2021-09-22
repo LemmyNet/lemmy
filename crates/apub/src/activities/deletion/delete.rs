@@ -12,7 +12,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::new_fetcher::dereference,
   ActorType,
 };
 use activitystreams::{
@@ -171,7 +171,7 @@ pub(in crate::activities) async fn receive_remove_action(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let actor = dereference::<Person>(actor, context, request_counter).await?;
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {

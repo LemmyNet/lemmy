@@ -1,4 +1,5 @@
 use crate::{ApubObject, Crud, DeleteableOrRemoveable, Likeable, Saveable};
+use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -169,6 +170,11 @@ impl Crud for Comment {
 
 impl ApubObject for Comment {
   type Form = CommentForm;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)

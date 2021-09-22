@@ -1,6 +1,6 @@
 use crate::{
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::new_fetcher::dereference,
   objects::{create_tombstone, FromApub, Source, ToApub},
 };
 use activitystreams::{
@@ -61,8 +61,7 @@ impl Note {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_domains_match(&self.attributed_to, &self.id)?;
-    let person =
-      get_or_fetch_and_upsert_person(&self.attributed_to, context, request_counter).await?;
+    let person = dereference::<Person>(&self.attributed_to, context, request_counter).await?;
     if person.banned {
       return Err(anyhow!("Person is banned from site").into());
     }
@@ -121,9 +120,8 @@ impl FromApub for PrivateMessage {
     request_counter: &mut i32,
   ) -> Result<PrivateMessage, LemmyError> {
     let ap_id = Some(note.id(expected_domain)?.clone().into());
-    let creator =
-      get_or_fetch_and_upsert_person(&note.attributed_to, context, request_counter).await?;
-    let recipient = get_or_fetch_and_upsert_person(&note.to, context, request_counter).await?;
+    let creator = dereference::<Person>(&note.attributed_to, context, request_counter).await?;
+    let recipient = dereference::<Person>(&note.to, context, request_counter).await?;
 
     let form = PrivateMessageForm {
       creator_id: creator.id,

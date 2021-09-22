@@ -1,4 +1,5 @@
 use crate::{ApubObject, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable};
+use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -94,6 +95,11 @@ impl Crud for Community {
 
 impl ApubObject for Community {
   type Form = CommunityForm;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
   fn read_from_apub_id(conn: &PgConnection, for_actor_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community

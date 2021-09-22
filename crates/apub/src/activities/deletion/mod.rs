@@ -4,7 +4,7 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::new_fetcher::dereference,
   ActorType,
 };
 use lemmy_api_common::blocking;
@@ -180,7 +180,7 @@ async fn receive_delete_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        let mod_ = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+        let mod_ = dereference::<Person>(actor, context, request_counter).await?;
         let object = community.actor_id();
         send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
       }

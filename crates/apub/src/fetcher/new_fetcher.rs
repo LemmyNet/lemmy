@@ -1,10 +1,11 @@
-use crate::{objects::FromApub, APUB_JSON_CONTENT_TYPE};
+use crate::{fetcher::should_refetch_actor, objects::FromApub, APUB_JSON_CONTENT_TYPE};
 use anyhow::anyhow;
 use diesel::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
+use log::debug;
 use reqwest::StatusCode;
 use std::time::Duration;
 use url::Url;
@@ -23,11 +24,27 @@ where
   Kind: FromApub + ApubObject + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
-  let local_object = dereference_locally(id.clone(), context.pool()).await?;
-  if let Some(object) = local_object {
-    // TODO: for actors, also refetch after 24 hours
+  let db_object = dereference_locally::<Kind>(id.clone(), context.pool()).await?;
+  // if its a local object, only fetch it from the database and not over http
+  if id.domain() == Some(&Settings::get().get_hostname_without_port()?) {
+    dbg!("is local object", db_object.is_some());
+    return match db_object {
+      None => Err(NotFound {}.into()),
+      Some(o) => Ok(o),
+    };
+  }
+
+  if let Some(object) = db_object {
+    if let Some(last_refreshed_at) = object.last_refreshed_at() {
+      // TODO: rename to should_refetch_object()
+      if should_refetch_actor(last_refreshed_at) {
+        debug!("Refetching remote object {}", id);
+        return dereference_remotely(id, context, request_counter).await;
+      }
+    }
     Ok(object)
   } else {
+    debug!("Fetching remote object {}", id);
     dereference_remotely(id, context, request_counter).await
   }
 }

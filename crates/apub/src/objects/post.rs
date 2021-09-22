@@ -1,7 +1,7 @@
 use crate::{
   activities::{extract_community, verify_person_in_community},
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::new_fetcher::dereference,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
   ActorType,
 };
@@ -183,8 +183,7 @@ impl FromApub for Post {
       page.id(expected_domain)?
     };
     let ap_id = Some(ap_id.clone().into());
-    let creator =
-      get_or_fetch_and_upsert_person(&page.attributed_to, context, request_counter).await?;
+    let creator = dereference::<Person>(&page.attributed_to, context, request_counter).await?;
     let community = extract_community(&page.to, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);

@@ -1,4 +1,5 @@
 use crate::{ApubObject, Crud};
+use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -182,6 +183,11 @@ impl Crud for Person {
 
 impl ApubObject for Person {
   type Form = PersonForm;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::person::dsl::*;
     person

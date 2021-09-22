@@ -8,7 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{new_fetcher::dereference, person::get_or_fetch_and_upsert_person},
+  fetcher::new_fetcher::dereference,
   ActorType,
   PostOrComment,
 };
@@ -126,7 +126,7 @@ impl ActivityHandler for Vote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
+    let actor = dereference::<Person>(&self.actor, context, request_counter).await?;
     let object = dereference::<PostOrComment>(&self.object, context, request_counter).await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,

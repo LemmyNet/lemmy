@@ -3,7 +3,7 @@ use crate::{
   extensions::context::lemmy_context,
   fetcher::new_fetcher::dereference,
   migrations::CommentInReplyToMigration,
-  objects::{create_tombstone, get_or_fetch_and_upsert_person, FromApub, Source, ToApub},
+  objects::{create_tombstone, FromApub, Source, ToApub},
   ActorType,
   PostOrComment,
 };
@@ -216,8 +216,7 @@ impl FromApub for Comment {
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
     let ap_id = Some(note.id(expected_domain)?.clone().into());
-    let creator =
-      get_or_fetch_and_upsert_person(&note.attributed_to, context, request_counter).await?;
+    let creator = dereference::<Person>(&note.attributed_to, context, request_counter).await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
     if post.locked {
       return Err(anyhow!("Post is locked").into());

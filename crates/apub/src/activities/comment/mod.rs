@@ -1,4 +1,4 @@
-use crate::{fetcher::person::get_or_fetch_and_upsert_person, ActorType};
+use crate::{fetcher::new_fetcher::dereference, ActorType};
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},
@@ -33,7 +33,7 @@ async fn get_notif_recipients(
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let actor = dereference::<Person>(actor, context, request_counter).await?;
 
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,
@@ -79,7 +79,7 @@ pub async fn collect_non_local_mentions(
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
 
-      let mention_person = get_or_fetch_and_upsert_person(&actor_id, context, &mut 0).await?;
+      let mention_person = dereference::<Person>(&actor_id, context, &mut 0).await?;
       inboxes.push(mention_person.get_shared_inbox_or_inbox_url());
 
       let mut mention_tag = Mention::new();

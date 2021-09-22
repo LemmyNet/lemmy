@@ -9,7 +9,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
   generate_moderators_url,
   ActorType,
 };
@@ -95,7 +95,7 @@ impl ActivityHandler for AddMod {
   ) -> Result<(), LemmyError> {
     let community =
       get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
-    let new_mod = get_or_fetch_and_upsert_person(&self.object, context, request_counter).await?;
+    let new_mod = dereference::<Person>(&self.object, context, request_counter).await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
     // been added. Skip it here as it would result in a duplicate key error.

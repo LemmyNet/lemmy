@@ -1,7 +1,6 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, sql_types::Text, *};
 use lemmy_db_schema::{source::activity::*, DbUrl};
-use log::debug;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -72,7 +71,6 @@ impl Activity_ for Activity {
   where
     T: Serialize + Debug,
   {
-    debug!("{}", serde_json::to_string_pretty(&data)?);
     let activity_form = ActivityForm {
       ap_id,
       data: serde_json::to_value(&data)?,

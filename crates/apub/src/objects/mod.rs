@@ -1,4 +1,3 @@
-use crate::fetcher::person::get_or_fetch_and_upsert_person;
 use activitystreams::{
   base::BaseExt,
   object::{kind::ImageType, Tombstone, TombstoneExt},

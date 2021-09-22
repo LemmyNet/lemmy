@@ -12,6 +12,7 @@ extern crate diesel_migrations;
 #[cfg(test)]
 extern crate serial_test;
 
+use chrono::NaiveDateTime;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{CommunityId, DbUrl, PersonId};
 use lemmy_utils::ApiError;
@@ -147,6 +148,9 @@ pub trait DeleteableOrRemoveable {
 
 pub trait ApubObject {
   type Form;
+  /// If this object should be refetched after a certain interval, it should return the last refresh
+  /// time here. This is mainly used to update remote actors.
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime>;
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized;

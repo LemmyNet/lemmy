@@ -1,7 +1,6 @@
 pub mod community;
 mod fetch;
 pub mod new_fetcher;
-pub mod person;
 pub mod post_or_comment;
 pub mod search;
 
@@ -9,13 +8,13 @@ use crate::{
   fetcher::{
     community::get_or_fetch_and_upsert_community,
     fetch::FetchError,
-    person::get_or_fetch_and_upsert_person,
+    new_fetcher::dereference,
   },
   ActorType,
 };
 use chrono::NaiveDateTime;
 use http::StatusCode;
-use lemmy_db_schema::naive_now;
+use lemmy_db_schema::{naive_now, source::person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -51,7 +50,7 @@ pub(crate) async fn get_or_fetch_and_upsert_actor(
   let community = get_or_fetch_and_upsert_community(apub_id, context, recursion_counter).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
-    Err(_) => Box::new(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?),
+    Err(_) => Box::new(dereference::<Person>(apub_id, context, recursion_counter).await?),
   };
   Ok(actor)
 }

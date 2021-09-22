@@ -8,7 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::{community::get_or_fetch_and_upsert_community, new_fetcher::dereference},
   ActorType,
 };
 use activitystreams::{
@@ -104,8 +104,7 @@ impl ActivityHandler for BlockUserFromCommunity {
   ) -> Result<(), LemmyError> {
     let community =
       get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
-    let blocked_user =
-      get_or_fetch_and_upsert_person(&self.object, context, request_counter).await?;
+    let blocked_user = dereference::<Person>(&self.object, context, request_counter).await?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,
