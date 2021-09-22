@@ -13,7 +13,7 @@ use lemmy_apub::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
-  PostOrComment,
+  fetcher::post_or_comment::PostOrComment,
 };
 use lemmy_db_queries::{source::comment::Comment_, Likeable, Saveable};
 use lemmy_db_schema::{source::comment::*, LocalUserId};

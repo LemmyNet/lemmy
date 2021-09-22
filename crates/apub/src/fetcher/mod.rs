@@ -1,7 +1,8 @@
 pub mod community;
 mod fetch;
-pub mod objects;
+pub mod new_fetcher;
 pub mod person;
+pub mod post_or_comment;
 pub mod search;
 
 use crate::{

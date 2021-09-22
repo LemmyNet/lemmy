@@ -12,10 +12,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{
-    objects::get_or_fetch_and_insert_post_or_comment,
-    person::get_or_fetch_and_upsert_person,
-  },
+  fetcher::{new_fetcher::dereference, person::get_or_fetch_and_upsert_person},
   ActorType,
   PostOrComment,
 };
@@ -105,8 +102,7 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
     let object =
-      get_or_fetch_and_insert_post_or_comment(&self.object.object, context, request_counter)
-        .await?;
+      dereference::<PostOrComment>(&self.object.object, context, request_counter).await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, c.deref(), context).await,

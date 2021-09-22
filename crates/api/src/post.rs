@@ -19,7 +19,7 @@ use lemmy_apub::{
     },
     CreateOrUpdateType,
   },
-  PostOrComment,
+  fetcher::post_or_comment::PostOrComment,
 };
 use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
 use lemmy_db_schema::source::{moderator::*, post::*};

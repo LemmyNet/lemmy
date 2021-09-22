@@ -9,7 +9,7 @@ pub mod http;
 pub mod migrations;
 pub mod objects;
 
-use crate::extensions::signatures::PublicKey;
+use crate::{extensions::signatures::PublicKey, fetcher::post_or_comment::PostOrComment};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_api_common::blocking;
@@ -242,21 +242,6 @@ where
   })
   .await??;
   Ok(())
-}
-
-pub enum PostOrComment {
-  Comment(Box<Comment>),
-  Post(Box<Post>),
-}
-
-impl PostOrComment {
-  pub(crate) fn ap_id(&self) -> Url {
-    match self {
-      PostOrComment::Post(p) => p.ap_id.clone(),
-      PostOrComment::Comment(c) => c.ap_id.clone(),
-    }
-    .into()
-  }
 }
 
 /// Tries to find a post or comment in the local database, without any network requests.

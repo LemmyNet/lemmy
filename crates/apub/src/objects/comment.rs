@@ -1,11 +1,7 @@
 use crate::{
   activities::verify_person_in_community,
   extensions::context::lemmy_context,
-  fetcher::objects::{
-    get_or_fetch_and_insert_comment,
-    get_or_fetch_and_insert_post,
-    get_or_fetch_and_insert_post_or_comment,
-  },
+  fetcher::new_fetcher::dereference,
   migrations::CommentInReplyToMigration,
   objects::{create_tombstone, get_or_fetch_and_upsert_person, FromApub, Source, ToApub},
   ActorType,
@@ -86,18 +82,13 @@ impl Note {
       CommentInReplyToMigration::Old(in_reply_to) => {
         // This post, or the parent comment might not yet exist on this server yet, fetch them.
         let post_id = in_reply_to.get(0).context(location_info!())?;
-        let post = Box::pin(get_or_fetch_and_insert_post(
-          post_id,
-          context,
-          request_counter,
-        ))
-        .await?;
+        let post = Box::pin(dereference::<Post>(post_id, context, request_counter)).await?;
 
         // The 2nd item, if it exists, is the parent comment apub_id
         // Nested comments will automatically get fetched recursively
         let parent_id: Option<CommentId> = match in_reply_to.get(1) {
           Some(parent_comment_uri) => {
-            let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
+            let parent_comment = Box::pin(dereference::<Comment>(
               parent_comment_uri,
               context,
               request_counter,
@@ -112,9 +103,8 @@ impl Note {
         Ok((post, parent_id))
       }
       CommentInReplyToMigration::New(in_reply_to) => {
-        let parent = Box::pin(
-          get_or_fetch_and_insert_post_or_comment(in_reply_to, context, request_counter).await?,
-        );
+        let parent =
+          Box::pin(dereference::<PostOrComment>(in_reply_to, context, request_counter).await?);
         match parent.deref() {
           PostOrComment::Post(p) => {
             // Workaround because I cant figure ut how to get the post out of the box (and we dont
@@ -229,6 +219,9 @@ impl FromApub for Comment {
     let creator =
       get_or_fetch_and_upsert_person(&note.attributed_to, context, request_counter).await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    if post.locked {
+      return Err(anyhow!("Post is locked").into());
+    }
 
     let content = &note.source.content;
     let content_slurs_removed = remove_slurs(content);

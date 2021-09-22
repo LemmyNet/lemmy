@@ -15,9 +15,9 @@ use lemmy_apub::{
     voting::vote::{Vote, VoteType},
     CreateOrUpdateType,
   },
+  fetcher::post_or_comment::PostOrComment,
   generate_apub_endpoint,
   EndpointType,
-  PostOrComment,
 };
 use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
 use lemmy_db_schema::source::comment::*;
