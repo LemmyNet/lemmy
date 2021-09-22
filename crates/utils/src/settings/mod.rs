@@ -8,11 +8,6 @@ pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
 
-// static mut WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new("")
-//         .expect("compile webfinger regex");
-// static mut WEBFINGER_USERNAME_REGEX: Regex = Regex::new("")
-//         .expect("compile webfinger regex");
-
 impl Settings {
   /// Reads config from configuration file.
   ///
