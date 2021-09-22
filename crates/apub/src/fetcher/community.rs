@@ -1,6 +1,6 @@
 use crate::{
   activities::community::announce::AnnounceActivity,
-  fetcher::{fetch::fetch_remote_object, new_fetcher::dereference},
+  fetcher::{dereference_object_id::dereference, fetch::fetch_remote_object},
   objects::community::Group,
 };
 use activitystreams::collection::{CollectionExt, OrderedCollection};

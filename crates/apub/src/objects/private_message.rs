@@ -1,6 +1,6 @@
 use crate::{
   extensions::context::lemmy_context,
-  fetcher::new_fetcher::dereference,
+  fetcher::dereference_object_id::dereference,
   objects::{create_tombstone, FromApub, Source, ToApub},
 };
 use activitystreams::{

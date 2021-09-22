@@ -1,7 +1,7 @@
 use crate::{
   check_community_or_site_ban,
   check_is_apub_id_valid,
-  fetcher::new_fetcher::dereference,
+  fetcher::dereference_object_id::dereference,
   generate_moderators_url,
 };
 use anyhow::anyhow;

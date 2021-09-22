@@ -1,4 +1,4 @@
-use crate::{fetcher::new_fetcher::dereference, ActorType};
+use crate::{fetcher::dereference_object_id::dereference, ActorType};
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},

@@ -1,7 +1,7 @@
 use crate::{
   activities::verify_person_in_community,
   extensions::context::lemmy_context,
-  fetcher::new_fetcher::dereference,
+  fetcher::dereference_object_id::dereference,
   migrations::CommentInReplyToMigration,
   objects::{create_tombstone, FromApub, Source, ToApub},
   ActorType,

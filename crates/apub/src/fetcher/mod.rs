@@ -1,11 +1,11 @@
 pub mod community;
+pub mod dereference_object_id;
 mod fetch;
-pub mod new_fetcher;
 pub mod post_or_comment;
 pub mod search;
 
 use crate::{
-  fetcher::{fetch::FetchError, new_fetcher::dereference},
+  fetcher::{dereference_object_id::dereference, fetch::FetchError},
   ActorType,
 };
 use chrono::NaiveDateTime;

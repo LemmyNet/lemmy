@@ -8,7 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::new_fetcher::dereference,
+  fetcher::dereference_object_id::dereference,
   ActorType,
   PostOrComment,
 };

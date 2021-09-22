@@ -1,5 +1,5 @@
 use crate::{
-  fetcher::{fetch::fetch_remote_object, is_deleted, new_fetcher::dereference},
+  fetcher::{dereference_object_id::dereference, fetch::fetch_remote_object, is_deleted},
   find_object_by_id,
   objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
   Object,

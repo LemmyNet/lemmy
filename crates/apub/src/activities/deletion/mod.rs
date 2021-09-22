@@ -4,7 +4,7 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  fetcher::new_fetcher::dereference,
+  fetcher::dereference_object_id::dereference,
   ActorType,
 };
 use lemmy_api_common::blocking;
