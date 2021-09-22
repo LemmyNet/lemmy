@@ -55,7 +55,10 @@ impl AddMod {
     actor: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let id = generate_activity_id(AddType::Add)?;
+    let id = generate_activity_id(
+      AddType::Add,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let add = AddMod {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
@@ -81,7 +84,7 @@ impl ActivityHandler for AddMod {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     verify_add_remove_moderator_target(&self.target, &self.cc[0])?;

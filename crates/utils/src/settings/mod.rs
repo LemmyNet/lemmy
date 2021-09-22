@@ -1,23 +1,25 @@
 use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use std::{env, fs, io::Error, sync::RwLock};
+use regex::{Regex, RegexBuilder};
+use std::{env, fs, io::Error};
 
 pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
 
-lazy_static! {
-  static ref SETTINGS: RwLock<Settings> =
-    RwLock::new(Settings::init().expect("Failed to load settings file"));
-}
+// static mut WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new("")
+//         .expect("compile webfinger regex");
+// static mut WEBFINGER_USERNAME_REGEX: Regex = Regex::new("")
+//         .expect("compile webfinger regex");
 
 impl Settings {
   /// Reads config from configuration file.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
-  fn init() -> Result<Self, LemmyError> {
+  /// Warning: Only call this once.
+  pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
@@ -26,11 +28,6 @@ impl Settings {
     }
 
     Ok(config)
-  }
-
-  /// Returns the config as a struct.
-  pub fn get() -> Self {
-    SETTINGS.read().expect("read config").to_owned()
   }
 
   pub fn get_database_url(&self) -> String {
@@ -81,15 +78,30 @@ impl Settings {
 
   pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
     fs::write(CONFIG_FILE, data)?;
-
-    // Reload the new settings
-    // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
-    let mut new_settings = SETTINGS.write().expect("write config");
-    *new_settings = match Settings::init() {
-      Ok(c) => c,
-      Err(e) => panic!("{}", e),
-    };
-
     Ok(Self::read_config_file()?)
+  }
+
+  // TODO for these regexes: we can't use lazy_static here anymore, since the settings must be
+  // initialized first.
+  pub fn webfinger_community_regex(&self) -> Regex {
+    Regex::new(&format!("^group:([a-z0-9_]{{3,}})@{}$", self.hostname))
+      .expect("compile webfinger regex")
+  }
+
+  pub fn webfinger_username_regex(&self) -> Regex {
+    Regex::new(&format!("^acct:([a-z0-9_]{{3,}})@{}$", self.hostname))
+      .expect("compile webfinger regex")
+  }
+
+  pub fn slur_regex(&self) -> Regex {
+    let mut slurs = r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)".to_string();
+    if let Some(additional_slurs) = &self.additional_slurs {
+      slurs.push('|');
+      slurs.push_str(additional_slurs);
+    };
+    RegexBuilder::new(&slurs)
+      .case_insensitive(true)
+      .build()
+      .expect("compile regex")
   }
 }

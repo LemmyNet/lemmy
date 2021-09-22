@@ -1,9 +1,4 @@
-use crate::{
-  settings::structs::{RateLimitConfig, Settings},
-  utils::get_ip,
-  IpAddr,
-  LemmyError,
-};
+use crate::{settings::structs::RateLimitConfig, utils::get_ip, IpAddr, LemmyError};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
@@ -22,11 +17,13 @@ pub struct RateLimit {
   // it might be reasonable to use a std::sync::Mutex here, since we don't need to lock this
   // across await points
   pub rate_limiter: Arc<Mutex<RateLimiter>>,
+  pub rate_limit_config: RateLimitConfig,
 }
 
 #[derive(Debug, Clone)]
 pub struct RateLimited {
   rate_limiter: Arc<Mutex<RateLimiter>>,
+  rate_limit_config: RateLimitConfig,
   type_: RateLimitType,
 }
 
@@ -55,6 +52,7 @@ impl RateLimit {
   fn kind(&self, type_: RateLimitType) -> RateLimited {
     RateLimited {
       rate_limiter: self.rate_limiter.clone(),
+      rate_limit_config: self.rate_limit_config.clone(),
       type_,
     }
   }
@@ -71,7 +69,8 @@ impl RateLimited {
   {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
-    let rate_limit: RateLimitConfig = Settings::get().rate_limit.unwrap_or_default();
+    // let rate_limit: RateLimitConfig = Settings::get().rate_limit.unwrap_or_default();
+    let rate_limit = self.rate_limit_config;
 
     // before
     {

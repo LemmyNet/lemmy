@@ -198,12 +198,13 @@ mod tests {
     person::{Person, PersonForm},
     secret::Secret,
   };
-  use lemmy_utils::claims::Claims;
+  use lemmy_utils::{claims::Claims, settings::structs::Settings};
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {
     let conn = establish_unpooled_connection();
     let secret = Secret::init(&conn).unwrap();
+    let settings = Settings::init().unwrap();
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),
@@ -220,7 +221,12 @@ mod tests {
 
     let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();
 
-    let jwt = Claims::jwt(inserted_local_user.id.0, &secret.jwt_secret).unwrap();
+    let jwt = Claims::jwt(
+      inserted_local_user.id.0,
+      &secret.jwt_secret,
+      &settings.hostname,
+    )
+    .unwrap();
     let claims = Claims::decode(&jwt, &secret.jwt_secret).unwrap().claims;
     let check = check_validator_time(&inserted_local_user.validator_time, &claims);
     assert!(check.is_ok());

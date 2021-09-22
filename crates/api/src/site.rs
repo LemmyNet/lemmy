@@ -181,7 +181,7 @@ impl Perform for Search {
     let community_actor_id = data
       .community_name
       .as_ref()
-      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t).ok())
+      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, context.settings()).ok())
       .unwrap_or(None);
     let creator_id = data.creator_id;
     match search_type {
@@ -483,7 +483,12 @@ impl Perform for TransferSite {
     admins.insert(0, creator_person);
 
     let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
-    let federated_instances = build_federated_instances(context.pool()).await?;
+    let federated_instances = build_federated_instances(
+      context.pool(),
+      &context.settings().federation,
+      &context.settings().hostname,
+    )
+    .await?;
 
     Ok(GetSiteResponse {
       site_view: Some(site_view),

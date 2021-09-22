@@ -14,7 +14,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   request::{retry, RecvError},
-  settings::structs::Settings,
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };
@@ -41,7 +40,16 @@ async fn get_notif_recipients(
   // anyway.
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
-  send_local_notifs(mentions, comment.clone(), actor, post, context.pool(), true).await
+  send_local_notifs(
+    mentions,
+    comment.clone(),
+    actor,
+    post,
+    context.pool(),
+    true,
+    context.settings(),
+  )
+  .await
 }
 
 pub struct MentionsAndAddresses {
@@ -70,12 +78,18 @@ pub async fn collect_non_local_mentions(
   let mentions = scrape_text_for_mentions(&comment.content)
     .into_iter()
     // Filter only the non-local ones
-    .filter(|m| !m.is_local())
+    .filter(|m| !m.is_local(&context.settings().hostname))
     .collect::<Vec<MentionData>>();
 
   for mention in &mentions {
     // TODO should it be fetching it every time?
-    if let Ok(actor_id) = fetch_webfinger_url(mention, context.client()).await {
+    if let Ok(actor_id) = fetch_webfinger_url(
+      mention,
+      context.client(),
+      context.settings().get_protocol_string(),
+    )
+    .await
+    {
       let actor_id: ObjectId<Person> = ObjectId::new(actor_id);
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
@@ -120,13 +134,14 @@ async fn get_comment_parent_creator(
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
-async fn fetch_webfinger_url(mention: &MentionData, client: &Client) -> Result<Url, LemmyError> {
+async fn fetch_webfinger_url(
+  mention: &MentionData,
+  client: &Client,
+  protocol_string: &str,
+) -> Result<Url, LemmyError> {
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
-    Settings::get().get_protocol_string(),
-    mention.domain,
-    mention.name,
-    mention.domain
+    protocol_string, mention.domain, mention.name, mention.domain
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 

@@ -42,8 +42,8 @@ impl PerformCrud for CreateSite {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs(&data.name)?;
-    check_slurs_opt(&data.description)?;
+    check_slurs(&data.name, &context.settings().slur_regex())?;
+    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;

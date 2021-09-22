@@ -55,7 +55,8 @@ impl PerformCrud for EditComment {
     }
 
     // Do the update
-    let content_slurs_removed = remove_slurs(&data.content.to_owned());
+    let content_slurs_removed =
+      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
     let comment_id = data.comment_id;
     let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_content(conn, comment_id, &content_slurs_removed)
@@ -82,6 +83,7 @@ impl PerformCrud for EditComment {
       orig_comment.post,
       context.pool(),
       false,
+      context.settings(),
     )
     .await?;
 

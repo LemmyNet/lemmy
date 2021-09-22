@@ -52,9 +52,12 @@ impl UndoBlockUserFromCommunity {
     actor: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUserFromCommunity::new(community, target, actor)?;
+    let block = BlockUserFromCommunity::new(community, target, actor, context)?;
 
-    let id = generate_activity_id(UndoType::Undo)?;
+    let id = generate_activity_id(
+      UndoType::Undo,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let undo = UndoBlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
@@ -79,7 +82,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     self.object.verify(context, request_counter).await?;

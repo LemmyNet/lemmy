@@ -100,7 +100,7 @@ impl Page {
   ) -> Result<(), LemmyError> {
     let community = extract_community(&self.to, context, request_counter).await?;
 
-    check_slurs(&self.name)?;
+    check_slurs(&self.name, &context.settings().slur_regex())?;
     verify_domains_match(self.attributed_to.inner(), &self.id)?;
     verify_person_in_community(
       &self.attributed_to,
@@ -191,7 +191,7 @@ impl FromApub for Post {
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
     let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
-      fetch_site_data(context.client(), Some(url)).await
+      fetch_site_data(context.client(), context.settings(), Some(url)).await
     } else {
       (None, thumbnail_url)
     };
@@ -199,7 +199,10 @@ impl FromApub for Post {
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
 
-    let body_slurs_removed = page.source.as_ref().map(|s| remove_slurs(&s.content));
+    let body_slurs_removed = page
+      .source
+      .as_ref()
+      .map(|s| remove_slurs(&s.content, &context.settings().slur_regex()));
     let form = PostForm {
       name: page.name.clone(),
       url: page.url.clone().map(|u| u.into()),

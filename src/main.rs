@@ -30,7 +30,7 @@ embed_migrations!();
 #[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
   env_logger::init();
-  let settings = Settings::get();
+  let settings = Settings::init().expect("Couldn't initialize settings.");
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {
@@ -45,14 +45,13 @@ async fn main() -> Result<(), LemmyError> {
 
   // Initialize the secrets
   let conn = pool.get()?;
-  let secret = Secret::init(&conn).expect("Couldn't initialize secrets");
-
-  // TODO init settings
+  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
 
   // Run the migrations from code
+  let protocol_and_hostname = settings.get_protocol_and_hostname();
   blocking(&pool, move |conn| {
     embedded_migrations::run(conn)?;
-    run_advanced_migrations(conn)?;
+    run_advanced_migrations(conn, &protocol_and_hostname)?;
     Ok(()) as Result<(), LemmyError>
   })
   .await??;
@@ -65,6 +64,7 @@ async fn main() -> Result<(), LemmyError> {
   // Set up the rate limiter
   let rate_limiter = RateLimit {
     rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
+    rate_limit_config: settings.rate_limit.to_owned().unwrap_or_default(),
   };
 
   println!(
@@ -81,17 +81,20 @@ async fn main() -> Result<(), LemmyError> {
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     Client::default(),
     activity_queue.clone(),
+    settings.clone(),
     secret.clone(),
   )
   .start();
 
   // Create Http server with websocket support
+  let settings_bind = settings.clone();
   HttpServer::new(move || {
     let context = LemmyContext::create(
       pool.clone(),
       chat_server.to_owned(),
       Client::default(),
       activity_queue.to_owned(),
+      settings.to_owned(),
       secret.to_owned(),
     );
     let rate_limiter = rate_limiter.clone();
@@ -100,13 +103,13 @@ async fn main() -> Result<(), LemmyError> {
       .app_data(Data::new(context))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
-      .configure(lemmy_apub::http::routes::config)
+      .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
       .configure(|cfg| images::config(cfg, &rate_limiter))
       .configure(nodeinfo::config)
-      .configure(webfinger::config)
+      .configure(|cfg| webfinger::config(cfg, &settings))
   })
-  .bind((settings.bind, settings.port))?
+  .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
 

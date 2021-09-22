@@ -61,7 +61,6 @@ use lemmy_utils::{
   claims::Claims,
   email::send_email,
   location_info,
-  settings::structs::Settings,
   utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ApiError,
   ConnectionId,
@@ -107,6 +106,7 @@ impl Perform for Login {
       jwt: Claims::jwt(
         local_user_view.local_user.id.0,
         &context.secret().jwt_secret,
+        &context.settings().hostname,
       )?,
     })
   }
@@ -121,7 +121,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let captcha_settings = Settings::get().captcha;
+    let captcha_settings = context.settings().to_owned().captcha;
 
     if !captcha_settings.enabled {
       return Ok(GetCaptchaResponse { ok: None });
@@ -185,7 +185,10 @@ impl Perform for SaveUserSettings {
     }
 
     if let Some(Some(display_name)) = &display_name {
-      if !is_valid_display_name(display_name.trim()) {
+      if !is_valid_display_name(
+        display_name.trim(),
+        context.settings().actor_name_max_length,
+      ) {
         return Err(ApiError::err("invalid_username").into());
       }
     }
@@ -273,7 +276,11 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, &context.secret().jwt_secret)?,
+      jwt: Claims::jwt(
+        updated_local_user.id.0,
+        &context.secret().jwt_secret,
+        &context.settings().hostname,
+      )?,
     })
   }
 }
@@ -317,7 +324,11 @@ impl Perform for ChangePassword {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, &context.secret().jwt_secret)?,
+      jwt: Claims::jwt(
+        updated_local_user.id.0,
+        &context.secret().jwt_secret,
+        &context.settings().hostname,
+      )?,
     })
   }
 }
@@ -739,10 +750,16 @@ impl Perform for PasswordReset {
     // TODO no i18n support here.
     let email = &local_user_view.local_user.email.expect("email");
     let subject = &format!("Password reset for {}", local_user_view.person.name);
-    let hostname = &Settings::get().get_protocol_and_hostname();
-    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, hostname, &token);
-    send_email(subject, email, &local_user_view.person.name, html)
-      .map_err(|e| ApiError::err(&e))?;
+    let protocol_and_hostname = &context.settings().get_protocol_and_hostname();
+    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, protocol_and_hostname, &token);
+    send_email(
+      subject,
+      email,
+      &local_user_view.person.name,
+      html,
+      context.settings(),
+    )
+    .map_err(|e| ApiError::err(&e))?;
 
     Ok(PasswordResetResponse {})
   }
@@ -783,7 +800,11 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_local_user.id.0, &context.secret().jwt_secret)?,
+      jwt: Claims::jwt(
+        updated_local_user.id.0,
+        &context.secret().jwt_secret,
+        &context.settings().hostname,
+      )?,
     })
   }
 }

@@ -39,13 +39,17 @@ impl DeletePrivateMessage {
   pub(in crate::activities::private_message) fn new(
     actor: &Person,
     pm: &PrivateMessage,
+    context: &LemmyContext,
   ) -> Result<DeletePrivateMessage, LemmyError> {
     Ok(DeletePrivateMessage {
       actor: ObjectId::new(actor.actor_id()),
       to: ObjectId::new(actor.actor_id()),
       object: pm.ap_id.clone().into(),
       kind: DeleteType::Delete,
-      id: generate_activity_id(DeleteType::Delete)?,
+      id: generate_activity_id(
+        DeleteType::Delete,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     })
@@ -55,7 +59,7 @@ impl DeletePrivateMessage {
     pm: &PrivateMessage,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let delete = DeletePrivateMessage::new(actor, pm)?;
+    let delete = DeletePrivateMessage::new(actor, pm, context)?;
     let delete_id = delete.id.clone();
 
     let recipient_id = pm.recipient_id;
@@ -73,7 +77,7 @@ impl ActivityHandler for DeletePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), &self.object)?;
     Ok(())

@@ -150,10 +150,12 @@ impl FromApub for DbPerson {
       UserTypes::Service => true,
     };
 
-    check_slurs(&name)?;
-    check_slurs_opt(&display_name)?;
-    check_slurs_opt(&bio)?;
-    check_is_apub_id_valid(&person.id, false)?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs(&name, slur_regex)?;
+    check_slurs_opt(&display_name, slur_regex)?;
+    check_slurs_opt(&bio, slur_regex)?;
+
+    check_is_apub_id_valid(&person.id, false, context.settings())?;
 
     let person_form = PersonForm {
       name,

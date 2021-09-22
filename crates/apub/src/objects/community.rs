@@ -24,6 +24,7 @@ use lemmy_db_schema::{
   source::community::{Community, CommunityForm},
 };
 use lemmy_utils::{
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
   LemmyError,
 };
@@ -74,6 +75,7 @@ impl Group {
   pub(crate) async fn from_apub_to_form(
     group: &Group,
     expected_domain: &Url,
+    settings: &Settings,
   ) -> Result<CommunityForm, LemmyError> {
     let actor_id = Some(group.id(expected_domain)?.clone().into());
     let name = group.preferred_username.clone();
@@ -81,9 +83,10 @@ impl Group {
     let description = group.source.clone().map(|s| s.content);
     let shared_inbox = group.endpoints.shared_inbox.clone().map(|s| s.into());
 
-    check_slurs(&name)?;
-    check_slurs(&title)?;
-    check_slurs_opt(&description)?;
+    let slur_regex = &settings.slur_regex();
+    check_slurs(&name, slur_regex)?;
+    check_slurs(&title, slur_regex)?;
+    check_slurs_opt(&description, slur_regex)?;
 
     Ok(CommunityForm {
       name,
@@ -175,7 +178,7 @@ impl FromApub for Community {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
-    let form = Group::from_apub_to_form(group, expected_domain).await?;
+    let form = Group::from_apub_to_form(group, expected_domain, context.settings()).await?;
 
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
     update_community_mods(group, &community, context, request_counter).await?;

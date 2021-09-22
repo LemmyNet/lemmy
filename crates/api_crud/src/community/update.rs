@@ -29,8 +29,8 @@ impl PerformCrud for EditCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs_opt(&data.title)?;
-    check_slurs_opt(&data.description)?;
+    check_slurs_opt(&data.title, &context.settings().slur_regex())?;
+    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;

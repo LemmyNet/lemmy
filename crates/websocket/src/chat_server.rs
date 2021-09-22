@@ -18,6 +18,7 @@ use lemmy_db_schema::{source::secret::Secret, CommunityId, LocalUserId, PostId};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,
+  settings::structs::Settings,
   ApiError,
   ConnectionId,
   IpAddr,
@@ -71,6 +72,9 @@ pub struct ChatServer {
   /// The DB Pool
   pub(super) pool: Pool<ConnectionManager<PgConnection>>,
 
+  /// The Settings
+  pub(super) settings: Settings,
+
   /// The Secrets
   pub(super) secret: Secret,
 
@@ -98,6 +102,7 @@ pub struct SessionInfo {
 /// And manages available rooms. Peers send messages to other peers in same
 /// room through `ChatServer`.
 impl ChatServer {
+  #![allow(clippy::too_many_arguments)]
   pub fn startup(
     pool: Pool<ConnectionManager<PgConnection>>,
     rate_limiter: RateLimit,
@@ -105,6 +110,7 @@ impl ChatServer {
     message_handler_crud: MessageHandlerCrudType,
     client: Client,
     activity_queue: QueueHandle,
+    settings: Settings,
     secret: Secret,
   ) -> ChatServer {
     ChatServer {
@@ -121,6 +127,7 @@ impl ChatServer {
       message_handler_crud,
       client,
       activity_queue,
+      settings,
       secret,
     }
   }
@@ -457,6 +464,7 @@ impl ChatServer {
       chat_server: ctx.address(),
       client: self.client.to_owned(),
       activity_queue: self.activity_queue.to_owned(),
+      settings: self.settings.to_owned(),
       secret: self.secret.to_owned(),
     };
     let message_handler_crud = self.message_handler_crud;

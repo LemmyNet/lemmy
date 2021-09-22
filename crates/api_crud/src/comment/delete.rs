@@ -77,6 +77,7 @@ impl PerformCrud for DeleteComment {
       post,
       context.pool(),
       false,
+      context.settings(),
     )
     .await?;
 
@@ -171,6 +172,7 @@ impl PerformCrud for RemoveComment {
       post,
       context.pool(),
       false,
+      context.settings(),
     )
     .await?;
 

@@ -222,7 +222,7 @@ impl FromApub for Comment {
     }
 
     let content = &note.source.content;
-    let content_slurs_removed = remove_slurs(content);
+    let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
 
     let form = CommentForm {
       creator_id: creator.id,

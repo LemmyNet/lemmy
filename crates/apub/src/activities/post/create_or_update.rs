@@ -59,7 +59,10 @@ impl CreateOrUpdatePost {
     })
     .await??;
 
-    let id = generate_activity_id(kind.clone())?;
+    let id = generate_activity_id(
+      kind.clone(),
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let create_or_update = CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
@@ -83,7 +86,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     let community = self.cc[0].dereference(context, request_counter).await?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     match self.kind {

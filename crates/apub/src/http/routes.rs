@@ -24,9 +24,9 @@ use sha2::{Digest, Sha256};
 static APUB_JSON_CONTENT_TYPE_LONG: &str =
   "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"";
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation.enabled {
-    println!("federation enabled, host is {}", Settings::get().hostname);
+pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
+  if settings.federation.enabled {
+    println!("federation enabled, host is {}", settings.hostname);
     let digest_verifier = VerifyDigest::new(Sha256::new());
 
     let header_guard_accept = guard::Any(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))

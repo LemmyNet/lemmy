@@ -56,6 +56,7 @@ impl BlockUserFromCommunity {
     community: &Community,
     target: &Person,
     actor: &Person,
+    context: &LemmyContext,
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
@@ -63,7 +64,10 @@ impl BlockUserFromCommunity {
       object: ObjectId::new(target.actor_id()),
       cc: [ObjectId::new(community.actor_id())],
       kind: BlockType::Block,
-      id: generate_activity_id(BlockType::Block)?,
+      id: generate_activity_id(
+        BlockType::Block,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     })
@@ -75,7 +79,7 @@ impl BlockUserFromCommunity {
     actor: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUserFromCommunity::new(community, target, actor)?;
+    let block = BlockUserFromCommunity::new(community, target, actor, context)?;
     let block_id = block.id.clone();
 
     let activity = AnnouncableActivities::BlockUserFromCommunity(block);
@@ -91,7 +95,7 @@ impl ActivityHandler for BlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
     Ok(())

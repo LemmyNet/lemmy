@@ -42,7 +42,10 @@ impl CreateOrUpdatePrivateMessage {
     let recipient =
       blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
-    let id = generate_activity_id(kind.clone())?;
+    let id = generate_activity_id(
+      kind.clone(),
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let create_or_update = CreateOrUpdatePrivateMessage {
       context: lemmy_context(),
       id: id.clone(),
@@ -63,7 +66,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     self.object.verify(context, request_counter).await?;

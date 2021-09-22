@@ -42,7 +42,8 @@ impl PerformCrud for GetPersonDetails {
           .username
           .to_owned()
           .unwrap_or_else(|| "admin".to_string());
-        let actor_id = build_actor_id_from_shortname(EndpointType::Person, &name)?;
+        let actor_id =
+          build_actor_id_from_shortname(EndpointType::Person, &name, context.settings())?;
 
         let person = blocking(context.pool(), move |conn| {
           Person::read_from_apub_id(conn, &actor_id)

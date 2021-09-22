@@ -43,7 +43,8 @@ impl PerformCrud for CreateComment {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let content_slurs_removed = remove_slurs(&data.content.to_owned());
+    let content_slurs_removed =
+      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -92,10 +93,15 @@ impl PerformCrud for CreateComment {
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
+    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+
     let updated_comment: Comment =
       blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
-        let apub_id =
-          generate_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string())?;
+        let apub_id = generate_apub_endpoint(
+          EndpointType::Comment,
+          &inserted_comment_id.to_string(),
+          &protocol_and_hostname,
+        )?;
         Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
       })
       .await?
@@ -119,6 +125,7 @@ impl PerformCrud for CreateComment {
       post,
       context.pool(),
       true,
+      context.settings(),
     )
     .await?;
 

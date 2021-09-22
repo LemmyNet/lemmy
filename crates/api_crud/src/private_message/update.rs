@@ -38,7 +38,7 @@ impl PerformCrud for EditPrivateMessage {
     }
 
     // Doing the update
-    let content_slurs_removed = remove_slurs(&data.content);
+    let content_slurs_removed = remove_slurs(&data.content, &context.settings().slur_regex());
     let private_message_id = data.private_message_id;
     let updated_private_message = blocking(context.pool(), move |conn| {
       PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)

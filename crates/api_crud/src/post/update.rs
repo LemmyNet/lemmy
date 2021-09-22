@@ -26,8 +26,9 @@ impl PerformCrud for EditPost {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs_opt(&data.name)?;
-    check_slurs_opt(&data.body)?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs_opt(&data.name, slur_regex)?;
+    check_slurs_opt(&data.body, slur_regex)?;
 
     if let Some(name) = &data.name {
       if !is_valid_post_title(name) {
@@ -52,7 +53,8 @@ impl PerformCrud for EditPost {
 
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) = fetch_site_data(context.client(), data_url).await;
+    let (metadata_res, pictrs_thumbnail) =
+      fetch_site_data(context.client(), context.settings(), data_url).await;
     let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));

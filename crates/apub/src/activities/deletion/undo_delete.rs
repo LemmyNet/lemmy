@@ -59,7 +59,7 @@ impl ActivityHandler for UndoDelete {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, context.settings())?;
     self.object.verify(context, request_counter).await?;
     verify_delete_activity(
       &self.object.object,
@@ -106,9 +106,12 @@ impl UndoDelete {
     summary: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let object = Delete::new(actor, community, object_id, summary)?;
+    let object = Delete::new(actor, community, object_id, summary, context)?;
 
-    let id = generate_activity_id(UndoType::Undo)?;
+    let id = generate_activity_id(
+      UndoType::Undo,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let undo = UndoDelete {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],

@@ -1,4 +1,4 @@
-use crate::{settings::structs::Settings, LemmyError};
+use crate::LemmyError;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
@@ -24,10 +24,10 @@ impl Claims {
     Ok(decode::<Claims>(jwt, &key, &v)?)
   }
 
-  pub fn jwt(local_user_id: i32, jwt_secret: &str) -> Result<Jwt, LemmyError> {
+  pub fn jwt(local_user_id: i32, jwt_secret: &str, hostname: &str) -> Result<Jwt, LemmyError> {
     let my_claims = Claims {
       sub: local_user_id,
-      iss: Settings::get().hostname,
+      iss: hostname.to_string(),
       iat: Utc::now().timestamp(),
     };
 

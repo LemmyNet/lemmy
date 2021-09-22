@@ -73,8 +73,13 @@ pub(crate) async fn fetch_community_outbox(
   outbox: &Url,
   recursion_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let outbox =
-    fetch_remote_object::<OrderedCollection>(context.client(), outbox, recursion_counter).await?;
+  let outbox = fetch_remote_object::<OrderedCollection>(
+    context.client(),
+    context.settings(),
+    outbox,
+    recursion_counter,
+  )
+  .await?;
   let outbox_activities = outbox.items().context(location_info!())?.clone();
   let mut outbox_activities = outbox_activities.many().context(location_info!())?;
   if outbox_activities.len() > 20 {
@@ -98,9 +103,13 @@ async fn fetch_community_mods(
   recursion_counter: &mut i32,
 ) -> Result<Vec<Url>, LemmyError> {
   if let Some(mods_url) = &group.moderators {
-    let mods =
-      fetch_remote_object::<OrderedCollection>(context.client(), mods_url, recursion_counter)
-        .await?;
+    let mods = fetch_remote_object::<OrderedCollection>(
+      context.client(),
+      context.settings(),
+      mods_url,
+      recursion_counter,
+    )
+    .await?;
     let mods = mods
       .items()
       .map(|i| i.as_many())
