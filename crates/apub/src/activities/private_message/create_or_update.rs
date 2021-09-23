@@ -2,6 +2,7 @@ use crate::{
   activities::{generate_activity_id, verify_activity, verify_person, CreateOrUpdateType},
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   objects::{private_message::Note, FromApub, ToApub},
   ActorType,
 };
@@ -21,9 +22,8 @@ pub struct CreateOrUpdatePrivateMessage {
   #[serde(rename = "@context")]
   pub context: OneOrMany<AnyBase>,
   id: Url,
-  actor: Url,
-  to: Url,
-  cc: [Url; 0],
+  actor: ObjectId<Person>,
+  to: ObjectId<Person>,
   object: Note,
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
@@ -46,9 +46,8 @@ impl CreateOrUpdatePrivateMessage {
     let create_or_update = CreateOrUpdatePrivateMessage {
       context: lemmy_context(),
       id: id.clone(),
-      actor: actor.actor_id(),
-      to: recipient.actor_id(),
-      cc: [],
+      actor: ObjectId::<Person>::new(actor.actor_id()),
+      to: ObjectId::<Person>::new(recipient.actor_id()),
       object: private_message.to_apub(context.pool()).await?,
       kind,
       unparsed: Default::default(),
@@ -66,7 +65,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
     verify_person(&self.actor, context, request_counter).await?;
-    verify_domains_match(&self.actor, self.object.id_unchecked())?;
+    verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -77,7 +76,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let private_message =
-      PrivateMessage::from_apub(&self.object, context, &self.actor, request_counter).await?;
+      PrivateMessage::from_apub(&self.object, context, self.actor.inner(), request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,

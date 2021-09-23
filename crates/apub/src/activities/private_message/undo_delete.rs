@@ -7,6 +7,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -27,8 +28,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeletePrivateMessage {
-  actor: Url,
-  to: Url,
+  actor: ObjectId<Person>,
+  to: ObjectId<Person>,
   object: DeletePrivateMessage,
   #[serde(rename = "type")]
   kind: UndoType,
@@ -52,8 +53,8 @@ impl UndoDeletePrivateMessage {
     let object = DeletePrivateMessage::new(actor, pm)?;
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoDeletePrivateMessage {
-      actor: actor.actor_id(),
-      to: recipient.actor_id(),
+      actor: ObjectId::<Person>::new(actor.actor_id()),
+      to: ObjectId::<Person>::new(recipient.actor_id()),
       object,
       kind: UndoType::Undo,
       id: id.clone(),
@@ -74,8 +75,8 @@ impl ActivityHandler for UndoDeletePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
     verify_person(&self.actor, context, request_counter).await?;
-    verify_urls_match(&self.actor, self.object.actor())?;
-    verify_domains_match(&self.actor, &self.object.object)?;
+    verify_urls_match(self.actor(), self.object.actor())?;
+    verify_domains_match(self.actor(), &self.object.object)?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

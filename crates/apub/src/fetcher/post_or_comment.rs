@@ -14,6 +14,7 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
 
+#[derive(Clone, Debug)]
 pub enum PostOrComment {
   Comment(Box<Comment>),
   Post(Box<Post>),

@@ -1,6 +1,6 @@
 use crate::{
   extensions::context::lemmy_context,
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   objects::{create_tombstone, FromApub, Source, ToApub},
 };
 use activitystreams::{
@@ -35,8 +35,8 @@ pub struct Note {
   context: OneOrMany<AnyBase>,
   r#type: NoteType,
   id: Url,
-  pub(crate) attributed_to: Url,
-  to: Url,
+  pub(crate) attributed_to: ObjectId<Person>,
+  to: ObjectId<Person>,
   content: String,
   media_type: MediaTypeHtml,
   source: Source,
@@ -60,8 +60,11 @@ impl Note {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_domains_match(&self.attributed_to, &self.id)?;
-    let person = dereference::<Person>(&self.attributed_to, context, request_counter).await?;
+    verify_domains_match(self.attributed_to.inner(), &self.id)?;
+    let person = self
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
     if person.banned {
       return Err(anyhow!("Person is banned from site").into());
     }
@@ -84,8 +87,8 @@ impl ToApub for PrivateMessage {
       context: lemmy_context(),
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into_inner(),
-      to: recipient.actor_id.into(),
+      attributed_to: ObjectId::<Person>::new(creator.actor_id),
+      to: ObjectId::<Person>::new(recipient.actor_id),
       content: self.content.clone(),
       media_type: MediaTypeHtml::Html,
       source: Source {
@@ -120,8 +123,11 @@ impl FromApub for PrivateMessage {
     request_counter: &mut i32,
   ) -> Result<PrivateMessage, LemmyError> {
     let ap_id = Some(note.id(expected_domain)?.clone().into());
-    let creator = dereference::<Person>(&note.attributed_to, context, request_counter).await?;
-    let recipient = dereference::<Person>(&note.to, context, request_counter).await?;
+    let creator = note
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
+    let recipient = note.to.dereference(context, request_counter).await?;
 
     let form = PrivateMessageForm {
       creator_id: creator.id,

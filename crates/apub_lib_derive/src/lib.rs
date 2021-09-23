@@ -145,14 +145,14 @@ pub fn derive_activity_fields(input: proc_macro::TokenStream) -> proc_macro::Tok
         unimplemented!()
       };
       let cc_impl = if has_cc {
-        quote! {self.cc.clone().into()}
+        quote! {self.cc.iter().map(|i| i.clone().into()).collect()}
       } else {
         quote! {vec![]}
       };
       quote! {
           impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
               fn id_unchecked(&self) -> &url::Url { &self.id }
-              fn actor(&self) -> &url::Url { &self.actor }
+              fn actor(&self) -> &url::Url { &self.actor.inner() }
               fn cc(&self) -> Vec<url::Url> { #cc_impl }
           }
       }

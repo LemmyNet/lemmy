@@ -1,11 +1,11 @@
 pub mod community;
-pub mod dereference_object_id;
 mod fetch;
+pub mod object_id;
 pub mod post_or_comment;
 pub mod search;
 
 use crate::{
-  fetcher::{dereference_object_id::dereference, fetch::FetchError},
+  fetcher::{fetch::FetchError, object_id::ObjectId},
   ActorType,
 };
 use chrono::NaiveDateTime;
@@ -42,14 +42,19 @@ where
 /// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
 /// Otherwise it is fetched from the remote instance, stored and returned.
 pub(crate) async fn get_or_fetch_and_upsert_actor(
-  apub_id: &Url,
+  apub_id: Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let community = dereference::<Community>(apub_id, context, recursion_counter).await;
+  let community_id: ObjectId<Community> = ObjectId::<Community>::new(apub_id.clone());
+  let community = community_id.dereference(context, recursion_counter).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
-    Err(_) => Box::new(dereference::<Person>(apub_id, context, recursion_counter).await?),
+    Err(_) => {
+      let person_id: ObjectId<Person> = ObjectId::<Person>::new(apub_id);
+      let person: Person = person_id.dereference(context, recursion_counter).await?;
+      Box::new(person)
+    }
   };
   Ok(actor)
 }

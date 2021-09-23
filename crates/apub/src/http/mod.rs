@@ -90,7 +90,8 @@ where
     + 'static,
 {
   let request_counter = &mut 0;
-  let actor = get_or_fetch_and_upsert_actor(activity.actor(), context, request_counter).await?;
+  let actor =
+    get_or_fetch_and_upsert_actor(activity.actor().clone(), context, request_counter).await?;
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
 
   // Do nothing if we received the same activity before

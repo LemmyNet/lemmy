@@ -8,7 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -38,10 +38,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockUserFromCommunity {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
-  pub(in crate::activities::community) object: Url,
-  cc: [Url; 1],
+  pub(in crate::activities::community) object: ObjectId<Person>,
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: BlockType,
   id: Url,
@@ -58,10 +58,10 @@ impl BlockUserFromCommunity {
     actor: &Person,
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
-      actor: actor.actor_id(),
+      actor: ObjectId::<Person>::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: target.actor_id(),
-      cc: [community.actor_id()],
+      object: ObjectId::<Person>::new(target.actor_id()),
+      cc: [ObjectId::<Community>::new(community.actor_id())],
       kind: BlockType::Block,
       id: generate_activity_id(BlockType::Block)?,
       context: lemmy_context(),
@@ -102,8 +102,8 @@ impl ActivityHandler for BlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = dereference::<Community>(&self.cc[0], context, request_counter).await?;
-    let blocked_user = dereference::<Person>(&self.object, context, request_counter).await?;
+    let community = self.cc[0].dereference(context, request_counter).await?;
+    let blocked_user = self.object.dereference(context, request_counter).await?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,

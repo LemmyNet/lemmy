@@ -4,7 +4,7 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use lemmy_api_common::blocking;
@@ -99,22 +99,22 @@ impl DeletableObjects {
 pub(in crate::activities) async fn verify_delete_activity(
   object: &Url,
   activity: &dyn ActivityFields,
-  community_id: &Url,
+  community_id: &ObjectId<Community>,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let object = DeletableObjects::read_from_db(object, context).await?;
+  let actor = ObjectId::<Person>::new(activity.actor().clone());
   match object {
     DeletableObjects::Community(c) => {
       if c.local {
         // can only do this check for local community, in remote case it would try to fetch the
         // deleted community (which fails)
-        verify_person_in_community(activity.actor(), community_id, context, request_counter)
-          .await?;
+        verify_person_in_community(&actor, community_id, context, request_counter).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(activity.actor(), c.actor_id(), context).await?;
+      verify_mod_action(&actor, ObjectId::<Community>::new(c.actor_id()), context).await?;
     }
     DeletableObjects::Post(p) => {
       verify_delete_activity_post_or_comment(
@@ -145,14 +145,15 @@ pub(in crate::activities) async fn verify_delete_activity(
 async fn verify_delete_activity_post_or_comment(
   activity: &dyn ActivityFields,
   object_id: &Url,
-  community_id: &Url,
+  community_id: &ObjectId<Community>,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  verify_person_in_community(activity.actor(), community_id, context, request_counter).await?;
+  let actor = ObjectId::<Person>::new(activity.actor().clone());
+  verify_person_in_community(&actor, community_id, context, request_counter).await?;
   if is_mod_action {
-    verify_mod_action(activity.actor(), community_id.clone(), context).await?;
+    verify_mod_action(&actor, community_id.clone(), context).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(activity.actor(), object_id)?;
@@ -171,7 +172,7 @@ struct WebsocketMessages {
 ///       because of the mod log
 async fn receive_delete_action(
   object: &Url,
-  actor: &Url,
+  actor: &ObjectId<Person>,
   ws_messages: WebsocketMessages,
   deleted: bool,
   context: &LemmyContext,
@@ -180,7 +181,7 @@ async fn receive_delete_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        let mod_ = dereference::<Person>(actor, context, request_counter).await?;
+        let mod_ = actor.dereference(context, request_counter).await?;
         let object = community.actor_id();
         send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
       }

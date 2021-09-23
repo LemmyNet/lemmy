@@ -9,7 +9,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   generate_moderators_url,
   ActorType,
 };
@@ -34,11 +34,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AddMod {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
-  object: Url,
+  object: ObjectId<Person>,
   target: Url,
-  cc: [Url; 1],
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: AddType,
   id: Url,
@@ -57,11 +57,11 @@ impl AddMod {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(AddType::Add)?;
     let add = AddMod {
-      actor: actor.actor_id(),
+      actor: ObjectId::<Person>::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: added_mod.actor_id(),
+      object: ObjectId::<Person>::new(added_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
-      cc: [community.actor_id()],
+      cc: [ObjectId::<Community>::new(community.actor_id())],
       kind: AddType::Add,
       id: id.clone(),
       context: lemmy_context(),
@@ -84,7 +84,7 @@ impl ActivityHandler for AddMod {
     verify_activity(self)?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
-    verify_add_remove_moderator_target(&self.target, self.cc[0].clone())?;
+    verify_add_remove_moderator_target(&self.target, &self.cc[0])?;
     Ok(())
   }
 
@@ -93,8 +93,8 @@ impl ActivityHandler for AddMod {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = dereference::<Community>(&self.cc[0], context, request_counter).await?;
-    let new_mod = dereference::<Person>(&self.object, context, request_counter).await?;
+    let community = self.cc[0].dereference(context, request_counter).await?;
+    let new_mod = self.object.dereference(context, request_counter).await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
     // been added. Skip it here as it would result in a duplicate key error.

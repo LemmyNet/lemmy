@@ -8,7 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   ActorType,
   PostOrComment,
 };
@@ -58,10 +58,10 @@ impl From<&VoteType> for i16 {
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
-  pub(in crate::activities::voting) object: Url,
-  cc: [Url; 1],
+  pub(in crate::activities::voting) object: ObjectId<PostOrComment>,
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   pub(in crate::activities::voting) kind: VoteType,
   id: Url,
@@ -79,10 +79,10 @@ impl Vote {
     kind: VoteType,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
-      actor: actor.actor_id(),
+      actor: ObjectId::<Person>::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: object.ap_id(),
-      cc: [community.actor_id()],
+      object: ObjectId::<PostOrComment>::new(object.ap_id()),
+      cc: [ObjectId::<Community>::new(community.actor_id())],
       kind: kind.clone(),
       id: generate_activity_id(kind)?,
       context: lemmy_context(),
@@ -126,8 +126,8 @@ impl ActivityHandler for Vote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = dereference::<Person>(&self.actor, context, request_counter).await?;
-    let object = dereference::<PostOrComment>(&self.object, context, request_counter).await?;
+    let actor = self.actor.dereference(context, request_counter).await?;
+    let object = self.object.dereference(context, request_counter).await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, c.deref(), context).await,

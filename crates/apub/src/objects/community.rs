@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, signatures::PublicKey},
-  fetcher::community::{fetch_community_mods, fetch_community_outbox, update_community_mods},
+  fetcher::community::{fetch_community_outbox, update_community_mods},
   generate_moderators_url,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
   ActorType,
@@ -175,7 +175,6 @@ impl FromApub for Community {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
-    fetch_community_mods(context, group, request_counter).await?;
     let form = Group::from_apub_to_form(group, expected_domain).await?;
 
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;

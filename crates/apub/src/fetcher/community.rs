@@ -1,6 +1,6 @@
 use crate::{
   activities::community::announce::AnnounceActivity,
-  fetcher::{dereference_object_id::dereference, fetch::fetch_remote_object},
+  fetcher::{fetch::fetch_remote_object, object_id::ObjectId},
   objects::community::Group,
 };
 use activitystreams::collection::{CollectionExt, OrderedCollection};
@@ -44,8 +44,9 @@ pub(crate) async fn update_community_mods(
   }
 
   // Add new mods to database which have been added to moderators collection
-  for mod_uri in new_moderators {
-    let mod_user = dereference::<Person>(&mod_uri, context, request_counter).await?;
+  for mod_id in new_moderators {
+    let mod_id = ObjectId::<Person>::new::<Person, Url>(mod_id);
+    let mod_user = mod_id.dereference(context, request_counter).await?;
 
     if !current_moderators
       .clone()
@@ -91,7 +92,7 @@ pub(crate) async fn fetch_community_outbox(
   Ok(())
 }
 
-pub(crate) async fn fetch_community_mods(
+async fn fetch_community_mods(
   context: &LemmyContext,
   group: &Group,
   recursion_counter: &mut i32,

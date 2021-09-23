@@ -7,7 +7,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -31,8 +31,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollowCommunity {
-  actor: Url,
-  to: Url,
+  actor: ObjectId<Person>,
+  to: ObjectId<Community>,
   object: FollowCommunity,
   #[serde(rename = "type")]
   kind: UndoType,
@@ -51,8 +51,8 @@ impl UndoFollowCommunity {
   ) -> Result<(), LemmyError> {
     let object = FollowCommunity::new(actor, community)?;
     let undo = UndoFollowCommunity {
-      actor: actor.actor_id(),
-      to: community.actor_id(),
+      actor: ObjectId::<Person>::new(actor.actor_id()),
+      to: ObjectId::<Community>::new(community.actor_id()),
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo)?,
@@ -72,8 +72,8 @@ impl ActivityHandler for UndoFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
-    verify_urls_match(&self.to, &self.object.object)?;
-    verify_urls_match(&self.actor, self.object.actor())?;
+    verify_urls_match(self.to.inner(), self.object.object.inner())?;
+    verify_urls_match(self.actor(), self.object.actor())?;
     verify_person(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
@@ -84,8 +84,8 @@ impl ActivityHandler for UndoFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = dereference::<Person>(&self.actor, context, request_counter).await?;
-    let community = dereference::<Community>(&self.to, context, request_counter).await?;
+    let actor = self.actor.dereference(context, request_counter).await?;
+    let community = self.to.dereference(context, request_counter).await?;
 
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,

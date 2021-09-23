@@ -1,7 +1,6 @@
 use crate::{
   activities::{
     community::announce::AnnouncableActivities,
-    extract_community,
     generate_activity_id,
     verify_activity,
     verify_mod_action,
@@ -10,7 +9,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::dereference_object_id::dereference,
+  fetcher::object_id::ObjectId,
   objects::{post::Page, FromApub, ToApub},
   ActorType,
 };
@@ -34,10 +33,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePost {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   object: Page,
-  cc: [Url; 1],
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
   id: Url,
@@ -62,10 +61,10 @@ impl CreateOrUpdatePost {
 
     let id = generate_activity_id(kind.clone())?;
     let create_or_update = CreateOrUpdatePost {
-      actor: actor.actor_id(),
+      actor: ObjectId::<Person>::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: post.to_apub(context.pool()).await?,
-      cc: [community.actor_id()],
+      cc: [ObjectId::<Community>::new(community.actor_id())],
       kind,
       id: id.clone(),
       context: lemmy_context(),
@@ -85,13 +84,12 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
-    let community = extract_community(&self.cc, context, request_counter).await?;
-    let community_id = community.actor_id();
-    verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
+    let community = self.cc[0].dereference(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     match self.kind {
       CreateOrUpdateType::Create => {
-        verify_domains_match(&self.actor, self.object.id_unchecked())?;
-        verify_urls_match(&self.actor, &self.object.attributed_to)?;
+        verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+        verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
@@ -105,10 +103,10 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context.pool()).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, community_id, context).await?;
+          verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
         } else {
-          verify_domains_match(&self.actor, self.object.id_unchecked())?;
-          verify_urls_match(&self.actor, &self.object.attributed_to)?;
+          verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+          verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
         }
       }
     }
@@ -121,7 +119,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = dereference::<Person>(&self.actor, context, request_counter).await?;
+    let actor = self.actor.dereference(context, request_counter).await?;
     let post = Post::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
 
     let notif_type = match self.kind {

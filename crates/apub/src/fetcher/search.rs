@@ -1,5 +1,5 @@
 use crate::{
-  fetcher::{dereference_object_id::dereference, fetch::fetch_remote_object, is_deleted},
+  fetcher::{fetch::fetch_remote_object, is_deleted, object_id::ObjectId},
   find_object_by_id,
   objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
   Object,
@@ -124,9 +124,9 @@ async fn build_response(
   use ResolveObjectResponse as ROR;
   Ok(match fetch_response {
     SearchAcceptedObjects::Person(p) => {
-      let person_uri = p.id(&query_url)?;
+      let person_uri: ObjectId<Person> = ObjectId::<Person>::new(p.id(&query_url)?.clone());
 
-      let person = dereference::<Person>(person_uri, context, recursion_counter).await?;
+      let person = person_uri.dereference(context, recursion_counter).await?;
       ROR {
         person: blocking(context.pool(), move |conn| {
           PersonViewSafe::read(conn, person.id)
@@ -137,8 +137,11 @@ async fn build_response(
       }
     }
     SearchAcceptedObjects::Group(g) => {
-      let community_uri = g.id(&query_url)?;
-      let community = dereference::<Community>(community_uri, context, recursion_counter).await?;
+      let community_uri: ObjectId<Community> =
+        ObjectId::<Community>::new(g.id(&query_url)?.clone());
+      let community = community_uri
+        .dereference(context, recursion_counter)
+        .await?;
       ROR {
         community: blocking(context.pool(), move |conn| {
           CommunityView::read(conn, community.id, None)
