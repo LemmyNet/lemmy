@@ -1,4 +1,5 @@
 pub mod community;
+pub mod deletable_apub_object;
 mod fetch;
 pub mod object_id;
 pub mod post_or_comment;
