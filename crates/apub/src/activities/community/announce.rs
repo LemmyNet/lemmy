@@ -79,7 +79,7 @@ impl AnnounceActivity {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity {
-      actor: ObjectId::<Community>::new(community.actor_id()),
+      actor: ObjectId::new(community.actor_id()),
       to: [PublicUrl::Public],
       object,
       cc: vec![community.followers_url()],

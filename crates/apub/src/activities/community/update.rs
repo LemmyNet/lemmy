@@ -57,10 +57,10 @@ impl UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(UpdateType::Update)?;
     let update = UpdateCommunity {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: community.to_apub(context.pool()).await?,
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind: UpdateType::Update,
       id: id.clone(),
       context: lemmy_context(),

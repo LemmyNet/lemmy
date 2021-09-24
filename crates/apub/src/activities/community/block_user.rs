@@ -58,10 +58,10 @@ impl BlockUserFromCommunity {
     actor: &Person,
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: ObjectId::<Person>::new(target.actor_id()),
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      object: ObjectId::new(target.actor_id()),
+      cc: [ObjectId::new(community.actor_id())],
       kind: BlockType::Block,
       id: generate_activity_id(BlockType::Block)?,
       context: lemmy_context(),

@@ -58,7 +58,7 @@ pub(crate) async fn extract_community(
   let mut cc_iter = cc.iter();
   loop {
     if let Some(cid) = cc_iter.next() {
-      let cid = ObjectId::<Community>::new(cid.clone());
+      let cid = ObjectId::new(cid.clone());
       if let Ok(c) = cid.dereference(context, request_counter).await {
         break Ok(c);
       }

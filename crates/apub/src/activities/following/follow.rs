@@ -50,9 +50,9 @@ impl FollowCommunity {
     community: &Community,
   ) -> Result<FollowCommunity, LemmyError> {
     Ok(FollowCommunity {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
-      to: ObjectId::<Community>::new(community.actor_id()),
-      object: ObjectId::<Community>::new(community.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(community.actor_id()),
+      object: ObjectId::new(community.actor_id()),
       kind: FollowType::Follow,
       id: generate_activity_id(FollowType::Follow)?,
       context: lemmy_context(),

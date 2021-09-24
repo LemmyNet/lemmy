@@ -57,8 +57,8 @@ impl AcceptFollowCommunity {
     .await??;
 
     let accept = AcceptFollowCommunity {
-      actor: ObjectId::<Community>::new(community.actor_id()),
-      to: ObjectId::<Person>::new(person.actor_id()),
+      actor: ObjectId::new(community.actor_id()),
+      to: ObjectId::new(person.actor_id()),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(AcceptType::Accept)?,

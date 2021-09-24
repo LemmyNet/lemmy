@@ -110,10 +110,10 @@ impl UndoDelete {
 
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoDelete {
-      actor: ObjectId::<Community>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object,
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),

@@ -51,8 +51,8 @@ impl UndoFollowCommunity {
   ) -> Result<(), LemmyError> {
     let object = FollowCommunity::new(actor, community)?;
     let undo = UndoFollowCommunity {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
-      to: ObjectId::<Community>::new(community.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(community.actor_id()),
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo)?,

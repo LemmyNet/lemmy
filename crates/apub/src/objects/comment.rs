@@ -82,14 +82,14 @@ impl Note {
       CommentInReplyToMigration::Old(in_reply_to) => {
         // This post, or the parent comment might not yet exist on this server yet, fetch them.
         let post_id = in_reply_to.get(0).context(location_info!())?;
-        let post_id = ObjectId::<Post>::new(post_id.clone());
+        let post_id = ObjectId::new(post_id.clone());
         let post = Box::pin(post_id.dereference(context, request_counter)).await?;
 
         // The 2nd item, if it exists, is the parent comment apub_id
         // Nested comments will automatically get fetched recursively
         let parent_id: Option<CommentId> = match in_reply_to.get(1) {
           Some(comment_id) => {
-            let comment_id: ObjectId<Comment> = ObjectId::<Comment>::new(comment_id.clone());
+            let comment_id = ObjectId::<Comment>::new(comment_id.clone());
             let parent_comment = Box::pin(comment_id.dereference(context, request_counter)).await?;
 
             Some(parent_comment.id)
@@ -137,7 +137,7 @@ impl Note {
     verify_domains_match(self.attributed_to.inner(), &self.id)?;
     verify_person_in_community(
       &self.attributed_to,
-      &ObjectId::<Community>::new(community.actor_id()),
+      &ObjectId::new(community.actor_id()),
       context,
       request_counter,
     )
@@ -171,7 +171,7 @@ impl ToApub for Comment {
       context: lemmy_context(),
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
-      attributed_to: ObjectId::<Person>::new(creator.actor_id),
+      attributed_to: ObjectId::new(creator.actor_id),
       to: PublicUrl::Public,
       content: self.content.clone(),
       media_type: MediaTypeHtml::Html,

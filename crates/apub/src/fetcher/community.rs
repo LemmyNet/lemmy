@@ -45,8 +45,8 @@ pub(crate) async fn update_community_mods(
 
   // Add new mods to database which have been added to moderators collection
   for mod_id in new_moderators {
-    let mod_id = ObjectId::<Person>::new::<Person, Url>(mod_id);
-    let mod_user = mod_id.dereference(context, request_counter).await?;
+    let mod_id = ObjectId::new(mod_id);
+    let mod_user: Person = mod_id.dereference(context, request_counter).await?;
 
     if !current_moderators
       .clone()

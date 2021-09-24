@@ -87,8 +87,8 @@ impl ToApub for PrivateMessage {
       context: lemmy_context(),
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
-      attributed_to: ObjectId::<Person>::new(creator.actor_id),
-      to: ObjectId::<Person>::new(recipient.actor_id),
+      attributed_to: ObjectId::new(creator.actor_id),
+      to: ObjectId::new(recipient.actor_id),
       content: self.content.clone(),
       media_type: MediaTypeHtml::Html,
       source: Source {

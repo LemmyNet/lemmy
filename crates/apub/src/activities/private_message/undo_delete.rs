@@ -53,8 +53,8 @@ impl UndoDeletePrivateMessage {
     let object = DeletePrivateMessage::new(actor, pm)?;
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoDeletePrivateMessage {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
-      to: ObjectId::<Person>::new(recipient.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(recipient.actor_id()),
       object,
       kind: UndoType::Undo,
       id: id.clone(),

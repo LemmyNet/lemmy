@@ -28,12 +28,12 @@ pub(crate) async fn get_or_fetch_and_upsert_actor(
   context: &LemmyContext,
   recursion_counter: &mut i32,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let community_id: ObjectId<Community> = ObjectId::<Community>::new(apub_id.clone());
+  let community_id = ObjectId::<Community>::new(apub_id.clone());
   let community = community_id.dereference(context, recursion_counter).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
     Err(_) => {
-      let person_id: ObjectId<Person> = ObjectId::<Person>::new(apub_id);
+      let person_id = ObjectId::new(apub_id);
       let person: Person = person_id.dereference(context, recursion_counter).await?;
       Box::new(person)
     }

@@ -46,8 +46,8 @@ impl CreateOrUpdatePrivateMessage {
     let create_or_update = CreateOrUpdatePrivateMessage {
       context: lemmy_context(),
       id: id.clone(),
-      actor: ObjectId::<Person>::new(actor.actor_id()),
-      to: ObjectId::<Person>::new(recipient.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(recipient.actor_id()),
       object: private_message.to_apub(context.pool()).await?,
       kind,
       unparsed: Default::default(),

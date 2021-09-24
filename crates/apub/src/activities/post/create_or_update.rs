@@ -61,10 +61,10 @@ impl CreateOrUpdatePost {
 
     let id = generate_activity_id(kind.clone())?;
     let create_or_update = CreateOrUpdatePost {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: post.to_apub(context.pool()).await?,
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind,
       id: id.clone(),
       context: lemmy_context(),

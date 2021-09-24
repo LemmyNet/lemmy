@@ -104,7 +104,7 @@ impl Page {
     verify_domains_match(self.attributed_to.inner(), &self.id)?;
     verify_person_in_community(
       &self.attributed_to,
-      &ObjectId::<Community>::new(community.actor_id()),
+      &ObjectId::new(community.actor_id()),
       context,
       request_counter,
     )
@@ -137,7 +137,7 @@ impl ToApub for Post {
       context: lemmy_context(),
       r#type: PageType::Page,
       id: self.ap_id.clone().into(),
-      attributed_to: ObjectId::<Person>::new(creator.actor_id),
+      attributed_to: ObjectId::new(creator.actor_id),
       to: [community.actor_id.into(), public()],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),

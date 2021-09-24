@@ -61,7 +61,7 @@ impl CreateOrUpdateComment {
     let maa = collect_non_local_mentions(comment, &community, context).await?;
 
     let create_or_update = CreateOrUpdateComment {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: comment.to_apub(context.pool()).await?,
       cc: maa.ccs,
@@ -85,7 +85,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = extract_community(&self.cc, context, request_counter).await?;
-    let community_id = ObjectId::<Community>::new(community.actor_id());
+    let community_id = ObjectId::new(community.actor_id());
 
     verify_activity(self)?;
     verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;

@@ -105,7 +105,7 @@ pub(in crate::activities) async fn verify_delete_activity(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let object = DeletableObjects::read_from_db(object, context).await?;
-  let actor = ObjectId::<Person>::new(activity.actor().clone());
+  let actor = ObjectId::new(activity.actor().clone());
   match object {
     DeletableObjects::Community(c) => {
       if c.local {
@@ -114,7 +114,7 @@ pub(in crate::activities) async fn verify_delete_activity(
         verify_person_in_community(&actor, community_id, context, request_counter).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(&actor, ObjectId::<Community>::new(c.actor_id()), context).await?;
+      verify_mod_action(&actor, ObjectId::new(c.actor_id()), context).await?;
     }
     DeletableObjects::Post(p) => {
       verify_delete_activity_post_or_comment(
@@ -150,7 +150,7 @@ async fn verify_delete_activity_post_or_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = ObjectId::<Person>::new(activity.actor().clone());
+  let actor = ObjectId::new(activity.actor().clone());
   verify_person_in_community(&actor, community_id, context, request_counter).await?;
   if is_mod_action {
     verify_mod_action(&actor, community_id.clone(), context).await?;

@@ -34,13 +34,11 @@ where
   Kind: FromApub + ApubObject + DeletableApubObject + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
-  pub fn new<K, T>(url: T) -> ObjectId<K>
+  pub fn new<T>(url: T) -> Self
   where
     T: Into<Url>,
-    K: FromApub + ApubObject + DeletableApubObject + Send + 'static,
-    for<'de> <K as FromApub>::ApubType: serde::Deserialize<'de>,
   {
-    ObjectId(url.into(), PhantomData::<K>)
+    ObjectId(url.into(), PhantomData::<Kind>)
   }
 
   pub fn inner(&self) -> &Url {

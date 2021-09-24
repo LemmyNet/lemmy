@@ -59,13 +59,13 @@ impl RemoveMod {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(RemoveType::Remove)?;
     let remove = RemoveMod {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: ObjectId::<Person>::new(removed_mod.actor_id()),
+      object: ObjectId::new(removed_mod.actor_id()),
       target: Some(generate_moderators_url(&community.actor_id)?.into()),
       id: id.clone(),
       context: lemmy_context(),
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind: RemoveType::Remove,
       unparsed: Default::default(),
     };

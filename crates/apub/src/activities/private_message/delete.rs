@@ -41,8 +41,8 @@ impl DeletePrivateMessage {
     pm: &PrivateMessage,
   ) -> Result<DeletePrivateMessage, LemmyError> {
     Ok(DeletePrivateMessage {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
-      to: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(actor.actor_id()),
       object: pm.ap_id.clone().into(),
       kind: DeleteType::Delete,
       id: generate_activity_id(DeleteType::Delete)?,

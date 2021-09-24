@@ -56,10 +56,10 @@ impl UndoBlockUserFromCommunity {
 
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoBlockUserFromCommunity {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: block,
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),

@@ -79,10 +79,10 @@ impl Vote {
     kind: VoteType,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: ObjectId::<PostOrComment>::new(object.ap_id()),
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      object: ObjectId::new(object.ap_id()),
+      cc: [ObjectId::new(community.actor_id())],
       kind: kind.clone(),
       id: generate_activity_id(kind)?,
       context: lemmy_context(),

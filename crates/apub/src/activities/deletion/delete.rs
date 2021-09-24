@@ -140,10 +140,10 @@ impl Delete {
     summary: Option<String>,
   ) -> Result<Delete, LemmyError> {
     Ok(Delete {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: object_id,
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind: DeleteType::Delete,
       summary,
       id: generate_activity_id(DeleteType::Delete)?,

@@ -57,11 +57,11 @@ impl AddMod {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(AddType::Add)?;
     let add = AddMod {
-      actor: ObjectId::<Person>::new(actor.actor_id()),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: ObjectId::<Person>::new(added_mod.actor_id()),
+      object: ObjectId::new(added_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
-      cc: [ObjectId::<Community>::new(community.actor_id())],
+      cc: [ObjectId::new(community.actor_id())],
       kind: AddType::Add,
       id: id.clone(),
       context: lemmy_context(),

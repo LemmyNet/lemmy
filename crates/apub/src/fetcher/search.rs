@@ -55,7 +55,7 @@ pub async fn search_by_apub_id(
   };
 
   let request_counter = &mut 0;
-  ObjectId::<SearchableObjects>::new(query_url)
+  ObjectId::new(query_url)
     .dereference(context, request_counter)
     .await
 }
