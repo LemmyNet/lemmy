@@ -1,3 +1,4 @@
+use regex::Regex;
 use serde::Deserialize;
 use std::net::{IpAddr, Ipv4Addr};
 
@@ -30,6 +31,12 @@ pub struct Settings {
   pub additional_slurs: Option<String>,
   #[default(20)]
   pub actor_name_max_length: usize,
+  #[default(None)]
+  #[serde(skip)]
+  pub webfinger_community_regex: Option<Regex>,
+  #[default(None)]
+  #[serde(skip)]
+  pub webfinger_username_regex: Option<Regex>,
 }
 
 #[derive(Debug, Deserialize, Clone, SmartDefault)]

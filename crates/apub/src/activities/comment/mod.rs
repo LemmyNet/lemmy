@@ -19,7 +19,6 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use log::debug;
-use reqwest::Client;
 use url::Url;
 
 pub mod create_or_update;
@@ -136,16 +135,18 @@ async fn get_comment_parent_creator(
 /// using webfinger.
 async fn fetch_webfinger_url(
   mention: &MentionData,
-  client: &Client,
-  protocol_string: &str,
+  context: &LemmyContext,
 ) -> Result<Url, LemmyError> {
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
-    protocol_string, mention.domain, mention.name, mention.domain
+    context.settings().get_protocol_string(),
+    mention.domain,
+    mention.name,
+    mention.domain
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 
-  let response = retry(|| client.get(&fetch_url).send()).await?;
+  let response = retry(|| context.client().get(&fetch_url).send()).await?;
 
   let res: WebfingerResponse = response
     .json()

@@ -69,7 +69,6 @@ impl RateLimited {
   {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
-    // let rate_limit: RateLimitConfig = Settings::get().rate_limit.unwrap_or_default();
     let rate_limit = self.rate_limit_config;
 
     // before

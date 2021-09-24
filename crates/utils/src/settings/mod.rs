@@ -16,11 +16,21 @@ impl Settings {
   /// Warning: Only call this once.
   pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
-    let config = from_str::<Settings>(&Self::read_config_file()?)?;
+    let mut config = from_str::<Settings>(&Self::read_config_file()?)?;
 
     if config.hostname == "unset" {
       return Err(anyhow!("Hostname variable is not set!").into());
     }
+
+    // Initialize the regexes
+    config.webfinger_username_regex = Some(
+      Regex::new(&format!("^group:([a-z0-9_]{{3,}})@{}$", config.hostname))
+        .expect("compile webfinger regex"),
+    );
+    config.webfinger_username_regex = Some(
+      Regex::new(&format!("^acct:([a-z0-9_]{{3,}})@{}$", config.hostname))
+        .expect("compile webfinger regex"),
+    );
 
     Ok(config)
   }
@@ -76,15 +86,17 @@ impl Settings {
     Ok(Self::read_config_file()?)
   }
 
-  // TODO for these regexes: we can't use lazy_static here anymore, since the settings must be
-  // initialized first.
   pub fn webfinger_community_regex(&self) -> Regex {
-    Regex::new(&format!("^group:([a-z0-9_]{{3,}})@{}$", self.hostname))
+    self
+      .webfinger_community_regex
+      .to_owned()
       .expect("compile webfinger regex")
   }
 
   pub fn webfinger_username_regex(&self) -> Regex {
-    Regex::new(&format!("^acct:([a-z0-9_]{{3,}})@{}$", self.hostname))
+    self
+      .webfinger_username_regex
+      .to_owned()
       .expect("compile webfinger regex")
   }
 
