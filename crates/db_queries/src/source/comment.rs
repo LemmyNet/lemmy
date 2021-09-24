@@ -51,6 +51,7 @@ pub trait Comment_ {
     comment_id: CommentId,
     new_content: &str,
   ) -> Result<Comment, Error>;
+  fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Comment, Error>;
 }
 
 impl Comment_ for Comment {
@@ -134,6 +135,16 @@ impl Comment_ for Comment {
       .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
+
+  fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Comment, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    insert_into(comment)
+      .values(comment_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(comment_form)
+      .get_result::<Self>(conn)
+  }
 }
 
 impl Crud for Comment {
@@ -169,8 +180,6 @@ impl Crud for Comment {
 }
 
 impl ApubObject for Comment {
-  type Form = CommentForm;
-
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
   }
@@ -178,16 +187,6 @@ impl ApubObject for Comment {
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
-  }
-
-  fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::comment::dsl::*;
-    insert_into(comment)
-      .values(comment_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(comment_form)
-      .get_result::<Self>(conn)
   }
 }
 

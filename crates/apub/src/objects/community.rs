@@ -18,7 +18,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, DbPool};
+use lemmy_db_queries::{source::community::Community_, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},

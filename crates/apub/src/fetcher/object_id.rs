@@ -10,7 +10,6 @@ use lemmy_db_queries::{ApubObject, DbPool};
 use lemmy_db_schema::DbUrl;
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -54,7 +53,6 @@ where
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<Kind, LemmyError> {
-    debug!("dereference {}", self.to_string());
     let db_object = self.dereference_locally(context.pool()).await?;
 
     // if its a local object, only fetch it from the database and not over http
@@ -69,7 +67,6 @@ where
       if let Some(last_refreshed_at) = object.last_refreshed_at() {
         // TODO: rename to should_refetch_object()
         if should_refetch_actor(last_refreshed_at) {
-          debug!("Refetching remote object {}", self.0.as_str());
           return self
             .dereference_remotely(context, request_counter, Some(object))
             .await;
@@ -77,7 +74,6 @@ where
       }
       Ok(object)
     } else {
-      debug!("Fetching remote object {}", self.0.as_str());
       self
         .dereference_remotely(context, request_counter, None)
         .await
@@ -86,7 +82,6 @@ where
 
   /// returning none means the object was not found in local db
   async fn dereference_locally(&self, pool: &DbPool) -> Result<Option<Kind>, LemmyError> {
-    debug!("dereference_locally {}", self.to_string());
     let id: DbUrl = self.0.clone().into();
     let object = blocking(pool, move |conn| ApubObject::read_from_apub_id(conn, &id)).await?;
     match object {
@@ -102,7 +97,6 @@ where
     request_counter: &mut i32,
     db_object: Option<Kind>,
   ) -> Result<Kind, LemmyError> {
-    debug!("dereference_remotely {}", self.to_string());
     // dont fetch local objects this way
     debug_assert!(self.0.domain() != Some(&Settings::get().hostname));
 
@@ -122,7 +116,6 @@ where
     .await?;
 
     if res.status() == StatusCode::GONE {
-      debug!("is deleted {}", self.to_string());
       if let Some(db_object) = db_object {
         db_object.delete(context).await?;
       }

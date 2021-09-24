@@ -73,6 +73,7 @@ pub trait Post_ {
     new_stickied: bool,
   ) -> Result<Post, Error>;
   fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool;
+  fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error>;
 }
 
 impl Post_ for Post {
@@ -180,19 +181,6 @@ impl Post_ for Post {
   fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool {
     person_id == post_creator_id
   }
-}
-
-impl ApubObject for Post {
-  type Form = PostForm;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::post::dsl::*;
-    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
-  }
 
   fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
     use lemmy_db_schema::schema::post::dsl::*;
@@ -202,6 +190,17 @@ impl ApubObject for Post {
       .do_update()
       .set(post_form)
       .get_result::<Self>(conn)
+  }
+}
+
+impl ApubObject for Post {
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 }
 

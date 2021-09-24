@@ -21,7 +21,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, DbPool};
 use lemmy_db_schema::{
   self,
   source::{

@@ -33,8 +33,6 @@ pub enum PageOrNote {
 
 #[async_trait::async_trait(?Send)]
 impl ApubObject for PostOrComment {
-  type Form = PostOrCommentForm;
-
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
   }
@@ -48,18 +46,6 @@ impl ApubObject for PostOrComment {
     Ok(match post {
       Ok(o) => PostOrComment::Post(Box::new(o)),
       Err(_) => PostOrComment::Comment(Box::new(Comment::read_from_apub_id(conn, object_id)?)),
-    })
-  }
-
-  fn upsert(conn: &PgConnection, user_form: &PostOrCommentForm) -> Result<Self, Error>
-  where
-    Self: Sized,
-  {
-    Ok(match user_form {
-      PostOrCommentForm::PostForm(f) => PostOrComment::Post(Box::new(Post::upsert(conn, f)?)),
-      PostOrCommentForm::CommentForm(f) => {
-        PostOrComment::Comment(Box::new(Comment::upsert(conn, f)?))
-      }
     })
   }
 }

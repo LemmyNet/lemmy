@@ -20,7 +20,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{source::comment::Comment_, Crud, DbPool};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentForm},

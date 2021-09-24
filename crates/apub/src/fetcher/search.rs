@@ -95,8 +95,6 @@ pub enum SearchableApubTypes {
 }
 
 impl ApubObject for SearchableObjects {
-  type Form = ();
-
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     match self {
       SearchableObjects::Person(p) => p.last_refreshed_at(),
@@ -126,11 +124,6 @@ impl ApubObject for SearchableObjects {
     }
     let c = Comment::read_from_apub_id(conn, object_id);
     Ok(SearchableObjects::Comment(c?))
-  }
-
-  // TODO: move this (and the Form type) elsewhere, as it isnt really needed on this trait
-  fn upsert(_conn: &PgConnection, _user_form: &Self::Form) -> Result<Self, Error> {
-    unimplemented!()
   }
 }
 

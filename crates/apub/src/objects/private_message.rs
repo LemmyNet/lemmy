@@ -16,7 +16,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DbPool};
 use lemmy_db_schema::source::{
   person::Person,
   private_message::{PrivateMessage, PrivateMessageForm},

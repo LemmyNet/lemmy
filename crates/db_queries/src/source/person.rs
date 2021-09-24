@@ -182,8 +182,6 @@ impl Crud for Person {
 }
 
 impl ApubObject for Person {
-  type Form = PersonForm;
-
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
   }
@@ -195,15 +193,6 @@ impl ApubObject for Person {
       .filter(actor_id.eq(object_id))
       .first::<Self>(conn)
   }
-
-  fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error> {
-    insert_into(person)
-      .values(person_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(person_form)
-      .get_result::<Self>(conn)
-  }
 }
 
 pub trait Person_ {
@@ -212,6 +201,7 @@ pub trait Person_ {
   fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
   fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
   fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
+  fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error>;
 }
 
 impl Person_ for Person {
@@ -260,6 +250,15 @@ impl Person_ for Person {
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
+      .get_result::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error> {
+    insert_into(person)
+      .values(person_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(person_form)
       .get_result::<Self>(conn)
   }
 }
