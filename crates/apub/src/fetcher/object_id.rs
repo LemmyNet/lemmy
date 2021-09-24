@@ -14,7 +14,7 @@ use log::debug;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use std::{
-  fmt::{Display, Formatter},
+  fmt::{Debug, Display, Formatter},
   marker::PhantomData,
   time::Duration,
 };
@@ -54,7 +54,9 @@ where
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<Kind, LemmyError> {
+    debug!("dereference {}", self.to_string());
     let db_object = self.dereference_locally(context.pool()).await?;
+
     // if its a local object, only fetch it from the database and not over http
     if self.0.domain() == Some(&Settings::get().get_hostname_without_port()?) {
       return match db_object {
@@ -84,6 +86,7 @@ where
 
   /// returning none means the object was not found in local db
   async fn dereference_locally(&self, pool: &DbPool) -> Result<Option<Kind>, LemmyError> {
+    debug!("dereference_locally {}", self.to_string());
     let id: DbUrl = self.0.clone().into();
     let object = blocking(pool, move |conn| ApubObject::read_from_apub_id(conn, &id)).await?;
     match object {
@@ -99,6 +102,7 @@ where
     request_counter: &mut i32,
     db_object: Option<Kind>,
   ) -> Result<Kind, LemmyError> {
+    debug!("dereference_remotely {}", self.to_string());
     // dont fetch local objects this way
     debug_assert!(self.0.domain() != Some(&Settings::get().hostname));
 
@@ -118,6 +122,7 @@ where
     .await?;
 
     if res.status() == StatusCode::GONE {
+      debug!("is deleted {}", self.to_string());
       if let Some(db_object) = db_object {
         db_object.delete(context).await?;
       }

@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use anyhow::Context;
+use diesel::NotFound;
 use lemmy_api_common::{
   blocking,
   build_federated_instances,
@@ -9,24 +10,32 @@ use lemmy_api_common::{
   is_admin,
   site::*,
 };
-use lemmy_apub::{build_actor_id_from_shortname, fetcher::search::search_by_apub_id, EndpointType};
+use lemmy_apub::{
+  build_actor_id_from_shortname,
+  fetcher::search::{search_by_apub_id, SearchableObjects},
+  EndpointType,
+};
 use lemmy_db_queries::{
   from_opt_str_to_opt_enum,
   source::site::Site_,
   Crud,
+  DbPool,
   DeleteableOrRemoveable,
   ListingType,
   SearchType,
   SortType,
 };
-use lemmy_db_schema::source::{moderator::*, site::Site};
+use lemmy_db_schema::{
+  source::{moderator::*, site::Site},
+  PersonId,
+};
 use lemmy_db_views::{
-  comment_view::CommentQueryBuilder,
-  post_view::PostQueryBuilder,
+  comment_view::{CommentQueryBuilder, CommentView},
+  post_view::{PostQueryBuilder, PostView},
   site_view::SiteView,
 };
 use lemmy_db_views_actor::{
-  community_view::CommunityQueryBuilder,
+  community_view::{CommunityQueryBuilder, CommunityView},
   person_view::{PersonQueryBuilder, PersonViewSafe},
 };
 use lemmy_db_views_moderator::{
@@ -376,11 +385,52 @@ impl Perform for ResolveObject {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view = get_local_user_view_from_jwt_opt(&self.auth, context.pool()).await?;
-    let res = search_by_apub_id(&self.q, local_user_view, context)
+    let res = search_by_apub_id(&self.q, context)
       .await
       .map_err(|_| ApiError::err("couldnt_find_object"))?;
-    Ok(res)
+    convert_response(res, local_user_view.map(|l| l.person.id), context.pool())
+      .await
+      .map_err(|_| ApiError::err("couldnt_find_object").into())
   }
+}
+
+async fn convert_response(
+  object: SearchableObjects,
+  user_id: Option<PersonId>,
+  pool: &DbPool,
+) -> Result<ResolveObjectResponse, LemmyError> {
+  let removed_or_deleted;
+  let mut res = ResolveObjectResponse {
+    comment: None,
+    post: None,
+    community: None,
+    person: None,
+  };
+  use SearchableObjects::*;
+  match object {
+    Person(p) => {
+      removed_or_deleted = p.deleted;
+      res.person = Some(blocking(pool, move |conn| PersonViewSafe::read(conn, p.id)).await??)
+    }
+    Community(c) => {
+      removed_or_deleted = c.deleted || c.removed;
+      res.community =
+        Some(blocking(pool, move |conn| CommunityView::read(conn, c.id, user_id)).await??)
+    }
+    Post(p) => {
+      removed_or_deleted = p.deleted || p.removed;
+      res.post = Some(blocking(pool, move |conn| PostView::read(conn, p.id, user_id)).await??)
+    }
+    Comment(c) => {
+      removed_or_deleted = c.deleted || c.removed;
+      res.comment = Some(blocking(pool, move |conn| CommentView::read(conn, c.id, user_id)).await??)
+    }
+  };
+  // if the object was deleted from database, dont return it
+  if removed_or_deleted {
+    return Err(NotFound {}.into());
+  }
+  Ok(res)
 }
 
 #[async_trait::async_trait(?Send)]

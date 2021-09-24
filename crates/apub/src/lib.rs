@@ -11,24 +11,15 @@ pub mod objects;
 
 use crate::{extensions::signatures::PublicKey, fetcher::post_or_comment::PostOrComment};
 use anyhow::{anyhow, Context};
-use diesel::NotFound;
 use lemmy_api_common::blocking;
-use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
+use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::{
-  source::{
-    activity::Activity,
-    comment::Comment,
-    community::Community,
-    person::{Person as DbPerson, Person},
-    post::Post,
-    private_message::PrivateMessage,
-  },
+  source::{activity::Activity, person::Person},
   CommunityId,
   DbUrl,
 };
 use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
-use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
@@ -242,81 +233,6 @@ where
   })
   .await??;
   Ok(())
-}
-
-/// Tries to find a post or comment in the local database, without any network requests.
-/// This is used to handle deletions and removals, because in case we dont have the object, we can
-/// simply ignore the activity.
-pub(crate) async fn find_post_or_comment_by_id(
-  context: &LemmyContext,
-  apub_id: Url,
-) -> Result<PostOrComment, LemmyError> {
-  let ap_id = apub_id.clone();
-  let post = blocking(context.pool(), move |conn| {
-    Post::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
-  if let Ok(p) = post {
-    return Ok(PostOrComment::Post(Box::new(p)));
-  }
-
-  let ap_id = apub_id.clone();
-  let comment = blocking(context.pool(), move |conn| {
-    Comment::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
-  if let Ok(c) = comment {
-    return Ok(PostOrComment::Comment(Box::new(c)));
-  }
-
-  Err(NotFound.into())
-}
-
-#[derive(Debug)]
-enum Object {
-  Comment(Box<Comment>),
-  Post(Box<Post>),
-  Community(Box<Community>),
-  Person(Box<DbPerson>),
-  PrivateMessage(Box<PrivateMessage>),
-}
-
-async fn find_object_by_id(context: &LemmyContext, apub_id: Url) -> Result<Object, LemmyError> {
-  let ap_id = apub_id.clone();
-  if let Ok(pc) = find_post_or_comment_by_id(context, ap_id.to_owned()).await {
-    return Ok(match pc {
-      PostOrComment::Post(p) => Object::Post(Box::new(*p)),
-      PostOrComment::Comment(c) => Object::Comment(Box::new(*c)),
-    });
-  }
-
-  let ap_id = apub_id.clone();
-  let person = blocking(context.pool(), move |conn| {
-    DbPerson::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
-  if let Ok(u) = person {
-    return Ok(Object::Person(Box::new(u)));
-  }
-
-  let ap_id = apub_id.clone();
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &ap_id.into())
-  })
-  .await?;
-  if let Ok(c) = community {
-    return Ok(Object::Community(Box::new(c)));
-  }
-
-  let private_message = blocking(context.pool(), move |conn| {
-    PrivateMessage::read_from_apub_id(conn, &apub_id.into())
-  })
-  .await?;
-  if let Ok(pm) = private_message {
-    return Ok(Object::PrivateMessage(Box::new(pm)));
-  }
-
-  Err(NotFound.into())
 }
 
 async fn check_community_or_site_ban(

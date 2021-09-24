@@ -49,6 +49,7 @@ use lemmy_websocket::{
   UserOperationCrud,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 
 /// This is very confusing, because there are four distinct cases to handle:
@@ -59,6 +60,7 @@ use url::Url;
 ///
 /// TODO: we should probably change how community deletions work to simplify this. Probably by
 /// wrapping it in an announce just like other activities, instead of having the community send it.
+#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Delete {

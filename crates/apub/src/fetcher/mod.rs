@@ -5,37 +5,18 @@ pub mod object_id;
 pub mod post_or_comment;
 pub mod search;
 
-use crate::{
-  fetcher::{fetch::FetchError, object_id::ObjectId},
-  ActorType,
-};
+use crate::{fetcher::object_id::ObjectId, ActorType};
 use chrono::NaiveDateTime;
-use http::StatusCode;
 use lemmy_db_schema::{
   naive_now,
   source::{community::Community, person::Person},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
 use url::Url;
 
 static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
 static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;
-
-fn is_deleted<Response>(fetch_response: &Result<Response, FetchError>) -> bool
-where
-  Response: for<'de> Deserialize<'de>,
-{
-  if let Err(e) = fetch_response {
-    if let Some(status) = e.status_code {
-      if status == StatusCode::GONE {
-        return true;
-      }
-    }
-  }
-  false
-}
 
 /// Get a remote actor from its apub ID (either a person or a community). Thin wrapper around
 /// `get_or_fetch_and_upsert_person()` and `get_or_fetch_and_upsert_community()`.
