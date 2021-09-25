@@ -23,7 +23,7 @@ impl Settings {
     }
 
     // Initialize the regexes
-    config.webfinger_username_regex = Some(
+    config.webfinger_community_regex = Some(
       Regex::new(&format!("^group:([a-z0-9_]{{3,}})@{}$", config.hostname))
         .expect("compile webfinger regex"),
     );
