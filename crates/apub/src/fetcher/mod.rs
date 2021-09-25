@@ -1,41 +1,22 @@
 pub mod community;
+pub mod deletable_apub_object;
 mod fetch;
-pub mod objects;
-pub mod person;
+pub mod object_id;
+pub mod post_or_comment;
 pub mod search;
 
-use crate::{
-  fetcher::{
-    community::get_or_fetch_and_upsert_community,
-    fetch::FetchError,
-    person::get_or_fetch_and_upsert_person,
-  },
-  ActorType,
-};
+use crate::{fetcher::object_id::ObjectId, ActorType};
 use chrono::NaiveDateTime;
-use http::StatusCode;
-use lemmy_db_schema::naive_now;
+use lemmy_db_schema::{
+  naive_now,
+  source::{community::Community, person::Person},
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
 use url::Url;
 
 static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
 static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;
-
-fn is_deleted<Response>(fetch_response: &Result<Response, FetchError>) -> bool
-where
-  Response: for<'de> Deserialize<'de>,
-{
-  if let Err(e) = fetch_response {
-    if let Some(status) = e.status_code {
-      if status == StatusCode::GONE {
-        return true;
-      }
-    }
-  }
-  false
-}
 
 /// Get a remote actor from its apub ID (either a person or a community). Thin wrapper around
 /// `get_or_fetch_and_upsert_person()` and `get_or_fetch_and_upsert_community()`.
@@ -43,14 +24,19 @@ where
 /// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
 /// Otherwise it is fetched from the remote instance, stored and returned.
 pub(crate) async fn get_or_fetch_and_upsert_actor(
-  apub_id: &Url,
+  apub_id: Url,
   context: &LemmyContext,
   recursion_counter: &mut i32,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let community = get_or_fetch_and_upsert_community(apub_id, context, recursion_counter).await;
+  let community_id = ObjectId::<Community>::new(apub_id.clone());
+  let community = community_id.dereference(context, recursion_counter).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
-    Err(_) => Box::new(get_or_fetch_and_upsert_person(apub_id, context, recursion_counter).await?),
+    Err(_) => {
+      let person_id = ObjectId::new(apub_id);
+      let person: Person = person_id.dereference(context, recursion_counter).await?;
+      Box::new(person)
+    }
   };
   Ok(actor)
 }

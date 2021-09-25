@@ -8,6 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   objects::{community::Group, ToApub},
   ActorType,
 };
@@ -34,11 +35,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
-  cc: [Url; 1],
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: UpdateType,
   id: Url,
@@ -56,10 +57,10 @@ impl UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(UpdateType::Update)?;
     let update = UpdateCommunity {
-      actor: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: community.to_apub(context.pool()).await?,
-      cc: [community.actor_id()],
+      cc: [ObjectId::new(community.actor_id())],
       kind: UpdateType::Update,
       id: id.clone(),
       context: lemmy_context(),

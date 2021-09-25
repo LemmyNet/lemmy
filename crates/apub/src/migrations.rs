@@ -1,3 +1,4 @@
+use crate::fetcher::{object_id::ObjectId, post_or_comment::PostOrComment};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -13,7 +14,7 @@ use url::Url;
 #[serde(untagged)]
 pub enum CommentInReplyToMigration {
   Old(Vec<Url>),
-  New(Url),
+  New(ObjectId<PostOrComment>),
 }
 
 // Another migration we are doing is to handle all deletions and removals using Delete activity.

@@ -8,7 +8,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -32,10 +32,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   object: BlockUserFromCommunity,
-  cc: [Url; 1],
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -56,10 +56,10 @@ impl UndoBlockUserFromCommunity {
 
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoBlockUserFromCommunity {
-      actor: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: block,
-      cc: [community.actor_id()],
+      cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),
@@ -91,10 +91,12 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community =
-      get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
-    let blocked_user =
-      get_or_fetch_and_upsert_person(&self.object.object, context, request_counter).await?;
+    let community = self.cc[0].dereference(context, request_counter).await?;
+    let blocked_user = self
+      .object
+      .object
+      .dereference(context, request_counter)
+      .await?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,

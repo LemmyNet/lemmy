@@ -10,6 +10,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   objects::{comment::Note, FromApub, ToApub},
   ActorType,
 };
@@ -26,7 +27,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdateComment {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   object: Note,
   cc: Vec<Url>,
@@ -60,7 +61,7 @@ impl CreateOrUpdateComment {
     let maa = collect_non_local_mentions(comment, &community, context).await?;
 
     let create_or_update = CreateOrUpdateComment {
-      actor: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: comment.to_apub(context.pool()).await?,
       cc: maa.ccs,
@@ -84,11 +85,11 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = extract_community(&self.cc, context, request_counter).await?;
+    let community_id = ObjectId::new(community.actor_id());
 
     verify_activity(self)?;
-    verify_person_in_community(&self.actor, &community.actor_id(), context, request_counter)
-      .await?;
-    verify_domains_match(&self.actor, self.object.id_unchecked())?;
+    verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
+    verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     // TODO: should add a check that the correct community is in cc (probably needs changes to
     //       comment deserialization)
     self.object.verify(context, request_counter).await?;
@@ -100,7 +101,8 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let comment = Comment::from_apub(&self.object, context, &self.actor, request_counter).await?;
+    let comment =
+      Comment::from_apub(&self.object, context, self.actor.inner(), request_counter).await?;
     let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,

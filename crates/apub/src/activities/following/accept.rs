@@ -7,7 +7,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -31,8 +31,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AcceptFollowCommunity {
-  actor: Url,
-  to: Url,
+  actor: ObjectId<Community>,
+  to: ObjectId<Person>,
   object: FollowCommunity,
   #[serde(rename = "type")]
   kind: AcceptType,
@@ -57,8 +57,8 @@ impl AcceptFollowCommunity {
     .await??;
 
     let accept = AcceptFollowCommunity {
-      actor: community.actor_id(),
-      to: person.actor_id(),
+      actor: ObjectId::new(community.actor_id()),
+      to: ObjectId::new(person.actor_id()),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(AcceptType::Accept)?,
@@ -78,8 +78,8 @@ impl ActivityHandler for AcceptFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
-    verify_urls_match(&self.to, self.object.actor())?;
-    verify_urls_match(&self.actor, &self.object.to)?;
+    verify_urls_match(self.to.inner(), self.object.actor())?;
+    verify_urls_match(self.actor(), self.object.to.inner())?;
     verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
@@ -90,8 +90,8 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_community(&self.actor, context, request_counter).await?;
-    let to = get_or_fetch_and_upsert_person(&self.to, context, request_counter).await?;
+    let actor = self.actor.dereference(context, request_counter).await?;
+    let to = self.to.dereference(context, request_counter).await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {
       CommunityFollower::follow_accepted(conn, actor.id, to.id)

@@ -7,7 +7,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -31,9 +31,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
-  actor: Url,
-  pub(in crate::activities::following) to: Url,
-  pub(in crate::activities::following) object: Url,
+  actor: ObjectId<Person>,
+  // TODO: is there any reason to put the same community id twice, in to and object?
+  pub(in crate::activities::following) to: ObjectId<Community>,
+  pub(in crate::activities::following) object: ObjectId<Community>,
   #[serde(rename = "type")]
   kind: FollowType,
   id: Url,
@@ -49,9 +50,9 @@ impl FollowCommunity {
     community: &Community,
   ) -> Result<FollowCommunity, LemmyError> {
     Ok(FollowCommunity {
-      actor: actor.actor_id(),
-      to: community.actor_id(),
-      object: community.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(community.actor_id()),
+      object: ObjectId::new(community.actor_id()),
       kind: FollowType::Follow,
       id: generate_activity_id(FollowType::Follow)?,
       context: lemmy_context(),
@@ -87,7 +88,7 @@ impl ActivityHandler for FollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
-    verify_urls_match(&self.to, &self.object)?;
+    verify_urls_match(self.to.inner(), self.object.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
     Ok(())
   }
@@ -97,9 +98,8 @@ impl ActivityHandler for FollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
-    let community =
-      get_or_fetch_and_upsert_community(&self.object, context, request_counter).await?;
+    let actor = self.actor.dereference(context, request_counter).await?;
+    let community = self.object.dereference(context, request_counter).await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: actor.id,

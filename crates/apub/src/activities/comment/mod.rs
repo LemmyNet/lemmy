@@ -1,4 +1,4 @@
-use crate::{fetcher::person::get_or_fetch_and_upsert_person, ActorType};
+use crate::{fetcher::object_id::ObjectId, ActorType};
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},
@@ -26,14 +26,14 @@ use url::Url;
 pub mod create_or_update;
 
 async fn get_notif_recipients(
-  actor: &Url,
+  actor: &ObjectId<Person>,
   comment: &Comment,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let actor = actor.dereference(context, request_counter).await?;
 
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,
@@ -76,14 +76,17 @@ pub async fn collect_non_local_mentions(
   for mention in &mentions {
     // TODO should it be fetching it every time?
     if let Ok(actor_id) = fetch_webfinger_url(mention, context.client()).await {
+      let actor_id: ObjectId<Person> = ObjectId::new(actor_id);
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
 
-      let mention_person = get_or_fetch_and_upsert_person(&actor_id, context, &mut 0).await?;
+      let mention_person = actor_id.dereference(context, &mut 0).await?;
       inboxes.push(mention_person.get_shared_inbox_or_inbox_url());
 
       let mut mention_tag = Mention::new();
-      mention_tag.set_href(actor_id).set_name(mention.full_name());
+      mention_tag
+        .set_href(actor_id.into())
+        .set_name(mention.full_name());
       tags.push(mention_tag);
     }
   }

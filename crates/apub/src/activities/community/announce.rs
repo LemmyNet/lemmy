@@ -19,6 +19,7 @@ use crate::{
   },
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   http::is_activity_already_known,
   insert_activity,
   ActorType,
@@ -57,7 +58,7 @@ pub enum AnnouncableActivities {
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
-  actor: Url,
+  actor: ObjectId<Community>,
   to: [PublicUrl; 1],
   object: AnnouncableActivities,
   cc: Vec<Url>,
@@ -78,7 +79,7 @@ impl AnnounceActivity {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity {
-      actor: community.actor_id(),
+      actor: ObjectId::new(community.actor_id()),
       to: [PublicUrl::Public],
       object,
       cc: vec![community.followers_url()],

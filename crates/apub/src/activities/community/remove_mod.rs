@@ -10,7 +10,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
+  fetcher::object_id::ObjectId,
   generate_moderators_url,
   ActorType,
 };
@@ -35,10 +35,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
-  pub(in crate::activities) object: Url,
-  cc: [Url; 1],
+  pub(in crate::activities) object: ObjectId<Person>,
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
   // if target is set, this is means remove mod from community
@@ -59,13 +59,13 @@ impl RemoveMod {
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(RemoveType::Remove)?;
     let remove = RemoveMod {
-      actor: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: removed_mod.actor_id(),
+      object: ObjectId::new(removed_mod.actor_id()),
       target: Some(generate_moderators_url(&community.actor_id)?.into()),
       id: id.clone(),
       context: lemmy_context(),
-      cc: [community.actor_id()],
+      cc: [ObjectId::new(community.actor_id())],
       kind: RemoveType::Remove,
       unparsed: Default::default(),
     };
@@ -87,10 +87,10 @@ impl ActivityHandler for RemoveMod {
     if let Some(target) = &self.target {
       verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
       verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
-      verify_add_remove_moderator_target(target, self.cc[0].clone())?;
+      verify_add_remove_moderator_target(target, &self.cc[0])?;
     } else {
       verify_delete_activity(
-        &self.object,
+        self.object.inner(),
         self,
         &self.cc[0],
         true,
@@ -108,10 +108,8 @@ impl ActivityHandler for RemoveMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if self.target.is_some() {
-      let community =
-        get_or_fetch_and_upsert_community(&self.cc[0], context, request_counter).await?;
-      let remove_mod =
-        get_or_fetch_and_upsert_person(&self.object, context, request_counter).await?;
+      let community = self.cc[0].dereference(context, request_counter).await?;
+      let remove_mod = self.object.dereference(context, request_counter).await?;
 
       let form = CommunityModeratorForm {
         community_id: community.id,
@@ -124,7 +122,14 @@ impl ActivityHandler for RemoveMod {
       // TODO: send websocket notification about removed mod
       Ok(())
     } else {
-      receive_remove_action(&self.actor, &self.object, None, context, request_counter).await
+      receive_remove_action(
+        &self.actor,
+        self.object.inner(),
+        None,
+        context,
+        request_counter,
+      )
+      .await
     }
   }
 }

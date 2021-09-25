@@ -12,7 +12,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -49,6 +49,7 @@ use lemmy_websocket::{
   UserOperationCrud,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 
 /// This is very confusing, because there are four distinct cases to handle:
@@ -59,13 +60,14 @@ use url::Url;
 ///
 /// TODO: we should probably change how community deletions work to simplify this. Probably by
 /// wrapping it in an announce just like other activities, instead of having the community send it.
+#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   pub(in crate::activities::deletion) object: Url,
-  pub(in crate::activities::deletion) cc: [Url; 1],
+  pub(in crate::activities::deletion) cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
@@ -138,10 +140,10 @@ impl Delete {
     summary: Option<String>,
   ) -> Result<Delete, LemmyError> {
     Ok(Delete {
-      actor: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object: object_id,
-      cc: [community.actor_id()],
+      cc: [ObjectId::new(community.actor_id())],
       kind: DeleteType::Delete,
       summary,
       id: generate_activity_id(DeleteType::Delete)?,
@@ -165,13 +167,13 @@ impl Delete {
 }
 
 pub(in crate::activities) async fn receive_remove_action(
-  actor: &Url,
+  actor: &ObjectId<Person>,
   object: &Url,
   reason: Option<String>,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
+  let actor = actor.dereference(context, request_counter).await?;
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {

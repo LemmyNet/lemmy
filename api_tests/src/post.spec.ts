@@ -135,7 +135,8 @@ test('Update a post', async () => {
 test('Sticky a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
-  let stickiedPostRes = await stickyPost(alpha, true, postRes.post_view.post);
+  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let stickiedPostRes = await stickyPost(beta, true, betaPost1.post);
   expect(stickiedPostRes.post_view.post.stickied).toBe(true);
 
   // Make sure that post is stickied on beta
@@ -145,7 +146,7 @@ test('Sticky a post', async () => {
   expect(betaPost.post.stickied).toBe(true);
 
   // Unsticky a post
-  let unstickiedPost = await stickyPost(alpha, false, postRes.post_view.post);
+  let unstickiedPost = await stickyPost(beta, false, betaPost1.post);
   expect(unstickiedPost.post_view.post.stickied).toBe(false);
 
   // Make sure that post is unstickied on beta

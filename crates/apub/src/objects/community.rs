@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, signatures::PublicKey},
-  fetcher::community::fetch_community_mods,
+  fetcher::community::{fetch_community_outbox, update_community_mods},
   generate_moderators_url,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
   ActorType,
@@ -18,7 +18,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, DbPool};
+use lemmy_db_queries::{source::community::Community_, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
@@ -175,10 +175,14 @@ impl FromApub for Community {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
-    fetch_community_mods(context, group, request_counter).await?;
     let form = Group::from_apub_to_form(group, expected_domain).await?;
 
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
+    update_community_mods(group, &community, context, request_counter).await?;
+
+    // TODO: doing this unconditionally might cause infinite loop for some reason
+    fetch_community_outbox(context, &group.outbox, request_counter).await?;
+
     Ok(community)
   }
 }

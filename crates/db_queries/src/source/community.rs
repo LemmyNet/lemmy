@@ -1,4 +1,5 @@
 use crate::{ApubObject, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable};
+use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -93,22 +94,15 @@ impl Crud for Community {
 }
 
 impl ApubObject for Community {
-  type Form = CommunityForm;
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
   fn read_from_apub_id(conn: &PgConnection, for_actor_id: &DbUrl) -> Result<Self, Error> {
     use lemmy_db_schema::schema::community::dsl::*;
     community
       .filter(actor_id.eq(for_actor_id))
       .first::<Self>(conn)
-  }
-
-  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
-    insert_into(community)
-      .values(community_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(community_form)
-      .get_result::<Self>(conn)
   }
 }
 
@@ -129,6 +123,7 @@ pub trait Community_ {
     conn: &PgConnection,
     followers_url: &DbUrl,
   ) -> Result<Community, Error>;
+  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error>;
 }
 
 impl Community_ for Community {
@@ -175,6 +170,16 @@ impl Community_ for Community {
     community
       .filter(followers_url.eq(followers_url_))
       .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
+    use lemmy_db_schema::schema::community::dsl::*;
+    insert_into(community)
+      .values(community_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(community_form)
+      .get_result::<Self>(conn)
   }
 }
 

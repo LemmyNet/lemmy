@@ -2,6 +2,7 @@ use crate::{
   activities::{generate_activity_id, verify_activity, verify_person},
   activity_queue::send_activity_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -22,8 +23,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct DeletePrivateMessage {
-  actor: Url,
-  to: Url,
+  actor: ObjectId<Person>,
+  to: ObjectId<Person>,
   pub(in crate::activities::private_message) object: Url,
   #[serde(rename = "type")]
   kind: DeleteType,
@@ -40,8 +41,8 @@ impl DeletePrivateMessage {
     pm: &PrivateMessage,
   ) -> Result<DeletePrivateMessage, LemmyError> {
     Ok(DeletePrivateMessage {
-      actor: actor.actor_id(),
-      to: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
+      to: ObjectId::new(actor.actor_id()),
       object: pm.ap_id.clone().into(),
       kind: DeleteType::Delete,
       id: generate_activity_id(DeleteType::Delete)?,
@@ -74,7 +75,7 @@ impl ActivityHandler for DeletePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_activity(self)?;
     verify_person(&self.actor, context, request_counter).await?;
-    verify_domains_match(&self.actor, &self.object)?;
+    verify_domains_match(self.actor.inner(), &self.object)?;
     Ok(())
   }
 

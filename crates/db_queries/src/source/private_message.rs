@@ -1,4 +1,5 @@
 use crate::{ApubObject, Crud, DeleteableOrRemoveable};
+use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl, PersonId, PrivateMessageId};
 
@@ -30,7 +31,10 @@ impl Crud for PrivateMessage {
 }
 
 impl ApubObject for PrivateMessage {
-  type Form = PrivateMessageForm;
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
   where
     Self: Sized,
@@ -39,16 +43,6 @@ impl ApubObject for PrivateMessage {
     private_message
       .filter(ap_id.eq(object_id))
       .first::<Self>(conn)
-  }
-
-  fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
-    insert_into(private_message)
-      .values(private_message_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(private_message_form)
-      .get_result::<Self>(conn)
   }
 }
 
@@ -77,6 +71,10 @@ pub trait PrivateMessage_ {
     conn: &PgConnection,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error>;
+  fn upsert(
+    conn: &PgConnection,
+    private_message_form: &PrivateMessageForm,
+  ) -> Result<PrivateMessage, Error>;
 }
 
 impl PrivateMessage_ for PrivateMessage {
@@ -137,6 +135,19 @@ impl PrivateMessage_ for PrivateMessage {
     )
     .set(read.eq(true))
     .get_results::<Self>(conn)
+  }
+
+  fn upsert(
+    conn: &PgConnection,
+    private_message_form: &PrivateMessageForm,
+  ) -> Result<PrivateMessage, Error> {
+    use lemmy_db_schema::schema::private_message::dsl::*;
+    insert_into(private_message)
+      .values(private_message_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(private_message_form)
+      .get_result::<Self>(conn)
   }
 }
 

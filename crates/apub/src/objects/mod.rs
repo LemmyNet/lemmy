@@ -1,4 +1,3 @@
-use crate::fetcher::person::get_or_fetch_and_upsert_person;
 use activitystreams::{
   base::BaseExt,
   object::{kind::ImageType, Tombstone, TombstoneExt},
@@ -26,7 +25,7 @@ pub(crate) trait ToApub {
 }
 
 #[async_trait::async_trait(?Send)]
-pub(crate) trait FromApub {
+pub trait FromApub {
   type ApubType;
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///

@@ -1,7 +1,10 @@
-use crate::activities::{
-  community::remove_mod::RemoveMod,
-  deletion::{undo_delete::UndoDelete, verify_delete_activity},
-  verify_activity,
+use crate::{
+  activities::{
+    community::remove_mod::RemoveMod,
+    deletion::{undo_delete::UndoDelete, verify_delete_activity},
+    verify_activity,
+  },
+  fetcher::object_id::ObjectId,
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -10,6 +13,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -18,11 +22,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoRemovePostCommentOrCommunity {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   // Note, there is no such thing as Undo/Remove/Mod, so we ignore that
   object: RemoveMod,
-  cc: [Url; 1],
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -43,7 +47,7 @@ impl ActivityHandler for UndoRemovePostCommentOrCommunity {
     self.object.verify(context, request_counter).await?;
 
     verify_delete_activity(
-      &self.object.object,
+      self.object.object.inner(),
       self,
       &self.cc[0],
       true,
@@ -59,6 +63,6 @@ impl ActivityHandler for UndoRemovePostCommentOrCommunity {
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    UndoDelete::receive_undo_remove_action(&self.object.object, context).await
+    UndoDelete::receive_undo_remove_action(self.object.object.inner(), context).await
   }
 }

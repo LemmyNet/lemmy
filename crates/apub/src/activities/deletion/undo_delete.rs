@@ -13,6 +13,7 @@ use crate::{
   },
   activity_queue::send_to_community_new,
   extensions::context::lemmy_context,
+  fetcher::object_id::ObjectId,
   ActorType,
 };
 use activitystreams::{
@@ -38,10 +39,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDelete {
-  actor: Url,
+  actor: ObjectId<Person>,
   to: [PublicUrl; 1],
   object: Delete,
-  cc: [Url; 1],
+  cc: [ObjectId<Community>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -109,10 +110,10 @@ impl UndoDelete {
 
     let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoDelete {
-      actor: actor.actor_id(),
+      actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
       object,
-      cc: [community.actor_id()],
+      cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),

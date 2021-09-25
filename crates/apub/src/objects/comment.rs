@@ -1,13 +1,9 @@
 use crate::{
   activities::verify_person_in_community,
   extensions::context::lemmy_context,
-  fetcher::objects::{
-    get_or_fetch_and_insert_comment,
-    get_or_fetch_and_insert_post,
-    get_or_fetch_and_insert_post_or_comment,
-  },
+  fetcher::object_id::ObjectId,
   migrations::CommentInReplyToMigration,
-  objects::{create_tombstone, get_or_fetch_and_upsert_person, FromApub, Source, ToApub},
+  objects::{create_tombstone, FromApub, Source, ToApub},
   ActorType,
   PostOrComment,
 };
@@ -24,7 +20,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{source::comment::Comment_, Crud, DbPool};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentForm},
@@ -53,7 +49,7 @@ pub struct Note {
   context: OneOrMany<AnyBase>,
   r#type: NoteType,
   id: Url,
-  pub(crate) attributed_to: Url,
+  pub(crate) attributed_to: ObjectId<Person>,
   /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
   /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
   /// the post in [`in_reply_to`]).
@@ -86,23 +82,15 @@ impl Note {
       CommentInReplyToMigration::Old(in_reply_to) => {
         // This post, or the parent comment might not yet exist on this server yet, fetch them.
         let post_id = in_reply_to.get(0).context(location_info!())?;
-        let post = Box::pin(get_or_fetch_and_insert_post(
-          post_id,
-          context,
-          request_counter,
-        ))
-        .await?;
+        let post_id = ObjectId::new(post_id.clone());
+        let post = Box::pin(post_id.dereference(context, request_counter)).await?;
 
         // The 2nd item, if it exists, is the parent comment apub_id
         // Nested comments will automatically get fetched recursively
         let parent_id: Option<CommentId> = match in_reply_to.get(1) {
-          Some(parent_comment_uri) => {
-            let parent_comment = Box::pin(get_or_fetch_and_insert_comment(
-              parent_comment_uri,
-              context,
-              request_counter,
-            ))
-            .await?;
+          Some(comment_id) => {
+            let comment_id = ObjectId::<Comment>::new(comment_id.clone());
+            let parent_comment = Box::pin(comment_id.dereference(context, request_counter)).await?;
 
             Some(parent_comment.id)
           }
@@ -112,9 +100,7 @@ impl Note {
         Ok((post, parent_id))
       }
       CommentInReplyToMigration::New(in_reply_to) => {
-        let parent = Box::pin(
-          get_or_fetch_and_insert_post_or_comment(in_reply_to, context, request_counter).await?,
-        );
+        let parent = Box::pin(in_reply_to.dereference(context, request_counter).await?);
         match parent.deref() {
           PostOrComment::Post(p) => {
             // Workaround because I cant figure ut how to get the post out of the box (and we dont
@@ -148,10 +134,10 @@ impl Note {
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
-    verify_domains_match(&self.attributed_to, &self.id)?;
+    verify_domains_match(self.attributed_to.inner(), &self.id)?;
     verify_person_in_community(
       &self.attributed_to,
-      &community.actor_id(),
+      &ObjectId::new(community.actor_id()),
       context,
       request_counter,
     )
@@ -185,7 +171,7 @@ impl ToApub for Comment {
       context: lemmy_context(),
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
-      attributed_to: creator.actor_id.into_inner(),
+      attributed_to: ObjectId::new(creator.actor_id),
       to: PublicUrl::Public,
       content: self.content.clone(),
       media_type: MediaTypeHtml::Html,
@@ -226,9 +212,14 @@ impl FromApub for Comment {
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
     let ap_id = Some(note.id(expected_domain)?.clone().into());
-    let creator =
-      get_or_fetch_and_upsert_person(&note.attributed_to, context, request_counter).await?;
+    let creator = note
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    if post.locked {
+      return Err(anyhow!("Post is locked").into());
+    }
 
     let content = &note.source.content;
     let content_slurs_removed = remove_slurs(content);

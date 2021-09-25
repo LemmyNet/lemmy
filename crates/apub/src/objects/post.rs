@@ -1,7 +1,7 @@
 use crate::{
   activities::{extract_community, verify_person_in_community},
   extensions::context::lemmy_context,
-  fetcher::person::get_or_fetch_and_upsert_person,
+  fetcher::object_id::ObjectId,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
   ActorType,
 };
@@ -21,7 +21,7 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify_domains_match,
 };
-use lemmy_db_queries::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, DbPool};
 use lemmy_db_schema::{
   self,
   source::{
@@ -48,7 +48,7 @@ pub struct Page {
   context: OneOrMany<AnyBase>,
   r#type: PageType,
   id: Url,
-  pub(crate) attributed_to: Url,
+  pub(crate) attributed_to: ObjectId<Person>,
   to: [Url; 2],
   name: String,
   content: Option<String>,
@@ -101,10 +101,10 @@ impl Page {
     let community = extract_community(&self.to, context, request_counter).await?;
 
     check_slurs(&self.name)?;
-    verify_domains_match(&self.attributed_to, &self.id)?;
+    verify_domains_match(self.attributed_to.inner(), &self.id)?;
     verify_person_in_community(
       &self.attributed_to,
-      &community.actor_id(),
+      &ObjectId::new(community.actor_id()),
       context,
       request_counter,
     )
@@ -137,7 +137,7 @@ impl ToApub for Post {
       context: lemmy_context(),
       r#type: PageType::Page,
       id: self.ap_id.clone().into(),
-      attributed_to: creator.actor_id.into(),
+      attributed_to: ObjectId::new(creator.actor_id),
       to: [community.actor_id.into(), public()],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
@@ -183,8 +183,10 @@ impl FromApub for Post {
       page.id(expected_domain)?
     };
     let ap_id = Some(ap_id.clone().into());
-    let creator =
-      get_or_fetch_and_upsert_person(&page.attributed_to, context, request_counter).await?;
+    let creator = page
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
     let community = extract_community(&page.to, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
