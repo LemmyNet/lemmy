@@ -82,13 +82,7 @@ pub async fn collect_non_local_mentions(
 
   for mention in &mentions {
     // TODO should it be fetching it every time?
-    if let Ok(actor_id) = fetch_webfinger_url(
-      mention,
-      context.client(),
-      context.settings().get_protocol_string(),
-    )
-    .await
-    {
+    if let Ok(actor_id) = fetch_webfinger_url(mention, context).await {
       let actor_id: ObjectId<Person> = ObjectId::new(actor_id);
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
