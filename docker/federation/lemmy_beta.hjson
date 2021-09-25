@@ -2,7 +2,6 @@
   hostname: lemmy-beta:8551
   port: 8551
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_beta
     admin_password: lemmylemmy

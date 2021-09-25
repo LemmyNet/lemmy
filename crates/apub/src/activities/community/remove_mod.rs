@@ -57,7 +57,10 @@ impl RemoveMod {
     actor: &Person,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let id = generate_activity_id(RemoveType::Remove)?;
+    let id = generate_activity_id(
+      RemoveType::Remove,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let remove = RemoveMod {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
@@ -83,7 +86,7 @@ impl ActivityHandler for RemoveMod {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     if let Some(target) = &self.target {
       verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
       verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;

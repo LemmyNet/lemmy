@@ -49,13 +49,16 @@ impl UndoFollowCommunity {
     community: &Community,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let object = FollowCommunity::new(actor, community)?;
+    let object = FollowCommunity::new(actor, community, context)?;
     let undo = UndoFollowCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: ObjectId::new(community.actor_id()),
       object,
       kind: UndoType::Undo,
-      id: generate_activity_id(UndoType::Undo)?,
+      id: generate_activity_id(
+        UndoType::Undo,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     };
@@ -71,7 +74,7 @@ impl ActivityHandler for UndoFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_urls_match(self.to.inner(), self.object.object.inner())?;
     verify_urls_match(self.actor(), self.object.actor())?;
     verify_person(&self.actor, context, request_counter).await?;

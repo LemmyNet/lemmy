@@ -1,7 +1,6 @@
 use anyhow::anyhow;
 use lemmy_utils::{
   request::{retry, RecvError},
-  settings::structs::Settings,
   LemmyError,
 };
 use log::debug;
@@ -38,6 +37,7 @@ pub async fn webfinger_resolve_actor(
   domain: &str,
   webfinger_type: WebfingerType,
   client: &Client,
+  protocol_string: &str,
 ) -> Result<Url, LemmyError> {
   let webfinger_type = match webfinger_type {
     WebfingerType::Person => "acct",
@@ -45,11 +45,7 @@ pub async fn webfinger_resolve_actor(
   };
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource={}:{}@{}",
-    Settings::get().get_protocol_string(),
-    domain,
-    webfinger_type,
-    name,
-    domain
+    protocol_string, domain, webfinger_type, name, domain
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 

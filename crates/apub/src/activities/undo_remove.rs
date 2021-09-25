@@ -43,7 +43,7 @@ impl ActivityHandler for UndoRemovePostCommentOrCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     self.object.verify(context, request_counter).await?;
 
     verify_delete_activity(

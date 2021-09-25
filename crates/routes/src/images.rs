@@ -2,7 +2,8 @@ use actix_http::http::header::ACCEPT_ENCODING;
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use anyhow::anyhow;
 use awc::Client;
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, settings::structs::Settings, LemmyError};
+use lemmy_utils::{claims::Claims, rate_limit::RateLimit, LemmyError};
+use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -46,17 +47,21 @@ async fn upload(
   req: HttpRequest,
   body: web::Payload,
   client: web::Data<Client>,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
   let jwt = req
     .cookie("jwt")
     .expect("No auth header for picture upload");
 
-  if Claims::decode(jwt.value()).is_err() {
+  if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
-  let mut client_req = client.request_from(format!("{}/image", pictrs_url()?), req.head());
+  let mut client_req = client.request_from(
+    format!("{}/image", pictrs_url(context.settings().pictrs_url)?),
+    req.head(),
+  );
   // remove content-encoding header so that pictrs doesnt send gzipped response
   client_req.headers_mut().remove(ACCEPT_ENCODING);
 
@@ -79,17 +84,28 @@ async fn full_res(
   web::Query(params): web::Query<PictrsParams>,
   req: HttpRequest,
   client: web::Data<Client>,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
+  let pictrs_url_settings = context.settings().pictrs_url;
   let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}/image/original/{}", pictrs_url()?, name,)
+    format!(
+      "{}/image/original/{}",
+      pictrs_url(pictrs_url_settings)?,
+      name,
+    )
   } else {
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
-    let mut url = format!("{}/image/process.{}?src={}", pictrs_url()?, format, name,);
+    let mut url = format!(
+      "{}/image/process.{}?src={}",
+      pictrs_url(pictrs_url_settings)?,
+      format,
+      name,
+    );
 
     if let Some(size) = params.thumbnail {
       url = format!("{}&thumbnail={}", url, size,);
@@ -135,10 +151,16 @@ async fn delete(
   components: web::Path<(String, String)>,
   req: HttpRequest,
   client: web::Data<Client>,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
 
-  let url = format!("{}/image/delete/{}/{}", pictrs_url()?, &token, &file);
+  let url = format!(
+    "{}/image/delete/{}/{}",
+    pictrs_url(context.settings().pictrs_url)?,
+    &token,
+    &file
+  );
 
   let mut client_req = client.request_from(url, req.head());
   client_req.headers_mut().remove(ACCEPT_ENCODING);
@@ -156,8 +178,6 @@ async fn delete(
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res)))
 }
 
-fn pictrs_url() -> Result<String, LemmyError> {
-  Settings::get()
-    .pictrs_url
-    .ok_or_else(|| anyhow!("images_disabled").into())
+fn pictrs_url(pictrs_url: Option<String>) -> Result<String, LemmyError> {
+  pictrs_url.ok_or_else(|| anyhow!("images_disabled").into())
 }

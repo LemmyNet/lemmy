@@ -31,9 +31,11 @@ impl PerformCrud for CreatePrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &CreatePrivateMessage = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let content_slurs_removed = remove_slurs(&data.content.to_owned());
+    let content_slurs_removed =
+      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
@@ -56,12 +58,14 @@ impl PerformCrud for CreatePrivateMessage {
     };
 
     let inserted_private_message_id = inserted_private_message.id;
+    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let updated_private_message = blocking(
       context.pool(),
       move |conn| -> Result<PrivateMessage, LemmyError> {
         let apub_id = generate_apub_endpoint(
           EndpointType::PrivateMessage,
           &inserted_private_message_id.to_string(),
+          &protocol_and_hostname,
         )?;
         Ok(PrivateMessage::update_ap_id(
           conn,
@@ -101,6 +105,7 @@ impl PerformCrud for CreatePrivateMessage {
         "Private Message from",
         "Private Message",
         &content_slurs_removed,
+        &context.settings(),
       );
     }
 

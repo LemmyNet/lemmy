@@ -120,9 +120,10 @@ pub(crate) struct PictrsFile {
 
 pub(crate) async fn fetch_pictrs(
   client: &Client,
+  settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
-  if let Some(pictrs_url) = Settings::get().pictrs_url {
+  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
     is_image_content_type(client, image_url).await?;
 
     let fetch_url = format!(
@@ -152,6 +153,7 @@ pub(crate) async fn fetch_pictrs(
 /// Returns the SiteMetadata, and a Pictrs URL, if there is a picture associated
 pub async fn fetch_site_data(
   client: &Client,
+  settings: &Settings,
   url: Option<&Url>,
 ) -> (Option<SiteMetadata>, Option<Url>) {
   match &url {
@@ -166,16 +168,16 @@ pub async fn fetch_site_data(
         Some(metadata_res) => match &metadata_res.image {
           // Metadata, with image
           // Try to generate a small thumbnail if there's a full sized one from post-links
-          Some(metadata_image) => fetch_pictrs(client, metadata_image)
+          Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
             .await
             .map(|r| r.files[0].file.to_owned()),
           // Metadata, but no image
-          None => fetch_pictrs(client, url)
+          None => fetch_pictrs(client, settings, url)
             .await
             .map(|r| r.files[0].file.to_owned()),
         },
         // No metadata, try to fetch the URL as an image
-        None => fetch_pictrs(client, url)
+        None => fetch_pictrs(client, settings, url)
           .await
           .map(|r| r.files[0].file.to_owned()),
       };
@@ -185,7 +187,7 @@ pub async fn fetch_site_data(
         .map(|p| {
           Url::parse(&format!(
             "{}/pictrs/image/{}",
-            Settings::get().get_protocol_and_hostname(),
+            settings.get_protocol_and_hostname(),
             p
           ))
           .ok()

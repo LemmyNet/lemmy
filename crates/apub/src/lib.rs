@@ -37,8 +37,8 @@ static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 pub(crate) fn check_is_apub_id_valid(
   apub_id: &Url,
   use_strict_allowlist: bool,
+  settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let settings = Settings::get();
   let domain = apub_id.domain().context(location_info!())?.to_string();
   let local_instance = settings.get_hostname_without_port()?;
 
@@ -62,22 +62,22 @@ pub(crate) fn check_is_apub_id_valid(
     return Err(anyhow!("invalid hostname {}: {}", host, apub_id).into());
   }
 
-  if apub_id.scheme() != Settings::get().get_protocol_string() {
+  if apub_id.scheme() != settings.get_protocol_string() {
     return Err(anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id).into());
   }
 
   // TODO: might be good to put the part above in one method, and below in another
   //       (which only gets called in apub::objects)
   //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
-  if let Some(blocked) = Settings::get().federation.blocked_instances {
+  if let Some(blocked) = settings.to_owned().federation.blocked_instances {
     if blocked.contains(&domain) {
       return Err(anyhow!("{} is in federation blocklist", domain).into());
     }
   }
 
-  if let Some(mut allowed) = Settings::get().federation.allowed_instances {
+  if let Some(mut allowed) = settings.to_owned().federation.allowed_instances {
     // Only check allowlist if this is a community, or strict allowlist is enabled.
-    let strict_allowlist = Settings::get().federation.strict_allowlist;
+    let strict_allowlist = settings.to_owned().federation.strict_allowlist;
     if use_strict_allowlist || strict_allowlist {
       // need to allow this explicitly because apub receive might contain objects from our local
       // instance.
@@ -128,7 +128,11 @@ trait ActorType {
 #[async_trait::async_trait(?Send)]
 pub trait CommunityType {
   fn followers_url(&self) -> Url;
-  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
+  async fn get_follower_inboxes(
+    &self,
+    pool: &DbPool,
+    settings: &Settings,
+  ) -> Result<Vec<Url>, LemmyError>;
 }
 
 pub enum EndpointType {
@@ -160,12 +164,9 @@ fn generate_apub_endpoint_for_domain(
 pub fn generate_apub_endpoint(
   endpoint_type: EndpointType,
   name: &str,
+  protocol_and_hostname: &str,
 ) -> Result<DbUrl, ParseError> {
-  generate_apub_endpoint_for_domain(
-    endpoint_type,
-    name,
-    &Settings::get().get_protocol_and_hostname(),
-  )
+  generate_apub_endpoint_for_domain(endpoint_type, name, protocol_and_hostname)
 }
 
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
@@ -200,6 +201,7 @@ fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
 pub fn build_actor_id_from_shortname(
   endpoint_type: EndpointType,
   short_name: &str,
+  settings: &Settings,
 ) -> Result<DbUrl, ParseError> {
   let split = short_name.split('@').collect::<Vec<&str>>();
 
@@ -207,9 +209,9 @@ pub fn build_actor_id_from_shortname(
 
   // If there's no @, its local
   let domain = if split.len() == 1 {
-    Settings::get().get_protocol_and_hostname()
+    settings.get_protocol_and_hostname()
   } else {
-    format!("{}://{}", Settings::get().get_protocol_string(), split[1])
+    format!("{}://{}", settings.get_protocol_string(), split[1])
   };
 
   generate_apub_endpoint_for_domain(endpoint_type, name, &domain)

@@ -27,14 +27,16 @@ impl PerformCrud for GetCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
     let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = match data.id {
       Some(id) => id,
       None => {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
-        let community_actor_id = build_actor_id_from_shortname(EndpointType::Community, &name)?;
+        let community_actor_id =
+          build_actor_id_from_shortname(EndpointType::Community, &name, &context.settings())?;
 
         blocking(context.pool(), move |conn| {
           Community::read_from_apub_id(conn, &community_actor_id)
@@ -89,7 +91,8 @@ impl PerformCrud for ListCommunities {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);
 

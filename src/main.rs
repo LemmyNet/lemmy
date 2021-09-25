@@ -11,7 +11,8 @@ use lemmy_api::match_websocket_operation;
 use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub::activity_queue::create_activity_queue;
-use lemmy_db_queries::get_database_url_from_env;
+use lemmy_db_queries::{get_database_url_from_env, source::secret::Secret_};
+use lemmy_db_schema::source::secret::Secret;
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_utils::{
@@ -29,7 +30,7 @@ embed_migrations!();
 #[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
   env_logger::init();
-  let settings = Settings::get();
+  let settings = Settings::init().expect("Couldn't initialize settings.");
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {
@@ -43,9 +44,10 @@ async fn main() -> Result<(), LemmyError> {
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 
   // Run the migrations from code
+  let protocol_and_hostname = settings.get_protocol_and_hostname();
   blocking(&pool, move |conn| {
     embedded_migrations::run(conn)?;
-    run_advanced_migrations(conn)?;
+    run_advanced_migrations(conn, &protocol_and_hostname)?;
     Ok(()) as Result<(), LemmyError>
   })
   .await??;
@@ -58,7 +60,12 @@ async fn main() -> Result<(), LemmyError> {
   // Set up the rate limiter
   let rate_limiter = RateLimit {
     rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
+    rate_limit_config: settings.rate_limit.to_owned().unwrap_or_default(),
   };
+
+  // Initialize the secrets
+  let conn = pool.get()?;
+  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
 
   println!(
     "Starting http server at {}:{}",
@@ -74,16 +81,21 @@ async fn main() -> Result<(), LemmyError> {
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     Client::default(),
     activity_queue.clone(),
+    settings.clone(),
+    secret.clone(),
   )
   .start();
 
   // Create Http server with websocket support
+  let settings_bind = settings.clone();
   HttpServer::new(move || {
     let context = LemmyContext::create(
       pool.clone(),
       chat_server.to_owned(),
       Client::default(),
       activity_queue.to_owned(),
+      settings.to_owned(),
+      secret.to_owned(),
     );
     let rate_limiter = rate_limiter.clone();
     App::new()
@@ -91,13 +103,13 @@ async fn main() -> Result<(), LemmyError> {
       .app_data(Data::new(context))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
-      .configure(lemmy_apub::http::routes::config)
+      .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
       .configure(|cfg| images::config(cfg, &rate_limiter))
       .configure(nodeinfo::config)
-      .configure(webfinger::config)
+      .configure(|cfg| webfinger::config(cfg, &settings))
   })
-  .bind((settings.bind, settings.port))?
+  .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
 

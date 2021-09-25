@@ -21,7 +21,8 @@ impl PerformCrud for DeleteCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &DeleteCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Fetch the community mods
     let community_id = data.community_id;
@@ -75,7 +76,8 @@ impl PerformCrud for RemoveCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &RemoveCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Verify its an admin (only an admin can remove a community)
     is_admin(&local_user_view)?;

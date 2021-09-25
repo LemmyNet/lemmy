@@ -15,7 +15,7 @@ use lemmy_db_views_actor::{
   person_block_view::PersonBlockView,
   person_view::PersonViewSafe,
 };
-use lemmy_utils::{settings::structs::Settings, version, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{version, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 use log::info;
 
@@ -34,7 +34,7 @@ impl PerformCrud for GetSite {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
-        if let Some(setup) = Settings::get().setup.as_ref() {
+        if let Some(setup) = context.settings().setup.as_ref() {
           let register = Register {
             username: setup.admin_username.to_owned(),
             email: setup.admin_email.to_owned(),
@@ -91,7 +91,8 @@ impl PerformCrud for GetSite {
 
     // Build the local user
     let my_user = if let Some(local_user_view) =
-      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool()).await?
+      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool(), context.secret())
+        .await?
     {
       let person_id = local_user_view.person.id;
       let follows = blocking(context.pool(), move |conn| {
@@ -131,7 +132,12 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances = build_federated_instances(context.pool()).await?;
+    let federated_instances = build_federated_instances(
+      context.pool(),
+      &context.settings().federation,
+      &context.settings().hostname,
+    )
+    .await?;
 
     Ok(GetSiteResponse {
       site_view,

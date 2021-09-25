@@ -57,7 +57,10 @@ impl CreateOrUpdateComment {
     })
     .await??;
 
-    let id = generate_activity_id(kind.clone())?;
+    let id = generate_activity_id(
+      kind.clone(),
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let maa = collect_non_local_mentions(comment, &community, context).await?;
 
     let create_or_update = CreateOrUpdateComment {
@@ -87,7 +90,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     let community = extract_community(&self.cc, context, request_counter).await?;
     let community_id = ObjectId::new(community.actor_id());
 
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     // TODO: should add a check that the correct community is in cc (probably needs changes to

@@ -77,6 +77,7 @@ impl Vote {
     actor: &Person,
     community: &Community,
     kind: VoteType,
+    context: &LemmyContext,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: ObjectId::new(actor.actor_id()),
@@ -84,7 +85,7 @@ impl Vote {
       object: ObjectId::new(object.ap_id()),
       cc: [ObjectId::new(community.actor_id())],
       kind: kind.clone(),
-      id: generate_activity_id(kind)?,
+      id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
       context: lemmy_context(),
       unparsed: Default::default(),
     })
@@ -101,7 +102,7 @@ impl Vote {
       Community::read(conn, community_id)
     })
     .await??;
-    let vote = Vote::new(object, actor, &community, kind)?;
+    let vote = Vote::new(object, actor, &community, kind, context)?;
     let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
@@ -116,7 +117,7 @@ impl ActivityHandler for Vote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }

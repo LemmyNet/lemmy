@@ -2,7 +2,6 @@
   hostname: lemmy-gamma:8561
   port: 8561
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_gamma
     admin_password: lemmylemmy

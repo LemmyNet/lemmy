@@ -1,22 +1,13 @@
-use crate::{settings::structs::Settings, ApiError, IpAddr};
+use crate::{ApiError, IpAddr};
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use regex::{Regex, RegexBuilder};
+use regex::Regex;
 use url::Url;
 
 lazy_static! {
   static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").expect("compile regex");
-  static ref SLUR_REGEX: Regex = {
-    let mut slurs = r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)".to_string();
-    if let Some(additional_slurs) = Settings::get().additional_slurs {
-        slurs.push('|');
-        slurs.push_str(&additional_slurs);
-    };
-    RegexBuilder::new(&slurs).case_insensitive(true).build().expect("compile regex")
-  };
-
 
   static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").expect("compile regex");
   // TODO keep this old one, it didn't work with port well tho
@@ -37,12 +28,12 @@ pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
   DateTime::<FixedOffset>::from_utc(datetime, FixedOffset::east(0))
 }
 
-pub fn remove_slurs(test: &str) -> String {
-  SLUR_REGEX.replace_all(test, "*removed*").to_string()
+pub fn remove_slurs(test: &str, slur_regex: &Regex) -> String {
+  slur_regex.replace_all(test, "*removed*").to_string()
 }
 
-pub(crate) fn slur_check(test: &str) -> Result<(), Vec<&str>> {
-  let mut matches: Vec<&str> = SLUR_REGEX.find_iter(test).map(|mat| mat.as_str()).collect();
+pub(crate) fn slur_check<'a>(test: &'a str, slur_regex: &'a Regex) -> Result<(), Vec<&'a str>> {
+  let mut matches: Vec<&str> = slur_regex.find_iter(test).map(|mat| mat.as_str()).collect();
 
   // Unique
   matches.sort_unstable();
@@ -55,17 +46,17 @@ pub(crate) fn slur_check(test: &str) -> Result<(), Vec<&str>> {
   }
 }
 
-pub fn check_slurs(text: &str) -> Result<(), ApiError> {
-  if let Err(slurs) = slur_check(text) {
+pub fn check_slurs(text: &str, slur_regex: &Regex) -> Result<(), ApiError> {
+  if let Err(slurs) = slur_check(text, slur_regex) {
     Err(ApiError::err(&slurs_vec_to_str(slurs)))
   } else {
     Ok(())
   }
 }
 
-pub fn check_slurs_opt(text: &Option<String>) -> Result<(), ApiError> {
+pub fn check_slurs_opt(text: &Option<String>, slur_regex: &Regex) -> Result<(), ApiError> {
   match text {
-    Some(t) => check_slurs(t),
+    Some(t) => check_slurs(t, slur_regex),
     None => Ok(()),
   }
 }
@@ -96,8 +87,8 @@ pub struct MentionData {
 }
 
 impl MentionData {
-  pub fn is_local(&self) -> bool {
-    Settings::get().hostname.eq(&self.domain)
+  pub fn is_local(&self, hostname: &str) -> bool {
+    hostname.eq(&self.domain)
   }
   pub fn full_name(&self) -> String {
     format!("@{}@{}", &self.name, &self.domain)
@@ -115,17 +106,16 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
-pub fn is_valid_actor_name(name: &str) -> bool {
-  name.chars().count() <= Settings::get().actor_name_max_length
-    && VALID_ACTOR_NAME_REGEX.is_match(name)
+pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> bool {
+  name.chars().count() <= actor_name_max_length && VALID_ACTOR_NAME_REGEX.is_match(name)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str) -> bool {
+pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> bool {
   !name.starts_with('@')
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
-    && name.chars().count() <= Settings::get().actor_name_max_length
+    && name.chars().count() <= actor_name_max_length
 }
 
 pub fn is_valid_matrix_id(matrix_id: &str) -> bool {

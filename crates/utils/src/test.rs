@@ -1,12 +1,15 @@
-use crate::utils::{
-  is_valid_actor_name,
-  is_valid_display_name,
-  is_valid_matrix_id,
-  is_valid_post_title,
-  remove_slurs,
-  scrape_text_for_mentions,
-  slur_check,
-  slurs_vec_to_str,
+use crate::{
+  settings::structs::Settings,
+  utils::{
+    is_valid_actor_name,
+    is_valid_display_name,
+    is_valid_matrix_id,
+    is_valid_post_title,
+    remove_slurs,
+    scrape_text_for_mentions,
+    slur_check,
+    slurs_vec_to_str,
+  },
 };
 
 #[test]
@@ -21,23 +24,28 @@ fn test_mentions_regex() {
 
 #[test]
 fn test_valid_actor_name() {
-  assert!(is_valid_actor_name("Hello_98"));
-  assert!(is_valid_actor_name("ten"));
-  assert!(!is_valid_actor_name("Hello-98"));
-  assert!(!is_valid_actor_name("a"));
-  assert!(!is_valid_actor_name(""));
+  let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
+  assert!(is_valid_actor_name("Hello_98", actor_name_max_length));
+  assert!(is_valid_actor_name("ten", actor_name_max_length));
+  assert!(!is_valid_actor_name("Hello-98", actor_name_max_length));
+  assert!(!is_valid_actor_name("a", actor_name_max_length));
+  assert!(!is_valid_actor_name("", actor_name_max_length));
 }
 
 #[test]
 fn test_valid_display_name() {
-  assert!(is_valid_display_name("hello @there"));
-  assert!(!is_valid_display_name("@hello there"));
+  let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
+  assert!(is_valid_display_name("hello @there", actor_name_max_length));
+  assert!(!is_valid_display_name(
+    "@hello there",
+    actor_name_max_length
+  ));
 
   // Make sure zero-space with an @ doesn't work
-  assert!(!is_valid_display_name(&format!(
-    "{}@my name is",
-    '\u{200b}'
-  )));
+  assert!(!is_valid_display_name(
+    &format!("{}@my name is", '\u{200b}'),
+    actor_name_max_length
+  ));
 }
 
 #[test]
@@ -57,11 +65,12 @@ fn test_valid_matrix_id() {
 
 #[test]
 fn test_slur_filter() {
+  let slur_regex = Settings::init().unwrap().slur_regex();
   let test =
       "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
   let slur_free = "No slurs here";
   assert_eq!(
-      remove_slurs(test),
+      remove_slurs(test, &slur_regex),
       "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
         .to_string()
     );
@@ -76,9 +85,9 @@ fn test_slur_filter() {
   ];
   let has_slurs_err_str = "No slurs - Niggerz, cocksucker, faggot, kike, retardeds, tranny";
 
-  assert_eq!(slur_check(test), Err(has_slurs_vec));
-  assert_eq!(slur_check(slur_free), Ok(()));
-  if let Err(slur_vec) = slur_check(test) {
+  assert_eq!(slur_check(test, &slur_regex), Err(has_slurs_vec));
+  assert_eq!(slur_check(slur_free, &slur_regex), Ok(()));
+  if let Err(slur_vec) = slur_check(test, &slur_regex) {
     assert_eq!(&slurs_vec_to_str(slur_vec), has_slurs_err_str);
   }
 }

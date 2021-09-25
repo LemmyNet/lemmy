@@ -2,7 +2,6 @@
   hostname: lemmy-alpha:8541
   port: 8541
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_alpha
     admin_password: lemmylemmy

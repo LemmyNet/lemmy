@@ -1,6 +1,7 @@
 use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
+use regex::{Regex, RegexBuilder};
 use std::{env, fs, io::Error, sync::RwLock};
 
 pub mod structs;
@@ -17,13 +18,24 @@ impl Settings {
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
-  fn init() -> Result<Self, LemmyError> {
+  /// Warning: Only call this once.
+  pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
-    let config = from_str::<Settings>(&Self::read_config_file()?)?;
+    let mut config = from_str::<Settings>(&Self::read_config_file()?)?;
 
     if config.hostname == "unset" {
       return Err(anyhow!("Hostname variable is not set!").into());
     }
+
+    // Initialize the regexes
+    config.webfinger_community_regex = Some(
+      Regex::new(&format!("^group:([a-z0-9_]{{3,}})@{}$", config.hostname))
+        .expect("compile webfinger regex"),
+    );
+    config.webfinger_username_regex = Some(
+      Regex::new(&format!("^acct:([a-z0-9_]{{3,}})@{}$", config.hostname))
+        .expect("compile webfinger regex"),
+    );
 
     Ok(config)
   }
@@ -91,5 +103,31 @@ impl Settings {
     };
 
     Ok(Self::read_config_file()?)
+  }
+
+  pub fn webfinger_community_regex(&self) -> Regex {
+    self
+      .webfinger_community_regex
+      .to_owned()
+      .expect("compile webfinger regex")
+  }
+
+  pub fn webfinger_username_regex(&self) -> Regex {
+    self
+      .webfinger_username_regex
+      .to_owned()
+      .expect("compile webfinger regex")
+  }
+
+  pub fn slur_regex(&self) -> Regex {
+    let mut slurs = r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)".to_string();
+    if let Some(additional_slurs) = &self.additional_slurs {
+      slurs.push('|');
+      slurs.push_str(additional_slurs);
+    };
+    RegexBuilder::new(&slurs)
+      .case_insensitive(true)
+      .build()
+      .expect("compile regex")
   }
 }

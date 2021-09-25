@@ -4,7 +4,7 @@ use lemmy_api_common::blocking;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
-use lemmy_utils::LemmyError;
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use url::Url;
 
 impl ActorType for Community {
@@ -40,7 +40,11 @@ impl CommunityType for Community {
   }
 
   /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+  async fn get_follower_inboxes(
+    &self,
+    pool: &DbPool,
+    settings: &Settings,
+  ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
     let follows = blocking(pool, move |conn| {
@@ -54,7 +58,7 @@ impl CommunityType for Community {
       .map(|i| i.into_inner())
       .unique()
       // Don't send to blocked instances
-      .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
+      .filter(|inbox| check_is_apub_id_valid(inbox, false, settings).is_ok())
       .collect();
 
     Ok(inboxes)

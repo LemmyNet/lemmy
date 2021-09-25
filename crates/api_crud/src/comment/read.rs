@@ -17,7 +17,8 @@ impl PerformCrud for GetComments {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = self;
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
 
     let show_bot_accounts = local_user_view
       .as_ref()
@@ -31,7 +32,7 @@ impl PerformCrud for GetComments {
     let community_actor_id = data
       .community_name
       .as_ref()
-      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t).ok())
+      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, &context.settings()).ok())
       .unwrap_or(None);
     let saved_only = data.saved_only;
     let page = data.page;

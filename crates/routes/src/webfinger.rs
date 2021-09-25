@@ -4,12 +4,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::webfinger::{WebfingerLink, WebfingerResponse};
 use lemmy_db_queries::source::{community::Community_, person::Person_};
 use lemmy_db_schema::source::{community::Community, person::Person};
-use lemmy_utils::{
-  settings::structs::Settings,
-  LemmyError,
-  WEBFINGER_COMMUNITY_REGEX,
-  WEBFINGER_USERNAME_REGEX,
-};
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
@@ -18,8 +13,8 @@ struct Params {
   resource: String,
 }
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation.enabled {
+pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
+  if settings.federation.enabled {
     cfg.route(
       ".well-known/webfinger",
       web::get().to(get_webfinger_response),
@@ -37,12 +32,16 @@ async fn get_webfinger_response(
   info: Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let community_regex_parsed = WEBFINGER_COMMUNITY_REGEX
+  let community_regex_parsed = context
+    .settings()
+    .webfinger_community_regex()
     .captures(&info.resource)
     .map(|c| c.get(1))
     .flatten();
 
-  let username_regex_parsed = WEBFINGER_USERNAME_REGEX
+  let username_regex_parsed = context
+    .settings()
+    .webfinger_username_regex()
     .captures(&info.resource)
     .map(|c| c.get(1))
     .flatten();

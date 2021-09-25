@@ -17,7 +17,8 @@ impl Perform for UserJoin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<UserJoinResponse, LemmyError> {
     let data: &UserJoin = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     if let Some(ws_id) = websocket_id {
       context.chat_server().do_send(JoinUserRoom {

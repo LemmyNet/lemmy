@@ -18,9 +18,10 @@ pub fn send_email(
   to_email: &str,
   to_username: &str,
   html: &str,
+  settings: &Settings,
 ) -> Result<(), String> {
-  let email_config = Settings::get().email.ok_or("no_email_setup")?;
-  let domain = Settings::get().hostname;
+  let email_config = settings.email.to_owned().ok_or("no_email_setup")?;
+  let domain = settings.hostname.to_owned();
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();

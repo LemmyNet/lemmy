@@ -25,7 +25,8 @@ impl PerformCrud for DeleteComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &DeleteComment = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -76,6 +77,7 @@ impl PerformCrud for DeleteComment {
       post,
       context.pool(),
       false,
+      &context.settings(),
     )
     .await?;
 
@@ -102,7 +104,8 @@ impl PerformCrud for RemoveComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &RemoveComment = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -169,6 +172,7 @@ impl PerformCrud for RemoveComment {
       post,
       context.pool(),
       false,
+      &context.settings(),
     )
     .await?;
 

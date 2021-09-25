@@ -2,7 +2,7 @@ use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_db_views::site_view::SiteView;
-use lemmy_utils::{settings::structs::Settings, version, LemmyError};
+use lemmy_utils::{version, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -13,13 +13,15 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
 }
 
-async fn node_info_well_known() -> Result<HttpResponse<Body>, LemmyError> {
+async fn node_info_well_known(
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse<Body>, LemmyError> {
   let node_info = NodeInfoWellKnown {
     links: NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
       href: Url::parse(&format!(
         "{}/nodeinfo/2.0.json",
-        Settings::get().get_protocol_and_hostname()
+        &context.settings().get_protocol_and_hostname(),
       ))?,
     },
   };
@@ -31,7 +33,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
-  let protocols = if Settings::get().federation.enabled {
+  let protocols = if context.settings().federation.enabled {
     vec!["activitypub".to_string()]
   } else {
     vec![]

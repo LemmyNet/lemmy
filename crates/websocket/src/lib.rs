@@ -5,7 +5,8 @@ use crate::chat_server::ChatServer;
 use actix::Addr;
 use background_jobs::QueueHandle;
 use lemmy_db_queries::DbPool;
-use lemmy_utils::LemmyError;
+use lemmy_db_schema::source::secret::Secret;
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use reqwest::Client;
 use serde::Serialize;
 
@@ -20,6 +21,8 @@ pub struct LemmyContext {
   pub chat_server: Addr<ChatServer>,
   pub client: Client,
   pub activity_queue: QueueHandle,
+  pub settings: Settings,
+  pub secret: Secret,
 }
 
 impl LemmyContext {
@@ -28,12 +31,16 @@ impl LemmyContext {
     chat_server: Addr<ChatServer>,
     client: Client,
     activity_queue: QueueHandle,
+    settings: Settings,
+    secret: Secret,
   ) -> LemmyContext {
     LemmyContext {
       pool,
       chat_server,
       client,
       activity_queue,
+      settings,
+      secret,
     }
   }
   pub fn pool(&self) -> &DbPool {
@@ -48,6 +55,13 @@ impl LemmyContext {
   pub fn activity_queue(&self) -> &QueueHandle {
     &self.activity_queue
   }
+  pub fn settings(&self) -> Settings {
+    // TODO hacky solution to be able to hotload the settings.
+    Settings::get()
+  }
+  pub fn secret(&self) -> &Secret {
+    &self.secret
+  }
 }
 
 impl Clone for LemmyContext {
@@ -57,6 +71,8 @@ impl Clone for LemmyContext {
       chat_server: self.chat_server.clone(),
       client: self.client.clone(),
       activity_queue: self.activity_queue.clone(),
+      settings: self.settings.clone(),
+      secret: self.secret.clone(),
     }
   }
 }

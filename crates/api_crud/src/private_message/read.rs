@@ -20,7 +20,8 @@ impl PerformCrud for GetPrivateMessages {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
     let data: &GetPrivateMessages = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
     let person_id = local_user_view.person.id;
 
     let page = data.page;

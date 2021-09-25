@@ -45,23 +45,28 @@ impl PerformCrud for CreateCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(ApiError::err("only_admins_can_create_communities").into());
     }
 
-    check_slurs(&data.name)?;
-    check_slurs(&data.title)?;
-    check_slurs_opt(&data.description)?;
+    check_slurs(&data.name, &context.settings().slur_regex())?;
+    check_slurs(&data.title, &context.settings().slur_regex())?;
+    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
 
-    if !is_valid_actor_name(&data.name) {
+    if !is_valid_actor_name(&data.name, context.settings().actor_name_max_length) {
       return Err(ApiError::err("invalid_community_name").into());
     }
 
     // Double check for duplicate community actor_ids
-    let community_actor_id = generate_apub_endpoint(EndpointType::Community, &data.name)?;
+    let community_actor_id = generate_apub_endpoint(
+      EndpointType::Community,
+      &data.name,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
     let actor_id_cloned = community_actor_id.to_owned();
     let community_dupe = blocking(context.pool(), move |conn| {
       Community::read_from_apub_id(conn, &actor_id_cloned)

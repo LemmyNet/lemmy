@@ -53,7 +53,8 @@ impl Perform for FollowCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let community_id = data.community_id;
     let community = blocking(context.pool(), move |conn| {
@@ -121,7 +122,8 @@ impl Perform for BlockCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<BlockCommunityResponse, LemmyError> {
     let data: &BlockCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
@@ -181,7 +183,8 @@ impl Perform for BanFromCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;
@@ -314,7 +317,8 @@ impl Perform for AddModToCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let community_id = data.community_id;
 
@@ -397,7 +401,8 @@ impl Perform for TransferCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let site_creator_id = blocking(context.pool(), move |conn| {
       Site::read(conn, 1).map(|s| s.creator_id)

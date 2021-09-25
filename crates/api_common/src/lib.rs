@@ -25,6 +25,7 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     person_mention::{PersonMention, PersonMentionForm},
     post::{Post, PostRead, PostReadForm},
+    secret::Secret,
     site::Site,
   },
   CommunityId,
@@ -40,7 +41,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{
   claims::Claims,
   email::send_email,
-  settings::structs::Settings,
+  settings::structs::{FederationConfig, Settings},
   utils::MentionData,
   ApiError,
   LemmyError,
@@ -71,9 +72,19 @@ pub async fn send_local_notifs(
   post: Post,
   pool: &DbPool,
   do_send_email: bool,
+  settings: &Settings,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
+  let settings = settings.to_owned();
   let ids = blocking(pool, move |conn| {
-    do_send_local_notifs(conn, &mentions, &comment, &person, &post, do_send_email)
+    do_send_local_notifs(
+      conn,
+      &mentions,
+      &comment,
+      &person,
+      &post,
+      do_send_email,
+      &settings,
+    )
   })
   .await?;
 
@@ -87,13 +98,14 @@ fn do_send_local_notifs(
   person: &Person,
   post: &Post,
   do_send_email: bool,
+  settings: &Settings,
 ) -> Vec<LocalUserId> {
   let mut recipient_ids = Vec::new();
 
   // Send the local mentions
   for mention in mentions
     .iter()
-    .filter(|m| m.is_local() && m.name.ne(&person.name))
+    .filter(|m| m.is_local(&settings.hostname) && m.name.ne(&person.name))
     .collect::<Vec<&MentionData>>()
   {
     if let Ok(mention_user_view) = LocalUserView::read_from_name(conn, &mention.name) {
@@ -119,6 +131,7 @@ fn do_send_local_notifs(
           "Mentioned by",
           "Person Mention",
           &comment.content,
+          settings,
         )
       }
     }
@@ -141,6 +154,7 @@ fn do_send_local_notifs(
                 "Reply from",
                 "Comment Reply",
                 &comment.content,
+                settings,
               )
             }
           }
@@ -159,6 +173,7 @@ fn do_send_local_notifs(
               "Reply from",
               "Post Reply",
               &comment.content,
+              settings,
             )
           }
         }
@@ -173,6 +188,7 @@ pub fn send_email_to_user(
   subject_text: &str,
   body_text: &str,
   comment_content: &str,
+  settings: &Settings,
 ) {
   if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
@@ -181,18 +197,22 @@ pub fn send_email_to_user(
   if let Some(user_email) = &local_user_view.local_user.email {
     let subject = &format!(
       "{} - {} {}",
-      subject_text,
-      Settings::get().hostname,
-      local_user_view.person.name,
+      subject_text, settings.hostname, local_user_view.person.name,
     );
     let html = &format!(
       "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
       body_text,
       local_user_view.person.name,
       comment_content,
-      Settings::get().get_protocol_and_hostname()
+      settings.get_protocol_and_hostname()
     );
-    match send_email(subject, user_email, &local_user_view.person.name, html) {
+    match send_email(
+      subject,
+      user_email,
+      &local_user_view.person.name,
+      html,
+      settings,
+    ) {
       Ok(_o) => _o,
       Err(e) => error!("{}", e),
     };
@@ -244,8 +264,9 @@ pub async fn mark_post_as_read(
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt)
+  let claims = Claims::decode(jwt, &secret.jwt_secret)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -282,9 +303,10 @@ pub fn check_validator_time(
 pub async fn get_local_user_view_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
-    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool).await?)),
+    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool, secret).await?)),
     None => Ok(None),
   }
 }
@@ -292,8 +314,9 @@ pub async fn get_local_user_view_from_jwt_opt(
 pub async fn get_local_user_settings_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = Claims::decode(jwt)
+  let claims = Claims::decode(jwt, &secret.jwt_secret)
     .map_err(|_| ApiError::err("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -314,10 +337,11 @@ pub async fn get_local_user_settings_view_from_jwt(
 pub async fn get_local_user_settings_view_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
+  secret: &Secret,
 ) -> Result<Option<LocalUserSettingsView>, LemmyError> {
   match jwt {
     Some(jwt) => Ok(Some(
-      get_local_user_settings_view_from_jwt(jwt, pool).await?,
+      get_local_user_settings_view_from_jwt(jwt, pool, secret).await?,
     )),
     None => Ok(None),
   }
@@ -387,15 +411,18 @@ pub async fn collect_moderated_communities(
 
 pub async fn build_federated_instances(
   pool: &DbPool,
+  federation_config: &FederationConfig,
+  hostname: &str,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
-  if Settings::get().federation.enabled {
+  let federation = federation_config.to_owned();
+  if federation.enabled {
     let distinct_communities = blocking(pool, move |conn| {
       Community::distinct_federated_communities(conn)
     })
     .await??;
 
-    let allowed = Settings::get().federation.allowed_instances;
-    let blocked = Settings::get().federation.blocked_instances;
+    let allowed = federation.allowed_instances;
+    let blocked = federation.blocked_instances;
 
     let mut linked = distinct_communities
       .iter()
@@ -407,7 +434,7 @@ pub async fn build_federated_instances(
     }
 
     if let Some(blocked) = blocked.as_ref() {
-      linked.retain(|a| !blocked.contains(a) && !a.eq(&Settings::get().hostname));
+      linked.retain(|a| !blocked.contains(a) && !a.eq(hostname));
     }
 
     // Sort and remove dupes
