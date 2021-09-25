@@ -87,7 +87,7 @@ impl ActivityHandler for Delete {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     verify_delete_activity(
       &self.object,
       self,

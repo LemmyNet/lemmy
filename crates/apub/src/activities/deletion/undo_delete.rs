@@ -59,7 +59,7 @@ impl ActivityHandler for UndoDelete {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     self.object.verify(context, request_counter).await?;
     verify_delete_activity(
       &self.object.object,

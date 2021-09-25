@@ -34,7 +34,7 @@ pub(crate) async fn get_or_fetch_and_insert_post(
       debug!("Fetching and creating remote post: {}", post_ap_id);
       let page = fetch_remote_object::<Page>(
         context.client(),
-        context.settings(),
+        &context.settings(),
         post_ap_id,
         recursion_counter,
       )
@@ -71,7 +71,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       );
       let comment = fetch_remote_object::<Note>(
         context.client(),
-        context.settings(),
+        &context.settings(),
         comment_ap_id,
         recursion_counter,
       )

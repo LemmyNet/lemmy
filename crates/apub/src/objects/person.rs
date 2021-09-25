@@ -155,7 +155,7 @@ impl FromApub for DbPerson {
     check_slurs_opt(&display_name, slur_regex)?;
     check_slurs_opt(&bio, slur_regex)?;
 
-    check_is_apub_id_valid(&person.id, false, context.settings())?;
+    check_is_apub_id_valid(&person.id, false, &context.settings())?;
 
     let person_form = PersonForm {
       name,

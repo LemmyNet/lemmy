@@ -33,7 +33,7 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
       debug!("Fetching and updating from remote person: {}", apub_id);
       let person = fetch_remote_object::<ApubPerson>(
         context.client(),
-        context.settings(),
+        &context.settings(),
         apub_id,
         recursion_counter,
       )
@@ -65,7 +65,7 @@ pub(crate) async fn get_or_fetch_and_upsert_person(
       debug!("Fetching and creating remote person: {}", apub_id);
       let person = fetch_remote_object::<ApubPerson>(
         context.client(),
-        context.settings(),
+        &context.settings(),
         apub_id,
         recursion_counter,
       )

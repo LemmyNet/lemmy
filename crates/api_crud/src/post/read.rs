@@ -135,7 +135,7 @@ impl PerformCrud for GetPosts {
     let community_actor_id = data
       .community_name
       .as_ref()
-      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, context.settings()).ok())
+      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, &context.settings()).ok())
       .unwrap_or(None);
     let saved_only = data.saved_only;
 

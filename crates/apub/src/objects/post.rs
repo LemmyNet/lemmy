@@ -191,7 +191,7 @@ impl FromApub for Post {
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
     let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
-      fetch_site_data(context.client(), context.settings(), Some(url)).await
+      fetch_site_data(context.client(), &context.settings(), Some(url)).await
     } else {
       (None, thumbnail_url)
     };

@@ -36,7 +36,7 @@ impl PerformCrud for GetCommunity {
       None => {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
         let community_actor_id =
-          build_actor_id_from_shortname(EndpointType::Community, &name, context.settings())?;
+          build_actor_id_from_shortname(EndpointType::Community, &name, &context.settings())?;
 
         blocking(context.pool(), move |conn| {
           Community::read_from_apub_id(conn, &community_actor_id)

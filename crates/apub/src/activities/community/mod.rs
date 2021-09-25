@@ -20,7 +20,7 @@ async fn list_community_follower_inboxes(
   Ok(
     vec![
       community
-        .get_follower_inboxes(context.pool(), context.settings())
+        .get_follower_inboxes(context.pool(), &context.settings())
         .await?,
       additional_inboxes,
     ]
@@ -28,7 +28,7 @@ async fn list_community_follower_inboxes(
     .flatten()
     .unique()
     .filter(|inbox| inbox.host_str() != Some(&context.settings().hostname))
-    .filter(|inbox| check_is_apub_id_valid(inbox, false, context.settings()).is_ok())
+    .filter(|inbox| check_is_apub_id_valid(inbox, false, &context.settings()).is_ok())
     .map(|inbox| inbox.to_owned())
     .collect(),
   )

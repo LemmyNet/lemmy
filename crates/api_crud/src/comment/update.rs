@@ -83,7 +83,7 @@ impl PerformCrud for EditComment {
       orig_comment.post,
       context.pool(),
       false,
-      context.settings(),
+      &context.settings(),
     )
     .await?;
 

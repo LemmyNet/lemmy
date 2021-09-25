@@ -59,10 +59,7 @@ async fn upload(
   };
 
   let mut client_req = client.request_from(
-    format!(
-      "{}/image",
-      pictrs_url(context.settings().to_owned().pictrs_url)?
-    ),
+    format!("{}/image", pictrs_url(context.settings().pictrs_url)?),
     req.head(),
   );
   // remove content-encoding header so that pictrs doesnt send gzipped response
@@ -92,7 +89,7 @@ async fn full_res(
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
-  let pictrs_url_settings = context.settings().to_owned().pictrs_url;
+  let pictrs_url_settings = context.settings().pictrs_url;
   let url = if params.format.is_none() && params.thumbnail.is_none() {
     format!(
       "{}/image/original/{}",
@@ -160,7 +157,7 @@ async fn delete(
 
   let url = format!(
     "{}/image/delete/{}/{}",
-    pictrs_url(context.settings().to_owned().pictrs_url)?,
+    pictrs_url(context.settings().pictrs_url)?,
     &token,
     &file
   );

@@ -75,7 +75,7 @@ pub(crate) async fn fetch_community_outbox(
 ) -> Result<(), LemmyError> {
   let outbox = fetch_remote_object::<OrderedCollection>(
     context.client(),
-    context.settings(),
+    &context.settings(),
     outbox,
     recursion_counter,
   )
@@ -105,7 +105,7 @@ async fn fetch_community_mods(
   if let Some(mods_url) = &group.moderators {
     let mods = fetch_remote_object::<OrderedCollection>(
       context.client(),
-      context.settings(),
+      &context.settings(),
       mods_url,
       recursion_counter,
     )

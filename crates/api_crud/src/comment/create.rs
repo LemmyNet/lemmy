@@ -125,7 +125,7 @@ impl PerformCrud for CreateComment {
       post,
       context.pool(),
       true,
-      context.settings(),
+      &context.settings(),
     )
     .await?;
 

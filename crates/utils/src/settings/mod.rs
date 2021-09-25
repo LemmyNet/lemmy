@@ -2,11 +2,16 @@ use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use regex::{Regex, RegexBuilder};
-use std::{env, fs, io::Error};
+use std::{env, fs, io::Error, sync::RwLock};
 
 pub mod structs;
 
 static CONFIG_FILE: &str = "config/config.hjson";
+
+lazy_static! {
+  static ref SETTINGS: RwLock<Settings> =
+    RwLock::new(Settings::init().expect("Failed to load settings file"));
+}
 
 impl Settings {
   /// Reads config from configuration file.
@@ -33,6 +38,11 @@ impl Settings {
     );
 
     Ok(config)
+  }
+
+  /// Returns the config as a struct.
+  pub fn get() -> Self {
+    SETTINGS.read().expect("read config").to_owned()
   }
 
   pub fn get_database_url(&self) -> String {
@@ -83,6 +93,15 @@ impl Settings {
 
   pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
     fs::write(CONFIG_FILE, data)?;
+
+    // Reload the new settings
+    // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
+    let mut new_settings = SETTINGS.write().expect("write config");
+    *new_settings = match Settings::init() {
+      Ok(c) => c,
+      Err(e) => panic!("{}", e),
+    };
+
     Ok(Self::read_config_file()?)
   }
 

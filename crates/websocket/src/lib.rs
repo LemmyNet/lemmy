@@ -55,8 +55,9 @@ impl LemmyContext {
   pub fn activity_queue(&self) -> &QueueHandle {
     &self.activity_queue
   }
-  pub fn settings(&self) -> &Settings {
-    &self.settings
+  pub fn settings(&self) -> Settings {
+    // TODO hacky solution to be able to hotload the settings.
+    Settings::get()
   }
   pub fn secret(&self) -> &Secret {
     &self.secret

@@ -105,7 +105,7 @@ impl PerformCrud for CreatePrivateMessage {
         "Private Message from",
         "Private Message",
         &content_slurs_removed,
-        context.settings(),
+        &context.settings(),
       );
     }
 

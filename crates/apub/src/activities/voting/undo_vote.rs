@@ -91,7 +91,7 @@ impl ActivityHandler for UndoVote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_urls_match(self.actor(), self.object.actor())?;
     self.object.verify(context, request_counter).await?;

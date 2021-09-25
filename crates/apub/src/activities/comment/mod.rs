@@ -46,7 +46,7 @@ async fn get_notif_recipients(
     post,
     context.pool(),
     true,
-    context.settings(),
+    &context.settings(),
   )
   .await
 }

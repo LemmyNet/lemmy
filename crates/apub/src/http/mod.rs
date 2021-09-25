@@ -98,7 +98,7 @@ where
   if is_activity_already_known(context.pool(), activity.id_unchecked()).await? {
     return Ok(HttpResponse::Ok().finish());
   }
-  check_is_apub_id_valid(activity.actor(), false, context.settings())?;
+  check_is_apub_id_valid(activity.actor(), false, &context.settings())?;
   info!("Verifying activity {}", activity.id_unchecked().to_string());
   activity.verify(context, request_counter).await?;
   assert_activity_not_local(&activity, &context.settings().hostname)?;

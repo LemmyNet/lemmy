@@ -86,7 +86,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     let community = self.cc[0].dereference(context, request_counter).await?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     match self.kind {

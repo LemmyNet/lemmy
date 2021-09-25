@@ -178,7 +178,7 @@ impl FromApub for Community {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
-    let form = Group::from_apub_to_form(group, expected_domain, context.settings()).await?;
+    let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
 
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
     update_community_mods(group, &community, context, request_counter).await?;

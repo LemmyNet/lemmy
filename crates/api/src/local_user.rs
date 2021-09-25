@@ -121,7 +121,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let captcha_settings = context.settings().to_owned().captcha;
+    let captcha_settings = context.settings().captcha;
 
     if !captcha_settings.enabled {
       return Ok(GetCaptchaResponse { ok: None });
@@ -757,7 +757,7 @@ impl Perform for PasswordReset {
       email,
       &local_user_view.person.name,
       html,
-      context.settings(),
+      &context.settings(),
     )
     .map_err(|e| ApiError::err(&e))?;
 

@@ -74,7 +74,7 @@ impl ActivityHandler for UndoFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     verify_urls_match(self.to.inner(), self.object.object.inner())?;
     verify_urls_match(self.actor(), self.object.actor())?;
     verify_person(&self.actor, context, request_counter).await?;

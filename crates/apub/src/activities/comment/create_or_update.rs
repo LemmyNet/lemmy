@@ -90,7 +90,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     let community = extract_community(&self.cc, context, request_counter).await?;
     let community_id = ObjectId::new(community.actor_id());
 
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     // TODO: should add a check that the correct community is in cc (probably needs changes to

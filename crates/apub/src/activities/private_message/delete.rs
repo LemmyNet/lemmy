@@ -77,7 +77,7 @@ impl ActivityHandler for DeletePrivateMessage {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, context.settings())?;
+    verify_activity(self, &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), &self.object)?;
     Ok(())
