@@ -1,6 +1,6 @@
 use crate::{check_is_apub_id_valid, APUB_JSON_CONTENT_TYPE};
 use anyhow::anyhow;
-use lemmy_utils::{request::retry, LemmyError};
+use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use log::info;
 use reqwest::Client;
 use serde::Deserialize;
@@ -18,6 +18,7 @@ static MAX_REQUEST_NUMBER: i32 = 25;
 /// timeouts etc.
 pub(in crate::fetcher) async fn fetch_remote_object<Response>(
   client: &Client,
+  settings: &Settings,
   url: &Url,
   recursion_counter: &mut i32,
 ) -> Result<Response, LemmyError>
@@ -28,7 +29,7 @@ where
   if *recursion_counter > MAX_REQUEST_NUMBER {
     return Err(anyhow!("Maximum recursion depth reached").into());
   }
-  check_is_apub_id_valid(url, false)?;
+  check_is_apub_id_valid(url, false, settings)?;
 
   let timeout = Duration::from_secs(60);
 

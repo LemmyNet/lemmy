@@ -2,7 +2,6 @@
   hostname: lemmy-epsilon:8581
   port: 8581
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_epsilon
     admin_password: lemmylemmy

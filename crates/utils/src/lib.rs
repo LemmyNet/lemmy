@@ -6,20 +6,19 @@ extern crate strum_macros;
 extern crate smart_default;
 
 pub mod apub;
-pub mod claims;
 pub mod email;
 pub mod rate_limit;
 pub mod request;
 pub mod settings;
 
+pub mod claims;
 #[cfg(test)]
 mod test;
 pub mod utils;
 pub mod version;
 
-use crate::settings::structs::Settings;
 use http::StatusCode;
-use regex::Regex;
+
 use std::fmt;
 use thiserror::Error;
 
@@ -87,17 +86,4 @@ impl actix_web::error::ResponseError for LemmyError {
       _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
   }
-}
-
-lazy_static! {
-  pub static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
-    "^group:([a-z0-9_]{{3,}})@{}$",
-    Settings::get().hostname
-  ))
-  .expect("compile webfinger regex");
-  pub static ref WEBFINGER_USERNAME_REGEX: Regex = Regex::new(&format!(
-    "^acct:([a-z0-9_]{{3,}})@{}$",
-    Settings::get().hostname
-  ))
-  .expect("compile webfinger regex");
 }

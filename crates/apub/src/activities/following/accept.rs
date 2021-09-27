@@ -61,7 +61,10 @@ impl AcceptFollowCommunity {
       to: ObjectId::new(person.actor_id()),
       object: follow,
       kind: AcceptType::Accept,
-      id: generate_activity_id(AcceptType::Accept)?,
+      id: generate_activity_id(
+        AcceptType::Accept,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     };
@@ -77,7 +80,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_urls_match(self.to.inner(), self.object.actor())?;
     verify_urls_match(self.actor(), self.object.to.inner())?;
     verify_community(&self.actor, context, request_counter).await?;

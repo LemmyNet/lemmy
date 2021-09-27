@@ -48,13 +48,17 @@ impl FollowCommunity {
   pub(in crate::activities::following) fn new(
     actor: &Person,
     community: &Community,
+    context: &LemmyContext,
   ) -> Result<FollowCommunity, LemmyError> {
     Ok(FollowCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: ObjectId::new(community.actor_id()),
       object: ObjectId::new(community.actor_id()),
       kind: FollowType::Follow,
-      id: generate_activity_id(FollowType::Follow)?,
+      id: generate_activity_id(
+        FollowType::Follow,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     })
@@ -74,7 +78,7 @@ impl FollowCommunity {
     })
     .await?;
 
-    let follow = FollowCommunity::new(actor, community)?;
+    let follow = FollowCommunity::new(actor, community, context)?;
     let inbox = vec![community.inbox_url.clone().into()];
     send_activity_new(context, &follow, &follow.id, actor, inbox, true).await
   }
@@ -87,7 +91,7 @@ impl ActivityHandler for FollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_urls_match(self.to.inner(), self.object.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
     Ok(())

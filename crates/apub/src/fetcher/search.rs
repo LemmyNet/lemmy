@@ -45,7 +45,14 @@ pub async fn search_by_apub_id(
       // remote actor, use webfinger to resolve url
       if name.contains('@') {
         let (name, domain) = name.splitn(2, '@').collect_tuple().expect("invalid query");
-        webfinger_resolve_actor(name, domain, kind, context.client()).await?
+        webfinger_resolve_actor(
+          name,
+          domain,
+          kind,
+          context.client(),
+          context.settings().get_protocol_string(),
+        )
+        .await?
       }
       // local actor, read from database and return
       else {

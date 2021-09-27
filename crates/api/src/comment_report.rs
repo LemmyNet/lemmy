@@ -32,7 +32,8 @@ impl Perform for CreateCommentReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CreateCommentReportResponse, LemmyError> {
     let data: &CreateCommentReport = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // check size of report and check for whitespace
     let reason = data.reason.trim();
@@ -96,7 +97,8 @@ impl Perform for ResolveCommentReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveCommentReportResponse, LemmyError> {
     let data: &ResolveCommentReport = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let report_id = data.report_id;
     let report = blocking(context.pool(), move |conn| {
@@ -149,7 +151,8 @@ impl Perform for ListCommentReports {
     websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommentReportsResponse, LemmyError> {
     let data: &ListCommentReports = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
     let community_id = data.community;

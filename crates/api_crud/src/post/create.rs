@@ -38,10 +38,12 @@ impl PerformCrud for CreatePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs(&data.name)?;
-    check_slurs_opt(&data.body)?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs(&data.name, slur_regex)?;
+    check_slurs_opt(&data.body, slur_regex)?;
 
     if !is_valid_post_title(&data.name) {
       return Err(ApiError::err("invalid_post_title").into());
@@ -51,7 +53,8 @@ impl PerformCrud for CreatePost {
 
     // Fetch post links and pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) = fetch_site_data(context.client(), data_url).await;
+    let (metadata_res, pictrs_thumbnail) =
+      fetch_site_data(context.client(), &context.settings(), data_url).await;
     let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
@@ -85,8 +88,13 @@ impl PerformCrud for CreatePost {
       };
 
     let inserted_post_id = inserted_post.id;
+    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
-      let apub_id = generate_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string())?;
+      let apub_id = generate_apub_endpoint(
+        EndpointType::Post,
+        &inserted_post_id.to_string(),
+        &protocol_and_hostname,
+      )?;
       Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
     })
     .await?

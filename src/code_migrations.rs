@@ -24,22 +24,28 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
 };
-use lemmy_utils::{apub::generate_actor_keypair, settings::structs::Settings, LemmyError};
+use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
 use log::info;
 
-pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
-  user_updates_2020_04_02(conn)?;
-  community_updates_2020_04_02(conn)?;
-  post_updates_2020_04_03(conn)?;
-  comment_updates_2020_04_03(conn)?;
-  private_message_updates_2020_05_05(conn)?;
-  post_thumbnail_url_updates_2020_07_27(conn)?;
+pub fn run_advanced_migrations(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
+  user_updates_2020_04_02(conn, protocol_and_hostname)?;
+  community_updates_2020_04_02(conn, protocol_and_hostname)?;
+  post_updates_2020_04_03(conn, protocol_and_hostname)?;
+  comment_updates_2020_04_03(conn, protocol_and_hostname)?;
+  private_message_updates_2020_05_05(conn, protocol_and_hostname)?;
+  post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
   apub_columns_2021_02_02(conn)?;
 
   Ok(())
 }
 
-fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
+fn user_updates_2020_04_02(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::*;
 
   info!("Running user_updates_2020_04_02");
@@ -55,7 +61,11 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
     let form = PersonForm {
       name: cperson.name.to_owned(),
-      actor_id: Some(generate_apub_endpoint(EndpointType::Person, &cperson.name)?),
+      actor_id: Some(generate_apub_endpoint(
+        EndpointType::Person,
+        &cperson.name,
+        protocol_and_hostname,
+      )?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(Some(keypair.public_key)),
       last_refreshed_at: Some(naive_now()),
@@ -70,7 +80,10 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
+fn community_updates_2020_04_02(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::*;
 
   info!("Running community_updates_2020_04_02");
@@ -83,7 +96,11 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_actor_id = generate_apub_endpoint(EndpointType::Community, &ccommunity.name)?;
+    let community_actor_id = generate_apub_endpoint(
+      EndpointType::Community,
+      &ccommunity.name,
+      protocol_and_hostname,
+    )?;
 
     let form = CommunityForm {
       name: ccommunity.name.to_owned(),
@@ -114,7 +131,10 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
+fn post_updates_2020_04_03(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_updates_2020_04_03");
@@ -126,7 +146,11 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
     .load::<Post>(conn)?;
 
   for cpost in &incorrect_posts {
-    let apub_id = generate_apub_endpoint(EndpointType::Post, &cpost.id.to_string())?;
+    let apub_id = generate_apub_endpoint(
+      EndpointType::Post,
+      &cpost.id.to_string(),
+      protocol_and_hostname,
+    )?;
     Post::update_ap_id(conn, cpost.id, apub_id)?;
   }
 
@@ -135,7 +159,10 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
+fn comment_updates_2020_04_03(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::*;
 
   info!("Running comment_updates_2020_04_03");
@@ -147,7 +174,11 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
     .load::<Comment>(conn)?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = generate_apub_endpoint(EndpointType::Comment, &ccomment.id.to_string())?;
+    let apub_id = generate_apub_endpoint(
+      EndpointType::Comment,
+      &ccomment.id.to_string(),
+      protocol_and_hostname,
+    )?;
     Comment::update_ap_id(conn, ccomment.id, apub_id)?;
   }
 
@@ -156,7 +187,10 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyError> {
+fn private_message_updates_2020_05_05(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::*;
 
   info!("Running private_message_updates_2020_05_05");
@@ -168,7 +202,11 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
     .load::<PrivateMessage>(conn)?;
 
   for cpm in &incorrect_pms {
-    let apub_id = generate_apub_endpoint(EndpointType::PrivateMessage, &cpm.id.to_string())?;
+    let apub_id = generate_apub_endpoint(
+      EndpointType::PrivateMessage,
+      &cpm.id.to_string(),
+      protocol_and_hostname,
+    )?;
     PrivateMessage::update_ap_id(conn, cpm.id, apub_id)?;
   }
 
@@ -177,15 +215,15 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
   Ok(())
 }
 
-fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), LemmyError> {
+fn post_thumbnail_url_updates_2020_07_27(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
-  let domain_prefix = format!(
-    "{}/pictrs/image/",
-    Settings::get().get_protocol_and_hostname(),
-  );
+  let domain_prefix = format!("{}/pictrs/image/", protocol_and_hostname,);
 
   let incorrect_thumbnails = post.filter(thumbnail_url.not_like("http%"));
 

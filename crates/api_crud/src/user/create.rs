@@ -29,7 +29,6 @@ use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
   apub::generate_actor_keypair,
   claims::Claims,
-  settings::structs::Settings,
   utils::{check_slurs, is_valid_actor_name},
   ApiError,
   ConnectionId,
@@ -69,7 +68,7 @@ impl PerformCrud for Register {
     .await??;
 
     // If its not the admin, check the captcha
-    if !no_admins && Settings::get().captcha.enabled {
+    if !no_admins && context.settings().captcha.enabled {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
@@ -88,13 +87,17 @@ impl PerformCrud for Register {
       }
     }
 
-    check_slurs(&data.username)?;
+    check_slurs(&data.username, &context.settings().slur_regex())?;
 
     let actor_keypair = generate_actor_keypair()?;
-    if !is_valid_actor_name(&data.username) {
+    if !is_valid_actor_name(&data.username, context.settings().actor_name_max_length) {
       return Err(ApiError::err("invalid_username").into());
     }
-    let actor_id = generate_apub_endpoint(EndpointType::Person, &data.username)?;
+    let actor_id = generate_apub_endpoint(
+      EndpointType::Person,
+      &data.username,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
 
     // We have to create both a person, and local_user
 
@@ -164,6 +167,7 @@ impl PerformCrud for Register {
     let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
+    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let main_community = match blocking(context.pool(), move |conn| {
       Community::read(conn, CommunityId(2))
     })
@@ -172,7 +176,11 @@ impl PerformCrud for Register {
       Ok(c) => c,
       Err(_e) => {
         let default_community_name = "main";
-        let actor_id = generate_apub_endpoint(EndpointType::Community, default_community_name)?;
+        let actor_id = generate_apub_endpoint(
+          EndpointType::Community,
+          default_community_name,
+          &protocol_and_hostname,
+        )?;
         let community_form = CommunityForm {
           name: default_community_name.to_string(),
           title: "The Default Community".to_string(),
@@ -219,7 +227,11 @@ impl PerformCrud for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_local_user.id.0)?,
+      jwt: Claims::jwt(
+        inserted_local_user.id.0,
+        &context.secret().jwt_secret,
+        &context.settings().hostname,
+      )?,
     })
   }
 }

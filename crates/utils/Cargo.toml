@@ -35,7 +35,7 @@ strum_macros = "0.21.1"
 futures = "0.3.16"
 diesel = "1.4.7"
 http = "0.2.4"
-jsonwebtoken = "7.2.0"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
 webpage = { version = "1.3.0", default-features = false, features = ["serde"] }
+jsonwebtoken = "7.2.0"

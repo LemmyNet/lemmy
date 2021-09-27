@@ -16,7 +16,7 @@ use background_jobs::{
   WorkerConfig,
 };
 use lemmy_db_schema::source::community::Community;
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{info, warn};
 use reqwest::Client;
@@ -56,7 +56,7 @@ pub(crate) async fn send_activity_new<T>(
 where
   T: Serialize,
 {
-  if !Settings::get().federation.enabled || inboxes.is_empty() {
+  if !context.settings().federation.enabled || inboxes.is_empty() {
     return Ok(());
   }
 
@@ -64,7 +64,7 @@ where
 
   // Don't send anything to ourselves
   // TODO: this should be a debug assert
-  let hostname = Settings::get().get_hostname_without_port()?;
+  let hostname = context.settings().get_hostname_without_port()?;
   let inboxes: Vec<&Url> = inboxes
     .iter()
     .filter(|i| i.domain().expect("valid inbox url") != hostname)

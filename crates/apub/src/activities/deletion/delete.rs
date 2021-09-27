@@ -87,7 +87,7 @@ impl ActivityHandler for Delete {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
+    verify_activity(self, &context.settings())?;
     verify_delete_activity(
       &self.object,
       self,
@@ -138,6 +138,7 @@ impl Delete {
     community: &Community,
     object_id: Url,
     summary: Option<String>,
+    context: &LemmyContext,
   ) -> Result<Delete, LemmyError> {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id()),
@@ -146,7 +147,10 @@ impl Delete {
       cc: [ObjectId::new(community.actor_id())],
       kind: DeleteType::Delete,
       summary,
-      id: generate_activity_id(DeleteType::Delete)?,
+      id: generate_activity_id(
+        DeleteType::Delete,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       context: lemmy_context(),
       unparsed: Default::default(),
     })
@@ -158,7 +162,7 @@ impl Delete {
     summary: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let delete = Delete::new(actor, community, object_id, summary)?;
+    let delete = Delete::new(actor, community, object_id, summary, context)?;
     let delete_id = delete.id.clone();
 
     let activity = AnnouncableActivities::Delete(delete);

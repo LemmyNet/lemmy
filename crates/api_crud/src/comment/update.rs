@@ -32,7 +32,8 @@ impl PerformCrud for EditComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -54,7 +55,8 @@ impl PerformCrud for EditComment {
     }
 
     // Do the update
-    let content_slurs_removed = remove_slurs(&data.content.to_owned());
+    let content_slurs_removed =
+      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
     let comment_id = data.comment_id;
     let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update_content(conn, comment_id, &content_slurs_removed)
@@ -81,6 +83,7 @@ impl PerformCrud for EditComment {
       orig_comment.post,
       context.pool(),
       false,
+      &context.settings(),
     )
     .await?;
 

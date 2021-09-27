@@ -151,7 +151,8 @@ impl Perform for Search {
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = self;
 
-    let local_user_view = get_local_user_view_from_jwt_opt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
@@ -180,7 +181,7 @@ impl Perform for Search {
     let community_actor_id = data
       .community_name
       .as_ref()
-      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t).ok())
+      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, &context.settings()).ok())
       .unwrap_or(None);
     let creator_id = data.creator_id;
     match search_type {
@@ -384,7 +385,8 @@ impl Perform for ResolveObject {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
-    let local_user_view = get_local_user_view_from_jwt_opt(&self.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(&self.auth, context.pool(), context.secret()).await?;
     let res = search_by_apub_id(&self.q, context)
       .await
       .map_err(|_| ApiError::err("couldnt_find_object"))?;
@@ -443,7 +445,8 @@ impl Perform for TransferSite {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     is_admin(&local_user_view)?;
 
@@ -480,7 +483,12 @@ impl Perform for TransferSite {
     admins.insert(0, creator_person);
 
     let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
-    let federated_instances = build_federated_instances(context.pool()).await?;
+    let federated_instances = build_federated_instances(
+      context.pool(),
+      &context.settings().federation,
+      &context.settings().hostname,
+    )
+    .await?;
 
     Ok(GetSiteResponse {
       site_view: Some(site_view),
@@ -504,7 +512,8 @@ impl Perform for GetSiteConfig {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &GetSiteConfig = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Only let admins read this
     is_admin(&local_user_view)?;
@@ -525,7 +534,8 @@ impl Perform for SaveSiteConfig {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &SaveSiteConfig = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     // Only let admins read this
     is_admin(&local_user_view)?;
