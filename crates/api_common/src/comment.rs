@@ -102,6 +102,8 @@ pub struct ResolveCommentReport {
 pub struct ListCommentReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  /// Only shows the unresolved reports
+  pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
   pub auth: String,

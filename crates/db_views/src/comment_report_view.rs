@@ -1,11 +1,19 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
+use lemmy_db_queries::{
+  aggregates::comment_aggregates::CommentAggregates,
+  limit_and_offset,
+  MaybeOptional,
+  ToSafe,
+  ViewToVec,
+};
 use lemmy_db_schema::{
   schema::{
     comment,
+    comment_aggregates,
     comment_report,
     community,
     community_moderator,
+    community_person_ban,
     person,
     person_alias_1,
     person_alias_2,
@@ -14,7 +22,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_report::CommentReport,
-    community::{Community, CommunitySafe},
+    community::{Community, CommunityPersonBan, CommunitySafe},
     person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
   },
@@ -32,6 +40,8 @@ pub struct CommentReportView {
   pub community: CommunitySafe,
   pub creator: PersonSafe,
   pub comment_creator: PersonSafeAlias1,
+  pub counts: CommentAggregates,
+  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub resolver: Option<PersonSafeAlias2>,
 }
 
@@ -42,6 +52,8 @@ type CommentReportViewTuple = (
   CommunitySafe,
   PersonSafe,
   PersonSafeAlias1,
+  CommentAggregates,
+  Option<CommunityPersonBan>,
   Option<PersonSafeAlias2>,
 );
 
@@ -50,27 +62,48 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub fn read(conn: &PgConnection, report_id: CommentReportId) -> Result<Self, Error> {
-    let (comment_report, comment, post, community, creator, comment_creator, resolver) =
-      comment_report::table
-        .find(report_id)
-        .inner_join(comment::table)
-        .inner_join(post::table.on(comment::post_id.eq(post::id)))
-        .inner_join(community::table.on(post::community_id.eq(community::id)))
-        .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-        .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
-        .left_join(
-          person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
-        )
-        .select((
-          comment_report::all_columns,
-          comment::all_columns,
-          post::all_columns,
-          Community::safe_columns_tuple(),
-          Person::safe_columns_tuple(),
-          PersonAlias1::safe_columns_tuple(),
-          PersonAlias2::safe_columns_tuple().nullable(),
-        ))
-        .first::<CommentReportViewTuple>(conn)?;
+    let (
+      comment_report,
+      comment,
+      post,
+      community,
+      creator,
+      comment_creator,
+      counts,
+      creator_banned_from_community,
+      resolver,
+    ) = comment_report::table
+      .find(report_id)
+      .inner_join(comment::table)
+      .inner_join(post::table.on(comment::post_id.eq(post::id)))
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
+      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .inner_join(
+        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
+      )
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
+        ),
+      )
+      .left_join(
+        person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
+      )
+      .select((
+        comment_report::all_columns,
+        comment::all_columns,
+        post::all_columns,
+        Community::safe_columns_tuple(),
+        Person::safe_columns_tuple(),
+        PersonAlias1::safe_columns_tuple(),
+        comment_aggregates::all_columns,
+        community_person_ban::all_columns.nullable(),
+        PersonAlias2::safe_columns_tuple().nullable(),
+      ))
+      .first::<CommentReportViewTuple>(conn)?;
 
     Ok(Self {
       comment_report,
@@ -79,6 +112,8 @@ impl CommentReportView {
       community,
       creator,
       comment_creator,
+      counts,
+      creator_banned_from_community: creator_banned_from_community.is_some(),
       resolver,
     })
   }
@@ -124,7 +159,7 @@ pub struct CommentReportQueryBuilder<'a> {
   community_id: Option<CommunityId>,
   page: Option<i64>,
   limit: Option<i64>,
-  resolved: bool,
+  unresolved_only: Option<bool>,
 }
 
 impl<'a> CommentReportQueryBuilder<'a> {
@@ -135,7 +170,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
       community_id: None,
       page: None,
       limit: None,
-      resolved: false,
+      unresolved_only: Some(true),
     }
   }
 
@@ -154,8 +189,8 @@ impl<'a> CommentReportQueryBuilder<'a> {
     self
   }
 
-  pub fn resolved(mut self, resolved: bool) -> Self {
-    self.resolved = resolved;
+  pub fn unresolved_only<T: MaybeOptional<bool>>(mut self, unresolved_only: T) -> Self {
+    self.unresolved_only = unresolved_only.get_optional();
     self
   }
 
@@ -174,6 +209,16 @@ impl<'a> CommentReportQueryBuilder<'a> {
             .and(community_moderator::person_id.eq(self.my_person_id)),
         ),
       )
+      .inner_join(
+        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
+      )
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
+        ),
+      )
       .left_join(
         person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
       )
@@ -184,6 +229,8 @@ impl<'a> CommentReportQueryBuilder<'a> {
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
         PersonAlias1::safe_columns_tuple(),
+        comment_aggregates::all_columns,
+        community_person_ban::all_columns.nullable(),
         PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .into_boxed();
@@ -192,7 +239,9 @@ impl<'a> CommentReportQueryBuilder<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    query = query.filter(comment_report::resolved.eq(self.resolved));
+    if self.unresolved_only.unwrap_or(false) {
+      query = query.filter(comment_report::resolved.eq(false));
+    }
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
@@ -218,7 +267,9 @@ impl ViewToVec for CommentReportView {
         community: a.3.to_owned(),
         creator: a.4.to_owned(),
         comment_creator: a.5.to_owned(),
-        resolver: a.6.to_owned(),
+        counts: a.6.to_owned(),
+        creator_banned_from_community: a.7.is_some(),
+        resolver: a.8.to_owned(),
       })
       .collect::<Vec<Self>>()
   }
@@ -227,7 +278,13 @@ impl ViewToVec for CommentReportView {
 #[cfg(test)]
 mod tests {
   use crate::comment_report_view::{CommentReportQueryBuilder, CommentReportView};
-  use lemmy_db_queries::{establish_unpooled_connection, Crud, Joinable, Reportable};
+  use lemmy_db_queries::{
+    aggregates::comment_aggregates::CommentAggregates,
+    establish_unpooled_connection,
+    Crud,
+    Joinable,
+    Reportable,
+  };
   use lemmy_db_schema::source::{comment::*, comment_report::*, community::*, person::*, post::*};
   use serial_test::serial;
 
@@ -312,11 +369,13 @@ mod tests {
 
     let inserted_jessica_report = CommentReport::report(&conn, &jessica_report_form).unwrap();
 
+    let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
+
     let read_jessica_report_view =
       CommentReportView::read(&conn, inserted_jessica_report.id).unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.to_owned(),
-      comment: inserted_comment,
+      comment: inserted_comment.to_owned(),
       post: inserted_post,
       community: CommunitySafe {
         id: inserted_community.id,
@@ -370,6 +429,15 @@ mod tests {
         inbox_url: inserted_timmy.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+      },
+      creator_banned_from_community: false,
+      counts: CommentAggregates {
+        id: agg.id,
+        comment_id: inserted_comment.id,
+        score: 0,
+        upvotes: 0,
+        downvotes: 0,
+        published: agg.published,
       },
       resolver: None,
     };

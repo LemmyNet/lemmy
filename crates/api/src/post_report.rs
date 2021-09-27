@@ -158,12 +158,14 @@ impl Perform for ListPostReports {
 
     let person_id = local_user_view.person.id;
     let community_id = data.community_id;
+    let unresolved_only = data.unresolved_only;
 
     let page = data.page;
     let limit = data.limit;
     let post_reports = blocking(context.pool(), move |conn| {
       PostReportQueryBuilder::create(conn, person_id)
         .community_id(community_id)
+        .unresolved_only(unresolved_only)
         .page(page)
         .limit(limit)
         .list()
