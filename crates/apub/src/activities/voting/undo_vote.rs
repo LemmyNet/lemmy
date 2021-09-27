@@ -23,7 +23,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -86,9 +86,10 @@ impl UndoVote {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoVote {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -100,7 +101,7 @@ impl ActivityHandler for UndoVote {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;

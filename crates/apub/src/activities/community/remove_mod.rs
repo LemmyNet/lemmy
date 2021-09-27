@@ -21,7 +21,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::Joinable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},
@@ -81,9 +81,10 @@ impl RemoveMod {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for RemoveMod {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -107,7 +108,7 @@ impl ActivityHandler for RemoveMod {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if self.target.is_some() {

@@ -17,7 +17,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
@@ -69,9 +69,10 @@ impl UndoFollowCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoFollowCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -84,7 +85,7 @@ impl ActivityHandler for UndoFollowCommunity {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;

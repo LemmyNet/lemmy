@@ -60,6 +60,7 @@ pub(crate) async fn get_apub_community_http(
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
+#[activity_handler(LemmyContext)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),

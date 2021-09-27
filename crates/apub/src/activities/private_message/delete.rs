@@ -12,7 +12,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject, Crud};
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
@@ -72,9 +72,10 @@ impl DeletePrivateMessage {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for DeletePrivateMessage {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -85,7 +86,7 @@ impl ActivityHandler for DeletePrivateMessage {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let ap_id = self.object.clone();

@@ -20,7 +20,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},
@@ -79,9 +79,11 @@ impl AddMod {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AddMod {
+  type DataType = LemmyContext;
+
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -93,7 +95,7 @@ impl ActivityHandler for AddMod {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = self.cc[0].dereference(context, request_counter).await?;

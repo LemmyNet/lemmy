@@ -6,7 +6,7 @@ use crate::{
 use activitystreams::collection::{CollectionExt, OrderedCollection};
 use anyhow::Context;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::ActivityHandler;
+use lemmy_apub_lib::{ActivityHandler, Data};
 use lemmy_db_queries::Joinable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},
@@ -91,7 +91,9 @@ pub(crate) async fn fetch_community_outbox(
     //       AnnounceActivity as inner type, but that gives me stackoverflow
     let ser = serde_json::to_string(&announce)?;
     let announce: AnnounceActivity = serde_json::from_str(&ser)?;
-    announce.receive(context, recursion_counter).await?;
+    announce
+      .receive(&Data::new(context.clone()), recursion_counter)
+      .await?;
   }
 
   Ok(())

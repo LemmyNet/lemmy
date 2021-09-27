@@ -19,7 +19,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::{
   community::{Community, CommunityForm},
@@ -77,9 +77,10 @@ impl UpdateCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UpdateCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -90,7 +91,7 @@ impl ActivityHandler for UpdateCommunity {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let cc = self.cc[0].clone().into();

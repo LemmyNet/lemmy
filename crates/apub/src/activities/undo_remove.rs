@@ -12,7 +12,7 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -38,9 +38,10 @@ pub struct UndoRemovePostCommentOrCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoRemovePostCommentOrCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -60,7 +61,7 @@ impl ActivityHandler for UndoRemovePostCommentOrCommunity {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     UndoDelete::receive_undo_remove_action(self.object.object.inner(), context).await

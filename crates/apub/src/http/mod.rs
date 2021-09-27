@@ -20,7 +20,7 @@ use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, LemmyError};
@@ -38,6 +38,7 @@ pub mod routes;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
+#[activity_handler(LemmyContext)]
 pub enum SharedInboxActivities {
   GroupInboxActivities(GroupInboxActivities),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
@@ -80,7 +81,7 @@ async fn receive_activity<'a, T>(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError>
 where
-  T: ActivityHandler
+  T: ActivityHandler<DataType = LemmyContext>
     + ActivityFields
     + Clone
     + Deserialize<'a>
@@ -100,7 +101,9 @@ where
   }
   check_is_apub_id_valid(activity.actor(), false, &context.settings())?;
   info!("Verifying activity {}", activity.id_unchecked().to_string());
-  activity.verify(context, request_counter).await?;
+  activity
+    .verify(&Data::new(context.clone()), request_counter)
+    .await?;
   assert_activity_not_local(&activity, &context.settings().hostname)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
@@ -115,7 +118,9 @@ where
   .await?;
 
   info!("Receiving activity {}", activity.id_unchecked().to_string());
-  activity.receive(context, request_counter).await?;
+  activity
+    .receive(&Data::new(context.clone()), request_counter)
+    .await?;
   Ok(HttpResponse::Ok().finish())
 }
 

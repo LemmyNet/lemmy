@@ -1790,7 +1790,6 @@ dependencies = [
  "async-trait",
  "lemmy_apub_lib_derive",
  "lemmy_utils",
- "lemmy_websocket",
  "log",
  "reqwest",
  "serde",

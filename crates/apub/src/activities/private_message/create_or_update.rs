@@ -8,7 +8,7 @@ use crate::{
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler, Data};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
@@ -61,9 +61,10 @@ impl CreateOrUpdatePrivateMessage {
 }
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdatePrivateMessage {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -75,7 +76,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let private_message =

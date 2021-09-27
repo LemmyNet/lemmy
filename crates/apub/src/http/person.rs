@@ -61,6 +61,7 @@ pub(crate) async fn get_apub_person_http(
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
+#[activity_handler(LemmyContext)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
   /// Some activities can also be sent from user to user, eg a comment with mentions
