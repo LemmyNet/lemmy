@@ -62,7 +62,7 @@ impl Perform for CreateCommentReport {
     .map_err(|_| ApiError::err("couldnt_create_report"))?;
 
     let comment_report_view = blocking(context.pool(), move |conn| {
-      CommentReportView::read(conn, report.id)
+      CommentReportView::read(conn, report.id, person_id)
     })
     .await??;
 
@@ -96,8 +96,9 @@ impl Perform for ResolveCommentReport {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let report_id = data.report_id;
+    let person_id = local_user_view.person.id;
     let report = blocking(context.pool(), move |conn| {
-      CommentReportView::read(conn, report_id)
+      CommentReportView::read(conn, report_id, person_id)
     })
     .await??;
 
@@ -119,7 +120,7 @@ impl Perform for ResolveCommentReport {
 
     let report_id = data.report_id;
     let comment_report_view = blocking(context.pool(), move |conn| {
-      CommentReportView::read(conn, report_id)
+      CommentReportView::read(conn, report_id, person_id)
     })
     .await??;
 

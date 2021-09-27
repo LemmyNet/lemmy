@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   schema::{
     comment,
     comment_aggregates,
+    comment_like,
     comment_report,
     community,
     community_moderator,
@@ -42,6 +43,7 @@ pub struct CommentReportView {
   pub comment_creator: PersonSafeAlias1,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
+  pub my_vote: Option<i16>,                // Left join to CommentLike
   pub resolver: Option<PersonSafeAlias2>,
 }
 
@@ -54,6 +56,7 @@ type CommentReportViewTuple = (
   PersonSafeAlias1,
   CommentAggregates,
   Option<CommunityPersonBan>,
+  Option<i16>,
   Option<PersonSafeAlias2>,
 );
 
@@ -61,7 +64,11 @@ impl CommentReportView {
   /// returns the CommentReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub fn read(conn: &PgConnection, report_id: CommentReportId) -> Result<Self, Error> {
+  pub fn read(
+    conn: &PgConnection,
+    report_id: CommentReportId,
+    my_person_id: PersonId,
+  ) -> Result<Self, Error> {
     let (
       comment_report,
       comment,
@@ -71,6 +78,7 @@ impl CommentReportView {
       comment_creator,
       counts,
       creator_banned_from_community,
+      comment_like,
       resolver,
     ) = comment_report::table
       .find(report_id)
@@ -90,6 +98,13 @@ impl CommentReportView {
         ),
       )
       .left_join(
+        comment_like::table.on(
+          comment::id
+            .eq(comment_like::comment_id)
+            .and(comment_like::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
         person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
       )
       .select((
@@ -101,9 +116,16 @@ impl CommentReportView {
         PersonAlias1::safe_columns_tuple(),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
+        comment_like::score.nullable(),
         PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .first::<CommentReportViewTuple>(conn)?;
+
+    let my_vote = if comment_like.is_none() {
+      Some(0)
+    } else {
+      comment_like
+    };
 
     Ok(Self {
       comment_report,
@@ -114,6 +136,7 @@ impl CommentReportView {
       comment_creator,
       counts,
       creator_banned_from_community: creator_banned_from_community.is_some(),
+      my_vote,
       resolver,
     })
   }
@@ -220,6 +243,13 @@ impl<'a> CommentReportQueryBuilder<'a> {
         ),
       )
       .left_join(
+        comment_like::table.on(
+          comment::id
+            .eq(comment_like::comment_id)
+            .and(comment_like::person_id.eq(self.my_person_id)),
+        ),
+      )
+      .left_join(
         person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
       )
       .select((
@@ -231,6 +261,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
         PersonAlias1::safe_columns_tuple(),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
+        comment_like::score.nullable(),
         PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .into_boxed();
@@ -269,7 +300,8 @@ impl ViewToVec for CommentReportView {
         comment_creator: a.5.to_owned(),
         counts: a.6.to_owned(),
         creator_banned_from_community: a.7.is_some(),
-        resolver: a.8.to_owned(),
+        my_vote: a.8,
+        resolver: a.9.to_owned(),
       })
       .collect::<Vec<Self>>()
   }
@@ -372,7 +404,7 @@ mod tests {
     let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
 
     let read_jessica_report_view =
-      CommentReportView::read(&conn, inserted_jessica_report.id).unwrap();
+      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.to_owned(),
       comment: inserted_comment.to_owned(),
@@ -439,6 +471,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
       },
+      my_vote: None,
       resolver: None,
     };
 
@@ -486,7 +519,7 @@ mod tests {
     // Try to resolve the report
     CommentReport::resolve(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let read_jessica_report_view_after_resolve =
-      CommentReportView::read(&conn, inserted_jessica_report.id).unwrap();
+      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve

@@ -70,7 +70,7 @@ impl Perform for CreatePostReport {
     .map_err(|_| ApiError::err("couldnt_create_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report.id)
+      PostReportView::read(conn, report.id, person_id)
     })
     .await??;
 
@@ -102,8 +102,9 @@ impl Perform for ResolvePostReport {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let report_id = data.report_id;
+    let person_id = local_user_view.person.id;
     let report = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report_id)
+      PostReportView::read(conn, report_id, person_id)
     })
     .await??;
 
@@ -124,7 +125,7 @@ impl Perform for ResolvePostReport {
     };
 
     let post_report_view = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report_id)
+      PostReportView::read(conn, report_id, person_id)
     })
     .await??;
 

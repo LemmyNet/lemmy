@@ -16,6 +16,7 @@ use lemmy_db_schema::{
     person_alias_2,
     post,
     post_aggregates,
+    post_like,
     post_report,
   },
   source::{
@@ -38,6 +39,7 @@ pub struct PostReportView {
   pub creator: PersonSafe,
   pub post_creator: PersonSafeAlias1,
   pub creator_banned_from_community: bool,
+  pub my_vote: Option<i16>,
   pub counts: PostAggregates,
   pub resolver: Option<PersonSafeAlias2>,
 }
@@ -49,6 +51,7 @@ type PostReportViewTuple = (
   PersonSafe,
   PersonSafeAlias1,
   Option<CommunityPersonBan>,
+  Option<i16>,
   PostAggregates,
   Option<PersonSafeAlias2>,
 );
@@ -57,7 +60,11 @@ impl PostReportView {
   /// returns the PostReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub fn read(conn: &PgConnection, report_id: PostReportId) -> Result<Self, Error> {
+  pub fn read(
+    conn: &PgConnection,
+    report_id: PostReportId,
+    my_person_id: PersonId,
+  ) -> Result<Self, Error> {
     let (
       post_report,
       post,
@@ -65,6 +72,7 @@ impl PostReportView {
       creator,
       post_creator,
       creator_banned_from_community,
+      post_like,
       counts,
       resolver,
     ) = post_report::table
@@ -80,6 +88,13 @@ impl PostReportView {
             .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
+      .left_join(
+        post_like::table.on(
+          post::id
+            .eq(post_like::post_id)
+            .and(post_like::person_id.eq(my_person_id)),
+        ),
+      )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
         person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
@@ -91,10 +106,19 @@ impl PostReportView {
         Person::safe_columns_tuple(),
         PersonAlias1::safe_columns_tuple(),
         community_person_ban::all_columns.nullable(),
+        post_like::score.nullable(),
         post_aggregates::all_columns,
         PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .first::<PostReportViewTuple>(conn)?;
+
+    // If a person is given, then my_vote, if None, should be 0, not null
+    // Necessary to differentiate between other person's votes
+    let my_vote = if post_like.is_none() {
+      Some(0)
+    } else {
+      post_like
+    };
 
     Ok(Self {
       post_report,
@@ -103,6 +127,7 @@ impl PostReportView {
       creator,
       post_creator,
       creator_banned_from_community: creator_banned_from_community.is_some(),
+      my_vote,
       counts,
       resolver,
     })
@@ -202,6 +227,13 @@ impl<'a> PostReportQueryBuilder<'a> {
             .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
+      .left_join(
+        post_like::table.on(
+          post::id
+            .eq(post_like::post_id)
+            .and(post_like::person_id.eq(self.my_person_id)),
+        ),
+      )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
         person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
@@ -213,6 +245,7 @@ impl<'a> PostReportQueryBuilder<'a> {
         Person::safe_columns_tuple(),
         PersonAlias1::safe_columns_tuple(),
         community_person_ban::all_columns.nullable(),
+        post_like::score.nullable(),
         post_aggregates::all_columns,
         PersonAlias2::safe_columns_tuple().nullable(),
       ))
@@ -250,8 +283,9 @@ impl ViewToVec for PostReportView {
         creator: a.3.to_owned(),
         post_creator: a.4.to_owned(),
         creator_banned_from_community: a.5.is_some(),
-        counts: a.6.to_owned(),
-        resolver: a.7.to_owned(),
+        my_vote: a.6,
+        counts: a.7.to_owned(),
+        resolver: a.8.to_owned(),
       })
       .collect::<Vec<Self>>()
   }
@@ -353,7 +387,8 @@ mod tests {
 
     let agg = PostAggregates::read(&conn, inserted_post.id).unwrap();
 
-    let read_jessica_report_view = PostReportView::read(&conn, inserted_jessica_report.id).unwrap();
+    let read_jessica_report_view =
+      PostReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
     let expected_jessica_report_view = PostReportView {
       post_report: inserted_jessica_report.to_owned(),
       post: inserted_post.to_owned(),
@@ -411,6 +446,7 @@ mod tests {
         matrix_user_id: None,
       },
       creator_banned_from_community: false,
+      my_vote: None,
       counts: PostAggregates {
         id: agg.id,
         post_id: inserted_post.id,
@@ -470,7 +506,7 @@ mod tests {
     // Try to resolve the report
     PostReport::resolve(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let read_jessica_report_view_after_resolve =
-      PostReportView::read(&conn, inserted_jessica_report.id).unwrap();
+      PostReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
