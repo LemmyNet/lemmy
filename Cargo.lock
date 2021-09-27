@@ -4053,8 +4053,9 @@ dependencies = [
 
 [[package]]
 name = "webmention"
-version = "0.3.0"
-source = "git+https://github.com/marinintim/webmention.git?branch=feature/response#d378d4ce07efed13d8c3824168f1aaded6329aca"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31c1f9ad3af9421b7e94faef6f884d32bd60b6ea00ff05d84df74392a89c2b9f"
 dependencies = [
  "anyhow",
  "nom",
