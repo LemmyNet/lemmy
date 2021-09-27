@@ -1002,16 +1002,17 @@ checksum = "31ad93652f40969dead8d4bf897a41e9462095152eb21c56e5830537e41179dd"
 
 [[package]]
 name = "doku"
-version = "0.9.0"
-source = "git+https://github.com/anixe/doku?branch=issue/1#97e58175aa2972c003a8155d6f58aca91a9bfe88"
+version = "0.10.0"
+source = "git+https://github.com/anixe/doku?branch=v0.10#7397e8fac5cd08585b87546a768903365fa8b8c8"
 dependencies = [
  "doku-derive",
+ "serde",
 ]
 
 [[package]]
 name = "doku-derive"
-version = "0.9.0"
-source = "git+https://github.com/anixe/doku?branch=issue/1#97e58175aa2972c003a8155d6f58aca91a9bfe88"
+version = "0.10.0"
+source = "git+https://github.com/anixe/doku?branch=v0.10#7397e8fac5cd08585b87546a768903365fa8b8c8"
 dependencies = [
  "darling 0.13.0",
  "proc-macro-error",

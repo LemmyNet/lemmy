@@ -7,6 +7,7 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
+use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
@@ -32,7 +33,11 @@ embed_migrations!();
 async fn main() -> Result<(), LemmyError> {
   let args: Vec<String> = env::args().collect();
   if args.len() == 2 && args[1] == "--print-config-docs" {
-    println!("{}", doku::to_json_val(&Settings::default()));
+    let fmt = Formatting {
+      auto_comments: AutoComments::none(),
+      ..Default::default()
+    };
+    println!("{}", doku::to_json_fmt_val(&fmt, &Settings::default()));
     return Ok(());
   }
 

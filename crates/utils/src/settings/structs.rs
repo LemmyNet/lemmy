@@ -1,8 +1,8 @@
 use doku::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr};
 
-#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct Settings {
   #[serde(default)]
@@ -36,7 +36,7 @@ pub struct Settings {
   pub actor_name_max_length: usize,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct CaptchaConfig {
   #[default(false)]
@@ -45,7 +45,7 @@ pub struct CaptchaConfig {
   pub difficulty: String,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct DatabaseConfig {
   #[default("lemmy")]
@@ -62,7 +62,7 @@ pub struct DatabaseConfig {
   pub pool_size: u32,
 }
 
-#[derive(Debug, Deserialize, Clone, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, Document)]
 pub struct EmailConfig {
   #[doku(example = "localhost:25")]
   pub smtp_server: String,
@@ -73,7 +73,7 @@ pub struct EmailConfig {
   pub use_tls: bool,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct FederationConfig {
   #[default(false)]
@@ -86,7 +86,7 @@ pub struct FederationConfig {
   pub strict_allowlist: bool,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct RateLimitConfig {
   #[default(180)]
@@ -107,7 +107,7 @@ pub struct RateLimitConfig {
   pub image_per_second: i32,
 }
 
-#[derive(Debug, Deserialize, Clone, SmartDefault, Doku)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 pub struct SetupConfig {
   #[doku(example = "admin")]
   pub admin_username: String,
