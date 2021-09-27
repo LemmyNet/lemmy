@@ -27,6 +27,8 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use log::warn;
+use webmention::{Webmention, WebmentionError};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePost {
@@ -124,6 +126,19 @@ impl PerformCrud for CreatePost {
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
+
+    if let Some(url) = &updated_post.url {
+      let mut webmention = Webmention::new(
+        updated_post.ap_id.clone().into_inner(),
+        url.clone().into_inner(),
+      )?;
+      webmention.set_checked(true);
+      match webmention.send().await {
+        Ok(_) => {}
+        Err(WebmentionError::NoEndpointDiscovered(_)) => {}
+        Err(e) => warn!("Failed to send webmention: {}", e),
+      }
+    }
 
     let object = PostOrComment::Post(Box::new(updated_post));
     Vote::send(
