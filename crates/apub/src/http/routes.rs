@@ -11,6 +11,7 @@ use crate::http::{
   person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
   post::get_apub_post,
   shared_inbox,
+  site::get_apub_site_http,
 };
 use actix_web::{
   guard::{Guard, GuardContext},
@@ -26,6 +27,8 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
     println!("federation enabled, host is {}", settings.hostname);
 
     cfg
+      .route("/", web::get().to(get_apub_site_http))
+      .route("/site_outbox", web::get().to(get_apub_site_http))
       .route(
         "/c/{community_name}",
         web::get().to(get_apub_community_http),

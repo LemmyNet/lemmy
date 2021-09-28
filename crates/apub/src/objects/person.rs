@@ -16,7 +16,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
-  values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -88,12 +87,6 @@ impl ApubObject for ApubPerson {
     } else {
       UserTypes::Person
     };
-    let source = self.bio.clone().map(|bio| Source {
-      content: bio,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let icon = self.avatar.clone().map(ImageObject::new);
-    let image = self.banner.clone().map(ImageObject::new);
 
     let person = Person {
       kind,
@@ -101,9 +94,9 @@ impl ApubObject for ApubPerson {
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      source,
-      icon,
-      image,
+      source: self.bio.clone().map(Source::new),
+      icon: self.avatar.clone().map(ImageObject::new),
+      image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(convert_datetime(self.published)),
       outbox: generate_outbox_url(&self.actor_id)?.into(),

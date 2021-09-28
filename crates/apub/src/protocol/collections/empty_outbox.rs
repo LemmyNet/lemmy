@@ -1,24 +1,23 @@
-use crate::generate_outbox_url;
 use activitystreams_kinds::collection::OrderedCollectionType;
-use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+/// Empty placeholder outbox used for Person, Instance, which dont implement a proper outbox yet.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct PersonOutbox {
+pub(crate) struct EmptyOutbox {
   r#type: OrderedCollectionType,
   id: Url,
   ordered_items: Vec<()>,
   total_items: i32,
 }
 
-impl PersonOutbox {
-  pub(crate) async fn new(user: Person) -> Result<PersonOutbox, LemmyError> {
-    Ok(PersonOutbox {
+impl EmptyOutbox {
+  pub(crate) async fn new(outbox_id: Url) -> Result<EmptyOutbox, LemmyError> {
+    Ok(EmptyOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_outbox_url(&user.actor_id)?.into(),
+      id: outbox_id,
       ordered_items: vec![],
       total_items: 0,
     })

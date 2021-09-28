@@ -91,7 +91,7 @@ impl Perform for Login {
       return Err(LemmyError::from_message("password_incorrect"));
     }
 
-    let site = blocking(context.pool(), Site::read_simple).await??;
+    let site = blocking(context.pool(), Site::read_local_site).await??;
     if site.require_email_verification && !local_user_view.local_user.email_verified {
       return Err(LemmyError::from_message("email_not_verified"));
     }
@@ -200,7 +200,7 @@ impl Perform for SaveUserSettings {
 
     // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
     if let Some(email) = &email {
-      let site_fut = blocking(context.pool(), Site::read_simple);
+      let site_fut = blocking(context.pool(), Site::read_local_site);
       if email.is_none() && site_fut.await??.require_email_verification {
         return Err(LemmyError::from_message("email_required"));
       }

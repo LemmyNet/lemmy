@@ -140,6 +140,7 @@ mod tests {
   use super::*;
   use crate::objects::{
     community::tests::parse_lemmy_community,
+    instance::tests::parse_lemmy_instance,
     person::tests::parse_lemmy_person,
     tests::{file_to_json_object, init_context},
   };
@@ -148,6 +149,7 @@ mod tests {
     source::{
       community::Community,
       person::{Person, PersonForm},
+      site::Site,
     },
     traits::Crud,
   };
@@ -159,6 +161,7 @@ mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
+    let site = parse_lemmy_instance(&context).await;
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
@@ -209,5 +212,6 @@ mod tests {
       community_context.0.id,
     )
     .unwrap();
+    Site::delete(&*community_context.1.pool().get().unwrap(), site.id).unwrap();
   }
 }

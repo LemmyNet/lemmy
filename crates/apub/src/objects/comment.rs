@@ -18,7 +18,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
-  values::{MediaTypeHtml, MediaTypeMarkdown},
+  values::MediaTypeHtml,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -120,10 +120,7 @@ impl ApubObject for ApubComment {
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
-      source: SourceCompat::Lemmy(Source {
-        content: self.content.clone(),
-        media_type: MediaTypeMarkdown::Markdown,
-      }),
+      source: SourceCompat::Lemmy(Source::new(self.content.clone())),
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -213,19 +210,22 @@ pub(crate) mod tests {
   use super::*;
   use crate::objects::{
     community::{tests::parse_lemmy_community, ApubCommunity},
+    instance::{tests::parse_lemmy_instance, ApubSite},
     person::{tests::parse_lemmy_person, ApubPerson},
     post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
   use assert_json_diff::assert_json_include;
   use lemmy_apub_lib::activity_queue::create_activity_queue;
+  use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 
   async fn prepare_comment_test(
     url: &Url,
     context: &LemmyContext,
-  ) -> (ApubPerson, ApubCommunity, ApubPost) {
+  ) -> (ApubPerson, ApubCommunity, ApubPost, ApubSite) {
     let person = parse_lemmy_person(context).await;
+    let site = parse_lemmy_instance(context).await;
     let community = parse_lemmy_community(context).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     ApubPost::verify(&post_json, url, context, &mut 0)
@@ -234,13 +234,14 @@ pub(crate) mod tests {
     let post = ApubPost::from_apub(post_json, context, &mut 0)
       .await
       .unwrap();
-    (person, community, post)
+    (person, community, post, site)
   }
 
-  fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost), context: &LemmyContext) {
+  fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost, ApubSite), context: &LemmyContext) {
     Post::delete(&*context.pool().get().unwrap(), data.2.id).unwrap();
     Community::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
     Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), data.3.id).unwrap();
   }
 
   #[actix_rt::test]

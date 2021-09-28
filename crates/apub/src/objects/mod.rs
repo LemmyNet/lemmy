@@ -3,6 +3,7 @@ use html2md::parse_html;
 
 pub mod comment;
 pub mod community;
+pub mod instance;
 pub mod person;
 pub mod post;
 pub mod private_message;
