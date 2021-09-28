@@ -3,7 +3,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
   check_community_ban,
-  collect_moderated_communities,
   comment::*,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
@@ -15,22 +14,18 @@ use lemmy_db_views::{
   comment_view::CommentView,
 };
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{
-  messages::{SendModRoomMessage, SendUserRoomMessage},
-  LemmyContext,
-  UserOperation,
-};
+use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateCommentReport {
-  type Response = CreateCommentReportResponse;
+  type Response = CommentReportResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
-  ) -> Result<CreateCommentReportResponse, LemmyError> {
+  ) -> Result<CommentReportResponse, LemmyError> {
     let data: &CreateCommentReport = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
@@ -66,18 +61,18 @@ impl Perform for CreateCommentReport {
     .await?
     .map_err(|_| ApiError::err("couldnt_create_report"))?;
 
-    let res = CreateCommentReportResponse { success: true };
+    let comment_report_view = blocking(context.pool(), move |conn| {
+      CommentReportView::read(conn, report.id, person_id)
+    })
+    .await??;
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::CreateCommentReport,
-      response: res.clone(),
-      local_recipient_id: local_user_view.local_user.id,
-      websocket_id,
-    });
+    let res = CommentReportResponse {
+      comment_report_view,
+    };
 
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreateCommentReport,
-      response: report,
+      response: res.clone(),
       community_id: comment_view.community.id,
       websocket_id,
     });
@@ -89,20 +84,21 @@ impl Perform for CreateCommentReport {
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
 impl Perform for ResolveCommentReport {
-  type Response = ResolveCommentReportResponse;
+  type Response = CommentReportResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
-  ) -> Result<ResolveCommentReportResponse, LemmyError> {
+  ) -> Result<CommentReportResponse, LemmyError> {
     let data: &ResolveCommentReport = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let report_id = data.report_id;
+    let person_id = local_user_view.person.id;
     let report = blocking(context.pool(), move |conn| {
-      CommentReportView::read(conn, report_id)
+      CommentReportView::read(conn, report_id, person_id)
     })
     .await??;
 
@@ -123,9 +119,13 @@ impl Perform for ResolveCommentReport {
     };
 
     let report_id = data.report_id;
-    let res = ResolveCommentReportResponse {
-      report_id,
-      resolved,
+    let comment_report_view = blocking(context.pool(), move |conn| {
+      CommentReportView::read(conn, report_id, person_id)
+    })
+    .await??;
+
+    let res = CommentReportResponse {
+      comment_report_view,
     };
 
     context.chat_server().do_send(SendModRoomMessage {
@@ -148,36 +148,29 @@ impl Perform for ListCommentReports {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommentReportsResponse, LemmyError> {
     let data: &ListCommentReports = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
-    let community_id = data.community;
-    let community_ids =
-      collect_moderated_communities(person_id, community_id, context.pool()).await?;
+    let community_id = data.community_id;
+    let unresolved_only = data.unresolved_only;
 
     let page = data.page;
     let limit = data.limit;
-    let comments = blocking(context.pool(), move |conn| {
-      CommentReportQueryBuilder::create(conn)
-        .community_ids(community_ids)
+    let comment_reports = blocking(context.pool(), move |conn| {
+      CommentReportQueryBuilder::create(conn, person_id)
+        .community_id(community_id)
+        .unresolved_only(unresolved_only)
         .page(page)
         .limit(limit)
         .list()
     })
     .await??;
 
-    let res = ListCommentReportsResponse { comments };
-
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::ListCommentReports,
-      response: res.clone(),
-      local_recipient_id: local_user_view.local_user.id,
-      websocket_id,
-    });
+    let res = ListCommentReportsResponse { comment_reports };
 
     Ok(res)
   }

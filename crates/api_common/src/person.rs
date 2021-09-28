@@ -253,15 +253,15 @@ pub struct PrivateMessageResponse {
   pub private_message_view: PrivateMessageView,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct GetReportCount {
-  pub community: Option<CommunityId>,
+  pub community_id: Option<CommunityId>,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone)]
 pub struct GetReportCountResponse {
-  pub community: Option<CommunityId>,
+  pub community_id: Option<CommunityId>,
   pub comment_reports: i64,
   pub post_reports: i64,
 }

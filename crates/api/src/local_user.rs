@@ -6,7 +6,6 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
   blocking,
-  collect_moderated_communities,
   get_local_user_view_from_jwt,
   is_admin,
   password_length_check,
@@ -67,7 +66,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{CaptchaItem, SendAllMessage, SendUserRoomMessage},
+  messages::{CaptchaItem, SendAllMessage},
   LemmyContext,
   UserOperation,
 };
@@ -816,51 +815,30 @@ impl Perform for GetReportCount {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
     let data: &GetReportCount = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
-    let community_id = data.community;
-    let community_ids =
-      collect_moderated_communities(person_id, community_id, context.pool()).await?;
+    let community_id = data.community_id;
 
-    let res = {
-      if community_ids.is_empty() {
-        GetReportCountResponse {
-          community: None,
-          comment_reports: 0,
-          post_reports: 0,
-        }
-      } else {
-        let ids = community_ids.clone();
-        let comment_reports = blocking(context.pool(), move |conn| {
-          CommentReportView::get_report_count(conn, &ids)
-        })
-        .await??;
+    let comment_reports = blocking(context.pool(), move |conn| {
+      CommentReportView::get_report_count(conn, person_id, community_id)
+    })
+    .await??;
 
-        let ids = community_ids.clone();
-        let post_reports = blocking(context.pool(), move |conn| {
-          PostReportView::get_report_count(conn, &ids)
-        })
-        .await??;
+    let post_reports = blocking(context.pool(), move |conn| {
+      PostReportView::get_report_count(conn, person_id, community_id)
+    })
+    .await??;
 
-        GetReportCountResponse {
-          community: data.community,
-          comment_reports,
-          post_reports,
-        }
-      }
+    let res = GetReportCountResponse {
+      community_id,
+      comment_reports,
+      post_reports,
     };
-
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::GetReportCount,
-      response: res.clone(),
-      local_recipient_id: local_user_view.local_user.id,
-      websocket_id,
-    });
 
     Ok(res)
   }

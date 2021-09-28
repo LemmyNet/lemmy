@@ -8,11 +8,7 @@ pub mod websocket;
 use crate::site::FederatedInstances;
 use diesel::PgConnection;
 use lemmy_db_queries::{
-  source::{
-    community::{CommunityModerator_, Community_},
-    person_block::PersonBlock_,
-    site::Site_,
-  },
+  source::{community::Community_, person_block::PersonBlock_, site::Site_},
   Crud,
   DbPool,
   Readable,
@@ -20,7 +16,7 @@ use lemmy_db_queries::{
 use lemmy_db_schema::{
   source::{
     comment::Comment,
-    community::{Community, CommunityModerator},
+    community::Community,
     person::Person,
     person_block::PersonBlock,
     person_mention::{PersonMention, PersonMentionForm},
@@ -382,31 +378,6 @@ pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), Le
     }
   }
   Ok(())
-}
-
-/// Returns a list of communities that the user moderates
-/// or if a community_id is supplied validates the user is a moderator
-/// of that community and returns the community id in a vec
-///
-/// * `person_id` - the person id of the moderator
-/// * `community_id` - optional community id to check for moderator privileges
-/// * `pool` - the diesel db pool
-pub async fn collect_moderated_communities(
-  person_id: PersonId,
-  community_id: Option<CommunityId>,
-  pool: &DbPool,
-) -> Result<Vec<CommunityId>, LemmyError> {
-  if let Some(community_id) = community_id {
-    // if the user provides a community_id, just check for mod/admin privileges
-    is_mod_or_admin(pool, person_id, community_id).await?;
-    Ok(vec![community_id])
-  } else {
-    let ids = blocking(pool, move |conn: &'_ _| {
-      CommunityModerator::get_person_moderated_communities(conn, person_id)
-    })
-    .await??;
-    Ok(ids)
-  }
 }
 
 pub async fn build_federated_instances(
