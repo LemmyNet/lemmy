@@ -112,13 +112,7 @@ impl PostReportView {
       ))
       .first::<PostReportViewTuple>(conn)?;
 
-    // If a person is given, then my_vote, if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    let my_vote = if post_like.is_none() {
-      Some(0)
-    } else {
-      post_like
-    };
+    let my_vote = if post_like.is_none() { None } else { post_like };
 
     Ok(Self {
       post_report,
@@ -388,7 +382,7 @@ mod tests {
     let agg = PostAggregates::read(&conn, inserted_post.id).unwrap();
 
     let read_jessica_report_view =
-      PostReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
+      PostReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let expected_jessica_report_view = PostReportView {
       post_report: inserted_jessica_report.to_owned(),
       post: inserted_post.to_owned(),
@@ -466,6 +460,7 @@ mod tests {
 
     let mut expected_sara_report_view = expected_jessica_report_view.clone();
     expected_sara_report_view.post_report = inserted_sara_report;
+    expected_sara_report_view.my_vote = None;
     expected_sara_report_view.creator = PersonSafe {
       id: inserted_sara.id,
       name: inserted_sara.name,
@@ -506,7 +501,7 @@ mod tests {
     // Try to resolve the report
     PostReport::resolve(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let read_jessica_report_view_after_resolve =
-      PostReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
+      PostReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve

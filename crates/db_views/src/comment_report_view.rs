@@ -122,7 +122,7 @@ impl CommentReportView {
       .first::<CommentReportViewTuple>(conn)?;
 
     let my_vote = if comment_like.is_none() {
-      Some(0)
+      None
     } else {
       comment_like
     };
@@ -404,7 +404,7 @@ mod tests {
     let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
 
     let read_jessica_report_view =
-      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
+      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.to_owned(),
       comment: inserted_comment.to_owned(),
@@ -519,7 +519,7 @@ mod tests {
     // Try to resolve the report
     CommentReport::resolve(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let read_jessica_report_view_after_resolve =
-      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_jessica.id).unwrap();
+      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
