@@ -23,6 +23,7 @@
   tasks:
   - name: install dependencies
     apt:
+      update_cache: yes
       pkg:
         - 'nginx'
         - 'docker-compose'
@@ -77,9 +78,8 @@
         lemmy_docker_ui_image: "dessalines/lemmy-ui:{{ lookup('file', 'VERSION') }}"
         lemmy_port: "8536"
         lemmy_ui_port: "1235"
-        pictshare_port: "8537"
 
-    - name:  add config file (only during initial setup)
+    - name: add minimal config file (only during initial setup)
       template:
         src: 'templates/config.hjson'
         dest: '{{lemmy_base_dir}}/lemmy.hjson'
