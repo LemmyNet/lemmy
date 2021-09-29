@@ -4,6 +4,7 @@ use lemmy_api_common::{
   blocking,
   check_community_ban,
   get_local_user_view_from_jwt,
+  honeypot_check,
   mark_post_as_read,
   post::*,
 };
@@ -46,6 +47,7 @@ impl PerformCrud for CreatePost {
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&data.name, slur_regex)?;
     check_slurs_opt(&data.body, slur_regex)?;
+    honeypot_check(&data.honeypot)?;
 
     if !is_valid_post_title(&data.name) {
       return Err(ApiError::err("invalid_post_title").into());

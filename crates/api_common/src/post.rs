@@ -18,6 +18,7 @@ pub struct CreatePost {
   pub community_id: CommunityId,
   pub url: Option<Url>,
   pub body: Option<String>,
+  pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub auth: String,
 }

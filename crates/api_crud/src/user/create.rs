@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, password_length_check, person::*};
+use lemmy_api_common::{blocking, honeypot_check, password_length_check, person::*};
 use lemmy_apub::{
   generate_apub_endpoint,
   generate_followers_url,
@@ -55,6 +55,7 @@ impl PerformCrud for Register {
     }
 
     password_length_check(&data.password)?;
+    honeypot_check(&data.honeypot)?;
 
     // Make sure passwords match
     if data.password != data.password_verify {

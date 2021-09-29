@@ -43,6 +43,7 @@ impl PerformCrud for GetSite {
             show_nsfw: true,
             captcha_uuid: None,
             captcha_answer: None,
+            honeypot: None,
           };
           let login_response = register.perform(context, websocket_id).await?;
           info!("Admin {} created", setup.admin_username);
