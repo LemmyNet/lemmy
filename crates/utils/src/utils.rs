@@ -28,30 +28,44 @@ pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
   DateTime::<FixedOffset>::from_utc(datetime, FixedOffset::east(0))
 }
 
-pub fn remove_slurs(test: &str, slur_regex: &Regex) -> String {
-  slur_regex.replace_all(test, "*removed*").to_string()
-}
-
-pub(crate) fn slur_check<'a>(test: &'a str, slur_regex: &'a Regex) -> Result<(), Vec<&'a str>> {
-  let mut matches: Vec<&str> = slur_regex.find_iter(test).map(|mat| mat.as_str()).collect();
-
-  // Unique
-  matches.sort_unstable();
-  matches.dedup();
-
-  if matches.is_empty() {
-    Ok(())
+pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
+  if let Some(slur_regex) = slur_regex {
+    slur_regex.replace_all(test, "*removed*").to_string()
   } else {
-    Err(matches)
+    test.to_string()
   }
 }
 
-pub fn check_slurs(text: &str, slur_regex: &Regex) -> Result<(), ApiError> {
-  slur_check(text, slur_regex)
-    .map_err(|slurs| ApiError::err_plain(&slurs_vec_to_str(slurs.clone())))
+pub(crate) fn slur_check<'a>(
+  test: &'a str,
+  slur_regex: &'a Option<Regex>,
+) -> Result<(), Vec<&'a str>> {
+  if let Some(slur_regex) = slur_regex {
+    let mut matches: Vec<&str> = slur_regex.find_iter(test).map(|mat| mat.as_str()).collect();
+
+    // Unique
+    matches.sort_unstable();
+    matches.dedup();
+
+    if matches.is_empty() {
+      Ok(())
+    } else {
+      Err(matches)
+    }
+  } else {
+    Ok(())
+  }
 }
 
-pub fn check_slurs_opt(text: &Option<String>, slur_regex: &Regex) -> Result<(), ApiError> {
+pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), ApiError> {
+  if let Err(slurs) = slur_check(text, slur_regex) {
+    Err(ApiError::err_plain(&slurs_vec_to_str(slurs)))
+  } else {
+    Ok(())
+  }
+}
+
+pub fn check_slurs_opt(text: &Option<String>, slur_regex: &Option<Regex>) -> Result<(), ApiError> {
   match text {
     Some(t) => check_slurs(t, slur_regex),
     None => Ok(()),

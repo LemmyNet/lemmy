@@ -42,7 +42,7 @@ pub struct Settings {
   pub pictrs_url: Option<String>,
   /// Regex for slurs which are prohibited. Example: `(\bThis\b)|(\bis\b)|(\bsample\b)`
   #[default(None)]
-  pub additional_slurs: Option<String>,
+  pub slur_filter: Option<String>,
   /// Maximum length of local community and user names
   #[default(20)]
   pub actor_name_max_length: usize,
