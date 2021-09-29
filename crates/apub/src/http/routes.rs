@@ -37,7 +37,7 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
 
     cfg
       .service(
-        web::scope("/")
+        web::scope("")
           .guard(header_guard_accept)
           .route(
             "/c/{community_name}",
@@ -71,7 +71,7 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
       )
       // Inboxes dont work with the header guard for some reason.
       .service(
-        web::scope("/")
+        web::scope("")
           .wrap(digest_verifier)
           .guard(header_guard_content_type)
           .route("/c/{community_name}/inbox", web::post().to(community_inbox))
