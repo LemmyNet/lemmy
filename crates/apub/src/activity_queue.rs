@@ -89,7 +89,7 @@ where
       private_key: actor.private_key().context(location_info!())?,
     };
     if env::var("LEMMY_TEST_SEND_SYNC").is_ok() {
-      do_send(message, &Client::default()).await?;
+      do_send(message, context.client()).await?;
     } else {
       context.activity_queue.queue::<SendActivityTask>(message)?;
     }
