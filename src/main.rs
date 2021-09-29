@@ -17,6 +17,7 @@ use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
+  request::build_user_agent,
   settings::structs::Settings,
   LemmyError,
 };
@@ -72,6 +73,10 @@ async fn main() -> Result<(), LemmyError> {
     settings.bind, settings.port
   );
 
+  let client = Client::builder()
+    .user_agent(build_user_agent(&settings))
+    .build()?;
+
   let activity_queue = create_activity_queue();
 
   let chat_server = ChatServer::startup(
@@ -79,7 +84,7 @@ async fn main() -> Result<(), LemmyError> {
     rate_limiter.clone(),
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
-    Client::default(),
+    client.clone(),
     activity_queue.clone(),
     settings.clone(),
     secret.clone(),
@@ -92,7 +97,7 @@ async fn main() -> Result<(), LemmyError> {
     let context = LemmyContext::create(
       pool.clone(),
       chat_server.to_owned(),
-      Client::default(),
+      client.clone(),
       activity_queue.to_owned(),
       settings.to_owned(),
       secret.to_owned(),

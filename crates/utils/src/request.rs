@@ -1,4 +1,4 @@
-use crate::{settings::structs::Settings, LemmyError};
+use crate::{settings::structs::Settings, version::VERSION, LemmyError};
 use anyhow::anyhow;
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -216,17 +216,30 @@ async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyE
   }
 }
 
+pub fn build_user_agent(settings: &Settings) -> String {
+  format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  )
+}
+
 #[cfg(test)]
 mod tests {
-  use crate::request::fetch_site_metadata;
+  use crate::request::{build_user_agent, fetch_site_metadata};
   use url::Url;
 
   use super::SiteMetadata;
+  use crate::settings::structs::Settings;
 
   // These helped with testing
   #[actix_rt::test]
   async fn test_site_metadata() {
-    let client = reqwest::Client::default();
+    let settings = Settings::init().unwrap();
+    let client = reqwest::Client::builder()
+      .user_agent(build_user_agent(&settings))
+      .build()
+      .unwrap();
     let sample_url = Url::parse("https://www.redspark.nu/en/peoples-war/district-leader-of-chand-led-cpn-arrested-in-bhojpur/").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(
