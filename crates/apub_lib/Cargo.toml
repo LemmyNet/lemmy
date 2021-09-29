@@ -10,10 +10,10 @@ lemmy_utils = { version = "=0.13.0-rc.1", path = "../utils" }
 lemmy_websocket = { version = "=0.13.0-rc.1", path = "../websocket" }
 lemmy_apub_lib_derive = { version = "=0.13.0-rc.1", path = "../apub_lib_derive" }
 activitystreams = "0.7.0-alpha.11"
-serde = { version = "1.0.129", features = ["derive"] }
+serde = { version = "1.0.130", features = ["derive"] }
 async-trait = "0.1.51"
 url = { version = "2.2.2", features = ["serde"] }
-serde_json = { version = "1.0.66", features = ["preserve_order"] }
-anyhow = "1.0.43"
+serde_json = { version = "1.0.68", features = ["preserve_order"] }
+anyhow = "1.0.44"
 reqwest = { version = "0.11.4", features = ["json"] }
 log = "0.4.14"

@@ -13,15 +13,15 @@ doctest = false
 [dependencies]
 lemmy_utils = { version = "=0.13.0-rc.1", path = "../utils" }
 lemmy_db_schema = { version = "=0.13.0-rc.1", path = "../db_schema" }
-diesel = { version = "1.4.7", features = ["postgres","chrono","r2d2","serde_json"] }
+diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.129", features = ["derive"] }
-serde_json = { version = "1.0.66", features = ["preserve_order"] }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = { version = "1.0.68", features = ["preserve_order"] }
 strum = "0.21.0"
 strum_macros = "0.21.1"
 log = "0.4.14"
-sha2 = "0.9.5"
+sha2 = "0.9.8"
 url = { version = "2.2.2", features = ["serde"] }
 lazy_static = "1.4.0"
 regex = "1.5.4"
