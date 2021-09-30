@@ -3,6 +3,7 @@
   # https://join-lemmy.org/docs/en/administration/configuration.html
 
   database: {
+    host: postgres
     password: "{{ postgres_password }}"
   }
   hostname: "{{ domain }}"
