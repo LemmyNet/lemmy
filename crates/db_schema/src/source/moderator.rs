@@ -1,5 +1,6 @@
 use crate::{
   schema::{
+    admin_purge,
     mod_add,
     mod_add_community,
     mod_ban,
@@ -218,4 +219,18 @@ pub struct ModAddForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub removed: Option<bool>,
+}
+
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[table_name = "admin_purge"]
+pub struct AdminPurge {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[table_name = "admin_purge"]
+pub struct AdminPurgeForm {
+  pub admin_person_id: PersonId,
 }

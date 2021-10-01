@@ -240,6 +240,29 @@ impl Crud for ModAdd {
   }
 }
 
+impl Crud for AdminPurge {
+  type Form = AdminPurgeForm;
+  type IdType = i32;
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::admin_purge::dsl::*;
+    admin_purge.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::admin_purge::dsl::*;
+    insert_into(admin_purge)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::admin_purge::dsl::*;
+    diesel::update(admin_purge.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{establish_unpooled_connection, Crud};

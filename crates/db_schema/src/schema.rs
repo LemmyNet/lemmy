@@ -558,6 +558,14 @@ table! {
   }
 }
 
+table! {
+  admin_purge (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    when_ -> Timestamp,
+  }
+}
+
 joinable!(comment_alias_1 -> person_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(person_mention -> person_alias_1 (recipient_id));
@@ -619,6 +627,7 @@ joinable!(post_saved -> person (person_id));
 joinable!(post_saved -> post (post_id));
 joinable!(site -> person (creator_id));
 joinable!(site_aggregates -> site (site_id));
+joinable!(admin_purge -> person (admin_person_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -662,4 +671,5 @@ allow_tables_to_appear_in_same_query!(
   comment_alias_1,
   person_alias_1,
   person_alias_2,
+  admin_purge,
 );

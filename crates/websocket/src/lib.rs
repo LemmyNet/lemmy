@@ -137,6 +137,7 @@ pub enum UserOperation {
   UserJoin,
   GetSiteConfig,
   SaveSiteConfig,
+  PurgeItem,
   PostJoin,
   CommunityJoin,
   ModJoin,

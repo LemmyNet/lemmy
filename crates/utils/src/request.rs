@@ -112,6 +112,11 @@ pub(crate) struct PictrsResponse {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub(crate) struct PictrsPurgeResponse {
+  msg: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub(crate) struct PictrsFile {
   file: String,
   #[allow(dead_code)]
@@ -141,6 +146,40 @@ pub(crate) async fn fetch_pictrs(
 
     if response.msg == "ok" {
       Ok(response)
+    } else {
+      Err(anyhow!("{}", &response.msg).into())
+    }
+  } else {
+    Err(anyhow!("pictrs_url not set up in config").into())
+  }
+}
+
+pub async fn purge_image_from_pictrs(
+  client: &Client,
+  settings: &Settings,
+  image_url: &Url, // TODO file or alias?
+) -> Result<(), LemmyError> {
+  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
+    is_image_content_type(client, image_url).await?;
+
+    // TODO alias or file here?
+    // TODO force the API token in the request params?
+    let purge_url = format!(
+      "{}/internal/purge?file={}",
+      pictrs_url,
+      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
+    );
+
+    let response = retry(|| client.get(&purge_url).send()).await?;
+
+    let response: PictrsPurgeResponse = response
+      .json()
+      .await
+      .map_err(|e| RecvError(e.to_string()))?;
+
+    if response.msg == "ok" {
+      // Ok(response) // TODO
+      Ok(())
     } else {
       Err(anyhow!("{}", &response.msg).into())
     }

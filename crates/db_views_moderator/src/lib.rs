@@ -1,3 +1,4 @@
+pub mod admin_purge_view;
 pub mod mod_add_community_view;
 pub mod mod_add_view;
 pub mod mod_ban_from_community_view;

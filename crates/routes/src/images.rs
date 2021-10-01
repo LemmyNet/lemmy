@@ -22,7 +22,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
     .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
-    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
+    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)))
+    .service(web::resource("/pictrs/internal/purge").route(web::post().to(purge)));
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,6 +42,12 @@ struct Images {
 struct PictrsParams {
   format: Option<String>,
   thumbnail: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct PictrsPurgeParams {
+  file: Option<String>,
+  alias: Option<String>,
 }
 
 async fn upload(
@@ -164,6 +171,44 @@ async fn delete(
 
   let mut client_req = client.request_from(url, req.head());
   client_req.headers_mut().remove(ACCEPT_ENCODING);
+
+  if let Some(addr) = req.head().peer_addr {
+    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
+  };
+
+  let res = client_req
+    .no_decompress()
+    .send()
+    .await
+    .map_err(error::ErrorBadRequest)?;
+
+  Ok(HttpResponse::build(res.status()).body(BodyStream::new(res)))
+}
+
+async fn purge(
+  web::Query(params): web::Query<PictrsPurgeParams>,
+  req: HttpRequest,
+  client: web::Data<Client>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let purge_string = if let Some(file) = params.file {
+    format!("file={}", file)
+  } else if let Some(alias) = params.alias {
+    format!("alias={}", alias)
+  } else {
+    return Ok(HttpResponse::NotFound().finish());
+  };
+
+  let url = format!(
+    "{}/internal/purge?{}",
+    pictrs_url(context.settings().pictrs_url)?,
+    &purge_string,
+  );
+
+  let mut client_req = client.request_from(url, req.head());
+  client_req.headers_mut().remove(ACCEPT_ENCODING);
+
+  // TODO add the API token, X-Api-Token header
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))

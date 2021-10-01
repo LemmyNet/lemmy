@@ -26,7 +26,14 @@ use lemmy_db_queries::{
   SortType,
 };
 use lemmy_db_schema::{
-  source::{moderator::*, site::Site},
+  source::{
+    comment::Comment,
+    community::Community,
+    moderator::*,
+    person::Person,
+    post::Post,
+    site::Site,
+  },
   PersonId,
 };
 use lemmy_db_views::{
@@ -39,6 +46,7 @@ use lemmy_db_views_actor::{
   person_view::{PersonQueryBuilder, PersonViewSafe},
 };
 use lemmy_db_views_moderator::{
+  admin_purge_view::AdminPurgeView,
   mod_add_community_view::ModAddCommunityView,
   mod_add_view::ModAddView,
   mod_ban_from_community_view::ModBanFromCommunityView,
@@ -52,6 +60,7 @@ use lemmy_db_views_moderator::{
 };
 use lemmy_utils::{
   location_info,
+  request::purge_image_from_pictrs,
   settings::structs::Settings,
   version,
   ApiError,
@@ -111,17 +120,18 @@ impl Perform for GetModlog {
     .await??;
 
     // These arrays are only for the full modlog, when a community isn't given
-    let (removed_communities, banned, added) = if data.community_id.is_none() {
+    let (removed_communities, banned, added, admin_purged) = if data.community_id.is_none() {
       blocking(context.pool(), move |conn| {
         Ok((
           ModRemoveCommunityView::list(conn, mod_person_id, page, limit)?,
           ModBanView::list(conn, mod_person_id, page, limit)?,
           ModAddView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgeView::list(conn, mod_person_id, page, limit)?,
         )) as Result<_, LemmyError>
       })
       .await??
     } else {
-      (Vec::new(), Vec::new(), Vec::new())
+      (Vec::new(), Vec::new(), Vec::new(), Vec::new())
     };
 
     // Return the jwt
@@ -136,6 +146,7 @@ impl Perform for GetModlog {
       added_to_community,
       added,
       transferred_to_community,
+      admin_purged,
     })
   }
 }
@@ -545,5 +556,79 @@ impl Perform for SaveSiteConfig {
       .map_err(|e| ApiError::err("couldnt_update_site", e))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for PurgeItem {
+  type Response = PurgeItemResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data: &Self = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Only let admins purge an item
+    is_admin(&local_user_view)?;
+
+    if let Some(comment_id) = data.comment_id {
+      blocking(context.pool(), move |conn| {
+        Comment::delete(conn, comment_id)
+      })
+      .await??;
+    } else if let Some(post_id) = data.post_id {
+      blocking(context.pool(), move |conn| Post::delete(conn, post_id)).await??;
+    } else if let Some(person_id) = data.person_id {
+      if data.remove_images {
+        // Read the person to get their images
+        let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
+
+        if let Some(banner) = person.banner {
+          purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
+            .await?;
+        }
+
+        if let Some(avatar) = person.avatar {
+          purge_image_from_pictrs(context.client(), &context.settings(), &avatar.into_inner())
+            .await?;
+        }
+      }
+
+      blocking(context.pool(), move |conn| Person::delete(conn, person_id)).await??;
+    } else if let Some(community_id) = data.community_id {
+      if data.remove_images {
+        // Read the community to get its images
+        let community = blocking(context.pool(), move |conn| {
+          Community::read(conn, community_id)
+        })
+        .await??;
+
+        if let Some(banner) = community.banner {
+          purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
+            .await?;
+        }
+
+        if let Some(icon) = community.icon {
+          purge_image_from_pictrs(context.client(), &context.settings(), &icon.into_inner())
+            .await?;
+        }
+      }
+      blocking(context.pool(), move |conn| {
+        Community::delete(conn, community_id)
+      })
+      .await??;
+    }
+
+    // Mod tables
+    let form = AdminPurgeForm {
+      admin_person_id: local_user_view.person.id,
+    };
+    blocking(context.pool(), move |conn| AdminPurge::create(conn, &form)).await??;
+
+    Ok(PurgeItemResponse { success: true })
   }
 }
