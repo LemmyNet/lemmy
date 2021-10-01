@@ -26,6 +26,7 @@ pub struct Register {
   pub email: Option<String>,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
+  pub honeypot: Option<String>,
 }
 
 #[derive(Deserialize)]

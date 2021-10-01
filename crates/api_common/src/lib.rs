@@ -439,3 +439,12 @@ pub fn site_description_length_check(description: &str) -> Result<(), LemmyError
     Ok(())
   }
 }
+
+/// Checks for a honeypot. If this field is filled, fail the rest of the function
+pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
+  if honeypot.is_some() {
+    Err(ApiError::err("honeypot_fail").into())
+  } else {
+    Ok(())
+  }
+}
