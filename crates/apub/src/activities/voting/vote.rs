@@ -15,7 +15,11 @@ use crate::{
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
+  values::PublicUrl,
+};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},

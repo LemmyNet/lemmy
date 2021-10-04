@@ -20,7 +20,10 @@ use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityFields, ActivityHandler, Data};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
+};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, LemmyError};

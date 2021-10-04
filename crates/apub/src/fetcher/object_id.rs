@@ -6,7 +6,7 @@ use crate::{
 use anyhow::anyhow;
 use diesel::{NotFound, PgConnection};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::ApubObject;
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_queries::DbPool;
 use lemmy_db_schema::DbUrl;
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};

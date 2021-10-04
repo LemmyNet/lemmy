@@ -24,7 +24,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::person::Person_;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;

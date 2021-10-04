@@ -8,7 +8,11 @@ use crate::{
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler, Data};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
+  verify::verify_domains_match,
+};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;

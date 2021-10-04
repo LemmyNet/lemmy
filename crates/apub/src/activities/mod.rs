@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields};
+use lemmy_apub_lib::{traits::ActivityFields, verify::verify_domains_match};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{settings::structs::Settings, LemmyError};

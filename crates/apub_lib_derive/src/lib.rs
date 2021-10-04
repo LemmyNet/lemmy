@@ -91,11 +91,11 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
 
   let expanded = quote! {
       #[async_trait::async_trait(?Send)]
-      impl #impl_generics lemmy_apub_lib::ActivityHandler for #enum_name #ty_generics #where_clause {
+      impl #impl_generics lemmy_apub_lib::traits::ActivityHandler for #enum_name #ty_generics #where_clause {
         type DataType = #attrs;
           async fn verify(
               &self,
-              context: &lemmy_apub_lib::Data<Self::DataType>,
+              context: &lemmy_apub_lib::data::Data<Self::DataType>,
               request_counter: &mut i32,
             ) -> Result<(), lemmy_utils::LemmyError> {
             match self {
@@ -104,7 +104,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
           }
           async fn receive(
             self,
-            context: &lemmy_apub_lib::Data<Self::DataType>,
+            context: &lemmy_apub_lib::data::Data<Self::DataType>,
             request_counter: &mut i32,
           ) -> Result<(), lemmy_utils::LemmyError> {
             match self {
@@ -149,7 +149,7 @@ pub fn derive_activity_fields(input: proc_macro::TokenStream) -> proc_macro::Tok
         .iter()
         .map(|v| generate_match_arm(&name, v, &quote! {a.cc()}));
       quote! {
-          impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
+          impl #impl_generics lemmy_apub_lib::traits::ActivityFields for #name #ty_generics #where_clause {
               fn id_unchecked(&self) -> &url::Url { match self { #(#impl_id)* } }
               fn actor(&self) -> &url::Url { match self { #(#impl_actor)* } }
               fn cc(&self) -> Vec<url::Url> { match self { #(#impl_cc)* } }
@@ -171,7 +171,7 @@ pub fn derive_activity_fields(input: proc_macro::TokenStream) -> proc_macro::Tok
         quote! {vec![]}
       };
       quote! {
-          impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
+          impl #impl_generics lemmy_apub_lib::traits::ActivityFields for #name #ty_generics #where_clause {
               fn id_unchecked(&self) -> &url::Url { &self.id }
               fn actor(&self) -> &url::Url { &self.actor.inner() }
               fn cc(&self) -> Vec<url::Url> { #cc_impl }

@@ -18,11 +18,9 @@ use activitystreams::{
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  verify_domains_match,
-  verify_urls_match,
-  ActivityFields,
-  ActivityHandler,
-  Data,
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
+  verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};

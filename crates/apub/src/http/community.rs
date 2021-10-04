@@ -22,7 +22,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{

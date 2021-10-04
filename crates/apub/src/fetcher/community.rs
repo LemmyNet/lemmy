@@ -6,7 +6,7 @@ use crate::{
 use activitystreams::collection::{CollectionExt, OrderedCollection};
 use anyhow::Context;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityHandler, Data};
+use lemmy_apub_lib::{data::Data, traits::ActivityHandler};
 use lemmy_db_queries::Joinable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityModerator, CommunityModeratorForm},

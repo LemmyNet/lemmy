@@ -1,7 +1,7 @@
 use crate::objects::{comment::Note, post::Page, FromApub};
 use activitystreams::chrono::NaiveDateTime;
 use diesel::PgConnection;
-use lemmy_apub_lib::ApubObject;
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::{
   comment::{Comment, CommentForm},
   post::{Post, PostForm},

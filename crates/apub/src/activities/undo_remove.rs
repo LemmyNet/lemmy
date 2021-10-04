@@ -12,7 +12,11 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
+  values::PublicUrl,
+};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

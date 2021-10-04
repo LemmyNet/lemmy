@@ -9,7 +9,10 @@ use crate::{
 };
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields, ApubObject};
+use lemmy_apub_lib::{
+  traits::{ActivityFields, ApubObject},
+  verify::verify_domains_match,
+};
 use lemmy_db_queries::source::{comment::Comment_, community::Community_, post::Post_};
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;

@@ -23,7 +23,11 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler, Data};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
+  values::PublicUrl,
+};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
   Crud,

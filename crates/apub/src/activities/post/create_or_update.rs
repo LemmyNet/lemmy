@@ -17,12 +17,10 @@ use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler},
   values::PublicUrl,
-  verify_domains_match,
-  verify_urls_match,
-  ActivityFields,
-  ActivityHandler,
-  Data,
+  verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, person::Person, post::Post};

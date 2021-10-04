@@ -8,7 +8,7 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use lemmy_apub_lib::ApubObject;
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_utils::LemmyError;
 use serde::Serialize;
 use url::Url;

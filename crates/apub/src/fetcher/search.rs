@@ -8,8 +8,8 @@ use diesel::PgConnection;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  traits::ApubObject,
   webfinger::{webfinger_resolve_actor, WebfingerType},
-  ApubObject,
 };
 use lemmy_db_queries::{
   source::{community::Community_, person::Person_},

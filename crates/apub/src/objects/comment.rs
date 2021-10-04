@@ -18,7 +18,7 @@ use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
-  verify_domains_match,
+  verify::verify_domains_match,
 };
 use lemmy_db_queries::{source::comment::Comment_, Crud, DbPool};
 use lemmy_db_schema::{
