@@ -85,7 +85,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

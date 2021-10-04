@@ -24,7 +24,7 @@ use lemmy_apub_lib::{
   ActivityHandler,
   Data,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, ApubObject, Crud};
+use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
@@ -86,7 +86,7 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     verify_activity(self, &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_urls_match(self.actor(), self.object.actor())?;
-    verify_domains_match(self.actor(), &self.object.object)?;
+    verify_domains_match(self.actor(), self.object.object.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -97,10 +97,7 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let ap_id = self.object.object.clone();
-    let private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read_from_apub_id(conn, &ap_id.into())
-    })
-    .await??;
+    let private_message = ap_id.dereference_local(context).await?;
 
     let deleted_private_message = blocking(context.pool(), move |conn| {
       PrivateMessage::update_deleted(conn, private_message.id, false)

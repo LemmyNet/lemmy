@@ -1,5 +1,4 @@
-use crate::{ApubObject, Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable};
-use chrono::NaiveDateTime;
+use crate::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
@@ -190,17 +189,6 @@ impl Post_ for Post {
       .do_update()
       .set(post_form)
       .get_result::<Self>(conn)
-  }
-}
-
-impl ApubObject for Post {
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::post::dsl::*;
-    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 }
 

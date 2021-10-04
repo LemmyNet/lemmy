@@ -18,7 +18,7 @@ use activitystreams::{
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler, Data};
-use lemmy_db_queries::{ApubObject, Followable};
+use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
   person::Person,
@@ -44,18 +44,17 @@ pub struct AcceptFollowCommunity {
 }
 
 impl AcceptFollowCommunity {
-  pub async fn send(follow: FollowCommunity, context: &LemmyContext) -> Result<(), LemmyError> {
-    let community_id = follow.object.clone();
-    let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &community_id.into())
-    })
-    .await??;
-    let person_id = follow.actor().clone();
-    let person = blocking(context.pool(), move |conn| {
-      Person::read_from_apub_id(conn, &person_id.into())
-    })
-    .await??;
-
+  pub async fn send(
+    follow: FollowCommunity,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    let community = follow.object.dereference_local(context).await?;
+    let person = follow
+      .actor
+      .clone()
+      .dereference(context, request_counter)
+      .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
       to: ObjectId::new(person.actor_id()),

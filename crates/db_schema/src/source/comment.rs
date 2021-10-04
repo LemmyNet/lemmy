@@ -6,7 +6,12 @@ use crate::{
   PersonId,
   PostId,
 };
+use chrono::NaiveDateTime;
+use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use lemmy_apub_lib::ApubObject;
+use lemmy_utils::LemmyError;
 use serde::Serialize;
+use url::Url;
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -103,4 +108,18 @@ pub struct CommentSaved {
 pub struct CommentSavedForm {
   pub comment_id: CommentId,
   pub person_id: PersonId,
+}
+
+impl ApubObject for Comment {
+  type DataType = PgConnection;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
+    use crate::schema::comment::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(comment.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
+  }
 }

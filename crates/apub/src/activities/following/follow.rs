@@ -31,7 +31,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
-  actor: ObjectId<Person>,
+  pub(in crate::activities::following) actor: ObjectId<Person>,
   // TODO: is there any reason to put the same community id twice, in to and object?
   pub(in crate::activities::following) to: ObjectId<Community>,
   pub(in crate::activities::following) object: ObjectId<Community>,
@@ -117,6 +117,6 @@ impl ActivityHandler for FollowCommunity {
     })
     .await?;
 
-    AcceptFollowCommunity::send(self, context).await
+    AcceptFollowCommunity::send(self, context, request_counter).await
   }
 }

@@ -106,9 +106,9 @@ impl ActivityHandler for CreateOrUpdatePost {
         }
       }
       CreateOrUpdateType::Update => {
-        let is_mod_action = self.object.is_mod_action(context.pool()).await?;
+        let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
+          verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
           verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
