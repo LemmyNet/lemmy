@@ -46,7 +46,10 @@ use lemmy_db_views_actor::{
   person_view::{PersonQueryBuilder, PersonViewSafe},
 };
 use lemmy_db_views_moderator::{
-  admin_purge_view::AdminPurgeView,
+  admin_purge_comment_view::AdminPurgeCommentView,
+  admin_purge_community_view::AdminPurgeCommunityView,
+  admin_purge_person_view::AdminPurgePersonView,
+  admin_purge_post_view::AdminPurgePostView,
   mod_add_community_view::ModAddCommunityView,
   mod_add_view::ModAddView,
   mod_ban_from_community_view::ModBanFromCommunityView,
@@ -120,18 +123,37 @@ impl Perform for GetModlog {
     .await??;
 
     // These arrays are only for the full modlog, when a community isn't given
-    let (removed_communities, banned, added, admin_purged) = if data.community_id.is_none() {
+    let (
+      removed_communities,
+      banned,
+      added,
+      admin_purged_persons,
+      admin_purged_communities,
+      admin_purged_posts,
+      admin_purged_comments,
+    ) = if data.community_id.is_none() {
       blocking(context.pool(), move |conn| {
         Ok((
           ModRemoveCommunityView::list(conn, mod_person_id, page, limit)?,
           ModBanView::list(conn, mod_person_id, page, limit)?,
           ModAddView::list(conn, mod_person_id, page, limit)?,
-          AdminPurgeView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgePersonView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgeCommunityView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgePostView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgeCommentView::list(conn, mod_person_id, page, limit)?,
         )) as Result<_, LemmyError>
       })
       .await??
     } else {
-      (Vec::new(), Vec::new(), Vec::new(), Vec::new())
+      (
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+      )
     };
 
     // Return the jwt
@@ -146,7 +168,10 @@ impl Perform for GetModlog {
       added_to_community,
       added,
       transferred_to_community,
-      admin_purged,
+      admin_purged_persons,
+      admin_purged_communities,
+      admin_purged_posts,
+      admin_purged_comments,
     })
   }
 }
@@ -560,7 +585,7 @@ impl Perform for SaveSiteConfig {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for PurgeItem {
+impl Perform for PurgePerson {
   type Response = PurgeItemResponse;
 
   async fn perform(
@@ -575,59 +600,176 @@ impl Perform for PurgeItem {
     // Only let admins purge an item
     is_admin(&local_user_view)?;
 
-    if let Some(comment_id) = data.comment_id {
-      blocking(context.pool(), move |conn| {
-        Comment::delete(conn, comment_id)
-      })
-      .await??;
-    } else if let Some(post_id) = data.post_id {
-      blocking(context.pool(), move |conn| Post::delete(conn, post_id)).await??;
-    } else if let Some(person_id) = data.person_id {
-      if data.remove_images {
-        // Read the person to get their images
-        let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
+    let person_id = data.person_id;
+    if data.remove_images {
+      // Read the person to get their images
+      let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
 
-        if let Some(banner) = person.banner {
-          purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
-            .await?;
-        }
-
-        if let Some(avatar) = person.avatar {
-          purge_image_from_pictrs(context.client(), &context.settings(), &avatar.into_inner())
-            .await?;
-        }
+      if let Some(banner) = person.banner {
+        purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
+          .await?;
       }
 
-      blocking(context.pool(), move |conn| Person::delete(conn, person_id)).await??;
-    } else if let Some(community_id) = data.community_id {
-      if data.remove_images {
-        // Read the community to get its images
-        let community = blocking(context.pool(), move |conn| {
-          Community::read(conn, community_id)
-        })
-        .await??;
-
-        if let Some(banner) = community.banner {
-          purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
-            .await?;
-        }
-
-        if let Some(icon) = community.icon {
-          purge_image_from_pictrs(context.client(), &context.settings(), &icon.into_inner())
-            .await?;
-        }
+      if let Some(avatar) = person.avatar {
+        purge_image_from_pictrs(context.client(), &context.settings(), &avatar.into_inner())
+          .await?;
       }
-      blocking(context.pool(), move |conn| {
-        Community::delete(conn, community_id)
-      })
-      .await??;
     }
 
+    blocking(context.pool(), move |conn| Person::delete(conn, person_id)).await??;
+
     // Mod tables
-    let form = AdminPurgeForm {
+    let reason = data.reason.to_owned();
+    let form = AdminPurgePersonForm {
       admin_person_id: local_user_view.person.id,
+      reason,
     };
-    blocking(context.pool(), move |conn| AdminPurge::create(conn, &form)).await??;
+
+    blocking(context.pool(), move |conn| {
+      AdminPurgePerson::create(conn, &form)
+    })
+    .await??;
+
+    Ok(PurgeItemResponse { success: true })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for PurgeCommunity {
+  type Response = PurgeItemResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data: &Self = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Only let admins purge an item
+    is_admin(&local_user_view)?;
+
+    let community_id = data.community_id;
+    if data.remove_images {
+      // Read the community to get its images
+      let community = blocking(context.pool(), move |conn| {
+        Community::read(conn, community_id)
+      })
+      .await??;
+
+      if let Some(banner) = community.banner {
+        purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
+          .await?;
+      }
+
+      if let Some(icon) = community.icon {
+        purge_image_from_pictrs(context.client(), &context.settings(), &icon.into_inner()).await?;
+      }
+    }
+    blocking(context.pool(), move |conn| {
+      Community::delete(conn, community_id)
+    })
+    .await??;
+
+    // Mod tables
+    let reason = data.reason.to_owned();
+    let form = AdminPurgeCommunityForm {
+      admin_person_id: local_user_view.person.id,
+      reason,
+    };
+
+    blocking(context.pool(), move |conn| {
+      AdminPurgeCommunity::create(conn, &form)
+    })
+    .await??;
+
+    Ok(PurgeItemResponse { success: true })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for PurgePost {
+  type Response = PurgeItemResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data: &Self = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Only let admins purge an item
+    is_admin(&local_user_view)?;
+
+    let post_id = data.post_id;
+
+    // Read the post to get the community_id
+    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+
+    let community_id = post.community_id;
+
+    blocking(context.pool(), move |conn| Post::delete(conn, post_id)).await??;
+
+    // Mod tables
+    let reason = data.reason.to_owned();
+    let form = AdminPurgePostForm {
+      admin_person_id: local_user_view.person.id,
+      reason,
+      community_id,
+    };
+
+    blocking(context.pool(), move |conn| {
+      AdminPurgePost::create(conn, &form)
+    })
+    .await??;
+
+    Ok(PurgeItemResponse { success: true })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for PurgeComment {
+  type Response = PurgeItemResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data: &Self = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Only let admins purge an item
+    is_admin(&local_user_view)?;
+
+    let comment_id = data.comment_id;
+
+    // Read the comment to get the post_id
+    let comment = blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
+
+    let post_id = comment.post_id;
+
+    blocking(context.pool(), move |conn| {
+      Comment::delete(conn, comment_id)
+    })
+    .await??;
+
+    // Mod tables
+    let reason = data.reason.to_owned();
+    let form = AdminPurgeCommentForm {
+      admin_person_id: local_user_view.person.id,
+      reason,
+      post_id,
+    };
+
+    blocking(context.pool(), move |conn| {
+      AdminPurgeComment::create(conn, &form)
+    })
+    .await??;
 
     Ok(PurgeItemResponse { success: true })
   }

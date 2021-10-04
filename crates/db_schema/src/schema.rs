@@ -559,9 +559,39 @@ table! {
 }
 
 table! {
-  admin_purge (id) {
+  admin_purge_comment (id) {
     id -> Int4,
     admin_person_id -> Int4,
+    post_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
+  }
+}
+
+table! {
+  admin_purge_community (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
+  }
+}
+
+table! {
+  admin_purge_person (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
+  }
+}
+
+table! {
+  admin_purge_post (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    community_id -> Int4,
+    reason -> Nullable<Text>,
     when_ -> Timestamp,
   }
 }
@@ -627,7 +657,13 @@ joinable!(post_saved -> person (person_id));
 joinable!(post_saved -> post (post_id));
 joinable!(site -> person (creator_id));
 joinable!(site_aggregates -> site (site_id));
-joinable!(admin_purge -> person (admin_person_id));
+
+joinable!(admin_purge_comment -> person (admin_person_id));
+joinable!(admin_purge_comment -> post (post_id));
+joinable!(admin_purge_community -> person (admin_person_id));
+joinable!(admin_purge_person -> person (admin_person_id));
+joinable!(admin_purge_post -> community (community_id));
+joinable!(admin_purge_post -> person (admin_person_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -671,5 +707,8 @@ allow_tables_to_appear_in_same_query!(
   comment_alias_1,
   person_alias_1,
   person_alias_2,
-  admin_purge,
+  admin_purge_comment,
+  admin_purge_community,
+  admin_purge_person,
+  admin_purge_post,
 );

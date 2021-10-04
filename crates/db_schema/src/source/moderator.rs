@@ -1,6 +1,9 @@
 use crate::{
   schema::{
-    admin_purge,
+    admin_purge_comment,
+    admin_purge_community,
+    admin_purge_person,
+    admin_purge_post,
     mod_add,
     mod_add_community,
     mod_ban,
@@ -222,15 +225,69 @@ pub struct ModAddForm {
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "admin_purge"]
-pub struct AdminPurge {
+#[table_name = "admin_purge_person"]
+pub struct AdminPurgePerson {
   pub id: i32,
   pub admin_person_id: PersonId,
+  pub reason: Option<String>,
   pub when_: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset)]
-#[table_name = "admin_purge"]
-pub struct AdminPurgeForm {
+#[table_name = "admin_purge_person"]
+pub struct AdminPurgePersonForm {
   pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[table_name = "admin_purge_community"]
+pub struct AdminPurgeCommunity {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[table_name = "admin_purge_community"]
+pub struct AdminPurgeCommunityForm {
+  pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[table_name = "admin_purge_post"]
+pub struct AdminPurgePost {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub community_id: CommunityId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[table_name = "admin_purge_post"]
+pub struct AdminPurgePostForm {
+  pub admin_person_id: PersonId,
+  pub community_id: CommunityId,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[table_name = "admin_purge_comment"]
+pub struct AdminPurgeComment {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub post_id: PostId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[table_name = "admin_purge_comment"]
+pub struct AdminPurgeCommentForm {
+  pub admin_person_id: PersonId,
+  pub post_id: PostId,
+  pub reason: Option<String>,
 }

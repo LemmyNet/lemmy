@@ -14,7 +14,10 @@ use lemmy_db_views_actor::{
   person_view::PersonViewSafe,
 };
 use lemmy_db_views_moderator::{
-  admin_purge_view::AdminPurgeView,
+  admin_purge_comment_view::AdminPurgeCommentView,
+  admin_purge_community_view::AdminPurgeCommunityView,
+  admin_purge_person_view::AdminPurgePersonView,
+  admin_purge_post_view::AdminPurgePostView,
   mod_add_community_view::ModAddCommunityView,
   mod_add_view::ModAddView,
   mod_ban_from_community_view::ModBanFromCommunityView,
@@ -85,7 +88,10 @@ pub struct GetModlogResponse {
   pub added_to_community: Vec<ModAddCommunityView>,
   pub transferred_to_community: Vec<ModTransferCommunityView>,
   pub added: Vec<ModAddView>,
-  pub admin_purged: Vec<AdminPurgeView>,
+  pub admin_purged_persons: Vec<AdminPurgePersonView>,
+  pub admin_purged_communities: Vec<AdminPurgeCommunityView>,
+  pub admin_purged_posts: Vec<AdminPurgePostView>,
+  pub admin_purged_comments: Vec<AdminPurgeCommentView>,
 }
 
 #[derive(Deserialize)]
@@ -176,12 +182,32 @@ pub struct FederatedInstances {
 }
 
 #[derive(Deserialize)]
-pub struct PurgeItem {
-  pub post_id: Option<PostId>,
-  pub comment_id: Option<CommentId>,
-  pub community_id: Option<CommunityId>,
-  pub person_id: Option<PersonId>,
+pub struct PurgePerson {
+  pub person_id: PersonId,
   pub remove_images: bool,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Deserialize)]
+pub struct PurgeCommunity {
+  pub community_id: CommunityId,
+  pub remove_images: bool,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Deserialize)]
+pub struct PurgePost {
+  pub post_id: PostId,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Deserialize)]
+pub struct PurgeComment {
+  pub comment_id: CommentId,
+  pub reason: Option<String>,
   pub auth: String,
 }
 

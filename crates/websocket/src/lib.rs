@@ -137,7 +137,6 @@ pub enum UserOperation {
   UserJoin,
   GetSiteConfig,
   SaveSiteConfig,
-  PurgeItem,
   PostJoin,
   CommunityJoin,
   ModJoin,
@@ -145,6 +144,10 @@ pub enum UserOperation {
   GetSiteMetadata,
   BlockCommunity,
   BlockPerson,
+  PurgePerson,
+  PurgeCommunity,
+  PurgePost,
+  PurgeComment,
 }
 
 #[derive(EnumString, ToString, Debug, Clone)]
