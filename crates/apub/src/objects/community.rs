@@ -1,9 +1,11 @@
 use crate::{
-  extensions::{context::lemmy_context, signatures::PublicKey},
+  check_is_apub_id_valid,
+  context::lemmy_context,
   fetcher::community::{fetch_community_outbox, update_community_mods},
   generate_moderators_url,
+  generate_outbox_url,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
-  ActorType,
+  CommunityType,
 };
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
@@ -13,8 +15,11 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use chrono::{DateTime, FixedOffset};
+use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  signatures::PublicKey,
+  traits::ActorType,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -23,6 +28,7 @@ use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
 };
+use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{
   settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
@@ -143,7 +149,7 @@ impl ToApub for Community {
       sensitive: Some(self.nsfw),
       moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
       inbox: self.inbox_url.clone().into(),
-      outbox: self.get_outbox_url()?,
+      outbox: generate_outbox_url(&self.actor_id)?.into(),
       followers: self.followers_url.clone().into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
@@ -187,5 +193,37 @@ impl FromApub for Community {
     fetch_community_outbox(context, &group.outbox, request_counter).await?;
 
     Ok(community)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl CommunityType for Community {
+  fn followers_url(&self) -> Url {
+    self.followers_url.clone().into()
+  }
+
+  /// For a given community, returns the inboxes of all followers.
+  async fn get_follower_inboxes(
+    &self,
+    pool: &DbPool,
+    settings: &Settings,
+  ) -> Result<Vec<Url>, LemmyError> {
+    let id = self.id;
+
+    let follows = blocking(pool, move |conn| {
+      CommunityFollowerView::for_community(conn, id)
+    })
+    .await??;
+    let inboxes = follows
+      .into_iter()
+      .filter(|f| !f.follower.local)
+      .map(|f| f.follower.shared_inbox_url.unwrap_or(f.follower.inbox_url))
+      .map(|i| i.into_inner())
+      .unique()
+      // Don't send to blocked instances
+      .filter(|inbox| check_is_apub_id_valid(inbox, false, settings).is_ok())
+      .collect();
+
+    Ok(inboxes)
   }
 }

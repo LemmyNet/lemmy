@@ -1,13 +1,11 @@
 use crate::{
   check_is_apub_id_valid,
-  extensions::signatures::verify_signature,
   fetcher::get_or_fetch_and_upsert_actor,
   http::{
     community::{receive_group_inbox, GroupInboxActivities},
     person::{receive_person_inbox, PersonInboxActivities},
   },
   insert_activity,
-  APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::{
   body::Body,
@@ -22,7 +20,9 @@ use http::StatusCode;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  signatures::verify_signature,
   traits::{ActivityFields, ActivityHandler},
+  APUB_JSON_CONTENT_TYPE,
 };
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::source::activity::Activity;

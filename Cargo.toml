@@ -35,6 +35,7 @@ members = [
 lemmy_api = { version = "=0.13.0", path = "./crates/api" }
 lemmy_api_crud = { version = "=0.13.0", path = "./crates/api_crud" }
 lemmy_apub = { version = "=0.13.0", path = "./crates/apub" }
+lemmy_apub_lib = { version = "=0.13.0", path = "./crates/apub_lib" }
 lemmy_utils = { version = "=0.13.0", path = "./crates/utils" }
 lemmy_db_schema = { version = "=0.13.0", path = "./crates/db_schema" }
 lemmy_db_queries = { version = "=0.13.0", path = "./crates/db_queries" }

@@ -5,10 +5,9 @@ use crate::{
     verify_activity,
     verify_community,
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{
   activity::kind::AcceptType,
@@ -19,7 +18,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
 use lemmy_db_queries::Followable;
@@ -72,9 +71,10 @@ impl AcceptFollowCommunity {
       unparsed: Default::default(),
     };
     let inbox = vec![person.inbox_url.into()];
-    send_activity_new(context, &accept, &accept.id, &community, inbox, true).await
+    send_lemmy_activity(context, &accept, &accept.id, &community, inbox, true).await
   }
 }
+
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AcceptFollowCommunity {

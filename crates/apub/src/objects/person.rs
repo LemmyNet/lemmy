@@ -1,8 +1,8 @@
 use crate::{
   check_is_apub_id_valid,
-  extensions::{context::lemmy_context, signatures::PublicKey},
+  context::lemmy_context,
+  generate_outbox_url,
   objects::{FromApub, ImageObject, Source, ToApub},
-  ActorType,
 };
 use activitystreams::{
   actor::Endpoints,
@@ -14,6 +14,8 @@ use activitystreams::{
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  signatures::PublicKey,
+  traits::ActorType,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -113,7 +115,7 @@ impl ToApub for DbPerson {
       image,
       matrix_user_id: self.matrix_user_id.clone(),
       published: convert_datetime(self.published),
-      outbox: self.get_outbox_url()?,
+      outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
         ..Default::default()

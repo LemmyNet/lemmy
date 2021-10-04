@@ -5,10 +5,9 @@ use crate::{
     verify_activity,
     verify_person,
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -19,7 +18,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
@@ -68,8 +67,8 @@ impl UndoDeletePrivateMessage {
       context: lemmy_context(),
       unparsed: Default::default(),
     };
-    let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
-    send_activity_new(context, &undo, &id, actor, inbox, true).await
+    let inbox = vec![recipient.shared_inbox_or_inbox_url()];
+    send_lemmy_activity(context, &undo, &id, actor, inbox, true).await
   }
 }
 

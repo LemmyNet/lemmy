@@ -1,9 +1,8 @@
 use crate::{
   activities::{generate_activity_id, verify_activity, verify_person},
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{
   activity::kind::DeleteType,
@@ -14,7 +13,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_domains_match,
 };
 use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
@@ -69,8 +68,8 @@ impl DeletePrivateMessage {
     let recipient_id = pm.recipient_id;
     let recipient =
       blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
-    let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
-    send_activity_new(context, &delete, &delete_id, actor, inbox, true).await
+    let inbox = vec![recipient.shared_inbox_or_inbox_url()];
+    send_lemmy_activity(context, &delete, &delete_id, actor, inbox, true).await
   }
 }
 

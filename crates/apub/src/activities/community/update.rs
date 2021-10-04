@@ -1,16 +1,14 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::Group, ToApub},
-  ActorType,
 };
 use activitystreams::{
   activity::kind::UpdateType,
@@ -21,7 +19,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
 use lemmy_db_queries::Crud;
@@ -75,7 +73,7 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
-    send_to_community_new(activity, &id, actor, community, vec![], context).await
+    send_to_community(activity, &id, actor, community, vec![], context).await
   }
 }
 

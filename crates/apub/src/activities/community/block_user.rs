@@ -1,15 +1,13 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
 };
 use activitystreams::{
   activity::kind::BlockType,
@@ -20,7 +18,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
 use lemmy_db_queries::{Bannable, Followable};
@@ -87,8 +85,8 @@ impl BlockUserFromCommunity {
     let block_id = block.id.clone();
 
     let activity = AnnouncableActivities::BlockUserFromCommunity(block);
-    let inboxes = vec![target.get_shared_inbox_or_inbox_url()];
-    send_to_community_new(activity, &block_id, actor, community, inboxes, context).await
+    let inboxes = vec![target.shared_inbox_or_inbox_url()];
+    send_to_community(activity, &block_id, actor, community, inboxes, context).await
   }
 }
 

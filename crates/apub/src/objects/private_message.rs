@@ -1,5 +1,5 @@
 use crate::{
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{create_tombstone, FromApub, Source, ToApub},
 };

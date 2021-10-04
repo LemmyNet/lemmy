@@ -1,15 +1,17 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, block_user::BlockUserFromCommunity},
+    community::{
+      announce::AnnouncableActivities,
+      block_user::BlockUserFromCommunity,
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -20,7 +22,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
 use lemmy_db_queries::Bannable;
@@ -74,8 +76,8 @@ impl UndoBlockUserFromCommunity {
     };
 
     let activity = AnnouncableActivities::UndoBlockUserFromCommunity(undo);
-    let inboxes = vec![target.get_shared_inbox_or_inbox_url()];
-    send_to_community_new(activity, &id, actor, community, inboxes, context).await
+    let inboxes = vec![target.shared_inbox_or_inbox_url()];
+    send_to_community(activity, &id, actor, community, inboxes, context).await
   }
 }
 

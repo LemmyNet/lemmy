@@ -5,12 +5,11 @@ use crate::{
     verify_person_in_community,
   },
   fetcher::object_id::ObjectId,
-  ActorType,
 };
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ActivityFields, ApubObject},
+  traits::{ActivityFields, ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_queries::source::{comment::Comment_, community::Community_, post::Post_};

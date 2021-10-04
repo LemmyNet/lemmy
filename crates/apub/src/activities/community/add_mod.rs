@@ -1,17 +1,15 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
     verify_mod_action,
     verify_person_in_community,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
-  ActorType,
 };
 use activitystreams::{
   activity::kind::AddType,
@@ -22,7 +20,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
 use lemmy_db_queries::{source::community::CommunityModerator_, Joinable};
@@ -76,8 +74,8 @@ impl AddMod {
     };
 
     let activity = AnnouncableActivities::AddMod(add);
-    let inboxes = vec![added_mod.get_shared_inbox_or_inbox_url()];
-    send_to_community_new(activity, &id, actor, community, inboxes, context).await
+    let inboxes = vec![added_mod.shared_inbox_or_inbox_url()];
+    send_to_community(activity, &id, actor, community, inboxes, context).await
   }
 }
 

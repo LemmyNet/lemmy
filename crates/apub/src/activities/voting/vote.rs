@@ -1,15 +1,13 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
   PostOrComment,
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
@@ -17,7 +15,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
 use lemmy_db_queries::Crud;
@@ -110,7 +108,7 @@ impl Vote {
     let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
-    send_to_community_new(activity, &vote_id, actor, &community, vec![], context).await
+    send_to_community(activity, &vote_id, actor, &community, vec![], context).await
   }
 }
 

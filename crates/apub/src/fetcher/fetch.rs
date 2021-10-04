@@ -1,5 +1,6 @@
-use crate::{check_is_apub_id_valid, APUB_JSON_CONTENT_TYPE};
+use crate::check_is_apub_id_valid;
 use anyhow::anyhow;
+use lemmy_apub_lib::APUB_JSON_CONTENT_TYPE;
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use log::info;
 use reqwest::Client;

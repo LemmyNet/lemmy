@@ -5,10 +5,9 @@ use crate::{
     verify_activity,
     verify_person,
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{
   activity::kind::FollowType,
@@ -19,7 +18,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
 use lemmy_db_queries::Followable;
@@ -84,7 +83,7 @@ impl FollowCommunity {
 
     let follow = FollowCommunity::new(actor, community, context)?;
     let inbox = vec![community.inbox_url.clone().into()];
-    send_activity_new(context, &follow, &follow.id, actor, inbox, true).await
+    send_lemmy_activity(context, &follow, &follow.id, actor, inbox, true).await
   }
 }
 

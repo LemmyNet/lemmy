@@ -17,12 +17,11 @@ use crate::{
     verify_community,
     voting::{undo_vote::UndoVote, vote::Vote},
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   http::is_activity_already_known,
   insert_activity,
-  ActorType,
+  send_lemmy_activity,
   CommunityType,
 };
 use activitystreams::{
@@ -33,7 +32,7 @@ use activitystreams::{
 };
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
 use lemmy_db_schema::source::community::Community;
@@ -97,7 +96,7 @@ impl AnnounceActivity {
       unparsed: Default::default(),
     };
     let inboxes = list_community_follower_inboxes(community, additional_inboxes, context).await?;
-    send_activity_new(context, &announce, &announce.id, community, inboxes, false).await
+    send_lemmy_activity(context, &announce, &announce.id, community, inboxes, false).await
   }
 }
 

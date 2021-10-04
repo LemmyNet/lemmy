@@ -8,7 +8,8 @@ use crate::{
       undo_delete::UndoDeletePrivateMessage,
     },
   },
-  extensions::context::lemmy_context,
+  context::lemmy_context,
+  generate_outbox_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
@@ -16,7 +17,6 @@ use crate::{
     receive_activity,
   },
   objects::ToApub,
-  ActorType,
 };
 use activitystreams::{
   base::BaseExt,
@@ -105,7 +105,7 @@ pub(crate) async fn get_apub_person_outbox(
   collection
     .set_many_items(Vec::<Url>::new())
     .set_many_contexts(lemmy_context())
-    .set_id(person.get_outbox_url()?)
+    .set_id(generate_outbox_url(&person.actor_id)?.into())
     .set_total_items(0_u64);
   Ok(create_apub_response(&collection))
 }

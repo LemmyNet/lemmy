@@ -1,24 +1,22 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
     CreateOrUpdateType,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{post::Page, FromApub, ToApub},
-  ActorType,
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
@@ -74,7 +72,7 @@ impl CreateOrUpdatePost {
     };
 
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
-    send_to_community_new(activity, &id, actor, &community, vec![], context).await
+    send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 

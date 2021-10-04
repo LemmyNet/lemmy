@@ -1,9 +1,8 @@
 use crate::{
   activities::{extract_community, verify_person_in_community},
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
-  ActorType,
 };
 use activitystreams::{
   base::AnyBase,
@@ -18,6 +17,7 @@ use activitystreams::{
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  traits::ActorType,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };

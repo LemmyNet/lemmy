@@ -22,7 +22,6 @@ pub mod deletion;
 pub mod following;
 pub mod post;
 pub mod private_message;
-pub mod send;
 pub mod undo_remove;
 pub mod voting;
 

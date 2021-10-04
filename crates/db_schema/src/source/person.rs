@@ -5,7 +5,7 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use lemmy_apub_lib::traits::ApubObject;
+use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_utils::LemmyError;
 use serde::Serialize;
 use url::Url;
@@ -193,5 +193,33 @@ impl ApubObject for Person {
         .first::<Self>(conn)
         .ok(),
     )
+  }
+}
+
+impl ActorType for Person {
+  fn is_local(&self) -> bool {
+    self.local
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into_inner()
+  }
+  fn name(&self) -> String {
+    self.name.clone()
+  }
+
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
+  }
+
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
+
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into_inner())
   }
 }

@@ -36,11 +36,8 @@ strum = "0.21.0"
 strum_macros = "0.21.1"
 url = { version = "2.2.2", features = ["serde"] }
 percent-encoding = "2.1.0"
-openssl = "0.10.36"
 http = "0.2.5"
 http-signature-normalization-actix = { version = "0.5.0-beta.10", default-features = false, features = ["server", "sha-2"] }
-http-signature-normalization-reqwest = { version = "0.2.0", default-features = false, features = ["sha-2"] }
-base64 = "0.13.0"
 tokio = "1.12.0"
 futures = "0.3.17"
 itertools = "0.10.1"
@@ -49,7 +46,5 @@ sha2 = "0.9.8"
 async-trait = "0.1.51"
 anyhow = "1.0.44"
 thiserror = "1.0.29"
-background-jobs = "0.10.0"
 reqwest = { version = "0.11.4", features = ["json"] }
-lazy_static = "1.4.0"
 
