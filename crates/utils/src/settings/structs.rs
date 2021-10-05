@@ -1,4 +1,4 @@
-use doku::prelude::*;
+use doku::Document;
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr};
 
@@ -109,7 +109,8 @@ pub struct FederationConfig {
   ///
   /// list of instances with which federation is allowed
   #[default(None)]
-  #[doku(example = "[\"instance1.tld\",\"instance2.tld\"]")]
+  #[doku(example = "instance1.tld")]
+  #[doku(example = "instance2.tld")]
   pub allowed_instances: Option<Vec<String>>,
   /// Instances which we never federate anything with (but previously federated objects are unaffected)
   #[default(None)]

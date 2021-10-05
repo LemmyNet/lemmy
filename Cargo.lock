@@ -1003,7 +1003,8 @@ checksum = "31ad93652f40969dead8d4bf897a41e9462095152eb21c56e5830537e41179dd"
 [[package]]
 name = "doku"
 version = "0.10.0"
-source = "git+https://github.com/anixe/doku?branch=v0.10#7397e8fac5cd08585b87546a768903365fa8b8c8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fca50a9496056845256b66d59cca4bbac18ff6dd6c1922de55aa70786be3a2d4"
 dependencies = [
  "doku-derive",
  "serde",
@@ -1012,7 +1013,8 @@ dependencies = [
 [[package]]
 name = "doku-derive"
 version = "0.10.0"
-source = "git+https://github.com/anixe/doku?branch=v0.10#7397e8fac5cd08585b87546a768903365fa8b8c8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8dc9bda49ecdf58ce2c6aa09cfe0b627f8af3c3e3d6480f472aa1e8e3fd27fb"
 dependencies = [
  "darling 0.13.0",
  "proc-macro-error",
