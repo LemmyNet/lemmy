@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     deletion::{
       delete::Delete,
       receive_delete_action,
@@ -11,10 +11,8 @@ use crate::{
     generate_activity_id,
     verify_activity,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -24,7 +22,11 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
+};
 use lemmy_db_queries::source::{comment::Comment_, community::Community_, post::Post_};
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
@@ -54,9 +56,10 @@ pub struct UndoDelete {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDelete {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -75,7 +78,7 @@ impl ActivityHandler for UndoDelete {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if self.object.summary.is_some() {
@@ -124,7 +127,7 @@ impl UndoDelete {
     };
 
     let activity = AnnouncableActivities::UndoDelete(undo);
-    send_to_community_new(activity, &id, actor, community, vec![], context).await
+    send_to_community(activity, &id, actor, community, vec![], context).await
   }
 
   pub(in crate::activities) async fn receive_undo_remove_action(

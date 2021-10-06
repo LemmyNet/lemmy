@@ -5,10 +5,9 @@ use crate::{
     verify_activity,
     verify_person,
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{
   activity::kind::FollowType,
@@ -17,7 +16,11 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  verify::verify_urls_match,
+};
 use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
@@ -31,7 +34,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
-  actor: ObjectId<Person>,
+  pub(in crate::activities::following) actor: ObjectId<Person>,
   // TODO: is there any reason to put the same community id twice, in to and object?
   pub(in crate::activities::following) to: ObjectId<Community>,
   pub(in crate::activities::following) object: ObjectId<Community>,
@@ -80,15 +83,16 @@ impl FollowCommunity {
 
     let follow = FollowCommunity::new(actor, community, context)?;
     let inbox = vec![community.inbox_url.clone().into()];
-    send_activity_new(context, &follow, &follow.id, actor, inbox, true).await
+    send_lemmy_activity(context, &follow, &follow.id, actor, inbox, true).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for FollowCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -99,7 +103,7 @@ impl ActivityHandler for FollowCommunity {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;
@@ -116,6 +120,6 @@ impl ActivityHandler for FollowCommunity {
     })
     .await?;
 
-    AcceptFollowCommunity::send(self, context).await
+    AcceptFollowCommunity::send(self, context, request_counter).await
   }
 }

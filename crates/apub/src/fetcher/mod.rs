@@ -5,8 +5,9 @@ pub mod object_id;
 pub mod post_or_comment;
 pub mod search;
 
-use crate::{fetcher::object_id::ObjectId, ActorType};
+use crate::fetcher::object_id::ObjectId;
 use chrono::NaiveDateTime;
+use lemmy_apub_lib::traits::ActorType;
 use lemmy_db_schema::{
   naive_now,
   source::{community::Community, person::Person},

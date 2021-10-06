@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_person_in_community,
@@ -10,10 +10,8 @@ use crate::{
       vote::{Vote, VoteType},
     },
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
   PostOrComment,
 };
 use activitystreams::{
@@ -23,7 +21,12 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, verify_urls_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
+  verify::verify_urls_match,
+};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -80,15 +83,16 @@ impl UndoVote {
       unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_to_community_new(activity, &id, actor, &community, vec![], context).await
+    send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoVote {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -100,7 +104,7 @@ impl ActivityHandler for UndoVote {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;

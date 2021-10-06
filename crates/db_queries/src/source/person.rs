@@ -1,11 +1,9 @@
-use crate::{ApubObject, Crud};
-use chrono::NaiveDateTime;
+use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
   schema::person::dsl::*,
   source::person::{Person, PersonForm},
-  DbUrl,
   PersonId,
 };
 
@@ -178,20 +176,6 @@ impl Crud for Person {
     diesel::update(person.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
-  }
-}
-
-impl ApubObject for Person {
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    Some(self.last_refreshed_at)
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::person::dsl::*;
-    person
-      .filter(deleted.eq(false))
-      .filter(actor_id.eq(object_id))
-      .first::<Self>(conn)
   }
 }
 

@@ -7,13 +7,14 @@ use lemmy_api_common::{
   is_admin,
 };
 use lemmy_apub::{
+  fetcher::object_id::ObjectId,
   generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
   generate_shared_inbox_url,
   EndpointType,
 };
-use lemmy_db_queries::{diesel_option_overwrite_to_url, ApubObject, Crud, Followable, Joinable};
+use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud, Followable, Joinable};
 use lemmy_db_schema::source::{
   community::{
     Community,
@@ -67,11 +68,8 @@ impl PerformCrud for CreateCommunity {
       &data.name,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let actor_id_cloned = community_actor_id.to_owned();
-    let community_dupe = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &actor_id_cloned)
-    })
-    .await?;
+    let community_actor_id_wrapped = ObjectId::<Community>::new(community_actor_id.clone());
+    let community_dupe = community_actor_id_wrapped.dereference_local(context).await;
     if community_dupe.is_ok() {
       return Err(ApiError::err("community_already_exists").into());
     }

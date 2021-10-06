@@ -1,15 +1,13 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
 };
 use activitystreams::{
   activity::kind::BlockType,
@@ -18,7 +16,11 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
+};
 use lemmy_db_queries::{Bannable, Followable};
 use lemmy_db_schema::source::{
   community::{
@@ -83,27 +85,28 @@ impl BlockUserFromCommunity {
     let block_id = block.id.clone();
 
     let activity = AnnouncableActivities::BlockUserFromCommunity(block);
-    let inboxes = vec![target.get_shared_inbox_or_inbox_url()];
-    send_to_community_new(activity, &block_id, actor, community, inboxes, context).await
+    let inboxes = vec![target.shared_inbox_or_inbox_url()];
+    send_to_community(activity, &block_id, actor, community, inboxes, context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for BlockUserFromCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
     Ok(())
   }
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = self.cc[0].dereference(context, request_counter).await?;

@@ -1,14 +1,17 @@
 use crate::{
   activities::{generate_activity_id, verify_activity, verify_person, CreateOrUpdateType},
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{private_message::Note, FromApub, ToApub},
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  verify::verify_domains_match,
+};
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
 use lemmy_utils::LemmyError;
@@ -55,15 +58,16 @@ impl CreateOrUpdatePrivateMessage {
       kind,
       unparsed: Default::default(),
     };
-    let inbox = vec![recipient.get_shared_inbox_or_inbox_url()];
-    send_activity_new(context, &create_or_update, &id, actor, inbox, true).await
+    let inbox = vec![recipient.shared_inbox_or_inbox_url()];
+    send_lemmy_activity(context, &create_or_update, &id, actor, inbox, true).await
   }
 }
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdatePrivateMessage {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -75,7 +79,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let private_message =

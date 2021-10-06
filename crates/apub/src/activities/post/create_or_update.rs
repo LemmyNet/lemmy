@@ -1,27 +1,24 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
     CreateOrUpdateType,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{post::Page, FromApub, ToApub},
-  ActorType,
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
-  verify_domains_match,
-  verify_urls_match,
-  ActivityFields,
-  ActivityHandler,
+  verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
@@ -75,15 +72,16 @@ impl CreateOrUpdatePost {
     };
 
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
-    send_to_community_new(activity, &id, actor, &community, vec![], context).await
+    send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdatePost {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -104,9 +102,9 @@ impl ActivityHandler for CreateOrUpdatePost {
         }
       }
       CreateOrUpdateType::Update => {
-        let is_mod_action = self.object.is_mod_action(context.pool()).await?;
+        let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
+          verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
           verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
@@ -119,7 +117,7 @@ impl ActivityHandler for CreateOrUpdatePost {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;

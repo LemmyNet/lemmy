@@ -1,9 +1,8 @@
 use crate::{
   activities::{extract_community, verify_person_in_community},
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
-  ActorType,
 };
 use activitystreams::{
   base::AnyBase,
@@ -18,10 +17,11 @@ use activitystreams::{
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  traits::ActorType,
   values::{MediaTypeHtml, MediaTypeMarkdown},
-  verify_domains_match,
+  verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::post::Post_, ApubObject, Crud, DbPool};
+use lemmy_db_queries::{source::post::Post_, Crud, DbPool};
 use lemmy_db_schema::{
   self,
   source::{
@@ -78,12 +78,10 @@ impl Page {
   /// the current value, it is a mod action and needs to be verified as such.
   ///
   /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(&self, pool: &DbPool) -> Result<bool, LemmyError> {
-    let post_id = self.id.clone();
-    let old_post = blocking(pool, move |conn| {
-      Post::read_from_apub_id(conn, &post_id.into())
-    })
-    .await?;
+  pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
+    let old_post = ObjectId::<Post>::new(self.id.clone())
+      .dereference_local(context)
+      .await;
 
     let is_mod_action = if let Ok(old_post) = old_post {
       self.stickied != Some(old_post.stickied) || self.comments_enabled != Some(!old_post.locked)
@@ -101,7 +99,7 @@ impl Page {
     let community = extract_community(&self.to, context, request_counter).await?;
 
     check_slurs(&self.name, &context.settings().slur_regex())?;
-    verify_domains_match(self.attributed_to.inner(), &self.id)?;
+    verify_domains_match(self.attributed_to.inner(), &self.id.clone())?;
     verify_person_in_community(
       &self.attributed_to,
       &ObjectId::new(community.actor_id()),
@@ -177,7 +175,7 @@ impl FromApub for Post {
   ) -> Result<Post, LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
-    let ap_id = if page.is_mod_action(context.pool()).await? {
+    let ap_id = if page.is_mod_action(context).await? {
       page.id_unchecked()
     } else {
       page.id(expected_domain)?

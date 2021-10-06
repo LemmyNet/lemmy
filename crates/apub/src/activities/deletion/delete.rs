@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     deletion::{
       receive_delete_action,
       verify_delete_activity,
@@ -10,10 +10,8 @@ use crate::{
     generate_activity_id,
     verify_activity,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
 };
 use activitystreams::{
   activity::kind::DeleteType,
@@ -23,7 +21,11 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
+};
 use lemmy_db_queries::{
   source::{comment::Comment_, community::Community_, post::Post_},
   Crud,
@@ -82,9 +84,10 @@ pub struct Delete {
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Delete {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -102,7 +105,7 @@ impl ActivityHandler for Delete {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if let Some(reason) = self.summary {
@@ -166,7 +169,7 @@ impl Delete {
     let delete_id = delete.id.clone();
 
     let activity = AnnouncableActivities::Delete(delete);
-    send_to_community_new(activity, &delete_id, actor, community, vec![], context).await
+    send_to_community(activity, &delete_id, actor, community, vec![], context).await
   }
 }
 

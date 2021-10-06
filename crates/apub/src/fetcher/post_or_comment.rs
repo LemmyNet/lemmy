@@ -1,13 +1,10 @@
 use crate::objects::{comment::Note, post::Page, FromApub};
 use activitystreams::chrono::NaiveDateTime;
-use diesel::{result::Error, PgConnection};
-use lemmy_db_queries::ApubObject;
-use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentForm},
-    post::{Post, PostForm},
-  },
-  DbUrl,
+use diesel::PgConnection;
+use lemmy_apub_lib::traits::ApubObject;
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentForm},
+  post::{Post, PostForm},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -33,19 +30,23 @@ pub enum PageOrNote {
 
 #[async_trait::async_trait(?Send)]
 impl ApubObject for PostOrComment {
+  type DataType = PgConnection;
+
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
   }
 
   // TODO: this can probably be implemented using a single sql query
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized,
   {
-    let post = Post::read_from_apub_id(conn, object_id);
+    let post = Post::read_from_apub_id(conn, object_id.clone())?;
     Ok(match post {
-      Ok(o) => PostOrComment::Post(Box::new(o)),
-      Err(_) => PostOrComment::Comment(Box::new(Comment::read_from_apub_id(conn, object_id)?)),
+      Some(o) => Some(PostOrComment::Post(Box::new(o))),
+      None => {
+        Comment::read_from_apub_id(conn, object_id)?.map(|c| PostOrComment::Comment(Box::new(c)))
+      }
     })
   }
 }

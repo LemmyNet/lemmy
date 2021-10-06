@@ -17,12 +17,11 @@ use crate::{
     verify_community,
     voting::{undo_vote::UndoVote, vote::Vote},
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   http::is_activity_already_known,
   insert_activity,
-  ActorType,
+  send_lemmy_activity,
   CommunityType,
 };
 use activitystreams::{
@@ -31,7 +30,11 @@ use activitystreams::{
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
+};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -40,6 +43,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
+#[activity_handler(LemmyContext)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
   CreateOrUpdatePost(Box<CreateOrUpdatePost>),
@@ -92,15 +96,16 @@ impl AnnounceActivity {
       unparsed: Default::default(),
     };
     let inboxes = list_community_follower_inboxes(community, additional_inboxes, context).await?;
-    send_activity_new(context, &announce, &announce.id, community, inboxes, false).await
+    send_lemmy_activity(context, &announce, &announce.id, community, inboxes, false).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AnnounceActivity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -111,7 +116,7 @@ impl ActivityHandler for AnnounceActivity {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if is_activity_already_known(context.pool(), self.object.id_unchecked()).await? {

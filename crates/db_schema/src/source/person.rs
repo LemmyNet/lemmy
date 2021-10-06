@@ -3,7 +3,12 @@ use crate::{
   DbUrl,
   PersonId,
 };
+use chrono::NaiveDateTime;
+use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use lemmy_apub_lib::traits::{ActorType, ApubObject};
+use lemmy_utils::LemmyError;
 use serde::Serialize;
+use url::Url;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "person"]
@@ -169,4 +174,52 @@ pub struct PersonForm {
   pub matrix_user_id: Option<Option<String>>,
   pub admin: Option<bool>,
   pub bot_account: Option<bool>,
+}
+
+impl ApubObject for Person {
+  type DataType = PgConnection;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
+    use crate::schema::person::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      person
+        .filter(deleted.eq(false))
+        .filter(actor_id.eq(object_id))
+        .first::<Self>(conn)
+        .ok(),
+    )
+  }
+}
+
+impl ActorType for Person {
+  fn is_local(&self) -> bool {
+    self.local
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into_inner()
+  }
+  fn name(&self) -> String {
+    self.name.clone()
+  }
+
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
+  }
+
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
+
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into_inner())
+  }
 }

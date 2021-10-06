@@ -4,19 +4,18 @@ use crate::{
 };
 use activitystreams::chrono::NaiveDateTime;
 use anyhow::anyhow;
-use diesel::{result::Error, PgConnection};
+use diesel::PgConnection;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::webfinger::{webfinger_resolve_actor, WebfingerType};
+use lemmy_apub_lib::{
+  traits::ApubObject,
+  webfinger::{webfinger_resolve_actor, WebfingerType},
+};
 use lemmy_db_queries::{
   source::{community::Community_, person::Person_},
-  ApubObject,
   DbPool,
 };
-use lemmy_db_schema::{
-  source::{comment::Comment, community::Community, person::Person, post::Post},
-  DbUrl,
-};
+use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -102,6 +101,8 @@ pub enum SearchableApubTypes {
 }
 
 impl ApubObject for SearchableObjects {
+  type DataType = PgConnection;
+
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     match self {
       SearchableObjects::Person(p) => p.last_refreshed_at(),
@@ -114,23 +115,26 @@ impl ApubObject for SearchableObjects {
   // TODO: this is inefficient, because if the object is not in local db, it will run 4 db queries
   //       before finally returning an error. it would be nice if we could check all 4 tables in
   //       a single query.
-  //       we could skip this and always return an error, but then it would not be able to mark
-  //       objects as deleted that were deleted by remote server.
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error> {
-    let c = Community::read_from_apub_id(conn, object_id);
-    if let Ok(c) = c {
-      return Ok(SearchableObjects::Community(c));
+  //       we could skip this and always return an error, but then it would always fetch objects
+  //       over http, and not be able to mark objects as deleted that were deleted by remote server.
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
+    let c = Community::read_from_apub_id(conn, object_id.clone())?;
+    if let Some(c) = c {
+      return Ok(Some(SearchableObjects::Community(c)));
     }
-    let p = Person::read_from_apub_id(conn, object_id);
-    if let Ok(p) = p {
-      return Ok(SearchableObjects::Person(p));
+    let p = Person::read_from_apub_id(conn, object_id.clone())?;
+    if let Some(p) = p {
+      return Ok(Some(SearchableObjects::Person(p)));
     }
-    let p = Post::read_from_apub_id(conn, object_id);
-    if let Ok(p) = p {
-      return Ok(SearchableObjects::Post(p));
+    let p = Post::read_from_apub_id(conn, object_id.clone())?;
+    if let Some(p) = p {
+      return Ok(Some(SearchableObjects::Post(p)));
     }
-    let c = Comment::read_from_apub_id(conn, object_id);
-    Ok(SearchableObjects::Comment(c?))
+    let c = Comment::read_from_apub_id(conn, object_id)?;
+    if let Some(c) = c {
+      return Ok(Some(SearchableObjects::Comment(c)));
+    }
+    Ok(None)
   }
 }
 

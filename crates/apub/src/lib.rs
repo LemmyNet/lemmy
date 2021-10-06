@@ -1,17 +1,14 @@
-#[macro_use]
-extern crate lazy_static;
-
 pub mod activities;
-pub mod activity_queue;
-pub mod extensions;
+mod context;
 pub mod fetcher;
 pub mod http;
 pub mod migrations;
 pub mod objects;
 
-use crate::{extensions::signatures::PublicKey, fetcher::post_or_comment::PostOrComment};
+use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
+use lemmy_apub_lib::{activity_queue::send_activity, traits::ActorType};
 use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::{
   source::{activity::Activity, person::Person},
@@ -20,11 +17,11 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_websocket::LemmyContext;
+use log::info;
 use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
-
-static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
 /// Checks if the ID is allowed for sending or receiving.
 ///
@@ -90,39 +87,6 @@ pub(crate) fn check_is_apub_id_valid(
   }
 
   Ok(())
-}
-
-/// Common methods provided by ActivityPub actors (community and person). Not all methods are
-/// implemented by all actors.
-trait ActorType {
-  fn is_local(&self) -> bool;
-  fn actor_id(&self) -> Url;
-  fn name(&self) -> String;
-
-  // TODO: every actor should have a public key, so this shouldnt be an option (needs to be fixed in db)
-  fn public_key(&self) -> Option<String>;
-  fn private_key(&self) -> Option<String>;
-
-  fn get_shared_inbox_or_inbox_url(&self) -> Url;
-
-  /// Outbox URL is not generally used by Lemmy, so it can be generated on the fly (but only for
-  /// local actors).
-  fn get_outbox_url(&self) -> Result<Url, LemmyError> {
-    /* TODO
-    if !self.is_local() {
-      return Err(anyhow!("get_outbox_url() called for remote actor").into());
-    }
-    */
-    Ok(Url::parse(&format!("{}/outbox", &self.actor_id()))?)
-  }
-
-  fn get_public_key(&self) -> Result<PublicKey, LemmyError> {
-    Ok(PublicKey {
-      id: format!("{}#main-key", self.actor_id()),
-      owner: self.actor_id(),
-      public_key_pem: self.public_key().context(location_info!())?,
-    })
-  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -192,6 +156,10 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
+pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{}/outbox", actor_id))?.into())
+}
+
 fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
 }
@@ -253,4 +221,47 @@ async fn check_community_or_site_ban(
   }
 
   Ok(())
+}
+
+pub(crate) async fn send_lemmy_activity<T: Serialize>(
+  context: &LemmyContext,
+  activity: &T,
+  activity_id: &Url,
+  actor: &dyn ActorType,
+  inboxes: Vec<Url>,
+  sensitive: bool,
+) -> Result<(), LemmyError> {
+  if !context.settings().federation.enabled || inboxes.is_empty() {
+    return Ok(());
+  }
+
+  info!("Sending activity {}", activity_id.to_string());
+
+  // Don't send anything to ourselves
+  // TODO: this should be a debug assert
+  let hostname = context.settings().get_hostname_without_port()?;
+  let inboxes: Vec<&Url> = inboxes
+    .iter()
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
+    .collect();
+
+  let serialised_activity = serde_json::to_string(&activity)?;
+
+  insert_activity(
+    activity_id,
+    serialised_activity.clone(),
+    true,
+    sensitive,
+    context.pool(),
+  )
+  .await?;
+
+  send_activity(
+    serialised_activity,
+    actor,
+    inboxes,
+    context.client(),
+    context.activity_queue(),
+  )
+  .await
 }

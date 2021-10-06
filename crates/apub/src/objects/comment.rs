@@ -1,10 +1,9 @@
 use crate::{
   activities::verify_person_in_community,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   migrations::CommentInReplyToMigration,
   objects::{create_tombstone, FromApub, Source, ToApub},
-  ActorType,
   PostOrComment,
 };
 use activitystreams::{
@@ -17,8 +16,9 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  traits::ActorType,
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
-  verify_domains_match,
+  verify::verify_domains_match,
 };
 use lemmy_db_queries::{source::comment::Comment_, Crud, DbPool};
 use lemmy_db_schema::{

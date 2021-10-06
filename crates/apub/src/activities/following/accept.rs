@@ -5,10 +5,9 @@ use crate::{
     verify_activity,
     verify_community,
   },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
-  ActorType,
+  send_lemmy_activity,
 };
 use activitystreams::{
   activity::kind::AcceptType,
@@ -17,8 +16,12 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
-use lemmy_db_queries::{ApubObject, Followable};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  verify::verify_urls_match,
+};
+use lemmy_db_queries::Followable;
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
   person::Person,
@@ -44,18 +47,17 @@ pub struct AcceptFollowCommunity {
 }
 
 impl AcceptFollowCommunity {
-  pub async fn send(follow: FollowCommunity, context: &LemmyContext) -> Result<(), LemmyError> {
-    let community_id = follow.object.clone();
-    let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &community_id.into())
-    })
-    .await??;
-    let person_id = follow.actor().clone();
-    let person = blocking(context.pool(), move |conn| {
-      Person::read_from_apub_id(conn, &person_id.into())
-    })
-    .await??;
-
+  pub async fn send(
+    follow: FollowCommunity,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    let community = follow.object.dereference_local(context).await?;
+    let person = follow
+      .actor
+      .clone()
+      .dereference(context, request_counter)
+      .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
       to: ObjectId::new(person.actor_id()),
@@ -69,15 +71,17 @@ impl AcceptFollowCommunity {
       unparsed: Default::default(),
     };
     let inbox = vec![person.inbox_url.into()];
-    send_activity_new(context, &accept, &accept.id, &community, inbox, true).await
+    send_lemmy_activity(context, &accept, &accept.id, &community, inbox, true).await
   }
 }
+
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AcceptFollowCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
@@ -90,7 +94,7 @@ impl ActivityHandler for AcceptFollowCommunity {
 
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;

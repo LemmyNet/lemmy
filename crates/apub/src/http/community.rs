@@ -4,8 +4,9 @@ use crate::{
     extract_community,
     following::{follow::FollowCommunity, undo::UndoFollowCommunity},
   },
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   generate_moderators_url,
+  generate_outbox_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
@@ -13,7 +14,6 @@ use crate::{
     receive_activity,
   },
   objects::ToApub,
-  ActorType,
 };
 use activitystreams::{
   base::{AnyBase, BaseExt},
@@ -22,7 +22,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
 use lemmy_db_queries::source::{activity::Activity_, community::Community_};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{
@@ -60,6 +60,7 @@ pub(crate) async fn get_apub_community_http(
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
+#[activity_handler(LemmyContext)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
@@ -146,7 +147,7 @@ pub(crate) async fn get_apub_community_outbox(
   collection
     .set_many_items(activities)
     .set_many_contexts(lemmy_context())
-    .set_id(community.get_outbox_url()?)
+    .set_id(generate_outbox_url(&community.actor_id)?.into())
     .set_total_items(len as u64);
   Ok(create_apub_response(&collection))
 }

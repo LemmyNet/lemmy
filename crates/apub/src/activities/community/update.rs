@@ -1,16 +1,14 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_mod_action,
     verify_person_in_community,
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
+  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::Group, ToApub},
-  ActorType,
 };
 use activitystreams::{
   activity::kind::UpdateType,
@@ -19,8 +17,12 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
-use lemmy_db_queries::{ApubObject, Crud};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
+};
+use lemmy_db_queries::Crud;
 use lemmy_db_schema::source::{
   community::{Community, CommunityForm},
   person::Person,
@@ -71,33 +73,31 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
-    send_to_community_new(activity, &id, actor, community, vec![], context).await
+    send_to_community(activity, &id, actor, community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UpdateCommunity {
+  type DataType = LemmyContext;
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context).await?;
+    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
     Ok(())
   }
 
   async fn receive(
     self,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
+    context: &Data<LemmyContext>,
+    request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let cc = self.cc[0].clone().into();
-    let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &cc)
-    })
-    .await??;
+    let cc = self.cc[0].clone();
+    let community = cc.dereference(context, request_counter).await?;
 
     let updated_community = Group::from_apub_to_form(
       &self.object,

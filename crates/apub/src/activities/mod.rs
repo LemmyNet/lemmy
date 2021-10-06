@@ -6,12 +6,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields};
-use lemmy_db_queries::ApubObject;
-use lemmy_db_schema::{
-  source::{community::Community, person::Person},
-  DbUrl,
-};
+use lemmy_apub_lib::{traits::ActivityFields, verify::verify_domains_match};
+use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -26,7 +22,6 @@ pub mod deletion;
 pub mod following;
 pub mod post;
 pub mod private_message;
-pub mod send;
 pub mod undo_remove;
 pub mod voting;
 
@@ -104,18 +99,12 @@ pub(crate) async fn verify_mod_action(
   actor_id: &ObjectId<Person>,
   community_id: ObjectId<Community>,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_apub_id(conn, &community_id.into())
-  })
-  .await??;
+  let community = community_id.dereference_local(context).await?;
 
   if community.local {
-    let actor_id: DbUrl = actor_id.clone().into();
-    let actor = blocking(context.pool(), move |conn| {
-      Person::read_from_apub_id(conn, &actor_id)
-    })
-    .await??;
+    let actor = actor_id.dereference(context, request_counter).await?;
 
     // Note: this will also return true for admins in addition to mods, but as we dont know about
     //       remote admins, it doesnt make any difference.

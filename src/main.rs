@@ -10,7 +10,7 @@ use diesel::{
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
-use lemmy_apub::activity_queue::create_activity_queue;
+use lemmy_apub_lib::activity_queue::create_activity_queue;
 use lemmy_db_queries::{get_database_url_from_env, source::secret::Secret_};
 use lemmy_db_schema::source::secret::Secret;
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};

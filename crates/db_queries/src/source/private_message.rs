@@ -1,5 +1,4 @@
-use crate::{ApubObject, Crud, DeleteableOrRemoveable};
-use chrono::NaiveDateTime;
+use crate::{Crud, DeleteableOrRemoveable};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl, PersonId, PrivateMessageId};
 
@@ -27,22 +26,6 @@ impl Crud for PrivateMessage {
     diesel::update(private_message.find(private_message_id))
       .set(private_message_form)
       .get_result::<Self>(conn)
-  }
-}
-
-impl ApubObject for PrivateMessage {
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Self, Error>
-  where
-    Self: Sized,
-  {
-    use lemmy_db_schema::schema::private_message::dsl::*;
-    private_message
-      .filter(ap_id.eq(object_id))
-      .first::<Self>(conn)
   }
 }
 
