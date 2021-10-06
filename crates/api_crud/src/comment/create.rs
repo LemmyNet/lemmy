@@ -168,14 +168,20 @@ impl PerformCrud for CreateComment {
       .await?
       .map_err(|_| ApiError::err("couldnt_update_comment"))?;
     }
-     // If its a reply, mark the parent as read
-     if  let Some(parent_id) = data.parent_id {
-      blocking(context.pool(), move |conn| {
-        Comment::update_read(conn, parent_id, true)
+    // If its a reply, mark the parent as read
+    if let Some(parent_id) = data.parent_id {
+      let parent_comment = blocking(context.pool(), move |conn| {
+        CommentView::read(conn, parent_id, Some(person_id))
       })
-      .await?
-      .map_err(|_| ApiError::err("couldnt_update_parent_comment"))?;
-    } 
+      .await??;
+      if local_user_view.person.id == parent_comment.get_recipient_id() {
+        blocking(context.pool(), move |conn| {
+          Comment::update_read(conn, parent_id, true)
+        })
+        .await?
+        .map_err(|_| ApiError::err("couldnt_update_parent_comment"))?;
+      }
+    }
 
     send_comment_ws_message(
       inserted_comment.id,
