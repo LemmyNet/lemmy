@@ -15,7 +15,8 @@ pub fn setup(pool: DbPool) {
   active_counts(&conn);
 
   // On startup, reindex the tables non-concurrently
-  reindex_aggregates_tables(&conn, false);
+  // TODO remove this for now, since it slows down startup a lot on lemmy.ml
+  reindex_aggregates_tables(&conn, true);
   scheduler.every(1.hour()).run(move || {
     active_counts(&conn);
     reindex_aggregates_tables(&conn, true);
