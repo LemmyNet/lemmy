@@ -19,8 +19,12 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{source::comment::Comment_, Crud, Likeable};
-use lemmy_db_schema::source::comment::*;
+use lemmy_db_queries::{
+  source::{comment::Comment_, person_mention::PersonMention_},
+  Crud,
+  Likeable,
+};
+use lemmy_db_schema::source::{comment::*, person_mention::PersonMention};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
@@ -180,6 +184,19 @@ impl PerformCrud for CreateComment {
         })
         .await?
         .map_err(|_| ApiError::err("couldnt_update_parent_comment"))?;
+      }
+      // If the parent has PersonMentions mark them as read too
+      let person_id = local_user_view.person.id;
+      let person_mention = blocking(context.pool(), move |conn| {
+        PersonMention::read_by_comment_and_person(conn, parent_id, person_id)
+      })
+      .await?;
+      if let Ok(mention) = person_mention {
+        blocking(context.pool(), move |conn| {
+          PersonMention::update_read(conn, mention.id, true)
+        })
+        .await?
+        .map_err(|_| ApiError::err("couldnt_update_person_mentions"))?;
       }
     }
 
