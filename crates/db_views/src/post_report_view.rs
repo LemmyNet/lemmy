@@ -127,14 +127,11 @@ impl PostReportView {
     })
   }
 
-  /// returns the current unresolved post report count for the supplied community ids
-  ///
-  /// * `community_ids` - a Vec<i32> of community_ids to get a count for
-  /// TODO this eq_any is a bad way to do this, would be better to join to communitymoderator
-  /// for a person id
+  /// returns the current unresolved post report count for the communities you mod
   pub fn get_report_count(
     conn: &PgConnection,
     my_person_id: PersonId,
+    admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
     use diesel::dsl::*;
@@ -142,14 +139,15 @@ impl PostReportView {
       .inner_join(post::table)
       // Test this join
       .inner_join(
-        community_moderator::table.on(
-          community_moderator::community_id
-            .eq(post::community_id)
-            .and(community_moderator::person_id.eq(my_person_id)),
-        ),
+        community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
       )
       .filter(post_report::resolved.eq(false))
       .into_boxed();
+
+    // If its not an admin, get only the ones you mod
+    if !admin {
+      query = query.filter(community_moderator::person_id.eq(my_person_id));
+    }
 
     if let Some(community_id) = community_id {
       query = query.filter(post::community_id.eq(community_id))
@@ -162,6 +160,7 @@ impl PostReportView {
 pub struct PostReportQueryBuilder<'a> {
   conn: &'a PgConnection,
   my_person_id: PersonId,
+  admin: bool,
   community_id: Option<CommunityId>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -169,10 +168,11 @@ pub struct PostReportQueryBuilder<'a> {
 }
 
 impl<'a> PostReportQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, my_person_id: PersonId) -> Self {
+  pub fn create(conn: &'a PgConnection, my_person_id: PersonId, admin: bool) -> Self {
     PostReportQueryBuilder {
       conn,
       my_person_id,
+      admin,
       community_id: None,
       page: None,
       limit: None,
@@ -206,13 +206,8 @@ impl<'a> PostReportQueryBuilder<'a> {
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
       .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
-      // Test this join
       .inner_join(
-        community_moderator::table.on(
-          community_moderator::community_id
-            .eq(post::community_id)
-            .and(community_moderator::person_id.eq(self.my_person_id)),
-        ),
+        community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
       )
       .left_join(
         community_person_ban::table.on(
@@ -244,6 +239,11 @@ impl<'a> PostReportQueryBuilder<'a> {
         PersonAlias2::safe_columns_tuple().nullable(),
       ))
       .into_boxed();
+
+    // If its not an admin, get only the ones you mod
+    if !self.admin {
+      query = query.filter(community_moderator::person_id.eq(self.my_person_id));
+    }
 
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
@@ -482,7 +482,7 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = PostReportQueryBuilder::create(&conn, inserted_timmy.id)
+    let reports = PostReportQueryBuilder::create(&conn, inserted_timmy.id, false)
       .list()
       .unwrap();
 
@@ -495,7 +495,8 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let report_count = PostReportView::get_report_count(&conn, inserted_timmy.id, None).unwrap();
+    let report_count =
+      PostReportView::get_report_count(&conn, inserted_timmy.id, false, None).unwrap();
     assert_eq!(2, report_count);
 
     // Try to resolve the report
@@ -540,14 +541,14 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = PostReportQueryBuilder::create(&conn, inserted_timmy.id)
+    let reports_after_resolve = PostReportQueryBuilder::create(&conn, inserted_timmy.id, false)
       .list()
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      PostReportView::get_report_count(&conn, inserted_timmy.id, None).unwrap();
+      PostReportView::get_report_count(&conn, inserted_timmy.id, false, None).unwrap();
     assert_eq!(1, report_count_after_resolved);
 
     Person::delete(&conn, inserted_timmy.id).unwrap();
