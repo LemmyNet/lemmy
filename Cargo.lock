@@ -1001,6 +1001,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31ad93652f40969dead8d4bf897a41e9462095152eb21c56e5830537e41179dd"
 
 [[package]]
+name = "doku"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b44778199365a299b026bf1c16d80579adaeba3c484244e1561f3a93de43451a"
+dependencies = [
+ "doku-derive",
+ "serde",
+]
+
+[[package]]
+name = "doku-derive"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "949dc0bf36de2fe276d42c79ff81cf4326c45b98b091c0edec75e857b5775626"
+dependencies = [
+ "darling 0.13.0",
+ "proc-macro2 1.0.29",
+ "quote 1.0.10",
+ "syn 1.0.80",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1924,6 +1946,7 @@ dependencies = [
  "clokwerk",
  "diesel",
  "diesel_migrations",
+ "doku",
  "env_logger",
  "http-signature-normalization-actix",
  "lemmy_api",
@@ -1960,6 +1983,7 @@ dependencies = [
  "comrak",
  "deser-hjson",
  "diesel",
+ "doku",
  "futures",
  "http",
  "itertools",

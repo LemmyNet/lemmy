@@ -11,6 +11,16 @@ static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 lazy_static! {
   static ref SETTINGS: RwLock<Settings> =
     RwLock::new(Settings::init().expect("Failed to load settings file"));
+  static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
+    "^group:([a-z0-9_]{{3,}})@{}$",
+    Settings::get().hostname
+  ))
+  .expect("compile webfinger regex");
+  static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
+    "^acct:([a-z0-9_]{{3,}})@{}$",
+    Settings::get().hostname
+  ))
+  .expect("compile webfinger regex");
 }
 
 impl Settings {
@@ -21,21 +31,11 @@ impl Settings {
   /// Warning: Only call this once.
   pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
-    let mut config = from_str::<Settings>(&Self::read_config_file()?)?;
+    let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
     if config.hostname == "unset" {
       return Err(anyhow!("Hostname variable is not set!").into());
     }
-
-    // Initialize the regexes
-    config.webfinger_community_regex = Some(
-      Regex::new(&format!("^group:([a-z0-9_]{{3,}})@{}$", config.hostname))
-        .expect("compile webfinger regex"),
-    );
-    config.webfinger_username_regex = Some(
-      Regex::new(&format!("^acct:([a-z0-9_]{{3,}})@{}$", config.hostname))
-        .expect("compile webfinger regex"),
-    );
 
     Ok(config)
   }
@@ -106,17 +106,11 @@ impl Settings {
   }
 
   pub fn webfinger_community_regex(&self) -> Regex {
-    self
-      .webfinger_community_regex
-      .to_owned()
-      .expect("compile webfinger regex")
+    WEBFINGER_COMMUNITY_REGEX.to_owned()
   }
 
   pub fn webfinger_username_regex(&self) -> Regex {
-    self
-      .webfinger_username_regex
-      .to_owned()
-      .expect("compile webfinger regex")
+    WEBFINGER_USER_REGEX.to_owned()
   }
 
   pub fn slur_regex(&self) -> Regex {

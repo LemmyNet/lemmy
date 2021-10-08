@@ -7,6 +7,7 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
+use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
@@ -23,13 +24,23 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
-use std::{sync::Arc, thread};
+use std::{env, sync::Arc, thread};
 use tokio::sync::Mutex;
 
 embed_migrations!();
 
 #[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
+  let args: Vec<String> = env::args().collect();
+  if args.len() == 2 && args[1] == "--print-config-docs" {
+    let fmt = Formatting {
+      auto_comments: AutoComments::none(),
+      ..Default::default()
+    };
+    println!("{}", doku::to_json_fmt_val(&fmt, &Settings::default()));
+    return Ok(());
+  }
+
   env_logger::init();
   let settings = Settings::init().expect("Couldn't initialize settings.");
 
