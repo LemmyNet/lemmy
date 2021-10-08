@@ -2004,6 +2004,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
+ "uuid",
  "webpage",
 ]
 
