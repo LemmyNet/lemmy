@@ -1002,9 +1002,9 @@ checksum = "31ad93652f40969dead8d4bf897a41e9462095152eb21c56e5830537e41179dd"
 
 [[package]]
 name = "doku"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fca50a9496056845256b66d59cca4bbac18ff6dd6c1922de55aa70786be3a2d4"
+checksum = "b44778199365a299b026bf1c16d80579adaeba3c484244e1561f3a93de43451a"
 dependencies = [
  "doku-derive",
  "serde",
@@ -1012,15 +1012,14 @@ dependencies = [
 
 [[package]]
 name = "doku-derive"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8dc9bda49ecdf58ce2c6aa09cfe0b627f8af3c3e3d6480f472aa1e8e3fd27fb"
+checksum = "949dc0bf36de2fe276d42c79ff81cf4326c45b98b091c0edec75e857b5775626"
 dependencies = [
  "darling 0.13.0",
- "proc-macro-error",
  "proc-macro2 1.0.29",
- "quote 1.0.9",
- "syn 1.0.77",
+ "quote 1.0.10",
+ "syn 1.0.80",
 ]
 
 [[package]]
@@ -2667,30 +2666,6 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
-
-[[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2 1.0.29",
- "quote 1.0.9",
- "syn 1.0.77",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2 1.0.29",
- "quote 1.0.9",
- "version_check",
-]
 
 [[package]]
 name = "proc-macro-hack"
