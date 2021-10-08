@@ -90,13 +90,14 @@ async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
 pub fn create_activity_queue() -> QueueHandle {
   // Start the application server. This guards access to to the jobs store
   let queue_handle = create_server(Storage::new());
+  let arbiter = actix_web::rt::Arbiter::new();
 
   // Configure and start our workers
   WorkerConfig::new(|| MyState {
     client: Client::default(),
   })
   .register::<SendActivityTask>()
-  .start(queue_handle.clone());
+  .start_in_arbiter(&arbiter, queue_handle.clone());
 
   queue_handle
 }
