@@ -1,6 +1,6 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{source::person_mention::*, PersonId, PersonMentionId};
+use lemmy_db_schema::{source::person_mention::*, CommentId, PersonId, PersonMentionId};
 
 impl Crud for PersonMention {
   type Form = PersonMentionForm;
@@ -44,6 +44,11 @@ pub trait PersonMention_ {
     conn: &PgConnection,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PersonMention>, Error>;
+  fn read_by_comment_and_person(
+    conn: &PgConnection,
+    for_comment_id: CommentId,
+    for_recipient_id: PersonId,
+  ) -> Result<PersonMention, Error>;
 }
 
 impl PersonMention_ for PersonMention {
@@ -70,6 +75,17 @@ impl PersonMention_ for PersonMention {
     )
     .set(read.eq(true))
     .get_results::<Self>(conn)
+  }
+  fn read_by_comment_and_person(
+    conn: &PgConnection,
+    for_comment_id: CommentId,
+    for_recipient_id: PersonId,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::person_mention::dsl::*;
+    person_mention
+      .filter(comment_id.eq(for_comment_id))
+      .filter(recipient_id.eq(for_recipient_id))
+      .first::<Self>(conn)
   }
 }
 
