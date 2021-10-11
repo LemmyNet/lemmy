@@ -4,6 +4,7 @@ use anyhow::Context;
 use lemmy_api_common::{
   blocking,
   check_community_ban,
+  check_community_deleted_or_removed,
   community::*,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
@@ -70,6 +71,7 @@ impl Perform for FollowCommunity {
     if community.local {
       if data.follow {
         check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
+        check_community_deleted_or_removed(community_id, context.pool()).await?;
 
         let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
         blocking(context.pool(), follow)

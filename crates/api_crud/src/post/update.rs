@@ -1,6 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, check_community_ban, get_local_user_view_from_jwt, post::*};
+use lemmy_api_common::{
+  blocking,
+  check_community_ban,
+  check_community_deleted_or_removed,
+  get_local_user_view_from_jwt,
+  post::*,
+};
 use lemmy_apub::activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType};
 use lemmy_db_queries::{source::post::Post_, Crud};
 use lemmy_db_schema::{naive_now, source::post::*};
@@ -45,6 +51,7 @@ impl PerformCrud for EditPost {
       context.pool(),
     )
     .await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {

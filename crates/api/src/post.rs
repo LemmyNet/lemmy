@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
   check_community_ban,
+  check_community_deleted_or_removed,
   check_downvotes_enabled,
   check_person_block,
   get_local_user_view_from_jwt,
@@ -49,6 +50,7 @@ impl Perform for CreatePostLike {
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
+    check_community_deleted_or_removed(post.community_id, context.pool()).await?;
 
     check_person_block(local_user_view.person.id, post.creator_id, context.pool()).await?;
 
@@ -133,6 +135,7 @@ impl Perform for LockPost {
       context.pool(),
     )
     .await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the mods can lock
     is_mod_or_admin(
@@ -200,6 +203,7 @@ impl Perform for StickyPost {
       context.pool(),
     )
     .await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the mods can sticky
     is_mod_or_admin(

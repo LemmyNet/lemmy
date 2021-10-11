@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
   check_community_ban,
+  check_community_deleted_or_removed,
   comment::*,
   get_local_user_view_from_jwt,
   send_local_notifs,
@@ -48,6 +49,7 @@ impl PerformCrud for EditComment {
       context.pool(),
     )
     .await?;
+    check_community_deleted_or_removed(orig_comment.community.id, context.pool()).await?;
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {

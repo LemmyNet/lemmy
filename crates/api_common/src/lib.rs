@@ -357,6 +357,18 @@ pub async fn check_community_ban(
   }
 }
 
+pub async fn check_community_deleted_or_removed(
+  community_id: CommunityId,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
+  if community.deleted || community.removed {
+    Err(ApiError::err("deleted").into())
+  } else {
+    Ok(())
+  }
+}
+
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
