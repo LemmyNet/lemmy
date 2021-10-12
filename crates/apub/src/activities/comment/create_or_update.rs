@@ -1,5 +1,6 @@
 use crate::{
   activities::{
+    check_community_deleted_or_removed,
     comment::{collect_non_local_mentions, get_notif_recipients},
     community::{announce::AnnouncableActivities, send_to_community},
     extract_community,
@@ -98,6 +99,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+    check_community_deleted_or_removed(&community)?;
     // TODO: should add a check that the correct community is in cc (probably needs changes to
     //       comment deserialization)
     self.object.verify(context, request_counter).await?;
