@@ -155,13 +155,14 @@ impl Perform for ListCommentReports {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
+    let admin = local_user_view.person.admin;
     let community_id = data.community_id;
     let unresolved_only = data.unresolved_only;
 
     let page = data.page;
     let limit = data.limit;
     let comment_reports = blocking(context.pool(), move |conn| {
-      CommentReportQueryBuilder::create(conn, person_id)
+      CommentReportQueryBuilder::create(conn, person_id, admin)
         .community_id(community_id)
         .unresolved_only(unresolved_only)
         .page(page)

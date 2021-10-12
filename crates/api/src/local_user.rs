@@ -822,15 +822,16 @@ impl Perform for GetReportCount {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
+    let admin = local_user_view.person.admin;
     let community_id = data.community_id;
 
     let comment_reports = blocking(context.pool(), move |conn| {
-      CommentReportView::get_report_count(conn, person_id, community_id)
+      CommentReportView::get_report_count(conn, person_id, admin, community_id)
     })
     .await??;
 
     let post_reports = blocking(context.pool(), move |conn| {
-      PostReportView::get_report_count(conn, person_id, community_id)
+      PostReportView::get_report_count(conn, person_id, admin, community_id)
     })
     .await??;
 
