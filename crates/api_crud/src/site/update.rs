@@ -69,7 +69,7 @@ impl PerformCrud for EditSite {
       return Err(ApiError::err("couldnt_update_site").into());
     }
 
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+    let site_view = blocking(context.pool(), SiteView::read).await??;
 
     let res = SiteResponse { site_view };
 

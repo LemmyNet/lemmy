@@ -83,7 +83,7 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+  let site_view = blocking(context.pool(), SiteView::read).await??;
 
   let posts = blocking(context.pool(), move |conn| {
     PostQueryBuilder::create(conn)

@@ -142,7 +142,7 @@ impl PerformCrud for CreateComment {
       return Err(ApiError::err("couldnt_like_comment").into());
     }
 
-    let object = PostOrComment::Comment(Box::new(updated_comment));
+    let object = PostOrComment::Comment(updated_comment);
     Vote::send(
       &object,
       &local_user_view.person,

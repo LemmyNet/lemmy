@@ -111,7 +111,7 @@ impl ActivityHandler for UndoVote {
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
-      PostOrComment::Comment(c) => undo_vote_comment(actor, c.deref(), context).await,
+      PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
     }
   }
 }
