@@ -361,7 +361,9 @@ pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
+  let community = blocking(pool, move |conn| Community::read(conn, community_id))
+    .await?
+    .map_err(|_| ApiError::err("couldnt_find_community"))?;
   if community.deleted || community.removed {
     Err(ApiError::err("deleted").into())
   } else {

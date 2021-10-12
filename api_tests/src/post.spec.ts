@@ -90,7 +90,7 @@ test('Create a post', async () => {
 
 test('Create a post in a non-existent community', async () => {
   let postRes = await createPost(alpha, -2);
-  expect(postRes).toStrictEqual({ error: 'couldnt_create_post' });
+  expect(postRes).toStrictEqual({ error: 'couldnt_find_community' });
 });
 
 test('Unlike a post', async () => {
