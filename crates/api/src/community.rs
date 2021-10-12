@@ -409,7 +409,7 @@ impl Perform for TransferCommunity {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
     // Making sure the site creator, if an admin, is at the top
     let creator_index = admins

@@ -30,7 +30,7 @@ impl PerformCrud for GetSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
-    let site_view = match blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
+    let site_view = match blocking(context.pool(), SiteView::read).await? {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
@@ -62,14 +62,14 @@ impl PerformCrud for GetSite {
           };
           create_site.perform(context, websocket_id).await?;
           info!("Site {} created", setup.site_name);
-          Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
+          Some(blocking(context.pool(), SiteView::read).await??)
         } else {
           None
         }
       }
     };
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
@@ -82,7 +82,7 @@ impl PerformCrud for GetSite {
       }
     }
 
-    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
+    let banned = blocking(context.pool(), PersonViewSafe::banned).await??;
 
     let online = context
       .chat_server()

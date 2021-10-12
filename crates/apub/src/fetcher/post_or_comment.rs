@@ -13,19 +13,19 @@ use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum PostOrComment {
-  Comment(Box<Comment>),
   Post(Box<Post>),
+  Comment(Comment),
 }
 
 pub enum PostOrCommentForm {
-  PostForm(PostForm),
+  PostForm(Box<PostForm>),
   CommentForm(CommentForm),
 }
 
 #[derive(Deserialize)]
 pub enum PageOrNote {
-  Page(Page),
-  Note(Note),
+  Page(Box<Page>),
+  Note(Box<Note>),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -44,9 +44,7 @@ impl ApubObject for PostOrComment {
     let post = Post::read_from_apub_id(conn, object_id.clone())?;
     Ok(match post {
       Some(o) => Some(PostOrComment::Post(Box::new(o))),
-      None => {
-        Comment::read_from_apub_id(conn, object_id)?.map(|c| PostOrComment::Comment(Box::new(c)))
-      }
+      None => Comment::read_from_apub_id(conn, object_id)?.map(PostOrComment::Comment),
     })
   }
 }
@@ -68,9 +66,9 @@ impl FromApub for PostOrComment {
       PageOrNote::Page(p) => PostOrComment::Post(Box::new(
         Post::from_apub(p, context, expected_domain, request_counter).await?,
       )),
-      PageOrNote::Note(n) => PostOrComment::Comment(Box::new(
+      PageOrNote::Note(n) => PostOrComment::Comment(
         Comment::from_apub(n, context, expected_domain, request_counter).await?,
-      )),
+      ),
     })
   }
 }
