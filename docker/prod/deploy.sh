@@ -13,9 +13,10 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   git add ../prod/docker-compose.yml
 
   # Setting the version for Ansible
-  pushd ../../
-  echo $new_tag > "ansible/VERSION"
-  git add "ansible/VERSION"
+  pushd ../../../lemmy-ansible
+  echo $new_tag > "VERSION"
+  git add "VERSION"
+  git commit -m"Updating VERSION"
   popd
 fi
 
