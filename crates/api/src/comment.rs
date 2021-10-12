@@ -188,7 +188,7 @@ impl Perform for CreateCommentLike {
 
     // Only add the like if the score isnt 0
     let comment = orig_comment.comment;
-    let object = PostOrComment::Comment(Box::new(comment));
+    let object = PostOrComment::Comment(comment);
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();

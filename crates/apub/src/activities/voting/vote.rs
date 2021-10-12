@@ -134,7 +134,7 @@ impl ActivityHandler for Vote {
     let object = self.object.dereference(context, request_counter).await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
-      PostOrComment::Comment(c) => vote_comment(&self.kind, actor, c.deref(), context).await,
+      PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
     }
   }
 }

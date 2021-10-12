@@ -76,7 +76,7 @@ impl PerformCrud for CreateSite {
       return Err(ApiError::err("site_already_exists").into());
     }
 
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+    let site_view = blocking(context.pool(), SiteView::read).await??;
 
     Ok(SiteResponse { site_view })
   }

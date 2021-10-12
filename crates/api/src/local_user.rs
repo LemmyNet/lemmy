@@ -375,7 +375,7 @@ impl Perform for AddAdmin {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
     let creator_index = admins
       .iter()
       .position(|r| r.person.id == site_creator_id)

@@ -472,9 +472,9 @@ impl Perform for TransferSite {
 
     blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
 
-    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+    let site_view = blocking(context.pool(), SiteView::read).await??;
 
-    let mut admins = blocking(context.pool(), move |conn| PersonViewSafe::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
     let creator_index = admins
       .iter()
       .position(|r| r.person.id == site_view.creator.id)
@@ -482,7 +482,7 @@ impl Perform for TransferSite {
     let creator_person = admins.remove(creator_index);
     admins.insert(0, creator_person);
 
-    let banned = blocking(context.pool(), move |conn| PersonViewSafe::banned(conn)).await??;
+    let banned = blocking(context.pool(), PersonViewSafe::banned).await??;
     let federated_instances = build_federated_instances(
       context.pool(),
       &context.settings().federation,
