@@ -12,6 +12,7 @@ use lettre::{
   Transport,
 };
 use std::str::FromStr;
+use uuid::Uuid;
 
 pub fn send_email(
   subject: &str,
@@ -44,6 +45,7 @@ pub fn send_email(
       Some(to_username.to_string()),
       Address::from_str(to_email).expect("email to address isn't valid"),
     ))
+    .message_id(Some(format!("{}@{}", Uuid::new_v4(), settings.hostname)))
     .subject(subject)
     .multipart(
       MultiPart::mixed().multipart(
