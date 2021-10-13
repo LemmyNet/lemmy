@@ -26,6 +26,7 @@ pub enum PostOrCommentForm {
 }
 
 #[derive(Deserialize)]
+#[serde(untagged)]
 pub enum PageOrNote {
   Page(Page),
   Note(Note),
