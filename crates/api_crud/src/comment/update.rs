@@ -51,7 +51,7 @@ impl PerformCrud for EditComment {
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(ApiError::err("no_comment_edit_allowed").into());
+      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
     }
 
     // Do the update
@@ -62,7 +62,7 @@ impl PerformCrud for EditComment {
       Comment::update_content(conn, comment_id, &content_slurs_removed)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Send the apub update
     CreateOrUpdateComment::send(

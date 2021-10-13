@@ -48,7 +48,7 @@ impl PerformCrud for CreatePost {
     check_slurs_opt(&data.body, slur_regex)?;
 
     if !is_valid_post_title(&data.name) {
-      return Err(ApiError::err("invalid_post_title").into());
+      return Err(ApiError::err_plain("invalid_post_title").into());
     }
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
@@ -85,7 +85,7 @@ impl PerformCrud for CreatePost {
             "couldnt_create_post"
           };
 
-          return Err(ApiError::err(err_type).into());
+          return Err(ApiError::err(err_type, e).into());
         }
       };
 
@@ -100,7 +100,7 @@ impl PerformCrud for CreatePost {
       Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_create_post"))?;
+    .map_err(|e| ApiError::err("couldnt_create_post", e))?;
 
     CreateOrUpdatePost::send(
       &updated_post,
@@ -121,7 +121,7 @@ impl PerformCrud for CreatePost {
 
     let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
     if blocking(context.pool(), like).await?.is_err() {
-      return Err(ApiError::err("couldnt_like_post").into());
+      return Err(ApiError::err_plain("couldnt_like_post").into());
     }
 
     // Mark the post as read

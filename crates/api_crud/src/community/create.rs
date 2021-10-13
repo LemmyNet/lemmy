@@ -50,7 +50,7 @@ impl PerformCrud for CreateCommunity {
 
     let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-      return Err(ApiError::err("only_admins_can_create_communities").into());
+      return Err(ApiError::err_plain("only_admins_can_create_communities").into());
     }
 
     check_slurs(&data.name, &context.settings().slur_regex())?;
@@ -58,7 +58,7 @@ impl PerformCrud for CreateCommunity {
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
 
     if !is_valid_actor_name(&data.name, context.settings().actor_name_max_length) {
-      return Err(ApiError::err("invalid_community_name").into());
+      return Err(ApiError::err_plain("invalid_community_name").into());
     }
 
     // Double check for duplicate community actor_ids
@@ -73,7 +73,7 @@ impl PerformCrud for CreateCommunity {
     })
     .await?;
     if community_dupe.is_ok() {
-      return Err(ApiError::err("community_already_exists").into());
+      return Err(ApiError::err_plain("community_already_exists").into());
     }
 
     // Check to make sure the icon and banners are urls
@@ -103,7 +103,7 @@ impl PerformCrud for CreateCommunity {
       Community::create(conn, &community_form)
     })
     .await?
-    .map_err(|_| ApiError::err("community_already_exists"))?;
+    .map_err(|e| ApiError::err("community_already_exists", e))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -113,7 +113,7 @@ impl PerformCrud for CreateCommunity {
 
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
     if blocking(context.pool(), join).await?.is_err() {
-      return Err(ApiError::err("community_moderator_already_exists").into());
+      return Err(ApiError::err_plain("community_moderator_already_exists").into());
     }
 
     // Follow your own community
@@ -125,7 +125,7 @@ impl PerformCrud for CreateCommunity {
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
     if blocking(context.pool(), follow).await?.is_err() {
-      return Err(ApiError::err("community_follower_already_exists").into());
+      return Err(ApiError::err_plain("community_follower_already_exists").into());
     }
 
     let person_id = local_user_view.person.id;

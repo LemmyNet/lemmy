@@ -88,7 +88,7 @@ impl Perform for Login {
       LocalUserView::find_by_email_or_name(conn, &username_or_email)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?;
+    .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
 
     // Verify the password
     let valid: bool = verify(
@@ -97,7 +97,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(ApiError::err("password_incorrect").into());
+      return Err(ApiError::err_plain("password_incorrect").into());
     }
 
     // Return the jwt
@@ -179,7 +179,7 @@ impl Perform for SaveUserSettings {
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
-        return Err(ApiError::err("bio_length_overflow").into());
+        return Err(ApiError::err_plain("bio_length_overflow").into());
       }
     }
 
@@ -188,13 +188,13 @@ impl Perform for SaveUserSettings {
         display_name.trim(),
         context.settings().actor_name_max_length,
       ) {
-        return Err(ApiError::err("invalid_username").into());
+        return Err(ApiError::err_plain("invalid_username").into());
       }
     }
 
     if let Some(Some(matrix_user_id)) = &matrix_user_id {
       if !is_valid_matrix_id(matrix_user_id) {
-        return Err(ApiError::err("invalid_matrix_id").into());
+        return Err(ApiError::err_plain("invalid_matrix_id").into());
       }
     }
 
@@ -226,16 +226,11 @@ impl Perform for SaveUserSettings {
       bot_account,
     };
 
-    let person_res = blocking(context.pool(), move |conn| {
+    blocking(context.pool(), move |conn| {
       Person::update(conn, person_id, &person_form)
     })
-    .await?;
-    let _updated_person: Person = match person_res {
-      Ok(p) => p,
-      Err(_) => {
-        return Err(ApiError::err("user_already_exists").into());
-      }
-    };
+    .await?
+    .map_err(|e| ApiError::err("user_already_exists", e))?;
 
     let local_user_form = LocalUserForm {
       person_id,
@@ -269,7 +264,7 @@ impl Perform for SaveUserSettings {
           "user_already_exists"
         };
 
-        return Err(ApiError::err(err_type).into());
+        return Err(ApiError::err(err_type, e).into());
       }
     };
 
@@ -301,7 +296,7 @@ impl Perform for ChangePassword {
 
     // Make sure passwords match
     if data.new_password != data.new_password_verify {
-      return Err(ApiError::err("passwords_dont_match").into());
+      return Err(ApiError::err_plain("passwords_dont_match").into());
     }
 
     // Check the old password
@@ -311,7 +306,7 @@ impl Perform for ChangePassword {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(ApiError::err("password_incorrect").into());
+      return Err(ApiError::err_plain("password_incorrect").into());
     }
 
     let local_user_id = local_user_view.local_user.id;
@@ -350,16 +345,11 @@ impl Perform for AddAdmin {
 
     let added = data.added;
     let added_person_id = data.person_id;
-    let added_admin = match blocking(context.pool(), move |conn| {
+    let added_admin = blocking(context.pool(), move |conn| {
       Person::add_admin(conn, added_person_id, added)
     })
     .await?
-    {
-      Ok(a) => a,
-      Err(_) => {
-        return Err(ApiError::err("couldnt_update_user").into());
-      }
-    };
+    .map_err(|e| ApiError::err("couldnt_update_user", e))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -414,9 +404,9 @@ impl Perform for BanPerson {
     let ban = data.ban;
     let banned_person_id = data.person_id;
     let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban);
-    if blocking(context.pool(), ban_person).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_user").into());
-    }
+    blocking(context.pool(), ban_person)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_user", e))?;
 
     // Remove their data if that's desired
     if data.remove_data.unwrap_or(false) {
@@ -506,7 +496,7 @@ impl Perform for BlockPerson {
 
     // Don't let a person block themselves
     if target_id == person_id {
-      return Err(ApiError::err("cant_block_yourself").into());
+      return Err(ApiError::err_plain("cant_block_yourself").into());
     }
 
     let person_block_form = PersonBlockForm {
@@ -516,14 +506,14 @@ impl Perform for BlockPerson {
 
     if data.block {
       let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
-      if blocking(context.pool(), block).await?.is_err() {
-        return Err(ApiError::err("person_block_already_exists").into());
-      }
+      blocking(context.pool(), block)
+        .await?
+        .map_err(|e| ApiError::err("person_block_already_exists", e))?;
     } else {
       let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
-      if blocking(context.pool(), unblock).await?.is_err() {
-        return Err(ApiError::err("person_block_already_exists").into());
-      }
+      blocking(context.pool(), unblock)
+        .await?
+        .map_err(|e| ApiError::err("person_block_already_exists", e))?;
     }
 
     // TODO does any federated stuff need to be done here?
@@ -635,16 +625,16 @@ impl Perform for MarkPersonMentionAsRead {
     .await??;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(ApiError::err("couldnt_update_comment").into());
+      return Err(ApiError::err_plain("couldnt_update_comment").into());
     }
 
     let person_mention_id = read_person_mention.id;
     let read = data.read;
     let update_mention =
       move |conn: &'_ _| PersonMention::update_read(conn, person_mention_id, read);
-    if blocking(context.pool(), update_mention).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_comment").into());
-    };
+    blocking(context.pool(), update_mention)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
@@ -690,26 +680,23 @@ impl Perform for MarkAllAsRead {
     for comment_view in &replies {
       let reply_id = comment_view.comment.id;
       let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
-      if blocking(context.pool(), mark_as_read).await?.is_err() {
-        return Err(ApiError::err("couldnt_update_comment").into());
-      }
+      blocking(context.pool(), mark_as_read)
+        .await?
+        .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
     }
 
     // Mark all user mentions as read
     let update_person_mentions =
       move |conn: &'_ _| PersonMention::mark_all_as_read(conn, person_id);
-    if blocking(context.pool(), update_person_mentions)
+    blocking(context.pool(), update_person_mentions)
       .await?
-      .is_err()
-    {
-      return Err(ApiError::err("couldnt_update_comment").into());
-    }
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Mark all private_messages as read
     let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, person_id);
-    if blocking(context.pool(), update_pm).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_private_message").into());
-    }
+    blocking(context.pool(), update_pm)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
 
     Ok(GetRepliesResponse { replies: vec![] })
   }
@@ -732,7 +719,7 @@ impl Perform for PasswordReset {
       LocalUserView::find_by_email(conn, &email)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?;
+    .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
 
     // Generate a random token
     let token = generate_random_string();
@@ -758,7 +745,7 @@ impl Perform for PasswordReset {
       html,
       &context.settings(),
     )
-    .map_err(|e| ApiError::err(&e))?;
+    .map_err(|e| ApiError::err("email_send_failed", e))?;
 
     Ok(PasswordResetResponse {})
   }
@@ -786,7 +773,7 @@ impl Perform for PasswordChange {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(ApiError::err("passwords_dont_match").into());
+      return Err(ApiError::err_plain("passwords_dont_match").into());
     }
 
     // Update the user with the new password
@@ -795,7 +782,7 @@ impl Perform for PasswordChange {
       LocalUser::update_password(conn, local_user_id, &password)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_user"))?;
+    .map_err(|e| ApiError::err("couldnt_update_user", e))?;
 
     // Return the jwt
     Ok(LoginResponse {

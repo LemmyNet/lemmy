@@ -472,9 +472,9 @@ impl ChatServer {
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
       let data = &json["data"].to_string();
-      let op = &json["op"].as_str().ok_or(ApiError {
-        message: "Unknown op type".to_string(),
-      })?;
+      let op = &json["op"]
+        .as_str()
+        .ok_or_else(|| ApiError::err_plain("missing op"))?;
 
       if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);

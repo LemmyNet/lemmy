@@ -50,7 +50,7 @@ impl PerformCrud for GetPersonDetails {
         })
         .await?;
         person
-          .map_err(|_| ApiError::err("couldnt_find_that_username_or_email"))?
+          .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?
           .id
       }
     };

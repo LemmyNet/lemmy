@@ -39,10 +39,10 @@ impl Perform for CreatePostReport {
     // check size of report and check for whitespace
     let reason = data.reason.trim();
     if reason.is_empty() {
-      return Err(ApiError::err("report_reason_required").into());
+      return Err(ApiError::err_plain("report_reason_required").into());
     }
     if reason.chars().count() > 1000 {
-      return Err(ApiError::err("report_too_long").into());
+      return Err(ApiError::err_plain("report_too_long").into());
     }
 
     let person_id = local_user_view.person.id;
@@ -67,7 +67,7 @@ impl Perform for CreatePostReport {
       PostReport::report(conn, &report_form)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_create_report"))?;
+    .map_err(|e| ApiError::err("couldnt_create_report", e))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report.id, person_id)
@@ -120,9 +120,9 @@ impl Perform for ResolvePostReport {
       }
     };
 
-    if blocking(context.pool(), resolve_fun).await?.is_err() {
-      return Err(ApiError::err("couldnt_resolve_report").into());
-    };
+    blocking(context.pool(), resolve_fun)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_resolve_report", e))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report_id, person_id)

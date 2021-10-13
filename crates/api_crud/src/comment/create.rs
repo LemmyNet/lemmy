@@ -57,7 +57,7 @@ impl PerformCrud for CreateComment {
 
     // Check if post is locked, no new comments
     if post.locked {
-      return Err(ApiError::err("locked").into());
+      return Err(ApiError::err_plain("locked").into());
     }
 
     // If there's a parent_id, check to make sure that comment is in that post
@@ -65,13 +65,13 @@ impl PerformCrud for CreateComment {
       // Make sure the parent comment exists
       let parent = blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
         .await?
-        .map_err(|_| ApiError::err("couldnt_create_comment"))?;
+        .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
       check_person_block(local_user_view.person.id, parent.creator_id, context.pool()).await?;
 
       // Strange issue where sometimes the post ID is incorrect
       if parent.post_id != post_id {
-        return Err(ApiError::err("couldnt_create_comment").into());
+        return Err(ApiError::err_plain("couldnt_create_comment").into());
       }
     }
 
@@ -89,7 +89,7 @@ impl PerformCrud for CreateComment {
       Comment::create(conn, &comment_form2)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_create_comment"))?;
+    .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -105,7 +105,7 @@ impl PerformCrud for CreateComment {
         Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
       })
       .await?
-      .map_err(|_| ApiError::err("couldnt_create_comment"))?;
+      .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
     CreateOrUpdateComment::send(
       &updated_comment,
@@ -138,9 +138,9 @@ impl PerformCrud for CreateComment {
     };
 
     let like = move |conn: &'_ _| CommentLike::like(conn, &like_form);
-    if blocking(context.pool(), like).await?.is_err() {
-      return Err(ApiError::err("couldnt_like_comment").into());
-    }
+    blocking(context.pool(), like)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
 
     let object = PostOrComment::Comment(updated_comment);
     Vote::send(
@@ -166,7 +166,21 @@ impl PerformCrud for CreateComment {
         Comment::update_read(conn, comment_id, true)
       })
       .await?
-      .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    }
+    // If its a reply, mark the parent as read
+    if let Some(parent_id) = data.parent_id {
+      let parent_comment = blocking(context.pool(), move |conn| {
+        CommentView::read(conn, parent_id, Some(person_id))
+      })
+      .await??;
+      if local_user_view.person.id == parent_comment.get_recipient_id() {
+        blocking(context.pool(), move |conn| {
+          Comment::update_read(conn, parent_id, true)
+        })
+        .await?
+        .map_err(|e| ApiError::err("couldnt_update_parent_comment", e))?;
+      }
     }
 
     send_comment_ws_message(

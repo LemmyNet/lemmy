@@ -27,21 +27,21 @@ impl PerformCrud for DeleteAccount {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(ApiError::err("password_incorrect").into());
+      return Err(ApiError::err_plain("password_incorrect").into());
     }
 
     // Comments
     let person_id = local_user_view.person.id;
     let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
-    if blocking(context.pool(), permadelete).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_comment").into());
-    }
+    blocking(context.pool(), permadelete)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Posts
     let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
-    if blocking(context.pool(), permadelete).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_post").into());
-    }
+    blocking(context.pool(), permadelete)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_post", e))?;
 
     blocking(context.pool(), move |conn| {
       Person::delete_account(conn, person_id)

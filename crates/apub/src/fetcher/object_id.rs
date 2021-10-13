@@ -46,7 +46,7 @@ where
   }
 
   /// Fetches an activitypub object, either from local database (if possible), or over http.
-  pub(crate) async fn dereference(
+  pub async fn dereference(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,

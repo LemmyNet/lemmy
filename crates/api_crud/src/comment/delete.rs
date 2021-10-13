@@ -43,7 +43,7 @@ impl PerformCrud for DeleteComment {
 
     // Verify that only the creator can delete
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(ApiError::err("no_comment_edit_allowed").into());
+      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
     }
 
     // Do the delete
@@ -52,7 +52,7 @@ impl PerformCrud for DeleteComment {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Send the apub message
     let community = blocking(context.pool(), move |conn| {
@@ -134,7 +134,7 @@ impl PerformCrud for RemoveComment {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {

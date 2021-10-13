@@ -1,14 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
-use lemmy_apub::{build_actor_id_from_shortname, EndpointType};
-use lemmy_db_queries::{
-  from_opt_str_to_opt_enum,
-  ApubObject,
-  DeleteableOrRemoveable,
-  ListingType,
-  SortType,
-};
+use lemmy_apub::{build_actor_id_from_shortname, fetcher::object_id::ObjectId, EndpointType};
+use lemmy_db_queries::{from_opt_str_to_opt_enum, DeleteableOrRemoveable, ListingType, SortType};
 use lemmy_db_schema::source::community::*;
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
@@ -38,12 +32,11 @@ impl PerformCrud for GetCommunity {
         let community_actor_id =
           build_actor_id_from_shortname(EndpointType::Community, &name, &context.settings())?;
 
-        blocking(context.pool(), move |conn| {
-          Community::read_from_apub_id(conn, &community_actor_id)
-        })
-        .await?
-        .map_err(|_| ApiError::err("couldnt_find_community"))?
-        .id
+        ObjectId::<Community>::new(community_actor_id)
+          .dereference(context, &mut 0)
+          .await
+          .map_err(|e| ApiError::err("couldnt_find_community", e))?
+          .id
       }
     };
 
@@ -51,7 +44,7 @@ impl PerformCrud for GetCommunity {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     // Blank out deleted or removed info
     if community_view.community.deleted || community_view.community.removed {
@@ -62,7 +55,7 @@ impl PerformCrud for GetCommunity {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     let online = context
       .chat_server()
