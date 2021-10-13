@@ -35,7 +35,7 @@ impl PerformCrud for GetCommunity {
         ObjectId::<Community>::new(community_actor_id)
           .dereference(context, &mut 0)
           .await
-          .map_err(|_| ApiError::err("couldnt_find_community"))?
+          .map_err(|e| ApiError::err("couldnt_find_community", e))?
           .id
       }
     };
@@ -44,7 +44,7 @@ impl PerformCrud for GetCommunity {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     // Blank out deleted or removed info
     if community_view.community.deleted || community_view.community.removed {
@@ -55,7 +55,7 @@ impl PerformCrud for GetCommunity {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     let online = context
       .chat_server()

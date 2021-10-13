@@ -51,7 +51,7 @@ impl PerformCrud for GetComments {
         .list()
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_get_comments"))?;
+    .map_err(|e| ApiError::err("couldnt_get_comments", e))?;
 
     // Blank out deleted or removed info
     for cv in comments

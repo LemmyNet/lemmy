@@ -65,9 +65,9 @@ impl PerformCrud for EditSite {
     };
 
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    if blocking(context.pool(), update_site).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_site").into());
-    }
+    blocking(context.pool(), update_site)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
 
     let site_view = blocking(context.pool(), SiteView::read).await??;
 

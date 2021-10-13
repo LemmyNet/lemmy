@@ -50,7 +50,7 @@ impl Perform for MarkCommentAsRead {
 
     // Verify that only the recipient can mark as read
     if local_user_view.person.id != orig_comment.get_recipient_id() {
-      return Err(ApiError::err("no_comment_edit_allowed").into());
+      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
     }
 
     // Do the mark as read
@@ -59,7 +59,7 @@ impl Perform for MarkCommentAsRead {
       Comment::update_read(conn, comment_id, read)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_comment"))?;
+    .map_err(|_| ApiError::err_plain("couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;
@@ -99,14 +99,14 @@ impl Perform for SaveComment {
 
     if data.save {
       let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
-      if blocking(context.pool(), save_comment).await?.is_err() {
-        return Err(ApiError::err("couldnt_save_comment").into());
-      }
+      blocking(context.pool(), save_comment)
+        .await?
+        .map_err(|e| ApiError::err("couldnt_save_comment", e))?;
     } else {
       let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
-      if blocking(context.pool(), unsave_comment).await?.is_err() {
-        return Err(ApiError::err("couldnt_save_comment").into());
-      }
+      blocking(context.pool(), unsave_comment)
+        .await?
+        .map_err(|e| ApiError::err("couldnt_save_comment", e))?;
     }
 
     let comment_id = data.comment_id;
@@ -193,9 +193,9 @@ impl Perform for CreateCommentLike {
     if do_add {
       let like_form2 = like_form.clone();
       let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
-      if blocking(context.pool(), like).await?.is_err() {
-        return Err(ApiError::err("couldnt_like_comment").into());
-      }
+      blocking(context.pool(), like)
+        .await?
+        .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
 
       Vote::send(
         &object,

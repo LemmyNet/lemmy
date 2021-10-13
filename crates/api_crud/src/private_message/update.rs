@@ -34,7 +34,7 @@ impl PerformCrud for EditPrivateMessage {
     })
     .await??;
     if local_user_view.person.id != orig_private_message.creator_id {
-      return Err(ApiError::err("no_private_message_edit_allowed").into());
+      return Err(ApiError::err_plain("no_private_message_edit_allowed").into());
     }
 
     // Doing the update
@@ -44,7 +44,7 @@ impl PerformCrud for EditPrivateMessage {
       PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
+    .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
 
     // Send the apub update
     CreateOrUpdatePrivateMessage::send(
