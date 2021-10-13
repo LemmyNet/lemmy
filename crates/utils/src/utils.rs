@@ -47,11 +47,8 @@ pub(crate) fn slur_check<'a>(test: &'a str, slur_regex: &'a Regex) -> Result<(),
 }
 
 pub fn check_slurs(text: &str, slur_regex: &Regex) -> Result<(), ApiError> {
-  if let Err(slurs) = slur_check(text, slur_regex) {
-    Err(ApiError::err(&slurs_vec_to_str(slurs)))
-  } else {
-    Ok(())
-  }
+  slur_check(text, slur_regex)
+    .map_err(|slurs| ApiError::err_plain(&slurs_vec_to_str(slurs.clone())))
 }
 
 pub fn check_slurs_opt(text: &Option<String>, slur_regex: &Regex) -> Result<(), ApiError> {

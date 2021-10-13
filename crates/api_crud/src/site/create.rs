@@ -36,7 +36,7 @@ impl PerformCrud for CreateSite {
 
     let read_site = move |conn: &'_ _| Site::read_simple(conn);
     if blocking(context.pool(), read_site).await?.is_ok() {
-      return Err(ApiError::err("site_already_exists").into());
+      return Err(ApiError::err_plain("site_already_exists").into());
     };
 
     let local_user_view =
@@ -73,7 +73,7 @@ impl PerformCrud for CreateSite {
 
     let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
     if blocking(context.pool(), create_site).await?.is_err() {
-      return Err(ApiError::err("site_already_exists").into());
+      return Err(ApiError::err_plain("site_already_exists").into());
     }
 
     let site_view = blocking(context.pool(), SiteView::read).await??;

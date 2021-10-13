@@ -265,7 +265,7 @@ pub fn diesel_option_overwrite_to_url(
     Some("") => Ok(Some(None)),
     Some(str_url) => match Url::parse(str_url) {
       Ok(url) => Ok(Some(Some(url.into()))),
-      Err(_) => Err(ApiError::err("invalid_url")),
+      Err(e) => Err(ApiError::err("invalid_url", e)),
     },
     None => Ok(None),
   }

@@ -38,7 +38,7 @@ impl PerformCrud for DeletePost {
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(ApiError::err("no_post_edit_allowed").into());
+      return Err(ApiError::err_plain("no_post_edit_allowed").into());
     }
 
     // Update the post

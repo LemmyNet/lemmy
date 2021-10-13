@@ -389,10 +389,10 @@ impl Perform for ResolveObject {
       get_local_user_view_from_jwt_opt(&self.auth, context.pool(), context.secret()).await?;
     let res = search_by_apub_id(&self.q, context)
       .await
-      .map_err(|_| ApiError::err("couldnt_find_object"))?;
+      .map_err(|e| ApiError::err("couldnt_find_object", e))?;
     convert_response(res, local_user_view.map(|l| l.person.id), context.pool())
       .await
-      .map_err(|_| ApiError::err("couldnt_find_object").into())
+      .map_err(|e| ApiError::err("couldnt_find_object", e).into())
   }
 }
 
@@ -454,14 +454,14 @@ impl Perform for TransferSite {
 
     // Make sure user is the creator
     if read_site.creator_id != local_user_view.person.id {
-      return Err(ApiError::err("not_an_admin").into());
+      return Err(ApiError::err_plain("not_an_admin").into());
     }
 
     let new_creator_id = data.person_id;
     let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
-    if blocking(context.pool(), transfer_site).await?.is_err() {
-      return Err(ApiError::err("couldnt_update_site").into());
-    };
+    blocking(context.pool(), transfer_site)
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -542,7 +542,7 @@ impl Perform for SaveSiteConfig {
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = Settings::save_config_file(&data.config_hjson)
-      .map_err(|_| ApiError::err("couldnt_update_site"))?;
+      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
   }

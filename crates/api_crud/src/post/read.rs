@@ -37,7 +37,7 @@ impl PerformCrud for GetPost {
       PostView::read(conn, id, person_id)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_post"))?;
+    .map_err(|e| ApiError::err("couldnt_find_post", e))?;
 
     // Blank out deleted info
     if post_view.post.deleted || post_view.post.removed {
@@ -79,7 +79,7 @@ impl PerformCrud for GetPost {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_find_community"))?;
+    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     // Blank out deleted or removed info
     if community_view.community.deleted || community_view.community.removed {
@@ -155,7 +155,7 @@ impl PerformCrud for GetPosts {
         .list()
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_get_posts"))?;
+    .map_err(|e| ApiError::err("couldnt_get_posts", e))?;
 
     // Blank out deleted or removed info
     for pv in posts

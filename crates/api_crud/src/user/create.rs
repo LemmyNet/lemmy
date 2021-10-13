@@ -50,7 +50,7 @@ impl PerformCrud for Register {
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
       if !site.open_registration {
-        return Err(ApiError::err("registration_closed").into());
+        return Err(ApiError::err_plain("registration_closed").into());
       }
     }
 
@@ -59,7 +59,7 @@ impl PerformCrud for Register {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(ApiError::err("passwords_dont_match").into());
+      return Err(ApiError::err_plain("passwords_dont_match").into());
     }
 
     // Check if there are admins. False if admins exist
@@ -84,7 +84,7 @@ impl PerformCrud for Register {
         })
         .await?;
       if !check {
-        return Err(ApiError::err("captcha_incorrect").into());
+        return Err(ApiError::err_plain("captcha_incorrect").into());
       }
     }
 
@@ -92,7 +92,7 @@ impl PerformCrud for Register {
 
     let actor_keypair = generate_actor_keypair()?;
     if !is_valid_actor_name(&data.username, context.settings().actor_name_max_length) {
-      return Err(ApiError::err("invalid_username").into());
+      return Err(ApiError::err_plain("invalid_username").into());
     }
     let actor_id = generate_apub_endpoint(
       EndpointType::Person,
@@ -119,7 +119,7 @@ impl PerformCrud for Register {
       Person::create(conn, &person_form)
     })
     .await?
-    .map_err(|_| ApiError::err("user_already_exists"))?;
+    .map_err(|e| ApiError::err("user_already_exists", e))?;
 
     // Create the local user
     // TODO some of these could probably use the DB defaults
@@ -161,7 +161,7 @@ impl PerformCrud for Register {
         })
         .await??;
 
-        return Err(ApiError::err(err_type).into());
+        return Err(ApiError::err(err_type, e).into());
       }
     };
 
@@ -209,9 +209,9 @@ impl PerformCrud for Register {
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-    if blocking(context.pool(), follow).await?.is_err() {
-      return Err(ApiError::err("community_follower_already_exists").into());
-    };
+    blocking(context.pool(), follow)
+      .await?
+      .map_err(|e| ApiError::err("community_follower_already_exists", e))?;
 
     // If its an admin, add them as a mod and follower to main
     if no_admins {
@@ -221,9 +221,9 @@ impl PerformCrud for Register {
       };
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-      if blocking(context.pool(), join).await?.is_err() {
-        return Err(ApiError::err("community_moderator_already_exists").into());
-      }
+      blocking(context.pool(), join)
+        .await?
+        .map_err(|e| ApiError::err("community_moderator_already_exists", e))?;
     }
 
     // Return the jwt

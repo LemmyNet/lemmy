@@ -52,8 +52,8 @@ impl PerformCrud for CreatePrivateMessage {
     .await?
     {
       Ok(private_message) => private_message,
-      Err(_e) => {
-        return Err(ApiError::err("couldnt_create_private_message").into());
+      Err(e) => {
+        return Err(ApiError::err("couldnt_create_private_message", e).into());
       }
     };
 
@@ -75,7 +75,7 @@ impl PerformCrud for CreatePrivateMessage {
       },
     )
     .await?
-    .map_err(|_| ApiError::err("couldnt_create_private_message"))?;
+    .map_err(|e| ApiError::err("couldnt_create_private_message", e))?;
 
     CreateOrUpdatePrivateMessage::send(
       &updated_private_message,

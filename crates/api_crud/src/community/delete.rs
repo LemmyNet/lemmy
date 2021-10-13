@@ -33,7 +33,7 @@ impl PerformCrud for DeleteCommunity {
 
     // Make sure deleter is the top mod
     if local_user_view.person.id != community_mods[0].moderator.id {
-      return Err(ApiError::err("no_community_edit_allowed").into());
+      return Err(ApiError::err_plain("no_community_edit_allowed").into());
     }
 
     // Do the delete
@@ -43,7 +43,7 @@ impl PerformCrud for DeleteCommunity {
       Community::update_deleted(conn, community_id, deleted)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_community"))?;
+    .map_err(|e| ApiError::err("couldnt_update_community", e))?;
 
     // Send apub messages
     send_apub_delete(
@@ -89,7 +89,7 @@ impl PerformCrud for RemoveCommunity {
       Community::update_removed(conn, community_id, removed)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_community"))?;
+    .map_err(|e| ApiError::err("couldnt_update_community", e))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

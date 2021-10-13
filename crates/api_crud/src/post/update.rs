@@ -32,7 +32,7 @@ impl PerformCrud for EditPost {
 
     if let Some(name) = &data.name {
       if !is_valid_post_title(name) {
-        return Err(ApiError::err("invalid_post_title").into());
+        return Err(ApiError::err_plain("invalid_post_title").into());
       }
     }
 
@@ -48,7 +48,7 @@ impl PerformCrud for EditPost {
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(ApiError::err("no_post_edit_allowed").into());
+      return Err(ApiError::err_plain("no_post_edit_allowed").into());
     }
 
     // Fetch post links and Pictrs cached image
@@ -88,7 +88,7 @@ impl PerformCrud for EditPost {
           "couldnt_update_post"
         };
 
-        return Err(ApiError::err(err_type).into());
+        return Err(ApiError::err(err_type, e).into());
       }
     };
 

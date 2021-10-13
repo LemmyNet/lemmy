@@ -18,8 +18,8 @@ pub mod utils;
 pub mod version;
 
 use http::StatusCode;
-
-use std::fmt;
+use log::warn;
+use std::{fmt, fmt::Display};
 use thiserror::Error;
 
 pub type ConnectionId = usize;
@@ -48,11 +48,17 @@ macro_rules! location_info {
 #[derive(Debug, Error)]
 #[error("{{\"error\":\"{message}\"}}")]
 pub struct ApiError {
-  pub message: String,
+  message: String,
 }
 
 impl ApiError {
-  pub fn err(msg: &str) -> Self {
+  pub fn err_plain(msg: &str) -> Self {
+    ApiError {
+      message: msg.to_string(),
+    }
+  }
+  pub fn err<E: Display>(msg: &str, original_error: E) -> Self {
+    warn!("{}", original_error);
     ApiError {
       message: msg.to_string(),
     }
@@ -73,7 +79,7 @@ where
   }
 }
 
-impl std::fmt::Display for LemmyError {
+impl Display for LemmyError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     self.inner.fmt(f)
   }

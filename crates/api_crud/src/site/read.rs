@@ -100,27 +100,27 @@ impl PerformCrud for GetSite {
         CommunityFollowerView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      .map_err(|e| ApiError::err("system_err_login", e))?;
 
       let person_id = local_user_view.person.id;
       let community_blocks = blocking(context.pool(), move |conn| {
         CommunityBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      .map_err(|e| ApiError::err("system_err_login", e))?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = blocking(context.pool(), move |conn| {
         PersonBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      .map_err(|e| ApiError::err("system_err_login", e))?;
 
       let moderates = blocking(context.pool(), move |conn| {
         CommunityModeratorView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|_| ApiError::err("system_err_login"))?;
+      .map_err(|e| ApiError::err("system_err_login", e))?;
 
       Some(MyUserInfo {
         local_user_view,

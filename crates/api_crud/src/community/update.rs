@@ -40,7 +40,7 @@ impl PerformCrud for EditCommunity {
     })
     .await??;
     if !mods.contains(&local_user_view.person.id) {
-      return Err(ApiError::err("not_a_moderator").into());
+      return Err(ApiError::err_plain("not_a_moderator").into());
     }
 
     let community_id = data.community_id;
@@ -68,7 +68,7 @@ impl PerformCrud for EditCommunity {
       Community::update(conn, community_id, &community_form)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_community"))?;
+    .map_err(|e| ApiError::err("couldnt_update_community", e))?;
 
     UpdateCommunity::send(&updated_community, &local_user_view.person, context).await?;
 

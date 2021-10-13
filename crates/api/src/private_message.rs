@@ -30,7 +30,7 @@ impl Perform for MarkPrivateMessageAsRead {
     })
     .await??;
     if local_user_view.person.id != orig_private_message.recipient_id {
-      return Err(ApiError::err("couldnt_update_private_message").into());
+      return Err(ApiError::err_plain("couldnt_update_private_message").into());
     }
 
     // Doing the update
@@ -40,7 +40,7 @@ impl Perform for MarkPrivateMessageAsRead {
       PrivateMessage::update_read(conn, private_message_id, read)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_update_private_message"))?;
+    .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
 
     // No need to send an apub update
     let op = UserOperation::MarkPrivateMessageAsRead;
