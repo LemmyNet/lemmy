@@ -1,3 +1,10 @@
+# Lemmy v0.13.3 Release (2021-10-13)
+
+- Dont swallow API errors (fixes [#1834](https://github.com/LemmyNet/lemmy/issues/1834)) ([#1837](https://github.com/LemmyNet/lemmy/issues/1837))
+- Fix clippy warnings added in nightly ([#1833](https://github.com/LemmyNet/lemmy/issues/1833))
+- Fix federation of initial post/comment vote (fixes [#1824](https://github.com/LemmyNet/lemmy/issues/1824)) ([#1835](https://github.com/LemmyNet/lemmy/issues/1835))
+- Trying a background_jobs fix. [#1820](https://github.com/LemmyNet/lemmy/issues/1820)
+
 # Lemmy v0.13.0 Release (2021-09-30)
 
 Since our last release earlier this month, we've had [~30](https://github.com/LemmyNet/lemmy/compare/0.12.0...main) commits to Lemmy.
