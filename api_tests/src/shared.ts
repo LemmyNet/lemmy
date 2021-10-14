@@ -49,6 +49,15 @@ import {
   CreatePrivateMessage,
   ResolveObjectResponse,
   ResolveObject,
+  CreatePostReport,
+  PostReport,
+  ListPostReports,
+  PostReportResponse,
+  ListPostReportsResponse,
+  CreateCommentReport,
+  CommentReportResponse,
+  ListCommentReports,
+  ListCommentReportsResponse,
 } from 'lemmy-js-client';
 
 export interface API {
@@ -586,6 +595,46 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
   }
 }
 
+export async function reportPost(
+  api: API,
+  post_id: number,
+  reason: string,
+): Promise<PostReportResponse> {
+  let form: CreatePostReport = {
+    post_id,
+    reason,
+    auth: api.auth,
+  };
+  return api.client.createPostReport(form);
+}
+
+export async function listPostReports(api: API): Promise<ListPostReportsResponse> {
+  let form: ListPostReports = {
+    auth: api.auth,
+  };
+  return api.client.listPostReports(form);
+}
+
+export async function reportComment(
+  api: API,
+  comment_id: number,
+  reason: string,
+): Promise<CommentReportResponse> {
+  let form: CreateCommentReport = {
+    comment_id,
+    reason,
+    auth: api.auth,
+  };
+  return api.client.createCommentReport(form);
+}
+
+export async function listCommentReports(api: API): Promise<ListCommentReportsResponse> {
+  let form: ListCommentReports = {
+    auth: api.auth,
+  };
+  return api.client.listCommentReports(form);
+}
+
 export function delay(millis: number = 500) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
@@ -598,7 +647,7 @@ export function wrapper(form: any): string {
   return JSON.stringify(form);
 }
 
-function randomString(length: number): string {
+export function randomString(length: number): string {
   var result = '';
   var characters = 'abcdefghijklmnopqrstuvwxyz0123456789_';
   var charactersLength = characters.length;

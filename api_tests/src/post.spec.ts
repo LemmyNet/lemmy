@@ -24,6 +24,9 @@ import {
   searchPostLocal,
   followCommunity,
   banPersonFromCommunity,
+  reportPost,
+  listPostReports,
+  randomString,
 } from './shared';
 import { PostView, CommunityView } from 'lemmy-js-client';
 
@@ -351,4 +354,23 @@ test('Enforce community ban for federated user', async () => {
   let searchBeta = await searchPostLocal(beta, postRes2.post_view.post);
   let betaPost = searchBeta.posts[0];
   expect(betaPost).toBeDefined();
+});
+
+test('Report a post', async () => {
+  let betaCommunity = (await resolveBetaCommunity(beta)).community;
+  console.log(betaCommunity);
+  let postRes = await createPost(beta, betaCommunity.community.id);
+  expect(postRes.post_view.post).toBeDefined();
+
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let alphaReport = (await reportPost(alpha, alphaPost.post.id, randomString(10)))
+        .post_report_view.post_report;
+
+  let betaReport = (await listPostReports(beta)).post_reports[0].post_report;
+  expect(betaReport).toBeDefined();
+  expect(betaReport.resolved).toBe(false);
+  expect(betaReport.original_post_name).toBe(alphaReport.original_post_name);
+  expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
+  expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
+  expect(betaReport.reason).toBe(alphaReport.reason);
 });

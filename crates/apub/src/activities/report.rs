@@ -114,7 +114,7 @@ impl ActivityHandler for Report {
           original_post_name: post.name,
           original_post_url: post.url,
           reason: self.summary,
-          original_post_body: None,
+          original_post_body: post.body,
         };
 
         let report = blocking(context.pool(), move |conn| {
