@@ -73,7 +73,7 @@ impl Note {
     Ok(&self.id)
   }
 
-  async fn get_parents(
+  pub(crate) async fn get_parents(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
