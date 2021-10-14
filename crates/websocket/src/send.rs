@@ -43,14 +43,10 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<PostResponse, LemmyError> {
-  let mut post_view = blocking(context.pool(), move |conn| {
+  let post_view = blocking(context.pool(), move |conn| {
     PostView::read(conn, post_id, person_id)
   })
   .await??;
-
-  if post_view.post.deleted || post_view.post.removed {
-    post_view.post = post_view.post.blank_out_deleted_or_removed_info();
-  }
 
   let res = PostResponse { post_view };
 
@@ -118,14 +114,10 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
-  let mut community_view = blocking(context.pool(), move |conn| {
+  let community_view = blocking(context.pool(), move |conn| {
     CommunityView::read(conn, community_id, person_id)
   })
   .await??;
-  // Blank out deleted or removed info
-  if community_view.community.deleted || community_view.community.removed {
-    community_view.community = community_view.community.blank_out_deleted_or_removed_info();
-  }
 
   let res = CommunityResponse { community_view };
 

@@ -11,7 +11,7 @@ use crate::{
     PostSaved,
     PostSavedForm,
   },
-  traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
+  traits::{Crud, Likeable, Readable, Saveable},
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;
@@ -239,20 +239,6 @@ impl Readable for PostRead {
         .filter(person_id.eq(post_read_form.person_id)),
     )
     .execute(conn)
-  }
-}
-
-impl DeleteableOrRemoveable for Post {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.name = "".into();
-    self.url = None;
-    self.body = None;
-    self.embed_title = None;
-    self.embed_description = None;
-    self.embed_html = None;
-    self.thumbnail_url = None;
-
-    self
   }
 }
 

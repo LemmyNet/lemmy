@@ -7,12 +7,7 @@ use lemmy_apub::{
   objects::community::ApubCommunity,
   EndpointType,
 };
-use lemmy_db_schema::{
-  from_opt_str_to_opt_enum,
-  traits::DeleteableOrRemoveable,
-  ListingType,
-  SortType,
-};
+use lemmy_db_schema::{from_opt_str_to_opt_enum, ListingType, SortType};
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::{CommunityQueryBuilder, CommunityView},
@@ -49,16 +44,11 @@ impl PerformCrud for GetCommunity {
       }
     };
 
-    let mut community_view = blocking(context.pool(), move |conn| {
+    let community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
     .map_err(|e| ApiError::err("couldnt_find_community", e))?;
-
-    // Blank out deleted or removed info
-    if community_view.community.deleted || community_view.community.removed {
-      community_view.community = community_view.community.blank_out_deleted_or_removed_info();
-    }
 
     let moderators: Vec<CommunityModeratorView> = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
@@ -109,7 +99,7 @@ impl PerformCrud for ListCommunities {
 
     let page = data.page;
     let limit = data.limit;
-    let mut communities = blocking(context.pool(), move |conn| {
+    let communities = blocking(context.pool(), move |conn| {
       CommunityQueryBuilder::create(conn)
         .listing_type(listing_type)
         .sort(sort)
@@ -120,14 +110,6 @@ impl PerformCrud for ListCommunities {
         .list()
     })
     .await??;
-
-    // Blank out deleted or removed info
-    for cv in communities
-      .iter_mut()
-      .filter(|cv| cv.community.deleted || cv.community.removed)
-    {
-      cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
-    }
 
     // Return the jwt
     Ok(ListCommunitiesResponse { communities })

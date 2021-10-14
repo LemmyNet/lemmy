@@ -347,20 +347,6 @@ impl Perform for Search {
       cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
     }
 
-    for cv in communities
-      .iter_mut()
-      .filter(|cv| cv.community.deleted || cv.community.removed)
-    {
-      cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
-    }
-
-    for pv in posts
-      .iter_mut()
-      .filter(|p| p.post.deleted || p.post.removed)
-    {
-      pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
-    }
-
     // Return the jwt
     Ok(SearchResponse {
       type_: search_type.to_string(),

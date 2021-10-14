@@ -22,6 +22,7 @@ use lemmy_apub::{
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use lemmy_db_schema::{
+  impls::community::CommunityModerator_,
   source::{
     comment::Comment,
     community::{
