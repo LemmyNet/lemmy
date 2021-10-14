@@ -116,6 +116,7 @@ pub enum UserOperation {
   ResolvePostReport,
   ListPostReports,
   GetReportCount,
+  GetUnreadCount,
   FollowCommunity,
   GetReplies,
   GetPersonMentions,

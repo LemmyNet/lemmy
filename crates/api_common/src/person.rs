@@ -266,3 +266,15 @@ pub struct GetReportCountResponse {
   pub comment_reports: i64,
   pub post_reports: i64,
 }
+
+#[derive(Deserialize)]
+pub struct GetUnreadCount {
+  pub auth: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct GetUnreadCountResponse {
+  pub replies: i64,
+  pub mentions: i64,
+  pub private_messages: i64,
+}

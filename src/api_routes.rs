@@ -193,7 +193,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/change_password",
             web::put().to(route_post::<ChangePassword>),
           )
-          .route("/report_count", web::get().to(route_get::<GetReportCount>)),
+          .route("/report_count", web::get().to(route_get::<GetReportCount>))
+          .route("/unread_count", web::get().to(route_get::<GetUnreadCount>)),
       )
       // Admin Actions
       .service(
