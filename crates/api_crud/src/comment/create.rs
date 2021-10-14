@@ -5,6 +5,7 @@ use lemmy_api_common::{
   check_community_ban,
   check_community_deleted_or_removed,
   check_person_block,
+  check_post_deleted_or_removed,
   comment::*,
   get_local_user_view_from_jwt,
   get_post,
@@ -58,6 +59,7 @@ impl PerformCrud for CreateComment {
 
     check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
     check_community_deleted_or_removed(community_id, context.pool()).await?;
+    check_post_deleted_or_removed(&post)?;
 
     check_person_block(local_user_view.person.id, post.creator_id, context.pool()).await?;
 
