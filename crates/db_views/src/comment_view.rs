@@ -209,18 +209,18 @@ impl CommentView {
             .and(community_block::person_id.eq(my_person_id)),
         ),
       )
-      .filter(comment::read.eq(false))
-      .filter(comment::deleted.eq(false))
-      .filter(comment::removed.eq(false))
-      // Don't show blocked communities or persons
-      .filter(community_block::person_id.is_null())
-      .filter(person_block::person_id.is_null())
       .filter(person_alias_1::id.eq(my_person_id)) // Gets the comment replies
       .or_filter(
         comment::parent_id
           .is_null()
           .and(post::creator_id.eq(my_person_id)),
       ) // Gets the top level replies
+      .filter(comment::read.eq(false))
+      .filter(comment::deleted.eq(false))
+      .filter(comment::removed.eq(false))
+      // Don't show blocked communities or persons
+      .filter(community_block::person_id.is_null())
+      .filter(person_block::person_id.is_null())
       .select(count(comment::id))
       .first::<i64>(conn)
   }
