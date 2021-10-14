@@ -399,13 +399,14 @@ impl<'a> PostQueryBuilder<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if !self.show_read_posts.unwrap_or(true) {
-      query = query.filter(post_read::id.is_null());
-    };
-
     if self.saved_only.unwrap_or(false) {
       query = query.filter(post_saved::id.is_not_null());
-    };
+    }
+    // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
+    // setting wont be able to see saved posts.
+    else if !self.show_read_posts.unwrap_or(true) {
+      query = query.filter(post_read::id.is_null());
+    }
 
     // Don't show blocked communities or persons
     if self.my_person_id.is_some() {
