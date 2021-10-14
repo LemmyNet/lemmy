@@ -14,7 +14,7 @@ use crate::{
   objects::{comment::Note, FromApub, ToApub},
 };
 use activitystreams::{base::AnyBase, link::Mention, primitives::OneOrMany, unparsed::Unparsed};
-use lemmy_api_common::blocking;
+use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
@@ -95,11 +95,14 @@ impl ActivityHandler for CreateOrUpdateComment {
   ) -> Result<(), LemmyError> {
     let community = extract_community(&self.cc, context, request_counter).await?;
     let community_id = ObjectId::new(community.actor_id());
+    let post = self.object.get_parents(context, request_counter).await?.0;
 
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     check_community_deleted_or_removed(&community)?;
+    check_post_deleted_or_removed(&post)?;
+
     // TODO: should add a check that the correct community is in cc (probably needs changes to
     //       comment deserialization)
     self.object.verify(context, request_counter).await?;
