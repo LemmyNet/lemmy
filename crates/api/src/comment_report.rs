@@ -7,6 +7,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   is_mod_or_admin,
 };
+use lemmy_apub::{activities::report::Report, fetcher::object_id::ObjectId};
 use lemmy_db_queries::Reportable;
 use lemmy_db_schema::source::comment_report::*;
 use lemmy_db_views::{
@@ -76,6 +77,15 @@ impl Perform for CreateCommentReport {
       community_id: comment_view.community.id,
       websocket_id,
     });
+
+    Report::send(
+      ObjectId::new(comment_view.comment.ap_id),
+      &local_user_view.person,
+      comment_view.community.id,
+      reason.to_string(),
+      context,
+    )
+    .await?;
 
     Ok(res)
   }

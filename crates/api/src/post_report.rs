@@ -13,6 +13,7 @@ use lemmy_api_common::{
     ResolvePostReport,
   },
 };
+use lemmy_apub::{activities::report::Report, fetcher::object_id::ObjectId};
 use lemmy_db_queries::Reportable;
 use lemmy_db_schema::source::post_report::{PostReport, PostReportForm};
 use lemmy_db_views::{
@@ -82,6 +83,15 @@ impl Perform for CreatePostReport {
       community_id: post_view.community.id,
       websocket_id,
     });
+
+    Report::send(
+      ObjectId::new(post_view.post.ap_id),
+      &local_user_view.person,
+      post_view.community.id,
+      reason.to_string(),
+      context,
+    )
+    .await?;
 
     Ok(res)
   }

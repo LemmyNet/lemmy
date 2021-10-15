@@ -3,6 +3,7 @@ use crate::{
     community::announce::{AnnouncableActivities, AnnounceActivity},
     extract_community,
     following::{follow::FollowCommunity, undo::UndoFollowCommunity},
+    report::Report,
   },
   context::lemmy_context,
   generate_moderators_url,
@@ -65,6 +66,7 @@ pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
   AnnouncableActivities(AnnouncableActivities),
+  Report(Report),
 }
 
 /// Handler for all incoming receive to community inboxes.
