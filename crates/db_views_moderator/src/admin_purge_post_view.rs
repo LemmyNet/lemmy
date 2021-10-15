@@ -3,7 +3,7 @@ use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
   schema::{admin_purge_post, community, person},
   source::{
-    community::Community,
+    community::{Community, CommunitySafe},
     moderator::AdminPurgePost,
     person::{Person, PersonSafe},
   },
@@ -15,10 +15,10 @@ use serde::Serialize;
 pub struct AdminPurgePostView {
   pub admin_purge_post: AdminPurgePost,
   pub admin: PersonSafe,
-  pub community: Community,
+  pub community: CommunitySafe,
 }
 
-type AdminPurgePostViewTuple = (AdminPurgePost, PersonSafe, Community);
+type AdminPurgePostViewTuple = (AdminPurgePost, PersonSafe, CommunitySafe);
 
 impl AdminPurgePostView {
   pub fn list(
@@ -33,7 +33,7 @@ impl AdminPurgePostView {
       .select((
         admin_purge_post::all_columns,
         Person::safe_columns_tuple(),
-        community::all_columns,
+        Community::safe_columns_tuple(),
       ))
       .into_boxed();
 
