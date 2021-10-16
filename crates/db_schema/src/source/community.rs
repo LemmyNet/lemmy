@@ -1,4 +1,5 @@
 use crate::{
+  naive_now,
   schema::{community, community_follower, community_moderator, community_person_ban},
   CommunityId,
   DbUrl,
@@ -146,6 +147,14 @@ impl ApubObject for Community {
         .first::<Self>(conn)
         .ok(),
     )
+  }
+
+  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(self.id))
+      .set((deleted.eq(true), updated.eq(naive_now())))
+      .get_result::<Self>(conn)?;
+    Ok(())
   }
 }
 
