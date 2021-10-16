@@ -41,6 +41,17 @@ impl PrivateMessageView {
       recipient,
     })
   }
+
+  /// Gets the number of unread messages
+  pub fn get_unread_messages(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+    use diesel::dsl::*;
+    private_message::table
+      .filter(private_message::read.eq(false))
+      .filter(private_message::recipient_id.eq(my_person_id))
+      .filter(private_message::deleted.eq(false))
+      .select(count(private_message::id))
+      .first::<i64>(conn)
+  }
 }
 
 pub struct PrivateMessageQueryBuilder<'a> {

@@ -184,6 +184,46 @@ impl CommentView {
       None => self.post.creator_id,
     }
   }
+
+  /// Gets the number of unread replies
+  pub fn get_unread_replies(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+    use diesel::dsl::*;
+
+    comment::table
+      // recipient here
+      .left_join(comment_alias_1::table.on(comment_alias_1::id.nullable().eq(comment::parent_id)))
+      .left_join(person_alias_1::table.on(person_alias_1::id.eq(comment_alias_1::creator_id)))
+      .inner_join(post::table)
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        community_block::table.on(
+          community::id
+            .eq(community_block::community_id)
+            .and(community_block::person_id.eq(my_person_id)),
+        ),
+      )
+      .filter(person_alias_1::id.eq(my_person_id)) // Gets the comment replies
+      .or_filter(
+        comment::parent_id
+          .is_null()
+          .and(post::creator_id.eq(my_person_id)),
+      ) // Gets the top level replies
+      .filter(comment::read.eq(false))
+      .filter(comment::deleted.eq(false))
+      .filter(comment::removed.eq(false))
+      // Don't show blocked communities or persons
+      .filter(community_block::person_id.is_null())
+      .filter(person_block::person_id.is_null())
+      .select(count(comment::id))
+      .first::<i64>(conn)
+  }
 }
 
 pub struct CommentQueryBuilder<'a> {

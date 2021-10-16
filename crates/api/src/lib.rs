@@ -72,6 +72,9 @@ pub async fn match_websocket_operation(
     UserOperation::GetReportCount => {
       do_websocket_operation::<GetReportCount>(context, id, op, data).await
     }
+    UserOperation::GetUnreadCount => {
+      do_websocket_operation::<GetUnreadCount>(context, id, op, data).await
+    }
 
     // Private Message ops
     UserOperation::MarkPrivateMessageAsRead => {

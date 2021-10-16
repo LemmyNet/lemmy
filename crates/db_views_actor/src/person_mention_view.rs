@@ -163,6 +163,17 @@ impl PersonMentionView {
       my_vote,
     })
   }
+
+  /// Gets the number of unread mentions
+  pub fn get_unread_mentions(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+    use diesel::dsl::*;
+
+    person_mention::table
+      .filter(person_mention::recipient_id.eq(my_person_id))
+      .filter(person_mention::read.eq(false))
+      .select(count(person_mention::id))
+      .first::<i64>(conn)
+  }
 }
 
 pub struct PersonMentionQueryBuilder<'a> {
