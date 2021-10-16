@@ -1,4 +1,5 @@
 use crate::{
+  naive_now,
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
   CommentId,
@@ -121,5 +122,15 @@ impl ApubObject for Comment {
     use crate::schema::comment::dsl::*;
     let object_id: DbUrl = object_id.into();
     Ok(comment.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
+  }
+
+  // TODO: duplicate code from Comment::update_deleted(), we should really move all impls to
+  //       this crate so we can call that function from here
+  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.find(self.id))
+      .set((deleted.eq(true), updated.eq(naive_now())))
+      .get_result::<Self>(conn)?;
+    Ok(())
   }
 }

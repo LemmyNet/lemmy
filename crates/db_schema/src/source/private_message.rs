@@ -52,4 +52,9 @@ impl ApubObject for PrivateMessage {
         .ok(),
     )
   }
+
+  fn delete(self, _conn: &PgConnection) -> Result<(), LemmyError> {
+    // do nothing, because pm can't be fetched over http
+    unimplemented!()
+  }
 }

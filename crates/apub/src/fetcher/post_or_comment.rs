@@ -48,6 +48,13 @@ impl ApubObject for PostOrComment {
       None => Comment::read_from_apub_id(conn, object_id)?.map(PostOrComment::Comment),
     })
   }
+
+  fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+    match self {
+      PostOrComment::Post(p) => p.delete(data),
+      PostOrComment::Comment(c) => c.delete(data),
+    }
+  }
 }
 
 #[async_trait::async_trait(?Send)]

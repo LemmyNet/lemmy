@@ -36,6 +36,8 @@ pub trait ApubObject {
   fn read_from_apub_id(data: &Self::DataType, object_id: Url) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized;
+  /// Marks the object as deleted in local db. Called when a tombstone is received.
+  fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
 }
 
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are

@@ -1,4 +1,5 @@
 use crate::{
+  naive_now,
   schema::{post, post_like, post_read, post_saved},
   CommunityId,
   DbUrl,
@@ -123,5 +124,13 @@ impl ApubObject for Post {
     use crate::schema::post::dsl::*;
     let object_id: DbUrl = object_id.into();
     Ok(post.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
+  }
+
+  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
+    use crate::schema::post::dsl::*;
+    diesel::update(post.find(self.id))
+      .set((deleted.eq(true), updated.eq(naive_now())))
+      .get_result::<Self>(conn)?;
+    Ok(())
   }
 }

@@ -1,7 +1,4 @@
-use crate::{
-  fetcher::{deletable_apub_object::DeletableApubObject, should_refetch_actor},
-  objects::FromApub,
-};
+use crate::{fetcher::should_refetch_actor, objects::FromApub};
 use anyhow::anyhow;
 use diesel::{NotFound, PgConnection};
 use lemmy_api_common::blocking;
@@ -26,12 +23,12 @@ static REQUEST_LIMIT: i32 = 25;
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct ObjectId<Kind>(Url, #[serde(skip)] PhantomData<Kind>)
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub + ApubObject<DataType = PgConnection> + Send + 'static,
   for<'de2> <Kind as FromApub>::ApubType: serde::Deserialize<'de2>;
 
 impl<Kind> ObjectId<Kind>
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub + ApubObject<DataType = PgConnection> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   pub fn new<T>(url: T) -> Self
@@ -117,7 +114,7 @@ where
 
     if res.status() == StatusCode::GONE {
       if let Some(db_object) = db_object {
-        db_object.delete(context).await?;
+        blocking(context.pool(), move |conn| db_object.delete(conn)).await??;
       }
       return Err(anyhow!("Fetched remote object {} which was deleted", self).into());
     }
@@ -130,7 +127,7 @@ where
 
 impl<Kind> Display for ObjectId<Kind>
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub + ApubObject<DataType = PgConnection> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -140,7 +137,7 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for Url
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub + ApubObject<DataType = PgConnection> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
@@ -150,7 +147,7 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for DbUrl
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub + ApubObject<DataType = PgConnection> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   fn from(id: ObjectId<Kind>) -> Self {

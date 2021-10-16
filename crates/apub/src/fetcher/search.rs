@@ -1,5 +1,5 @@
 use crate::{
-  fetcher::{deletable_apub_object::DeletableApubObject, object_id::ObjectId},
+  fetcher::object_id::ObjectId,
   objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
 };
 use activitystreams::chrono::NaiveDateTime;
@@ -136,6 +136,15 @@ impl ApubObject for SearchableObjects {
     }
     Ok(None)
   }
+
+  fn delete(self, conn: &Self::DataType) -> Result<(), LemmyError> {
+    match self {
+      SearchableObjects::Person(p) => p.delete(conn),
+      SearchableObjects::Community(c) => c.delete(conn),
+      SearchableObjects::Post(p) => p.delete(conn),
+      SearchableObjects::Comment(c) => c.delete(conn),
+    }
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -156,17 +165,5 @@ impl FromApub for SearchableObjects {
       SAT::Page(p) => SO::Post(Post::from_apub(p, context, ed, rc).await?),
       SAT::Note(n) => SO::Comment(Comment::from_apub(n, context, ed, rc).await?),
     })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl DeletableApubObject for SearchableObjects {
-  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    match self {
-      SearchableObjects::Person(p) => p.delete(context).await,
-      SearchableObjects::Community(c) => c.delete(context).await,
-      SearchableObjects::Post(p) => p.delete(context).await,
-      SearchableObjects::Comment(c) => c.delete(context).await,
-    }
   }
 }

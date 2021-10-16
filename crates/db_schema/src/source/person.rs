@@ -1,4 +1,5 @@
 use crate::{
+  naive_now,
   schema::{person, person_alias_1, person_alias_2},
   DbUrl,
   PersonId,
@@ -193,6 +194,14 @@ impl ApubObject for Person {
         .first::<Self>(conn)
         .ok(),
     )
+  }
+
+  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
+    use crate::schema::person::dsl::*;
+    diesel::update(person.find(self.id))
+      .set((deleted.eq(true), updated.eq(naive_now())))
+      .get_result::<Self>(conn)?;
+    Ok(())
   }
 }
 
