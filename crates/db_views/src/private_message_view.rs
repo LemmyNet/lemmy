@@ -1,13 +1,13 @@
 use diesel::{pg::Pg, result::Error, *};
-use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
+  limit_and_offset,
+  newtypes::{PersonId, PrivateMessageId},
   schema::{person, person_alias_1, private_message},
   source::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     private_message::PrivateMessage,
   },
-  PersonId,
-  PrivateMessageId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
 };
 use log::debug;
 use serde::Serialize;

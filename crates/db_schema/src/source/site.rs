@@ -1,4 +1,7 @@
-use crate::{schema::site, DbUrl, PersonId};
+use crate::{
+  newtypes::{DbUrl, PersonId},
+  schema::site,
+};
 use serde::Serialize;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize)]

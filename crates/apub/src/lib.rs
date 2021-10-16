@@ -9,11 +9,10 @@ use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{activity_queue::send_activity, traits::ActorType};
-use lemmy_db_queries::{source::activity::Activity_, DbPool};
 use lemmy_db_schema::{
+  newtypes::{CommunityId, DbUrl},
   source::{activity::Activity, person::Person},
-  CommunityId,
-  DbUrl,
+  DbPool,
 };
 use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};

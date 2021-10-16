@@ -1,5 +1,5 @@
+use crate::{newtypes::PostId, schema::post_aggregates};
 use diesel::{result::Error, *};
-use lemmy_db_schema::{schema::post_aggregates, PostId};
 use serde::Serialize;
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]
@@ -30,14 +30,13 @@ mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
     establish_unpooled_connection,
-    Crud,
-    Likeable,
-  };
-  use lemmy_db_schema::source::{
-    comment::{Comment, CommentForm},
-    community::{Community, CommunityForm},
-    person::{Person, PersonForm},
-    post::{Post, PostForm, PostLike, PostLikeForm},
+    source::{
+      comment::{Comment, CommentForm},
+      community::{Community, CommunityForm},
+      person::{Person, PersonForm},
+      post::{Post, PostForm, PostLike, PostLikeForm},
+    },
+    traits::{Crud, Likeable},
   };
   use serial_test::serial;
 

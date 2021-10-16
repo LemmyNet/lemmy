@@ -10,10 +10,6 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   EndpointType,
 };
-use lemmy_db_queries::{
-  source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
-  Crud,
-};
 use lemmy_db_schema::{
   naive_now,
   source::{
@@ -23,6 +19,7 @@ use lemmy_db_schema::{
     post::Post,
     private_message::PrivateMessage,
   },
+  traits::Crud,
 };
 use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
 use log::info;

@@ -1,9 +1,7 @@
 use crate::{
+  newtypes::{CommentId, CommentReportId, PersonId},
   schema::comment_report,
   source::comment::Comment,
-  CommentId,
-  CommentReportId,
-  PersonId,
 };
 use serde::{Deserialize, Serialize};
 

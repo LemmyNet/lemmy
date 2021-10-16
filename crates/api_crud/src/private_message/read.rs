@@ -5,7 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{GetPrivateMessages, PrivateMessagesResponse},
 };
-use lemmy_db_queries::DeleteableOrRemoveable;
+use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;

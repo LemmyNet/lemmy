@@ -19,8 +19,10 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
-use lemmy_db_schema::source::post::*;
+use lemmy_db_schema::{
+  source::post::{Post, PostForm, PostLike, PostLikeForm},
+  traits::{Crud, Likeable},
+};
 use lemmy_utils::{
   request::fetch_site_data,
   utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},

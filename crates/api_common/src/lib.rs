@@ -7,13 +7,8 @@ pub mod websocket;
 
 use crate::site::FederatedInstances;
 use diesel::PgConnection;
-use lemmy_db_queries::{
-  source::{community::Community_, person_block::PersonBlock_, site::Site_},
-  Crud,
-  DbPool,
-  Readable,
-};
 use lemmy_db_schema::{
+  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
     comment::Comment,
     community::Community,
@@ -24,10 +19,8 @@ use lemmy_db_schema::{
     secret::Secret,
     site::Site,
   },
-  CommunityId,
-  LocalUserId,
-  PersonId,
-  PostId,
+  traits::{Crud, Readable},
+  DbPool,
 };
 use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
 use lemmy_db_views_actor::{
@@ -394,7 +387,7 @@ pub async fn check_person_block(
 
 pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
   if score == -1 {
-    let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
+    let site = blocking(pool, Site::read_simple).await??;
     if !site.enable_downvotes {
       return Err(ApiError::err_plain("downvotes_disabled").into());
     }

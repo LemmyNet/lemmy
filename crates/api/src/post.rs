@@ -22,8 +22,10 @@ use lemmy_apub::{
   },
   fetcher::post_or_comment::PostOrComment,
 };
-use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
-use lemmy_db_schema::source::{moderator::*, post::*};
+use lemmy_db_schema::{
+  source::{moderator::*, post::*},
+  traits::{Crud, Likeable, Saveable},
+};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{request::fetch_site_metadata, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};

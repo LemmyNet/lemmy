@@ -8,22 +8,24 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   EndpointType,
 };
-use lemmy_db_queries::{
-  source::{local_user::LocalUser_, site::Site_},
-  Crud,
-  Followable,
-  Joinable,
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+    },
+    local_user::{LocalUser, LocalUserForm},
+    person::{Person, PersonForm},
+    site::Site,
+  },
+  traits::{Crud, Followable, Joinable},
   ListingType,
   SortType,
-};
-use lemmy_db_schema::{
-  source::{
-    community::*,
-    local_user::{LocalUser, LocalUserForm},
-    person::*,
-    site::*,
-  },
-  CommunityId,
 };
 use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
@@ -48,7 +50,7 @@ impl PerformCrud for Register {
     let data: &Register = self;
 
     // Make sure site has open registration
-    if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
+    if let Ok(site) = blocking(context.pool(), Site::read_simple).await? {
       if !site.open_registration {
         return Err(ApiError::err_plain("registration_closed").into());
       }

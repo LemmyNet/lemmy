@@ -9,8 +9,15 @@ use lemmy_api_common::{
   send_local_notifs,
 };
 use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
-use lemmy_db_queries::{source::comment::Comment_, Crud};
-use lemmy_db_schema::source::{comment::*, community::Community, moderator::*, post::Post};
+use lemmy_db_schema::{
+  source::{
+    comment::Comment,
+    community::Community,
+    moderator::{ModRemoveComment, ModRemoveCommentForm},
+    post::Post,
+  },
+  traits::Crud,
+};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};

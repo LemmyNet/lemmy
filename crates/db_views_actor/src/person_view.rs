@@ -1,17 +1,13 @@
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::person_aggregates::PersonAggregates,
   fuzzy_search,
   limit_and_offset,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
-  PersonId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  SortType,
 };
 use serde::Serialize;
 

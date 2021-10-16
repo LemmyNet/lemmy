@@ -10,8 +10,10 @@ use lemmy_api_common::{
   person::PrivateMessageResponse,
   post::PostResponse,
 };
-use lemmy_db_queries::DeleteableOrRemoveable;
-use lemmy_db_schema::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId};
+use lemmy_db_schema::{
+  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
+  traits::DeleteableOrRemoveable,
+};
 use lemmy_db_views::{
   comment_view::CommentView,
   local_user_view::LocalUserView,

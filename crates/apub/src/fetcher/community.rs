@@ -7,10 +7,12 @@ use activitystreams::collection::{CollectionExt, OrderedCollection};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{data::Data, traits::ActivityHandler};
-use lemmy_db_queries::Joinable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator, CommunityModeratorForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityModerator, CommunityModeratorForm},
+    person::Person,
+  },
+  traits::Joinable,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{location_info, LemmyError};

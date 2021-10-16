@@ -1668,7 +1668,6 @@ dependencies = [
  "lazy_static",
  "lemmy_api_common",
  "lemmy_apub",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1697,7 +1696,6 @@ dependencies = [
  "actix-web",
  "chrono",
  "diesel",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1732,7 +1730,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_apub",
  "lemmy_apub_lib",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1776,7 +1773,6 @@ dependencies = [
  "itertools",
  "lemmy_api_common",
  "lemmy_apub_lib",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1834,15 +1830,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_queries"
+name = "lemmy_db_schema"
 version = "0.13.0"
 dependencies = [
  "bcrypt",
  "chrono",
  "diesel",
+ "diesel-derive-newtype",
  "diesel_migrations",
  "lazy_static",
- "lemmy_db_schema",
+ "lemmy_apub_lib",
  "lemmy_utils",
  "log",
  "regex",
@@ -1856,26 +1853,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_schema"
-version = "0.13.0"
-dependencies = [
- "chrono",
- "diesel",
- "diesel-derive-newtype",
- "lemmy_apub_lib",
- "lemmy_utils",
- "log",
- "serde",
- "serde_json",
- "url",
-]
-
-[[package]]
 name = "lemmy_db_views"
 version = "0.13.0"
 dependencies = [
  "diesel",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "log",
  "serde",
@@ -1888,7 +1869,6 @@ name = "lemmy_db_views_actor"
 version = "0.13.0"
 dependencies = [
  "diesel",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "serde",
 ]
@@ -1898,7 +1878,6 @@ name = "lemmy_db_views_moderator"
 version = "0.13.0"
 dependencies = [
  "diesel",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "serde",
 ]
@@ -1918,7 +1897,6 @@ dependencies = [
  "lazy_static",
  "lemmy_api_common",
  "lemmy_apub_lib",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1954,7 +1932,6 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_apub",
  "lemmy_apub_lib",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -2020,7 +1997,6 @@ dependencies = [
  "chrono",
  "diesel",
  "lemmy_api_common",
- "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",

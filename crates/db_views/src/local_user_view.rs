@@ -1,13 +1,13 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{aggregates::person_aggregates::PersonAggregates, ToSafe, ToSafeSettings};
 use lemmy_db_schema::{
+  aggregates::person_aggregates::PersonAggregates,
+  newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
   source::{
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe},
   },
-  LocalUserId,
-  PersonId,
+  traits::{ToSafe, ToSafeSettings},
 };
 use serde::Serialize;
 

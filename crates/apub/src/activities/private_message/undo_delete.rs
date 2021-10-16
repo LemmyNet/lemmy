@@ -21,8 +21,10 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::{verify_domains_match, verify_urls_match},
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
+use lemmy_db_schema::{
+  source::{person::Person, private_message::PrivateMessage},
+  traits::Crud,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};

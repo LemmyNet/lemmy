@@ -21,10 +21,12 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
-use lemmy_db_queries::Followable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityFollower},
+    person::Person,
+  },
+  traits::Followable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

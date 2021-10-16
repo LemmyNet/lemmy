@@ -1,11 +1,12 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{aggregates::site_aggregates::SiteAggregates, ToSafe};
 use lemmy_db_schema::{
+  aggregates::site_aggregates::SiteAggregates,
   schema::{person, site, site_aggregates},
   source::{
     person::{Person, PersonSafe},
     site::Site,
   },
+  traits::ToSafe,
 };
 use serde::Serialize;
 

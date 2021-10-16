@@ -20,15 +20,16 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::comment::Comment_, Crud, DbPool};
 use lemmy_db_schema::{
+  newtypes::CommentId,
   source::{
     comment::{Comment, CommentForm},
     community::Community,
     person::Person,
     post::Post,
   },
-  CommentId,
+  traits::Crud,
+  DbPool,
 };
 use lemmy_utils::{
   location_info,

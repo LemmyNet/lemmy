@@ -24,8 +24,7 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler},
   APUB_JSON_CONTENT_TYPE,
 };
-use lemmy_db_queries::{source::activity::Activity_, DbPool};
-use lemmy_db_schema::source::activity::Activity;
+use lemmy_db_schema::{source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::{info, trace};

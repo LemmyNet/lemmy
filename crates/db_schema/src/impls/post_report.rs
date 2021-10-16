@@ -1,27 +1,27 @@
-use crate::Reportable;
-use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{
+use crate::{
   naive_now,
-  source::comment_report::{CommentReport, CommentReportForm},
-  CommentReportId,
-  PersonId,
+  newtypes::{PersonId, PostReportId},
+  source::post_report::*,
+  traits::Reportable,
 };
+use diesel::{dsl::*, result::Error, *};
 
-impl Reportable for CommentReport {
-  type Form = CommentReportForm;
-  type IdType = CommentReportId;
-  /// creates a comment report and returns it
+impl Reportable for PostReport {
+  type Form = PostReportForm;
+  type IdType = PostReportId;
+
+  /// creates a post report and returns it
   ///
   /// * `conn` - the postgres connection
-  /// * `comment_report_form` - the filled CommentReportForm to insert
-  fn report(conn: &PgConnection, comment_report_form: &CommentReportForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::comment_report::dsl::*;
-    insert_into(comment_report)
-      .values(comment_report_form)
+  /// * `post_report_form` - the filled CommentReportForm to insert
+  fn report(conn: &PgConnection, post_report_form: &PostReportForm) -> Result<Self, Error> {
+    use crate::schema::post_report::dsl::*;
+    insert_into(post_report)
+      .values(post_report_form)
       .get_result::<Self>(conn)
   }
 
-  /// resolve a comment report
+  /// resolve a post report
   ///
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
@@ -31,8 +31,8 @@ impl Reportable for CommentReport {
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::comment_report::dsl::*;
-    update(comment_report.find(report_id))
+    use crate::schema::post_report::dsl::*;
+    update(post_report.find(report_id))
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
@@ -41,7 +41,7 @@ impl Reportable for CommentReport {
       .execute(conn)
   }
 
-  /// unresolve a comment report
+  /// resolve a post report
   ///
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to unresolve
@@ -51,8 +51,8 @@ impl Reportable for CommentReport {
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::comment_report::dsl::*;
-    update(comment_report.find(report_id))
+    use crate::schema::post_report::dsl::*;
+    update(post_report.find(report_id))
       .set((
         resolved.eq(false),
         resolver_id.eq(by_resolver_id),

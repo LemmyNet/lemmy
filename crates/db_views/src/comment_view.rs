@@ -1,16 +1,10 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  ListingType,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
   schema::{
     comment,
     comment_aggregates,
@@ -33,11 +27,9 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::Post,
   },
-  CommentId,
-  CommunityId,
-  DbUrl,
-  PersonId,
-  PostId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  ListingType,
+  SortType,
 };
 use serde::Serialize;
 
@@ -526,19 +518,11 @@ impl ViewToVec for CommentView {
 #[cfg(test)]
 mod tests {
   use crate::comment_view::*;
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     aggregates::comment_aggregates::CommentAggregates,
     establish_unpooled_connection,
-    Blockable,
-    Crud,
-    Likeable,
-  };
-  use lemmy_db_schema::source::{
-    comment::*,
-    community::*,
-    person::*,
-    person_block::PersonBlockForm,
-    post::*,
+    source::{comment::*, community::*, person::*, person_block::PersonBlockForm, post::*},
+    traits::{Blockable, Crud, Likeable},
   };
   use serial_test::serial;
 

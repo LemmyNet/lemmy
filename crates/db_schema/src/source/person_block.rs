@@ -1,4 +1,7 @@
-use crate::{schema::person_block, PersonBlockId, PersonId};
+use crate::{
+  newtypes::{PersonBlockId, PersonId},
+  schema::person_block,
+};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]

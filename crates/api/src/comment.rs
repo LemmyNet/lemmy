@@ -15,8 +15,11 @@ use lemmy_apub::{
   },
   fetcher::post_or_comment::PostOrComment,
 };
-use lemmy_db_queries::{source::comment::Comment_, Likeable, Saveable};
-use lemmy_db_schema::{source::comment::*, LocalUserId};
+use lemmy_db_schema::{
+  newtypes::LocalUserId,
+  source::comment::*,
+  traits::{Likeable, Saveable},
+};
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};

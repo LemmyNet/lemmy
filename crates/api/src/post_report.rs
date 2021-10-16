@@ -14,8 +14,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_apub::{activities::report::Report, fetcher::object_id::ObjectId};
-use lemmy_db_queries::Reportable;
-use lemmy_db_schema::source::post_report::{PostReport, PostReportForm};
+use lemmy_db_schema::{
+  source::post_report::{PostReport, PostReportForm},
+  traits::Reportable,
+};
 use lemmy_db_views::{
   post_report_view::{PostReportQueryBuilder, PostReportView},
   post_view::PostView,

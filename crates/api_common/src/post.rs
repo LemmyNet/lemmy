@@ -1,4 +1,4 @@
-use lemmy_db_schema::{CommunityId, PostId, PostReportId};
+use lemmy_db_schema::newtypes::{CommunityId, PostId, PostReportId};
 use lemmy_db_views::{
   comment_view::CommentView,
   post_report_view::PostReportView,

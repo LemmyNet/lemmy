@@ -11,11 +11,10 @@ use lemmy_apub_lib::{
   traits::ApubObject,
   webfinger::{webfinger_resolve_actor, WebfingerType},
 };
-use lemmy_db_queries::{
-  source::{community::Community_, person::Person_},
+use lemmy_db_schema::{
+  source::{comment::Comment, community::Community, person::Person, post::Post},
   DbPool,
 };
-use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;

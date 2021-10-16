@@ -21,8 +21,10 @@ use lemmy_apub_lib::{
   values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
+use lemmy_db_schema::{
+  source::{community::Community, person::Person, post::Post},
+  traits::Crud,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};

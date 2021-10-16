@@ -7,10 +7,11 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_api_common::{blocking, send_local_notifs};
 use lemmy_apub_lib::{traits::ActorType, webfinger::WebfingerResponse};
-use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::{
+  newtypes::LocalUserId,
   source::{comment::Comment, community::Community, person::Person, post::Post},
-  LocalUserId,
+  traits::Crud,
+  DbPool,
 };
 use lemmy_utils::{
   request::{retry, RecvError},

@@ -18,22 +18,32 @@ use lemmy_apub::activities::{
   },
   following::{follow::FollowCommunity as FollowCommunityApub, undo::UndoFollowCommunity},
 };
-use lemmy_db_queries::{
-  source::{comment::Comment_, community::CommunityModerator_, post::Post_},
-  Bannable,
-  Blockable,
-  Crud,
-  Followable,
-  Joinable,
-};
-use lemmy_db_schema::source::{
-  comment::Comment,
-  community::*,
-  community_block::{CommunityBlock, CommunityBlockForm},
-  moderator::*,
-  person::Person,
-  post::Post,
-  site::*,
+use lemmy_db_schema::{
+  source::{
+    comment::Comment,
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+    },
+    community_block::{CommunityBlock, CommunityBlockForm},
+    moderator::{
+      ModAddCommunity,
+      ModAddCommunityForm,
+      ModBanFromCommunity,
+      ModBanFromCommunityForm,
+      ModTransferCommunity,
+      ModTransferCommunityForm,
+    },
+    person::Person,
+    post::Post,
+    site::Site,
+  },
+  traits::{Bannable, Blockable, Crud, Followable, Joinable},
 };
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_db_views_actor::{

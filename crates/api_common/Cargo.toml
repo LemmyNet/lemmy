@@ -11,7 +11,6 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_db_queries = { version = "=0.13.0", path = "../db_queries" }
 lemmy_db_views = { version = "=0.13.0", path = "../db_views" }
 lemmy_db_views_moderator = { version = "=0.13.0", path = "../db_views_moderator" }
 lemmy_db_views_actor = { version = "=0.13.0", path = "../db_views_actor" }

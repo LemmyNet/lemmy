@@ -1,12 +1,8 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   limit_and_offset,
-  MaybeOptional,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
     comment_aggregates,
@@ -27,9 +23,7 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
   },
-  CommentReportId,
-  CommunityId,
-  PersonId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
 };
 use serde::Serialize;
 
@@ -309,14 +303,12 @@ impl ViewToVec for CommentReportView {
 #[cfg(test)]
 mod tests {
   use crate::comment_report_view::{CommentReportQueryBuilder, CommentReportView};
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     aggregates::comment_aggregates::CommentAggregates,
     establish_unpooled_connection,
-    Crud,
-    Joinable,
-    Reportable,
+    source::{comment::*, comment_report::*, community::*, person::*, post::*},
+    traits::{Crud, Joinable, Reportable},
   };
-  use lemmy_db_schema::source::{comment::*, comment_report::*, community::*, person::*, post::*};
   use serial_test::serial;
 
   #[test]

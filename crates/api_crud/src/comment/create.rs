@@ -21,12 +21,13 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{
-  source::{comment::Comment_, person_mention::PersonMention_},
-  Crud,
-  Likeable,
+use lemmy_db_schema::{
+  source::{
+    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+    person_mention::PersonMention,
+  },
+  traits::{Crud, Likeable},
 };
-use lemmy_db_schema::source::{comment::*, person_mention::PersonMention};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},

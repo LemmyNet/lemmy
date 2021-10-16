@@ -1,10 +1,10 @@
-use crate::Crud;
-use diesel::{dsl::*, result::Error, PgConnection, *};
-use lemmy_db_schema::{
+use crate::{
+  newtypes::LocalUserId,
   schema::password_reset_request::dsl::*,
   source::password_reset_request::*,
-  LocalUserId,
+  traits::Crud,
 };
+use diesel::{dsl::*, result::Error, PgConnection, *};
 use sha2::{Digest, Sha256};
 
 impl Crud for PasswordResetRequest {
@@ -31,17 +31,8 @@ impl Crud for PasswordResetRequest {
   }
 }
 
-pub trait PasswordResetRequest_ {
-  fn create_token(
-    conn: &PgConnection,
-    from_local_user_id: LocalUserId,
-    token: &str,
-  ) -> Result<PasswordResetRequest, Error>;
-  fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error>;
-}
-
-impl PasswordResetRequest_ for PasswordResetRequest {
-  fn create_token(
+impl PasswordResetRequest {
+  pub fn create_token(
     conn: &PgConnection,
     from_local_user_id: LocalUserId,
     token: &str,
@@ -57,7 +48,7 @@ impl PasswordResetRequest_ for PasswordResetRequest {
 
     Self::create(conn, &form)
   }
-  fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error> {
+  pub fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();
     hasher.update(token);
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
@@ -80,13 +71,12 @@ fn bytes_to_hex(bytes: Vec<u8>) -> String {
 mod tests {
   use crate::{
     establish_unpooled_connection,
-    source::password_reset_request::PasswordResetRequest_,
-    Crud,
-  };
-  use lemmy_db_schema::source::{
-    local_user::{LocalUser, LocalUserForm},
-    password_reset_request::PasswordResetRequest,
-    person::*,
+    source::{
+      local_user::{LocalUser, LocalUserForm},
+      password_reset_request::PasswordResetRequest,
+      person::*,
+    },
+    traits::Crud,
   };
   use serial_test::serial;
 

@@ -22,7 +22,6 @@ members = [
     "crates/apub_lib_derive",
     "crates/apub",
     "crates/utils",
-    "crates/db_queries",
     "crates/db_schema",
     "crates/db_views",
     "crates/db_views_actor",
@@ -38,7 +37,6 @@ lemmy_apub = { version = "=0.13.0", path = "./crates/apub" }
 lemmy_apub_lib = { version = "=0.13.0", path = "./crates/apub_lib" }
 lemmy_utils = { version = "=0.13.0", path = "./crates/utils" }
 lemmy_db_schema = { version = "=0.13.0", path = "./crates/db_schema" }
-lemmy_db_queries = { version = "=0.13.0", path = "./crates/db_queries" }
 lemmy_db_views = { version = "=0.13.0", path = "./crates/db_views" }
 lemmy_db_views_moderator = { version = "=0.13.0", path = "./crates/db_views_moderator" }
 lemmy_db_views_actor = { version = "=0.13.0", path = "./crates/db_views_actor" }

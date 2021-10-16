@@ -14,17 +14,20 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   EndpointType,
 };
-use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud, Followable, Joinable};
-use lemmy_db_schema::source::{
-  community::{
-    Community,
-    CommunityFollower,
-    CommunityFollowerForm,
-    CommunityForm,
-    CommunityModerator,
-    CommunityModeratorForm,
+use lemmy_db_schema::{
+  diesel_option_overwrite_to_url,
+  source::{
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+    },
+    site::Site,
   },
-  site::Site,
+  traits::{Crud, Followable, Joinable},
 };
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{

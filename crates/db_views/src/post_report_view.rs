@@ -1,12 +1,8 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::post_aggregates::PostAggregates,
   limit_and_offset,
-  MaybeOptional,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
     community,
     community_moderator,
@@ -25,9 +21,7 @@ use lemmy_db_schema::{
     post::Post,
     post_report::PostReport,
   },
-  CommunityId,
-  PersonId,
-  PostReportId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
 };
 use serde::Serialize;
 
@@ -288,18 +282,16 @@ impl ViewToVec for PostReportView {
 #[cfg(test)]
 mod tests {
   use crate::post_report_view::{PostReportQueryBuilder, PostReportView};
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     aggregates::post_aggregates::PostAggregates,
     establish_unpooled_connection,
-    Crud,
-    Joinable,
-    Reportable,
-  };
-  use lemmy_db_schema::source::{
-    community::*,
-    person::*,
-    post::*,
-    post_report::{PostReport, PostReportForm},
+    source::{
+      community::*,
+      person::*,
+      post::*,
+      post_report::{PostReport, PostReportForm},
+    },
+    traits::{Crud, Joinable, Reportable},
   };
   use serial_test::serial;
 

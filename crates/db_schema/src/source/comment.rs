@@ -1,18 +1,9 @@
 use crate::{
-  naive_now,
+  newtypes::{CommentId, DbUrl, PersonId, PostId},
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
-  CommentId,
-  DbUrl,
-  PersonId,
-  PostId,
 };
-use chrono::NaiveDateTime;
-use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_utils::LemmyError;
 use serde::Serialize;
-use url::Url;
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -109,28 +100,4 @@ pub struct CommentSaved {
 pub struct CommentSavedForm {
   pub comment_id: CommentId,
   pub person_id: PersonId,
-}
-
-impl ApubObject for Comment {
-  type DataType = PgConnection;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
-    use crate::schema::comment::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(comment.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
-  }
-
-  // TODO: duplicate code from Comment::update_deleted(), we should really move all impls to
-  //       this crate so we can call that function from here
-  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(self.id))
-      .set((deleted.eq(true), updated.eq(naive_now())))
-      .get_result::<Self>(conn)?;
-    Ok(())
-  }
 }

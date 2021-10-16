@@ -11,25 +11,10 @@ use lemmy_api_common::{
   password_length_check,
   person::*,
 };
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
   from_opt_str_to_opt_enum,
-  source::{
-    comment::Comment_,
-    community::Community_,
-    local_user::LocalUser_,
-    password_reset_request::PasswordResetRequest_,
-    person::Person_,
-    person_mention::PersonMention_,
-    post::Post_,
-    private_message::PrivateMessage_,
-  },
-  Blockable,
-  Crud,
-  SortType,
-};
-use lemmy_db_schema::{
   naive_now,
   source::{
     comment::Comment,
@@ -44,6 +29,8 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     site::*,
   },
+  traits::{Blockable, Crud},
+  SortType,
 };
 use lemmy_db_views::{
   comment_report_view::CommentReportView,

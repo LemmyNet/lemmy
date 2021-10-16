@@ -1,7 +1,6 @@
-use crate::{Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable};
-use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{
+use crate::{
   naive_now,
+  newtypes::{CommunityId, DbUrl, PersonId},
   source::community::{
     Community,
     CommunityFollower,
@@ -13,14 +12,16 @@ use lemmy_db_schema::{
     CommunityPersonBanForm,
     CommunitySafe,
   },
-  CommunityId,
-  DbUrl,
-  PersonId,
+  traits::{Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
 };
+use chrono::NaiveDateTime;
+use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use lemmy_apub_lib::traits::{ActorType, ApubObject};
+use lemmy_utils::LemmyError;
+use url::Url;
 
 mod safe_type {
-  use crate::{source::community::Community, ToSafe};
-  use lemmy_db_schema::schema::community::*;
+  use crate::{schema::community::*, source::community::Community, traits::ToSafe};
 
   type Columns = (
     id,
@@ -64,17 +65,17 @@ impl Crud for Community {
   type Form = CommunityForm;
   type IdType = CommunityId;
   fn read(conn: &PgConnection, community_id: CommunityId) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     community.find(community_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, community_id: CommunityId) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     diesel::delete(community.find(community_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     insert_into(community)
       .values(new_community)
       .get_result::<Self>(conn)
@@ -85,81 +86,61 @@ impl Crud for Community {
     community_id: CommunityId,
     new_community: &CommunityForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     diesel::update(community.find(community_id))
       .set(new_community)
       .get_result::<Self>(conn)
   }
 }
 
-pub trait Community_ {
-  fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error>;
-  fn update_deleted(
-    conn: &PgConnection,
-    community_id: CommunityId,
-    new_deleted: bool,
-  ) -> Result<Community, Error>;
-  fn update_removed(
-    conn: &PgConnection,
-    community_id: CommunityId,
-    new_removed: bool,
-  ) -> Result<Community, Error>;
-  fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error>;
-  fn read_from_followers_url(
-    conn: &PgConnection,
-    followers_url: &DbUrl,
-  ) -> Result<Community, Error>;
-  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error>;
-}
-
-impl Community_ for Community {
-  fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+impl Community {
+  pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error> {
+    use crate::schema::community::dsl::*;
     community
       .filter(local.eq(true))
       .filter(name.eq(community_name))
       .first::<Self>(conn)
   }
 
-  fn update_deleted(
+  pub fn update_deleted(
     conn: &PgConnection,
     community_id: CommunityId,
     new_deleted: bool,
   ) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     diesel::update(community.find(community_id))
       .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  fn update_removed(
+  pub fn update_removed(
     conn: &PgConnection,
     community_id: CommunityId,
     new_removed: bool,
   ) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     diesel::update(community.find(community_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+  pub fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error> {
+    use crate::schema::community::dsl::*;
     community.select(actor_id).distinct().load::<String>(conn)
   }
 
-  fn read_from_followers_url(
+  pub fn read_from_followers_url(
     conn: &PgConnection,
     followers_url_: &DbUrl,
   ) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     community
       .filter(followers_url.eq(followers_url_))
       .first::<Self>(conn)
   }
 
-  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
-    use lemmy_db_schema::schema::community::dsl::*;
+  pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
+    use crate::schema::community::dsl::*;
     insert_into(community)
       .values(community_form)
       .on_conflict(actor_id)
@@ -175,7 +156,7 @@ impl Joinable for CommunityModerator {
     conn: &PgConnection,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::*;
     insert_into(community_moderator)
       .values(community_moderator_form)
       .get_result::<Self>(conn)
@@ -185,7 +166,7 @@ impl Joinable for CommunityModerator {
     conn: &PgConnection,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::*;
     diesel::delete(
       community_moderator
         .filter(community_id.eq(community_moderator_form.community_id))
@@ -215,31 +196,20 @@ impl DeleteableOrRemoveable for Community {
   }
 }
 
-pub trait CommunityModerator_ {
-  fn delete_for_community(
-    conn: &PgConnection,
-    for_community_id: CommunityId,
-  ) -> Result<usize, Error>;
-  fn get_person_moderated_communities(
-    conn: &PgConnection,
-    for_person_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error>;
-}
-
-impl CommunityModerator_ for CommunityModerator {
-  fn delete_for_community(
+impl CommunityModerator {
+  pub fn delete_for_community(
     conn: &PgConnection,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::*;
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(conn)
   }
 
-  fn get_person_moderated_communities(
+  pub fn get_person_moderated_communities(
     conn: &PgConnection,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
-    use lemmy_db_schema::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::*;
     community_moderator
       .filter(person_id.eq(for_person_id))
       .select(community_id)
@@ -253,7 +223,7 @@ impl Bannable for CommunityPersonBan {
     conn: &PgConnection,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community_person_ban::dsl::*;
+    use crate::schema::community_person_ban::dsl::*;
     insert_into(community_person_ban)
       .values(community_person_ban_form)
       .get_result::<Self>(conn)
@@ -263,7 +233,7 @@ impl Bannable for CommunityPersonBan {
     conn: &PgConnection,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community_person_ban::dsl::*;
+    use crate::schema::community_person_ban::dsl::*;
     diesel::delete(
       community_person_ban
         .filter(community_id.eq(community_person_ban_form.community_id))
@@ -279,7 +249,7 @@ impl Followable for CommunityFollower {
     conn: &PgConnection,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::*;
     insert_into(community_follower)
       .values(community_follower_form)
       .on_conflict((community_id, person_id))
@@ -295,7 +265,7 @@ impl Followable for CommunityFollower {
   where
     Self: Sized,
   {
-    use lemmy_db_schema::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::*;
     diesel::update(
       community_follower
         .filter(community_id.eq(community_id_))
@@ -308,7 +278,7 @@ impl Followable for CommunityFollower {
     conn: &PgConnection,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::*;
     diesel::delete(
       community_follower
         .filter(community_id.eq(&community_follower_form.community_id))
@@ -319,7 +289,7 @@ impl Followable for CommunityFollower {
   // TODO: this function name only makes sense if you call it with a remote community. for a local
   //       community, it will also return true if only remote followers exist
   fn has_local_followers(conn: &PgConnection, community_id_: CommunityId) -> Result<bool, Error> {
-    use lemmy_db_schema::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::*;
     diesel::select(exists(
       community_follower.filter(community_id.eq(community_id_)),
     ))
@@ -327,10 +297,66 @@ impl Followable for CommunityFollower {
   }
 }
 
+impl ApubObject for Community {
+  type DataType = PgConnection;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
+    use crate::schema::community::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      community
+        .filter(actor_id.eq(object_id))
+        .first::<Self>(conn)
+        .ok(),
+    )
+  }
+
+  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(self.id))
+      .set((deleted.eq(true), updated.eq(naive_now())))
+      .get_result::<Self>(conn)?;
+    Ok(())
+  }
+}
+
+impl ActorType for Community {
+  fn is_local(&self) -> bool {
+    self.local
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into()
+  }
+  fn name(&self) -> String {
+    self.name.clone()
+  }
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
+  }
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
+
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into_inner())
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, Bannable, Crud, Followable, Joinable};
-  use lemmy_db_schema::source::{community::*, person::*};
+  use crate::{
+    establish_unpooled_connection,
+    source::{community::*, person::*},
+    traits::{Bannable, Crud, Followable, Joinable},
+  };
   use serial_test::serial;
 
   #[test]
