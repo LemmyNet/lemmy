@@ -6,11 +6,12 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::activities::community::update::UpdateCommunity;
-use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud};
 use lemmy_db_schema::{
+  diesel_option_overwrite_to_url,
   naive_now,
+  newtypes::PersonId,
   source::community::{Community, CommunityForm},
-  PersonId,
+  traits::Crud,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};

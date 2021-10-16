@@ -1,11 +1,13 @@
-use crate::Blockable;
+use crate::{
+  source::community_block::{CommunityBlock, CommunityBlockForm},
+  traits::Blockable,
+};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::source::community_block::{CommunityBlock, CommunityBlockForm};
 
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
   fn block(conn: &PgConnection, community_block_form: &Self::Form) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::community_block::dsl::*;
+    use crate::schema::community_block::dsl::*;
     insert_into(community_block)
       .values(community_block_form)
       .on_conflict((person_id, community_id))
@@ -14,7 +16,7 @@ impl Blockable for CommunityBlock {
       .get_result::<Self>(conn)
   }
   fn unblock(conn: &PgConnection, community_block_form: &Self::Form) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::community_block::dsl::*;
+    use crate::schema::community_block::dsl::*;
     diesel::delete(
       community_block
         .filter(person_id.eq(community_block_form.person_id))

@@ -23,10 +23,10 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::community::Community_, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
+  DbPool,
 };
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{

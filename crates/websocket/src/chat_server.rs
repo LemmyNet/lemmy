@@ -14,7 +14,10 @@ use diesel::{
   PgConnection,
 };
 use lemmy_api_common::{comment::*, post::*};
-use lemmy_db_schema::{source::secret::Secret, CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, LocalUserId, PostId},
+  source::secret::Secret,
+};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,

@@ -16,15 +16,15 @@ use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
 };
-use lemmy_db_queries::{Crud, Reportable};
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     comment_report::{CommentReport, CommentReportForm},
     community::Community,
     person::Person,
     post_report::{PostReport, PostReportForm},
   },
-  CommunityId,
+  traits::{Crud, Reportable},
 };
 use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
 use lemmy_utils::LemmyError;

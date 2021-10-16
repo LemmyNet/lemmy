@@ -27,10 +27,10 @@ use lemmy_apub_lib::{
   values::PublicUrl,
   verify::verify_urls_match,
 };
-use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{community::Community, person::Person},
-  CommunityId,
+  traits::Crud,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

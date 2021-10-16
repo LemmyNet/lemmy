@@ -25,10 +25,12 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::Bannable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityPersonBan, CommunityPersonBanForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityPersonBan, CommunityPersonBanForm},
+    person::Person,
+  },
+  traits::Bannable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

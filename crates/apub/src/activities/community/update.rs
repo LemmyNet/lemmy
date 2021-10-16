@@ -22,10 +22,12 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityForm},
+    person::Person,
+  },
+  traits::Crud,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};

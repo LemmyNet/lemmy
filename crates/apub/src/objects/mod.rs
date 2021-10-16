@@ -5,7 +5,7 @@ use activitystreams::{
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_apub_lib::values::MediaTypeMarkdown;
-use lemmy_db_queries::DbPool;
+use lemmy_db_schema::DbPool;
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;

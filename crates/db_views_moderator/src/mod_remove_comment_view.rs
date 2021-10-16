@@ -1,6 +1,7 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
+  limit_and_offset,
+  newtypes::{CommunityId, PersonId},
   schema::{comment, community, mod_remove_comment, person, person_alias_1, post},
   source::{
     comment::Comment,
@@ -9,8 +10,7 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     post::Post,
   },
-  CommunityId,
-  PersonId,
+  traits::{ToSafe, ViewToVec},
 };
 use serde::{Deserialize, Serialize};
 

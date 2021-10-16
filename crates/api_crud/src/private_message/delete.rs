@@ -9,8 +9,10 @@ use lemmy_apub::activities::private_message::{
   delete::DeletePrivateMessage as DeletePrivateMessageApub,
   undo_delete::UndoDeletePrivateMessage,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DeleteableOrRemoveable};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_db_schema::{
+  source::private_message::PrivateMessage,
+  traits::{Crud, DeleteableOrRemoveable},
+};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 

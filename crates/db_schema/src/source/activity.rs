@@ -1,4 +1,4 @@
-use crate::{schema::activity, DbUrl};
+use crate::{newtypes::DbUrl, schema::activity};
 use serde_json::Value;
 use std::fmt::Debug;
 

@@ -1,4 +1,4 @@
-use crate::{schema::password_reset_request, LocalUserId};
+use crate::{newtypes::LocalUserId, schema::password_reset_request};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "password_reset_request"]

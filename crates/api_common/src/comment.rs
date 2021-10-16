@@ -1,4 +1,4 @@
-use lemmy_db_schema::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::newtypes::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId};
 use lemmy_db_views::{comment_report_view::CommentReportView, comment_view::CommentView};
 use serde::{Deserialize, Serialize};
 

@@ -15,8 +15,10 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageForm};
+use lemmy_db_schema::{
+  source::private_message::{PrivateMessage, PrivateMessageForm},
+  traits::Crud,
+};
 use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_utils::{utils::remove_slurs, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};

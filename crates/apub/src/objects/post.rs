@@ -21,7 +21,6 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::post::Post_, Crud, DbPool};
 use lemmy_db_schema::{
   self,
   source::{
@@ -29,6 +28,8 @@ use lemmy_db_schema::{
     person::Person,
     post::{Post, PostForm},
   },
+  traits::Crud,
+  DbPool,
 };
 use lemmy_utils::{
   request::fetch_site_data,

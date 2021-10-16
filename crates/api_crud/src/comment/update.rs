@@ -13,8 +13,7 @@ use lemmy_apub::activities::{
   comment::create_or_update::CreateOrUpdateComment,
   CreateOrUpdateType,
 };
-use lemmy_db_queries::source::comment::Comment_;
-use lemmy_db_schema::source::comment::*;
+use lemmy_db_schema::source::comment::Comment;
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},

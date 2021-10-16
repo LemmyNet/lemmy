@@ -24,10 +24,12 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::Joinable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator, CommunityModeratorForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityModerator, CommunityModeratorForm},
+    person::Person,
+  },
+  traits::Joinable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

@@ -9,8 +9,14 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
-use lemmy_db_queries::{source::post::Post_, Crud};
-use lemmy_db_schema::source::{community::Community, moderator::*, post::*};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    moderator::{ModRemovePost, ModRemovePostForm},
+    post::Post,
+  },
+  traits::Crud,
+};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 

@@ -21,16 +21,18 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::{Bannable, Followable};
-use lemmy_db_schema::source::{
-  community::{
-    Community,
-    CommunityFollower,
-    CommunityFollowerForm,
-    CommunityPersonBan,
-    CommunityPersonBanForm,
+use lemmy_db_schema::{
+  source::{
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+    },
+    person::Person,
   },
-  person::Person,
+  traits::{Bannable, Followable},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

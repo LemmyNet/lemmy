@@ -1,10 +1,12 @@
 use crate::activities::voting::vote::VoteType;
 use lemmy_api_common::blocking;
-use lemmy_db_queries::Likeable;
-use lemmy_db_schema::source::{
-  comment::{Comment, CommentLike, CommentLikeForm},
-  person::Person,
-  post::{Post, PostLike, PostLikeForm},
+use lemmy_db_schema::{
+  source::{
+    comment::{Comment, CommentLike, CommentLikeForm},
+    person::Person,
+    post::{Post, PostLike, PostLikeForm},
+  },
+  traits::Likeable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{

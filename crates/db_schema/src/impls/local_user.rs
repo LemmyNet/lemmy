@@ -1,16 +1,19 @@
-use crate::Crud;
-use bcrypt::{hash, DEFAULT_COST};
-use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{
+use crate::{
   naive_now,
+  newtypes::LocalUserId,
   schema::local_user::dsl::*,
   source::local_user::{LocalUser, LocalUserForm},
-  LocalUserId,
+  traits::Crud,
 };
+use bcrypt::{hash, DEFAULT_COST};
+use diesel::{dsl::*, result::Error, *};
 
 mod safe_settings_type {
-  use crate::ToSafeSettings;
-  use lemmy_db_schema::{schema::local_user::columns::*, source::local_user::LocalUser};
+  use crate::{
+    schema::local_user::columns::*,
+    source::local_user::LocalUser,
+    traits::ToSafeSettings,
+  };
 
   type Columns = (
     id,
@@ -56,17 +59,8 @@ mod safe_settings_type {
   }
 }
 
-pub trait LocalUser_ {
-  fn register(conn: &PgConnection, form: &LocalUserForm) -> Result<LocalUser, Error>;
-  fn update_password(
-    conn: &PgConnection,
-    local_user_id: LocalUserId,
-    new_password: &str,
-  ) -> Result<LocalUser, Error>;
-}
-
-impl LocalUser_ for LocalUser {
-  fn register(conn: &PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
+impl LocalUser {
+  pub fn register(conn: &PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
     let password_hash =
       hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
@@ -75,7 +69,7 @@ impl LocalUser_ for LocalUser {
     Self::create(conn, &edited_user)
   }
 
-  fn update_password(
+  pub fn update_password(
     conn: &PgConnection,
     local_user_id: LocalUserId,
     new_password: &str,

@@ -2,8 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use bcrypt::verify;
 use lemmy_api_common::{blocking, get_local_user_view_from_jwt, person::*};
-use lemmy_db_queries::source::{comment::Comment_, person::Person_, post::Post_};
-use lemmy_db_schema::source::{comment::Comment, person::*, post::Post};
+use lemmy_db_schema::source::{comment::Comment, person::Person, post::Post};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

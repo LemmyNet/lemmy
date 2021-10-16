@@ -18,10 +18,10 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::Crud;
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{community::Community, person::Person},
-  CommunityId,
+  traits::Crud,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

@@ -1,14 +1,14 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
+  limit_and_offset,
+  newtypes::{CommunityId, PersonId},
   schema::{community, mod_ban_from_community, person, person_alias_1},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModBanFromCommunity,
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
-  CommunityId,
-  PersonId,
+  traits::{ToSafe, ViewToVec},
 };
 use serde::{Deserialize, Serialize};
 

@@ -1,18 +1,8 @@
 use crate::{
-  naive_now,
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{post, post_like, post_read, post_saved},
-  CommunityId,
-  DbUrl,
-  PersonId,
-  PostId,
 };
-use chrono::NaiveDateTime;
-use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
-use url::Url;
-
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "post"]
 pub struct Post {
@@ -111,26 +101,4 @@ pub struct PostRead {
 pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-}
-
-impl ApubObject for Post {
-  type DataType = PgConnection;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
-    use crate::schema::post::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(post.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
-  }
-
-  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
-    use crate::schema::post::dsl::*;
-    diesel::update(post.find(self.id))
-      .set((deleted.eq(true), updated.eq(naive_now())))
-      .get_result::<Self>(conn)?;
-    Ok(())
-  }
 }

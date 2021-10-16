@@ -11,7 +11,6 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 lemmy_apub = { version = "=0.13.0", path = "../apub" }
 lemmy_apub_lib = { version = "=0.13.0", path = "../apub_lib" }
 lemmy_utils = { version = "=0.13.0", path = "../utils" }
-lemmy_db_queries = { version = "=0.13.0", path = "../db_queries" }
 lemmy_db_schema = { version = "=0.13.0", path = "../db_schema" }
 lemmy_db_views = { version = "=0.13.0", path = "../db_views" }
 lemmy_db_views_moderator = { version = "=0.13.0", path = "../db_views_moderator" }

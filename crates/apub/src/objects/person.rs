@@ -19,10 +19,10 @@ use lemmy_apub_lib::{
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::person::Person_, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::person::{Person as DbPerson, PersonForm},
+  DbPool,
 };
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},

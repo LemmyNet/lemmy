@@ -1,24 +1,23 @@
-use crate::Crud;
+use crate::{source::moderator::*, traits::Crud};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::source::moderator::*;
 
 impl Crud for ModRemovePost {
   type Form = ModRemovePostForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
     mod_remove_post.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemovePostForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
     insert_into(mod_remove_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModRemovePostForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
     diesel::update(mod_remove_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -29,19 +28,19 @@ impl Crud for ModLockPost {
   type Form = ModLockPostForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
     mod_lock_post.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModLockPostForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
     insert_into(mod_lock_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
     diesel::update(mod_lock_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -52,19 +51,19 @@ impl Crud for ModStickyPost {
   type Form = ModStickyPostForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_sticky_post::dsl::*;
+    use crate::schema::mod_sticky_post::dsl::*;
     mod_sticky_post.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModStickyPostForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_sticky_post::dsl::*;
+    use crate::schema::mod_sticky_post::dsl::*;
     insert_into(mod_sticky_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModStickyPostForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_sticky_post::dsl::*;
+    use crate::schema::mod_sticky_post::dsl::*;
     diesel::update(mod_sticky_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -75,19 +74,19 @@ impl Crud for ModRemoveComment {
   type Form = ModRemoveCommentForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
     mod_remove_comment.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemoveCommentForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
     insert_into(mod_remove_comment)
       .values(form)
       .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModRemoveCommentForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -98,12 +97,12 @@ impl Crud for ModRemoveCommunity {
   type Form = ModRemoveCommunityForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
     mod_remove_community.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
     insert_into(mod_remove_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -114,7 +113,7 @@ impl Crud for ModRemoveCommunity {
     from_id: i32,
     form: &ModRemoveCommunityForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
     diesel::update(mod_remove_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -125,12 +124,12 @@ impl Crud for ModBanFromCommunity {
   type Form = ModBanFromCommunityForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
     mod_ban_from_community.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
     insert_into(mod_ban_from_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -141,7 +140,7 @@ impl Crud for ModBanFromCommunity {
     from_id: i32,
     form: &ModBanFromCommunityForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
     diesel::update(mod_ban_from_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -152,17 +151,17 @@ impl Crud for ModBan {
   type Form = ModBanForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
     mod_ban.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModBanForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
     insert_into(mod_ban).values(form).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
     diesel::update(mod_ban.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -173,19 +172,19 @@ impl Crud for ModAddCommunity {
   type Form = ModAddCommunityForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
     mod_add_community.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModAddCommunityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
     insert_into(mod_add_community)
       .values(form)
       .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModAddCommunityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
     diesel::update(mod_add_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -196,12 +195,12 @@ impl Crud for ModTransferCommunity {
   type Form = ModTransferCommunityForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_transfer_community::dsl::*;
+    use crate::schema::mod_transfer_community::dsl::*;
     mod_transfer_community.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModTransferCommunityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_transfer_community::dsl::*;
+    use crate::schema::mod_transfer_community::dsl::*;
     insert_into(mod_transfer_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -212,7 +211,7 @@ impl Crud for ModTransferCommunity {
     from_id: i32,
     form: &ModTransferCommunityForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_transfer_community::dsl::*;
+    use crate::schema::mod_transfer_community::dsl::*;
     diesel::update(mod_transfer_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -223,17 +222,17 @@ impl Crud for ModAdd {
   type Form = ModAddForm;
   type IdType = i32;
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
     mod_add.find(from_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModAddForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
     insert_into(mod_add).values(form).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
     diesel::update(mod_add.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -242,8 +241,11 @@ impl Crud for ModAdd {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, Crud};
-  use lemmy_db_schema::source::{comment::*, community::*, moderator::*, person::*, post::*};
+  use crate::{
+    establish_unpooled_connection,
+    source::{comment::*, community::*, moderator::*, person::*, post::*},
+    traits::Crud,
+  };
   use serial_test::serial;
 
   // use Crud;

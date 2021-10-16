@@ -1,14 +1,9 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
   limit_and_offset,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{PersonId, PersonMentionId},
   schema::{
     comment,
     comment_aggregates,
@@ -31,8 +26,8 @@ use lemmy_db_schema::{
     person_mention::PersonMention,
     post::Post,
   },
-  PersonId,
-  PersonMentionId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  SortType,
 };
 use serde::{Deserialize, Serialize};
 

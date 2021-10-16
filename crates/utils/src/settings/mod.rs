@@ -27,7 +27,7 @@ impl Settings {
   /// Reads config from configuration file.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
-  /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
+  /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
   /// Warning: Only call this once.
   pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
