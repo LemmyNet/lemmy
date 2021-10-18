@@ -14,10 +14,7 @@ use crate::{
   },
   traits::{Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
 };
-use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use lemmy_apub_lib::traits::{ActorType, ApubObject};
-use lemmy_utils::LemmyError;
 use url::Url;
 
 mod safe_type {
@@ -147,6 +144,17 @@ impl Community {
       .do_update()
       .set(community_form)
       .get_result::<Self>(conn)
+  }
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::community::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      community
+        .filter(actor_id.eq(object_id))
+        .first::<Community>(conn)
+        .ok()
+        .map(Into::into),
+    )
   }
 }
 
@@ -294,59 +302,6 @@ impl Followable for CommunityFollower {
       community_follower.filter(community_id.eq(community_id_)),
     ))
     .get_result(conn)
-  }
-}
-
-impl ApubObject for Community {
-  type DataType = PgConnection;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    Some(self.last_refreshed_at)
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
-    use crate::schema::community::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(
-      community
-        .filter(actor_id.eq(object_id))
-        .first::<Self>(conn)
-        .ok(),
-    )
-  }
-
-  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
-    use crate::schema::community::dsl::*;
-    diesel::update(community.find(self.id))
-      .set((deleted.eq(true), updated.eq(naive_now())))
-      .get_result::<Self>(conn)?;
-    Ok(())
-  }
-}
-
-impl ActorType for Community {
-  fn is_local(&self) -> bool {
-    self.local
-  }
-  fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into()
-  }
-  fn name(&self) -> String {
-    self.name.clone()
-  }
-  fn public_key(&self) -> Option<String> {
-    self.public_key.to_owned()
-  }
-  fn private_key(&self) -> Option<String> {
-    self.private_key.to_owned()
-  }
-
-  fn inbox_url(&self) -> Url {
-    self.inbox_url.clone().into()
-  }
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
   }
 }
 

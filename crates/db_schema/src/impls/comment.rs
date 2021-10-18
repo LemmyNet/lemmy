@@ -11,10 +11,7 @@ use crate::{
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
 };
-use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_utils::LemmyError;
 use url::Url;
 
 impl Comment {
@@ -108,6 +105,17 @@ impl Comment {
       .set(comment_form)
       .get_result::<Self>(conn)
   }
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::comment::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      comment
+        .filter(ap_id.eq(object_id))
+        .first::<Comment>(conn)
+        .ok()
+        .map(Into::into),
+    )
+  }
 }
 
 impl Crud for Comment {
@@ -195,25 +203,6 @@ impl DeleteableOrRemoveable for Comment {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
     self.content = "".into();
     self
-  }
-}
-
-impl ApubObject for Comment {
-  type DataType = PgConnection;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
-    use crate::schema::comment::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(comment.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
-  }
-
-  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
-    Comment::update_deleted(conn, self.id, true)?;
-    Ok(())
   }
 }
 

@@ -8,6 +8,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::BlockType,
@@ -22,15 +23,11 @@ use lemmy_apub_lib::{
   values::PublicUrl,
 };
 use lemmy_db_schema::{
-  source::{
-    community::{
-      Community,
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityPersonBan,
-      CommunityPersonBanForm,
-    },
-    person::Person,
+  source::community::{
+    CommunityFollower,
+    CommunityFollowerForm,
+    CommunityPersonBan,
+    CommunityPersonBanForm,
   },
   traits::{Bannable, Followable},
 };
@@ -42,10 +39,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockUserFromCommunity {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
-  pub(in crate::activities::community) object: ObjectId<Person>,
-  cc: [ObjectId<Community>; 1],
+  pub(in crate::activities::community) object: ObjectId<ApubPerson>,
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: BlockType,
   id: Url,
@@ -57,9 +54,9 @@ pub struct BlockUserFromCommunity {
 
 impl BlockUserFromCommunity {
   pub(in crate::activities::community) fn new(
-    community: &Community,
-    target: &Person,
-    actor: &Person,
+    community: &ApubCommunity,
+    target: &ApubPerson,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
@@ -78,9 +75,9 @@ impl BlockUserFromCommunity {
   }
 
   pub async fn send(
-    community: &Community,
-    target: &Person,
-    actor: &Person,
+    community: &ApubCommunity,
+    target: &ApubPerson,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let block = BlockUserFromCommunity::new(community, target, actor, context)?;
@@ -102,7 +99,7 @@ impl ActivityHandler for BlockUserFromCommunity {
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }
 

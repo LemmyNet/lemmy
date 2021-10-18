@@ -10,7 +10,6 @@ doctest = false
 
 [dependencies]
 lemmy_utils = { version = "=0.13.0", path = "../utils" }
-lemmy_apub_lib = { version = "=0.13.0", path = "../apub_lib" }
 diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }

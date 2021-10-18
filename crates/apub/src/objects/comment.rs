@@ -3,11 +3,12 @@ use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   migrations::CommentInReplyToMigration,
-  objects::{create_tombstone, FromApub, Source, ToApub},
+  objects::{create_tombstone, person::ApubPerson, post::ApubPost, Source},
   PostOrComment,
 };
 use activitystreams::{
   base::AnyBase,
+  chrono::NaiveDateTime,
   object::{kind::NoteType, Tombstone},
   primitives::OneOrMany,
   unparsed::Unparsed,
@@ -16,7 +17,7 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::ActorType,
+  traits::{ApubObject, FromApub, ToApub},
   values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
   verify::verify_domains_match,
 };
@@ -50,7 +51,7 @@ pub struct Note {
   context: OneOrMany<AnyBase>,
   r#type: NoteType,
   id: Url,
-  pub(crate) attributed_to: ObjectId<Person>,
+  pub(crate) attributed_to: ObjectId<ApubPerson>,
   /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
   /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
   /// the post in [`in_reply_to`]).
@@ -78,7 +79,7 @@ impl Note {
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
-  ) -> Result<(Post, Option<CommentId>), LemmyError> {
+  ) -> Result<(ApubPost, Option<CommentId>), LemmyError> {
     match &self.in_reply_to {
       CommentInReplyToMigration::Old(in_reply_to) => {
         // This post, or the parent comment might not yet exist on this server yet, fetch them.
@@ -90,7 +91,7 @@ impl Note {
         // Nested comments will automatically get fetched recursively
         let parent_id: Option<CommentId> = match in_reply_to.get(1) {
           Some(comment_id) => {
-            let comment_id = ObjectId::<Comment>::new(comment_id.clone());
+            let comment_id = ObjectId::<ApubComment>::new(comment_id.clone());
             let parent_comment = Box::pin(comment_id.dereference(context, request_counter)).await?;
 
             Some(parent_comment.id)
@@ -104,16 +105,16 @@ impl Note {
         let parent = Box::pin(in_reply_to.dereference(context, request_counter).await?);
         match parent.deref() {
           PostOrComment::Post(p) => {
-            // Workaround because I cant figure ut how to get the post out of the box (and we dont
+            // Workaround because I cant figure out how to get the post out of the box (and we dont
             // want to stackoverflow in a deep comment hierarchy).
             let post_id = p.id;
             let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-            Ok((post, None))
+            Ok((post.into(), None))
           }
           PostOrComment::Comment(c) => {
             let post_id = c.post_id;
             let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-            Ok((post, Some(c.id)))
+            Ok((post.into(), Some(c.id)))
           }
         }
       }
@@ -138,7 +139,7 @@ impl Note {
     verify_domains_match(self.attributed_to.inner(), &self.id)?;
     verify_person_in_community(
       &self.attributed_to,
-      &ObjectId::new(community.actor_id()),
+      &ObjectId::new(community.actor_id),
       context,
       request_counter,
     )
@@ -147,9 +148,57 @@ impl Note {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct ApubComment(Comment);
+
+impl Deref for ApubComment {
+  type Target = Comment;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<Comment> for ApubComment {
+  fn from(c: Comment) -> Self {
+    ApubComment { 0: c }
+  }
+}
+
 #[async_trait::async_trait(?Send)]
-impl ToApub for Comment {
+impl ApubObject for ApubComment {
+  type DataType = LemmyContext;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    Ok(
+      blocking(context.pool(), move |conn| {
+        Comment::read_from_apub_id(conn, object_id)
+      })
+      .await??
+      .map(Into::into),
+    )
+  }
+
+  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+    blocking(context.pool(), move |conn| {
+      Comment::update_deleted(conn, self.id, true)
+    })
+    .await??;
+    Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ToApub for ApubComment {
   type ApubType = Note;
+  type TombstoneType = Tombstone;
+  type DataType = DbPool;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
@@ -200,8 +249,9 @@ impl ToApub for Comment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for Comment {
+impl FromApub for ApubComment {
   type ApubType = Note;
+  type DataType = LemmyContext;
 
   /// Converts a `Note` to `Comment`.
   ///
@@ -211,7 +261,7 @@ impl FromApub for Comment {
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,
-  ) -> Result<Comment, LemmyError> {
+  ) -> Result<ApubComment, LemmyError> {
     let ap_id = Some(note.id(expected_domain)?.clone().into());
     let creator = note
       .attributed_to
@@ -238,6 +288,7 @@ impl FromApub for Comment {
       ap_id,
       local: Some(false),
     };
-    Ok(blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??)
+    let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
+    Ok(comment.into())
   }
 }

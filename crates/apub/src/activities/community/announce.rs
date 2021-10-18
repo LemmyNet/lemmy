@@ -21,6 +21,7 @@ use crate::{
   fetcher::object_id::ObjectId,
   http::is_activity_already_known,
   insert_activity,
+  objects::community::ApubCommunity,
   send_lemmy_activity,
   CommunityType,
 };
@@ -35,7 +36,6 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -62,7 +62,7 @@ pub enum AnnouncableActivities {
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
-  actor: ObjectId<Community>,
+  actor: ObjectId<ApubCommunity>,
   to: [PublicUrl; 1],
   object: AnnouncableActivities,
   cc: Vec<Url>,
@@ -78,7 +78,7 @@ pub struct AnnounceActivity {
 impl AnnounceActivity {
   pub async fn send(
     object: AnnouncableActivities,
-    community: &Community,
+    community: &ApubCommunity,
     additional_inboxes: Vec<Url>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {

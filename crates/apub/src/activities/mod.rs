@@ -3,15 +3,17 @@ use crate::{
   check_is_apub_id_valid,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{traits::ActivityFields, verify::verify_domains_match};
-use lemmy_db_schema::source::{community::Community, person::Person};
+use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 use strum_macros::ToString;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -35,7 +37,7 @@ pub enum CreateOrUpdateType {
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
 async fn verify_person(
-  person_id: &ObjectId<Person>,
+  person_id: &ObjectId<ApubPerson>,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
@@ -50,7 +52,7 @@ pub(crate) async fn extract_community(
   cc: &[Url],
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<Community, LemmyError> {
+) -> Result<ApubCommunity, LemmyError> {
   let mut cc_iter = cc.iter();
   loop {
     if let Some(cid) = cc_iter.next() {
@@ -67,19 +69,19 @@ pub(crate) async fn extract_community(
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
 pub(crate) async fn verify_person_in_community(
-  person_id: &ObjectId<Person>,
-  community_id: &ObjectId<Community>,
+  person_id: &ObjectId<ApubPerson>,
+  community_id: &ObjectId<ApubCommunity>,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let community = community_id.dereference(context, request_counter).await?;
   let person = person_id.dereference(context, request_counter).await?;
-  check_community_or_site_ban(&person, community.id, context.pool()).await
+  check_community_or_site_ban(person.deref(), community.id, context.pool()).await
 }
 
 /// Simply check that the url actually refers to a valid group.
 async fn verify_community(
-  community_id: &ObjectId<Community>,
+  community_id: &ObjectId<ApubCommunity>,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
@@ -97,8 +99,8 @@ fn verify_activity(activity: &dyn ActivityFields, settings: &Settings) -> Result
 /// because in case of remote communities, admins can also perform mod actions. As admin status
 /// is not federated, we cant verify their actions remotely.
 pub(crate) async fn verify_mod_action(
-  actor_id: &ObjectId<Person>,
-  community_id: ObjectId<Community>,
+  actor_id: &ObjectId<ApubPerson>,
+  community_id: &ObjectId<ApubCommunity>,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
@@ -126,7 +128,7 @@ pub(crate) async fn verify_mod_action(
 /// /c/community/moderators. Any different values are unsupported.
 fn verify_add_remove_moderator_target(
   target: &Url,
-  community: &ObjectId<Community>,
+  community: &ObjectId<ApubCommunity>,
 ) -> Result<(), LemmyError> {
   if target != &generate_moderators_url(&community.clone().into())?.into_inner() {
     return Err(anyhow!("Unkown target url").into());

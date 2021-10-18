@@ -1,11 +1,10 @@
-use crate::objects::{comment::Note, post::Page, FromApub};
-use activitystreams::chrono::NaiveDateTime;
-use diesel::PgConnection;
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_db_schema::source::{
-  comment::{Comment, CommentForm},
-  post::{Post, PostForm},
+use crate::objects::{
+  comment::{ApubComment, Note},
+  post::{ApubPost, Page},
 };
+use activitystreams::chrono::NaiveDateTime;
+use lemmy_apub_lib::traits::{ApubObject, FromApub};
+use lemmy_db_schema::source::{comment::CommentForm, post::PostForm};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -13,8 +12,8 @@ use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum PostOrComment {
-  Post(Box<Post>),
-  Comment(Comment),
+  Post(Box<ApubPost>),
+  Comment(ApubComment),
 }
 
 pub enum PostOrCommentForm {
@@ -31,28 +30,33 @@ pub enum PageOrNote {
 
 #[async_trait::async_trait(?Send)]
 impl ApubObject for PostOrComment {
-  type DataType = PgConnection;
+  type DataType = LemmyContext;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
   }
 
   // TODO: this can probably be implemented using a single sql query
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError>
+  async fn read_from_apub_id(
+    object_id: Url,
+    data: &Self::DataType,
+  ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized,
   {
-    let post = Post::read_from_apub_id(conn, object_id.clone())?;
+    let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match post {
       Some(o) => Some(PostOrComment::Post(Box::new(o))),
-      None => Comment::read_from_apub_id(conn, object_id)?.map(PostOrComment::Comment),
+      None => ApubComment::read_from_apub_id(object_id, data)
+        .await?
+        .map(PostOrComment::Comment),
     })
   }
 
-  fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
     match self {
-      PostOrComment::Post(p) => p.delete(data),
-      PostOrComment::Comment(c) => c.delete(data),
+      PostOrComment::Post(p) => p.delete(data).await,
+      PostOrComment::Comment(c) => c.delete(data).await,
     }
   }
 }
@@ -60,6 +64,7 @@ impl ApubObject for PostOrComment {
 #[async_trait::async_trait(?Send)]
 impl FromApub for PostOrComment {
   type ApubType = PageOrNote;
+  type DataType = LemmyContext;
 
   async fn from_apub(
     apub: &PageOrNote,
@@ -72,10 +77,10 @@ impl FromApub for PostOrComment {
   {
     Ok(match apub {
       PageOrNote::Page(p) => PostOrComment::Post(Box::new(
-        Post::from_apub(p, context, expected_domain, request_counter).await?,
+        ApubPost::from_apub(p, context, expected_domain, request_counter).await?,
       )),
       PageOrNote::Note(n) => PostOrComment::Comment(
-        Comment::from_apub(n, context, expected_domain, request_counter).await?,
+        ApubComment::from_apub(n, context, expected_domain, request_counter).await?,
       ),
     })
   }

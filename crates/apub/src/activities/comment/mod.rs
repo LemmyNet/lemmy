@@ -1,15 +1,18 @@
-use crate::fetcher::object_id::ObjectId;
+use crate::{
+  fetcher::object_id::ObjectId,
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+};
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::{blocking, send_local_notifs};
+use lemmy_api_common::blocking;
 use lemmy_apub_lib::{traits::ActorType, webfinger::WebfingerResponse};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  source::{comment::Comment, community::Community, person::Person, post::Post},
+  source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
   DbPool,
 };
@@ -18,14 +21,14 @@ use lemmy_utils::{
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{send::send_local_notifs, LemmyContext};
 use log::debug;
 use url::Url;
 
 pub mod create_or_update;
 
 async fn get_notif_recipients(
-  actor: &ObjectId<Person>,
+  actor: &ObjectId<ApubPerson>,
   comment: &Comment,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -40,16 +43,7 @@ async fn get_notif_recipients(
   // anyway.
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
-  send_local_notifs(
-    mentions,
-    comment.clone(),
-    actor,
-    post,
-    context.pool(),
-    true,
-    &context.settings(),
-  )
-  .await
+  send_local_notifs(mentions, comment, &*actor, &post, true, context).await
 }
 
 pub struct MentionsAndAddresses {
@@ -62,12 +56,12 @@ pub struct MentionsAndAddresses {
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the persons / addresses that go in the cc field.
 pub async fn collect_non_local_mentions(
-  comment: &Comment,
-  community: &Community,
+  comment: &ApubComment,
+  community: &ApubCommunity,
   context: &LemmyContext,
 ) -> Result<MentionsAndAddresses, LemmyError> {
   let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
-  let mut addressed_ccs = vec![community.actor_id(), parent_creator.actor_id()];
+  let mut addressed_ccs: Vec<Url> = vec![community.actor_id(), parent_creator.actor_id()];
   // Note: dont include community inbox here, as we send to it separately with `send_to_community()`
   let mut inboxes = vec![parent_creator.shared_inbox_or_inbox_url()];
 
@@ -84,9 +78,9 @@ pub async fn collect_non_local_mentions(
   for mention in &mentions {
     // TODO should it be fetching it every time?
     if let Ok(actor_id) = fetch_webfinger_url(mention, context).await {
-      let actor_id: ObjectId<Person> = ObjectId::new(actor_id);
+      let actor_id: ObjectId<ApubPerson> = ObjectId::new(actor_id);
       debug!("mention actor_id: {}", actor_id);
-      addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
+      addressed_ccs.push(actor_id.to_string().parse()?);
 
       let mention_person = actor_id.dereference(context, &mut 0).await?;
       inboxes.push(mention_person.shared_inbox_or_inbox_url());
@@ -113,7 +107,7 @@ pub async fn collect_non_local_mentions(
 async fn get_comment_parent_creator(
   pool: &DbPool,
   comment: &Comment,
-) -> Result<Person, LemmyError> {
+) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
     let parent_comment =
       blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
@@ -123,7 +117,11 @@ async fn get_comment_parent_creator(
     let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
     parent_post.creator_id
   };
-  Ok(blocking(pool, move |conn| Person::read(conn, parent_creator_id)).await??)
+  Ok(
+    blocking(pool, move |conn| Person::read(conn, parent_creator_id))
+      .await??
+      .into(),
+  )
 }
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,

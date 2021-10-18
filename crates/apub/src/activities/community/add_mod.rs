@@ -10,6 +10,7 @@ use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::AddType,
@@ -24,10 +25,7 @@ use lemmy_apub_lib::{
   values::PublicUrl,
 };
 use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityModerator, CommunityModeratorForm},
-    person::Person,
-  },
+  source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
 };
 use lemmy_utils::LemmyError;
@@ -38,11 +36,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AddMod {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
-  object: ObjectId<Person>,
+  object: ObjectId<ApubPerson>,
   target: Url,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: AddType,
   id: Url,
@@ -54,9 +52,9 @@ pub struct AddMod {
 
 impl AddMod {
   pub async fn send(
-    community: &Community,
-    added_mod: &Person,
-    actor: &Person,
+    community: &ApubCommunity,
+    added_mod: &ApubPerson,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
@@ -92,7 +90,7 @@ impl ActivityHandler for AddMod {
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_add_remove_moderator_target(&self.target, &self.cc[0])?;
     Ok(())
   }

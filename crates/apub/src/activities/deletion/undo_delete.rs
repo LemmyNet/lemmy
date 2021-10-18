@@ -13,6 +13,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -27,7 +28,7 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
+use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
@@ -40,10 +41,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDelete {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   object: Delete,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -102,8 +103,8 @@ impl ActivityHandler for UndoDelete {
 
 impl UndoDelete {
   pub(in crate::activities::deletion) async fn send(
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     object_id: Url,
     summary: Option<String>,
     context: &LemmyContext,

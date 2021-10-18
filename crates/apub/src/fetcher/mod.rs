@@ -4,13 +4,13 @@ pub mod object_id;
 pub mod post_or_comment;
 pub mod search;
 
-use crate::fetcher::object_id::ObjectId;
+use crate::{
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+};
 use chrono::NaiveDateTime;
 use lemmy_apub_lib::traits::ActorType;
-use lemmy_db_schema::{
-  naive_now,
-  source::{community::Community, person::Person},
-};
+use lemmy_db_schema::naive_now;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -28,13 +28,13 @@ pub(crate) async fn get_or_fetch_and_upsert_actor(
   context: &LemmyContext,
   recursion_counter: &mut i32,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let community_id = ObjectId::<Community>::new(apub_id.clone());
+  let community_id = ObjectId::<ApubCommunity>::new(apub_id.clone());
   let community = community_id.dereference(context, recursion_counter).await;
   let actor: Box<dyn ActorType> = match community {
     Ok(c) => Box::new(c),
     Err(_) => {
       let person_id = ObjectId::new(apub_id);
-      let person: Person = person_id.dereference(context, recursion_counter).await?;
+      let person: ApubPerson = person_id.dereference(context, recursion_counter).await?;
       Box::new(person)
     }
   };

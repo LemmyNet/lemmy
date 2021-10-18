@@ -2,7 +2,7 @@ use crate::{
   activities::{extract_community, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
+  objects::{create_tombstone, person::ApubPerson, ImageObject, Source},
 };
 use activitystreams::{
   base::AnyBase,
@@ -14,10 +14,10 @@ use activitystreams::{
   public,
   unparsed::Unparsed,
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::ActorType,
+  traits::{ActorType, ApubObject, FromApub, ToApub},
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -39,6 +39,7 @@ use lemmy_utils::{
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::ops::Deref;
 use url::Url;
 
 #[skip_serializing_none]
@@ -49,7 +50,7 @@ pub struct Page {
   context: OneOrMany<AnyBase>,
   r#type: PageType,
   id: Url,
-  pub(crate) attributed_to: ObjectId<Person>,
+  pub(crate) attributed_to: ObjectId<ApubPerson>,
   to: [Url; 2],
   name: String,
   content: Option<String>,
@@ -80,7 +81,7 @@ impl Page {
   ///
   /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
   pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
-    let old_post = ObjectId::<Post>::new(self.id.clone())
+    let old_post = ObjectId::<ApubPost>::new(self.id.clone())
       .dereference_local(context)
       .await;
 
@@ -112,9 +113,57 @@ impl Page {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct ApubPost(Post);
+
+impl Deref for ApubPost {
+  type Target = Post;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<Post> for ApubPost {
+  fn from(p: Post) -> Self {
+    ApubPost { 0: p }
+  }
+}
+
 #[async_trait::async_trait(?Send)]
-impl ToApub for Post {
+impl ApubObject for ApubPost {
+  type DataType = LemmyContext;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    Ok(
+      blocking(context.pool(), move |conn| {
+        Post::read_from_apub_id(conn, object_id)
+      })
+      .await??
+      .map(Into::into),
+    )
+  }
+
+  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+    blocking(context.pool(), move |conn| {
+      Post::update_deleted(conn, self.id, true)
+    })
+    .await??;
+    Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ToApub for ApubPost {
   type ApubType = Page;
+  type TombstoneType = Tombstone;
+  type DataType = DbPool;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   async fn to_apub(&self, pool: &DbPool) -> Result<Page, LemmyError> {
@@ -165,15 +214,16 @@ impl ToApub for Post {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for Post {
+impl FromApub for ApubPost {
   type ApubType = Page;
+  type DataType = LemmyContext;
 
   async fn from_apub(
     page: &Page,
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,
-  ) -> Result<Post, LemmyError> {
+  ) -> Result<ApubPost, LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
     let ap_id = if page.is_mod_action(context).await? {
@@ -222,6 +272,7 @@ impl FromApub for Post {
       ap_id,
       local: Some(false),
     };
-    Ok(blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??)
+    let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
+    Ok(post.into())
   }
 }

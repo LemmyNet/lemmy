@@ -5,10 +5,7 @@ use crate::{
   source::person::{Person, PersonForm},
   traits::Crud,
 };
-use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
-use lemmy_apub_lib::traits::{ActorType, ApubObject};
-use lemmy_utils::LemmyError;
 use url::Url;
 
 mod safe_type {
@@ -237,61 +234,29 @@ impl Person {
       .set(person_form)
       .get_result::<Self>(conn)
   }
-}
 
-impl ApubObject for Person {
-  type DataType = PgConnection;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    Some(self.last_refreshed_at)
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
     use crate::schema::person::dsl::*;
     let object_id: DbUrl = object_id.into();
     Ok(
       person
         .filter(deleted.eq(false))
         .filter(actor_id.eq(object_id))
-        .first::<Self>(conn)
-        .ok(),
+        .first::<Person>(conn)
+        .ok()
+        .map(Into::into),
     )
   }
 
-  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
+  pub fn update_deleted(
+    conn: &PgConnection,
+    person_id: PersonId,
+    new_deleted: bool,
+  ) -> Result<Person, Error> {
     use crate::schema::person::dsl::*;
-    diesel::update(person.find(self.id))
-      .set((deleted.eq(true), updated.eq(naive_now())))
-      .get_result::<Self>(conn)?;
-    Ok(())
-  }
-}
-
-impl ActorType for Person {
-  fn is_local(&self) -> bool {
-    self.local
-  }
-  fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into_inner()
-  }
-  fn name(&self) -> String {
-    self.name.clone()
-  }
-
-  fn public_key(&self) -> Option<String> {
-    self.public_key.to_owned()
-  }
-
-  fn private_key(&self) -> Option<String> {
-    self.private_key.to_owned()
-  }
-
-  fn inbox_url(&self) -> Url {
-    self.inbox_url.clone().into()
-  }
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
+    diesel::update(person.find(person_id))
+      .set(deleted.eq(new_deleted))
+      .get_result::<Self>(conn)
   }
 }
 

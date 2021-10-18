@@ -5,43 +5,14 @@ use activitystreams::{
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_apub_lib::values::MediaTypeMarkdown;
-use lemmy_db_schema::DbPool;
 use lemmy_utils::{utils::convert_datetime, LemmyError};
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
-pub(crate) mod comment;
-pub(crate) mod community;
-pub(crate) mod person;
-pub(crate) mod post;
-pub(crate) mod private_message;
-
-/// Trait for converting an object or actor into the respective ActivityPub type.
-#[async_trait::async_trait(?Send)]
-pub(crate) trait ToApub {
-  type ApubType;
-  async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait FromApub {
-  type ApubType;
-  /// Converts an object from ActivityPub type to Lemmy internal type.
-  ///
-  /// * `apub` The object to read from
-  /// * `context` LemmyContext which holds DB pool, HTTP client etc
-  /// * `expected_domain` Domain where the object was received from. None in case of mod action.
-  /// * `mod_action_allowed` True if the object can be a mod activity, ignore `expected_domain` in this case
-  async fn from_apub(
-    apub: &Self::ApubType,
-    context: &LemmyContext,
-    expected_domain: &Url,
-    request_counter: &mut i32,
-  ) -> Result<Self, LemmyError>
-  where
-    Self: Sized;
-}
+pub mod comment;
+pub mod community;
+pub mod person;
+pub mod post;
+pub mod private_message;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]

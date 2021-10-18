@@ -8,6 +8,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
   PostOrComment,
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
@@ -18,11 +19,7 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{community::Community, person::Person},
-  traits::Crud,
-};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -60,10 +57,10 @@ impl From<&VoteType> for i16 {
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   pub(in crate::activities::voting) object: ObjectId<PostOrComment>,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   pub(in crate::activities::voting) kind: VoteType,
   id: Url,
@@ -76,8 +73,8 @@ pub struct Vote {
 impl Vote {
   pub(in crate::activities::voting) fn new(
     object: &PostOrComment,
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<Vote, LemmyError> {
@@ -95,7 +92,7 @@ impl Vote {
 
   pub async fn send(
     object: &PostOrComment,
-    actor: &Person,
+    actor: &ApubPerson,
     community_id: CommunityId,
     kind: VoteType,
     context: &LemmyContext,
@@ -103,7 +100,8 @@ impl Vote {
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
     let vote = Vote::new(object, actor, &community, kind, context)?;
     let vote_id = vote.id.clone();
 

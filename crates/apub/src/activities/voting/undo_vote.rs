@@ -12,6 +12,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
   PostOrComment,
 };
 use activitystreams::{
@@ -27,11 +28,7 @@ use lemmy_apub_lib::{
   values::PublicUrl,
   verify::verify_urls_match,
 };
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{community::Community, person::Person},
-  traits::Crud,
-};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -41,10 +38,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoVote {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   object: Vote,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -57,15 +54,16 @@ pub struct UndoVote {
 impl UndoVote {
   pub async fn send(
     object: &PostOrComment,
-    actor: &Person,
+    actor: &ApubPerson,
     community_id: CommunityId,
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = blocking(context.pool(), move |conn| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
 
     let object = Vote::new(object, actor, &community, kind.clone(), context)?;
     let id = generate_activity_id(

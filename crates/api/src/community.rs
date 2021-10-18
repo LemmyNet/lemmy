@@ -9,14 +9,17 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   is_mod_or_admin,
 };
-use lemmy_apub::activities::{
-  community::{
-    add_mod::AddMod,
-    block_user::BlockUserFromCommunity,
-    remove_mod::RemoveMod,
-    undo_block_user::UndoBlockUserFromCommunity,
+use lemmy_apub::{
+  activities::{
+    community::{
+      add_mod::AddMod,
+      block_user::BlockUserFromCommunity,
+      remove_mod::RemoveMod,
+      undo_block_user::UndoBlockUserFromCommunity,
+    },
+    following::{follow::FollowCommunity as FollowCommunityApub, undo::UndoFollowCommunity},
   },
-  following::{follow::FollowCommunity as FollowCommunityApub, undo::UndoFollowCommunity},
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use lemmy_db_schema::{
   source::{
@@ -68,10 +71,11 @@ impl Perform for FollowCommunity {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let community_id = data.community_id;
-    let community = blocking(context.pool(), move |conn| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
@@ -97,9 +101,11 @@ impl Perform for FollowCommunity {
     } else if data.follow {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
-      FollowCommunityApub::send(&local_user_view.person, &community, context).await?;
+      FollowCommunityApub::send(&local_user_view.person.clone().into(), &community, context)
+        .await?;
     } else {
-      UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
+      UndoFollowCommunity::send(&local_user_view.person.clone().into(), &community, context)
+        .await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       blocking(context.pool(), unfollow)
         .await?
@@ -165,7 +171,7 @@ impl Perform for BlockCommunity {
         Community::read(conn, community_id)
       })
       .await??;
-      UndoFollowCommunity::send(&local_user_view.person, &community, context).await?;
+      UndoFollowCommunity::send(&local_user_view.person.into(), &community.into(), context).await?;
     } else {
       let unblock = move |conn: &'_ _| CommunityBlock::unblock(conn, &community_block_form);
       blocking(context.pool(), unblock)
@@ -209,14 +215,16 @@ impl Perform for BanFromCommunity {
       person_id: data.person_id,
     };
 
-    let community = blocking(context.pool(), move |conn: &'_ _| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn: &'_ _| {
       Community::read(conn, community_id)
     })
-    .await??;
-    let banned_person = blocking(context.pool(), move |conn: &'_ _| {
+    .await??
+    .into();
+    let banned_person: ApubPerson = blocking(context.pool(), move |conn: &'_ _| {
       Person::read(conn, banned_person_id)
     })
-    .await??;
+    .await??
+    .into();
 
     if data.ban {
       let ban = move |conn: &'_ _| CommunityPersonBan::ban(conn, &community_user_ban_form);
@@ -236,8 +244,13 @@ impl Perform for BanFromCommunity {
       .await?
       .ok();
 
-      BlockUserFromCommunity::send(&community, &banned_person, &local_user_view.person, context)
-        .await?;
+      BlockUserFromCommunity::send(
+        &community,
+        &banned_person,
+        &local_user_view.person.clone().into(),
+        context,
+      )
+      .await?;
     } else {
       let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
       blocking(context.pool(), unban)
@@ -246,7 +259,7 @@ impl Perform for BanFromCommunity {
       UndoBlockUserFromCommunity::send(
         &community,
         &banned_person,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         context,
       )
       .await?;
@@ -368,18 +381,32 @@ impl Perform for AddModToCommunity {
 
     // Send to federated instances
     let updated_mod_id = data.person_id;
-    let updated_mod = blocking(context.pool(), move |conn| {
+    let updated_mod: ApubPerson = blocking(context.pool(), move |conn| {
       Person::read(conn, updated_mod_id)
     })
-    .await??;
-    let community = blocking(context.pool(), move |conn| {
+    .await??
+    .into();
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
     if data.added {
-      AddMod::send(&community, &updated_mod, &local_user_view.person, context).await?;
+      AddMod::send(
+        &community,
+        &updated_mod,
+        &local_user_view.person.into(),
+        context,
+      )
+      .await?;
     } else {
-      RemoveMod::send(&community, &updated_mod, &local_user_view.person, context).await?;
+      RemoveMod::send(
+        &community,
+        &updated_mod,
+        &local_user_view.person.into(),
+        context,
+      )
+      .await?;
     }
 
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get

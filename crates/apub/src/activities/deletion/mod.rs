@@ -5,14 +5,14 @@ use crate::{
     verify_person_in_community,
   },
   fetcher::object_id::ObjectId,
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
 };
-use diesel::PgConnection;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::{ActivityFields, ActorType, ApubObject},
   verify::verify_domains_match,
 };
-use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
+use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
@@ -25,8 +25,8 @@ pub mod delete;
 pub mod undo_delete;
 
 pub async fn send_apub_delete(
-  actor: &Person,
-  community: &Community,
+  actor: &ApubPerson,
+  community: &ApubCommunity,
   object_id: Url,
   deleted: bool,
   context: &LemmyContext,
@@ -41,8 +41,8 @@ pub async fn send_apub_delete(
 // TODO: remove reason is actually optional in lemmy. we set an empty string in that case, but its
 //       ugly
 pub async fn send_apub_remove(
-  actor: &Person,
-  community: &Community,
+  actor: &ApubPerson,
+  community: &ApubCommunity,
   object_id: Url,
   reason: String,
   removed: bool,
@@ -56,9 +56,9 @@ pub async fn send_apub_remove(
 }
 
 pub enum DeletableObjects {
-  Community(Box<Community>),
-  Comment(Box<Comment>),
-  Post(Box<Post>),
+  Community(Box<ApubCommunity>),
+  Comment(Box<ApubComment>),
+  Post(Box<ApubPost>),
 }
 
 impl DeletableObjects {
@@ -66,39 +66,23 @@ impl DeletableObjects {
     ap_id: &Url,
     context: &LemmyContext,
   ) -> Result<DeletableObjects, LemmyError> {
-    if let Some(c) =
-      DeletableObjects::read_type_from_db::<Community>(ap_id.clone(), context).await?
-    {
+    if let Some(c) = ApubCommunity::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Community(Box::new(c)));
     }
-    if let Some(p) = DeletableObjects::read_type_from_db::<Post>(ap_id.clone(), context).await? {
+    if let Some(p) = ApubPost::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Post(Box::new(p)));
     }
-    if let Some(c) = DeletableObjects::read_type_from_db::<Comment>(ap_id.clone(), context).await? {
+    if let Some(c) = ApubComment::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Comment(Box::new(c)));
     }
     Err(diesel::NotFound.into())
-  }
-
-  // TODO: a method like this should be provided by fetcher module
-  async fn read_type_from_db<Type>(
-    ap_id: Url,
-    context: &LemmyContext,
-  ) -> Result<Option<Type>, LemmyError>
-  where
-    Type: ApubObject<DataType = PgConnection> + Send + 'static,
-  {
-    blocking(context.pool(), move |conn| {
-      Type::read_from_apub_id(conn, ap_id)
-    })
-    .await?
   }
 }
 
 pub(in crate::activities) async fn verify_delete_activity(
   object: &Url,
   activity: &dyn ActivityFields,
-  community_id: &ObjectId<Community>,
+  community_id: &ObjectId<ApubCommunity>,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -115,7 +99,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       // community deletion is always a mod (or admin) action
       verify_mod_action(
         &actor,
-        ObjectId::new(c.actor_id()),
+        &ObjectId::new(c.actor_id()),
         context,
         request_counter,
       )
@@ -124,7 +108,7 @@ pub(in crate::activities) async fn verify_delete_activity(
     DeletableObjects::Post(p) => {
       verify_delete_activity_post_or_comment(
         activity,
-        &p.ap_id.into(),
+        &p.ap_id.clone().into(),
         community_id,
         is_mod_action,
         context,
@@ -135,7 +119,7 @@ pub(in crate::activities) async fn verify_delete_activity(
     DeletableObjects::Comment(c) => {
       verify_delete_activity_post_or_comment(
         activity,
-        &c.ap_id.into(),
+        &c.ap_id.clone().into(),
         community_id,
         is_mod_action,
         context,
@@ -150,7 +134,7 @@ pub(in crate::activities) async fn verify_delete_activity(
 async fn verify_delete_activity_post_or_comment(
   activity: &dyn ActivityFields,
   object_id: &Url,
-  community_id: &ObjectId<Community>,
+  community_id: &ObjectId<ApubCommunity>,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -158,7 +142,7 @@ async fn verify_delete_activity_post_or_comment(
   let actor = ObjectId::new(activity.actor().clone());
   verify_person_in_community(&actor, community_id, context, request_counter).await?;
   if is_mod_action {
-    verify_mod_action(&actor, community_id.clone(), context, request_counter).await?;
+    verify_mod_action(&actor, community_id, context, request_counter).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(activity.actor(), object_id)?;
@@ -177,7 +161,7 @@ struct WebsocketMessages {
 ///       because of the mod log
 async fn receive_delete_action(
   object: &Url,
-  actor: &ObjectId<Person>,
+  actor: &ObjectId<ApubPerson>,
   ws_messages: WebsocketMessages,
   deleted: bool,
   context: &LemmyContext,

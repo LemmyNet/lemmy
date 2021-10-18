@@ -13,10 +13,7 @@ use crate::{
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
 };
-use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_utils::LemmyError;
 use url::Url;
 
 impl Crud for Post {
@@ -164,6 +161,17 @@ impl Post {
       .set(post_form)
       .get_result::<Self>(conn)
   }
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::post::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      post
+        .filter(ap_id.eq(object_id))
+        .first::<Post>(conn)
+        .ok()
+        .map(Into::into),
+    )
+  }
 }
 
 impl Likeable for PostLike {
@@ -245,28 +253,6 @@ impl DeleteableOrRemoveable for Post {
     self.thumbnail_url = None;
 
     self
-  }
-}
-
-impl ApubObject for Post {
-  type DataType = PgConnection;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
-    use crate::schema::post::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(post.filter(ap_id.eq(object_id)).first::<Self>(conn).ok())
-  }
-
-  fn delete(self, conn: &PgConnection) -> Result<(), LemmyError> {
-    use crate::schema::post::dsl::*;
-    diesel::update(post.find(self.id))
-      .set((deleted.eq(true), updated.eq(naive_now())))
-      .get_result::<Self>(conn)?;
-    Ok(())
   }
 }
 

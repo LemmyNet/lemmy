@@ -88,8 +88,8 @@ impl Perform for CreatePostReport {
 
     Report::send(
       ObjectId::new(post_view.post.ap_id),
-      &local_user_view.person,
-      post_view.community.id,
+      &local_user_view.person.into(),
+      ObjectId::new(post_view.community.actor_id),
       reason.to_string(),
       context,
     )
