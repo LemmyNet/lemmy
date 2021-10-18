@@ -8,7 +8,10 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{community::Group, ToApub},
+  objects::{
+    community::{ApubCommunity, Group},
+    person::ApubPerson,
+  },
 };
 use activitystreams::{
   activity::kind::UpdateType,
@@ -19,14 +22,11 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityFields, ActivityHandler, ActorType, ToApub},
   values::PublicUrl,
 };
 use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityForm},
-    person::Person,
-  },
+  source::community::{Community, CommunityForm},
   traits::Crud,
 };
 use lemmy_utils::LemmyError;
@@ -39,11 +39,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: UpdateType,
   id: Url,
@@ -55,8 +55,8 @@ pub struct UpdateCommunity {
 
 impl UpdateCommunity {
   pub async fn send(
-    community: &Community,
-    actor: &Person,
+    community: &ApubCommunity,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
@@ -89,7 +89,7 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }
 

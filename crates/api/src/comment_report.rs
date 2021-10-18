@@ -79,8 +79,8 @@ impl Perform for CreateCommentReport {
 
     Report::send(
       ObjectId::new(comment_view.comment.ap_id),
-      &local_user_view.person,
-      comment_view.community.id,
+      &local_user_view.person.into(),
+      ObjectId::new(comment_view.community.actor_id),
       reason.to_string(),
       context,
     )

@@ -14,7 +14,7 @@ use crate::{
     payload_to_string,
     receive_activity,
   },
-  objects::ToApub,
+  objects::community::ApubCommunity,
 };
 use activitystreams::{
   base::{AnyBase, BaseExt},
@@ -23,7 +23,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ToApub};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
@@ -44,10 +44,11 @@ pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
+  let community: ApubCommunity = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
-  .await??;
+  .await??
+  .into();
 
   if !community.deleted {
     let apub = community.to_apub(context.pool()).await?;
@@ -173,10 +174,11 @@ pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
+  let community: ApubCommunity = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
-  .await??;
+  .await??
+  .into();
 
   // The attributed to, is an ordered vector with the creator actor_ids first,
   // then the rest of the moderators

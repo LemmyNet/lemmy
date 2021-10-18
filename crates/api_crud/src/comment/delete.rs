@@ -6,7 +6,6 @@ use lemmy_api_common::{
   comment::*,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
-  send_local_notifs,
 };
 use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
 use lemmy_db_schema::{
@@ -20,7 +19,11 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_comment_ws_message, send_local_notifs},
+  LemmyContext,
+  UserOperationCrud,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteComment {
@@ -67,8 +70,8 @@ impl PerformCrud for DeleteComment {
     })
     .await??;
     send_apub_delete(
-      &local_user_view.person,
-      &community,
+      &local_user_view.person.clone().into(),
+      &community.clone().into(),
       updated_comment.ap_id.clone().into(),
       deleted,
       context,
@@ -79,12 +82,11 @@ impl PerformCrud for DeleteComment {
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     let recipient_ids = send_local_notifs(
       vec![],
-      updated_comment,
-      local_user_view.person.clone(),
-      post,
-      context.pool(),
+      &updated_comment,
+      &local_user_view.person,
+      &post,
       false,
-      &context.settings(),
+      context,
     )
     .await?;
 
@@ -161,8 +163,8 @@ impl PerformCrud for RemoveComment {
     })
     .await??;
     send_apub_remove(
-      &local_user_view.person,
-      &community,
+      &local_user_view.person.clone().into(),
+      &community.into(),
       updated_comment.ap_id.clone().into(),
       data.reason.clone().unwrap_or_else(|| "".to_string()),
       removed,
@@ -174,12 +176,11 @@ impl PerformCrud for RemoveComment {
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     let recipient_ids = send_local_notifs(
       vec![],
-      updated_comment,
-      local_user_view.person.clone(),
-      post,
-      context.pool(),
+      &updated_comment,
+      &local_user_view.person.clone(),
+      &post,
       false,
-      &context.settings(),
+      context,
     )
     .await?;
 

@@ -51,14 +51,20 @@ impl PerformCrud for DeletePrivateMessage {
     // Send the apub update
     if data.deleted {
       DeletePrivateMessageApub::send(
-        &local_user_view.person,
-        &updated_private_message.blank_out_deleted_or_removed_info(),
+        &local_user_view.person.into(),
+        &updated_private_message
+          .blank_out_deleted_or_removed_info()
+          .into(),
         context,
       )
       .await?;
     } else {
-      UndoDeletePrivateMessage::send(&local_user_view.person, &updated_private_message, context)
-        .await?;
+      UndoDeletePrivateMessage::send(
+        &local_user_view.person.into(),
+        &updated_private_message.into(),
+        context,
+      )
+      .await?;
     }
 
     let op = UserOperationCrud::DeletePrivateMessage;

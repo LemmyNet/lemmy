@@ -49,8 +49,8 @@ impl PerformCrud for DeleteCommunity {
 
     // Send apub messages
     send_apub_delete(
-      &local_user_view.person,
-      &updated_community,
+      &local_user_view.person.clone().into(),
+      &updated_community.clone().into(),
       updated_community.actor_id.clone().into(),
       deleted,
       context,
@@ -109,8 +109,8 @@ impl PerformCrud for RemoveCommunity {
 
     // Apub messages
     send_apub_remove(
-      &local_user_view.person,
-      &updated_community,
+      &local_user_view.person.clone().into(),
+      &updated_community.clone().into(),
       updated_community.actor_id.clone().into(),
       data.reason.clone().unwrap_or_else(|| "".to_string()),
       removed,

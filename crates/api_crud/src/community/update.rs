@@ -71,7 +71,12 @@ impl PerformCrud for EditCommunity {
     .await?
     .map_err(|e| ApiError::err("couldnt_update_community", e))?;
 
-    UpdateCommunity::send(&updated_community, &local_user_view.person, context).await?;
+    UpdateCommunity::send(
+      &updated_community.into(),
+      &local_user_view.person.into(),
+      context,
+    )
+    .await?;
 
     let op = UserOperationCrud::EditCommunity;
     send_community_ws_message(data.community_id, op, websocket_id, None, context).await

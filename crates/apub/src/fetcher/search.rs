@@ -1,18 +1,22 @@
 use crate::{
   fetcher::object_id::ObjectId,
-  objects::{comment::Note, community::Group, person::Person as ApubPerson, post::Page, FromApub},
+  objects::{
+    comment::{ApubComment, Note},
+    community::{ApubCommunity, Group},
+    person::{ApubPerson, Person},
+    post::{ApubPost, Page},
+  },
 };
 use activitystreams::chrono::NaiveDateTime;
 use anyhow::anyhow;
-use diesel::PgConnection;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::ApubObject,
+  traits::{ApubObject, FromApub},
   webfinger::{webfinger_resolve_actor, WebfingerType},
 };
 use lemmy_db_schema::{
-  source::{comment::Comment, community::Community, person::Person, post::Post},
+  source::{community::Community, person::Person as DbPerson},
   DbPool,
 };
 use lemmy_utils::LemmyError;
@@ -73,10 +77,14 @@ async fn find_local_actor_by_name(
   let name: String = name.into();
   Ok(match kind {
     WebfingerType::Group => SearchableObjects::Community(
-      blocking(pool, move |conn| Community::read_from_name(conn, &name)).await??,
+      blocking(pool, move |conn| Community::read_from_name(conn, &name))
+        .await??
+        .into(),
     ),
     WebfingerType::Person => SearchableObjects::Person(
-      blocking(pool, move |conn| Person::find_by_name(conn, &name)).await??,
+      blocking(pool, move |conn| DbPerson::find_by_name(conn, &name))
+        .await??
+        .into(),
     ),
   })
 }
@@ -84,23 +92,24 @@ async fn find_local_actor_by_name(
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[derive(Debug)]
 pub enum SearchableObjects {
-  Person(Person),
-  Community(Community),
-  Post(Post),
-  Comment(Comment),
+  Person(ApubPerson),
+  Community(ApubCommunity),
+  Post(ApubPost),
+  Comment(ApubComment),
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum SearchableApubTypes {
   Group(Group),
-  Person(ApubPerson),
+  Person(Person),
   Page(Page),
   Note(Note),
 }
 
+#[async_trait::async_trait(?Send)]
 impl ApubObject for SearchableObjects {
-  type DataType = PgConnection;
+  type DataType = LemmyContext;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     match self {
@@ -116,32 +125,35 @@ impl ApubObject for SearchableObjects {
   //       a single query.
   //       we could skip this and always return an error, but then it would always fetch objects
   //       over http, and not be able to mark objects as deleted that were deleted by remote server.
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, LemmyError> {
-    let c = Community::read_from_apub_id(conn, object_id.clone())?;
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    let c = ApubCommunity::read_from_apub_id(object_id.clone(), context).await?;
     if let Some(c) = c {
       return Ok(Some(SearchableObjects::Community(c)));
     }
-    let p = Person::read_from_apub_id(conn, object_id.clone())?;
+    let p = ApubPerson::read_from_apub_id(object_id.clone(), context).await?;
     if let Some(p) = p {
       return Ok(Some(SearchableObjects::Person(p)));
     }
-    let p = Post::read_from_apub_id(conn, object_id.clone())?;
+    let p = ApubPost::read_from_apub_id(object_id.clone(), context).await?;
     if let Some(p) = p {
       return Ok(Some(SearchableObjects::Post(p)));
     }
-    let c = Comment::read_from_apub_id(conn, object_id)?;
+    let c = ApubComment::read_from_apub_id(object_id, context).await?;
     if let Some(c) = c {
       return Ok(Some(SearchableObjects::Comment(c)));
     }
     Ok(None)
   }
 
-  fn delete(self, conn: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
     match self {
-      SearchableObjects::Person(p) => p.delete(conn),
-      SearchableObjects::Community(c) => c.delete(conn),
-      SearchableObjects::Post(p) => p.delete(conn),
-      SearchableObjects::Comment(c) => c.delete(conn),
+      SearchableObjects::Person(p) => p.delete(data).await,
+      SearchableObjects::Community(c) => c.delete(data).await,
+      SearchableObjects::Post(p) => p.delete(data).await,
+      SearchableObjects::Comment(c) => c.delete(data).await,
     }
   }
 }
@@ -149,6 +161,7 @@ impl ApubObject for SearchableObjects {
 #[async_trait::async_trait(?Send)]
 impl FromApub for SearchableObjects {
   type ApubType = SearchableApubTypes;
+  type DataType = LemmyContext;
 
   async fn from_apub(
     apub: &Self::ApubType,
@@ -159,10 +172,10 @@ impl FromApub for SearchableObjects {
     use SearchableApubTypes as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Group(g) => SO::Community(Community::from_apub(g, context, ed, rc).await?),
-      SAT::Person(p) => SO::Person(Person::from_apub(p, context, ed, rc).await?),
-      SAT::Page(p) => SO::Post(Post::from_apub(p, context, ed, rc).await?),
-      SAT::Note(n) => SO::Comment(Comment::from_apub(n, context, ed, rc).await?),
+      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, ed, rc).await?),
+      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, ed, rc).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, ed, rc).await?),
+      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, ed, rc).await?),
     })
   }
 }

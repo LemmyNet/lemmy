@@ -27,17 +27,21 @@ pub trait ActivityHandler {
   ) -> Result<(), LemmyError>;
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait ApubObject {
   type DataType;
   /// If this object should be refetched after a certain interval, it should return the last refresh
   /// time here. This is mainly used to update remote actors.
   fn last_refreshed_at(&self) -> Option<NaiveDateTime>;
   /// Try to read the object with given ID from local database. Returns Ok(None) if it doesn't exist.
-  fn read_from_apub_id(data: &Self::DataType, object_id: Url) -> Result<Option<Self>, LemmyError>
+  async fn read_from_apub_id(
+    object_id: Url,
+    data: &Self::DataType,
+  ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized;
   /// Marks the object as deleted in local db. Called when a tombstone is received.
-  fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
+  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
 }
 
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
@@ -66,4 +70,36 @@ pub trait ActorType {
       public_key_pem: self.public_key().context(location_info!())?,
     })
   }
+}
+
+/// Trait for converting an object or actor into the respective ActivityPub type.
+#[async_trait::async_trait(?Send)]
+pub trait ToApub {
+  type ApubType;
+  type TombstoneType;
+  type DataType;
+
+  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
+  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError>;
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait FromApub {
+  type ApubType;
+  type DataType;
+
+  /// Converts an object from ActivityPub type to Lemmy internal type.
+  ///
+  /// * `apub` The object to read from
+  /// * `context` LemmyContext which holds DB pool, HTTP client etc
+  /// * `expected_domain` Domain where the object was received from. None in case of mod action.
+  /// * `mod_action_allowed` True if the object can be a mod activity, ignore `expected_domain` in this case
+  async fn from_apub(
+    apub: &Self::ApubType,
+    data: &Self::DataType,
+    expected_domain: &Url,
+    request_counter: &mut i32,
+  ) -> Result<Self, LemmyError>
+  where
+    Self: Sized;
 }

@@ -104,8 +104,8 @@ impl PerformCrud for EditPost {
 
     // Send apub update
     CreateOrUpdatePost::send(
-      &updated_post,
-      &local_user_view.person,
+      &updated_post.into(),
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
     )

@@ -12,6 +12,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::DeleteType,
@@ -38,7 +39,6 @@ use lemmy_db_schema::{
       ModRemovePost,
       ModRemovePostForm,
     },
-    person::Person,
     post::Post,
   },
   traits::Crud,
@@ -65,10 +65,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   pub(in crate::activities::deletion) object: Url,
-  pub(in crate::activities::deletion) cc: [ObjectId<Community>; 1],
+  pub(in crate::activities::deletion) cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
@@ -136,8 +136,8 @@ impl ActivityHandler for Delete {
 
 impl Delete {
   pub(in crate::activities::deletion) fn new(
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     object_id: Url,
     summary: Option<String>,
     context: &LemmyContext,
@@ -158,8 +158,8 @@ impl Delete {
     })
   }
   pub(in crate::activities::deletion) async fn send(
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     object_id: Url,
     summary: Option<String>,
     context: &LemmyContext,
@@ -173,7 +173,7 @@ impl Delete {
 }
 
 pub(in crate::activities) async fn receive_remove_action(
-  actor: &ObjectId<Person>,
+  actor: &ObjectId<ApubPerson>,
   object: &Url,
   reason: Option<String>,
   context: &LemmyContext,

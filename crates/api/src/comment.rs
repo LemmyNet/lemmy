@@ -191,7 +191,7 @@ impl Perform for CreateCommentLike {
 
     // Only add the like if the score isnt 0
     let comment = orig_comment.comment;
-    let object = PostOrComment::Comment(comment);
+    let object = PostOrComment::Comment(comment.into());
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
@@ -202,7 +202,7 @@ impl Perform for CreateCommentLike {
 
       Vote::send(
         &object,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         orig_comment.community.id,
         like_form.score.try_into()?,
         context,
@@ -212,7 +212,7 @@ impl Perform for CreateCommentLike {
       // API doesn't distinguish between Undo/Like and Undo/Dislike
       UndoVote::send(
         &object,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         orig_comment.community.id,
         VoteType::Like,
         context,

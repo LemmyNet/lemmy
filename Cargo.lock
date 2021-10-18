@@ -1839,7 +1839,6 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_migrations",
  "lazy_static",
- "lemmy_apub_lib",
  "lemmy_utils",
  "log",
  "regex",

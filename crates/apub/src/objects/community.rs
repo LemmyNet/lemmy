@@ -4,12 +4,13 @@ use crate::{
   fetcher::community::{fetch_community_outbox, update_community_mods},
   generate_moderators_url,
   generate_outbox_url,
-  objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
+  objects::{create_tombstone, ImageObject, Source},
   CommunityType,
 };
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
   base::AnyBase,
+  chrono::NaiveDateTime,
   object::{kind::ImageType, Tombstone},
   primitives::OneOrMany,
   unparsed::Unparsed,
@@ -19,7 +20,7 @@ use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
-  traits::ActorType,
+  traits::{ActorType, ApubObject, FromApub, ToApub},
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -37,6 +38,7 @@ use lemmy_utils::{
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::ops::Deref;
 use url::Url;
 
 #[skip_serializing_none]
@@ -117,9 +119,83 @@ impl Group {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct ApubCommunity(Community);
+
+impl Deref for ApubCommunity {
+  type Target = Community;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<Community> for ApubCommunity {
+  fn from(c: Community) -> Self {
+    ApubCommunity { 0: c }
+  }
+}
+
 #[async_trait::async_trait(?Send)]
-impl ToApub for Community {
+impl ApubObject for ApubCommunity {
+  type DataType = LemmyContext;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    Ok(
+      blocking(context.pool(), move |conn| {
+        Community::read_from_apub_id(conn, object_id)
+      })
+      .await??
+      .map(Into::into),
+    )
+  }
+
+  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+    blocking(context.pool(), move |conn| {
+      Community::update_deleted(conn, self.id, true)
+    })
+    .await??;
+    Ok(())
+  }
+}
+
+impl ActorType for ApubCommunity {
+  fn is_local(&self) -> bool {
+    self.local
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into()
+  }
+  fn name(&self) -> String {
+    self.name.clone()
+  }
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
+  }
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
+
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into_inner())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ToApub for ApubCommunity {
   type ApubType = Group;
+  type TombstoneType = Tombstone;
+  type DataType = DbPool;
 
   async fn to_apub(&self, _pool: &DbPool) -> Result<Group, LemmyError> {
     let source = self.description.clone().map(|bio| Source {
@@ -174,8 +250,9 @@ impl ToApub for Community {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for Community {
+impl FromApub for ApubCommunity {
   type ApubType = Group;
+  type DataType = LemmyContext;
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_apub(
@@ -183,7 +260,7 @@ impl FromApub for Community {
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,
-  ) -> Result<Community, LemmyError> {
+  ) -> Result<ApubCommunity, LemmyError> {
     let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
 
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
@@ -192,7 +269,7 @@ impl FromApub for Community {
     // TODO: doing this unconditionally might cause infinite loop for some reason
     fetch_community_outbox(context, &group.outbox, request_counter).await?;
 
-    Ok(community)
+    Ok(community.into())
   }
 }
 
