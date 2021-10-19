@@ -304,3 +304,26 @@ impl CommunityType for Community {
     Ok(inboxes)
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_community() {
+    let json = file_to_json_object("assets/lemmy-community.json");
+    let url = Url::parse("https://lemmy.ml/c/meta").unwrap();
+    let community = ApubCommunity::from_apub(&json, &init_context(), &url, &mut 0)
+      .await
+      .unwrap();
+
+    assert_eq!(community.actor_id.clone().into_inner(), url);
+    assert_eq!(community.title, "lemmy.ml meta");
+    assert!(community.public_key.is_some());
+    assert!(!community.local);
+    assert_eq!(community.description.as_ref().unwrap().len(), 158);
+  }
+}

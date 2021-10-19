@@ -2,18 +2,18 @@
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     {
-      "moderators": "as:moderators",
-      "sensitive": "as:sensitive",
-      "pt": "https://join-lemmy.org#",
       "sc": "http://schema.org#",
-      "stickied": "as:stickied",
-      "matrixUserId": {
-        "type": "sc:Text",
-        "id": "as:alsoKnownAs"
-      },
+      "pt": "https://join-lemmy.org#",
       "comments_enabled": {
         "type": "sc:Boolean",
         "id": "pt:commentsEnabled"
+      },
+      "stickied": "as:stickied",
+      "sensitive": "as:sensitive",
+      "moderators": "as:moderators",
+      "matrixUserId": {
+        "type": "sc:Text",
+        "id": "as:alsoKnownAs"
       }
     },
     "https://w3id.org/security/v1"

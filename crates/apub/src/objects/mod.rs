@@ -112,7 +112,7 @@ mod tests {
     }
     let chat_server = ChatServer::startup(
       pool.clone(),
-      rate_limiter.clone(),
+      rate_limiter,
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),
       client.clone(),
