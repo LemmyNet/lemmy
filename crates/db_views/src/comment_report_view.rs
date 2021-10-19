@@ -31,9 +31,9 @@ use lemmy_db_schema::{
   CommunityId,
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct CommentReportView {
   pub comment_report: CommentReport,
   pub comment: Comment,

@@ -3,10 +3,12 @@ use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_utils::LemmyError;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[table_name = "private_message"]
 pub struct PrivateMessage {
   pub id: PrivateMessageId,

@@ -36,9 +36,9 @@ use lemmy_db_schema::{
   PostId,
 };
 use log::debug;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PostView {
   pub post: Post,
   pub creator: PersonSafe,

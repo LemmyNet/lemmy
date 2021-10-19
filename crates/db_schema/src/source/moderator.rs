@@ -16,9 +16,9 @@ use crate::{
   PersonId,
   PostId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_remove_post"]
 pub struct ModRemovePost {
   pub id: i32,
@@ -38,7 +38,7 @@ pub struct ModRemovePostForm {
   pub removed: Option<bool>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_lock_post"]
 pub struct ModLockPost {
   pub id: i32,
@@ -56,7 +56,7 @@ pub struct ModLockPostForm {
   pub locked: Option<bool>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_sticky_post"]
 pub struct ModStickyPost {
   pub id: i32,
@@ -74,7 +74,7 @@ pub struct ModStickyPostForm {
   pub stickied: Option<bool>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_remove_comment"]
 pub struct ModRemoveComment {
   pub id: i32,
@@ -94,7 +94,7 @@ pub struct ModRemoveCommentForm {
   pub removed: Option<bool>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_remove_community"]
 pub struct ModRemoveCommunity {
   pub id: i32,
@@ -116,7 +116,7 @@ pub struct ModRemoveCommunityForm {
   pub expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_ban_from_community"]
 pub struct ModBanFromCommunity {
   pub id: i32,
@@ -140,7 +140,7 @@ pub struct ModBanFromCommunityForm {
   pub expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_ban"]
 pub struct ModBan {
   pub id: i32,
@@ -162,7 +162,7 @@ pub struct ModBanForm {
   pub expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_add_community"]
 pub struct ModAddCommunity {
   pub id: i32,
@@ -182,7 +182,7 @@ pub struct ModAddCommunityForm {
   pub removed: Option<bool>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_transfer_community"]
 pub struct ModTransferCommunity {
   pub id: i32,
@@ -202,7 +202,7 @@ pub struct ModTransferCommunityForm {
   pub removed: Option<bool>,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_add"]
 pub struct ModAdd {
   pub id: i32,

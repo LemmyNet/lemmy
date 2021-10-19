@@ -10,7 +10,7 @@ use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_utils::LemmyError;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 // WITH RECURSIVE MyTree AS (
@@ -20,7 +20,9 @@ use url::Url;
 // )
 // SELECT * FROM MyTree;
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[belongs_to(Post)]
 #[table_name = "comment"]
 pub struct Comment {
@@ -38,7 +40,9 @@ pub struct Comment {
   pub local: bool,
 }
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[belongs_to(Post)]
 #[table_name = "comment_alias_1"]
 pub struct CommentAlias1 {

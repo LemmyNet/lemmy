@@ -7,10 +7,10 @@ use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_utils::LemmyError;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "person"]
 pub struct Person {
   pub id: PersonId,
@@ -36,7 +36,7 @@ pub struct Person {
 }
 
 /// A safe representation of person, without the sensitive info
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "person"]
 pub struct PersonSafe {
   pub id: PersonId,
@@ -58,7 +58,7 @@ pub struct PersonSafe {
   pub bot_account: bool,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "person_alias_1"]
 pub struct PersonAlias1 {
   pub id: PersonId,
@@ -83,7 +83,7 @@ pub struct PersonAlias1 {
   pub bot_account: bool,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "person_alias_1"]
 pub struct PersonSafeAlias1 {
   pub id: PersonId,
@@ -105,7 +105,7 @@ pub struct PersonSafeAlias1 {
   pub bot_account: bool,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "person_alias_2"]
 pub struct PersonAlias2 {
   pub id: PersonId,
@@ -130,7 +130,7 @@ pub struct PersonAlias2 {
   pub bot_account: bool,
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "person_alias_1"]
 pub struct PersonSafeAlias2 {
   pub id: PersonId,

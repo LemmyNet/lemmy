@@ -1,7 +1,7 @@
 use crate::{schema::site, DbUrl, PersonId};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize, Deserialize)]
 #[table_name = "site"]
 pub struct Site {
   pub id: i32,

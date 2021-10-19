@@ -1,8 +1,10 @@
 use diesel::{result::Error, *};
 use lemmy_db_schema::{schema::person_aggregates, PersonId};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]
+#[derive(
+  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
+)]
 #[table_name = "person_aggregates"]
 pub struct PersonAggregates {
   pub id: i32,

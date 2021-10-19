@@ -8,10 +8,10 @@ use chrono::NaiveDateTime;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_utils::LemmyError;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "community"]
 pub struct Community {
   pub id: CommunityId,
@@ -36,7 +36,7 @@ pub struct Community {
 }
 
 /// A safe representation of community, without the sensitive info
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "community"]
 pub struct CommunitySafe {
   pub id: CommunityId,
