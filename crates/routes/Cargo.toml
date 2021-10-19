@@ -4,6 +4,8 @@ version = "0.13.0"
 edition = "2018"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
+homepage = "https://join-lemmy.org/"
+documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [lib]
 doctest = false
