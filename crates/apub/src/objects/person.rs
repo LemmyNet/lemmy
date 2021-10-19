@@ -285,7 +285,7 @@ mod tests {
     assert_eq!(person.actor_id.clone().into_inner(), url);
     assert_eq!(person.name, "nutomic");
     assert!(person.public_key.is_some());
-    assert_eq!(person.local, false);
+    assert!(!person.local);
     assert!(person.bio.is_some());
   }
 
@@ -301,7 +301,7 @@ mod tests {
     assert_eq!(person.actor_id.clone().into_inner(), url);
     assert_eq!(person.name, "lanodan");
     assert!(person.public_key.is_some());
-    assert_eq!(person.local, false);
+    assert!(!person.local);
     // TODO: pleroma uses summary for user profile, while we use content
     //assert!(person.bio.is_some());
   }

@@ -1,0 +1,46 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "sensitive": "as:sensitive",
+      "sc": "http://schema.org#",
+      "matrixUserId": {
+        "type": "sc:Text",
+        "id": "as:alsoKnownAs"
+      },
+      "stickied": "as:stickied",
+      "pt": "https://join-lemmy.org#",
+      "comments_enabled": {
+        "type": "sc:Boolean",
+        "id": "pt:commentsEnabled"
+      },
+      "moderators": "as:moderators"
+    },
+    "https://w3id.org/security/v1"
+  ],
+  "type": "Group",
+  "id": "https://lemmy.ml/c/meta",
+  "preferredUsername": "meta",
+  "name": "lemmy.ml meta",
+  "content": "<p>Anything about the lemmy.ml instance and its moderation.</p>\n<p>For discussion about the Lemmy software project, go to <a href=\"https://lemmy.ml/c/lemmy\">!lemmy@lemmy.ml</a>.</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "Anything about the lemmy.ml instance and its moderation. \n\nFor discussion about the Lemmy software project, go to [!lemmy@lemmy.ml](https://lemmy.ml/c/lemmy).",
+    "mediaType": "text/markdown"
+  },
+  "sensitive": false,
+  "moderators": "https://lemmy.ml/c/meta/moderators",
+  "inbox": "https://lemmy.ml/c/meta/inbox",
+  "outbox": "https://lemmy.ml/c/meta/outbox",
+  "followers": "https://lemmy.ml/c/meta/followers",
+  "endpoints": {
+    "sharedInbox": "https://lemmy.ml/inbox"
+  },
+  "publicKey": {
+    "id": "https://lemmy.ml/c/meta#main-key",
+    "owner": "https://lemmy.ml/c/meta",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApLImCO5LEXMWb6lPCfCI\necpxU17j8CFfrDJLUWcuCmKO9KxJFmsv9uY2sYr9YX9CD4o+jnJ4D/e+/D+UeJiD\naJ3aYLEjLm+u6KuAGVREjSLzp1Js/6F2k0MIIQueiO5BBiootEY6pv3CwqqMC9L4\npWvIjmd03dMBhU1DTAblrj61oGj3c5l0OPdjeW7XnTPSrCZvaQ/1PWwVyUj0y/SC\nHiUiUiqUD88aPB8c7s85Svzs5RFT8WHcelPXJ7ydhYlU8R2tE1Octjy9Gb1R38k4\ns62LiwlRUAIzvnpMWOBi60aRpL8+IuZXoB2cCEyX5SQ+ETVp5DobHDgI0zzBEjfD\nkQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "published": "2021-06-14T22:50:50.985762+00:00",
+  "updated": "2021-06-14T23:29:55.801468+00:00"
+}

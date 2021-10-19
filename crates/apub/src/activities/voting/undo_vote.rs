@@ -12,6 +12,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  migrations::PublicUrlMigration,
   objects::{community::ApubCommunity, person::ApubPerson},
   PostOrComment,
 };
@@ -25,7 +26,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
@@ -39,7 +39,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoVote {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: PublicUrlMigration,
   object: Vote,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -72,7 +72,7 @@ impl UndoVote {
     )?;
     let undo_vote = UndoVote {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: PublicUrlMigration::create(),
       object,
       cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,

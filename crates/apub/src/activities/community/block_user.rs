@@ -8,6 +8,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  migrations::PublicUrlMigration,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
@@ -20,7 +21,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{
@@ -40,7 +40,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct BlockUserFromCommunity {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: PublicUrlMigration,
   pub(in crate::activities::community) object: ObjectId<ApubPerson>,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -61,7 +61,7 @@ impl BlockUserFromCommunity {
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: PublicUrlMigration::create(),
       object: ObjectId::new(target.actor_id()),
       cc: [ObjectId::new(community.actor_id())],
       kind: BlockType::Block,

@@ -11,6 +11,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  migrations::PublicUrlMigration,
   objects::{
     comment::{ApubComment, Note},
     community::ApubCommunity,
@@ -22,7 +23,6 @@ use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
-  values::PublicUrl,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -38,7 +38,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdateComment {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: PublicUrlMigration,
   object: Note,
   cc: Vec<Url>,
   tag: Vec<Mention>,
@@ -76,7 +76,7 @@ impl CreateOrUpdateComment {
 
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: PublicUrlMigration::create(),
       object: comment.to_apub(context.pool()).await?,
       cc: maa.ccs,
       tag: maa.tags,

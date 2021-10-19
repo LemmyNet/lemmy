@@ -22,6 +22,7 @@ use url::Url;
 static REQUEST_LIMIT: i32 = 25;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+#[serde(transparent)]
 pub struct ObjectId<Kind>(Url, #[serde(skip)] PhantomData<Kind>)
 where
   Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
