@@ -5,9 +5,10 @@ use crate::{
   PersonId,
   PostId,
 };
-use serde::Serialize;
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "post"]
 pub struct Post {
   pub id: PostId,

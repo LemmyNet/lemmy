@@ -29,9 +29,9 @@ use lemmy_db_schema::{
   PersonId,
   PostReportId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PostReportView {
   pub post_report: PostReport,
   pub post: Post,

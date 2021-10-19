@@ -13,9 +13,9 @@ use lemmy_db_schema::{
   source::person::{Person, PersonSafe},
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonViewSafe {
   pub person: PersonSafe,
   pub counts: PersonAggregates,

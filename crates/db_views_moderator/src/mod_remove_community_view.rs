@@ -9,9 +9,9 @@ use lemmy_db_schema::{
   },
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModRemoveCommunityView {
   pub mod_remove_community: ModRemoveCommunity,
   pub moderator: PersonSafe,

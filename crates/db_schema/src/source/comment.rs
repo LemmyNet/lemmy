@@ -6,7 +6,8 @@ use crate::{
   PersonId,
   PostId,
 };
-use serde::Serialize;
+
+use serde::{Deserialize, Serialize};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -15,7 +16,9 @@ use serde::Serialize;
 // )
 // SELECT * FROM MyTree;
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[belongs_to(Post)]
 #[table_name = "comment"]
 pub struct Comment {
@@ -33,7 +36,9 @@ pub struct Comment {
   pub local: bool,
 }
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[belongs_to(Post)]
 #[table_name = "comment_alias_1"]
 pub struct CommentAlias1 {

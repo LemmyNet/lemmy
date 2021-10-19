@@ -9,9 +9,9 @@ use lemmy_db_schema::{
   LocalUserId,
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LocalUserView {
   pub local_user: LocalUser,
   pub person: Person,
@@ -117,7 +117,7 @@ impl LocalUserView {
   }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LocalUserSettingsView {
   pub local_user: LocalUserSettings,
   pub person: PersonSafe,

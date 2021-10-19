@@ -4,9 +4,10 @@ use crate::{
   DbUrl,
   PersonId,
 };
-use serde::Serialize;
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "community"]
 pub struct Community {
   pub id: CommunityId,
@@ -31,7 +32,7 @@ pub struct Community {
 }
 
 /// A safe representation of community, without the sensitive info
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "community"]
 pub struct CommunitySafe {
   pub id: CommunityId,

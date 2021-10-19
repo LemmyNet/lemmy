@@ -1,7 +1,10 @@
 use crate::{schema::private_message, DbUrl, PersonId, PrivateMessageId};
-use serde::Serialize;
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[table_name = "private_message"]
 pub struct PrivateMessage {
   pub id: PrivateMessageId,

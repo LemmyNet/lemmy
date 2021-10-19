@@ -8,9 +8,9 @@ use lemmy_db_schema::{
   },
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityBlockView {
   pub person: PersonSafe,
   pub community: CommunitySafe,
