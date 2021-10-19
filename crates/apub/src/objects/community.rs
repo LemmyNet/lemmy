@@ -69,7 +69,7 @@ pub struct Group {
   followers: Url,
   endpoints: Endpoints<Url>,
   public_key: PublicKey,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -101,7 +101,7 @@ impl Group {
       title,
       description,
       removed: None,
-      published: Some(group.published.naive_local()),
+      published: group.published.map(|u| u.naive_local()),
       updated: group.updated.map(|u| u.naive_local()),
       deleted: None,
       nsfw: Some(group.sensitive.unwrap_or(false)),
@@ -232,7 +232,7 @@ impl ToApub for ApubCommunity {
         ..Default::default()
       },
       public_key: self.get_public_key()?,
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
