@@ -1,7 +1,7 @@
 use crate::{schema::local_user, LocalUserId, PersonId};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "local_user"]
 pub struct LocalUser {
   pub id: LocalUserId,
@@ -43,7 +43,7 @@ pub struct LocalUserForm {
 }
 
 /// A local user view that removes password encrypted
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "local_user"]
 pub struct LocalUserSettings {
   pub id: LocalUserId,

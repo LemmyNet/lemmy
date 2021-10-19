@@ -7,9 +7,9 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SiteView {
   pub site: Site,
   pub creator: PersonSafe,

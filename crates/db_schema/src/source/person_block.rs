@@ -1,7 +1,9 @@
 use crate::{schema::person_block, PersonBlockId, PersonId};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[table_name = "person_block"]
 pub struct PersonBlock {
   pub id: PersonBlockId,

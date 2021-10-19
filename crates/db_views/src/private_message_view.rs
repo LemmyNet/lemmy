@@ -10,9 +10,9 @@ use lemmy_db_schema::{
   PrivateMessageId,
 };
 use log::debug;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
   pub creator: PersonSafe,

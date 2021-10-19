@@ -34,9 +34,9 @@ use lemmy_db_schema::{
   PersonId,
   PersonMentionId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
   pub comment: Comment,

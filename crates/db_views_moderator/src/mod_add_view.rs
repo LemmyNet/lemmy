@@ -8,9 +8,9 @@ use lemmy_db_schema::{
   },
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModAddView {
   pub mod_add: ModAdd,
   pub moderator: PersonSafe,

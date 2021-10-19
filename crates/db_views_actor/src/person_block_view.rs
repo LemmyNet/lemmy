@@ -5,9 +5,9 @@ use lemmy_db_schema::{
   source::person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonBlockView {
   pub person: PersonSafe,
   pub target: PersonSafeAlias1,
