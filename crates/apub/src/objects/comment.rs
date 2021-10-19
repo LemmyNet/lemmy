@@ -60,7 +60,7 @@ pub struct Note {
   media_type: MediaTypeHtml,
   source: Source,
   in_reply_to: CommentInReplyToMigration,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -230,7 +230,7 @@ impl ToApub for ApubComment {
         media_type: MediaTypeMarkdown::Markdown,
       },
       in_reply_to: CommentInReplyToMigration::Old(in_reply_to_vec),
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
@@ -282,7 +282,7 @@ impl FromApub for ApubComment {
       content: content_slurs_removed,
       removed: None,
       read: None,
-      published: Some(note.published.naive_local()),
+      published: note.published.map(|u| u.to_owned().naive_local()),
       updated: note.updated.map(|u| u.to_owned().naive_local()),
       deleted: None,
       ap_id,

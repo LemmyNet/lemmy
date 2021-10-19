@@ -67,7 +67,7 @@ pub struct Person {
   outbox: Url,
   endpoints: Endpoints<Url>,
   public_key: PublicKey,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -192,7 +192,7 @@ impl ToApub for ApubPerson {
       icon,
       image,
       matrix_user_id: self.matrix_user_id.clone(),
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
@@ -245,7 +245,7 @@ impl FromApub for ApubPerson {
       deleted: None,
       avatar: Some(person.icon.clone().map(|i| i.url.into())),
       banner: Some(person.image.clone().map(|i| i.url.into())),
-      published: Some(person.published.naive_local()),
+      published: person.published.map(|u| u.clone().naive_local()),
       updated: person.updated.map(|u| u.clone().naive_local()),
       actor_id,
       bio: Some(bio),
@@ -264,5 +264,45 @@ impl FromApub for ApubPerson {
     })
     .await??;
     Ok(person.into())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_person() {
+    let json = file_to_json_object("assets/lemmy-person.json");
+    let url = Url::parse("https://lemmy.ml/u/nutomic").unwrap();
+    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut 0)
+      .await
+      .unwrap();
+
+    assert_eq!(person.actor_id.clone().into_inner(), url);
+    assert_eq!(person.name, "nutomic");
+    assert!(person.public_key.is_some());
+    assert_eq!(person.local, false);
+    assert!(person.bio.is_some());
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_pleroma_person() {
+    let json = file_to_json_object("assets/pleroma-person.json");
+    let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
+    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut 0)
+      .await
+      .unwrap();
+
+    assert_eq!(person.actor_id.clone().into_inner(), url);
+    assert_eq!(person.name, "lanodan");
+    assert!(person.public_key.is_some());
+    assert_eq!(person.local, false);
+    // TODO: pleroma uses summary for user profile, while we use content
+    //assert!(person.bio.is_some());
   }
 }

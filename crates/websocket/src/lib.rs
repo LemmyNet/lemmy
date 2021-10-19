@@ -16,12 +16,12 @@ pub mod routes;
 pub mod send;
 
 pub struct LemmyContext {
-  pub pool: DbPool,
-  pub chat_server: Addr<ChatServer>,
-  pub client: Client,
-  pub activity_queue: QueueHandle,
-  pub settings: Settings,
-  pub secret: Secret,
+  pool: DbPool,
+  chat_server: Addr<ChatServer>,
+  client: Client,
+  activity_queue: QueueHandle,
+  settings: Settings,
+  secret: Secret,
 }
 
 impl LemmyContext {

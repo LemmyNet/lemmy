@@ -61,7 +61,7 @@ pub struct Page {
   pub(crate) comments_enabled: Option<bool>,
   sensitive: Option<bool>,
   pub(crate) stickied: Option<bool>,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -196,7 +196,7 @@ impl ToApub for ApubPost {
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
@@ -260,7 +260,7 @@ impl FromApub for ApubPost {
       community_id: community.id,
       removed: None,
       locked: page.comments_enabled.map(|e| !e),
-      published: Some(page.published.naive_local()),
+      published: page.published.map(|u| u.naive_local()),
       updated: page.updated.map(|u| u.naive_local()),
       deleted: None,
       nsfw: page.sensitive,
