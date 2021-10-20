@@ -80,8 +80,10 @@ impl Note {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(ApubPost, Option<CommentId>), LemmyError> {
+    dbg!(10);
     match &self.in_reply_to {
       CommentInReplyToMigration::Old(in_reply_to) => {
+        dbg!(11);
         // This post, or the parent comment might not yet exist on this server yet, fetch them.
         let post_id = in_reply_to.get(0).context(location_info!())?;
         let post_id = ObjectId::new(post_id.clone());
@@ -89,6 +91,7 @@ impl Note {
 
         // The 2nd item, if it exists, is the parent comment apub_id
         // Nested comments will automatically get fetched recursively
+        dbg!(12);
         let parent_id: Option<CommentId> = match in_reply_to.get(1) {
           Some(comment_id) => {
             let comment_id = ObjectId::<ApubComment>::new(comment_id.clone());
@@ -98,13 +101,16 @@ impl Note {
           }
           None => None,
         };
+        dbg!(13);
 
         Ok((post, parent_id))
       }
       CommentInReplyToMigration::New(in_reply_to) => {
+        dbg!(14);
         let parent = Box::pin(in_reply_to.dereference(context, request_counter).await?);
         match parent.deref() {
           PostOrComment::Post(p) => {
+            dbg!(15);
             // Workaround because I cant figure out how to get the post out of the box (and we dont
             // want to stackoverflow in a deep comment hierarchy).
             let post_id = p.id;
@@ -112,6 +118,7 @@ impl Note {
             Ok((post.into(), None))
           }
           PostOrComment::Comment(c) => {
+            dbg!(16);
             let post_id = c.post_id;
             let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
             Ok((post.into(), Some(c.id)))
@@ -262,12 +269,15 @@ impl FromApub for ApubComment {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubComment, LemmyError> {
+    dbg!(1);
     let ap_id = Some(note.id(expected_domain)?.clone().into());
     let creator = note
       .attributed_to
       .dereference(context, request_counter)
       .await?;
+    dbg!(2);
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    dbg!(2.5);
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
@@ -275,6 +285,7 @@ impl FromApub for ApubComment {
     let content = &note.source.content;
     let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
 
+    dbg!(3);
     let form = CommentForm {
       creator_id: creator.id,
       post_id: post.id,
@@ -289,6 +300,51 @@ impl FromApub for ApubComment {
       local: Some(false),
     };
     let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
+    dbg!(4);
     Ok(comment.into())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::{
+    community::ApubCommunity,
+    tests::{file_to_json_object, init_context},
+  };
+  use serial_test::serial;
+
+  async fn prepare_comment_test(url: &Url, context: &LemmyContext) {
+    let person_json = file_to_json_object("assets/lemmy-person.json");
+    ApubPerson::from_apub(&person_json, context, url, &mut 0)
+      .await
+      .unwrap();
+    let community_json = file_to_json_object("assets/lemmy-community.json");
+    ApubCommunity::from_apub(&community_json, context, url, &mut 0)
+      .await
+      .unwrap();
+    let post_json = file_to_json_object("assets/lemmy-post.json");
+    ApubPost::from_apub(&post_json, context, url, &mut 0)
+      .await
+      .unwrap();
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_comment() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/comment/38741").unwrap();
+    prepare_comment_test(&url, &context).await;
+
+    let json = file_to_json_object("assets/lemmy-comment.json");
+    let mut request_counter = 0;
+    let comment = ApubComment::from_apub(&json, &context, &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(comment.ap_id.clone().into_inner(), url);
+    assert_eq!(comment.content.len(), 1063);
+    assert!(!comment.local);
+    assert_eq!(request_counter, 0);
   }
 }
