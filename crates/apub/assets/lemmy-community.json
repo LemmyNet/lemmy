@@ -2,49 +2,49 @@
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     {
-      "moderators": "as:moderators",
-      "sc": "http://schema.org#",
-      "matrixUserId": {
-        "type": "sc:Text",
-        "id": "as:alsoKnownAs"
-      },
-      "stickied": "as:stickied",
-      "pt": "https://join-lemmy.org#",
       "comments_enabled": {
-        "type": "sc:Boolean",
-        "id": "pt:commentsEnabled"
+        "id": "pt:commentsEnabled",
+        "type": "sc:Boolean"
       },
-      "sensitive": "as:sensitive"
+      "matrixUserId": {
+        "id": "as:alsoKnownAs",
+        "type": "sc:Text"
+      },
+      "moderators": "as:moderators",
+      "pt": "https://join-lemmy.org#",
+      "sc": "http://schema.org#",
+      "sensitive": "as:sensitive",
+      "stickied": "as:stickied"
     },
     "https://w3id.org/security/v1"
   ],
-  "type": "Group",
-  "id": "https://lemmy.ml/c/announcements",
-  "preferredUsername": "announcements",
-  "name": "Announcements",
   "content": "<p>Lemmy Announcements</p>\n<hr />\n<p>Feel free to announce new communities here.</p>\n<p>Other than that, this is <em>reserved for admin use only</em>.</p>\n",
-  "mediaType": "text/html",
-  "source": {
-    "content": "Lemmy Announcements\n\n---\n\nFeel free to announce new communities here.\n\nOther than that, this is *reserved for admin use only*.",
-    "mediaType": "text/markdown"
+  "endpoints": {
+    "sharedInbox": "https://lemmy.ml/inbox"
   },
+  "followers": "https://lemmy.ml/c/announcements/followers",
   "icon": {
     "type": "Image",
     "url": "https://lemmy.ml/pictrs/image/waqyZwLAy4.webp"
   },
-  "sensitive": false,
-  "moderators": "https://lemmy.ml/c/announcements/not_moderators",
+  "id": "https://lemmy.ml/c/announcements",
   "inbox": "https://lemmy.ml/c/announcements/inbox",
+  "mediaType": "text/html",
+  "moderators": "https://lemmy.ml/c/announcements/not_moderators",
+  "name": "Announcements",
   "outbox": "https://lemmy.ml/c/announcements/not_outbox",
-  "followers": "https://lemmy.ml/c/announcements/followers",
-  "endpoints": {
-    "sharedInbox": "https://lemmy.ml/inbox"
-  },
+  "preferredUsername": "announcements",
   "publicKey": {
     "id": "https://lemmy.ml/c/announcements#main-key",
     "owner": "https://lemmy.ml/c/announcements",
     "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzRjKTNtvDCmugplwEh+g\nx1bhKm6BHUZfXfpscgMMm7tXFswSDzUQirMgfkxa9ubfr1PDFKffA2vQ9x6CyuO/\n70xTafdOHyV1tSqzgKz0ZvFZ/VCOo6qy1mYWVkrtBm/fKzM+87MdkKYB/zI4VyEJ\nLfLQgjwxBAEYUH3CBG71U0gO0TwbimWNN0vqlfp0QfThNe1WYObF88ZVzMLgFbr7\nRHBItZjlZ/d8foPDidlIR3l2dJjy0EsD8F9JM340jtX7LXqFmU4j1AQKNHTDLnUF\nwYVhzuQGNJ504l5LZkFG54XfIFT7dx2QwuuM9bSnfPv/98RYrq1Si6tCkxEt1cVe\n4wIDAQAB\n-----END PUBLIC KEY-----\n"
   },
   "published": "2019-06-02T16:43:50.799554+00:00",
+  "sensitive": false,
+  "source": {
+    "content": "Lemmy Announcements\n\n---\n\nFeel free to announce new communities here.\n\nOther than that, this is *reserved for admin use only*.",
+    "mediaType": "text/markdown"
+  },
+  "type": "Group",
   "updated": "2021-03-10T17:18:10.498868+00:00"
 }
