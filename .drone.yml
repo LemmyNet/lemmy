@@ -122,7 +122,7 @@ steps:
 
   # using https://github.com/pksunkara/cargo-workspaces
   - name: publish to crates.io
-    image: ekidd/rust-musl-builder:1.51.0
+    image: rustdocker/rust:nightly
     environment:
       CARGO_TOKEN:
         from_secret: cargo_api_token
