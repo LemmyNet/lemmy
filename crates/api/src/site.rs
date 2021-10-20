@@ -339,12 +339,28 @@ impl Perform for Search {
       }
     };
 
-    // Blank out deleted or removed info
-    for cv in comments
-      .iter_mut()
-      .filter(|cv| cv.comment.deleted || cv.comment.removed)
-    {
-      cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+    // Blank out deleted or removed info for non logged in users
+    if person_id.is_none() {
+      for cv in communities
+        .iter_mut()
+        .filter(|cv| cv.community.deleted || cv.community.removed)
+      {
+        cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
+      }
+
+      for pv in posts
+        .iter_mut()
+        .filter(|p| p.post.deleted || p.post.removed)
+      {
+        pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+      }
+
+      for cv in comments
+        .iter_mut()
+        .filter(|cv| cv.comment.deleted || cv.comment.removed)
+      {
+        cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+      }
     }
 
     // Return the jwt

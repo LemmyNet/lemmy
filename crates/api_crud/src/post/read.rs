@@ -38,7 +38,7 @@ impl PerformCrud for GetPost {
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
-    let post_view = blocking(context.pool(), move |conn| {
+    let mut post_view = blocking(context.pool(), move |conn| {
       PostView::read(conn, id, person_id)
     })
     .await?
@@ -60,26 +60,35 @@ impl PerformCrud for GetPost {
     })
     .await??;
 
-    // Blank out deleted or removed info
-    for cv in comments
-      .iter_mut()
-      .filter(|cv| cv.comment.deleted || cv.comment.removed)
-    {
-      cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
-    }
-
-    let community_id = post_view.community.id;
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
-
     // Necessary for the sidebar
-    let community_view = blocking(context.pool(), move |conn| {
+    let community_id = post_view.community.id;
+    let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
     .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+
+    // Blank out deleted or removed info for non-logged in users
+    if person_id.is_none() {
+      if post_view.post.deleted || post_view.post.removed {
+        post_view.post = post_view.post.blank_out_deleted_or_removed_info();
+      }
+
+      for cv in comments
+        .iter_mut()
+        .filter(|cv| cv.comment.deleted || cv.comment.removed)
+      {
+        cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+      }
+      if community_view.community.deleted || community_view.community.removed {
+        community_view.community = community_view.community.blank_out_deleted_or_removed_info();
+      }
+    }
+
+    let moderators = blocking(context.pool(), move |conn| {
+      CommunityModeratorView::for_community(conn, community_id)
+    })
+    .await??;
 
     let online = context
       .chat_server()
@@ -134,7 +143,7 @@ impl PerformCrud for GetPosts {
       .unwrap_or(None);
     let saved_only = data.saved_only;
 
-    let posts = blocking(context.pool(), move |conn| {
+    let mut posts = blocking(context.pool(), move |conn| {
       PostQueryBuilder::create(conn)
         .listing_type(listing_type)
         .sort(sort)
@@ -151,6 +160,16 @@ impl PerformCrud for GetPosts {
     })
     .await?
     .map_err(|e| ApiError::err("couldnt_get_posts", e))?;
+
+    // Blank out deleted or removed info for non-logged in users
+    if person_id.is_none() {
+      for pv in posts
+        .iter_mut()
+        .filter(|p| p.post.deleted || p.post.removed)
+      {
+        pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+      }
+    }
 
     Ok(GetPostsResponse { posts })
   }
