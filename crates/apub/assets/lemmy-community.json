@@ -33,9 +33,9 @@
     "url": "https://lemmy.ml/pictrs/image/waqyZwLAy4.webp"
   },
   "sensitive": false,
-  "moderators": "https://lemmy.ml/c/announcements/moderators",
+  "moderators": "https://lemmy.ml/c/announcements/not_moderators",
   "inbox": "https://lemmy.ml/c/announcements/inbox",
-  "outbox": "https://lemmy.ml/c/announcements/outbox",
+  "outbox": "https://lemmy.ml/c/announcements/not_outbox",
   "followers": "https://lemmy.ml/c/announcements/followers",
   "endpoints": {
     "sharedInbox": "https://lemmy.ml/inbox"

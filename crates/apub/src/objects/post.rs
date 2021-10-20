@@ -291,12 +291,16 @@ mod tests {
   async fn test_fetch_lemmy_post() {
     let context = init_context();
     let url = Url::parse("https://lemmy.ml/post/55143").unwrap();
-    let mut request_counter = -20;
     let community_json = file_to_json_object("assets/lemmy-community.json");
-    ApubCommunity::from_apub(&community_json, &context, &url, &mut request_counter)
+    ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
+      .await
+      .unwrap();
+    let person_json = file_to_json_object("assets/lemmy-person.json");
+    ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
       .await
       .unwrap();
     let json = file_to_json_object("assets/lemmy-post.json");
+    let mut request_counter = 0;
     let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
@@ -308,6 +312,6 @@ mod tests {
     assert!(!post.locked);
     assert!(post.stickied);
     // see comment in test_fetch_lemmy_community() about this
-    //assert_eq!(request_counter, 5);
+    assert_eq!(request_counter, 0);
   }
 }

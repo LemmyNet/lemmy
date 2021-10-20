@@ -36,6 +36,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
@@ -263,11 +264,19 @@ impl FromApub for ApubCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
 
+    // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
+    // we need to ignore these errors so that tests can work entirely offline.
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
-    update_community_mods(group, &community, context, request_counter).await?;
+    update_community_mods(group, &community, context, request_counter)
+      .await
+      .map_err(|e| debug!("{}", e))
+      .ok();
 
     // TODO: doing this unconditionally might cause infinite loop for some reason
-    fetch_community_outbox(context, &group.outbox, request_counter).await?;
+    fetch_community_outbox(context, &group.outbox, request_counter)
+      .await
+      .map_err(|e| debug!("{}", e))
+      .ok();
 
     Ok(community.into())
   }
@@ -326,9 +335,7 @@ mod tests {
     assert!(community.public_key.is_some());
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 126);
-    // TODO: its fetching the outbox, mod collection, and probably users from the outbox. due to
-    //       caching and other things, this may change over multiple runs, so we cant assert it.
-    //       find a way to avoid any network requests
-    //assert_eq!(request_counter, 4);
+    // this makes two requests to the (intentionally) broken outbox/moderators collections
+    assert_eq!(request_counter, 2);
   }
 }
