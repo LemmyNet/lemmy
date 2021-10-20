@@ -316,7 +316,8 @@ mod tests {
   async fn test_fetch_lemmy_community() {
     let json = file_to_json_object("assets/lemmy-community.json");
     let url = Url::parse("https://lemmy.ml/c/meta").unwrap();
-    let community = ApubCommunity::from_apub(&json, &init_context(), &url, &mut 0)
+    let mut request_counter = 0;
+    let community = ApubCommunity::from_apub(&json, &init_context(), &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -325,5 +326,9 @@ mod tests {
     assert!(community.public_key.is_some());
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 158);
+    // TODO: its fetching the outbox, mod collection, and probably users from the outbox. due to
+    //       caching and other things, this may change over multiple runs, so we cant assert it.
+    //       find a way to avoid any network requests
+    //assert_eq!(request_counter, 4);
   }
 }

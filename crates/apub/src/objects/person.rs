@@ -278,7 +278,8 @@ mod tests {
   async fn test_fetch_lemmy_person() {
     let json = file_to_json_object("assets/lemmy-person.json");
     let url = Url::parse("https://lemmy.ml/u/nutomic").unwrap();
-    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut 0)
+    let mut request_counter = 0;
+    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -287,6 +288,7 @@ mod tests {
     assert!(person.public_key.is_some());
     assert!(!person.local);
     assert!(person.bio.is_some());
+    assert_eq!(request_counter, 0);
   }
 
   #[actix_rt::test]
@@ -294,7 +296,8 @@ mod tests {
   async fn test_fetch_pleroma_person() {
     let json = file_to_json_object("assets/pleroma-person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut 0)
+    let mut request_counter = 0;
+    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -302,6 +305,7 @@ mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(person.public_key.is_some());
     assert!(!person.local);
+    assert_eq!(request_counter, 0);
     // TODO: pleroma uses summary for user profile, while we use content
     //assert!(person.bio.is_some());
   }

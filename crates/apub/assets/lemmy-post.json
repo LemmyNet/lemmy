@@ -1,0 +1,41 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "matrixUserId": {
+        "type": "sc:Text",
+        "id": "as:alsoKnownAs"
+      },
+      "sc": "http://schema.org#",
+      "comments_enabled": {
+        "type": "sc:Boolean",
+        "id": "pt:commentsEnabled"
+      },
+      "sensitive": "as:sensitive",
+      "stickied": "as:stickied",
+      "pt": "https://join-lemmy.org#",
+      "moderators": "as:moderators"
+    },
+    "https://w3id.org/security/v1"
+  ],
+  "type": "Page",
+  "id": "https://lemmy.ml/post/70280",
+  "attributedTo":
+    "https://lemmy.ml/u/nutomic"
+  ,
+  "to": [
+    "https://lemmy.ml/c/meta",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "name": "What is lemmy.ml?",
+  "content": "<p>Recently there seems to be some of misunderstanding what the lemmy.ml instance is about, especially from newer users.</p>\n<p>Lemmy.ml has always been a niche site, and it will most likely stay this way. We don't have any intentions to turn it into a mainstream instance, or set a goal of getting as many users as possible. Our goal is simple: make an instance that people like to use. I would say that we have been successful in this, but obviously it is impossible to satisfy everyone.</p>\n<p>The reason for this is that @dessalines and I are paid to develop Lemmy, while donations from lemmy.ml users only make up a negligible part of our income. Besides, having more users would force us to spend more time moderating, and less time for development. Lemmy works quite differently from big tech sites like Reddit in this regard: while they get more money with each extra user through advertising, for us it is the opposite. So we would much rather have a smaller, non-toxic, and friendly userbase, than a large one.</p>\n<p>Part of the problem might be that lemmy.ml is described as &quot;flagship instance&quot;, which can certainly be interpreted to mean &quot;mainstream&quot; or &quot;general purpose&quot;. I struggle to come up with a better, more accurate description. If you can think of one, please comment here.</p>\n<p>If you dont like the way lemmy.ml works, thats okay. Federation exists exactly to solve that problem, let different groups have their own instances, with their own rules and political views. You can see the list of existing instances, and instructions for setting up a new one on <a href=\"https://join-lemmy.org/\">join-lemmy.org</a>.</p>\n<p>In particular, I would like to see someone (or a group of people) create a mainstream, or liberal instance. That should help to avoid further drama, and avoid attempts to turn lemmy.ml into something that it is not. @dessalines and I would certainly be willing to help with any technical problems that such an instance runs into, and include it on <a href=\"https://join-lemmy.org/\">join-lemmy.org</a> (just like any other instance that meets the code of conduct).</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "Recently there seems to be some of misunderstanding what the lemmy.ml instance is about, especially from newer users.\n\nLemmy.ml has always been a niche site, and it will most likely stay this way. We don't have any intentions to turn it into a mainstream instance, or set a goal of getting as many users as possible. Our goal is simple: make an instance that people like to use. I would say that we have been successful in this, but obviously it is impossible to satisfy everyone.\n\nThe reason for this is that @dessalines and I are paid to develop Lemmy, while donations from lemmy.ml users only make up a negligible part of our income. Besides, having more users would force us to spend more time moderating, and less time for development. Lemmy works quite differently from big tech sites like Reddit in this regard: while they get more money with each extra user through advertising, for us it is the opposite. So we would much rather have a smaller, non-toxic, and friendly userbase, than a large one.\n\nPart of the problem might be that lemmy.ml is described as \"flagship instance\", which can certainly be interpreted to mean \"mainstream\" or \"general purpose\". I struggle to come up with a better, more accurate description. If you can think of one, please comment here.\n\nIf you dont like the way lemmy.ml works, thats okay. Federation exists exactly to solve that problem, let different groups have their own instances, with their own rules and political views. You can see the list of existing instances, and instructions for setting up a new one on [join-lemmy.org](https://join-lemmy.org/).\n\nIn particular, I would like to see someone (or a group of people) create a mainstream, or liberal instance. That should help to avoid further drama, and avoid attempts to turn lemmy.ml into something that it is not. @dessalines and I would certainly be willing to help with any technical problems that such an instance runs into, and include it on [join-lemmy.org](https://join-lemmy.org/) (just like any other instance that meets the code of conduct).",
+    "mediaType": "text/markdown"
+  },
+  "commentsEnabled": false,
+  "sensitive": false,
+  "stickied": true,
+  "published": "2021-06-15T12:00:08.364559+00:00"
+}

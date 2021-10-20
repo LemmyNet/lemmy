@@ -2,15 +2,15 @@
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     {
-      "sc": "http://schema.org#",
-      "pt": "https://join-lemmy.org#",
+      "stickied": "as:stickied",
       "comments_enabled": {
         "type": "sc:Boolean",
         "id": "pt:commentsEnabled"
       },
-      "stickied": "as:stickied",
+      "pt": "https://join-lemmy.org#",
       "sensitive": "as:sensitive",
       "moderators": "as:moderators",
+      "sc": "http://schema.org#",
       "matrixUserId": {
         "type": "sc:Text",
         "id": "as:alsoKnownAs"

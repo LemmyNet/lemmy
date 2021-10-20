@@ -276,3 +276,30 @@ impl FromApub for ApubPost {
     Ok(post.into())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_post() {
+    let json = file_to_json_object("assets/lemmy-post.json");
+    let url = Url::parse("https://lemmy.ml/post/70280").unwrap();
+    let mut request_counter = 0;
+    let post = ApubPost::from_apub(&json, &init_context(), &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(post.ap_id.clone().into_inner(), url);
+    assert_eq!(post.name, "What is lemmy.ml?");
+    assert!(post.body.is_some());
+    assert_eq!(post.body.as_ref().unwrap().len(), 2052);
+    assert!(post.locked);
+    assert!(post.stickied);
+    // see comment in test_fetch_lemmy_community() about this
+    //assert_eq!(request_counter, 5);
+  }
+}
