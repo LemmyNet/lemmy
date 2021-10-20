@@ -16,6 +16,7 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, FixedOffset};
+use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::{ApubObject, FromApub, ToApub},
@@ -284,12 +285,11 @@ impl FromApub for ApubComment {
     }
 
     let content = if let SourceCompat::Lemmy(source) = &note.source {
-      &source.content
+      source.content.clone()
     } else {
-      // TODO: convert from html to markdown
-      &note.content
+      parse_html(&note.content)
     };
-    let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
+    let content_slurs_removed = remove_slurs(&content, &context.settings().slur_regex());
 
     let form = CommentForm {
       creator_id: creator.id,
@@ -373,8 +373,15 @@ mod tests {
       .unwrap();
 
     assert_eq!(comment.ap_id.clone().into_inner(), pleroma_url);
-    assert_eq!(comment.content.len(), 179);
+    assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_html_to_markdown_sanitize() {
+    let parsed = parse_html(&"<script></script><b>hello</b>");
+    assert_eq!(parsed, "**hello**");
   }
 }
