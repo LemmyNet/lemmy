@@ -1,5 +1,5 @@
 use crate::{
-  activities::{extract_community, verify_person_in_community},
+  activities::{extract_community, verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{create_tombstone, person::ApubPerson, ImageObject, Source},
@@ -51,7 +51,7 @@ pub struct Page {
   r#type: PageType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  to: [Url; 2],
+  to: Vec<Url>,
   name: String,
   content: Option<String>,
   media_type: Option<MediaTypeHtml>,
@@ -109,6 +109,7 @@ impl Page {
       request_counter,
     )
     .await?;
+    verify_is_public(&self.to.clone())?;
     Ok(())
   }
 }
@@ -186,7 +187,7 @@ impl ToApub for ApubPost {
       r#type: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: [community.actor_id.into(), public()],
+      to: vec![community.actor_id.into(), public()],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeHtml::Html),

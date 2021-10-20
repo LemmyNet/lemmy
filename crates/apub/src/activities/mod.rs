@@ -5,6 +5,7 @@ use crate::{
   generate_moderators_url,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
+use activitystreams::public;
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{traits::ActivityFields, verify::verify_domains_match};
@@ -132,6 +133,13 @@ fn verify_add_remove_moderator_target(
 ) -> Result<(), LemmyError> {
   if target != &generate_moderators_url(&community.clone().into())?.into_inner() {
     return Err(anyhow!("Unkown target url").into());
+  }
+  Ok(())
+}
+
+pub(crate) fn verify_is_public(to: &[Url]) -> Result<(), LemmyError> {
+  if !to.contains(&public()) {
+    return Err(anyhow!("Object is not public").into());
   }
   Ok(())
 }

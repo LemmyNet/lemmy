@@ -1,5 +1,5 @@
 use crate::{
-  activities::verify_person_in_community,
+  activities::{verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   migrations::CommentInReplyToMigration,
@@ -11,6 +11,7 @@ use activitystreams::{
   chrono::NaiveDateTime,
   object::{kind::NoteType, Tombstone},
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use anyhow::{anyhow, Context};
@@ -18,7 +19,7 @@ use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::{ApubObject, FromApub, ToApub},
-  values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
+  values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -55,15 +56,24 @@ pub struct Note {
   /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
   /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
   /// the post in [`in_reply_to`]).
-  to: PublicUrl,
+  to: Vec<Url>,
   content: String,
-  media_type: MediaTypeHtml,
-  source: Source,
+  media_type: Option<MediaTypeHtml>,
+  source: SourceCompat,
   in_reply_to: CommentInReplyToMigration,
   published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
+}
+
+/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+enum SourceCompat {
+  Lemmy(Source),
+  Pleroma(String),
 }
 
 impl Note {
@@ -80,10 +90,8 @@ impl Note {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(ApubPost, Option<CommentId>), LemmyError> {
-    dbg!(10);
     match &self.in_reply_to {
       CommentInReplyToMigration::Old(in_reply_to) => {
-        dbg!(11);
         // This post, or the parent comment might not yet exist on this server yet, fetch them.
         let post_id = in_reply_to.get(0).context(location_info!())?;
         let post_id = ObjectId::new(post_id.clone());
@@ -91,7 +99,6 @@ impl Note {
 
         // The 2nd item, if it exists, is the parent comment apub_id
         // Nested comments will automatically get fetched recursively
-        dbg!(12);
         let parent_id: Option<CommentId> = match in_reply_to.get(1) {
           Some(comment_id) => {
             let comment_id = ObjectId::<ApubComment>::new(comment_id.clone());
@@ -101,16 +108,13 @@ impl Note {
           }
           None => None,
         };
-        dbg!(13);
 
         Ok((post, parent_id))
       }
       CommentInReplyToMigration::New(in_reply_to) => {
-        dbg!(14);
         let parent = Box::pin(in_reply_to.dereference(context, request_counter).await?);
         match parent.deref() {
           PostOrComment::Post(p) => {
-            dbg!(15);
             // Workaround because I cant figure out how to get the post out of the box (and we dont
             // want to stackoverflow in a deep comment hierarchy).
             let post_id = p.id;
@@ -118,7 +122,6 @@ impl Note {
             Ok((post.into(), None))
           }
           PostOrComment::Comment(c) => {
-            dbg!(16);
             let post_id = c.post_id;
             let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
             Ok((post.into(), Some(c.id)))
@@ -151,6 +154,7 @@ impl Note {
       request_counter,
     )
     .await?;
+    verify_is_public(&self.to)?;
     Ok(())
   }
 }
@@ -229,13 +233,13 @@ impl ToApub for ApubComment {
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: PublicUrl::Public,
+      to: vec![public()],
       content: self.content.clone(),
-      media_type: MediaTypeHtml::Html,
-      source: Source {
+      media_type: Some(MediaTypeHtml::Html),
+      source: SourceCompat::Lemmy(Source {
         content: self.content.clone(),
         media_type: MediaTypeMarkdown::Markdown,
-      },
+      }),
       in_reply_to: CommentInReplyToMigration::Old(in_reply_to_vec),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -269,23 +273,24 @@ impl FromApub for ApubComment {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubComment, LemmyError> {
-    dbg!(1);
     let ap_id = Some(note.id(expected_domain)?.clone().into());
     let creator = note
       .attributed_to
       .dereference(context, request_counter)
       .await?;
-    dbg!(2);
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
-    dbg!(2.5);
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
 
-    let content = &note.source.content;
+    let content = if let SourceCompat::Lemmy(source) = &note.source {
+      &source.content
+    } else {
+      // TODO: convert from html to markdown
+      &note.content
+    };
     let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
 
-    dbg!(3);
     let form = CommentForm {
       creator_id: creator.id,
       post_id: post.id,
@@ -300,7 +305,6 @@ impl FromApub for ApubComment {
       local: Some(false),
     };
     let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
-    dbg!(4);
     Ok(comment.into())
   }
 }
@@ -344,6 +348,32 @@ mod tests {
 
     assert_eq!(comment.ap_id.clone().into_inner(), url);
     assert_eq!(comment.content.len(), 1063);
+    assert!(!comment.local);
+    assert_eq!(request_counter, 0);
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_pleroma_comment() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/comment/38741").unwrap();
+    prepare_comment_test(&url, &context).await;
+
+    let pleroma_url =
+      Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
+        .unwrap();
+    let person_json = file_to_json_object("assets/pleroma-person.json");
+    ApubPerson::from_apub(&person_json, &context, &pleroma_url, &mut 0)
+      .await
+      .unwrap();
+    let json = file_to_json_object("assets/pleroma-comment.json");
+    let mut request_counter = 0;
+    let comment = ApubComment::from_apub(&json, &context, &pleroma_url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(comment.ap_id.clone().into_inner(), pleroma_url);
+    assert_eq!(comment.content.len(), 179);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
   }

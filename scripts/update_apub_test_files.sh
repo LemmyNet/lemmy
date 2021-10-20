@@ -15,6 +15,10 @@ curl -H "Accept: application/activity+json" https://lemmy.ml/comment/38741 | jq 
 # replace attributed_to user, so that it takes the same one from above
 sed -i 's/https:\/\/lemmy.ml\/u\/my_test/https:\/\/lemmy.ml\/u\/nutomic/g' crates/apub/assets/lemmy-comment.json
 
-
 curl -H "Accept: application/activity+json" https://queer.hacktivis.me/users/lanodan | jq \
     > crates/apub/assets/pleroma-person.json
+curl -H "Accept: application/activity+json" https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2 | jq \
+    > crates/apub/assets/pleroma-comment.json
+# rewrite comment inReplyTo so that it refers to our post above (cause lemmy doesnt support standalone comments)
+sed -i 's/https:\/\/pleroma.popolon.org\/objects\/bf84a0fb-2ec2-4dff-a1d9-6b573f94fb16/https:\/\/lemmy.ml\/post\/55143/g' crates/apub/assets/pleroma-comment.json
+
