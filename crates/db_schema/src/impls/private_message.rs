@@ -1,17 +1,23 @@
-use crate::{Crud, DeleteableOrRemoveable};
+use crate::{
+  naive_now,
+  newtypes::{DbUrl, PersonId, PrivateMessageId},
+  source::private_message::*,
+  traits::{Crud, DeleteableOrRemoveable},
+};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{naive_now, source::private_message::*, DbUrl, PersonId, PrivateMessageId};
+use lemmy_utils::LemmyError;
+use url::Url;
 
 impl Crud for PrivateMessage {
   type Form = PrivateMessageForm;
   type IdType = PrivateMessageId;
   fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     private_message.find(private_message_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
       .get_result::<Self>(conn)
@@ -22,95 +28,64 @@ impl Crud for PrivateMessage {
     private_message_id: PrivateMessageId,
     private_message_form: &PrivateMessageForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(private_message_form)
       .get_result::<Self>(conn)
   }
 }
 
-pub trait PrivateMessage_ {
-  fn update_ap_id(
-    conn: &PgConnection,
-    private_message_id: PrivateMessageId,
-    apub_id: DbUrl,
-  ) -> Result<PrivateMessage, Error>;
-  fn update_content(
-    conn: &PgConnection,
-    private_message_id: PrivateMessageId,
-    new_content: &str,
-  ) -> Result<PrivateMessage, Error>;
-  fn update_deleted(
-    conn: &PgConnection,
-    private_message_id: PrivateMessageId,
-    new_deleted: bool,
-  ) -> Result<PrivateMessage, Error>;
-  fn update_read(
-    conn: &PgConnection,
-    private_message_id: PrivateMessageId,
-    new_read: bool,
-  ) -> Result<PrivateMessage, Error>;
-  fn mark_all_as_read(
-    conn: &PgConnection,
-    for_recipient_id: PersonId,
-  ) -> Result<Vec<PrivateMessage>, Error>;
-  fn upsert(
-    conn: &PgConnection,
-    private_message_form: &PrivateMessageForm,
-  ) -> Result<PrivateMessage, Error>;
-}
-
-impl PrivateMessage_ for PrivateMessage {
-  fn update_ap_id(
+impl PrivateMessage {
+  pub fn update_ap_id(
     conn: &PgConnection,
     private_message_id: PrivateMessageId,
     apub_id: DbUrl,
   ) -> Result<PrivateMessage, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
 
     diesel::update(private_message.find(private_message_id))
       .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
   }
 
-  fn update_content(
+  pub fn update_content(
     conn: &PgConnection,
     private_message_id: PrivateMessageId,
     new_content: &str,
   ) -> Result<PrivateMessage, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  fn update_deleted(
+  pub fn update_deleted(
     conn: &PgConnection,
     private_message_id: PrivateMessageId,
     new_deleted: bool,
   ) -> Result<PrivateMessage, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(deleted.eq(new_deleted))
       .get_result::<Self>(conn)
   }
 
-  fn update_read(
+  pub fn update_read(
     conn: &PgConnection,
     private_message_id: PrivateMessageId,
     new_read: bool,
   ) -> Result<PrivateMessage, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
-  fn mark_all_as_read(
+  pub fn mark_all_as_read(
     conn: &PgConnection,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     diesel::update(
       private_message
         .filter(recipient_id.eq(for_recipient_id))
@@ -120,17 +95,32 @@ impl PrivateMessage_ for PrivateMessage {
     .get_results::<Self>(conn)
   }
 
-  fn upsert(
+  pub fn upsert(
     conn: &PgConnection,
     private_message_form: &PrivateMessageForm,
   ) -> Result<PrivateMessage, Error> {
-    use lemmy_db_schema::schema::private_message::dsl::*;
+    use crate::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
       .on_conflict(ap_id)
       .do_update()
       .set(private_message_form)
       .get_result::<Self>(conn)
+  }
+
+  pub fn read_from_apub_id(
+    conn: &PgConnection,
+    object_id: Url,
+  ) -> Result<Option<Self>, LemmyError> {
+    use crate::schema::private_message::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      private_message
+        .filter(ap_id.eq(object_id))
+        .first::<PrivateMessage>(conn)
+        .ok()
+        .map(Into::into),
+    )
   }
 }
 
@@ -143,8 +133,11 @@ impl DeleteableOrRemoveable for PrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::private_message::PrivateMessage_, Crud};
-  use lemmy_db_schema::source::{person::*, private_message::*};
+  use crate::{
+    establish_unpooled_connection,
+    source::{person::*, private_message::*},
+    traits::Crud,
+  };
   use serial_test::serial;
 
   #[test]

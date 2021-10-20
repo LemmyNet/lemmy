@@ -15,7 +15,7 @@ pub struct Login {
   pub username_or_email: String,
   pub password: String,
 }
-use lemmy_db_schema::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
+use lemmy_db_schema::newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
 
 #[derive(Serialize, Deserialize)]
 pub struct Register {

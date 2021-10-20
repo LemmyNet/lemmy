@@ -3,15 +3,12 @@ use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
-use lemmy_db_queries::{
-  source::{community::Community_, person::Person_},
-  Crud,
+use lemmy_db_schema::{
+  newtypes::LocalUserId,
+  source::{community::Community, local_user::LocalUser, person::Person},
+  traits::Crud,
   ListingType,
   SortType,
-};
-use lemmy_db_schema::{
-  source::{community::Community, local_user::LocalUser, person::Person},
-  LocalUserId,
 };
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},

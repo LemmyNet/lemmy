@@ -7,6 +7,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   send_lemmy_activity,
 };
 use activitystreams::{
@@ -21,8 +22,10 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::{verify_domains_match, verify_urls_match},
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
+use lemmy_db_schema::{
+  source::{person::Person, private_message::PrivateMessage},
+  traits::Crud,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};
@@ -31,8 +34,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeletePrivateMessage {
-  actor: ObjectId<Person>,
-  to: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
+  to: ObjectId<ApubPerson>,
   object: DeletePrivateMessage,
   #[serde(rename = "type")]
   kind: UndoType,
@@ -45,13 +48,15 @@ pub struct UndoDeletePrivateMessage {
 
 impl UndoDeletePrivateMessage {
   pub async fn send(
-    actor: &Person,
-    pm: &PrivateMessage,
+    actor: &ApubPerson,
+    pm: &ApubPrivateMessage,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = pm.recipient_id;
-    let recipient =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient: ApubPerson =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
+        .await??
+        .into();
 
     let object = DeletePrivateMessage::new(actor, pm, context)?;
     let id = generate_activity_id(

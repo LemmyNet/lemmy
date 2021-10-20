@@ -9,8 +9,14 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
-use lemmy_db_queries::{source::post::Post_, Crud};
-use lemmy_db_schema::source::{community::Community, moderator::*, post::*};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    moderator::{ModRemovePost, ModRemovePostForm},
+    post::Post,
+  },
+  traits::Crud,
+};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
@@ -57,8 +63,8 @@ impl PerformCrud for DeletePost {
     })
     .await??;
     send_apub_delete(
-      &local_user_view.person,
-      &community,
+      &local_user_view.person.clone().into(),
+      &community.into(),
       updated_post.ap_id.into(),
       deleted,
       context,
@@ -133,8 +139,8 @@ impl PerformCrud for RemovePost {
     })
     .await??;
     send_apub_remove(
-      &local_user_view.person,
-      &community,
+      &local_user_view.person.clone().into(),
+      &community.into(),
       updated_post.ap_id.into(),
       data.reason.clone().unwrap_or_else(|| "".to_string()),
       removed,

@@ -6,11 +6,12 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::activities::community::update::UpdateCommunity;
-use lemmy_db_queries::{diesel_option_overwrite_to_url, Crud};
 use lemmy_db_schema::{
+  diesel_option_overwrite_to_url,
   naive_now,
+  newtypes::PersonId,
   source::community::{Community, CommunityForm},
-  PersonId,
+  traits::Crud,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
@@ -70,7 +71,12 @@ impl PerformCrud for EditCommunity {
     .await?
     .map_err(|e| ApiError::err("couldnt_update_community", e))?;
 
-    UpdateCommunity::send(&updated_community, &local_user_view.person, context).await?;
+    UpdateCommunity::send(
+      &updated_community.into(),
+      &local_user_view.person.into(),
+      context,
+    )
+    .await?;
 
     let op = UserOperationCrud::EditCommunity;
     send_community_ws_message(data.community_id, op, websocket_id, None, context).await

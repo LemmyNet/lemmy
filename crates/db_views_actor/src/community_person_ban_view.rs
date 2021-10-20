@@ -1,13 +1,12 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::ToSafe;
 use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId},
   schema::{community, community_person_ban, person},
   source::{
     community::{Community, CommunitySafe},
     person::{Person, PersonSafe},
   },
-  CommunityId,
-  PersonId,
+  traits::ToSafe,
 };
 use serde::{Deserialize, Serialize};
 

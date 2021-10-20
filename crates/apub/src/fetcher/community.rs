@@ -1,16 +1,15 @@
 use crate::{
   activities::community::announce::AnnounceActivity,
   fetcher::{fetch::fetch_remote_object, object_id::ObjectId},
-  objects::community::Group,
+  objects::{community::Group, person::ApubPerson},
 };
 use activitystreams::collection::{CollectionExt, OrderedCollection};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{data::Data, traits::ActivityHandler};
-use lemmy_db_queries::Joinable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator, CommunityModeratorForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{Community, CommunityModerator, CommunityModeratorForm},
+  traits::Joinable,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{location_info, LemmyError};
@@ -46,7 +45,7 @@ pub(crate) async fn update_community_mods(
   // Add new mods to database which have been added to moderators collection
   for mod_id in new_moderators {
     let mod_id = ObjectId::new(mod_id);
-    let mod_user: Person = mod_id.dereference(context, request_counter).await?;
+    let mod_user: ApubPerson = mod_id.dereference(context, request_counter).await?;
 
     if !current_moderators
       .clone()

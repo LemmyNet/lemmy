@@ -1,10 +1,11 @@
 use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, FromApub, Source, ToApub},
+  objects::{create_tombstone, person::ApubPerson, Source},
 };
 use activitystreams::{
   base::AnyBase,
+  chrono::NaiveDateTime,
   object::{kind::NoteType, Tombstone},
   primitives::OneOrMany,
   unparsed::Unparsed,
@@ -13,18 +14,23 @@ use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  traits::{ApubObject, FromApub, ToApub},
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DbPool};
-use lemmy_db_schema::source::{
-  person::Person,
-  private_message::{PrivateMessage, PrivateMessageForm},
+use lemmy_db_schema::{
+  source::{
+    person::Person,
+    private_message::{PrivateMessage, PrivateMessageForm},
+  },
+  traits::Crud,
+  DbPool,
 };
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::ops::Deref;
 use url::Url;
 
 #[skip_serializing_none]
@@ -35,8 +41,8 @@ pub struct Note {
   context: OneOrMany<AnyBase>,
   r#type: NoteType,
   id: Url,
-  pub(crate) attributed_to: ObjectId<Person>,
-  to: ObjectId<Person>,
+  pub(crate) attributed_to: ObjectId<ApubPerson>,
+  to: ObjectId<ApubPerson>,
   content: String,
   media_type: MediaTypeHtml,
   source: Source,
@@ -72,9 +78,54 @@ impl Note {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct ApubPrivateMessage(PrivateMessage);
+
+impl Deref for ApubPrivateMessage {
+  type Target = PrivateMessage;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<PrivateMessage> for ApubPrivateMessage {
+  fn from(pm: PrivateMessage) -> Self {
+    ApubPrivateMessage { 0: pm }
+  }
+}
+
 #[async_trait::async_trait(?Send)]
-impl ToApub for PrivateMessage {
+impl ApubObject for ApubPrivateMessage {
+  type DataType = LemmyContext;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
+
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    Ok(
+      blocking(context.pool(), move |conn| {
+        PrivateMessage::read_from_apub_id(conn, object_id)
+      })
+      .await??
+      .map(Into::into),
+    )
+  }
+
+  async fn delete(self, _context: &LemmyContext) -> Result<(), LemmyError> {
+    // do nothing, because pm can't be fetched over http
+    unimplemented!()
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ToApub for ApubPrivateMessage {
   type ApubType = Note;
+  type TombstoneType = Tombstone;
+  type DataType = DbPool;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
@@ -113,15 +164,16 @@ impl ToApub for PrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for PrivateMessage {
+impl FromApub for ApubPrivateMessage {
   type ApubType = Note;
+  type DataType = LemmyContext;
 
   async fn from_apub(
     note: &Note,
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,
-  ) -> Result<PrivateMessage, LemmyError> {
+  ) -> Result<ApubPrivateMessage, LemmyError> {
     let ap_id = Some(note.id(expected_domain)?.clone().into());
     let creator = note
       .attributed_to
@@ -140,11 +192,10 @@ impl FromApub for PrivateMessage {
       ap_id,
       local: Some(false),
     };
-    Ok(
-      blocking(context.pool(), move |conn| {
-        PrivateMessage::upsert(conn, &form)
-      })
-      .await??,
-    )
+    let pm = blocking(context.pool(), move |conn| {
+      PrivateMessage::upsert(conn, &form)
+    })
+    .await??;
+    Ok(pm.into())
   }
 }

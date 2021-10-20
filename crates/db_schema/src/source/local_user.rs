@@ -1,4 +1,7 @@
-use crate::{schema::local_user, LocalUserId, PersonId};
+use crate::{
+  newtypes::{LocalUserId, PersonId},
+  schema::local_user,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]

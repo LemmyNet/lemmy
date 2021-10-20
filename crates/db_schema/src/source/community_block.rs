@@ -1,9 +1,7 @@
 use crate::{
+  newtypes::{CommunityBlockId, CommunityId, PersonId},
   schema::community_block,
   source::community::Community,
-  CommunityBlockId,
-  CommunityId,
-  PersonId,
 };
 use serde::{Deserialize, Serialize};
 

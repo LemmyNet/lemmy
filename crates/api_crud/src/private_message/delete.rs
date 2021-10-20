@@ -9,8 +9,10 @@ use lemmy_apub::activities::private_message::{
   delete::DeletePrivateMessage as DeletePrivateMessageApub,
   undo_delete::UndoDeletePrivateMessage,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud, DeleteableOrRemoveable};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_db_schema::{
+  source::private_message::PrivateMessage,
+  traits::{Crud, DeleteableOrRemoveable},
+};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
@@ -49,14 +51,20 @@ impl PerformCrud for DeletePrivateMessage {
     // Send the apub update
     if data.deleted {
       DeletePrivateMessageApub::send(
-        &local_user_view.person,
-        &updated_private_message.blank_out_deleted_or_removed_info(),
+        &local_user_view.person.into(),
+        &updated_private_message
+          .blank_out_deleted_or_removed_info()
+          .into(),
         context,
       )
       .await?;
     } else {
-      UndoDeletePrivateMessage::send(&local_user_view.person, &updated_private_message, context)
-        .await?;
+      UndoDeletePrivateMessage::send(
+        &local_user_view.person.into(),
+        &updated_private_message.into(),
+        context,
+      )
+      .await?;
     }
 
     let op = UserOperationCrud::DeletePrivateMessage;

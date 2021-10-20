@@ -1,12 +1,12 @@
 use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
-  objects::ToApub,
+  objects::post::ApubPost,
 };
 use actix_web::{body::Body, web, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::{source::post::Post, PostId};
+use lemmy_apub_lib::traits::ToApub;
+use lemmy_db_schema::{newtypes::PostId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -22,7 +22,9 @@ pub(crate) async fn get_apub_post(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
-  let post = blocking(context.pool(), move |conn| Post::read(conn, id)).await??;
+  let post: ApubPost = blocking(context.pool(), move |conn| Post::read(conn, id))
+    .await??
+    .into();
   if !post.local {
     return Err(NotFound.into());
   }

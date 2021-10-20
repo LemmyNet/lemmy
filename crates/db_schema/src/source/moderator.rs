@@ -1,4 +1,5 @@
 use crate::{
+  newtypes::{CommentId, CommunityId, PersonId, PostId},
   schema::{
     mod_add,
     mod_add_community,
@@ -11,10 +12,6 @@ use crate::{
     mod_sticky_post,
     mod_transfer_community,
   },
-  CommentId,
-  CommunityId,
-  PersonId,
-  PostId,
 };
 use serde::{Deserialize, Serialize};
 

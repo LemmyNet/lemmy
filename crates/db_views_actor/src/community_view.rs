@@ -1,24 +1,19 @@
 use crate::{community_moderator_view::CommunityModeratorView, person_view::PersonViewSafe};
 use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::community_aggregates::CommunityAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  ListingType,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId},
   schema::{community, community_aggregates, community_block, community_follower},
   source::{
     community::{Community, CommunityFollower, CommunitySafe},
     community_block::CommunityBlock,
   },
-  CommunityId,
-  PersonId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  ListingType,
+  SortType,
 };
 use serde::{Deserialize, Serialize};
 

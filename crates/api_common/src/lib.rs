@@ -6,43 +6,24 @@ pub mod site;
 pub mod websocket;
 
 use crate::site::FederatedInstances;
-use diesel::PgConnection;
-use lemmy_db_queries::{
-  source::{community::Community_, person_block::PersonBlock_, site::Site_},
-  Crud,
-  DbPool,
-  Readable,
-};
 use lemmy_db_schema::{
+  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
-    comment::Comment,
     community::Community,
-    person::Person,
     person_block::PersonBlock,
-    person_mention::{PersonMention, PersonMentionForm},
     post::{Post, PostRead, PostReadForm},
     secret::Secret,
     site::Site,
   },
-  CommunityId,
-  LocalUserId,
-  PersonId,
-  PostId,
+  traits::{Crud, Readable},
+  DbPool,
 };
 use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
 use lemmy_db_views_actor::{
   community_person_ban_view::CommunityPersonBanView,
   community_view::CommunityView,
 };
-use lemmy_utils::{
-  claims::Claims,
-  email::send_email,
-  settings::structs::{FederationConfig, Settings},
-  utils::MentionData,
-  ApiError,
-  LemmyError,
-};
-use log::error;
+use lemmy_utils::{claims::Claims, settings::structs::FederationConfig, ApiError, LemmyError};
 use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
@@ -59,160 +40,6 @@ where
   .await?;
 
   res
-}
-
-pub async fn send_local_notifs(
-  mentions: Vec<MentionData>,
-  comment: Comment,
-  person: Person,
-  post: Post,
-  pool: &DbPool,
-  do_send_email: bool,
-  settings: &Settings,
-) -> Result<Vec<LocalUserId>, LemmyError> {
-  let settings = settings.to_owned();
-  let ids = blocking(pool, move |conn| {
-    do_send_local_notifs(
-      conn,
-      &mentions,
-      &comment,
-      &person,
-      &post,
-      do_send_email,
-      &settings,
-    )
-  })
-  .await?;
-
-  Ok(ids)
-}
-
-fn do_send_local_notifs(
-  conn: &PgConnection,
-  mentions: &[MentionData],
-  comment: &Comment,
-  person: &Person,
-  post: &Post,
-  do_send_email: bool,
-  settings: &Settings,
-) -> Vec<LocalUserId> {
-  let mut recipient_ids = Vec::new();
-
-  // Send the local mentions
-  for mention in mentions
-    .iter()
-    .filter(|m| m.is_local(&settings.hostname) && m.name.ne(&person.name))
-    .collect::<Vec<&MentionData>>()
-  {
-    if let Ok(mention_user_view) = LocalUserView::read_from_name(conn, &mention.name) {
-      // TODO
-      // At some point, make it so you can't tag the parent creator either
-      // This can cause two notifications, one for reply and the other for mention
-      recipient_ids.push(mention_user_view.local_user.id);
-
-      let user_mention_form = PersonMentionForm {
-        recipient_id: mention_user_view.person.id,
-        comment_id: comment.id,
-        read: None,
-      };
-
-      // Allow this to fail softly, since comment edits might re-update or replace it
-      // Let the uniqueness handle this fail
-      PersonMention::create(conn, &user_mention_form).ok();
-
-      // Send an email to those local users that have notifications on
-      if do_send_email {
-        send_email_to_user(
-          &mention_user_view,
-          "Mentioned by",
-          "Person Mention",
-          &comment.content,
-          settings,
-        )
-      }
-    }
-  }
-
-  // Send notifs to the parent commenter / poster
-  match comment.parent_id {
-    Some(parent_id) => {
-      if let Ok(parent_comment) = Comment::read(conn, parent_id) {
-        // Don't send a notif to yourself
-        if parent_comment.creator_id != person.id {
-          // Get the parent commenter local_user
-          if let Ok(parent_user_view) = LocalUserView::read_person(conn, parent_comment.creator_id)
-          {
-            recipient_ids.push(parent_user_view.local_user.id);
-
-            if do_send_email {
-              send_email_to_user(
-                &parent_user_view,
-                "Reply from",
-                "Comment Reply",
-                &comment.content,
-                settings,
-              )
-            }
-          }
-        }
-      }
-    }
-    // Its a post
-    None => {
-      if post.creator_id != person.id {
-        if let Ok(parent_user_view) = LocalUserView::read_person(conn, post.creator_id) {
-          recipient_ids.push(parent_user_view.local_user.id);
-
-          if do_send_email {
-            send_email_to_user(
-              &parent_user_view,
-              "Reply from",
-              "Post Reply",
-              &comment.content,
-              settings,
-            )
-          }
-        }
-      }
-    }
-  };
-  recipient_ids
-}
-
-pub fn send_email_to_user(
-  local_user_view: &LocalUserView,
-  subject_text: &str,
-  body_text: &str,
-  comment_content: &str,
-  settings: &Settings,
-) {
-  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
-    return;
-  }
-
-  if let Some(user_email) = &local_user_view.local_user.email {
-    let subject = &format!(
-      "{} - {} {}",
-      subject_text, settings.hostname, local_user_view.person.name,
-    );
-    let html = &format!(
-      "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-      body_text,
-      local_user_view.person.name,
-      comment_content,
-      settings.get_protocol_and_hostname()
-    );
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      html,
-      settings,
-    ) {
-      Ok(_o) => _o,
-      Err(e) => error!("{}", e),
-    };
-  }
 }
 
 pub async fn is_mod_or_admin(
@@ -394,7 +221,7 @@ pub async fn check_person_block(
 
 pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
   if score == -1 {
-    let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
+    let site = blocking(pool, Site::read_simple).await??;
     if !site.enable_downvotes {
       return Err(ApiError::err_plain("downvotes_disabled").into());
     }

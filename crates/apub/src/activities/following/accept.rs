@@ -7,6 +7,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
   send_lemmy_activity,
 };
 use activitystreams::{
@@ -21,11 +22,7 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
-use lemmy_db_queries::Followable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower},
-  person::Person,
-};
+use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -34,8 +31,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct AcceptFollowCommunity {
-  actor: ObjectId<Community>,
-  to: ObjectId<Person>,
+  actor: ObjectId<ApubCommunity>,
+  to: ObjectId<ApubPerson>,
   object: FollowCommunity,
   #[serde(rename = "type")]
   kind: AcceptType,
@@ -70,7 +67,7 @@ impl AcceptFollowCommunity {
       context: lemmy_context(),
       unparsed: Default::default(),
     };
-    let inbox = vec![person.inbox_url.into()];
+    let inbox = vec![person.inbox_url()];
     send_lemmy_activity(context, &accept, &accept.id, &community, inbox, true).await
   }
 }

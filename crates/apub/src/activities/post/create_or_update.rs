@@ -10,19 +10,22 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{post::Page, FromApub, ToApub},
+  objects::{
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::{ApubPost, Page},
+  },
 };
 use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
   values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{community::Community, person::Person, post::Post};
+use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};
@@ -31,10 +34,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePost {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   object: Page,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
   id: Url,
@@ -46,16 +49,17 @@ pub struct CreateOrUpdatePost {
 
 impl CreateOrUpdatePost {
   pub async fn send(
-    post: &Post,
-    actor: &Person,
+    post: &ApubPost,
+    actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
 
     let id = generate_activity_id(
       kind.clone(),
@@ -107,7 +111,7 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+          verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
           verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
@@ -124,7 +128,8 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;
-    let post = Post::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
+    let post =
+      ApubPost::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

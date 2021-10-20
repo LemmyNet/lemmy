@@ -1,6 +1,5 @@
-use crate::Crud;
+use crate::{newtypes::DbUrl, source::activity::*, traits::Crud};
 use diesel::{dsl::*, result::Error, sql_types::Text, *};
-use lemmy_db_schema::{source::activity::*, DbUrl};
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -12,12 +11,12 @@ impl Crud for Activity {
   type Form = ActivityForm;
   type IdType = i32;
   fn read(conn: &PgConnection, activity_id: i32) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+    use crate::schema::activity::dsl::*;
     activity.find(activity_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, new_activity: &ActivityForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+    use crate::schema::activity::dsl::*;
     insert_into(activity)
       .values(new_activity)
       .get_result::<Self>(conn)
@@ -28,40 +27,19 @@ impl Crud for Activity {
     activity_id: i32,
     new_activity: &ActivityForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+    use crate::schema::activity::dsl::*;
     diesel::update(activity.find(activity_id))
       .set(new_activity)
       .get_result::<Self>(conn)
   }
   fn delete(conn: &PgConnection, activity_id: i32) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+    use crate::schema::activity::dsl::*;
     diesel::delete(activity.find(activity_id)).execute(conn)
   }
 }
 
-pub trait Activity_ {
-  fn insert<T>(
-    conn: &PgConnection,
-    ap_id: DbUrl,
-    data: &T,
-    local: bool,
-    sensitive: bool,
-  ) -> Result<Activity, IoError>
-  where
-    T: Serialize + Debug;
-
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Activity, Error>;
-  fn delete_olds(conn: &PgConnection) -> Result<usize, Error>;
-
-  /// Returns up to 20 activities of type `Announce/Create/Page` from the community
-  fn read_community_outbox(
-    conn: &PgConnection,
-    community_actor_id: &DbUrl,
-  ) -> Result<Vec<Value>, Error>;
-}
-
-impl Activity_ for Activity {
-  fn insert<T>(
+impl Activity {
+  pub fn insert<T>(
     conn: &PgConnection,
     ap_id: DbUrl,
     data: &T,
@@ -88,21 +66,21 @@ impl Activity_ for Activity {
     }
   }
 
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Activity, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Activity, Error> {
+    use crate::schema::activity::dsl::*;
     activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
-  fn delete_olds(conn: &PgConnection) -> Result<usize, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+  pub fn delete_olds(conn: &PgConnection) -> Result<usize, Error> {
+    use crate::schema::activity::dsl::*;
     diesel::delete(activity.filter(published.lt(now - 6.months()))).execute(conn)
   }
 
-  fn read_community_outbox(
+  pub fn read_community_outbox(
     conn: &PgConnection,
     community_actor_id: &DbUrl,
   ) -> Result<Vec<Value>, Error> {
-    use lemmy_db_schema::schema::activity::dsl::*;
+    use crate::schema::activity::dsl::*;
     let res: Vec<Value> = activity
       .select(data)
       .filter(
@@ -122,10 +100,13 @@ impl Activity_ for Activity {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::{establish_unpooled_connection, source::activity::Activity_};
-  use lemmy_db_schema::source::{
-    activity::{Activity, ActivityForm},
-    person::{Person, PersonForm},
+  use crate::{
+    establish_unpooled_connection,
+    newtypes::DbUrl,
+    source::{
+      activity::{Activity, ActivityForm},
+      person::{Person, PersonForm},
+    },
   };
   use serde_json::Value;
   use serial_test::serial;

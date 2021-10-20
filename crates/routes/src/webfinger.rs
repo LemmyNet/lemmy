@@ -2,7 +2,6 @@ use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::webfinger::{WebfingerLink, WebfingerResponse};
-use lemmy_db_queries::source::{community::Community_, person::Person_};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;

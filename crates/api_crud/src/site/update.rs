@@ -7,15 +7,12 @@ use lemmy_api_common::{
   site::{EditSite, SiteResponse},
   site_description_length_check,
 };
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
-  source::site::Site_,
-  Crud,
-};
-use lemmy_db_schema::{
   naive_now,
   source::site::{Site, SiteForm},
+  traits::Crud,
 };
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
@@ -39,7 +36,7 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
+    let found_site = blocking(context.pool(), Site::read_simple).await??;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);

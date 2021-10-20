@@ -1,13 +1,11 @@
-use crate::{
-  fetcher::{deletable_apub_object::DeletableApubObject, should_refetch_actor},
-  objects::FromApub,
-};
+use crate::fetcher::should_refetch_actor;
 use anyhow::anyhow;
-use diesel::{NotFound, PgConnection};
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
-use lemmy_db_queries::DbPool;
-use lemmy_db_schema::DbUrl;
+use diesel::NotFound;
+use lemmy_apub_lib::{
+  traits::{ApubObject, FromApub},
+  APUB_JSON_CONTENT_TYPE,
+};
+use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use reqwest::StatusCode;
@@ -26,12 +24,12 @@ static REQUEST_LIMIT: i32 = 25;
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct ObjectId<Kind>(Url, #[serde(skip)] PhantomData<Kind>)
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
   for<'de2> <Kind as FromApub>::ApubType: serde::Deserialize<'de2>;
 
 impl<Kind> ObjectId<Kind>
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   pub fn new<T>(url: T) -> Self
@@ -51,7 +49,7 @@ where
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<Kind, LemmyError> {
-    let db_object = self.dereference_from_db(context.pool()).await?;
+    let db_object = self.dereference_from_db(context).await?;
 
     // if its a local object, only fetch it from the database and not over http
     if self.0.domain() == Some(&Settings::get().get_hostname_without_port()?) {
@@ -81,14 +79,14 @@ where
   /// Fetch an object from the local db. Instead of falling back to http, this throws an error if
   /// the object is not found in the database.
   pub async fn dereference_local(&self, context: &LemmyContext) -> Result<Kind, LemmyError> {
-    let object = self.dereference_from_db(context.pool()).await?;
+    let object = self.dereference_from_db(context).await?;
     object.ok_or_else(|| anyhow!("object not found in database {}", self).into())
   }
 
   /// returning none means the object was not found in local db
-  async fn dereference_from_db(&self, pool: &DbPool) -> Result<Option<Kind>, LemmyError> {
+  async fn dereference_from_db(&self, context: &LemmyContext) -> Result<Option<Kind>, LemmyError> {
     let id = self.0.clone();
-    blocking(pool, move |conn| ApubObject::read_from_apub_id(conn, id)).await?
+    ApubObject::read_from_apub_id(id, context).await
   }
 
   async fn dereference_from_http(
@@ -130,7 +128,7 @@ where
 
 impl<Kind> Display for ObjectId<Kind>
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -140,7 +138,7 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for Url
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
@@ -150,7 +148,7 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for DbUrl
 where
-  Kind: FromApub + ApubObject<DataType = PgConnection> + DeletableApubObject + Send + 'static,
+  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
   for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
 {
   fn from(id: ObjectId<Kind>) -> Self {

@@ -1,5 +1,5 @@
+use crate::schema::site_aggregates;
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::site_aggregates;
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -27,13 +27,17 @@ impl SiteAggregates {
 
 #[cfg(test)]
 mod tests {
-  use crate::{aggregates::site_aggregates::SiteAggregates, establish_unpooled_connection, Crud};
-  use lemmy_db_schema::source::{
-    comment::{Comment, CommentForm},
-    community::{Community, CommunityForm},
-    person::{Person, PersonForm},
-    post::{Post, PostForm},
-    site::{Site, SiteForm},
+  use crate::{
+    aggregates::site_aggregates::SiteAggregates,
+    establish_unpooled_connection,
+    source::{
+      comment::{Comment, CommentForm},
+      community::{Community, CommunityForm},
+      person::{Person, PersonForm},
+      post::{Post, PostForm},
+      site::{Site, SiteForm},
+    },
+    traits::Crud,
   };
   use serial_test::serial;
 

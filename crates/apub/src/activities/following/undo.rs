@@ -7,6 +7,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
   send_lemmy_activity,
 };
 use activitystreams::{
@@ -21,10 +22,9 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
-use lemmy_db_queries::Followable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{CommunityFollower, CommunityFollowerForm},
+  traits::Followable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -34,8 +34,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollowCommunity {
-  actor: ObjectId<Person>,
-  to: ObjectId<Community>,
+  actor: ObjectId<ApubPerson>,
+  to: ObjectId<ApubCommunity>,
   object: FollowCommunity,
   #[serde(rename = "type")]
   kind: UndoType,
@@ -48,8 +48,8 @@ pub struct UndoFollowCommunity {
 
 impl UndoFollowCommunity {
   pub async fn send(
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let object = FollowCommunity::new(actor, community, context)?;

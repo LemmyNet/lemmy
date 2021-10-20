@@ -2,6 +2,7 @@ use crate::{
   activities::{generate_activity_id, verify_activity, verify_person},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   send_lemmy_activity,
 };
 use activitystreams::{
@@ -16,8 +17,10 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::{person::Person, private_message::PrivateMessage};
+use lemmy_db_schema::{
+  source::{person::Person, private_message::PrivateMessage},
+  traits::Crud,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};
@@ -26,9 +29,9 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct DeletePrivateMessage {
-  actor: ObjectId<Person>,
-  to: ObjectId<Person>,
-  pub(in crate::activities::private_message) object: ObjectId<PrivateMessage>,
+  actor: ObjectId<ApubPerson>,
+  to: ObjectId<ApubPerson>,
+  pub(in crate::activities::private_message) object: ObjectId<ApubPrivateMessage>,
   #[serde(rename = "type")]
   kind: DeleteType,
   id: Url,
@@ -40,7 +43,7 @@ pub struct DeletePrivateMessage {
 
 impl DeletePrivateMessage {
   pub(in crate::activities::private_message) fn new(
-    actor: &Person,
+    actor: &ApubPerson,
     pm: &PrivateMessage,
     context: &LemmyContext,
   ) -> Result<DeletePrivateMessage, LemmyError> {
@@ -58,16 +61,18 @@ impl DeletePrivateMessage {
     })
   }
   pub async fn send(
-    actor: &Person,
-    pm: &PrivateMessage,
+    actor: &ApubPerson,
+    pm: &ApubPrivateMessage,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let delete = DeletePrivateMessage::new(actor, pm, context)?;
     let delete_id = delete.id.clone();
 
     let recipient_id = pm.recipient_id;
-    let recipient =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient: ApubPerson =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
+        .await??
+        .into();
     let inbox = vec![recipient.shared_inbox_or_inbox_url()];
     send_lemmy_activity(context, &delete, &delete_id, actor, inbox, true).await
   }

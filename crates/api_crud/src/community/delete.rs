@@ -2,10 +2,12 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt, is_admin};
 use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
-use lemmy_db_queries::{source::community::Community_, Crud};
-use lemmy_db_schema::source::{
-  community::*,
-  moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
+  },
+  traits::Crud,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::{utils::naive_from_unix, ApiError, ConnectionId, LemmyError};
@@ -47,8 +49,8 @@ impl PerformCrud for DeleteCommunity {
 
     // Send apub messages
     send_apub_delete(
-      &local_user_view.person,
-      &updated_community,
+      &local_user_view.person.clone().into(),
+      &updated_community.clone().into(),
       updated_community.actor_id.clone().into(),
       deleted,
       context,
@@ -107,8 +109,8 @@ impl PerformCrud for RemoveCommunity {
 
     // Apub messages
     send_apub_remove(
-      &local_user_view.person,
-      &updated_community,
+      &local_user_view.person.clone().into(),
+      &updated_community.clone().into(),
       updated_community.actor_id.clone().into(),
       data.reason.clone().unwrap_or_else(|| "".to_string()),
       removed,

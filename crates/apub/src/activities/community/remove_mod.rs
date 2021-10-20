@@ -11,6 +11,7 @@ use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::RemoveType,
@@ -24,10 +25,9 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::Joinable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator, CommunityModeratorForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{CommunityModerator, CommunityModeratorForm},
+  traits::Joinable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -37,10 +37,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
-  pub(in crate::activities) object: ObjectId<Person>,
-  cc: [ObjectId<Community>; 1],
+  pub(in crate::activities) object: ObjectId<ApubPerson>,
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
   // if target is set, this is means remove mod from community
@@ -54,9 +54,9 @@ pub struct RemoveMod {
 
 impl RemoveMod {
   pub async fn send(
-    community: &Community,
-    removed_mod: &Person,
-    actor: &Person,
+    community: &ApubCommunity,
+    removed_mod: &ApubPerson,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
@@ -92,7 +92,7 @@ impl ActivityHandler for RemoveMod {
     verify_activity(self, &context.settings())?;
     if let Some(target) = &self.target {
       verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-      verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+      verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
       verify_add_remove_moderator_target(target, &self.cc[0])?;
     } else {
       verify_delete_activity(

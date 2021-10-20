@@ -2,27 +2,28 @@ use crate::{
   check_is_apub_id_valid,
   context::lemmy_context,
   generate_outbox_url,
-  objects::{FromApub, ImageObject, Source, ToApub},
+  objects::{ImageObject, Source},
 };
 use activitystreams::{
   actor::Endpoints,
   base::AnyBase,
-  chrono::{DateTime, FixedOffset},
+  chrono::NaiveDateTime,
   object::{kind::ImageType, Tombstone},
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
+use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
-  traits::ActorType,
+  traits::{ActorType, ApubObject, FromApub, ToApub},
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
-use lemmy_db_queries::{source::person::Person_, DbPool};
 use lemmy_db_schema::{
   naive_now,
   source::person::{Person as DbPerson, PersonForm},
+  DbPool,
 };
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
@@ -31,6 +32,7 @@ use lemmy_utils::{
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
@@ -79,9 +81,85 @@ impl Person {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct ApubPerson(DbPerson);
+
+impl Deref for ApubPerson {
+  type Target = DbPerson;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<DbPerson> for ApubPerson {
+  fn from(p: DbPerson) -> Self {
+    ApubPerson { 0: p }
+  }
+}
+
 #[async_trait::async_trait(?Send)]
-impl ToApub for DbPerson {
+impl ApubObject for ApubPerson {
+  type DataType = LemmyContext;
+
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
+
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    Ok(
+      blocking(context.pool(), move |conn| {
+        DbPerson::read_from_apub_id(conn, object_id)
+      })
+      .await??
+      .map(Into::into),
+    )
+  }
+
+  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+    blocking(context.pool(), move |conn| {
+      DbPerson::update_deleted(conn, self.id, true)
+    })
+    .await??;
+    Ok(())
+  }
+}
+
+impl ActorType for ApubPerson {
+  fn is_local(&self) -> bool {
+    self.local
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into_inner()
+  }
+  fn name(&self) -> String {
+    self.name.clone()
+  }
+
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
+  }
+
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
+
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into_inner())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl ToApub for ApubPerson {
   type ApubType = Person;
+  type TombstoneType = Tombstone;
+  type DataType = DbPool;
 
   async fn to_apub(&self, _pool: &DbPool) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
@@ -133,15 +211,16 @@ impl ToApub for DbPerson {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for DbPerson {
+impl FromApub for ApubPerson {
   type ApubType = Person;
+  type DataType = LemmyContext;
 
   async fn from_apub(
     person: &Person,
     context: &LemmyContext,
     expected_domain: &Url,
     _request_counter: &mut i32,
-  ) -> Result<DbPerson, LemmyError> {
+  ) -> Result<ApubPerson, LemmyError> {
     let actor_id = Some(person.id(expected_domain)?.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
@@ -184,6 +263,6 @@ impl FromApub for DbPerson {
       DbPerson::upsert(conn, &person_form)
     })
     .await??;
-    Ok(person)
+    Ok(person.into())
   }
 }

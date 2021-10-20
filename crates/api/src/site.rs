@@ -15,19 +15,15 @@ use lemmy_apub::{
   fetcher::search::{search_by_apub_id, SearchableObjects},
   EndpointType,
 };
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
-  source::site::Site_,
-  Crud,
+  newtypes::PersonId,
+  source::{moderator::*, site::Site},
+  traits::{Crud, DeleteableOrRemoveable},
   DbPool,
-  DeleteableOrRemoveable,
   ListingType,
   SearchType,
   SortType,
-};
-use lemmy_db_schema::{
-  source::{moderator::*, site::Site},
-  PersonId,
 };
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
@@ -450,7 +446,7 @@ impl Perform for TransferSite {
 
     is_admin(&local_user_view)?;
 
-    let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
+    let read_site = blocking(context.pool(), Site::read_simple).await??;
 
     // Make sure user is the creator
     if read_site.creator_id != local_user_view.person.id {

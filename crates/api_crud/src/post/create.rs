@@ -19,8 +19,10 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
-use lemmy_db_schema::source::post::*;
+use lemmy_db_schema::{
+  source::post::{Post, PostForm, PostLike, PostLikeForm},
+  traits::{Crud, Likeable},
+};
 use lemmy_utils::{
   request::fetch_site_data,
   utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
@@ -107,8 +109,8 @@ impl PerformCrud for CreatePost {
     .map_err(|e| ApiError::err("couldnt_create_post", e))?;
 
     CreateOrUpdatePost::send(
-      &updated_post,
-      &local_user_view.person,
+      &updated_post.clone().into(),
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Create,
       context,
     )
@@ -144,10 +146,10 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    let object = PostOrComment::Post(Box::new(updated_post));
+    let object = PostOrComment::Post(Box::new(updated_post.into()));
     Vote::send(
       &object,
-      &local_user_view.person,
+      &local_user_view.person.clone().into(),
       inserted_post.community_id,
       VoteType::Like,
       context,

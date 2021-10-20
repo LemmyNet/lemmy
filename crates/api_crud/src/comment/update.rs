@@ -7,14 +7,12 @@ use lemmy_api_common::{
   check_post_deleted_or_removed,
   comment::*,
   get_local_user_view_from_jwt,
-  send_local_notifs,
 };
 use lemmy_apub::activities::{
   comment::create_or_update::CreateOrUpdateComment,
   CreateOrUpdateType,
 };
-use lemmy_db_queries::source::comment::Comment_;
-use lemmy_db_schema::source::comment::*;
+use lemmy_db_schema::source::comment::Comment;
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
@@ -22,7 +20,11 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_comment_ws_message, send_local_notifs},
+  LemmyContext,
+  UserOperationCrud,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {
@@ -70,8 +72,8 @@ impl PerformCrud for EditComment {
 
     // Send the apub update
     CreateOrUpdateComment::send(
-      &updated_comment,
-      &local_user_view.person,
+      &updated_comment.clone().into(),
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
     )
@@ -82,12 +84,11 @@ impl PerformCrud for EditComment {
     let mentions = scrape_text_for_mentions(&updated_comment_content);
     let recipient_ids = send_local_notifs(
       mentions,
-      updated_comment,
-      local_user_view.person.clone(),
-      orig_comment.post,
-      context.pool(),
+      &updated_comment,
+      &local_user_view.person,
+      &orig_comment.post,
       false,
-      &context.settings(),
+      context,
     )
     .await?;
 

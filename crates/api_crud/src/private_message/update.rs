@@ -9,8 +9,7 @@ use lemmy_apub::activities::{
   private_message::create_or_update::CreateOrUpdatePrivateMessage,
   CreateOrUpdateType,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
 use lemmy_utils::{utils::remove_slurs, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
@@ -48,8 +47,8 @@ impl PerformCrud for EditPrivateMessage {
 
     // Send the apub update
     CreateOrUpdatePrivateMessage::send(
-      &updated_private_message,
-      &local_user_view.person,
+      &updated_private_message.into(),
+      &local_user_view.person.into(),
       CreateOrUpdateType::Update,
       context,
     )

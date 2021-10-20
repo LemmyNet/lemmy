@@ -8,8 +8,7 @@ use lemmy_api_common::{
   is_mod_or_admin,
 };
 use lemmy_apub::{activities::report::Report, fetcher::object_id::ObjectId};
-use lemmy_db_queries::Reportable;
-use lemmy_db_schema::source::comment_report::*;
+use lemmy_db_schema::{source::comment_report::*, traits::Reportable};
 use lemmy_db_views::{
   comment_report_view::{CommentReportQueryBuilder, CommentReportView},
   comment_view::CommentView,
@@ -80,8 +79,8 @@ impl Perform for CreateCommentReport {
 
     Report::send(
       ObjectId::new(comment_view.comment.ap_id),
-      &local_user_view.person,
-      comment_view.community.id,
+      &local_user_view.person.into(),
+      ObjectId::new(comment_view.community.actor_id),
       reason.to_string(),
       context,
     )

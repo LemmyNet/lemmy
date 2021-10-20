@@ -7,6 +7,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
   send_lemmy_activity,
 };
 use activitystreams::{
@@ -21,10 +22,9 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
-use lemmy_db_queries::Followable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{CommunityFollower, CommunityFollowerForm},
+  traits::Followable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -34,10 +34,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
-  pub(in crate::activities::following) actor: ObjectId<Person>,
+  pub(in crate::activities::following) actor: ObjectId<ApubPerson>,
   // TODO: is there any reason to put the same community id twice, in to and object?
-  pub(in crate::activities::following) to: ObjectId<Community>,
-  pub(in crate::activities::following) object: ObjectId<Community>,
+  pub(in crate::activities::following) to: ObjectId<ApubCommunity>,
+  pub(in crate::activities::following) object: ObjectId<ApubCommunity>,
   #[serde(rename = "type")]
   kind: FollowType,
   id: Url,
@@ -49,8 +49,8 @@ pub struct FollowCommunity {
 
 impl FollowCommunity {
   pub(in crate::activities::following) fn new(
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     context: &LemmyContext,
   ) -> Result<FollowCommunity, LemmyError> {
     Ok(FollowCommunity {
@@ -67,8 +67,8 @@ impl FollowCommunity {
     })
   }
   pub async fn send(
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_follower_form = CommunityFollowerForm {

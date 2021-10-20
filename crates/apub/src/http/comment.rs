@@ -1,12 +1,12 @@
 use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
-  objects::ToApub,
+  objects::comment::ApubComment,
 };
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::{source::comment::Comment, CommentId};
+use lemmy_apub_lib::traits::ToApub;
+use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -22,7 +22,9 @@ pub(crate) async fn get_apub_comment(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
-  let comment = blocking(context.pool(), move |conn| Comment::read(conn, id)).await??;
+  let comment: ApubComment = blocking(context.pool(), move |conn| Comment::read(conn, id))
+    .await??
+    .into();
   if !comment.local {
     return Err(NotFound.into());
   }

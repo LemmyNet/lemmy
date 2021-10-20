@@ -1,4 +1,4 @@
-use lemmy_db_schema::{CommunityId, PersonId};
+use lemmy_db_schema::newtypes::{CommunityId, PersonId};
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,

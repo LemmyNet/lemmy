@@ -5,6 +5,7 @@ use crate::{
     verify_activity,
   },
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -17,7 +18,6 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler},
   values::PublicUrl,
 };
-use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -26,11 +26,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoRemovePostCommentOrCommunity {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   // Note, there is no such thing as Undo/Remove/Mod, so we ignore that
   object: RemoveMod,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,

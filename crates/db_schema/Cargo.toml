@@ -12,11 +12,20 @@ doctest = false
 
 [dependencies]
 lemmy_utils = { version = "=0.13.0", path = "../utils" }
-lemmy_apub_lib = { version = "=0.13.0", path = "../apub_lib" }
 diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
+diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { version = "1.0.68", features = ["preserve_order"] }
 log = "0.4.14"
 url = { version = "2.2.2", features = ["serde"] }
 diesel-derive-newtype = "0.1.2"
+regex = "1.5.4"
+lazy_static = "1.4.0"
+strum = "0.21.0"
+strum_macros = "0.21.1"
+sha2 = "0.9.8"
+bcrypt = "0.10.1"
+
+[dev-dependencies]
+serial_test = "0.5.1"

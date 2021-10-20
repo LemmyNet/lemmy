@@ -10,8 +10,16 @@ use lemmy_api_common::{
   person::PrivateMessageResponse,
   post::PostResponse,
 };
-use lemmy_db_queries::DeleteableOrRemoveable;
-use lemmy_db_schema::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId};
+use lemmy_db_schema::{
+  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
+  source::{
+    comment::Comment,
+    person::Person,
+    person_mention::{PersonMention, PersonMentionForm},
+    post::Post,
+  },
+  traits::{Crud, DeleteableOrRemoveable},
+};
 use lemmy_db_views::{
   comment_view::CommentView,
   local_user_view::LocalUserView,
@@ -19,7 +27,14 @@ use lemmy_db_views::{
   private_message_view::PrivateMessageView,
 };
 use lemmy_db_views_actor::community_view::CommunityView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{
+  email::send_email,
+  settings::structs::Settings,
+  utils::MentionData,
+  ConnectionId,
+  LemmyError,
+};
+use log::error;
 
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(
   post_id: PostId,
@@ -164,4 +179,150 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   }
 
   Ok(res)
+}
+
+pub async fn send_local_notifs(
+  mentions: Vec<MentionData>,
+  comment: &Comment,
+  person: &Person,
+  post: &Post,
+  do_send_email: bool,
+  context: &LemmyContext,
+) -> Result<Vec<LocalUserId>, LemmyError> {
+  let mut recipient_ids = Vec::new();
+
+  // Send the local mentions
+  for mention in mentions
+    .iter()
+    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
+    .collect::<Vec<&MentionData>>()
+  {
+    let mention_name = mention.name.clone();
+    let user_view = blocking(context.pool(), move |conn| {
+      LocalUserView::read_from_name(conn, &mention_name)
+    })
+    .await?;
+    if let Ok(mention_user_view) = user_view {
+      // TODO
+      // At some point, make it so you can't tag the parent creator either
+      // This can cause two notifications, one for reply and the other for mention
+      recipient_ids.push(mention_user_view.local_user.id);
+
+      let user_mention_form = PersonMentionForm {
+        recipient_id: mention_user_view.person.id,
+        comment_id: comment.id,
+        read: None,
+      };
+
+      // Allow this to fail softly, since comment edits might re-update or replace it
+      // Let the uniqueness handle this fail
+      blocking(context.pool(), move |conn| {
+        PersonMention::create(conn, &user_mention_form)
+      })
+      .await?
+      .ok();
+
+      // Send an email to those local users that have notifications on
+      if do_send_email {
+        send_email_to_user(
+          &mention_user_view,
+          "Mentioned by",
+          "Person Mention",
+          &comment.content,
+          &context.settings(),
+        )
+      }
+    }
+  }
+
+  // Send notifs to the parent commenter / poster
+  match comment.parent_id {
+    Some(parent_id) => {
+      let parent_comment =
+        blocking(context.pool(), move |conn| Comment::read(conn, parent_id)).await?;
+      if let Ok(parent_comment) = parent_comment {
+        // Don't send a notif to yourself
+        if parent_comment.creator_id != person.id {
+          // Get the parent commenter local_user
+          let user_view = blocking(context.pool(), move |conn| {
+            LocalUserView::read_person(conn, parent_comment.creator_id)
+          })
+          .await?;
+          if let Ok(parent_user_view) = user_view {
+            recipient_ids.push(parent_user_view.local_user.id);
+
+            if do_send_email {
+              send_email_to_user(
+                &parent_user_view,
+                "Reply from",
+                "Comment Reply",
+                &comment.content,
+                &context.settings(),
+              )
+            }
+          }
+        }
+      }
+    }
+    // Its a post
+    None => {
+      if post.creator_id != person.id {
+        let creator_id = post.creator_id;
+        let parent_user = blocking(context.pool(), move |conn| {
+          LocalUserView::read_person(conn, creator_id)
+        })
+        .await?;
+        if let Ok(parent_user_view) = parent_user {
+          recipient_ids.push(parent_user_view.local_user.id);
+
+          if do_send_email {
+            send_email_to_user(
+              &parent_user_view,
+              "Reply from",
+              "Post Reply",
+              &comment.content,
+              &context.settings(),
+            )
+          }
+        }
+      }
+    }
+  };
+  Ok(recipient_ids)
+}
+
+pub fn send_email_to_user(
+  local_user_view: &LocalUserView,
+  subject_text: &str,
+  body_text: &str,
+  comment_content: &str,
+  settings: &Settings,
+) {
+  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
+    return;
+  }
+
+  if let Some(user_email) = &local_user_view.local_user.email {
+    let subject = &format!(
+      "{} - {} {}",
+      subject_text, settings.hostname, local_user_view.person.name,
+    );
+    let html = &format!(
+      "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+      body_text,
+      local_user_view.person.name,
+      comment_content,
+      settings.get_protocol_and_hostname()
+    );
+    match send_email(
+      subject,
+      user_email,
+      &local_user_view.person.name,
+      html,
+      settings,
+    ) {
+      Ok(_o) => _o,
+      Err(e) => error!("{}", e),
+    };
+  }
 }

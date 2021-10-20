@@ -1,17 +1,20 @@
-use crate::Crud;
+use crate::{
+  newtypes::{CommentId, PersonId, PersonMentionId},
+  source::person_mention::*,
+  traits::Crud,
+};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{source::person_mention::*, CommentId, PersonId, PersonMentionId};
 
 impl Crud for PersonMention {
   type Form = PersonMentionForm;
   type IdType = PersonMentionId;
   fn read(conn: &PgConnection, person_mention_id: PersonMentionId) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::person_mention::dsl::*;
+    use crate::schema::person_mention::dsl::*;
     person_mention.find(person_mention_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, person_mention_form: &PersonMentionForm) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::person_mention::dsl::*;
+    use crate::schema::person_mention::dsl::*;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
     insert_into(person_mention)
@@ -27,47 +30,30 @@ impl Crud for PersonMention {
     person_mention_id: PersonMentionId,
     person_mention_form: &PersonMentionForm,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::person_mention::dsl::*;
+    use crate::schema::person_mention::dsl::*;
     diesel::update(person_mention.find(person_mention_id))
       .set(person_mention_form)
       .get_result::<Self>(conn)
   }
 }
 
-pub trait PersonMention_ {
-  fn update_read(
-    conn: &PgConnection,
-    person_mention_id: PersonMentionId,
-    new_read: bool,
-  ) -> Result<PersonMention, Error>;
-  fn mark_all_as_read(
-    conn: &PgConnection,
-    for_recipient_id: PersonId,
-  ) -> Result<Vec<PersonMention>, Error>;
-  fn read_by_comment_and_person(
-    conn: &PgConnection,
-    for_comment_id: CommentId,
-    for_recipient_id: PersonId,
-  ) -> Result<PersonMention, Error>;
-}
-
-impl PersonMention_ for PersonMention {
-  fn update_read(
+impl PersonMention {
+  pub fn update_read(
     conn: &PgConnection,
     person_mention_id: PersonMentionId,
     new_read: bool,
   ) -> Result<PersonMention, Error> {
-    use lemmy_db_schema::schema::person_mention::dsl::*;
+    use crate::schema::person_mention::dsl::*;
     diesel::update(person_mention.find(person_mention_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
-  fn mark_all_as_read(
+  pub fn mark_all_as_read(
     conn: &PgConnection,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PersonMention>, Error> {
-    use lemmy_db_schema::schema::person_mention::dsl::*;
+    use crate::schema::person_mention::dsl::*;
     diesel::update(
       person_mention
         .filter(recipient_id.eq(for_recipient_id))
@@ -76,12 +62,12 @@ impl PersonMention_ for PersonMention {
     .set(read.eq(true))
     .get_results::<Self>(conn)
   }
-  fn read_by_comment_and_person(
+  pub fn read_by_comment_and_person(
     conn: &PgConnection,
     for_comment_id: CommentId,
     for_recipient_id: PersonId,
   ) -> Result<Self, Error> {
-    use lemmy_db_schema::schema::person_mention::dsl::*;
+    use crate::schema::person_mention::dsl::*;
     person_mention
       .filter(comment_id.eq(for_comment_id))
       .filter(recipient_id.eq(for_recipient_id))
@@ -91,13 +77,16 @@ impl PersonMention_ for PersonMention {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, Crud};
-  use lemmy_db_schema::source::{
-    comment::*,
-    community::{Community, CommunityForm},
-    person::*,
-    person_mention::*,
-    post::*,
+  use crate::{
+    establish_unpooled_connection,
+    source::{
+      comment::*,
+      community::{Community, CommunityForm},
+      person::*,
+      person_mention::*,
+      post::*,
+    },
+    traits::Crud,
   };
   use serial_test::serial;
 

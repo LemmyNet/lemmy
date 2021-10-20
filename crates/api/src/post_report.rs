@@ -14,8 +14,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_apub::{activities::report::Report, fetcher::object_id::ObjectId};
-use lemmy_db_queries::Reportable;
-use lemmy_db_schema::source::post_report::{PostReport, PostReportForm};
+use lemmy_db_schema::{
+  source::post_report::{PostReport, PostReportForm},
+  traits::Reportable,
+};
 use lemmy_db_views::{
   post_report_view::{PostReportQueryBuilder, PostReportView},
   post_view::PostView,
@@ -86,8 +88,8 @@ impl Perform for CreatePostReport {
 
     Report::send(
       ObjectId::new(post_view.post.ap_id),
-      &local_user_view.person,
-      post_view.community.id,
+      &local_user_view.person.into(),
+      ObjectId::new(post_view.community.actor_id),
       reason.to_string(),
       context,
     )

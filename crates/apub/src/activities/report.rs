@@ -2,6 +2,7 @@ use crate::{
   activities::{generate_activity_id, verify_activity, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
   send_lemmy_activity,
   PostOrComment,
 };
@@ -16,15 +17,12 @@ use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
 };
-use lemmy_db_queries::{Crud, Reportable};
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
-    community::Community,
-    person::Person,
     post_report::{PostReport, PostReportForm},
   },
-  CommunityId,
+  traits::Reportable,
 };
 use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
 use lemmy_utils::LemmyError;
@@ -35,8 +33,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct Report {
-  actor: ObjectId<Person>,
-  to: [ObjectId<Community>; 1],
+  actor: ObjectId<ApubPerson>,
+  to: [ObjectId<ApubCommunity>; 1],
   object: ObjectId<PostOrComment>,
   summary: String,
   #[serde(rename = "type")]
@@ -51,15 +49,12 @@ pub struct Report {
 impl Report {
   pub async fn send(
     object_id: ObjectId<PostOrComment>,
-    actor: &Person,
-    community_id: CommunityId,
+    actor: &ApubPerson,
+    community_id: ObjectId<ApubCommunity>,
     reason: String,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = community_id.dereference_local(context).await?;
     let kind = FlagType::Flag;
     let id = generate_activity_id(
       kind.clone(),
@@ -111,10 +106,10 @@ impl ActivityHandler for Report {
         let report_form = PostReportForm {
           creator_id: actor.id,
           post_id: post.id,
-          original_post_name: post.name,
-          original_post_url: post.url,
+          original_post_name: post.name.clone(),
+          original_post_url: post.url.clone(),
           reason: self.summary,
-          original_post_body: post.body,
+          original_post_body: post.body.clone(),
         };
 
         let report = blocking(context.pool(), move |conn| {
@@ -138,7 +133,7 @@ impl ActivityHandler for Report {
         let report_form = CommentReportForm {
           creator_id: actor.id,
           comment_id: comment.id,
-          original_comment_text: comment.content,
+          original_comment_text: comment.content.clone(),
           reason: self.summary,
         };
 

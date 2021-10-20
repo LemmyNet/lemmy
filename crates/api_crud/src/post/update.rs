@@ -8,8 +8,11 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType};
-use lemmy_db_queries::{source::post::Post_, Crud};
-use lemmy_db_schema::{naive_now, source::post::*};
+use lemmy_db_schema::{
+  naive_now,
+  source::post::{Post, PostForm},
+  traits::Crud,
+};
 use lemmy_utils::{
   request::fetch_site_data,
   utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
@@ -101,8 +104,8 @@ impl PerformCrud for EditPost {
 
     // Send apub update
     CreateOrUpdatePost::send(
-      &updated_post,
-      &local_user_view.person,
+      &updated_post.into(),
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
     )

@@ -1,10 +1,14 @@
-use crate::activities::voting::vote::VoteType;
+use crate::{
+  activities::voting::vote::VoteType,
+  objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
+};
 use lemmy_api_common::blocking;
-use lemmy_db_queries::Likeable;
-use lemmy_db_schema::source::{
-  comment::{Comment, CommentLike, CommentLikeForm},
-  person::Person,
-  post::{Post, PostLike, PostLikeForm},
+use lemmy_db_schema::{
+  source::{
+    comment::{CommentLike, CommentLikeForm},
+    post::{PostLike, PostLikeForm},
+  },
+  traits::Likeable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{
@@ -18,8 +22,8 @@ pub mod vote;
 
 async fn vote_comment(
   vote_type: &VoteType,
-  actor: Person,
-  comment: &Comment,
+  actor: ApubPerson,
+  comment: &ApubComment,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let comment_id = comment.id;
@@ -42,8 +46,8 @@ async fn vote_comment(
 
 async fn vote_post(
   vote_type: &VoteType,
-  actor: Person,
-  post: &Post,
+  actor: ApubPerson,
+  post: &ApubPost,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let post_id = post.id;
@@ -64,8 +68,8 @@ async fn vote_post(
 }
 
 async fn undo_vote_comment(
-  actor: Person,
-  comment: &Comment,
+  actor: ApubPerson,
+  comment: &ApubComment,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let comment_id = comment.id;
@@ -80,8 +84,8 @@ async fn undo_vote_comment(
 }
 
 async fn undo_vote_post(
-  actor: Person,
-  post: &Post,
+  actor: ApubPerson,
+  post: &ApubPost,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let post_id = post.id;

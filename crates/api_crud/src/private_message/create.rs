@@ -5,7 +5,6 @@ use lemmy_api_common::{
   check_person_block,
   get_local_user_view_from_jwt,
   person::{CreatePrivateMessage, PrivateMessageResponse},
-  send_email_to_user,
 };
 use lemmy_apub::{
   activities::{
@@ -15,11 +14,17 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageForm};
+use lemmy_db_schema::{
+  source::private_message::{PrivateMessage, PrivateMessageForm},
+  traits::Crud,
+};
 use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_utils::{utils::remove_slurs, ApiError, ConnectionId, LemmyError};
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_email_to_user, send_pm_ws_message},
+  LemmyContext,
+  UserOperationCrud,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {
@@ -78,8 +83,8 @@ impl PerformCrud for CreatePrivateMessage {
     .map_err(|e| ApiError::err("couldnt_create_private_message", e))?;
 
     CreateOrUpdatePrivateMessage::send(
-      &updated_private_message,
-      &local_user_view.person,
+      &updated_private_message.into(),
+      &local_user_view.person.into(),
       CreateOrUpdateType::Create,
       context,
     )

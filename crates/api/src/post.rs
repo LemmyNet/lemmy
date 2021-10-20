@@ -21,9 +21,12 @@ use lemmy_apub::{
     CreateOrUpdateType,
   },
   fetcher::post_or_comment::PostOrComment,
+  objects::post::ApubPost,
 };
-use lemmy_db_queries::{source::post::Post_, Crud, Likeable, Saveable};
-use lemmy_db_schema::source::{moderator::*, post::*};
+use lemmy_db_schema::{
+  source::{moderator::*, post::*},
+  traits::{Crud, Likeable, Saveable},
+};
 use lemmy_db_views::post_view::PostView;
 use lemmy_utils::{request::fetch_site_metadata, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};
@@ -47,7 +50,9 @@ impl Perform for CreatePostLike {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post: ApubPost = blocking(context.pool(), move |conn| Post::read(conn, post_id))
+      .await??
+      .into();
 
     check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
     check_community_deleted_or_removed(post.community_id, context.pool()).await?;
@@ -81,7 +86,7 @@ impl Perform for CreatePostLike {
 
       Vote::send(
         &object,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         community_id,
         like_form.score.try_into()?,
         context,
@@ -91,7 +96,7 @@ impl Perform for CreatePostLike {
       // API doesn't distinguish between Undo/Like and Undo/Dislike
       UndoVote::send(
         &object,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         community_id,
         VoteType::Like,
         context,
@@ -148,10 +153,11 @@ impl Perform for LockPost {
     // Update the post
     let post_id = data.post_id;
     let locked = data.locked;
-    let updated_post = blocking(context.pool(), move |conn| {
+    let updated_post: ApubPost = blocking(context.pool(), move |conn| {
       Post::update_locked(conn, post_id, locked)
     })
-    .await??;
+    .await??
+    .into();
 
     // Mod tables
     let form = ModLockPostForm {
@@ -164,7 +170,7 @@ impl Perform for LockPost {
     // apub updates
     CreateOrUpdatePost::send(
       &updated_post,
-      &local_user_view.person,
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
     )
@@ -216,10 +222,11 @@ impl Perform for StickyPost {
     // Update the post
     let post_id = data.post_id;
     let stickied = data.stickied;
-    let updated_post = blocking(context.pool(), move |conn| {
+    let updated_post: ApubPost = blocking(context.pool(), move |conn| {
       Post::update_stickied(conn, post_id, stickied)
     })
-    .await??;
+    .await??
+    .into();
 
     // Mod tables
     let form = ModStickyPostForm {
@@ -236,7 +243,7 @@ impl Perform for StickyPost {
     // TODO stickied should pry work like locked for ease of use
     CreateOrUpdatePost::send(
       &updated_post,
-      &local_user_view.person,
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
     )

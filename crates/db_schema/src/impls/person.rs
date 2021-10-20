@@ -1,15 +1,15 @@
-use crate::Crud;
-use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{
+use crate::{
   naive_now,
+  newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
   source::person::{Person, PersonForm},
-  PersonId,
+  traits::Crud,
 };
+use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
+use url::Url;
 
 mod safe_type {
-  use crate::ToSafe;
-  use lemmy_db_schema::{schema::person::columns::*, source::person::Person};
+  use crate::{schema::person::columns::*, source::person::Person, traits::ToSafe};
 
   type Columns = (
     id,
@@ -58,8 +58,7 @@ mod safe_type {
 }
 
 mod safe_type_alias_1 {
-  use crate::ToSafe;
-  use lemmy_db_schema::{schema::person_alias_1::columns::*, source::person::PersonAlias1};
+  use crate::{schema::person_alias_1::columns::*, source::person::PersonAlias1, traits::ToSafe};
 
   type Columns = (
     id,
@@ -108,8 +107,7 @@ mod safe_type_alias_1 {
 }
 
 mod safe_type_alias_2 {
-  use crate::ToSafe;
-  use lemmy_db_schema::{schema::person_alias_2::columns::*, source::person::PersonAlias2};
+  use crate::{schema::person_alias_2::columns::*, source::person::PersonAlias2, traits::ToSafe};
 
   type Columns = (
     id,
@@ -179,29 +177,20 @@ impl Crud for Person {
   }
 }
 
-pub trait Person_ {
-  fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Person, Error>;
-  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Person, Error>;
-  fn find_by_name(conn: &PgConnection, name: &str) -> Result<Person, Error>;
-  fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
-  fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error>;
-  fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error>;
-}
-
-impl Person_ for Person {
-  fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Self, Error> {
+impl Person {
+  pub fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(banned.eq(ban))
       .get_result::<Self>(conn)
   }
 
-  fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Self, Error> {
+  pub fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 
-  fn find_by_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
+  pub fn find_by_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
     person
       .filter(deleted.eq(false))
       .filter(local.eq(true))
@@ -209,14 +198,14 @@ impl Person_ for Person {
       .first::<Person>(conn)
   }
 
-  fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
+  pub fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
     diesel::update(person.find(person_id))
       .set((last_refreshed_at.eq(naive_now()),))
       .get_result::<Self>(conn)
   }
 
-  fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
-    use lemmy_db_schema::schema::local_user;
+  pub fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
+    use crate::schema::local_user;
 
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
@@ -237,7 +226,7 @@ impl Person_ for Person {
       .get_result::<Self>(conn)
   }
 
-  fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error> {
+  pub fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error> {
     insert_into(person)
       .values(person_form)
       .on_conflict(actor_id)
@@ -245,11 +234,35 @@ impl Person_ for Person {
       .set(person_form)
       .get_result::<Self>(conn)
   }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::person::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      person
+        .filter(deleted.eq(false))
+        .filter(actor_id.eq(object_id))
+        .first::<Person>(conn)
+        .ok()
+        .map(Into::into),
+    )
+  }
+
+  pub fn update_deleted(
+    conn: &PgConnection,
+    person_id: PersonId,
+    new_deleted: bool,
+  ) -> Result<Person, Error> {
+    use crate::schema::person::dsl::*;
+    diesel::update(person.find(person_id))
+      .set(deleted.eq(new_deleted))
+      .get_result::<Self>(conn)
+  }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::person::*};
+  use crate::{establish_unpooled_connection, source::person::*, traits::Crud};
 
   #[test]
   fn test_crud() {

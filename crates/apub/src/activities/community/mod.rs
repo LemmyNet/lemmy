@@ -2,12 +2,12 @@ use crate::{
   activities::community::announce::{AnnouncableActivities, AnnounceActivity},
   check_is_apub_id_valid,
   insert_activity,
+  objects::community::ApubCommunity,
   send_lemmy_activity,
   CommunityType,
 };
 use itertools::Itertools;
 use lemmy_apub_lib::traits::ActorType;
-use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -20,7 +20,7 @@ pub mod undo_block_user;
 pub mod update;
 
 async fn list_community_follower_inboxes(
-  community: &Community,
+  community: &ApubCommunity,
   additional_inboxes: Vec<Url>,
   context: &LemmyContext,
 ) -> Result<Vec<Url>, LemmyError> {
@@ -45,7 +45,7 @@ pub(crate) async fn send_to_community<T: ActorType>(
   activity: AnnouncableActivities,
   activity_id: &Url,
   actor: &T,
-  community: &Community,
+  community: &ApubCommunity,
   additional_inboxes: Vec<Url>,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {

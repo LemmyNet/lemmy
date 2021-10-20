@@ -7,13 +7,12 @@ use lemmy_api_common::{
   site::*,
   site_description_length_check,
 };
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
-  source::site::Site_,
-  Crud,
+  source::site::{Site, SiteForm},
+  traits::Crud,
 };
-use lemmy_db_schema::source::site::{Site, *};
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt},
@@ -34,7 +33,7 @@ impl PerformCrud for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let read_site = move |conn: &'_ _| Site::read_simple(conn);
+    let read_site = Site::read_simple;
     if blocking(context.pool(), read_site).await?.is_ok() {
       return Err(ApiError::err_plain("site_already_exists").into());
     };

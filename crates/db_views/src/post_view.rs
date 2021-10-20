@@ -1,16 +1,10 @@
 use diesel::{pg::Pg, result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::post_aggregates::PostAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  ListingType,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -30,10 +24,9 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
   },
-  CommunityId,
-  DbUrl,
-  PersonId,
-  PostId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  ListingType,
+  SortType,
 };
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -487,21 +480,19 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     aggregates::post_aggregates::PostAggregates,
     establish_unpooled_connection,
-    Blockable,
-    Crud,
-    Likeable,
+    source::{
+      community::*,
+      community_block::{CommunityBlock, CommunityBlockForm},
+      person::*,
+      person_block::{PersonBlock, PersonBlockForm},
+      post::*,
+    },
+    traits::{Blockable, Crud, Likeable},
     ListingType,
     SortType,
-  };
-  use lemmy_db_schema::source::{
-    community::*,
-    community_block::{CommunityBlock, CommunityBlockForm},
-    person::*,
-    person_block::{PersonBlock, PersonBlockForm},
-    post::*,
   };
   use serial_test::serial;
 

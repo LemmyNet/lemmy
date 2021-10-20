@@ -1,4 +1,4 @@
-use lemmy_db_schema::{CommunityId, PostId};
+use lemmy_db_schema::newtypes::{CommunityId, PostId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -11,18 +11,24 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{comment::Note, FromApub, ToApub},
+  objects::{
+    comment::{ApubComment, Note},
+    community::ApubCommunity,
+    person::ApubPerson,
+  },
 };
 use activitystreams::{base::AnyBase, link::Mention, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
   values::PublicUrl,
   verify::verify_domains_match,
 };
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 use serde::{Deserialize, Serialize};
@@ -31,7 +37,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdateComment {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   object: Note,
   cc: Vec<Url>,
@@ -47,8 +53,8 @@ pub struct CreateOrUpdateComment {
 
 impl CreateOrUpdateComment {
   pub async fn send(
-    comment: &Comment,
-    actor: &Person,
+    comment: &ApubComment,
+    actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
@@ -56,10 +62,11 @@ impl CreateOrUpdateComment {
     let post_id = comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
 
     let id = generate_activity_id(
       kind.clone(),
@@ -115,7 +122,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment =
-      Comment::from_apub(&self.object, context, self.actor.inner(), request_counter).await?;
+      ApubComment::from_apub(&self.object, context, self.actor.inner(), request_counter).await?;
     let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,

@@ -9,7 +9,6 @@ use lemmy_api_common::{
   comment::*,
   get_local_user_view_from_jwt,
   get_post,
-  send_local_notifs,
 };
 use lemmy_apub::{
   activities::{
@@ -21,12 +20,13 @@ use lemmy_apub::{
   generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{
-  source::{comment::Comment_, person_mention::PersonMention_},
-  Crud,
-  Likeable,
+use lemmy_db_schema::{
+  source::{
+    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+    person_mention::PersonMention,
+  },
+  traits::{Crud, Likeable},
 };
-use lemmy_db_schema::source::{comment::*, person_mention::PersonMention};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
@@ -34,7 +34,11 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_comment_ws_message, send_local_notifs},
+  LemmyContext,
+  UserOperationCrud,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -116,8 +120,8 @@ impl PerformCrud for CreateComment {
       .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
     CreateOrUpdateComment::send(
-      &updated_comment,
-      &local_user_view.person,
+      &updated_comment.clone().into(),
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Create,
       context,
     )
@@ -128,12 +132,11 @@ impl PerformCrud for CreateComment {
     let mentions = scrape_text_for_mentions(&comment_form.content);
     let recipient_ids = send_local_notifs(
       mentions,
-      updated_comment.clone(),
-      local_user_view.person.clone(),
-      post,
-      context.pool(),
+      &updated_comment,
+      &local_user_view.person,
+      &post,
       true,
-      &context.settings(),
+      context,
     )
     .await?;
 
@@ -150,10 +153,10 @@ impl PerformCrud for CreateComment {
       .await?
       .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
 
-    let object = PostOrComment::Comment(updated_comment);
+    let object = PostOrComment::Comment(updated_comment.into());
     Vote::send(
       &object,
-      &local_user_view.person,
+      &local_user_view.person.clone().into(),
       community_id,
       VoteType::Like,
       context,

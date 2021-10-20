@@ -5,8 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{MarkPrivateMessageAsRead, PrivateMessageResponse},
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::private_message::PrivateMessage;
+use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperation};
 

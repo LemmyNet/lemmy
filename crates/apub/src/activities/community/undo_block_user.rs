@@ -12,6 +12,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   activity::kind::UndoType,
@@ -25,10 +26,9 @@ use lemmy_apub_lib::{
   traits::{ActivityFields, ActivityHandler, ActorType},
   values::PublicUrl,
 };
-use lemmy_db_queries::Bannable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityPersonBan, CommunityPersonBanForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{CommunityPersonBan, CommunityPersonBanForm},
+  traits::Bannable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -38,10 +38,10 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
-  actor: ObjectId<Person>,
+  actor: ObjectId<ApubPerson>,
   to: [PublicUrl; 1],
   object: BlockUserFromCommunity,
-  cc: [ObjectId<Community>; 1],
+  cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -53,9 +53,9 @@ pub struct UndoBlockUserFromCommunity {
 
 impl UndoBlockUserFromCommunity {
   pub async fn send(
-    community: &Community,
-    target: &Person,
-    actor: &Person,
+    community: &ApubCommunity,
+    target: &ApubPerson,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let block = BlockUserFromCommunity::new(community, target, actor, context)?;
@@ -91,7 +91,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

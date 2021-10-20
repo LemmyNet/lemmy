@@ -1,7 +1,7 @@
 use crate::UserOperation;
 use actix::{prelude::*, Recipient};
 use lemmy_api_common::{comment::CommentResponse, post::PostResponse};
-use lemmy_db_schema::{CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::newtypes::{CommunityId, LocalUserId, PostId};
 use lemmy_utils::{ConnectionId, IpAddr};
 use serde::{Deserialize, Serialize};
 
