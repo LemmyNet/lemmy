@@ -3,7 +3,10 @@ use crate::{
   fetcher::{fetch::fetch_remote_object, object_id::ObjectId},
   objects::{community::Group, person::ApubPerson},
 };
-use activitystreams::collection::{CollectionExt, OrderedCollection};
+use activitystreams::{
+  base::AnyBase,
+  collection::{CollectionExt, OrderedCollection},
+};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{data::Data, traits::ActivityHandler};
@@ -85,16 +88,30 @@ pub(crate) async fn fetch_community_outbox(
     outbox_activities = outbox_activities[0..20].to_vec();
   }
 
-  for announce in outbox_activities {
-    // TODO: instead of converting like this, we should create a struct CommunityOutbox with
-    //       AnnounceActivity as inner type, but that gives me stackoverflow
-    let ser = serde_json::to_string(&announce)?;
-    let announce: AnnounceActivity = serde_json::from_str(&ser)?;
-    announce
-      .receive(&Data::new(context.clone()), recursion_counter)
-      .await?;
+  // We intentionally ignore errors here. This is because the outbox might contain posts from old
+  // Lemmy versions, or from other software which we cant parse. In that case, we simply skip the
+  // item and only parse the ones that work.
+  for activity in outbox_activities {
+    parse_outbox_item(activity, context, recursion_counter)
+      .await
+      .ok();
   }
 
+  Ok(())
+}
+
+async fn parse_outbox_item(
+  announce: AnyBase,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  // TODO: instead of converting like this, we should create a struct CommunityOutbox with
+  //       AnnounceActivity as inner type, but that gives me stackoverflow
+  let ser = serde_json::to_string(&announce)?;
+  let announce: AnnounceActivity = serde_json::from_str(&ser)?;
+  announce
+    .receive(&Data::new(context.clone()), request_counter)
+    .await?;
   Ok(())
 }
 

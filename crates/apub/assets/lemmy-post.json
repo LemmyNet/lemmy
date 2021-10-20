@@ -2,40 +2,38 @@
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     {
+      "moderators": "as:moderators",
       "matrixUserId": {
         "type": "sc:Text",
         "id": "as:alsoKnownAs"
       },
+      "sensitive": "as:sensitive",
       "sc": "http://schema.org#",
+      "pt": "https://join-lemmy.org#",
       "comments_enabled": {
         "type": "sc:Boolean",
         "id": "pt:commentsEnabled"
       },
-      "sensitive": "as:sensitive",
-      "stickied": "as:stickied",
-      "pt": "https://join-lemmy.org#",
-      "moderators": "as:moderators"
+      "stickied": "as:stickied"
     },
     "https://w3id.org/security/v1"
   ],
   "type": "Page",
-  "id": "https://lemmy.ml/post/70280",
-  "attributedTo":
-    "https://lemmy.ml/u/nutomic"
-  ,
+  "id": "https://lemmy.ml/post/55143",
+  "attributedTo": "https://lemmy.ml/u/nutomic",
   "to": [
-    "https://lemmy.ml/c/meta",
+    "https://lemmy.ml/c/announcements",
     "https://www.w3.org/ns/activitystreams#Public"
   ],
-  "name": "What is lemmy.ml?",
-  "content": "<p>Recently there seems to be some of misunderstanding what the lemmy.ml instance is about, especially from newer users.</p>\n<p>Lemmy.ml has always been a niche site, and it will most likely stay this way. We don't have any intentions to turn it into a mainstream instance, or set a goal of getting as many users as possible. Our goal is simple: make an instance that people like to use. I would say that we have been successful in this, but obviously it is impossible to satisfy everyone.</p>\n<p>The reason for this is that @dessalines and I are paid to develop Lemmy, while donations from lemmy.ml users only make up a negligible part of our income. Besides, having more users would force us to spend more time moderating, and less time for development. Lemmy works quite differently from big tech sites like Reddit in this regard: while they get more money with each extra user through advertising, for us it is the opposite. So we would much rather have a smaller, non-toxic, and friendly userbase, than a large one.</p>\n<p>Part of the problem might be that lemmy.ml is described as &quot;flagship instance&quot;, which can certainly be interpreted to mean &quot;mainstream&quot; or &quot;general purpose&quot;. I struggle to come up with a better, more accurate description. If you can think of one, please comment here.</p>\n<p>If you dont like the way lemmy.ml works, thats okay. Federation exists exactly to solve that problem, let different groups have their own instances, with their own rules and political views. You can see the list of existing instances, and instructions for setting up a new one on <a href=\"https://join-lemmy.org/\">join-lemmy.org</a>.</p>\n<p>In particular, I would like to see someone (or a group of people) create a mainstream, or liberal instance. That should help to avoid further drama, and avoid attempts to turn lemmy.ml into something that it is not. @dessalines and I would certainly be willing to help with any technical problems that such an instance runs into, and include it on <a href=\"https://join-lemmy.org/\">join-lemmy.org</a> (just like any other instance that meets the code of conduct).</p>\n",
+  "name": "Statement on Politics of Lemmy.ml",
+  "content": "<p>Recently there have been some discussions about the political stances of the Lemmy developers and site admins. To clear up some misconceptions: Lemmy is run by a team of people with different ideologies, including anti-capitalist, communist, anarchist, and others. While @dessalines and I are communists, we take decisions collectively, and don't demand that anyone adopt our views or convert to our ideologies. We wouldn't devote so much time to building a federated site otherwise.</p>\n<p>What's important to us is that you follow the site rules and <a href=\"https://join.lemmy.ml/docs/en/code_of_conduct.html\">Code of Conduct</a>. Meaning primarily, no-bigotry, and being respectful towards others. As long as that is the case, we can get along perfectly fine.</p>\n<p>In general we are open for constructive feedback, so please contact any member of the admin team if you have an idea how to improve Lemmy.</p>\n<h2>Slur Filter</h2>\n<p>We also noticed a consistent criticism of the built-in slur filter in Lemmy. Not so much on lemmy.ml itself, but whenever Lemmy is recommended elsewhere, a few usual suspects keep bringing it up. To these people we say the following: we are using the slur filter as a tool to keep a friendly atmosphere, and prevent racists, sexists and other bigots from using Lemmy. Its existence alone has lead many of them to not make an account, or run an instance: a clear net positive.</p>\n<p>You can see for yourself the words which are blocked (content warning, <a href=\"https://github.com/LemmyNet/lemmy/blob/main/crates/utils/src/utils.rs#L10\">link here</a>). Note that it doesn't include any simple swear words, but only slurs which are used to insult and attack other people. If you want to use any of these words, then please stay on one of the many platforms that permit them. Lemmy is not for you, and we don't want you here.</p>\n<p>We are fully aware that the slur filter is not perfect. It is made for American English, and can give false positives in other languages or dialects. We are totally willing to fix such problems on a case by case basis, simply open an issue in our <a href=\"https://github.com/LemmyNet/lemmy/issues\">repo </a>with a description of the problem.</p>\n",
   "mediaType": "text/html",
   "source": {
-    "content": "Recently there seems to be some of misunderstanding what the lemmy.ml instance is about, especially from newer users.\n\nLemmy.ml has always been a niche site, and it will most likely stay this way. We don't have any intentions to turn it into a mainstream instance, or set a goal of getting as many users as possible. Our goal is simple: make an instance that people like to use. I would say that we have been successful in this, but obviously it is impossible to satisfy everyone.\n\nThe reason for this is that @dessalines and I are paid to develop Lemmy, while donations from lemmy.ml users only make up a negligible part of our income. Besides, having more users would force us to spend more time moderating, and less time for development. Lemmy works quite differently from big tech sites like Reddit in this regard: while they get more money with each extra user through advertising, for us it is the opposite. So we would much rather have a smaller, non-toxic, and friendly userbase, than a large one.\n\nPart of the problem might be that lemmy.ml is described as \"flagship instance\", which can certainly be interpreted to mean \"mainstream\" or \"general purpose\". I struggle to come up with a better, more accurate description. If you can think of one, please comment here.\n\nIf you dont like the way lemmy.ml works, thats okay. Federation exists exactly to solve that problem, let different groups have their own instances, with their own rules and political views. You can see the list of existing instances, and instructions for setting up a new one on [join-lemmy.org](https://join-lemmy.org/).\n\nIn particular, I would like to see someone (or a group of people) create a mainstream, or liberal instance. That should help to avoid further drama, and avoid attempts to turn lemmy.ml into something that it is not. @dessalines and I would certainly be willing to help with any technical problems that such an instance runs into, and include it on [join-lemmy.org](https://join-lemmy.org/) (just like any other instance that meets the code of conduct).",
+    "content": "Recently there have been some discussions about the political stances of the Lemmy developers and site admins. To clear up some misconceptions: Lemmy is run by a team of people with different ideologies, including anti-capitalist, communist, anarchist, and others. While @dessalines and I are communists, we take decisions collectively, and don't demand that anyone adopt our views or convert to our ideologies. We wouldn't devote so much time to building a federated site otherwise.\n\nWhat's important to us is that you follow the site rules and [Code of Conduct](https://join.lemmy.ml/docs/en/code_of_conduct.html). Meaning primarily, no-bigotry, and being respectful towards others. As long as that is the case, we can get along perfectly fine.\n\nIn general we are open for constructive feedback, so please contact any member of the admin team if you have an idea how to improve Lemmy. \n\n## Slur Filter\n\nWe also noticed a consistent criticism of the built-in slur filter in Lemmy. Not so much on lemmy.ml itself, but whenever Lemmy is recommended elsewhere, a few usual suspects keep bringing it up. To these people we say the following: we are using the slur filter as a tool to keep a friendly atmosphere, and prevent racists, sexists and other bigots from using Lemmy. Its existence alone has lead many of them to not make an account, or run an instance: a clear net positive.\n\nYou can see for yourself the words which are blocked (content warning, [link here](https://github.com/LemmyNet/lemmy/blob/main/crates/utils/src/utils.rs#L10)). Note that it doesn't include any simple swear words, but only slurs which are used to insult and attack other people. If you want to use any of these words, then please stay on one of the many platforms that permit them. Lemmy is not for you, and we don't want you here.\n\nWe are fully aware that the slur filter is not perfect. It is made for American English, and can give false positives in other languages or dialects. We are totally willing to fix such problems on a case by case basis, simply open an issue in our [repo ](https://github.com/LemmyNet/lemmy/issues)with a description of the problem.",
     "mediaType": "text/markdown"
   },
-  "commentsEnabled": false,
+  "commentsEnabled": true,
   "sensitive": false,
   "stickied": true,
-  "published": "2021-06-15T12:00:08.364559+00:00"
+  "published": "2021-02-26T12:35:34.292626+00:00"
 }

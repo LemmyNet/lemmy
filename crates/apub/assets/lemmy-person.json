@@ -2,19 +2,19 @@
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     {
+      "matrixUserId": {
+        "type": "sc:Text",
+        "id": "as:alsoKnownAs"
+      },
+      "sc": "http://schema.org#",
+      "sensitive": "as:sensitive",
       "stickied": "as:stickied",
+      "pt": "https://join-lemmy.org#",
       "comments_enabled": {
         "type": "sc:Boolean",
         "id": "pt:commentsEnabled"
       },
-      "pt": "https://join-lemmy.org#",
-      "sensitive": "as:sensitive",
-      "moderators": "as:moderators",
-      "sc": "http://schema.org#",
-      "matrixUserId": {
-        "type": "sc:Text",
-        "id": "as:alsoKnownAs"
-      }
+      "moderators": "as:moderators"
     },
     "https://w3id.org/security/v1"
   ],
