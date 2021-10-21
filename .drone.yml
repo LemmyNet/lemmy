@@ -122,7 +122,7 @@ steps:
 
   # using https://github.com/pksunkara/cargo-workspaces
   - name: publish to crates.io
-    image: rust:1.51
+    image: rustlang/rust:nightly
     environment:
       CARGO_TOKEN:
         from_secret: cargo_api_token
