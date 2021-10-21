@@ -204,19 +204,8 @@ impl DeleteableOrRemoveable for Community {
   }
 }
 
-pub trait CommunityModerator_ {
-  fn delete_for_community(
-    conn: &PgConnection,
-    for_community_id: CommunityId,
-  ) -> Result<usize, Error>;
-  fn get_person_moderated_communities(
-    conn: &PgConnection,
-    for_person_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error>;
-}
-
-impl CommunityModerator_ for CommunityModerator {
-  fn delete_for_community(
+impl CommunityModerator {
+  pub fn delete_for_community(
     conn: &PgConnection,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
@@ -224,7 +213,7 @@ impl CommunityModerator_ for CommunityModerator {
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(conn)
   }
 
-  fn get_person_moderated_communities(
+  pub fn get_person_moderated_communities(
     conn: &PgConnection,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {

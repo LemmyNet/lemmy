@@ -25,7 +25,6 @@ use lemmy_apub_lib::{
   values::PublicUrl,
 };
 use lemmy_db_schema::{
-  impls::community::CommunityModerator_,
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
 };
