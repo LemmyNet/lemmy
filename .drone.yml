@@ -128,7 +128,7 @@ steps:
         from_secret: cargo_api_token
     commands:
       - cargo install cargo-workspaces
-      - cp -r migrations crates/db_queries/
+      - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_TOKEN"
       - cargo workspaces publish --from-git --allow-dirty --allow-branch "${DRONE_TAG}" --yes custom "${DRONE_TAG}"
     when:
