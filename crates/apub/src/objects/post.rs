@@ -294,11 +294,11 @@ mod tests {
     let context = init_context();
     let url = Url::parse("https://lemmy.ml/post/55143").unwrap();
     let community_json = file_to_json_object("assets/lemmy-community.json");
-    ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
+    let community = ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
       .await
       .unwrap();
     let person_json = file_to_json_object("assets/lemmy-person.json");
-    ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
+    let person = ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
       .await
       .unwrap();
     let json = file_to_json_object("assets/lemmy-post.json");
@@ -317,5 +317,9 @@ mod tests {
 
     let to_apub = post.to_apub(context.pool()).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
+
+    Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
   }
 }

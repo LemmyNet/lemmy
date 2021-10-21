@@ -319,6 +319,7 @@ mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
   use assert_json_diff::assert_json_include;
+  use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
 
   #[actix_rt::test]
@@ -347,5 +348,7 @@ mod tests {
 
     let to_apub = community.to_apub(context.pool()).await.unwrap();
     assert_json_include!(actual: json_orig, expected: to_apub);
+
+    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
   }
 }

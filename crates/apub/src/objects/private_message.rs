@@ -213,12 +213,12 @@ mod tests {
     let context = init_context();
     let url = Url::parse("https://lemmy.ml/private_message/1621").unwrap();
     let lemmy_person = file_to_json_object("assets/lemmy-person.json");
-    ApubPerson::from_apub(&lemmy_person, &context, &url, &mut 0)
+    let person1 = ApubPerson::from_apub(&lemmy_person, &context, &url, &mut 0)
       .await
       .unwrap();
     let pleroma_person = file_to_json_object("assets/pleroma-person.json");
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    ApubPerson::from_apub(&pleroma_person, &context, &pleroma_url, &mut 0)
+    let person2 = ApubPerson::from_apub(&pleroma_person, &context, &pleroma_url, &mut 0)
       .await
       .unwrap();
     let json = file_to_json_object("assets/lemmy-private-message.json");
@@ -233,5 +233,9 @@ mod tests {
 
     let to_apub = pm.to_apub(context.pool()).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
+
+    PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), person1.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), person2.id).unwrap();
   }
 }

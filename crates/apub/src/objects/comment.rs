@@ -319,19 +319,29 @@ mod tests {
   use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
-  async fn prepare_comment_test(url: &Url, context: &LemmyContext) {
+  async fn prepare_comment_test(
+    url: &Url,
+    context: &LemmyContext,
+  ) -> (ApubPerson, ApubCommunity, ApubPost) {
     let person_json = file_to_json_object("assets/lemmy-person.json");
-    ApubPerson::from_apub(&person_json, context, url, &mut 0)
+    let person = ApubPerson::from_apub(&person_json, context, url, &mut 0)
       .await
       .unwrap();
     let community_json = file_to_json_object("assets/lemmy-community.json");
-    ApubCommunity::from_apub(&community_json, context, url, &mut 0)
+    let community = ApubCommunity::from_apub(&community_json, context, url, &mut 0)
       .await
       .unwrap();
     let post_json = file_to_json_object("assets/lemmy-post.json");
-    ApubPost::from_apub(&post_json, context, url, &mut 0)
+    let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
       .await
       .unwrap();
+    (person, community, post)
+  }
+
+  fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost), context: &LemmyContext) {
+    Post::delete(&*context.pool().get().unwrap(), data.2.id).unwrap();
+    Community::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
   }
 
   #[actix_rt::test]
@@ -339,7 +349,7 @@ mod tests {
   async fn test_fetch_lemmy_comment() {
     let context = init_context();
     let url = Url::parse("https://lemmy.ml/comment/38741").unwrap();
-    prepare_comment_test(&url, &context).await;
+    let data = prepare_comment_test(&url, &context).await;
 
     let json = file_to_json_object("assets/lemmy-comment.json");
     let mut request_counter = 0;
@@ -354,6 +364,9 @@ mod tests {
 
     let to_apub = comment.to_apub(context.pool()).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
+
+    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    cleanup(data, &context);
   }
 
   #[actix_rt::test]
@@ -361,7 +374,7 @@ mod tests {
   async fn test_fetch_pleroma_comment() {
     let context = init_context();
     let url = Url::parse("https://lemmy.ml/comment/38741").unwrap();
-    prepare_comment_test(&url, &context).await;
+    let data = prepare_comment_test(&url, &context).await;
 
     let pleroma_url =
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
@@ -380,12 +393,15 @@ mod tests {
     assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
+
+    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    cleanup(data, &context);
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_html_to_markdown_sanitize() {
-    let parsed = parse_html(&"<script></script><b>hello</b>");
+    let parsed = parse_html("<script></script><b>hello</b>");
     assert_eq!(parsed, "**hello**");
   }
 }

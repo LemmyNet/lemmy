@@ -272,6 +272,7 @@ mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
   use assert_json_diff::assert_json_include;
+  use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
 
   #[actix_rt::test]
@@ -294,15 +295,18 @@ mod tests {
 
     let to_apub = person.to_apub(context.pool()).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
+
+    DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_fetch_pleroma_person() {
+    let context = init_context();
     let json = file_to_json_object("assets/pleroma-person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut request_counter)
+    let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -313,5 +317,7 @@ mod tests {
     assert_eq!(request_counter, 0);
     // TODO: pleroma uses summary for user profile, while we use content
     //assert!(person.bio.is_some());
+
+    DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
   }
 }
