@@ -69,7 +69,7 @@ doku = "0.10.1"
 [dev-dependencies.cargo-husky]
 version = "1.5.0"
 default-features = false # Disable features which are enabled by default
-features = ["precommit-hook", "run-cargo-fmt", "run-cargo-clippy"]
+features = ["user-hooks"]
 
 [package.metadata.cargo-udeps.ignore]
 development = ["cargo-husky"]

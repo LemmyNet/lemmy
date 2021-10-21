@@ -44,6 +44,12 @@ steps:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
+  - name: check defaults.hjson updated
+    image: ekidd/rust-musl-builder:1.51.0
+    commands:
+      - target/lemmy_server --print-config-docs > config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+
   - name: run federation tests
     image: node:alpine
     environment:

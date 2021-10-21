@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+cargo +nightly fmt -- --check
+
+cargo +nightly clippy --workspace --tests --all-targets --all-features -- \
+    -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
+
+cargo run -- --print-config-docs > config/defaults.hjson
+git add config/defaults.hjson
