@@ -12,6 +12,7 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
+  migrations::PublicUrlMigration,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
@@ -24,7 +25,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -39,7 +39,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: PublicUrlMigration,
   object: BlockUserFromCommunity,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -66,7 +66,7 @@ impl UndoBlockUserFromCommunity {
     )?;
     let undo = UndoBlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: PublicUrlMigration::create(),
       object: block,
       cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,

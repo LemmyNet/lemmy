@@ -1,5 +1,5 @@
 use crate::{
-  activities::verify_person_in_community,
+  activities::{verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   migrations::CommentInReplyToMigration,
@@ -11,14 +11,16 @@ use activitystreams::{
   chrono::NaiveDateTime,
   object::{kind::NoteType, Tombstone},
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, FixedOffset};
+use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::{ApubObject, FromApub, ToApub},
-  values::{MediaTypeHtml, MediaTypeMarkdown, PublicUrl},
+  values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -55,15 +57,24 @@ pub struct Note {
   /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
   /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
   /// the post in [`in_reply_to`]).
-  to: PublicUrl,
+  to: Vec<Url>,
   content: String,
-  media_type: MediaTypeHtml,
-  source: Source,
+  media_type: Option<MediaTypeHtml>,
+  source: SourceCompat,
   in_reply_to: CommentInReplyToMigration,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
+}
+
+/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+enum SourceCompat {
+  Lemmy(Source),
+  Pleroma(String),
 }
 
 impl Note {
@@ -144,6 +155,7 @@ impl Note {
       request_counter,
     )
     .await?;
+    verify_is_public(&self.to)?;
     Ok(())
   }
 }
@@ -222,15 +234,15 @@ impl ToApub for ApubComment {
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: PublicUrl::Public,
+      to: vec![public()],
       content: self.content.clone(),
-      media_type: MediaTypeHtml::Html,
-      source: Source {
+      media_type: Some(MediaTypeHtml::Html),
+      source: SourceCompat::Lemmy(Source {
         content: self.content.clone(),
         media_type: MediaTypeMarkdown::Markdown,
-      },
+      }),
       in_reply_to: CommentInReplyToMigration::Old(in_reply_to_vec),
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
@@ -272,8 +284,12 @@ impl FromApub for ApubComment {
       return Err(anyhow!("Post is locked").into());
     }
 
-    let content = &note.source.content;
-    let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
+    let content = if let SourceCompat::Lemmy(source) = &note.source {
+      source.content.clone()
+    } else {
+      parse_html(&note.content)
+    };
+    let content_slurs_removed = remove_slurs(&content, &context.settings().slur_regex());
 
     let form = CommentForm {
       creator_id: creator.id,
@@ -282,7 +298,7 @@ impl FromApub for ApubComment {
       content: content_slurs_removed,
       removed: None,
       read: None,
-      published: Some(note.published.naive_local()),
+      published: note.published.map(|u| u.to_owned().naive_local()),
       updated: note.updated.map(|u| u.to_owned().naive_local()),
       deleted: None,
       ap_id,
@@ -290,5 +306,102 @@ impl FromApub for ApubComment {
     };
     let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
     Ok(comment.into())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::{
+    community::ApubCommunity,
+    tests::{file_to_json_object, init_context},
+  };
+  use assert_json_diff::assert_json_include;
+  use serial_test::serial;
+
+  async fn prepare_comment_test(
+    url: &Url,
+    context: &LemmyContext,
+  ) -> (ApubPerson, ApubCommunity, ApubPost) {
+    let person_json = file_to_json_object("assets/lemmy-person.json");
+    let person = ApubPerson::from_apub(&person_json, context, url, &mut 0)
+      .await
+      .unwrap();
+    let community_json = file_to_json_object("assets/lemmy-community.json");
+    let community = ApubCommunity::from_apub(&community_json, context, url, &mut 0)
+      .await
+      .unwrap();
+    let post_json = file_to_json_object("assets/lemmy-post.json");
+    let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
+      .await
+      .unwrap();
+    (person, community, post)
+  }
+
+  fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost), context: &LemmyContext) {
+    Post::delete(&*context.pool().get().unwrap(), data.2.id).unwrap();
+    Community::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_comment() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/comment/38741").unwrap();
+    let data = prepare_comment_test(&url, &context).await;
+
+    let json = file_to_json_object("assets/lemmy-comment.json");
+    let mut request_counter = 0;
+    let comment = ApubComment::from_apub(&json, &context, &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(comment.ap_id.clone().into_inner(), url);
+    assert_eq!(comment.content.len(), 1063);
+    assert!(!comment.local);
+    assert_eq!(request_counter, 0);
+
+    let to_apub = comment.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
+
+    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    cleanup(data, &context);
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_pleroma_comment() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/comment/38741").unwrap();
+    let data = prepare_comment_test(&url, &context).await;
+
+    let pleroma_url =
+      Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
+        .unwrap();
+    let person_json = file_to_json_object("assets/pleroma-person.json");
+    ApubPerson::from_apub(&person_json, &context, &pleroma_url, &mut 0)
+      .await
+      .unwrap();
+    let json = file_to_json_object("assets/pleroma-comment.json");
+    let mut request_counter = 0;
+    let comment = ApubComment::from_apub(&json, &context, &pleroma_url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(comment.ap_id.clone().into_inner(), pleroma_url);
+    assert_eq!(comment.content.len(), 64);
+    assert!(!comment.local);
+    assert_eq!(request_counter, 0);
+
+    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    cleanup(data, &context);
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_html_to_markdown_sanitize() {
+    let parsed = parse_html("<script></script><b>hello</b>");
+    assert_eq!(parsed, "**hello**");
   }
 }

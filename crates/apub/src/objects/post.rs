@@ -1,5 +1,5 @@
 use crate::{
-  activities::{extract_community, verify_person_in_community},
+  activities::{extract_community, verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{create_tombstone, person::ApubPerson, ImageObject, Source},
@@ -51,17 +51,17 @@ pub struct Page {
   r#type: PageType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  to: [Url; 2],
+  to: Vec<Url>,
   name: String,
   content: Option<String>,
-  media_type: MediaTypeHtml,
+  media_type: Option<MediaTypeHtml>,
   source: Option<Source>,
   url: Option<Url>,
   image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,
   sensitive: Option<bool>,
   pub(crate) stickied: Option<bool>,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -109,6 +109,7 @@ impl Page {
       request_counter,
     )
     .await?;
+    verify_is_public(&self.to.clone())?;
     Ok(())
   }
 }
@@ -186,17 +187,17 @@ impl ToApub for ApubPost {
       r#type: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: [community.actor_id.into(), public()],
+      to: vec![community.actor_id.into(), public()],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
-      media_type: MediaTypeHtml::Html,
+      media_type: Some(MediaTypeHtml::Html),
       source,
       url: self.url.clone().map(|u| u.into()),
       image,
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
@@ -260,7 +261,7 @@ impl FromApub for ApubPost {
       community_id: community.id,
       removed: None,
       locked: page.comments_enabled.map(|e| !e),
-      published: Some(page.published.naive_local()),
+      published: page.published.map(|u| u.naive_local()),
       updated: page.updated.map(|u| u.naive_local()),
       deleted: None,
       nsfw: page.sensitive,
@@ -274,5 +275,51 @@ impl FromApub for ApubPost {
     };
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
     Ok(post.into())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::{
+    community::ApubCommunity,
+    tests::{file_to_json_object, init_context},
+  };
+  use assert_json_diff::assert_json_include;
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_post() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/post/55143").unwrap();
+    let community_json = file_to_json_object("assets/lemmy-community.json");
+    let community = ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
+      .await
+      .unwrap();
+    let person_json = file_to_json_object("assets/lemmy-person.json");
+    let person = ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
+      .await
+      .unwrap();
+    let json = file_to_json_object("assets/lemmy-post.json");
+    let mut request_counter = 0;
+    let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(post.ap_id.clone().into_inner(), url);
+    assert_eq!(post.name, "Statement on Politics of Lemmy.ml");
+    assert!(post.body.is_some());
+    assert_eq!(post.body.as_ref().unwrap().len(), 2144);
+    assert!(!post.locked);
+    assert!(post.stickied);
+    assert_eq!(request_counter, 0);
+
+    let to_apub = post.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
+
+    Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
   }
 }

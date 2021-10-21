@@ -46,7 +46,7 @@ pub struct Note {
   content: String,
   media_type: MediaTypeHtml,
   source: Source,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -146,7 +146,7 @@ impl ToApub for ApubPrivateMessage {
         content: self.content.clone(),
         media_type: MediaTypeMarkdown::Markdown,
       },
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
@@ -185,7 +185,7 @@ impl FromApub for ApubPrivateMessage {
       creator_id: creator.id,
       recipient_id: recipient.id,
       content: note.source.content.clone(),
-      published: Some(note.published.naive_local()),
+      published: note.published.map(|u| u.to_owned().naive_local()),
       updated: note.updated.map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
@@ -197,5 +197,45 @@ impl FromApub for ApubPrivateMessage {
     })
     .await??;
     Ok(pm.into())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use assert_json_diff::assert_json_include;
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_pm() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/private_message/1621").unwrap();
+    let lemmy_person = file_to_json_object("assets/lemmy-person.json");
+    let person1 = ApubPerson::from_apub(&lemmy_person, &context, &url, &mut 0)
+      .await
+      .unwrap();
+    let pleroma_person = file_to_json_object("assets/pleroma-person.json");
+    let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
+    let person2 = ApubPerson::from_apub(&pleroma_person, &context, &pleroma_url, &mut 0)
+      .await
+      .unwrap();
+    let json = file_to_json_object("assets/lemmy-private-message.json");
+    let mut request_counter = 0;
+    let pm = ApubPrivateMessage::from_apub(&json, &context, &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(pm.ap_id.clone().into_inner(), url);
+    assert_eq!(pm.content.len(), 4);
+    assert_eq!(request_counter, 0);
+
+    let to_apub = pm.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
+
+    PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), person1.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), person2.id).unwrap();
   }
 }

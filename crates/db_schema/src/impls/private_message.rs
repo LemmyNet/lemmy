@@ -33,6 +33,10 @@ impl Crud for PrivateMessage {
       .set(private_message_form)
       .get_result::<Self>(conn)
   }
+  fn delete(conn: &PgConnection, pm_id: Self::IdType) -> Result<usize, Error> {
+    use crate::schema::private_message::dsl::*;
+    diesel::delete(private_message.find(pm_id)).execute(conn)
+  }
 }
 
 impl PrivateMessage {

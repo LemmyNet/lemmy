@@ -36,6 +36,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
@@ -69,7 +70,7 @@ pub struct Group {
   followers: Url,
   endpoints: Endpoints<Url>,
   public_key: PublicKey,
-  published: DateTime<FixedOffset>,
+  published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
@@ -101,7 +102,7 @@ impl Group {
       title,
       description,
       removed: None,
-      published: Some(group.published.naive_local()),
+      published: group.published.map(|u| u.naive_local()),
       updated: group.updated.map(|u| u.naive_local()),
       deleted: None,
       nsfw: Some(group.sensitive.unwrap_or(false)),
@@ -232,7 +233,7 @@ impl ToApub for ApubCommunity {
         ..Default::default()
       },
       public_key: self.get_public_key()?,
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
     };
@@ -263,11 +264,19 @@ impl FromApub for ApubCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
 
+    // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
+    // we need to ignore these errors so that tests can work entirely offline.
     let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
-    update_community_mods(group, &community, context, request_counter).await?;
+    update_community_mods(group, &community, context, request_counter)
+      .await
+      .map_err(|e| debug!("{}", e))
+      .ok();
 
     // TODO: doing this unconditionally might cause infinite loop for some reason
-    fetch_community_outbox(context, &group.outbox, request_counter).await?;
+    fetch_community_outbox(context, &group.outbox, request_counter)
+      .await
+      .map_err(|e| debug!("{}", e))
+      .ok();
 
     Ok(community.into())
   }
@@ -302,5 +311,44 @@ impl CommunityType for Community {
       .collect();
 
     Ok(inboxes)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use assert_json_diff::assert_json_include;
+  use lemmy_db_schema::traits::Crud;
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_community() {
+    let context = init_context();
+    let mut json: Group = file_to_json_object("assets/lemmy-community.json");
+    let json_orig = json.clone();
+    // change these links so they dont fetch over the network
+    json.moderators = Some(Url::parse("https://lemmy.ml/c/announcements/not_moderators").unwrap());
+    json.outbox = Url::parse("https://lemmy.ml/c/announcements/not_outbox").unwrap();
+
+    let url = Url::parse("https://lemmy.ml/c/announcements").unwrap();
+    let mut request_counter = 0;
+    let community = ApubCommunity::from_apub(&json, &context, &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(community.actor_id.clone().into_inner(), url);
+    assert_eq!(community.title, "Announcements");
+    assert!(community.public_key.is_some());
+    assert!(!community.local);
+    assert_eq!(community.description.as_ref().unwrap().len(), 126);
+    // this makes two requests to the (intentionally) broken outbox/moderators collections
+    assert_eq!(request_counter, 2);
+
+    let to_apub = community.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json_orig, expected: to_apub);
+
+    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
   }
 }

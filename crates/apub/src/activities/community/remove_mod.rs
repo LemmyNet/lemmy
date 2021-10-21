@@ -11,6 +11,7 @@ use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
+  migrations::PublicUrlMigration,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
@@ -23,7 +24,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
@@ -38,7 +38,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: PublicUrlMigration,
   pub(in crate::activities) object: ObjectId<ApubPerson>,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -65,7 +65,7 @@ impl RemoveMod {
     )?;
     let remove = RemoveMod {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: PublicUrlMigration::create(),
       object: ObjectId::new(removed_mod.actor_id()),
       target: Some(generate_moderators_url(&community.actor_id)?.into()),
       id: id.clone(),
