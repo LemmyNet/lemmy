@@ -316,6 +316,7 @@ mod tests {
     community::ApubCommunity,
     tests::{file_to_json_object, init_context},
   };
+  use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
   async fn prepare_comment_test(url: &Url, context: &LemmyContext) {
@@ -350,6 +351,9 @@ mod tests {
     assert_eq!(comment.content.len(), 1063);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
+
+    let to_apub = comment.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
   }
 
   #[actix_rt::test]

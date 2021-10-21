@@ -285,6 +285,7 @@ mod tests {
     community::ApubCommunity,
     tests::{file_to_json_object, init_context},
   };
+  use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
   #[actix_rt::test]
@@ -312,7 +313,9 @@ mod tests {
     assert_eq!(post.body.as_ref().unwrap().len(), 2144);
     assert!(!post.locked);
     assert!(post.stickied);
-    // see comment in test_fetch_lemmy_community() about this
     assert_eq!(request_counter, 0);
+
+    let to_apub = post.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
   }
 }

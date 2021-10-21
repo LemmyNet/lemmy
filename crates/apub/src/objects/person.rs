@@ -271,15 +271,17 @@ impl FromApub for ApubPerson {
 mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
+  use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_fetch_lemmy_person() {
+    let context = init_context();
     let json = file_to_json_object("assets/lemmy-person.json");
     let url = Url::parse("https://lemmy.ml/u/nutomic").unwrap();
     let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, &init_context(), &url, &mut request_counter)
+    let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -289,6 +291,9 @@ mod tests {
     assert!(!person.local);
     assert!(person.bio.is_some());
     assert_eq!(request_counter, 0);
+
+    let to_apub = person.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
   }
 
   #[actix_rt::test]

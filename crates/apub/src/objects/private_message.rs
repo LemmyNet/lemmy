@@ -199,3 +199,39 @@ impl FromApub for ApubPrivateMessage {
     Ok(pm.into())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use assert_json_diff::assert_json_include;
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_fetch_lemmy_pm() {
+    let context = init_context();
+    let url = Url::parse("https://lemmy.ml/private_message/1621").unwrap();
+    let lemmy_person = file_to_json_object("assets/lemmy-person.json");
+    ApubPerson::from_apub(&lemmy_person, &context, &url, &mut 0)
+      .await
+      .unwrap();
+    let pleroma_person = file_to_json_object("assets/pleroma-person.json");
+    let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
+    ApubPerson::from_apub(&pleroma_person, &context, &pleroma_url, &mut 0)
+      .await
+      .unwrap();
+    let json = file_to_json_object("assets/lemmy-private-message.json");
+    let mut request_counter = 0;
+    let pm = ApubPrivateMessage::from_apub(&json, &context, &url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(pm.ap_id.clone().into_inner(), url);
+    assert_eq!(pm.content.len(), 4);
+    assert_eq!(request_counter, 0);
+
+    let to_apub = pm.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json, expected: to_apub);
+  }
+}

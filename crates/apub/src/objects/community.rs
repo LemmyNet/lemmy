@@ -318,15 +318,22 @@ impl CommunityType for Community {
 mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
+  use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_fetch_lemmy_community() {
-    let json = file_to_json_object("assets/lemmy-community.json");
+    let context = init_context();
+    let mut json: Group = file_to_json_object("assets/lemmy-community.json");
+    let json_orig = json.clone();
+    // change these links so they dont fetch over the network
+    json.moderators = Some(Url::parse("https://lemmy.ml/c/announcements/not_moderators").unwrap());
+    json.outbox = Url::parse("https://lemmy.ml/c/announcements/not_outbox").unwrap();
+
     let url = Url::parse("https://lemmy.ml/c/announcements").unwrap();
     let mut request_counter = 0;
-    let community = ApubCommunity::from_apub(&json, &init_context(), &url, &mut request_counter)
+    let community = ApubCommunity::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -337,5 +344,8 @@ mod tests {
     assert_eq!(community.description.as_ref().unwrap().len(), 126);
     // this makes two requests to the (intentionally) broken outbox/moderators collections
     assert_eq!(request_counter, 2);
+
+    let to_apub = community.to_apub(context.pool()).await.unwrap();
+    assert_json_include!(actual: json_orig, expected: to_apub);
   }
 }

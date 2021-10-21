@@ -53,3 +53,4 @@ html2md = "0.2.13"
 
 [dev-dependencies]
 serial_test = "0.5.1"
+assert-json-diff = "2.0.1"
