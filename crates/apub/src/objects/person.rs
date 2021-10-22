@@ -275,7 +275,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_lemmy_person() {
+  async fn test_parse_lemmy_person() {
     let context = init_context();
     let json = file_to_json_object("assets/lemmy-person.json");
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
@@ -299,7 +299,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_pleroma_person() {
+  async fn test_parse_pleroma_person() {
     let context = init_context();
     let json = file_to_json_object("assets/pleroma-person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();

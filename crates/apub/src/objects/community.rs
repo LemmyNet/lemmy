@@ -322,7 +322,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_lemmy_community() {
+  async fn test_parse_lemmy_community() {
     let context = init_context();
     let mut json: Group = file_to_json_object("assets/lemmy-community.json");
     let json_orig = json.clone();

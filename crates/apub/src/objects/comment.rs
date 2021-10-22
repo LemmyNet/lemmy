@@ -323,7 +323,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_lemmy_comment() {
+  async fn test_parse_lemmy_comment() {
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
@@ -348,7 +348,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_pleroma_comment() {
+  async fn test_parse_pleroma_comment() {
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
