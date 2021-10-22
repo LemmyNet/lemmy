@@ -39,10 +39,10 @@ use url::Url;
 pub struct Note {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
-  r#type: NoteType,
+  r#type: ChatMessageType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
+  to: [ObjectId<ApubPerson>; 1],
   content: String,
   media_type: MediaTypeHtml,
   source: Source,
@@ -50,6 +50,12 @@ pub struct Note {
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
+}
+
+/// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ChatMessageType {
+  ChatMessage,
 }
 
 impl Note {
@@ -136,10 +142,10 @@ impl ToApub for ApubPrivateMessage {
 
     let note = Note {
       context: lemmy_context(),
-      r#type: NoteType::Note,
+      r#type: ChatMessageType::ChatMessage,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: ObjectId::new(recipient.actor_id),
+      to: [ObjectId::new(recipient.actor_id)],
       content: self.content.clone(),
       media_type: MediaTypeHtml::Html,
       source: Source {
@@ -179,7 +185,7 @@ impl FromApub for ApubPrivateMessage {
       .attributed_to
       .dereference(context, request_counter)
       .await?;
-    let recipient = note.to.dereference(context, request_counter).await?;
+    let recipient = note.to[0].dereference(context, request_counter).await?;
 
     let form = PrivateMessageForm {
       creator_id: creator.id,

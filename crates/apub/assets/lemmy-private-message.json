@@ -27,6 +27,8 @@
     "content": "test",
     "mediaType": "text/markdown"
   },
-  "to": "https://queer.hacktivis.me/users/lanodan",
-  "type": "Note"
+  "to": [
+    "https://queer.hacktivis.me/users/lanodan"
+  ],
+  "type": "ChatMessage"
 }
