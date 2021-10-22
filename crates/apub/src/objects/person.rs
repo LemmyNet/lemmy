@@ -13,11 +13,12 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use chrono::{DateTime, FixedOffset};
+use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
   traits::{ActorType, ApubObject, FromApub, ToApub},
-  values::{MediaTypeHtml, MediaTypeMarkdown},
+  values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -54,8 +55,7 @@ pub struct Person {
   preferred_username: String,
   /// displayname (can be changed at any time)
   name: Option<String>,
-  content: Option<String>,
-  media_type: Option<MediaTypeHtml>,
+  summary: Option<String>,
   source: Option<Source>,
   /// user avatar
   icon: Option<ImageObject>,
@@ -186,8 +186,7 @@ impl ToApub for ApubPerson {
       id: self.actor_id.to_owned().into_inner(),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
-      content: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      media_type: self.bio.as_ref().map(|_| MediaTypeHtml::Html),
+      summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
       source,
       icon,
       image,
@@ -224,7 +223,11 @@ impl FromApub for ApubPerson {
     let actor_id = Some(person.id(expected_domain)?.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
-    let bio = person.source.clone().map(|s| s.content);
+    let bio = if let Some(source) = &person.source {
+      Some(source.content.clone())
+    } else {
+      person.summary.as_ref().map(|s| parse_html(s))
+    };
     let shared_inbox = person.endpoints.shared_inbox.clone().map(|s| s.into());
     let bot_account = match person.kind {
       UserTypes::Person => false,
@@ -315,8 +318,7 @@ mod tests {
     assert!(person.public_key.is_some());
     assert!(!person.local);
     assert_eq!(request_counter, 0);
-    // TODO: pleroma uses summary for user profile, while we use content
-    //assert!(person.bio.is_some());
+    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
   }
