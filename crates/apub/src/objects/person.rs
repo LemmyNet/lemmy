@@ -278,17 +278,17 @@ mod tests {
   async fn test_fetch_lemmy_person() {
     let context = init_context();
     let json = file_to_json_object("assets/lemmy-person.json");
-    let url = Url::parse("https://lemmy.ml/u/nutomic").unwrap();
+    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
     let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 
     assert_eq!(person.actor_id.clone().into_inner(), url);
-    assert_eq!(person.name, "nutomic");
+    assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(person.public_key.is_some());
     assert!(!person.local);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 77);
+    assert_eq!(person.bio.as_ref().unwrap().len(), 39);
     assert_eq!(request_counter, 0);
 
     let to_apub = person.to_apub(context.pool()).await.unwrap();

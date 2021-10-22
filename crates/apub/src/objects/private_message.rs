@@ -217,7 +217,7 @@ mod tests {
   #[serial]
   async fn test_fetch_lemmy_pm() {
     let context = init_context();
-    let url = Url::parse("https://lemmy.ml/private_message/1621").unwrap();
+    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let lemmy_person = file_to_json_object("assets/lemmy-person.json");
     let person1 = ApubPerson::from_apub(&lemmy_person, &context, &url, &mut 0)
       .await
@@ -234,7 +234,7 @@ mod tests {
       .unwrap();
 
     assert_eq!(pm.ap_id.clone().into_inner(), url);
-    assert_eq!(pm.content.len(), 4);
+    assert_eq!(pm.content.len(), 20);
     assert_eq!(request_counter, 0);
 
     let to_apub = pm.to_apub(context.pool()).await.unwrap();

@@ -18,32 +18,36 @@
     },
     "https://w3id.org/security/v1"
   ],
-  "summary": "<p>Lemmy Announcements</p>\n<hr />\n<p>Feel free to announce new communities here.</p>\n<p>Other than that, this is <em>reserved for admin use only</em>.</p>\n",
-  "endpoints": {
-    "sharedInbox": "https://lemmy.ml/inbox"
+  "id": "https://enterprise.lemmy.ml/c/tenforward",
+  "type": "Group",
+  "preferredUsername": "main",
+  "name": "Ten Forward",
+  "summary": "<p>Lounge and recreation facility</p>\n<hr />\n<p>Welcome to the <a href=\"https://memory-alpha.fandom.com/wiki/USS_Enterprise_(NCC-1701-D)\">Enterprise</a>!.</p>\n",
+  "source": {
+    "content": "Lounge and recreation facility\n\n---\n\nWelcome to the [Enterprise](https://memory-alpha.fandom.com/wiki/USS_Enterprise_(NCC-1701-D))!.",
+    "mediaType": "text/markdown"
   },
-  "followers": "https://lemmy.ml/c/announcements/followers",
+  "sensitive": false,
   "icon": {
     "type": "Image",
-    "url": "https://lemmy.ml/pictrs/image/waqyZwLAy4.webp"
+    "url": "https://enterprise.lemmy.ml/pictrs/image/waqyZwLAy4.webp"
   },
-  "id": "https://lemmy.ml/c/announcements",
-  "inbox": "https://lemmy.ml/c/announcements/inbox",
-  "moderators": "https://lemmy.ml/c/announcements/moderators",
-  "name": "Announcements",
-  "outbox": "https://lemmy.ml/c/announcements/outbox",
-  "preferredUsername": "announcements",
+  "image": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/Wt8zoMcCmE.jpg"
+  },
+  "inbox": "https://enterprise.lemmy.ml/c/tenforward/inbox",
+  "followers": "https://enterprise.lemmy.ml/c/tenforward/followers",
+  "moderators": "https://enterprise.lemmy.ml/c/tenforward/moderators",
+  "endpoints": {
+    "sharedInbox": "https://enterprise.lemmy.ml/inbox"
+  },
+  "outbox": "https://enterprise.lemmy.ml/c/tenforward/outbox",
   "publicKey": {
-    "id": "https://lemmy.ml/c/announcements#main-key",
-    "owner": "https://lemmy.ml/c/announcements",
+    "id": "https://enterprise.lemmy.ml/c/tenforward#main-key",
+    "owner": "https://enterprise.lemmy.ml/c/tenforward",
     "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzRjKTNtvDCmugplwEh+g\nx1bhKm6BHUZfXfpscgMMm7tXFswSDzUQirMgfkxa9ubfr1PDFKffA2vQ9x6CyuO/\n70xTafdOHyV1tSqzgKz0ZvFZ/VCOo6qy1mYWVkrtBm/fKzM+87MdkKYB/zI4VyEJ\nLfLQgjwxBAEYUH3CBG71U0gO0TwbimWNN0vqlfp0QfThNe1WYObF88ZVzMLgFbr7\nRHBItZjlZ/d8foPDidlIR3l2dJjy0EsD8F9JM340jtX7LXqFmU4j1AQKNHTDLnUF\nwYVhzuQGNJ504l5LZkFG54XfIFT7dx2QwuuM9bSnfPv/98RYrq1Si6tCkxEt1cVe\n4wIDAQAB\n-----END PUBLIC KEY-----\n"
   },
   "published": "2019-06-02T16:43:50.799554+00:00",
-  "sensitive": false,
-  "source": {
-    "content": "Lemmy Announcements\n\n---\n\nFeel free to announce new communities here.\n\nOther than that, this is *reserved for admin use only*.",
-    "mediaType": "text/markdown"
-  },
-  "type": "Group",
   "updated": "2021-03-10T17:18:10.498868+00:00"
 }

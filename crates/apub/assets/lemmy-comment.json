@@ -18,17 +18,17 @@
     },
     "https://w3id.org/security/v1"
   ],
-  "attributedTo": "https://lemmy.ml/u/nutomic",
-  "content": "While I very much get and respect the general sentiment, I think from the perspective of a Central European non-English person in a country with a significant number of, also non-English speaking Nazis, the current approach of filtering slurs based on an English regex is fatally flawed. You can happily use Lemmy to create a hostile far right community where everyone is easily able to use whatever hurtful slurs they want as long as they are not the few specifically blocked English ones. \n\nOn the other hand you create a situation where people feel the need to question the choice of software of their community because they read about censorship or whatever to be used in Lemmy and might stay away and move to other software even though the would maybe never be affected by the slur-filter as the number is not so large and the overlap with other languages not very big.\n\nSo I would argue that this specific implementation of a slur-filter just doesn't achieve what it aims to achieve and should be fundamentally rethought, maybe as configurable per instance.",
-  "id": "https://lemmy.ml/comment/38741",
-  "inReplyTo": "https://lemmy.ml/post/55143",
+  "id": "https://enterprise.lemmy.ml/comment/38741",
+  "type": "Note",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
+  "content": "first comment!",
   "mediaType": "text/html",
-  "published": "2021-03-01T13:42:43.966208+00:00",
   "source": {
-    "content": "While I very much get and respect the general sentiment, I think from the perspective of a Central European non-English person in a country with a significant number of, also non-English speaking Nazis, the current approach of filtering slurs based on an English regex is fatally flawed. You can happily use Lemmy to create a hostile far right community where everyone is easily able to use whatever hurtful slurs they want as long as they are not the few specifically blocked English ones. \n\nOn the other hand you create a situation where people feel the need to question the choice of software of their community because they read about censorship or whatever to be used in Lemmy and might stay away and move to other software even though the would maybe never be affected by the slur-filter as the number is not so large and the overlap with other languages not very big.\n\nSo I would argue that this specific implementation of a slur-filter just doesn't achieve what it aims to achieve and should be fundamentally rethought, maybe as configurable per instance.",
+    "content": "first comment!",
     "mediaType": "text/markdown"
   },
-  "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "type": "Note",
+  "published": "2021-03-01T13:42:43.966208+00:00",
   "updated": "2021-03-01T13:43:03.955787+00:00"
 }

@@ -18,22 +18,22 @@
     },
     "https://w3id.org/security/v1"
   ],
-  "attributedTo": "https://lemmy.ml/u/nutomic",
-  "commentsEnabled": true,
-  "content": "<p>Recently there have been some discussions about the political stances of the Lemmy developers and site admins. To clear up some misconceptions: Lemmy is run by a team of people with different ideologies, including anti-capitalist, communist, anarchist, and others. While @dessalines and I are communists, we take decisions collectively, and don't demand that anyone adopt our views or convert to our ideologies. We wouldn't devote so much time to building a federated site otherwise.</p>\n<p>What's important to us is that you follow the site rules and <a href=\"https://join.lemmy.ml/docs/en/code_of_conduct.html\">Code of Conduct</a>. Meaning primarily, no-bigotry, and being respectful towards others. As long as that is the case, we can get along perfectly fine.</p>\n<p>In general we are open for constructive feedback, so please contact any member of the admin team if you have an idea how to improve Lemmy.</p>\n<h2>Slur Filter</h2>\n<p>We also noticed a consistent criticism of the built-in slur filter in Lemmy. Not so much on lemmy.ml itself, but whenever Lemmy is recommended elsewhere, a few usual suspects keep bringing it up. To these people we say the following: we are using the slur filter as a tool to keep a friendly atmosphere, and prevent racists, sexists and other bigots from using Lemmy. Its existence alone has lead many of them to not make an account, or run an instance: a clear net positive.</p>\n<p>You can see for yourself the words which are blocked (content warning, <a href=\"https://github.com/LemmyNet/lemmy/blob/main/crates/utils/src/utils.rs#L10\">link here</a>). Note that it doesn't include any simple swear words, but only slurs which are used to insult and attack other people. If you want to use any of these words, then please stay on one of the many platforms that permit them. Lemmy is not for you, and we don't want you here.</p>\n<p>We are fully aware that the slur filter is not perfect. It is made for American English, and can give false positives in other languages or dialects. We are totally willing to fix such problems on a case by case basis, simply open an issue in our <a href=\"https://github.com/LemmyNet/lemmy/issues\">repo </a>with a description of the problem.</p>\n",
-  "id": "https://lemmy.ml/post/55143",
-  "mediaType": "text/html",
-  "name": "Statement on Politics of Lemmy.ml",
-  "published": "2021-02-26T12:35:34.292626+00:00",
-  "sensitive": false,
-  "source": {
-    "content": "Recently there have been some discussions about the political stances of the Lemmy developers and site admins. To clear up some misconceptions: Lemmy is run by a team of people with different ideologies, including anti-capitalist, communist, anarchist, and others. While @dessalines and I are communists, we take decisions collectively, and don't demand that anyone adopt our views or convert to our ideologies. We wouldn't devote so much time to building a federated site otherwise.\n\nWhat's important to us is that you follow the site rules and [Code of Conduct](https://join.lemmy.ml/docs/en/code_of_conduct.html). Meaning primarily, no-bigotry, and being respectful towards others. As long as that is the case, we can get along perfectly fine.\n\nIn general we are open for constructive feedback, so please contact any member of the admin team if you have an idea how to improve Lemmy. \n\n## Slur Filter\n\nWe also noticed a consistent criticism of the built-in slur filter in Lemmy. Not so much on lemmy.ml itself, but whenever Lemmy is recommended elsewhere, a few usual suspects keep bringing it up. To these people we say the following: we are using the slur filter as a tool to keep a friendly atmosphere, and prevent racists, sexists and other bigots from using Lemmy. Its existence alone has lead many of them to not make an account, or run an instance: a clear net positive.\n\nYou can see for yourself the words which are blocked (content warning, [link here](https://github.com/LemmyNet/lemmy/blob/main/crates/utils/src/utils.rs#L10)). Note that it doesn't include any simple swear words, but only slurs which are used to insult and attack other people. If you want to use any of these words, then please stay on one of the many platforms that permit them. Lemmy is not for you, and we don't want you here.\n\nWe are fully aware that the slur filter is not perfect. It is made for American English, and can give false positives in other languages or dialects. We are totally willing to fix such problems on a case by case basis, simply open an issue in our [repo ](https://github.com/LemmyNet/lemmy/issues)with a description of the problem.",
-    "mediaType": "text/markdown"
-  },
-  "stickied": true,
+  "id": "https://enterprise.lemmy.ml/post/55143",
+  "type": "Page",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
   "to": [
-    "https://lemmy.ml/c/announcements",
+    "https://enterprise.lemmy.ml/c/tenforward",
     "https://www.w3.org/ns/activitystreams#Public"
   ],
-  "type": "Page"
+  "name": "Post title",
+  "content": "<p>This is a post in the /c/tenforward community</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "This is a post in the /c/tenforward community",
+    "mediaType": "text/markdown"
+  },
+  "sensitive": false,
+  "commentsEnabled": true,
+  "stickied": true,
+  "published": "2021-02-26T12:35:34.292626+00:00"
 }

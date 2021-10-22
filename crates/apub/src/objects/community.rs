@@ -327,20 +327,21 @@ mod tests {
     let mut json: Group = file_to_json_object("assets/lemmy-community.json");
     let json_orig = json.clone();
     // change these links so they dont fetch over the network
-    json.moderators = Some(Url::parse("https://lemmy.ml/c/announcements/not_moderators").unwrap());
-    json.outbox = Url::parse("https://lemmy.ml/c/announcements/not_outbox").unwrap();
+    json.moderators =
+      Some(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap());
+    json.outbox = Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
 
-    let url = Url::parse("https://lemmy.ml/c/announcements").unwrap();
+    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
     let community = ApubCommunity::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 
     assert_eq!(community.actor_id.clone().into_inner(), url);
-    assert_eq!(community.title, "Announcements");
+    assert_eq!(community.title, "Ten Forward");
     assert!(community.public_key.is_some());
     assert!(!community.local);
-    assert_eq!(community.description.as_ref().unwrap().len(), 126);
+    assert_eq!(community.description.as_ref().unwrap().len(), 132);
     // this makes two requests to the (intentionally) broken outbox/moderators collections
     assert_eq!(request_counter, 2);
 
