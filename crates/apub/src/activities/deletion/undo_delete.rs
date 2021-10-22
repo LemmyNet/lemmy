@@ -13,7 +13,6 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  migrations::PublicUrlMigration,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
@@ -27,6 +26,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
 };
 use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
 use lemmy_utils::LemmyError;
@@ -42,7 +42,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDelete {
   actor: ObjectId<ApubPerson>,
-  to: PublicUrlMigration,
+  to: [PublicUrl; 1],
   object: Delete,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -117,7 +117,7 @@ impl UndoDelete {
     )?;
     let undo = UndoDelete {
       actor: ObjectId::new(actor.actor_id()),
-      to: PublicUrlMigration::create(),
+      to: [PublicUrl::Public],
       object,
       cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,

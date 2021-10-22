@@ -389,7 +389,6 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 
 test('Report a comment', async () => {
   let betaCommunity = (await resolveBetaCommunity(beta)).community;
-  console.log(betaCommunity);
   let postRes = (await createPost(beta, betaCommunity.community.id)).post_view.post;
   expect(postRes).toBeDefined();
   let commentRes = (await createComment(beta, postRes.id)).comment_view.comment;

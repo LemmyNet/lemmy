@@ -10,7 +10,6 @@ use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
-  migrations::PublicUrlMigration,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
@@ -23,6 +22,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
@@ -37,7 +37,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct AddMod {
   actor: ObjectId<ApubPerson>,
-  to: PublicUrlMigration,
+  to: [PublicUrl; 1],
   object: ObjectId<ApubPerson>,
   target: Url,
   cc: [ObjectId<ApubCommunity>; 1],
@@ -63,7 +63,7 @@ impl AddMod {
     )?;
     let add = AddMod {
       actor: ObjectId::new(actor.actor_id()),
-      to: PublicUrlMigration::create(),
+      to: [PublicUrl::Public],
       object: ObjectId::new(added_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: [ObjectId::new(community.actor_id())],

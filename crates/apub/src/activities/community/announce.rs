@@ -20,7 +20,6 @@ use crate::{
   fetcher::object_id::ObjectId,
   http::is_activity_already_known,
   insert_activity,
-  migrations::PublicUrlMigration,
   objects::community::ApubCommunity,
   send_lemmy_activity,
   CommunityType,
@@ -34,6 +33,7 @@ use activitystreams::{
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
+  values::PublicUrl,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -61,7 +61,7 @@ pub enum AnnouncableActivities {
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   actor: ObjectId<ApubCommunity>,
-  to: PublicUrlMigration,
+  to: [PublicUrl; 1],
   object: AnnouncableActivities,
   cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -82,7 +82,7 @@ impl AnnounceActivity {
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
-      to: PublicUrlMigration::create(),
+      to: [PublicUrl::Public],
       object,
       cc: vec![community.followers_url()],
       kind: AnnounceType::Announce,
