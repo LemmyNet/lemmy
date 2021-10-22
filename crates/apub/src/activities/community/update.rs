@@ -8,7 +8,6 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  migrations::PublicUrlMigration,
   objects::{
     community::{ApubCommunity, Group},
     person::ApubPerson,
@@ -24,6 +23,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, ToApub},
+  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityForm},
@@ -40,7 +40,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   actor: ObjectId<ApubPerson>,
-  to: PublicUrlMigration,
+  to: [PublicUrl; 1],
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
   cc: [ObjectId<ApubCommunity>; 1],
@@ -65,7 +65,7 @@ impl UpdateCommunity {
     )?;
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: PublicUrlMigration::create(),
+      to: [PublicUrl::Public],
       object: community.to_apub(context.pool()).await?,
       cc: [ObjectId::new(community.actor_id())],
       kind: UpdateType::Update,

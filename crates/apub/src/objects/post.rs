@@ -290,9 +290,9 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_lemmy_post() {
+  async fn test_parse_lemmy_post() {
     let context = init_context();
-    let url = Url::parse("https://lemmy.ml/post/55143").unwrap();
+    let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
     let community_json = file_to_json_object("assets/lemmy-community.json");
     let community = ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
       .await
@@ -308,9 +308,9 @@ mod tests {
       .unwrap();
 
     assert_eq!(post.ap_id.clone().into_inner(), url);
-    assert_eq!(post.name, "Statement on Politics of Lemmy.ml");
+    assert_eq!(post.name, "Post title");
     assert!(post.body.is_some());
-    assert_eq!(post.body.as_ref().unwrap().len(), 2144);
+    assert_eq!(post.body.as_ref().unwrap().len(), 45);
     assert!(!post.locked);
     assert!(post.stickied);
     assert_eq!(request_counter, 0);

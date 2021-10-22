@@ -2,7 +2,7 @@ use crate::{
   check_is_apub_id_valid,
   context::lemmy_context,
   generate_outbox_url,
-  objects::{ImageObject, Source},
+  objects::{get_summary_from_string_or_source, ImageObject, Source},
 };
 use activitystreams::{
   actor::Endpoints,
@@ -17,7 +17,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
   traits::{ActorType, ApubObject, FromApub, ToApub},
-  values::{MediaTypeHtml, MediaTypeMarkdown},
+  values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -54,8 +54,7 @@ pub struct Person {
   preferred_username: String,
   /// displayname (can be changed at any time)
   name: Option<String>,
-  content: Option<String>,
-  media_type: Option<MediaTypeHtml>,
+  summary: Option<String>,
   source: Option<Source>,
   /// user avatar
   icon: Option<ImageObject>,
@@ -186,8 +185,7 @@ impl ToApub for ApubPerson {
       id: self.actor_id.to_owned().into_inner(),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
-      content: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      media_type: self.bio.as_ref().map(|_| MediaTypeHtml::Html),
+      summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
       source,
       icon,
       image,
@@ -224,7 +222,7 @@ impl FromApub for ApubPerson {
     let actor_id = Some(person.id(expected_domain)?.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
-    let bio = person.source.clone().map(|s| s.content);
+    let bio = get_summary_from_string_or_source(&person.summary, &person.source);
     let shared_inbox = person.endpoints.shared_inbox.clone().map(|s| s.into());
     let bot_account = match person.kind {
       UserTypes::Person => false,
@@ -277,20 +275,20 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_lemmy_person() {
+  async fn test_parse_lemmy_person() {
     let context = init_context();
     let json = file_to_json_object("assets/lemmy-person.json");
-    let url = Url::parse("https://lemmy.ml/u/nutomic").unwrap();
+    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
     let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 
     assert_eq!(person.actor_id.clone().into_inner(), url);
-    assert_eq!(person.name, "nutomic");
+    assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(person.public_key.is_some());
     assert!(!person.local);
-    assert!(person.bio.is_some());
+    assert_eq!(person.bio.as_ref().unwrap().len(), 39);
     assert_eq!(request_counter, 0);
 
     let to_apub = person.to_apub(context.pool()).await.unwrap();
@@ -301,7 +299,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_fetch_pleroma_person() {
+  async fn test_parse_pleroma_person() {
     let context = init_context();
     let json = file_to_json_object("assets/pleroma-person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
@@ -315,8 +313,7 @@ mod tests {
     assert!(person.public_key.is_some());
     assert!(!person.local);
     assert_eq!(request_counter, 0);
-    // TODO: pleroma uses summary for user profile, while we use content
-    //assert!(person.bio.is_some());
+    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
   }

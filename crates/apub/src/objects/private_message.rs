@@ -12,6 +12,7 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
+use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::{ApubObject, FromApub, ToApub},
@@ -39,17 +40,23 @@ use url::Url;
 pub struct Note {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
-  r#type: NoteType,
+  r#type: ChatMessageType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
+  to: [ObjectId<ApubPerson>; 1],
   content: String,
-  media_type: MediaTypeHtml,
-  source: Source,
+  media_type: Option<MediaTypeHtml>,
+  source: Option<Source>,
   published: Option<DateTime<FixedOffset>>,
   updated: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   unparsed: Unparsed,
+}
+
+/// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ChatMessageType {
+  ChatMessage,
 }
 
 impl Note {
@@ -136,16 +143,16 @@ impl ToApub for ApubPrivateMessage {
 
     let note = Note {
       context: lemmy_context(),
-      r#type: NoteType::Note,
+      r#type: ChatMessageType::ChatMessage,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: ObjectId::new(recipient.actor_id),
+      to: [ObjectId::new(recipient.actor_id)],
       content: self.content.clone(),
-      media_type: MediaTypeHtml::Html,
-      source: Source {
+      media_type: Some(MediaTypeHtml::Html),
+      source: Some(Source {
         content: self.content.clone(),
         media_type: MediaTypeMarkdown::Markdown,
-      },
+      }),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
@@ -179,12 +186,17 @@ impl FromApub for ApubPrivateMessage {
       .attributed_to
       .dereference(context, request_counter)
       .await?;
-    let recipient = note.to.dereference(context, request_counter).await?;
+    let recipient = note.to[0].dereference(context, request_counter).await?;
+    let content = if let Some(source) = &note.source {
+      source.content.clone()
+    } else {
+      parse_html(&note.content)
+    };
 
     let form = PrivateMessageForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content: note.source.content.clone(),
+      content,
       published: note.published.map(|u| u.to_owned().naive_local()),
       updated: note.updated.map(|u| u.to_owned().naive_local()),
       deleted: None,
@@ -207,20 +219,30 @@ mod tests {
   use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
-  #[actix_rt::test]
-  #[serial]
-  async fn test_fetch_lemmy_pm() {
-    let context = init_context();
-    let url = Url::parse("https://lemmy.ml/private_message/1621").unwrap();
+  async fn prepare_comment_test(url: &Url, context: &LemmyContext) -> (ApubPerson, ApubPerson) {
     let lemmy_person = file_to_json_object("assets/lemmy-person.json");
-    let person1 = ApubPerson::from_apub(&lemmy_person, &context, &url, &mut 0)
+    let person1 = ApubPerson::from_apub(&lemmy_person, context, url, &mut 0)
       .await
       .unwrap();
     let pleroma_person = file_to_json_object("assets/pleroma-person.json");
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    let person2 = ApubPerson::from_apub(&pleroma_person, &context, &pleroma_url, &mut 0)
+    let person2 = ApubPerson::from_apub(&pleroma_person, context, &pleroma_url, &mut 0)
       .await
       .unwrap();
+    (person1, person2)
+  }
+
+  fn cleanup(data: (ApubPerson, ApubPerson), context: &LemmyContext) {
+    Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
+    Person::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_parse_lemmy_pm() {
+    let context = init_context();
+    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
+    let data = prepare_comment_test(&url, &context).await;
     let json = file_to_json_object("assets/lemmy-private-message.json");
     let mut request_counter = 0;
     let pm = ApubPrivateMessage::from_apub(&json, &context, &url, &mut request_counter)
@@ -228,14 +250,34 @@ mod tests {
       .unwrap();
 
     assert_eq!(pm.ap_id.clone().into_inner(), url);
-    assert_eq!(pm.content.len(), 4);
+    assert_eq!(pm.content.len(), 20);
     assert_eq!(request_counter, 0);
 
     let to_apub = pm.to_apub(context.pool()).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
     PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), person1.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), person2.id).unwrap();
+    cleanup(data, &context);
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_parse_pleroma_pm() {
+    let context = init_context();
+    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
+    let data = prepare_comment_test(&url, &context).await;
+    let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
+    let json = file_to_json_object("assets/pleroma-private-message.json");
+    let mut request_counter = 0;
+    let pm = ApubPrivateMessage::from_apub(&json, &context, &pleroma_url, &mut request_counter)
+      .await
+      .unwrap();
+
+    assert_eq!(pm.ap_id.clone().into_inner(), pleroma_url);
+    assert_eq!(pm.content.len(), 3);
+    assert_eq!(request_counter, 0);
+
+    PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();
+    cleanup(data, &context);
   }
 }

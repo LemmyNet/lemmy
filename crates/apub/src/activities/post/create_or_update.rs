@@ -10,7 +10,6 @@ use crate::{
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  migrations::PublicUrlMigration,
   objects::{
     community::ApubCommunity,
     person::ApubPerson,
@@ -23,6 +22,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
+  values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePost {
   actor: ObjectId<ApubPerson>,
-  to: PublicUrlMigration,
+  to: [PublicUrl; 1],
   object: Page,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -67,7 +67,7 @@ impl CreateOrUpdatePost {
     )?;
     let create_or_update = CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
-      to: PublicUrlMigration::create(),
+      to: [PublicUrl::Public],
       object: post.to_apub(context.pool()).await?,
       cc: [ObjectId::new(community.actor_id())],
       kind,

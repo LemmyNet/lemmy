@@ -358,7 +358,6 @@ test('Enforce community ban for federated user', async () => {
 
 test('Report a post', async () => {
   let betaCommunity = (await resolveBetaCommunity(beta)).community;
-  console.log(betaCommunity);
   let postRes = await createPost(beta, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 

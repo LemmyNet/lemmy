@@ -4,8 +4,10 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
+use html2md::parse_html;
 use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_utils::{utils::convert_datetime, LemmyError};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 pub mod comment;
@@ -14,14 +16,14 @@ pub mod person;
 pub mod post;
 pub mod private_message;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Source {
   content: String,
   media_type: MediaTypeMarkdown,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageObject {
   #[serde(rename = "type")]
@@ -51,6 +53,17 @@ where
     }
   } else {
     Err(anyhow!("Cant convert object to tombstone if it wasnt deleted").into())
+  }
+}
+
+fn get_summary_from_string_or_source(
+  raw: &Option<String>,
+  source: &Option<Source>,
+) -> Option<String> {
+  if let Some(source) = &source {
+    Some(source.content.clone())
+  } else {
+    raw.as_ref().map(|s| parse_html(s))
   }
 }
 

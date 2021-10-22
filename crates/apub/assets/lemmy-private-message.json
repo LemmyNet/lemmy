@@ -18,15 +18,17 @@
     },
     "https://w3id.org/security/v1"
   ],
-  "attributedTo": "https://lemmy.ml/u/nutomic",
-  "content": "test",
-  "id": "https://lemmy.ml/private_message/1621",
+  "id": "https://enterprise.lemmy.ml/private_message/1621",
+  "type": "ChatMessage",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": [
+    "https://queer.hacktivis.me/users/lanodan"
+  ],
+  "content": "Hello hello, testing",
   "mediaType": "text/html",
-  "published": "2021-10-21T10:13:14.597721+00:00",
   "source": {
-    "content": "test",
+    "content": "Hello hello, testing",
     "mediaType": "text/markdown"
   },
-  "to": "https://queer.hacktivis.me/users/lanodan",
-  "type": "Note"
+  "published": "2021-10-21T10:13:14.597721+00:00"
 }
