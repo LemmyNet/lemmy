@@ -18,7 +18,7 @@
     },
     "https://w3id.org/security/v1"
   ],
-  "content": "<p>Lemmy maintainer. Interested in politics, video games, and many other things.</p>\n",
+  "summary": "<p>Lemmy maintainer. Interested in politics, video games, and many other things.</p>\n",
   "endpoints": {
     "sharedInbox": "https://lemmy.ml/inbox"
   },
@@ -28,7 +28,6 @@
   },
   "id": "https://lemmy.ml/u/nutomic",
   "inbox": "https://lemmy.ml/u/nutomic/inbox",
-  "mediaType": "text/html",
   "outbox": "https://lemmy.ml/u/nutomic/outbox",
   "preferredUsername": "nutomic",
   "publicKey": {

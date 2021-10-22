@@ -2,7 +2,7 @@ use crate::{
   check_is_apub_id_valid,
   context::lemmy_context,
   generate_outbox_url,
-  objects::{ImageObject, Source},
+  objects::{get_summary_from_string_or_source, ImageObject, Source},
 };
 use activitystreams::{
   actor::Endpoints,
@@ -13,7 +13,6 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use chrono::{DateTime, FixedOffset};
-use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
@@ -223,11 +222,7 @@ impl FromApub for ApubPerson {
     let actor_id = Some(person.id(expected_domain)?.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
-    let bio = if let Some(source) = &person.source {
-      Some(source.content.clone())
-    } else {
-      person.summary.as_ref().map(|s| parse_html(s))
-    };
+    let bio = get_summary_from_string_or_source(&person.summary, &person.source);
     let shared_inbox = person.endpoints.shared_inbox.clone().map(|s| s.into());
     let bot_account = match person.kind {
       UserTypes::Person => false,
@@ -293,7 +288,7 @@ mod tests {
     assert_eq!(person.name, "nutomic");
     assert!(person.public_key.is_some());
     assert!(!person.local);
-    assert!(person.bio.is_some());
+    assert_eq!(person.bio.as_ref().unwrap().len(), 77);
     assert_eq!(request_counter, 0);
 
     let to_apub = person.to_apub(context.pool()).await.unwrap();

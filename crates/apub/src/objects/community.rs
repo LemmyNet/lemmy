@@ -4,7 +4,7 @@ use crate::{
   fetcher::community::{fetch_community_outbox, update_community_mods},
   generate_moderators_url,
   generate_outbox_url,
-  objects::{create_tombstone, ImageObject, Source},
+  objects::{create_tombstone, get_summary_from_string_or_source, ImageObject, Source},
   CommunityType,
 };
 use activitystreams::{
@@ -21,7 +21,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
   traits::{ActorType, ApubObject, FromApub, ToApub},
-  values::{MediaTypeHtml, MediaTypeMarkdown},
+  values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -55,8 +55,7 @@ pub struct Group {
   preferred_username: String,
   /// title (can be changed at any time)
   name: String,
-  content: Option<String>,
-  media_type: Option<MediaTypeHtml>,
+  summary: Option<String>,
   source: Option<Source>,
   icon: Option<ImageObject>,
   /// banner
@@ -89,7 +88,7 @@ impl Group {
     let actor_id = Some(group.id(expected_domain)?.clone().into());
     let name = group.preferred_username.clone();
     let title = group.name.clone();
-    let description = group.source.clone().map(|s| s.content);
+    let description = get_summary_from_string_or_source(&group.summary, &group.source);
     let shared_inbox = group.endpoints.shared_inbox.clone().map(|s| s.into());
 
     let slur_regex = &settings.slur_regex();
@@ -218,8 +217,7 @@ impl ToApub for ApubCommunity {
       id: self.actor_id(),
       preferred_username: self.name.clone(),
       name: self.title.clone(),
-      content: self.description.as_ref().map(|b| markdown_to_html(b)),
-      media_type: self.description.as_ref().map(|_| MediaTypeHtml::Html),
+      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
       source,
       icon,
       image,

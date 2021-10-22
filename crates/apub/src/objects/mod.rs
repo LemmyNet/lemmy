@@ -4,6 +4,7 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
+use html2md::parse_html;
 use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use serde::{Deserialize, Serialize};
@@ -52,6 +53,17 @@ where
     }
   } else {
     Err(anyhow!("Cant convert object to tombstone if it wasnt deleted").into())
+  }
+}
+
+fn get_summary_from_string_or_source(
+  raw: &Option<String>,
+  source: &Option<Source>,
+) -> Option<String> {
+  if let Some(source) = &source {
+    Some(source.content.clone())
+  } else {
+    raw.as_ref().map(|s| parse_html(s))
   }
 }
 

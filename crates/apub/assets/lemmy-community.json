@@ -18,7 +18,7 @@
     },
     "https://w3id.org/security/v1"
   ],
-  "content": "<p>Lemmy Announcements</p>\n<hr />\n<p>Feel free to announce new communities here.</p>\n<p>Other than that, this is <em>reserved for admin use only</em>.</p>\n",
+  "summary": "<p>Lemmy Announcements</p>\n<hr />\n<p>Feel free to announce new communities here.</p>\n<p>Other than that, this is <em>reserved for admin use only</em>.</p>\n",
   "endpoints": {
     "sharedInbox": "https://lemmy.ml/inbox"
   },
@@ -29,7 +29,6 @@
   },
   "id": "https://lemmy.ml/c/announcements",
   "inbox": "https://lemmy.ml/c/announcements/inbox",
-  "mediaType": "text/html",
   "moderators": "https://lemmy.ml/c/announcements/moderators",
   "name": "Announcements",
   "outbox": "https://lemmy.ml/c/announcements/outbox",
