@@ -38,17 +38,17 @@ steps:
       - sudo apt-get -y install --no-install-recommends postgresql-client
       - cargo test --workspace --no-fail-fast
 
+  - name: check defaults.hjson updated
+    image: ekidd/rust-musl-builder:1.51.0
+    commands:
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+
   - name: cargo build
     image: ekidd/rust-musl-builder:1.51.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-
-  - name: check defaults.hjson updated
-    image: ekidd/rust-musl-builder:1.51.0
-    commands:
-      - target/lemmy_server --print-config-docs > config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: run federation tests
     image: node:alpine
