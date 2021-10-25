@@ -28,7 +28,7 @@ use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::trace;
+use log::info;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -79,7 +79,7 @@ pub async fn person_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received person inbox activity {}", unparsed);
+  info!("Received person inbox activity {}", unparsed);
   let activity = serde_json::from_str::<PersonInboxActivities>(&unparsed)?;
   receive_person_inbox(activity, request, &context).await
 }

@@ -14,6 +14,7 @@ use crate::{
     post::create_or_update::CreateOrUpdatePost,
     verify_activity,
     verify_community,
+    verify_is_public,
     voting::{undo_vote::UndoVote, vote::Vote},
   },
   context::lemmy_context,
@@ -28,12 +29,12 @@ use activitystreams::{
   activity::kind::AnnounceType,
   base::AnyBase,
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -61,7 +62,7 @@ pub enum AnnouncableActivities {
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   actor: ObjectId<ApubCommunity>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   object: AnnouncableActivities,
   cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -82,7 +83,7 @@ impl AnnounceActivity {
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object,
       cc: vec![community.followers_url()],
       kind: AnnounceType::Announce,
@@ -106,6 +107,7 @@ impl ActivityHandler for AnnounceActivity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;

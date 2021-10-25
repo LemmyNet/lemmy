@@ -9,6 +9,7 @@ use crate::{
     },
     generate_activity_id,
     verify_activity,
+    verify_is_public,
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
@@ -18,6 +19,7 @@ use activitystreams::{
   activity::kind::DeleteType,
   base::AnyBase,
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use anyhow::anyhow;
@@ -25,7 +27,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::{
@@ -66,7 +67,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   pub(in crate::activities::deletion) object: Url,
   pub(in crate::activities::deletion) cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -89,6 +90,7 @@ impl ActivityHandler for Delete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     verify_delete_activity(
       &self.object,
@@ -144,7 +146,7 @@ impl Delete {
   ) -> Result<Delete, LemmyError> {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: object_id,
       cc: [ObjectId::new(community.actor_id())],
       kind: DeleteType::Delete,

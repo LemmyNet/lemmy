@@ -10,6 +10,7 @@ use crate::{
     },
     generate_activity_id,
     verify_activity,
+    verify_is_public,
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
@@ -19,6 +20,7 @@ use activitystreams::{
   activity::kind::UndoType,
   base::AnyBase,
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use anyhow::anyhow;
@@ -26,7 +28,6 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
 use lemmy_utils::LemmyError;
@@ -42,7 +43,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDelete {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   object: Delete,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -62,6 +63,7 @@ impl ActivityHandler for UndoDelete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     self.object.verify(context, request_counter).await?;
     verify_delete_activity(
@@ -117,7 +119,7 @@ impl UndoDelete {
     )?;
     let undo = UndoDelete {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object,
       cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,

@@ -33,15 +33,6 @@
 
 use serde::{Deserialize, Serialize};
 
-/// The identifier used to address activities to the public.
-///
-/// <https://www.w3.org/TR/activitypub/#public-addressing>
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum PublicUrl {
-  #[serde(rename = "https://www.w3.org/ns/activitystreams#Public")]
-  Public,
-}
-
 /// Media type for markdown text.
 ///
 /// <https://www.iana.org/assignments/media-types/media-types.xhtml>

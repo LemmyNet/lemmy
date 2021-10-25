@@ -27,7 +27,7 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::{info, trace};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
 use url::Url;
@@ -54,7 +54,7 @@ pub async fn shared_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received shared inbox activity {}", unparsed);
+  info!("Received shared inbox activity {}", unparsed);
   let activity = serde_json::from_str::<SharedInboxActivities>(&unparsed)?;
   match activity {
     SharedInboxActivities::GroupInboxActivities(g) => {

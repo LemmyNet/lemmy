@@ -32,7 +32,7 @@ use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::trace;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -78,7 +78,7 @@ pub async fn community_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received community inbox activity {}", unparsed);
+  info!("Received community inbox activity {}", unparsed);
   let activity = serde_json::from_str::<GroupInboxActivities>(&unparsed)?;
 
   receive_group_inbox(activity.clone(), request, &context).await?;

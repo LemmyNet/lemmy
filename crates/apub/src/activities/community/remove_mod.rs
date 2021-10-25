@@ -4,6 +4,7 @@ use crate::{
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
+    verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
@@ -16,13 +17,13 @@ use activitystreams::{
   activity::kind::RemoveType,
   base::AnyBase,
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
@@ -37,7 +38,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   pub(in crate::activities) object: ObjectId<ApubPerson>,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -64,7 +65,7 @@ impl RemoveMod {
     )?;
     let remove = RemoveMod {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: ObjectId::new(removed_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
@@ -88,6 +89,7 @@ impl ActivityHandler for RemoveMod {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;

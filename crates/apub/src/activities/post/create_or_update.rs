@@ -4,6 +4,7 @@ use crate::{
     community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_mod_action,
     verify_person_in_community,
     CreateOrUpdateType,
@@ -16,13 +17,12 @@ use crate::{
     post::{ApubPost, Page},
   },
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
+use activitystreams::{base::AnyBase, primitives::OneOrMany, public, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePost {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   object: Page,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -61,7 +61,7 @@ impl CreateOrUpdatePost {
     )?;
     Ok(CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: post.to_apub(context).await?,
       cc: [ObjectId::new(community.actor_id())],
       kind,
@@ -97,6 +97,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     let community = self.cc[0].dereference(context, request_counter).await?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;

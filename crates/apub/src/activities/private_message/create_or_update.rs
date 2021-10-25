@@ -28,7 +28,7 @@ pub struct CreateOrUpdatePrivateMessage {
   pub context: OneOrMany<AnyBase>,
   id: Url,
   actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
+  to: [ObjectId<ApubPerson>; 1],
   object: Note,
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
@@ -57,7 +57,7 @@ impl CreateOrUpdatePrivateMessage {
       context: lemmy_context(),
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(recipient.actor_id()),
+      to: [ObjectId::new(recipient.actor_id())],
       object: private_message.to_apub(context).await?,
       kind,
       unparsed: Default::default(),

@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollowCommunity {
   actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubCommunity>,
+  to: [ObjectId<ApubCommunity>; 1],
   object: FollowCommunity,
   #[serde(rename = "type")]
   kind: UndoType,
@@ -55,7 +55,7 @@ impl UndoFollowCommunity {
     let object = FollowCommunity::new(actor, community, context)?;
     let undo = UndoFollowCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(community.actor_id()),
+      to: [ObjectId::new(community.actor_id())],
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(
@@ -79,7 +79,7 @@ impl ActivityHandler for UndoFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
-    verify_urls_match(self.to.inner(), self.object.object.inner())?;
+    verify_urls_match(self.to[0].inner(), self.object.object.inner())?;
     verify_urls_match(self.actor(), self.object.actor())?;
     verify_person(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
@@ -92,7 +92,7 @@ impl ActivityHandler for UndoFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;
-    let community = self.to.dereference(context, request_counter).await?;
+    let community = self.to[0].dereference(context, request_counter).await?;
 
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,

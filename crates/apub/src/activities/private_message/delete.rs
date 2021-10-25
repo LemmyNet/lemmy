@@ -30,7 +30,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct DeletePrivateMessage {
   actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
+  to: [ObjectId<ApubPerson>; 1],
   pub(in crate::activities::private_message) object: ObjectId<ApubPrivateMessage>,
   #[serde(rename = "type")]
   kind: DeleteType,
@@ -49,7 +49,7 @@ impl DeletePrivateMessage {
   ) -> Result<DeletePrivateMessage, LemmyError> {
     Ok(DeletePrivateMessage {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(actor.actor_id()),
+      to: [ObjectId::new(actor.actor_id())],
       object: ObjectId::new(pm.ap_id.clone()),
       kind: DeleteType::Delete,
       id: generate_activity_id(

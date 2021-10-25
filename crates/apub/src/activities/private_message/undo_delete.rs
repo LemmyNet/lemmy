@@ -35,7 +35,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeletePrivateMessage {
   actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
+  to: [ObjectId<ApubPerson>; 1],
   object: DeletePrivateMessage,
   #[serde(rename = "type")]
   kind: UndoType,
@@ -65,7 +65,7 @@ impl UndoDeletePrivateMessage {
     )?;
     let undo = UndoDeletePrivateMessage {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(recipient.actor_id()),
+      to: [ObjectId::new(recipient.actor_id())],
       object,
       kind: UndoType::Undo,
       id: id.clone(),

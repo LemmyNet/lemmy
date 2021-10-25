@@ -3,6 +3,7 @@ use crate::{
     community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
@@ -17,13 +18,13 @@ use activitystreams::{
   activity::kind::UpdateType,
   base::AnyBase,
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityForm},
@@ -40,7 +41,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
   cc: [ObjectId<ApubCommunity>; 1],
@@ -65,7 +66,7 @@ impl UpdateCommunity {
     )?;
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: community.to_apub(context).await?,
       cc: [ObjectId::new(community.actor_id())],
       kind: UpdateType::Update,
@@ -87,6 +88,7 @@ impl ActivityHandler for UpdateCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;

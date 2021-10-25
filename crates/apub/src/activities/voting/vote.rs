@@ -3,6 +3,7 @@ use crate::{
     community::{announce::AnnouncableActivities, send_to_community},
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
@@ -11,13 +12,12 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   PostOrComment,
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
+use activitystreams::{base::AnyBase, primitives::OneOrMany, public, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
@@ -58,7 +58,7 @@ impl From<&VoteType> for i16 {
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   pub(in crate::activities::voting) object: ObjectId<PostOrComment>,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -80,7 +80,7 @@ impl Vote {
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: ObjectId::new(object.ap_id()),
       cc: [ObjectId::new(community.actor_id())],
       kind: kind.clone(),
@@ -118,6 +118,7 @@ impl ActivityHandler for Vote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())

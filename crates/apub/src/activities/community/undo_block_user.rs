@@ -7,6 +7,7 @@ use crate::{
     },
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
@@ -18,13 +19,13 @@ use activitystreams::{
   activity::kind::UndoType,
   base::AnyBase,
   primitives::OneOrMany,
+  public,
   unparsed::Unparsed,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
 };
 use lemmy_db_schema::{
   source::community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -39,7 +40,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUserFromCommunity {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   object: BlockUserFromCommunity,
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
@@ -66,7 +67,7 @@ impl UndoBlockUserFromCommunity {
     )?;
     let undo = UndoBlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: block,
       cc: [ObjectId::new(community.actor_id())],
       kind: UndoType::Undo,
@@ -89,6 +90,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;

@@ -6,6 +6,7 @@ use crate::{
     extract_community,
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_person_in_community,
     CreateOrUpdateType,
   },
@@ -17,12 +18,17 @@ use crate::{
     person::ApubPerson,
   },
 };
-use activitystreams::{base::AnyBase, link::Mention, primitives::OneOrMany, unparsed::Unparsed};
+use activitystreams::{
+  base::AnyBase,
+  link::Mention,
+  primitives::OneOrMany,
+  public,
+  unparsed::Unparsed,
+};
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  values::PublicUrl,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -38,7 +44,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdateComment {
   actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
+  to: Vec<Url>,
   object: Note,
   cc: Vec<Url>,
   tag: Vec<Mention>,
@@ -76,7 +82,7 @@ impl CreateOrUpdateComment {
 
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: comment.to_apub(context).await?,
       cc: maa.ccs,
       tag: maa.tags,
@@ -100,6 +106,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     let community = extract_community(&self.cc, context, request_counter).await?;
     let community_id = ObjectId::new(community.actor_id());
     let post = self.object.get_parents(context, request_counter).await?.0;
