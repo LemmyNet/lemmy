@@ -8,9 +8,9 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   fetcher::object_id::ObjectId,
-  generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
+  generate_local_apub_endpoint,
   generate_shared_inbox_url,
   objects::community::ApubCommunity,
   EndpointType,
@@ -67,7 +67,7 @@ impl PerformCrud for CreateCommunity {
     }
 
     // Double check for duplicate community actor_ids
-    let community_actor_id = generate_apub_endpoint(
+    let community_actor_id = generate_local_apub_endpoint(
       EndpointType::Community,
       &data.name,
       &context.settings().get_protocol_and_hostname(),

@@ -11,7 +11,7 @@ use lemmy_apub::{
     private_message::create_or_update::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
   },
-  generate_apub_endpoint,
+  generate_local_apub_endpoint,
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -67,7 +67,7 @@ impl PerformCrud for CreatePrivateMessage {
     let updated_private_message = blocking(
       context.pool(),
       move |conn| -> Result<PrivateMessage, LemmyError> {
-        let apub_id = generate_apub_endpoint(
+        let apub_id = generate_local_apub_endpoint(
           EndpointType::PrivateMessage,
           &inserted_private_message_id.to_string(),
           &protocol_and_hostname,

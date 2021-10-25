@@ -4,9 +4,9 @@ use diesel::{
   *,
 };
 use lemmy_apub::{
-  generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
+  generate_local_apub_endpoint,
   generate_shared_inbox_url,
   EndpointType,
 };
@@ -58,7 +58,7 @@ fn user_updates_2020_04_02(
 
     let form = PersonForm {
       name: cperson.name.to_owned(),
-      actor_id: Some(generate_apub_endpoint(
+      actor_id: Some(generate_local_apub_endpoint(
         EndpointType::Person,
         &cperson.name,
         protocol_and_hostname,
@@ -93,7 +93,7 @@ fn community_updates_2020_04_02(
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_actor_id = generate_apub_endpoint(
+    let community_actor_id = generate_local_apub_endpoint(
       EndpointType::Community,
       &ccommunity.name,
       protocol_and_hostname,
@@ -143,7 +143,7 @@ fn post_updates_2020_04_03(
     .load::<Post>(conn)?;
 
   for cpost in &incorrect_posts {
-    let apub_id = generate_apub_endpoint(
+    let apub_id = generate_local_apub_endpoint(
       EndpointType::Post,
       &cpost.id.to_string(),
       protocol_and_hostname,
@@ -171,7 +171,7 @@ fn comment_updates_2020_04_03(
     .load::<Comment>(conn)?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = generate_apub_endpoint(
+    let apub_id = generate_local_apub_endpoint(
       EndpointType::Comment,
       &ccomment.id.to_string(),
       protocol_and_hostname,
@@ -199,7 +199,7 @@ fn private_message_updates_2020_05_05(
     .load::<PrivateMessage>(conn)?;
 
   for cpm in &incorrect_pms {
-    let apub_id = generate_apub_endpoint(
+    let apub_id = generate_local_apub_endpoint(
       EndpointType::PrivateMessage,
       &cpm.id.to_string(),
       protocol_and_hostname,

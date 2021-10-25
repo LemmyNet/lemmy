@@ -12,7 +12,11 @@ extern crate lazy_static;
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{activity_queue::send_activity, traits::ActorType};
+use lemmy_apub_lib::{
+  activity_queue::send_activity,
+  traits::ActorType,
+  webfinger::{webfinger_resolve_actor, WebfingerType},
+};
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl},
   source::{activity::Activity, person::Person},
@@ -111,7 +115,7 @@ pub enum EndpointType {
 }
 
 /// Generates an apub endpoint for a given domain, IE xyz.tld
-fn generate_apub_endpoint_for_domain(
+pub fn generate_local_apub_endpoint(
   endpoint_type: EndpointType,
   name: &str,
   domain: &str,
@@ -125,15 +129,6 @@ fn generate_apub_endpoint_for_domain(
   };
 
   Ok(Url::parse(&format!("{}/{}/{}", domain, point, name))?.into())
-}
-
-/// Generates the ActivityPub ID for a given object type and ID.
-pub fn generate_apub_endpoint(
-  endpoint_type: EndpointType,
-  name: &str,
-  protocol_and_hostname: &str,
-) -> Result<DbUrl, ParseError> {
-  generate_apub_endpoint_for_domain(endpoint_type, name, protocol_and_hostname)
 }
 
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
@@ -169,23 +164,31 @@ fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
 
 /// Takes in a shortname of the type dessalines@xyz.tld or dessalines (assumed to be local), and outputs the actor id.
 /// Used in the API for communities and users.
-pub fn build_actor_id_from_shortname(
-  endpoint_type: EndpointType,
+pub async fn get_actor_id_from_name(
+  webfinger_type: WebfingerType,
   short_name: &str,
-  settings: &Settings,
-) -> Result<DbUrl, ParseError> {
+  context: &LemmyContext,
+) -> Result<DbUrl, LemmyError> {
   let split = short_name.split('@').collect::<Vec<&str>>();
 
   let name = split[0];
 
   // If there's no @, its local
-  let domain = if split.len() == 1 {
-    settings.get_protocol_and_hostname()
+  if split.len() == 1 {
+    let domain = context.settings().get_protocol_and_hostname();
+    let endpoint_type = match webfinger_type {
+      WebfingerType::Person => EndpointType::Person,
+      WebfingerType::Group => EndpointType::Community,
+    };
+    Ok(generate_local_apub_endpoint(endpoint_type, name, &domain)?)
   } else {
-    format!("{}://{}", settings.get_protocol_string(), split[1])
-  };
-
-  generate_apub_endpoint_for_domain(endpoint_type, name, &domain)
+    let protocol = context.settings().get_protocol_string();
+    Ok(
+      webfinger_resolve_actor(name, split[1], webfinger_type, context.client(), protocol)
+        .await?
+        .into(),
+    )
+  }
 }
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not

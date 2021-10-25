@@ -17,7 +17,7 @@ use lemmy_apub::{
     CreateOrUpdateType,
   },
   fetcher::post_or_comment::PostOrComment,
-  generate_apub_endpoint,
+  generate_local_apub_endpoint,
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -109,7 +109,7 @@ impl PerformCrud for CreateComment {
 
     let updated_comment: Comment =
       blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
-        let apub_id = generate_apub_endpoint(
+        let apub_id = generate_local_apub_endpoint(
           EndpointType::Comment,
           &inserted_comment_id.to_string(),
           &protocol_and_hostname,
