@@ -1,12 +1,14 @@
 use crate::{
   check_is_apub_id_valid,
   collections::{
-    community_moderators::ApubCommunityModerators, community_outbox::ApubCommunityOutbox,
+    community_moderators::ApubCommunityModerators,
+    community_outbox::ApubCommunityOutbox,
     CommunityContext,
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  generate_moderators_url, generate_outbox_url,
+  generate_moderators_url,
+  generate_outbox_url,
   objects::{get_summary_from_string_or_source, tombstone::Tombstone, ImageObject, Source},
   CommunityType,
 };

@@ -9,6 +9,7 @@ use activitystreams::{
   base::AnyBase,
   chrono::NaiveDateTime,
   collection::kind::OrderedCollectionType,
+  object::Tombstone,
   primitives::OneOrMany,
   url::Url,
 };
@@ -43,7 +44,7 @@ pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
-  type TombstoneType = ();
+  type TombstoneType = Tombstone;
   type ApubType = GroupOutbox;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
