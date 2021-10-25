@@ -126,16 +126,6 @@ impl Community {
     community.select(actor_id).distinct().load::<String>(conn)
   }
 
-  pub fn read_from_followers_url(
-    conn: &PgConnection,
-    followers_url_: &DbUrl,
-  ) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    community
-      .filter(followers_url.eq(followers_url_))
-      .first::<Self>(conn)
-  }
-
   pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
     use crate::schema::community::dsl::*;
     insert_into(community)

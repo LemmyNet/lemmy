@@ -1833,6 +1833,7 @@ dependencies = [
  "http",
  "http-signature-normalization-actix",
  "itertools",
+ "lazy_static",
  "lemmy_api_common",
  "lemmy_apub_lib",
  "lemmy_db_schema",

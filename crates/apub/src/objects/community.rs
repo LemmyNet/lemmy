@@ -1,7 +1,8 @@
 use crate::{
   check_is_apub_id_valid,
+  collections::community_outbox::{ApubCommunityOutbox, OutboxData},
   context::lemmy_context,
-  fetcher::community::{fetch_community_outbox, update_community_mods},
+  fetcher::{community::update_community_mods, object_id::ObjectId},
   generate_moderators_url,
   generate_outbox_url,
   objects::{create_tombstone, get_summary_from_string_or_source, ImageObject, Source},
@@ -65,7 +66,7 @@ pub struct Group {
   // lemmy extension
   pub(crate) moderators: Option<Url>,
   inbox: Url,
-  pub(crate) outbox: Url,
+  pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   followers: Url,
   endpoints: Endpoints<Url>,
   public_key: PublicKey,
@@ -193,7 +194,7 @@ impl ApubObject for ApubCommunity {
       sensitive: Some(self.nsfw),
       moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
       inbox: self.inbox_url.clone().into(),
-      outbox: generate_outbox_url(&self.actor_id)?.into(),
+      outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
@@ -227,19 +228,24 @@ impl ApubObject for ApubCommunity {
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
-    let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
+    let community: ApubCommunity =
+      blocking(context.pool(), move |conn| Community::upsert(conn, &form))
+        .await??
+        .into();
     update_community_mods(group, &community, context, request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
-    // TODO: doing this unconditionally might cause infinite loop for some reason
-    fetch_community_outbox(context, &group.outbox, request_counter)
+    let outbox_data = OutboxData(community.clone(), context.clone());
+    group
+      .outbox
+      .dereference(&outbox_data, request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
-    Ok(community.into())
+    Ok(community)
   }
 }
 
@@ -318,7 +324,8 @@ mod tests {
     // change these links so they dont fetch over the network
     json.moderators =
       Some(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap());
-    json.outbox = Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
+    json.outbox =
+      ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;

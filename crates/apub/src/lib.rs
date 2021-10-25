@@ -1,9 +1,13 @@
 pub mod activities;
+pub(crate) mod collections;
 mod context;
 pub mod fetcher;
 pub mod http;
 pub mod migrations;
 pub mod objects;
+
+#[macro_use]
+extern crate lazy_static;
 
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};

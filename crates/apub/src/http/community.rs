@@ -5,24 +5,30 @@ use crate::{
     following::{follow::FollowCommunity, undo::UndoFollowCommunity},
     report::Report,
   },
+  collections::community_outbox::{ApubCommunityOutbox, OutboxData},
   context::lemmy_context,
-  generate_moderators_url, generate_outbox_url,
+  fetcher::object_id::ObjectId,
+  generate_moderators_url,
   http::{
-    create_apub_response, create_apub_tombstone_response, payload_to_string, receive_activity,
+    create_apub_response,
+    create_apub_tombstone_response,
+    payload_to_string,
+    receive_activity,
   },
   objects::community::ApubCommunity,
 };
 use activitystreams::{
-  base::{AnyBase, BaseExt},
+  base::BaseExt,
   collection::{CollectionExt, OrderedCollection, UnorderedCollection},
   url::Url,
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
-use lemmy_db_schema::source::{activity::Activity, community::Community};
+use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::{
-  community_follower_view::CommunityFollowerView, community_moderator_view::CommunityModeratorView,
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -122,31 +128,18 @@ pub(crate) async fn get_apub_community_followers(
 /// activites like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
+  req: HttpRequest,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-
-  let community_actor_id = community.actor_id.to_owned();
-  let activities = blocking(context.pool(), move |conn| {
-    Activity::read_community_outbox(conn, &community_actor_id)
-  })
-  .await??;
-
-  let activities = activities
-    .iter()
-    .map(AnyBase::from_arbitrary_json)
-    .collect::<Result<Vec<AnyBase>, serde_json::Error>>()?;
-  let len = activities.len();
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_many_items(activities)
-    .set_many_contexts(lemmy_context())
-    .set_id(generate_outbox_url(&community.actor_id)?.into())
-    .set_total_items(len as u64);
-  Ok(create_apub_response(&collection))
+  let outbox_data = OutboxData(community.into(), context.get_ref().clone());
+  let url = Url::parse(&req.head().uri.to_string())?;
+  let id = ObjectId::<ApubCommunityOutbox>::new(url);
+  let outbox = id.dereference(&outbox_data, &mut 0).await?;
+  Ok(create_apub_response(&outbox.to_apub(&outbox_data).await?))
 }
 
 pub(crate) async fn get_apub_community_inbox(

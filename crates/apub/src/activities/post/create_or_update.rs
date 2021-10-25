@@ -48,6 +48,28 @@ pub struct CreateOrUpdatePost {
 }
 
 impl CreateOrUpdatePost {
+  pub(crate) async fn new(
+    post: &ApubPost,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
+    kind: CreateOrUpdateType,
+    context: &LemmyContext,
+  ) -> Result<CreateOrUpdatePost, LemmyError> {
+    let id = generate_activity_id(
+      kind.clone(),
+      &context.settings().get_protocol_and_hostname(),
+    )?;
+    Ok(CreateOrUpdatePost {
+      actor: ObjectId::new(actor.actor_id()),
+      to: [PublicUrl::Public],
+      object: post.to_apub(context).await?,
+      cc: [ObjectId::new(community.actor_id())],
+      kind,
+      id: id.clone(),
+      context: lemmy_context(),
+      unparsed: Default::default(),
+    })
+  }
   pub async fn send(
     post: &ApubPost,
     actor: &ApubPerson,
@@ -60,22 +82,8 @@ impl CreateOrUpdatePost {
     })
     .await??
     .into();
-
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
-    let create_or_update = CreateOrUpdatePost {
-      actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
-      object: post.to_apub(context).await?,
-      cc: [ObjectId::new(community.actor_id())],
-      kind,
-      id: id.clone(),
-      context: lemmy_context(),
-      unparsed: Default::default(),
-    };
-
+    let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
+    let id = create_or_update.id.clone();
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
     send_to_community(activity, &id, actor, &community, vec![], context).await
   }

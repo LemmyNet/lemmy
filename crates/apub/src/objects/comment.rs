@@ -313,6 +313,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_comment() {
+    // TODO: changed ObjectId::dereference() so that it always fetches if
+    //       last_refreshed_at() == None. But post doesnt store that and expects to never be refetched
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
