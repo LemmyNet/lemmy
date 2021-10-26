@@ -38,7 +38,7 @@ fn get_summary_from_string_or_source(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
   use actix::Actor;
   use diesel::{
     r2d2::{ConnectionManager, Pool},

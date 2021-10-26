@@ -47,6 +47,7 @@ pub struct CreateOrUpdateComment {
   to: Vec<Url>,
   object: Note,
   cc: Vec<Url>,
+  #[serde(default)]
   tag: Vec<Mention>,
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
@@ -140,5 +141,18 @@ impl ActivityHandler for CreateOrUpdateComment {
     )
     .await?;
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::tests::file_to_json_object;
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_parse_pleroma_create_comment() {
+    let _: CreateOrUpdateComment = file_to_json_object("assets/pleroma-create-comment.json");
   }
 }

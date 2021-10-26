@@ -46,8 +46,11 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
+  /// Necessary to make this optional to make Pleroma Create/Note work.
+  /// TODO: change this so that context is not defined in the struct itself, but added in activity
+  ///       queue and http handlers
   #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
+  context: Option<OneOrMany<AnyBase>>,
   r#type: NoteType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
@@ -202,7 +205,7 @@ impl ApubObject for ApubComment {
     };
 
     let note = Note {
-      context: lemmy_context(),
+      context: Some(lemmy_context()),
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
       attributed_to: ObjectId::new(creator.actor_id),
@@ -274,7 +277,7 @@ impl ApubObject for ApubComment {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
   use super::*;
   use crate::objects::{
     community::ApubCommunity,
@@ -283,7 +286,7 @@ mod tests {
   use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
-  async fn prepare_comment_test(
+  pub(crate) async fn prepare_comment_test(
     url: &Url,
     context: &LemmyContext,
   ) -> (ApubPerson, ApubCommunity, ApubPost) {
@@ -310,9 +313,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_parse_lemmy_comment() {
-    // TODO: changed ObjectId::dereference() so that it always fetches if
-    //       last_refreshed_at() == None. But post doesnt store that and expects to never be refetched
+  pub(crate) async fn test_parse_lemmy_comment() {
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
