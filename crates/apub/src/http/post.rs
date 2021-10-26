@@ -5,7 +5,7 @@ use crate::{
 use actix_web::{body::Body, web, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::ToApub;
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{newtypes::PostId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -30,7 +30,7 @@ pub(crate) async fn get_apub_post(
   }
 
   if !post.deleted {
-    Ok(create_apub_response(&post.to_apub(context.pool()).await?))
+    Ok(create_apub_response(&post.to_apub(&context).await?))
   } else {
     Ok(create_apub_tombstone_response(&post.to_tombstone()?))
   }

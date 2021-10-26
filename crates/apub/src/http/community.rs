@@ -6,13 +6,9 @@ use crate::{
     report::Report,
   },
   context::lemmy_context,
-  generate_moderators_url,
-  generate_outbox_url,
+  generate_moderators_url, generate_outbox_url,
   http::{
-    create_apub_response,
-    create_apub_tombstone_response,
-    payload_to_string,
-    receive_activity,
+    create_apub_response, create_apub_tombstone_response, payload_to_string, receive_activity,
   },
   objects::community::ApubCommunity,
 };
@@ -23,11 +19,10 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ToApub};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
 use lemmy_db_schema::source::{activity::Activity, community::Community};
 use lemmy_db_views_actor::{
-  community_follower_view::CommunityFollowerView,
-  community_moderator_view::CommunityModeratorView,
+  community_follower_view::CommunityFollowerView, community_moderator_view::CommunityModeratorView,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -51,7 +46,7 @@ pub(crate) async fn get_apub_community_http(
   .into();
 
   if !community.deleted {
-    let apub = community.to_apub(context.pool()).await?;
+    let apub = community.to_apub(&**context).await?;
 
     Ok(create_apub_response(&apub))
   } else {

@@ -20,7 +20,7 @@ use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
-  traits::{ActorType, ApubObject, FromApub, ToApub},
+  traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
@@ -138,6 +138,8 @@ impl From<Community> for ApubCommunity {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
+  type ApubType = Group;
+  type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -163,41 +165,8 @@ impl ApubObject for ApubCommunity {
     .await??;
     Ok(())
   }
-}
 
-impl ActorType for ApubCommunity {
-  fn is_local(&self) -> bool {
-    self.local
-  }
-  fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into()
-  }
-  fn name(&self) -> String {
-    self.name.clone()
-  }
-  fn public_key(&self) -> Option<String> {
-    self.public_key.to_owned()
-  }
-  fn private_key(&self) -> Option<String> {
-    self.private_key.to_owned()
-  }
-
-  fn inbox_url(&self) -> Url {
-    self.inbox_url.clone().into()
-  }
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl ToApub for ApubCommunity {
-  type ApubType = Group;
-  type TombstoneType = Tombstone;
-  type DataType = DbPool;
-
-  async fn to_apub(&self, _pool: &DbPool) -> Result<Group, LemmyError> {
+  async fn to_apub(&self, _context: &LemmyContext) -> Result<Group, LemmyError> {
     let source = self.description.clone().map(|bio| Source {
       content: bio,
       media_type: MediaTypeMarkdown::Markdown,
@@ -246,12 +215,6 @@ impl ToApub for ApubCommunity {
       GroupType::Group,
     )
   }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApub for ApubCommunity {
-  type ApubType = Group;
-  type DataType = LemmyContext;
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_apub(
@@ -277,6 +240,32 @@ impl FromApub for ApubCommunity {
       .ok();
 
     Ok(community.into())
+  }
+}
+
+impl ActorType for ApubCommunity {
+  fn is_local(&self) -> bool {
+    self.local
+  }
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into()
+  }
+  fn name(&self) -> String {
+    self.name.clone()
+  }
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
+  }
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
+
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into_inner())
   }
 }
 
@@ -345,7 +334,7 @@ mod tests {
     // this makes two requests to the (intentionally) broken outbox/moderators collections
     assert_eq!(request_counter, 2);
 
-    let to_apub = community.to_apub(context.pool()).await.unwrap();
+    let to_apub = community.to_apub(&context).await.unwrap();
     assert_json_include!(actual: json_orig, expected: to_apub);
 
     Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();

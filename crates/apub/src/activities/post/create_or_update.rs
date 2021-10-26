@@ -21,7 +21,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
   values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
@@ -68,7 +68,7 @@ impl CreateOrUpdatePost {
     let create_or_update = CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: post.to_apub(context.pool()).await?,
+      object: post.to_apub(context).await?,
       cc: [ObjectId::new(community.actor_id())],
       kind,
       id: id.clone(),

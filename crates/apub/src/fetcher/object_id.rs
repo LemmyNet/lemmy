@@ -1,10 +1,7 @@
 use crate::fetcher::should_refetch_actor;
 use anyhow::anyhow;
 use diesel::NotFound;
-use lemmy_apub_lib::{
-  traits::{ApubObject, FromApub},
-  APUB_JSON_CONTENT_TYPE,
-};
+use lemmy_apub_lib::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -25,13 +22,13 @@ static REQUEST_LIMIT: i32 = 25;
 #[serde(transparent)]
 pub struct ObjectId<Kind>(Url, #[serde(skip)] PhantomData<Kind>)
 where
-  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
-  for<'de2> <Kind as FromApub>::ApubType: serde::Deserialize<'de2>;
+  Kind: ApubObject<DataType = LemmyContext> + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>;
 
 impl<Kind> ObjectId<Kind>
 where
-  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
-  for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
+  Kind: ApubObject<DataType = LemmyContext> + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   pub fn new<T>(url: T) -> Self
   where
@@ -129,8 +126,8 @@ where
 
 impl<Kind> Display for ObjectId<Kind>
 where
-  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
-  for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
+  Kind: ApubObject<DataType = LemmyContext> + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.0.to_string())
@@ -139,8 +136,8 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for Url
 where
-  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
-  for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
+  Kind: ApubObject<DataType = LemmyContext> + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
     id.0
@@ -149,8 +146,8 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for DbUrl
 where
-  Kind: FromApub<DataType = LemmyContext> + ApubObject<DataType = LemmyContext> + Send + 'static,
-  for<'de> <Kind as FromApub>::ApubType: serde::Deserialize<'de>,
+  Kind: ApubObject<DataType = LemmyContext> + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
     id.0.into()

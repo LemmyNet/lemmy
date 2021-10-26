@@ -24,7 +24,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ToApub};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -51,7 +51,7 @@ pub(crate) async fn get_apub_person_http(
   .into();
 
   if !person.deleted {
-    let apub = person.to_apub(context.pool()).await?;
+    let apub = person.to_apub(&context).await?;
 
     Ok(create_apub_response(&apub))
   } else {

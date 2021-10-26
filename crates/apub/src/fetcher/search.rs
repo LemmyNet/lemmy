@@ -12,7 +12,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ApubObject, FromApub},
+  traits::ApubObject,
   webfinger::{webfinger_resolve_actor, WebfingerType},
 };
 use lemmy_db_schema::{
@@ -110,6 +110,8 @@ pub enum SearchableApubTypes {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for SearchableObjects {
   type DataType = LemmyContext;
+  type ApubType = SearchableApubTypes;
+  type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     match self {
@@ -156,12 +158,14 @@ impl ApubObject for SearchableObjects {
       SearchableObjects::Comment(c) => c.delete(data).await,
     }
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl FromApub for SearchableObjects {
-  type ApubType = SearchableApubTypes;
-  type DataType = LemmyContext;
+  async fn to_apub(&self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+    unimplemented!()
+  }
+
+  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
+    unimplemented!()
+  }
 
   async fn from_apub(
     apub: &Self::ApubType,
