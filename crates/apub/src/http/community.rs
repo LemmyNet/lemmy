@@ -6,18 +6,14 @@ use crate::{
     report::Report,
   },
   collections::{
-    community_moderators::ApubCommunityModerators,
-    community_outbox::ApubCommunityOutbox,
+    community_moderators::ApubCommunityModerators, community_outbox::ApubCommunityOutbox,
     CommunityContext,
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_outbox_url,
   http::{
-    create_apub_response,
-    create_apub_tombstone_response,
-    payload_to_string,
-    receive_activity,
+    create_apub_response, create_apub_tombstone_response, payload_to_string, receive_activity,
   },
   objects::community::ApubCommunity,
 };
