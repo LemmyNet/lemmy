@@ -2,14 +2,11 @@ use crate::{
   activities::{extract_community, verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, person::ApubPerson, ImageObject, Source},
+  objects::{person::ApubPerson, tombstone::Tombstone, ImageObject, Source},
 };
 use activitystreams::{
   base::AnyBase,
-  object::{
-    kind::{ImageType, PageType},
-    Tombstone,
-  },
+  object::kind::{ImageType, PageType},
   primitives::OneOrMany,
   public,
   unparsed::Unparsed,
@@ -202,12 +199,10 @@ impl ApubObject for ApubPost {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
+    Ok(Tombstone::new(
       PageType::Page,
-    )
+      self.updated.unwrap_or(self.published),
+    ))
   }
 
   async fn from_apub(

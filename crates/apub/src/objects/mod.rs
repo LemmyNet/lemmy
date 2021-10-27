@@ -1,12 +1,6 @@
-use activitystreams::{
-  base::BaseExt,
-  object::{kind::ImageType, Tombstone, TombstoneExt},
-};
-use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use activitystreams::object::kind::ImageType;
 use html2md::parse_html;
 use lemmy_apub_lib::values::MediaTypeMarkdown;
-use lemmy_utils::{utils::convert_datetime, LemmyError};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -15,6 +9,7 @@ pub mod community;
 pub mod person;
 pub mod post;
 pub mod private_message;
+pub mod tombstone;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,31 +26,6 @@ pub struct ImageObject {
   url: Url,
 }
 
-/// Updated is actually the deletion time
-fn create_tombstone<T>(
-  deleted: bool,
-  object_id: Url,
-  updated: Option<NaiveDateTime>,
-  former_type: T,
-) -> Result<Tombstone, LemmyError>
-where
-  T: ToString,
-{
-  if deleted {
-    if let Some(updated) = updated {
-      let mut tombstone = Tombstone::new();
-      tombstone.set_id(object_id);
-      tombstone.set_former_type(former_type.to_string());
-      tombstone.set_deleted(convert_datetime(updated));
-      Ok(tombstone)
-    } else {
-      Err(anyhow!("Cant convert to tombstone because updated time was None.").into())
-    }
-  } else {
-    Err(anyhow!("Cant convert object to tombstone if it wasnt deleted").into())
-  }
-}
-
 fn get_summary_from_string_or_source(
   raw: &Option<String>,
   source: &Option<Source>,
@@ -69,7 +39,6 @@ fn get_summary_from_string_or_source(
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use actix::Actor;
   use diesel::{
     r2d2::{ConnectionManager, Pool},
@@ -85,6 +54,7 @@ mod tests {
     rate_limit::{rate_limiter::RateLimiter, RateLimit},
     request::build_user_agent,
     settings::structs::Settings,
+    LemmyError,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::Client;

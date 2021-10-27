@@ -1,12 +1,12 @@
 use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, person::ApubPerson, Source},
+  objects::{person::ApubPerson, Source},
 };
 use activitystreams::{
   base::AnyBase,
   chrono::NaiveDateTime,
-  object::{kind::NoteType, Tombstone},
+  object::Tombstone,
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
@@ -156,12 +156,7 @@ impl ApubObject for ApubPrivateMessage {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
-      NoteType::Note,
-    )
+    unimplemented!()
   }
 
   async fn from_apub(

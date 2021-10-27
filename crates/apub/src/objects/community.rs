@@ -9,14 +9,14 @@ use crate::{
   fetcher::object_id::ObjectId,
   generate_moderators_url,
   generate_outbox_url,
-  objects::{create_tombstone, get_summary_from_string_or_source, ImageObject, Source},
+  objects::{get_summary_from_string_or_source, tombstone::Tombstone, ImageObject, Source},
   CommunityType,
 };
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
   base::AnyBase,
   chrono::NaiveDateTime,
-  object::{kind::ImageType, Tombstone},
+  object::kind::ImageType,
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
@@ -215,12 +215,10 @@ impl ApubObject for ApubCommunity {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.actor_id.to_owned().into(),
-      self.updated,
+    Ok(Tombstone::new(
       GroupType::Group,
-    )
+      self.updated.unwrap_or(self.published),
+    ))
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.

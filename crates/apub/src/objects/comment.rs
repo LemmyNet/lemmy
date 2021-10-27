@@ -2,13 +2,13 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, person::ApubPerson, post::ApubPost, Source},
+  objects::{person::ApubPerson, post::ApubPost, tombstone::Tombstone, Source},
   PostOrComment,
 };
 use activitystreams::{
   base::AnyBase,
   chrono::NaiveDateTime,
-  object::{kind::NoteType, Tombstone},
+  object::kind::NoteType,
   primitives::OneOrMany,
   public,
   unparsed::Unparsed,
@@ -223,12 +223,10 @@ impl ApubObject for ApubComment {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
+    Ok(Tombstone::new(
       NoteType::Note,
-    )
+      self.updated.unwrap_or(self.published),
+    ))
   }
 
   /// Converts a `Note` to `Comment`.
