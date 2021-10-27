@@ -55,8 +55,9 @@ impl PerformCrud for GetCommunity {
     .await?
     .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
-    // Blank out deleted or removed info
-    if community_view.community.deleted || community_view.community.removed {
+    // Blank out deleted or removed info for non-logged in users
+    if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
+    {
       community_view.community = community_view.community.blank_out_deleted_or_removed_info();
     }
 
@@ -121,12 +122,14 @@ impl PerformCrud for ListCommunities {
     })
     .await??;
 
-    // Blank out deleted or removed info
-    for cv in communities
-      .iter_mut()
-      .filter(|cv| cv.community.deleted || cv.community.removed)
-    {
-      cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
+    // Blank out deleted or removed info for non-logged in users
+    if person_id.is_none() {
+      for cv in communities
+        .iter_mut()
+        .filter(|cv| cv.community.deleted || cv.community.removed)
+      {
+        cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
+      }
     }
 
     // Return the jwt
