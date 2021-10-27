@@ -1,5 +1,3 @@
-pub mod community;
-mod fetch;
 pub mod object_id;
 pub mod post_or_comment;
 pub mod search;
@@ -47,7 +45,7 @@ pub(crate) async fn get_or_fetch_and_upsert_actor(
 ///
 /// TODO it won't pick up new avatars, summaries etc until a day after.
 /// Actors need an "update" activity pushed to other servers to fix this.
-fn should_refetch_actor(last_refreshed: NaiveDateTime) -> bool {
+fn should_refetch_object(last_refreshed: NaiveDateTime) -> bool {
   let update_interval = if cfg!(debug_assertions) {
     // avoid infinite loop when fetching community outbox
     chrono::Duration::seconds(ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG)

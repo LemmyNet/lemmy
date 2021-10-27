@@ -3,7 +3,7 @@ use crate::objects::{
   post::{ApubPost, Page},
 };
 use activitystreams::chrono::NaiveDateTime;
-use lemmy_apub_lib::traits::{ApubObject, FromApub};
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::{comment::CommentForm, post::PostForm};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -31,6 +31,8 @@ pub enum PageOrNote {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for PostOrComment {
   type DataType = LemmyContext;
+  type ApubType = PageOrNote;
+  type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -59,12 +61,14 @@ impl ApubObject for PostOrComment {
       PostOrComment::Comment(c) => c.delete(data).await,
     }
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl FromApub for PostOrComment {
-  type ApubType = PageOrNote;
-  type DataType = LemmyContext;
+  async fn to_apub(&self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+    unimplemented!()
+  }
+
+  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
+    unimplemented!()
+  }
 
   async fn from_apub(
     apub: &PageOrNote,

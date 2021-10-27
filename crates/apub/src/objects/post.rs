@@ -2,14 +2,11 @@ use crate::{
   activities::{extract_community, verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, person::ApubPerson, ImageObject, Source},
+  objects::{person::ApubPerson, tombstone::Tombstone, ImageObject, Source},
 };
 use activitystreams::{
   base::AnyBase,
-  object::{
-    kind::{ImageType, PageType},
-    Tombstone,
-  },
+  object::kind::{ImageType, PageType},
   primitives::OneOrMany,
   public,
   unparsed::Unparsed,
@@ -17,7 +14,7 @@ use activitystreams::{
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ActorType, ApubObject, FromApub, ToApub},
+  traits::{ActorType, ApubObject},
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -29,7 +26,6 @@ use lemmy_db_schema::{
     post::{Post, PostForm},
   },
   traits::Crud,
-  DbPool,
 };
 use lemmy_utils::{
   request::fetch_site_data,
@@ -133,6 +129,8 @@ impl From<Post> for ApubPost {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubPost {
   type DataType = LemmyContext;
+  type ApubType = Page;
+  type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -158,20 +156,16 @@ impl ApubObject for ApubPost {
     .await??;
     Ok(())
   }
-}
-
-#[async_trait::async_trait(?Send)]
-impl ToApub for ApubPost {
-  type ApubType = Page;
-  type TombstoneType = Tombstone;
-  type DataType = DbPool;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  async fn to_apub(&self, pool: &DbPool) -> Result<Page, LemmyError> {
+  async fn to_apub(&self, context: &LemmyContext) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
+    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
     let community_id = self.community_id;
-    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
 
     let source = self.body.clone().map(|body| Source {
       content: body,
@@ -205,19 +199,11 @@ impl ToApub for ApubPost {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
+    Ok(Tombstone::new(
       PageType::Page,
-    )
+      self.updated.unwrap_or(self.published),
+    ))
   }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApub for ApubPost {
-  type ApubType = Page;
-  type DataType = LemmyContext;
 
   async fn from_apub(
     page: &Page,
@@ -315,7 +301,7 @@ mod tests {
     assert!(post.stickied);
     assert_eq!(request_counter, 0);
 
-    let to_apub = post.to_apub(context.pool()).await.unwrap();
+    let to_apub = post.to_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
     Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();

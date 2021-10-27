@@ -4,12 +4,11 @@ use crate::http::{
     community_inbox,
     get_apub_community_followers,
     get_apub_community_http,
-    get_apub_community_inbox,
     get_apub_community_moderators,
     get_apub_community_outbox,
   },
   get_activity,
-  person::{get_apub_person_http, get_apub_person_inbox, get_apub_person_outbox, person_inbox},
+  person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
   post::get_apub_post,
   shared_inbox,
 };
@@ -50,10 +49,6 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
             web::get().to(get_apub_community_outbox),
           )
           .route(
-            "/c/{community_name}/inbox",
-            web::get().to(get_apub_community_inbox),
-          )
-          .route(
             "/c/{community_name}/moderators",
             web::get().to(get_apub_community_moderators),
           )
@@ -62,7 +57,6 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
             "/u/{user_name}/outbox",
             web::get().to(get_apub_person_outbox),
           )
-          .route("/u/{user_name}/inbox", web::get().to(get_apub_person_inbox))
           .route("/post/{post_id}", web::get().to(get_apub_post))
           .route("/comment/{comment_id}", web::get().to(get_apub_comment))
           .route("/activities/{type_}/{id}", web::get().to(get_activity)),

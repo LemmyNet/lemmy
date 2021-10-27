@@ -1,12 +1,12 @@
 use crate::{
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, person::ApubPerson, Source},
+  objects::{person::ApubPerson, Source},
 };
 use activitystreams::{
   base::AnyBase,
   chrono::NaiveDateTime,
-  object::{kind::NoteType, Tombstone},
+  object::Tombstone,
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
@@ -15,7 +15,7 @@ use chrono::{DateTime, FixedOffset};
 use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ApubObject, FromApub, ToApub},
+  traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -25,7 +25,6 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageForm},
   },
   traits::Crud,
-  DbPool,
 };
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -104,6 +103,8 @@ impl From<PrivateMessage> for ApubPrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
+  type ApubType = Note;
+  type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -126,20 +127,14 @@ impl ApubObject for ApubPrivateMessage {
     // do nothing, because pm can't be fetched over http
     unimplemented!()
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ToApub for ApubPrivateMessage {
-  type ApubType = Note;
-  type TombstoneType = Tombstone;
-  type DataType = DbPool;
-
-  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
+  async fn to_apub(&self, context: &LemmyContext) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
+    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(pool, move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient =
+      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let note = Note {
       context: lemmy_context(),
@@ -161,19 +156,8 @@ impl ToApub for ApubPrivateMessage {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
-      NoteType::Note,
-    )
+    unimplemented!()
   }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApub for ApubPrivateMessage {
-  type ApubType = Note;
-  type DataType = LemmyContext;
 
   async fn from_apub(
     note: &Note,
@@ -253,7 +237,7 @@ mod tests {
     assert_eq!(pm.content.len(), 20);
     assert_eq!(request_counter, 0);
 
-    let to_apub = pm.to_apub(context.pool()).await.unwrap();
+    let to_apub = pm.to_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
     PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();

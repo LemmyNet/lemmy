@@ -12,7 +12,7 @@ use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{source::person::Person, traits::Crud};
@@ -58,7 +58,7 @@ impl CreateOrUpdatePrivateMessage {
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
       to: ObjectId::new(recipient.actor_id()),
-      object: private_message.to_apub(context.pool()).await?,
+      object: private_message.to_apub(context).await?,
       kind,
       unparsed: Default::default(),
     };

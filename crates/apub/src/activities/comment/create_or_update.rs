@@ -21,7 +21,7 @@ use activitystreams::{base::AnyBase, link::Mention, primitives::OneOrMany, unpar
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, FromApub, ToApub},
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
   values::PublicUrl,
   verify::verify_domains_match,
 };
@@ -77,7 +77,7 @@ impl CreateOrUpdateComment {
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: comment.to_apub(context.pool()).await?,
+      object: comment.to_apub(context).await?,
       cc: maa.ccs,
       tag: maa.tags,
       kind,

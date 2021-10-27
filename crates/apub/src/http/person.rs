@@ -24,7 +24,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ToApub};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -51,7 +51,7 @@ pub(crate) async fn get_apub_person_http(
   .into();
 
   if !person.deleted {
-    let apub = person.to_apub(context.pool()).await?;
+    let apub = person.to_apub(&context).await?;
 
     Ok(create_apub_response(&apub))
   } else {
@@ -107,21 +107,5 @@ pub(crate) async fn get_apub_person_outbox(
     .set_many_contexts(lemmy_context())
     .set_id(generate_outbox_url(&person.actor_id)?.into())
     .set_total_items(0_u64);
-  Ok(create_apub_response(&collection))
-}
-
-pub(crate) async fn get_apub_person_inbox(
-  info: web::Path<PersonQuery>,
-  context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
-  let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &info.user_name)
-  })
-  .await??;
-
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_id(person.inbox_url.into())
-    .set_many_contexts(lemmy_context());
   Ok(create_apub_response(&collection))
 }

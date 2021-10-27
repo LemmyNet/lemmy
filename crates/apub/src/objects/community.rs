@@ -1,17 +1,22 @@
 use crate::{
   check_is_apub_id_valid,
+  collections::{
+    community_moderators::ApubCommunityModerators,
+    community_outbox::ApubCommunityOutbox,
+    CommunityContext,
+  },
   context::lemmy_context,
-  fetcher::community::{fetch_community_outbox, update_community_mods},
+  fetcher::object_id::ObjectId,
   generate_moderators_url,
   generate_outbox_url,
-  objects::{create_tombstone, get_summary_from_string_or_source, ImageObject, Source},
+  objects::{get_summary_from_string_or_source, tombstone::Tombstone, ImageObject, Source},
   CommunityType,
 };
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
   base::AnyBase,
   chrono::NaiveDateTime,
-  object::{kind::ImageType, Tombstone},
+  object::kind::ImageType,
   primitives::OneOrMany,
   unparsed::Unparsed,
 };
@@ -20,7 +25,7 @@ use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
-  traits::{ActorType, ApubObject, FromApub, ToApub},
+  traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
@@ -63,9 +68,9 @@ pub struct Group {
   // lemmy extension
   sensitive: Option<bool>,
   // lemmy extension
-  pub(crate) moderators: Option<Url>,
+  pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
   inbox: Url,
-  pub(crate) outbox: Url,
+  pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   followers: Url,
   endpoints: Endpoints<Url>,
   public_key: PublicKey,
@@ -138,6 +143,8 @@ impl From<Community> for ApubCommunity {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
+  type ApubType = Group;
+  type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -162,6 +169,91 @@ impl ApubObject for ApubCommunity {
     })
     .await??;
     Ok(())
+  }
+
+  async fn to_apub(&self, _context: &LemmyContext) -> Result<Group, LemmyError> {
+    let source = self.description.clone().map(|bio| Source {
+      content: bio,
+      media_type: MediaTypeMarkdown::Markdown,
+    });
+    let icon = self.icon.clone().map(|url| ImageObject {
+      kind: ImageType::Image,
+      url: url.into(),
+    });
+    let image = self.banner.clone().map(|url| ImageObject {
+      kind: ImageType::Image,
+      url: url.into(),
+    });
+
+    let group = Group {
+      context: lemmy_context(),
+      kind: GroupType::Group,
+      id: self.actor_id(),
+      preferred_username: self.name.clone(),
+      name: self.title.clone(),
+      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
+      source,
+      icon,
+      image,
+      sensitive: Some(self.nsfw),
+      moderators: Some(ObjectId::<ApubCommunityModerators>::new(
+        generate_moderators_url(&self.actor_id)?.into_inner(),
+      )),
+      inbox: self.inbox_url.clone().into(),
+      outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
+      followers: self.followers_url.clone().into(),
+      endpoints: Endpoints {
+        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
+        ..Default::default()
+      },
+      public_key: self.get_public_key()?,
+      published: Some(convert_datetime(self.published)),
+      updated: self.updated.map(convert_datetime),
+      unparsed: Default::default(),
+    };
+    Ok(group)
+  }
+
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
+    Ok(Tombstone::new(
+      GroupType::Group,
+      self.updated.unwrap_or(self.published),
+    ))
+  }
+
+  /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
+  async fn from_apub(
+    group: &Group,
+    context: &LemmyContext,
+    expected_domain: &Url,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
+
+    // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
+    // we need to ignore these errors so that tests can work entirely offline.
+    let community: ApubCommunity =
+      blocking(context.pool(), move |conn| Community::upsert(conn, &form))
+        .await??
+        .into();
+    let outbox_data = CommunityContext(community.clone(), context.clone());
+
+    group
+      .outbox
+      .dereference(&outbox_data, request_counter)
+      .await
+      .map_err(|e| debug!("{}", e))
+      .ok();
+
+    if let Some(moderators) = &group.moderators {
+      moderators
+        .dereference(&outbox_data, request_counter)
+        .await
+        .map_err(|e| debug!("{}", e))
+        .ok();
+    }
+
+    Ok(community)
   }
 }
 
@@ -188,95 +280,6 @@ impl ActorType for ApubCommunity {
 
   fn shared_inbox_url(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(|s| s.into_inner())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl ToApub for ApubCommunity {
-  type ApubType = Group;
-  type TombstoneType = Tombstone;
-  type DataType = DbPool;
-
-  async fn to_apub(&self, _pool: &DbPool) -> Result<Group, LemmyError> {
-    let source = self.description.clone().map(|bio| Source {
-      content: bio,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let icon = self.icon.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
-    let image = self.banner.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
-
-    let group = Group {
-      context: lemmy_context(),
-      kind: GroupType::Group,
-      id: self.actor_id(),
-      preferred_username: self.name.clone(),
-      name: self.title.clone(),
-      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
-      source,
-      icon,
-      image,
-      sensitive: Some(self.nsfw),
-      moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
-      inbox: self.inbox_url.clone().into(),
-      outbox: generate_outbox_url(&self.actor_id)?.into(),
-      followers: self.followers_url.clone().into(),
-      endpoints: Endpoints {
-        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-        ..Default::default()
-      },
-      public_key: self.get_public_key()?,
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
-    };
-    Ok(group)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.actor_id.to_owned().into(),
-      self.updated,
-      GroupType::Group,
-    )
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApub for ApubCommunity {
-  type ApubType = Group;
-  type DataType = LemmyContext;
-
-  /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
-  async fn from_apub(
-    group: &Group,
-    context: &LemmyContext,
-    expected_domain: &Url,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
-
-    // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
-    // we need to ignore these errors so that tests can work entirely offline.
-    let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
-    update_community_mods(group, &community, context, request_counter)
-      .await
-      .map_err(|e| debug!("{}", e))
-      .ok();
-
-    // TODO: doing this unconditionally might cause infinite loop for some reason
-    fetch_community_outbox(context, &group.outbox, request_counter)
-      .await
-      .map_err(|e| debug!("{}", e))
-      .ok();
-
-    Ok(community.into())
   }
 }
 
@@ -327,9 +330,11 @@ mod tests {
     let mut json: Group = file_to_json_object("assets/lemmy-community.json");
     let json_orig = json.clone();
     // change these links so they dont fetch over the network
-    json.moderators =
-      Some(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap());
-    json.outbox = Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
+    json.moderators = Some(ObjectId::new(
+      Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap(),
+    ));
+    json.outbox =
+      ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
@@ -345,7 +350,7 @@ mod tests {
     // this makes two requests to the (intentionally) broken outbox/moderators collections
     assert_eq!(request_counter, 2);
 
-    let to_apub = community.to_apub(context.pool()).await.unwrap();
+    let to_apub = community.to_apub(&context).await.unwrap();
     assert_json_include!(actual: json_orig, expected: to_apub);
 
     Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();

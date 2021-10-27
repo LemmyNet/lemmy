@@ -2,13 +2,13 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{create_tombstone, person::ApubPerson, post::ApubPost, Source},
+  objects::{person::ApubPerson, post::ApubPost, tombstone::Tombstone, Source},
   PostOrComment,
 };
 use activitystreams::{
   base::AnyBase,
   chrono::NaiveDateTime,
-  object::{kind::NoteType, Tombstone},
+  object::kind::NoteType,
   primitives::OneOrMany,
   public,
   unparsed::Unparsed,
@@ -18,7 +18,7 @@ use chrono::{DateTime, FixedOffset};
 use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ApubObject, FromApub, ToApub},
+  traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -31,7 +31,6 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::Crud,
-  DbPool,
 };
 use lemmy_utils::{
   utils::{convert_datetime, remove_slurs},
@@ -159,6 +158,8 @@ impl From<Comment> for ApubComment {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubComment {
   type DataType = LemmyContext;
+  type ApubType = Note;
+  type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -184,23 +185,17 @@ impl ApubObject for ApubComment {
     .await??;
     Ok(())
   }
-}
 
-#[async_trait::async_trait(?Send)]
-impl ToApub for ApubComment {
-  type ApubType = Note;
-  type TombstoneType = Tombstone;
-  type DataType = DbPool;
-
-  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
+  async fn to_apub(&self, context: &LemmyContext) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| Person::read(conn, creator_id)).await??;
+    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
 
     let post_id = self.post_id;
-    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
+    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     let in_reply_to = if let Some(comment_id) = self.parent_id {
-      let parent_comment = blocking(pool, move |conn| Comment::read(conn, comment_id)).await??;
+      let parent_comment =
+        blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
       ObjectId::<PostOrComment>::new(parent_comment.ap_id.into_inner())
     } else {
       ObjectId::<PostOrComment>::new(post.ap_id.into_inner())
@@ -228,19 +223,11 @@ impl ToApub for ApubComment {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.ap_id.to_owned().into(),
-      self.updated,
+    Ok(Tombstone::new(
       NoteType::Note,
-    )
+      self.updated.unwrap_or(self.published),
+    ))
   }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApub for ApubComment {
-  type ApubType = Note;
-  type DataType = LemmyContext;
 
   /// Converts a `Note` to `Comment`.
   ///
@@ -324,6 +311,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_comment() {
+    // TODO: changed ObjectId::dereference() so that it always fetches if
+    //       last_refreshed_at() == None. But post doesnt store that and expects to never be refetched
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
@@ -339,7 +328,7 @@ mod tests {
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
 
-    let to_apub = comment.to_apub(context.pool()).await.unwrap();
+    let to_apub = comment.to_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
     Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();

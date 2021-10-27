@@ -22,7 +22,7 @@ use activitystreams::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ToApub},
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
   values::PublicUrl,
 };
 use lemmy_db_schema::{
@@ -66,7 +66,7 @@ impl UpdateCommunity {
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: [PublicUrl::Public],
-      object: community.to_apub(context.pool()).await?,
+      object: community.to_apub(context).await?,
       cc: [ObjectId::new(community.actor_id())],
       kind: UpdateType::Update,
       id: id.clone(),
