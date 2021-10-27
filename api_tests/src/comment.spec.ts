@@ -360,14 +360,14 @@ test('Check 3 instance shared inbox bug', async () => {
 
   // Make sure alpha sees it
   let alphaPost2 = await getPost(alpha, alphaPost.post.id);
-  // TODO remove this after
-  console.log(alphaPost2);
   expect(alphaPost2.comments[0].comment.content).toBe(commentContent);
-  expect(alphaPost2.comments[0].community.local).toBe(true);
+  expect(alphaPost2.comments[0].community.local).toBe(false);
   expect(alphaPost2.comments[0].creator.local).toBe(false);
   expect(alphaPost2.comments[0].counts.score).toBe(1);
   assertCommentFederation(alphaPost2.comments[0], commentRes.comment_view);
 
+  await unfollowRemotes(alpha);
+  await unfollowRemotes(gamma);
 });
 
 test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.', async () => {
