@@ -6,12 +6,8 @@ use crate::{
   objects::{person::ApubPerson, post::ApubPost},
 };
 use activitystreams::{
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  collection::kind::OrderedCollectionType,
-  object::Tombstone,
-  primitives::OneOrMany,
-  url::Url,
+  base::AnyBase, chrono::NaiveDateTime, collection::kind::OrderedCollectionType,
+  primitives::OneOrMany, url::Url,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -44,7 +40,7 @@ pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
-  type TombstoneType = Tombstone;
+  type TombstoneType = ();
   type ApubType = GroupOutbox;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
