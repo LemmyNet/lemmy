@@ -322,6 +322,51 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   // expect(mentionsRes.mentions[0].score).toBe(1);
 });
 
+test('Check 3 instance shared inbox bug', async () => {
+  // Alpha and gamma users follow beta community
+  let alphaFollow = await followBeta(alpha);
+  expect(alphaFollow.community_view.community.local).toBe(false);
+  expect(alphaFollow.community_view.community.name).toBe('main');
+
+  let gammaFollow = await followBeta(gamma);
+  expect(gammaFollow.community_view.community.local).toBe(false);
+  expect(gammaFollow.community_view.community.name).toBe('main');
+
+  // Create a post on beta
+  let betaPost = await createPost(beta, 2);
+  expect(betaPost.post_view.community.local).toBe(true);
+
+  // Make sure gamma and alpha see it
+  let gammaPost = (await resolvePost(gamma, betaPost.post_view.post)).post;
+  expect(gammaPost.post).toBeDefined();
+  let alphaPost = (await resolvePost(alpha, betaPost.post_view.post)).post;
+  expect(alphaPost.post).toBeDefined();
+
+  // The bug: gamma comments, and alpha should see it.
+  let commentContent = 'Comment from gamma';
+  let commentRes = await createComment(
+    gamma,
+    gammaPost.post.id,
+    undefined,
+    commentContent
+  );
+  expect(commentRes.comment_view.comment.content).toBe(commentContent);
+  expect(commentRes.comment_view.community.local).toBe(false);
+  expect(commentRes.comment_view.creator.local).toBe(true);
+  expect(commentRes.comment_view.counts.score).toBe(1);
+
+  // Make sure alpha sees it
+  let alphaPost2 = await getPost(alpha, alphaPost.post.id);
+  // TODO remove this after
+  console.log(alphaPost2);
+  expect(alphaPost2.comments[0].comment.content).toBe(commentContent);
+  expect(alphaPost2.comments[0].community.local).toBe(true);
+  expect(alphaPost2.comments[0].creator.local).toBe(false);
+  expect(alphaPost2.comments[0].counts.score).toBe(1);
+  assertCommentFederation(alphaPost2.comments[0], commentRes.comment_view);
+
+});
+
 test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.', async () => {
   // Unfollow all remote communities
   let site = await unfollowRemotes(alpha);
@@ -381,4 +426,22 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   expect(alphaPost.post_view.creator.local).toBe(false);
 
   await unfollowRemotes(alpha);
+});
+
+test('Report a comment', async () => {
+  let betaCommunity = (await resolveBetaCommunity(beta)).community;
+  let postRes = (await createPost(beta, betaCommunity.community.id)).post_view.post;
+  expect(postRes).toBeDefined();
+  let commentRes = (await createComment(beta, postRes.id)).comment_view.comment;
+  expect(commentRes).toBeDefined();
+
+  let alphaComment = (await resolveComment(alpha, commentRes)).comment.comment;
+  let alphaReport = (await reportComment(alpha, alphaComment.id, randomString(10)))
+        .comment_report_view.comment_report;
+
+  let betaReport = (await listCommentReports(beta)).comment_reports[0].comment_report;
+  expect(betaReport).toBeDefined();
+  expect(betaReport.resolved).toBe(false);
+  expect(betaReport.original_comment_text).toBe(alphaReport.original_comment_text);
+  expect(betaReport.reason).toBe(alphaReport.reason);
 });
