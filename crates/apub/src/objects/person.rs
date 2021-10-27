@@ -79,7 +79,7 @@ impl Person {
   }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ApubPerson(DbPerson);
 
 impl Deref for ApubPerson {

@@ -8,6 +8,7 @@ use lemmy_utils::{
   settings::structs::Settings,
   LemmyError,
 };
+use log::info;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -115,6 +116,7 @@ where
   ) -> Result<Kind, LemmyError> {
     // dont fetch local objects this way
     debug_assert!(self.0.domain() != Some(&Settings::get().hostname));
+    info!("Fetching remote object {}", self.to_string());
 
     *request_counter += 1;
     if *request_counter > REQUEST_LIMIT {

@@ -1,8 +1,12 @@
 use crate::{
   check_is_apub_id_valid,
-  collections::community_outbox::{ApubCommunityOutbox, OutboxData},
+  collections::{
+    community_moderators::ApubCommunityModerators,
+    community_outbox::ApubCommunityOutbox,
+    CommunityContext,
+  },
   context::lemmy_context,
-  fetcher::{community::update_community_mods, object_id::ObjectId},
+  fetcher::object_id::ObjectId,
   generate_moderators_url,
   generate_outbox_url,
   objects::{create_tombstone, get_summary_from_string_or_source, ImageObject, Source},
@@ -64,7 +68,7 @@ pub struct Group {
   // lemmy extension
   sensitive: Option<bool>,
   // lemmy extension
-  pub(crate) moderators: Option<Url>,
+  pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
   inbox: Url,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   followers: Url,
@@ -192,7 +196,9 @@ impl ApubObject for ApubCommunity {
       icon,
       image,
       sensitive: Some(self.nsfw),
-      moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
+      moderators: Some(ObjectId::<ApubCommunityModerators>::new(
+        generate_moderators_url(&self.actor_id)?.into_inner(),
+      )),
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
@@ -232,18 +238,22 @@ impl ApubObject for ApubCommunity {
       blocking(context.pool(), move |conn| Community::upsert(conn, &form))
         .await??
         .into();
-    update_community_mods(group, &community, context, request_counter)
-      .await
-      .map_err(|e| debug!("{}", e))
-      .ok();
+    let outbox_data = CommunityContext(community.clone(), context.clone());
 
-    let outbox_data = OutboxData(community.clone(), context.clone());
     group
       .outbox
       .dereference(&outbox_data, request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
+
+    if let Some(moderators) = &group.moderators {
+      moderators
+        .dereference(&outbox_data, request_counter)
+        .await
+        .map_err(|e| debug!("{}", e))
+        .ok();
+    }
 
     Ok(community)
   }
@@ -322,8 +332,9 @@ mod tests {
     let mut json: Group = file_to_json_object("assets/lemmy-community.json");
     let json_orig = json.clone();
     // change these links so they dont fetch over the network
-    json.moderators =
-      Some(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap());
+    json.moderators = Some(ObjectId::new(
+      Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap(),
+    ));
     json.outbox =
       ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
 

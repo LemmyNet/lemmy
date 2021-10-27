@@ -1,14 +1,14 @@
 use crate::{
   activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType},
+  collections::CommunityContext,
   context::lemmy_context,
   generate_outbox_url,
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  objects::{person::ApubPerson, post::ApubPost},
 };
 use activitystreams::{
   base::AnyBase,
   chrono::NaiveDateTime,
   collection::kind::OrderedCollectionType,
-  object::Tombstone,
   primitives::OneOrMany,
   url::Url,
 };
@@ -23,14 +23,13 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CommunityOutbox {
+pub struct GroupOutbox {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
   r#type: OrderedCollectionType,
@@ -41,14 +40,11 @@ pub struct CommunityOutbox {
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 
-/// Put community in the data, so we dont have to read it again from the database.
-pub(crate) struct OutboxData(pub ApubCommunity, pub LemmyContext);
-
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityOutbox {
-  type DataType = OutboxData;
-  type TombstoneType = Tombstone;
-  type ApubType = CommunityOutbox;
+  type DataType = CommunityContext;
+  type TombstoneType = ();
+  type ApubType = GroupOutbox;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -91,7 +87,7 @@ impl ApubObject for ApubCommunityOutbox {
       ordered_items.push(a);
     }
 
-    Ok(CommunityOutbox {
+    Ok(GroupOutbox {
       context: lemmy_context(),
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_outbox_url(&data.0.actor_id)?.into(),
