@@ -40,9 +40,9 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "http://localhost:8080")]
   pub pictrs_url: Option<String>,
-  /// Regex for slurs which are prohibited. Example: `(\bThis\b)|(\bis\b)|(\bsample\b)`
   #[default(None)]
-  pub additional_slurs: Option<String>,
+  #[doku(example = "(\\bThis\\b)|(\\bis\\b)|(\\bsample\\b)")]
+  pub slur_filter: Option<String>,
   /// Maximum length of local community and user names
   #[default(20)]
   pub actor_name_max_length: usize,
