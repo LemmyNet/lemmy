@@ -42,7 +42,7 @@ pub struct Settings {
   pub pictrs_url: Option<String>,
   /// Regex for slurs which are prohibited. Example: `(\bThis\b)|(\bis\b)|(\bsample\b)`
   #[default(None)]
-  #[doku(example = "some basic regex, IE: word1|word2")]
+  #[doku(example = "(\\bThis\\b)|(\\bis\\b)|(\\bsample\\b)")]
   pub slur_filter: Option<String>,
   /// Maximum length of local community and user names
   #[default(20)]
