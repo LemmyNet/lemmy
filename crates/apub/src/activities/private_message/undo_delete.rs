@@ -2,20 +2,14 @@ use crate::{
   activities::{
     generate_activity_id,
     private_message::delete::DeletePrivateMessage,
+    send_lemmy_activity,
     verify_activity,
     verify_person,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  send_lemmy_activity,
 };
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -40,8 +34,6 @@ pub struct UndoDeletePrivateMessage {
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -69,7 +61,6 @@ impl UndoDeletePrivateMessage {
       object,
       kind: UndoType::Undo,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let inbox = vec![recipient.shared_inbox_or_inbox_url()];

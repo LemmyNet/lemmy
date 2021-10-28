@@ -1,17 +1,10 @@
 use crate::{
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, Source},
 };
-use activitystreams::{
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  object::Tombstone,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::unparsed::Unparsed;
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -37,8 +30,6 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessage {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   r#type: ChatMessageType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
@@ -104,7 +95,7 @@ impl From<PrivateMessage> for ApubPrivateMessage {
 impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
   type ApubType = ChatMessage;
-  type TombstoneType = Tombstone;
+  type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -137,7 +128,6 @@ impl ApubObject for ApubPrivateMessage {
       blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
     let note = ChatMessage {
-      context: lemmy_context(),
       r#type: ChatMessageType::ChatMessage,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
@@ -155,7 +145,7 @@ impl ApubObject for ApubPrivateMessage {
     Ok(note)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
+  fn to_tombstone(&self) -> Result<(), LemmyError> {
     unimplemented!()
   }
 

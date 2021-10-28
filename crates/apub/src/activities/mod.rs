@@ -1,13 +1,19 @@
 use crate::{
   check_is_apub_id_valid,
+  context::WithContext,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::public;
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{traits::ActivityFields, verify::verify_domains_match};
+use lemmy_apub_lib::{
+  activity_queue::send_activity,
+  traits::{ActivityFields, ActorType},
+  verify::verify_domains_match,
+};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::{
   community_person_ban_view::CommunityPersonBanView,
@@ -15,6 +21,7 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
+use log::info;
 use serde::{Deserialize, Serialize};
 use strum_macros::ToString;
 use url::{ParseError, Url};
@@ -145,4 +152,48 @@ where
     Uuid::new_v4()
   );
   Url::parse(&id)
+}
+
+async fn send_lemmy_activity<T: Serialize>(
+  context: &LemmyContext,
+  activity: &T,
+  activity_id: &Url,
+  actor: &dyn ActorType,
+  inboxes: Vec<Url>,
+  sensitive: bool,
+) -> Result<(), LemmyError> {
+  if !context.settings().federation.enabled || inboxes.is_empty() {
+    return Ok(());
+  }
+  let activity = WithContext::new(activity);
+
+  info!("Sending activity {}", activity_id.to_string());
+
+  // Don't send anything to ourselves
+  // TODO: this should be a debug assert
+  let hostname = context.settings().get_hostname_without_port()?;
+  let inboxes: Vec<&Url> = inboxes
+    .iter()
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
+    .collect();
+
+  let serialised_activity = serde_json::to_string(&activity)?;
+
+  insert_activity(
+    activity_id,
+    serialised_activity.clone(),
+    true,
+    sensitive,
+    context.pool(),
+  )
+  .await?;
+
+  send_activity(
+    serialised_activity,
+    actor,
+    inboxes,
+    context.client(),
+    context.activity_queue(),
+  )
+  .await
 }

@@ -10,20 +10,13 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{
     community::{ApubCommunity, Group},
     person::ApubPerson,
   },
 };
-use activitystreams::{
-  activity::kind::UpdateType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::UpdateType, public, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -51,8 +44,6 @@ pub struct UpdateCommunity {
   #[serde(rename = "type")]
   kind: UpdateType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -74,7 +65,6 @@ impl UpdateCommunity {
       cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
 

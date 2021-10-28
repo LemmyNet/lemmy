@@ -14,17 +14,10 @@ use crate::{
     verify_activity,
     verify_is_public,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::{
-  activity::kind::DeleteType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::DeleteType, public, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -79,8 +72,6 @@ pub struct Delete {
   /// deleting their own content.
   pub(in crate::activities::deletion) summary: Option<String>,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -159,7 +150,6 @@ impl Delete {
         DeleteType::Delete,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }

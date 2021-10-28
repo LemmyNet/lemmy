@@ -7,8 +7,8 @@ use crate::{
     post::{ApubPost, Page},
   },
 };
-use activitystreams::chrono::NaiveDateTime;
 use anyhow::anyhow;
+use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{

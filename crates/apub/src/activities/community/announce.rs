@@ -12,24 +12,17 @@ use crate::{
     deletion::{delete::Delete, undo_delete::UndoDelete},
     generate_activity_id,
     post::create_or_update::CreateOrUpdatePost,
+    send_lemmy_activity,
     verify_activity,
     verify_is_public,
     voting::{undo_vote::UndoVote, vote::Vote},
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   http::is_activity_already_known,
   insert_activity,
   objects::community::ApubCommunity,
-  send_lemmy_activity,
 };
-use activitystreams::{
-  activity::kind::AnnounceType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::AnnounceType, public, unparsed::Unparsed};
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
@@ -102,8 +95,6 @@ pub struct AnnounceActivity {
   #[serde(rename = "type")]
   kind: AnnounceType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -125,7 +116,6 @@ impl AnnounceActivity {
         &AnnounceType::Announce,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let inboxes = list_community_follower_inboxes(community, additional_inboxes, context).await?;

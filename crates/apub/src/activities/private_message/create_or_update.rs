@@ -1,14 +1,18 @@
 use crate::{
-  activities::{generate_activity_id, verify_activity, verify_person, CreateOrUpdateType},
-  context::lemmy_context,
+  activities::{
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_activity,
+    verify_person,
+    CreateOrUpdateType,
+  },
   fetcher::object_id::ObjectId,
   objects::{
     person::ApubPerson,
     private_message::{ApubPrivateMessage, ChatMessage},
   },
-  send_lemmy_activity,
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
+use activitystreams::unparsed::Unparsed;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -24,8 +28,6 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrUpdatePrivateMessage {
-  #[serde(rename = "@context")]
-  pub context: OneOrMany<AnyBase>,
   id: Url,
   actor: ObjectId<ApubPerson>,
   to: [ObjectId<ApubPerson>; 1],
@@ -54,7 +56,6 @@ impl CreateOrUpdatePrivateMessage {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let create_or_update = CreateOrUpdatePrivateMessage {
-      context: lemmy_context(),
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
       to: [ObjectId::new(recipient.actor_id())],

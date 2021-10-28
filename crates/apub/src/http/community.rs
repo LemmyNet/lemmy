@@ -10,7 +10,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
     CommunityContext,
   },
-  context::lemmy_context,
+  context::WithContext,
   fetcher::object_id::ObjectId,
   generate_outbox_url,
   http::{
@@ -82,9 +82,9 @@ pub async fn community_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received community inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<GroupInboxActivities>(&unparsed)?;
+  let activity = serde_json::from_str::<WithContext<GroupInboxActivities>>(&unparsed)?;
 
-  receive_group_inbox(activity.clone(), request, &context).await?;
+  receive_group_inbox(activity.inner(), request, &context).await?;
 
   Ok(HttpResponse::Ok().finish())
 }
@@ -127,9 +127,9 @@ pub(crate) async fn get_apub_community_followers(
 
   let mut collection = UnorderedCollection::new();
   collection
-    .set_many_contexts(lemmy_context())
     .set_id(community.followers_url.into())
     .set_total_items(community_followers.len() as u64);
+  let collection = WithContext::new(collection);
   Ok(create_apub_response(&collection))
 }
 

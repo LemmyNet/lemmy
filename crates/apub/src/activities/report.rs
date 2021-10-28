@@ -1,17 +1,15 @@
 use crate::{
-  activities::{generate_activity_id, verify_activity, verify_person_in_community},
-  context::lemmy_context,
+  activities::{
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_activity,
+    verify_person_in_community,
+  },
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
-  send_lemmy_activity,
   PostOrComment,
 };
-use activitystreams::{
-  activity::kind::FlagType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::FlagType, unparsed::Unparsed};
 use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,
@@ -40,8 +38,6 @@ pub struct Report {
   #[serde(rename = "type")]
   kind: FlagType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -67,7 +63,6 @@ impl Report {
       summary: reason,
       kind,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     send_lemmy_activity(

@@ -12,15 +12,10 @@ extern crate lazy_static;
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  activity_queue::send_activity,
-  traits::ActorType,
-  webfinger::{webfinger_resolve_actor, WebfingerType},
-};
+use lemmy_apub_lib::webfinger::{webfinger_resolve_actor, WebfingerType};
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::info;
 use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
@@ -194,47 +189,4 @@ where
   })
   .await??;
   Ok(())
-}
-
-pub(crate) async fn send_lemmy_activity<T: Serialize>(
-  context: &LemmyContext,
-  activity: &T,
-  activity_id: &Url,
-  actor: &dyn ActorType,
-  inboxes: Vec<Url>,
-  sensitive: bool,
-) -> Result<(), LemmyError> {
-  if !context.settings().federation.enabled || inboxes.is_empty() {
-    return Ok(());
-  }
-
-  info!("Sending activity {}", activity_id.to_string());
-
-  // Don't send anything to ourselves
-  // TODO: this should be a debug assert
-  let hostname = context.settings().get_hostname_without_port()?;
-  let inboxes: Vec<&Url> = inboxes
-    .iter()
-    .filter(|i| i.domain().expect("valid inbox url") != hostname)
-    .collect();
-
-  let serialised_activity = serde_json::to_string(&activity)?;
-
-  insert_activity(
-    activity_id,
-    serialised_activity.clone(),
-    true,
-    sensitive,
-    context.pool(),
-  )
-  .await?;
-
-  send_activity(
-    serialised_activity,
-    actor,
-    inboxes,
-    context.client(),
-    context.activity_queue(),
-  )
-  .await
 }

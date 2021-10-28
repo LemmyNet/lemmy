@@ -1,18 +1,10 @@
 use crate::{
   check_is_apub_id_valid,
-  context::lemmy_context,
   generate_outbox_url,
   objects::{get_summary_from_string_or_source, ImageObject, Source},
 };
-use activitystreams::{
-  actor::Endpoints,
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  object::{kind::ImageType, Tombstone},
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
-use chrono::{DateTime, FixedOffset};
+use activitystreams::{actor::Endpoints, object::kind::ImageType, unparsed::Unparsed};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   signatures::PublicKey,
@@ -44,8 +36,6 @@ pub enum UserTypes {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Person {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(rename = "type")]
   kind: UserTypes,
   id: Url,
@@ -99,7 +89,7 @@ impl From<DbPerson> for ApubPerson {
 impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
-  type TombstoneType = Tombstone;
+  type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -146,7 +136,6 @@ impl ApubObject for ApubPerson {
     });
 
     let person = Person {
-      context: lemmy_context(),
       kind,
       id: self.actor_id.to_owned().into_inner(),
       preferred_username: self.name.clone(),
@@ -170,7 +159,7 @@ impl ApubObject for ApubPerson {
     Ok(person)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
+  fn to_tombstone(&self) -> Result<(), LemmyError> {
     unimplemented!()
   }
 

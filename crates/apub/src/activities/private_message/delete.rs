@@ -1,16 +1,9 @@
 use crate::{
-  activities::{generate_activity_id, verify_activity, verify_person},
-  context::lemmy_context,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  send_lemmy_activity,
 };
-use activitystreams::{
-  activity::kind::DeleteType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -35,8 +28,6 @@ pub struct DeletePrivateMessage {
   #[serde(rename = "type")]
   kind: DeleteType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -56,7 +47,6 @@ impl DeletePrivateMessage {
         DeleteType::Delete,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }

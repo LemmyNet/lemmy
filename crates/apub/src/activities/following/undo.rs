@@ -2,20 +2,14 @@ use crate::{
   activities::{
     following::follow::FollowCommunity,
     generate_activity_id,
+    send_lemmy_activity,
     verify_activity,
     verify_person,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
-  send_lemmy_activity,
 };
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -40,8 +34,6 @@ pub struct UndoFollowCommunity {
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -62,7 +54,6 @@ impl UndoFollowCommunity {
         UndoType::Undo,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let inbox = vec![community.shared_inbox_or_inbox_url()];

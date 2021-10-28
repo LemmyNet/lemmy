@@ -5,7 +5,6 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
     CommunityContext,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
   generate_outbox_url,
@@ -13,13 +12,10 @@ use crate::{
 };
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
-  base::AnyBase,
-  chrono::NaiveDateTime,
   object::kind::ImageType,
-  primitives::OneOrMany,
   unparsed::Unparsed,
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -50,8 +46,6 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Group {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(rename = "type")]
   kind: GroupType,
   pub(crate) id: Url,
@@ -181,7 +175,6 @@ impl ApubObject for ApubCommunity {
     });
 
     let group = Group {
-      context: lemmy_context(),
       kind: GroupType::Group,
       id: self.actor_id(),
       preferred_username: self.name.clone(),

@@ -10,12 +10,11 @@ use crate::{
     verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   PostOrComment,
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, public, unparsed::Unparsed};
+use activitystreams::{public, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -71,8 +70,6 @@ pub struct Vote {
   #[serde(rename = "type")]
   pub(in crate::activities::voting) kind: VoteType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -92,7 +89,6 @@ impl Vote {
       cc: vec![community.actor_id()],
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }

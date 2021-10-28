@@ -12,7 +12,6 @@ use crate::{
     verify_person_in_community,
     CreateOrUpdateType,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{
     community::ApubCommunity,
@@ -20,7 +19,7 @@ use crate::{
     post::{ApubPost, Page},
   },
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, public, unparsed::Unparsed};
+use activitystreams::{public, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -44,8 +43,6 @@ pub struct CreateOrUpdatePost {
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -69,7 +66,6 @@ impl CreateOrUpdatePost {
       cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }

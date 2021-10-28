@@ -15,17 +15,10 @@ use crate::{
     verify_activity,
     verify_is_public,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::UndoType, public, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -52,8 +45,6 @@ pub struct UndoDelete {
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -128,7 +119,6 @@ impl UndoDelete {
       cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
 

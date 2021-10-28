@@ -1,10 +1,12 @@
 use crate::{
-  activities::community::announce::{AnnouncableActivities, AnnounceActivity},
+  activities::{
+    community::announce::{AnnouncableActivities, AnnounceActivity},
+    send_lemmy_activity,
+  },
   check_is_apub_id_valid,
   fetcher::object_id::ObjectId,
   insert_activity,
   objects::community::ApubCommunity,
-  send_lemmy_activity,
 };
 use itertools::Itertools;
 use lemmy_apub_lib::traits::ActorType;

@@ -10,17 +10,10 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::{
-  activity::kind::BlockType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::BlockType, public, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -51,8 +44,6 @@ pub struct BlockUserFromCommunity {
   #[serde(rename = "type")]
   kind: BlockType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -75,7 +66,6 @@ impl BlockUserFromCommunity {
         BlockType::Block,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }

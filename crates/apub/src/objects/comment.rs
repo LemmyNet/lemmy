@@ -1,6 +1,5 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{
     community::ApubCommunity,
@@ -11,16 +10,9 @@ use crate::{
   },
   PostOrComment,
 };
-use activitystreams::{
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  object::kind::NoteType,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{object::kind::NoteType, public, unparsed::Unparsed};
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -52,11 +44,6 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
-  /// Necessary to make this optional to make Pleroma Create/Note work.
-  /// TODO: change this so that context is not defined in the struct itself, but added in activity
-  ///       queue and http handlers
-  #[serde(rename = "@context")]
-  context: Option<OneOrMany<AnyBase>>,
   r#type: NoteType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
@@ -206,7 +193,6 @@ impl ApubObject for ApubComment {
     };
 
     let note = Note {
-      context: Some(lemmy_context()),
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
       attributed_to: ObjectId::new(creator.actor_id),

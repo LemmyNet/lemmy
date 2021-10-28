@@ -12,18 +12,11 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::{
-  activity::kind::RemoveType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::RemoveType, public, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -49,8 +42,6 @@ pub struct RemoveMod {
   kind: RemoveType,
   pub(in crate::activities) target: Url,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -72,7 +63,6 @@ impl RemoveMod {
       object: ObjectId::new(removed_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
-      context: lemmy_context(),
       cc: vec![community.actor_id()],
       kind: RemoveType::Remove,
       unparsed: Default::default(),

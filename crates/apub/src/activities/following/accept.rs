@@ -1,16 +1,14 @@
 use crate::{
-  activities::{following::follow::FollowCommunity, generate_activity_id, verify_activity},
-  context::lemmy_context,
+  activities::{
+    following::follow::FollowCommunity,
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_activity,
+  },
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
-  send_lemmy_activity,
 };
-use activitystreams::{
-  activity::kind::AcceptType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::AcceptType, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -32,8 +30,6 @@ pub struct AcceptFollowCommunity {
   #[serde(rename = "type")]
   kind: AcceptType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -59,7 +55,6 @@ impl AcceptFollowCommunity {
         AcceptType::Accept,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let inbox = vec![person.inbox_url()];

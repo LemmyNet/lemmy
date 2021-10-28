@@ -1,17 +1,11 @@
 use crate::{
   activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType},
   collections::CommunityContext,
-  context::lemmy_context,
   generate_outbox_url,
   objects::{person::ApubPerson, post::ApubPost},
 };
-use activitystreams::{
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  collection::kind::OrderedCollectionType,
-  primitives::OneOrMany,
-  url::Url,
-};
+use activitystreams::collection::kind::OrderedCollectionType;
+use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -25,13 +19,12 @@ use lemmy_db_schema::{
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use url::Url;
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupOutbox {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   r#type: OrderedCollectionType,
   id: Url,
   ordered_items: Vec<CreateOrUpdatePost>,
@@ -88,7 +81,6 @@ impl ApubObject for ApubCommunityOutbox {
     }
 
     Ok(GroupOutbox {
-      context: lemmy_context(),
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_outbox_url(&data.0.actor_id)?.into(),
       ordered_items,

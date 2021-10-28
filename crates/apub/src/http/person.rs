@@ -8,7 +8,7 @@ use crate::{
       undo_delete::UndoDeletePrivateMessage,
     },
   },
-  context::lemmy_context,
+  context::WithContext,
   generate_outbox_url,
   http::{
     create_apub_response,
@@ -80,8 +80,8 @@ pub async fn person_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received person inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<PersonInboxActivities>(&unparsed)?;
-  receive_person_inbox(activity, request, &context).await
+  let activity = serde_json::from_str::<WithContext<PersonInboxActivities>>(&unparsed)?;
+  receive_person_inbox(activity.inner(), request, &context).await
 }
 
 pub(in crate::http) async fn receive_person_inbox(
@@ -104,8 +104,8 @@ pub(crate) async fn get_apub_person_outbox(
   let mut collection = OrderedCollection::new();
   collection
     .set_many_items(Vec::<Url>::new())
-    .set_many_contexts(lemmy_context())
     .set_id(generate_outbox_url(&person.actor_id)?.into())
     .set_total_items(0_u64);
+  let collection = WithContext::new(collection);
   Ok(create_apub_response(&collection))
 }

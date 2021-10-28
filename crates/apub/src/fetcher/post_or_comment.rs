@@ -2,7 +2,7 @@ use crate::objects::{
   comment::{ApubComment, Note},
   post::{ApubPost, Page},
 };
-use activitystreams::chrono::NaiveDateTime;
+use chrono::NaiveDateTime;
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::{comment::CommentForm, post::PostForm};
 use lemmy_utils::LemmyError;

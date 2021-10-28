@@ -12,7 +12,6 @@ use crate::{
     verify_person_in_community,
     CreateOrUpdateType,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{
     comment::{ApubComment, Note},
@@ -20,13 +19,7 @@ use crate::{
     person::ApubPerson,
   },
 };
-use activitystreams::{
-  base::AnyBase,
-  link::Mention,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{link::Mention, public, unparsed::Unparsed};
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
@@ -54,8 +47,6 @@ pub struct CreateOrUpdateComment {
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -91,7 +82,6 @@ impl CreateOrUpdateComment {
       tag: maa.tags,
       kind,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
 

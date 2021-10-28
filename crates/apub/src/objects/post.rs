@@ -1,6 +1,5 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{
     community::ApubCommunity,
@@ -11,9 +10,7 @@ use crate::{
   },
 };
 use activitystreams::{
-  base::AnyBase,
   object::kind::{ImageType, PageType},
-  primitives::OneOrMany,
   public,
   unparsed::Unparsed,
 };
@@ -49,8 +46,6 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Page {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   r#type: PageType,
   id: Url,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
@@ -196,7 +191,6 @@ impl ApubObject for ApubPost {
     });
 
     let page = Page {
-      context: lemmy_context(),
       r#type: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),

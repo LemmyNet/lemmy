@@ -1,5 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
+  context::WithContext,
   fetcher::get_or_fetch_and_upsert_actor,
   http::{
     community::{receive_group_inbox, GroupInboxActivities},
@@ -55,8 +56,8 @@ pub async fn shared_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received shared inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<SharedInboxActivities>(&unparsed)?;
-  match activity {
+  let activity = serde_json::from_str::<WithContext<SharedInboxActivities>>(&unparsed)?;
+  match activity.inner() {
     SharedInboxActivities::GroupInboxActivities(g) => {
       receive_group_inbox(g, request, &context).await
     }
@@ -134,7 +135,7 @@ where
 {
   HttpResponse::Ok()
     .content_type(APUB_JSON_CONTENT_TYPE)
-    .json(data)
+    .json(WithContext::new(data))
 }
 
 fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>
@@ -144,7 +145,7 @@ where
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .status(StatusCode::GONE)
-    .json(data)
+    .json(WithContext::new(data))
 }
 
 #[derive(Deserialize)]

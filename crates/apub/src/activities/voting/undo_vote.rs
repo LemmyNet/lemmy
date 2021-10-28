@@ -14,18 +14,11 @@ use crate::{
       vote::{Vote, VoteType},
     },
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   PostOrComment,
 };
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::UndoType, public, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -49,8 +42,6 @@ pub struct UndoVote {
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
   #[serde(flatten)]
   unparsed: Unparsed,
 }
@@ -81,7 +72,6 @@ impl UndoVote {
       cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
