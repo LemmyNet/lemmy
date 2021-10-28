@@ -45,7 +45,7 @@ pub struct AddMod {
   to: Vec<Url>,
   object: ObjectId<ApubPerson>,
   target: Url,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: AddType,
   id: Url,
@@ -71,7 +71,7 @@ impl AddMod {
       to: vec![public()],
       object: ObjectId::new(added_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: AddType::Add,
       id: id.clone(),
       context: lemmy_context(),
@@ -97,8 +97,8 @@ impl ActivityHandler for AddMod {
     verify_activity(self, &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_add_remove_moderator_target(&self.target, &self.cc[0])?;
+    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    verify_add_remove_moderator_target(&self.target, &community)?;
     Ok(())
   }
 

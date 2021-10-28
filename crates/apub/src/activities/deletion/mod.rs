@@ -82,7 +82,7 @@ impl DeletableObjects {
 pub(in crate::activities) async fn verify_delete_activity(
   object: &Url,
   activity: &dyn ActivityFields,
-  community_id: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -90,26 +90,20 @@ pub(in crate::activities) async fn verify_delete_activity(
   let object = DeletableObjects::read_from_db(object, context).await?;
   let actor = ObjectId::new(activity.actor().clone());
   match object {
-    DeletableObjects::Community(c) => {
-      if c.local {
+    DeletableObjects::Community(community) => {
+      if community.local {
         // can only do this check for local community, in remote case it would try to fetch the
         // deleted community (which fails)
-        verify_person_in_community(&actor, &c, context, request_counter).await?;
+        verify_person_in_community(&actor, &community, context, request_counter).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(
-        &actor,
-        &ObjectId::new(c.actor_id()),
-        context,
-        request_counter,
-      )
-      .await?;
+      verify_mod_action(&actor, &community, context, request_counter).await?;
     }
     DeletableObjects::Post(p) => {
       verify_delete_activity_post_or_comment(
         activity,
         &p.ap_id.clone().into(),
-        community_id,
+        community,
         is_mod_action,
         context,
         request_counter,
@@ -120,7 +114,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_activity_post_or_comment(
         activity,
         &c.ap_id.clone().into(),
-        community_id,
+        community,
         is_mod_action,
         context,
         request_counter,
@@ -134,16 +128,15 @@ pub(in crate::activities) async fn verify_delete_activity(
 async fn verify_delete_activity_post_or_comment(
   activity: &dyn ActivityFields,
   object_id: &Url,
-  community_id: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let actor = ObjectId::new(activity.actor().clone());
-  let community = community_id.dereference(context, request_counter).await?;
-  verify_person_in_community(&actor, &community, context, request_counter).await?;
+  verify_person_in_community(&actor, community, context, request_counter).await?;
   if is_mod_action {
-    verify_mod_action(&actor, community_id, context, request_counter).await?;
+    verify_mod_action(&actor, community, context, request_counter).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(activity.actor(), object_id)?;

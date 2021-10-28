@@ -46,7 +46,7 @@ pub struct BlockUserFromCommunity {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   pub(in crate::activities::community) object: ObjectId<ApubPerson>,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   target: ObjectId<ApubCommunity>,
   #[serde(rename = "type")]
   kind: BlockType,
@@ -68,7 +68,7 @@ impl BlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: ObjectId::new(target.actor_id()),
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       target: ObjectId::new(community.actor_id()),
       kind: BlockType::Block,
       id: generate_activity_id(
@@ -107,7 +107,7 @@ impl ActivityHandler for BlockUserFromCommunity {
     verify_activity(self, &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
 

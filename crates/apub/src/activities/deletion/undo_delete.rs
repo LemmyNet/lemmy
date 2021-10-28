@@ -48,7 +48,7 @@ pub struct UndoDelete {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   object: Delete,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -69,10 +69,11 @@ impl ActivityHandler for UndoDelete {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     self.object.verify(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
       &self.object.object,
       self,
-      &self.cc[0],
+      &community,
       self.object.summary.is_some(),
       context,
       request_counter,
@@ -124,7 +125,7 @@ impl UndoDelete {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),

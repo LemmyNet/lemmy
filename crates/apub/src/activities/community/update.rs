@@ -47,7 +47,7 @@ pub struct UpdateCommunity {
   to: Vec<Url>,
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   object: Group,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UpdateType,
   id: Url,
@@ -71,7 +71,7 @@ impl UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: community.to_apub(context).await?,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
       context: lemmy_context(),
@@ -95,7 +95,7 @@ impl ActivityHandler for UpdateCommunity {
     verify_activity(self, &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
 

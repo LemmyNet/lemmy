@@ -40,7 +40,7 @@ pub struct CreateOrUpdatePost {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   object: Page,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
   id: Url,
@@ -66,7 +66,7 @@ impl CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: post.to_apub(context).await?,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
       context: lemmy_context(),
@@ -123,7 +123,7 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
+          verify_mod_action(&self.actor, &community, context, request_counter).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
           verify_urls_match(self.actor(), self.object.attributed_to.inner())?;

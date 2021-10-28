@@ -83,12 +83,10 @@ fn verify_activity(activity: &dyn ActivityFields, settings: &Settings) -> Result
 /// is not federated, we cant verify their actions remotely.
 pub(crate) async fn verify_mod_action(
   actor_id: &ObjectId<ApubPerson>,
-  community_id: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let community = community_id.dereference_local(context).await?;
-
   if community.local {
     let actor = actor_id.dereference(context, request_counter).await?;
 
@@ -111,9 +109,9 @@ pub(crate) async fn verify_mod_action(
 /// /c/community/moderators. Any different values are unsupported.
 fn verify_add_remove_moderator_target(
   target: &Url,
-  community: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
 ) -> Result<(), LemmyError> {
-  if target != &generate_moderators_url(&community.clone().into())?.into_inner() {
+  if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
     return Err(anyhow!("Unkown target url").into());
   }
   Ok(())

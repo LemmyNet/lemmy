@@ -42,7 +42,7 @@ pub struct UndoBlockUserFromCommunity {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   object: BlockUserFromCommunity,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -69,7 +69,7 @@ impl UndoBlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: block,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),
@@ -94,7 +94,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     verify_activity(self, &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_mod_action(&self.actor, &community, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

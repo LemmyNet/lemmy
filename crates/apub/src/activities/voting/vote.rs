@@ -67,7 +67,7 @@ pub struct Vote {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   pub(in crate::activities::voting) object: ObjectId<PostOrComment>,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(in crate::activities::voting) kind: VoteType,
   id: Url,
@@ -89,7 +89,7 @@ impl Vote {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: ObjectId::new(object.ap_id()),
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
       context: lemmy_context(),

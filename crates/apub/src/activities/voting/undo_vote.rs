@@ -45,7 +45,7 @@ pub struct UndoVote {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   object: Vote,
-  cc: [ObjectId<ApubCommunity>; 1],
+  cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: UndoType,
   id: Url,
@@ -78,7 +78,7 @@ impl UndoVote {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
       context: lemmy_context(),

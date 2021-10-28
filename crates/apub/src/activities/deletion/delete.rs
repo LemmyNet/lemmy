@@ -72,7 +72,7 @@ pub struct Delete {
   actor: ObjectId<ApubPerson>,
   to: Vec<Url>,
   pub(in crate::activities::deletion) object: Url,
-  pub(in crate::activities::deletion) cc: [ObjectId<ApubCommunity>; 1],
+  pub(in crate::activities::deletion) cc: Vec<Url>,
   #[serde(rename = "type")]
   kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
@@ -95,10 +95,11 @@ impl ActivityHandler for Delete {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
+    let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
       &self.object,
       self,
-      &self.cc[0],
+      &community,
       self.summary.is_some(),
       context,
       request_counter,
@@ -151,7 +152,7 @@ impl Delete {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: object_id,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: DeleteType::Delete,
       summary,
       id: generate_activity_id(
