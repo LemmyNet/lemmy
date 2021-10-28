@@ -325,7 +325,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   // expect(mentionsRes.mentions[0].score).toBe(1);
 });
 
-test('Check 3 instance shared inbox bug', async () => {
+test('Check that activity from another instance is sent to third instance', async () => {
   // Alpha and gamma users follow beta community
   let alphaFollow = await followBeta(alpha);
   expect(alphaFollow.community_view.community.local).toBe(false);
