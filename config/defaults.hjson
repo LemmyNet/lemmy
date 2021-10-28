@@ -104,7 +104,6 @@
   tls_enabled: true
   # Address where pictrs is available (for image hosting)
   pictrs_url: "http:#localhost:8080"
-  # Regex for slurs which are prohibited. Example: `(\bThis\b)|(\bis\b)|(\bsample\b)`
   slur_filter: "(\bThis\b)|(\bis\b)|(\bsample\b)"
   # Maximum length of local community and user names
   actor_name_max_length: 20
