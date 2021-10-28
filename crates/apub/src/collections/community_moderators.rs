@@ -14,10 +14,8 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use url::Url;
 
-#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupModerators {

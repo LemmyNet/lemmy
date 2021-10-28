@@ -6,6 +6,7 @@ use crate::{
     verify_person_in_community,
   },
   collections::{
+    community_followers::CommunityFollowers,
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
     CommunityContext,
@@ -21,10 +22,6 @@ use crate::{
   },
   objects::community::ApubCommunity,
 };
-use activitystreams::{
-  base::BaseExt,
-  collection::{CollectionExt, UnorderedCollection},
-};
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -32,7 +29,6 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::community::Community;
-use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use log::info;
@@ -118,19 +114,8 @@ pub(crate) async fn get_apub_community_followers(
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-
-  let community_id = community.id;
-  let community_followers = blocking(context.pool(), move |conn| {
-    CommunityFollowerView::for_community(conn, community_id)
-  })
-  .await??;
-
-  let mut collection = UnorderedCollection::new();
-  collection
-    .set_id(community.followers_url.into())
-    .set_total_items(community_followers.len() as u64);
-  let collection = WithContext::new(collection);
-  Ok(create_apub_response(&collection))
+  let followers = CommunityFollowers::new(community, &context).await?;
+  Ok(create_apub_response(&followers))
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other

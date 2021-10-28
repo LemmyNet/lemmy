@@ -8,8 +8,8 @@ use crate::{
       undo_delete::UndoDeletePrivateMessage,
     },
   },
+  collections::user_outbox::UserOutbox,
   context::WithContext,
-  generate_outbox_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
@@ -17,10 +17,6 @@ use crate::{
     receive_activity,
   },
   objects::person::ApubPerson,
-};
-use activitystreams::{
-  base::BaseExt,
-  collection::{CollectionExt, OrderedCollection},
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
@@ -30,7 +26,6 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use log::info;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 #[derive(Deserialize)]
 pub struct PersonQuery {
@@ -100,12 +95,6 @@ pub(crate) async fn get_apub_person_outbox(
     Person::find_by_name(conn, &info.user_name)
   })
   .await??;
-  // TODO: populate the person outbox
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_many_items(Vec::<Url>::new())
-    .set_id(generate_outbox_url(&person.actor_id)?.into())
-    .set_total_items(0_u64);
-  let collection = WithContext::new(collection);
-  Ok(create_apub_response(&collection))
+  let outbox = UserOutbox::new(person).await?;
+  Ok(create_apub_response(&outbox))
 }

@@ -18,15 +18,14 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use url::Url;
 
-#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupOutbox {
   r#type: OrderedCollectionType,
   id: Url,
+  total_items: i32,
   ordered_items: Vec<CreateOrUpdatePost>,
 }
 
@@ -83,6 +82,7 @@ impl ApubObject for ApubCommunityOutbox {
     Ok(GroupOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_outbox_url(&data.0.actor_id)?.into(),
+      total_items: ordered_items.len() as i32,
       ordered_items,
     })
   }
