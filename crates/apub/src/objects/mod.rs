@@ -1,32 +1,13 @@
-use activitystreams::object::kind::ImageType;
+use crate::protocol::Source;
 use html2md::parse_html;
-use lemmy_apub_lib::values::MediaTypeMarkdown;
-use serde::{Deserialize, Serialize};
-use url::Url;
 
 pub mod comment;
 pub mod community;
 pub mod person;
 pub mod post;
 pub mod private_message;
-pub mod tombstone;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Source {
-  content: String,
-  media_type: MediaTypeMarkdown,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImageObject {
-  #[serde(rename = "type")]
-  kind: ImageType,
-  url: Url,
-}
-
-fn get_summary_from_string_or_source(
+pub(crate) fn get_summary_from_string_or_source(
   raw: &Option<String>,
   source: &Option<Source>,
 ) -> Option<String> {

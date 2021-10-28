@@ -1,3 +1,16 @@
+use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
+use log::info;
+use serde::{Deserialize, Serialize};
+
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  verify::verify_domains_match,
+};
+use lemmy_db_schema::source::community::Community;
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+
 use crate::{
   activities::{
     community::announce::{AnnouncableActivities, AnnounceActivity, GetCommunity},
@@ -6,7 +19,6 @@ use crate::{
     verify_person_in_community,
   },
   collections::{
-    community_followers::CommunityFollowers,
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
     CommunityContext,
@@ -21,18 +33,8 @@ use crate::{
     receive_activity,
   },
   objects::community::ApubCommunity,
+  protocol::collections::group_followers::CommunityFollowers,
 };
-use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
-use lemmy_db_schema::source::community::Community;
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-use log::info;
-use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub(crate) struct CommunityQuery {

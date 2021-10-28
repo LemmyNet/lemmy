@@ -3,6 +3,7 @@ use crate::{
   fetcher::object_id::ObjectId,
   generate_moderators_url,
   objects::person::ApubPerson,
+  protocol::collections::group_moderators::GroupModerators,
 };
 use activitystreams::{chrono::NaiveDateTime, collection::kind::OrderedCollectionType};
 use lemmy_api_common::blocking;
@@ -13,16 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::LemmyError;
-use serde::{Deserialize, Serialize};
 use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GroupModerators {
-  r#type: OrderedCollectionType,
-  id: Url,
-  ordered_items: Vec<ObjectId<ApubPerson>>,
-}
 
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);

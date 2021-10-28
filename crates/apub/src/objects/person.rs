@@ -1,7 +1,8 @@
 use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
-  objects::{get_summary_from_string_or_source, ImageObject, Source},
+  objects::get_summary_from_string_or_source,
+  protocol::{ImageObject, Source},
 };
 use activitystreams::{actor::Endpoints, object::kind::ImageType, unparsed::Unparsed};
 use chrono::{DateTime, FixedOffset, NaiveDateTime};

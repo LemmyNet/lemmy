@@ -1,15 +1,9 @@
-use crate::{
-  fetcher::object_id::ObjectId,
-  objects::{
-    comment::{ApubComment, Note},
-    community::{ApubCommunity, Group},
-    person::{ApubPerson, Person},
-    post::{ApubPost, Page},
-  },
-};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
+use serde::Deserialize;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::ApubObject,
@@ -21,8 +15,17 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
-use url::Url;
+
+use crate::{
+  fetcher::object_id::ObjectId,
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::{ApubPerson, Person},
+    post::ApubPost,
+  },
+  protocol::objects::{group::Group, note::Note, page::Page},
+};
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
 ///

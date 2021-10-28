@@ -7,10 +7,8 @@ use crate::{
     CreateOrUpdateType,
   },
   fetcher::object_id::ObjectId,
-  objects::{
-    person::ApubPerson,
-    private_message::{ApubPrivateMessage, ChatMessage},
-  },
+  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
+  protocol::objects::chat_message::ChatMessage,
 };
 use activitystreams::unparsed::Unparsed;
 use lemmy_api_common::blocking;

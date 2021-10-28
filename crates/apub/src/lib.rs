@@ -5,6 +5,7 @@ pub mod fetcher;
 pub mod http;
 pub mod migrations;
 pub mod objects;
+pub(crate) mod protocol;
 
 #[macro_use]
 extern crate lazy_static;

@@ -1,117 +1,40 @@
-use crate::{
-  check_is_apub_id_valid,
-  collections::{
-    community_moderators::ApubCommunityModerators,
-    community_outbox::ApubCommunityOutbox,
-    CommunityContext,
-  },
-  fetcher::object_id::ObjectId,
-  generate_moderators_url,
-  generate_outbox_url,
-  objects::{get_summary_from_string_or_source, tombstone::Tombstone, ImageObject, Source},
-};
+use std::ops::Deref;
+
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
   object::kind::ImageType,
-  unparsed::Unparsed,
 };
-use chrono::{DateTime, FixedOffset, NaiveDateTime};
+use chrono::NaiveDateTime;
 use itertools::Itertools;
+use log::debug;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  signatures::PublicKey,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
-  verify::verify_domains_match,
 };
-use lemmy_db_schema::{
-  naive_now,
-  source::community::{Community, CommunityForm},
-  DbPool,
-};
+use lemmy_db_schema::{source::community::Community, DbPool};
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{
   settings::structs::Settings,
-  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
+  utils::{convert_datetime, markdown_to_html},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::debug;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use std::ops::Deref;
-use url::Url;
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Group {
-  #[serde(rename = "type")]
-  kind: GroupType,
-  pub(crate) id: Url,
-  /// username, set at account creation and can never be changed
-  preferred_username: String,
-  /// title (can be changed at any time)
-  name: String,
-  summary: Option<String>,
-  source: Option<Source>,
-  icon: Option<ImageObject>,
-  /// banner
-  image: Option<ImageObject>,
-  // lemmy extension
-  sensitive: Option<bool>,
-  // lemmy extension
-  pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
-  inbox: Url,
-  pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
-  followers: Url,
-  endpoints: Endpoints<Url>,
-  public_key: PublicKey,
-  published: Option<DateTime<FixedOffset>>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-impl Group {
-  pub(crate) async fn from_apub_to_form(
-    group: &Group,
-    expected_domain: &Url,
-    settings: &Settings,
-  ) -> Result<CommunityForm, LemmyError> {
-    verify_domains_match(expected_domain, &group.id)?;
-    let name = group.preferred_username.clone();
-    let title = group.name.clone();
-    let description = get_summary_from_string_or_source(&group.summary, &group.source);
-    let shared_inbox = group.endpoints.shared_inbox.clone().map(|s| s.into());
-
-    let slur_regex = &settings.slur_regex();
-    check_slurs(&name, slur_regex)?;
-    check_slurs(&title, slur_regex)?;
-    check_slurs_opt(&description, slur_regex)?;
-
-    Ok(CommunityForm {
-      name,
-      title,
-      description,
-      removed: None,
-      published: group.published.map(|u| u.naive_local()),
-      updated: group.updated.map(|u| u.naive_local()),
-      deleted: None,
-      nsfw: Some(group.sensitive.unwrap_or(false)),
-      actor_id: Some(group.id.clone().into()),
-      local: Some(false),
-      private_key: None,
-      public_key: Some(group.public_key.public_key_pem.clone()),
-      last_refreshed_at: Some(naive_now()),
-      icon: Some(group.icon.clone().map(|i| i.url.into())),
-      banner: Some(group.image.clone().map(|i| i.url.into())),
-      followers_url: Some(group.followers.clone().into()),
-      inbox_url: Some(group.inbox.clone().into()),
-      shared_inbox_url: Some(shared_inbox),
-    })
-  }
-}
+use crate::{
+  check_is_apub_id_valid,
+  collections::{community_moderators::ApubCommunityModerators, CommunityContext},
+  fetcher::object_id::ObjectId,
+  generate_moderators_url,
+  generate_outbox_url,
+  protocol::{
+    objects::{group::Group, tombstone::Tombstone},
+    ImageObject,
+    Source,
+  },
+};
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
@@ -300,11 +223,14 @@ impl ApubCommunity {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use crate::objects::tests::{file_to_json_object, init_context};
   use assert_json_diff::assert_json_include;
-  use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
+
+  use lemmy_db_schema::traits::Crud;
+
+  use crate::objects::tests::{file_to_json_object, init_context};
+
+  use super::*;
 
   #[actix_rt::test]
   #[serial]

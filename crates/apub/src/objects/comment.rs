@@ -1,27 +1,17 @@
-use crate::{
-  activities::{verify_is_public, verify_person_in_community},
-  fetcher::object_id::ObjectId,
-  objects::{
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::ApubPost,
-    tombstone::Tombstone,
-    Source,
-  },
-  PostOrComment,
-};
-use activitystreams::{object::kind::NoteType, public, unparsed::Unparsed};
+use std::ops::Deref;
+
+use activitystreams::{object::kind::NoteType, public};
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset, NaiveDateTime};
+use chrono::NaiveDateTime;
 use html2md::parse_html;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
-  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  newtypes::CommentId,
   source::{
     comment::{Comment, CommentForm},
     community::Community,
@@ -35,100 +25,19 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use std::ops::Deref;
-use url::Url;
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Note {
-  r#type: NoteType,
-  id: Url,
-  pub(crate) attributed_to: ObjectId<ApubPerson>,
-  /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
-  /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
-  /// the post in [`in_reply_to`]).
-  to: Vec<Url>,
-  content: String,
-  media_type: Option<MediaTypeHtml>,
-  source: SourceCompat,
-  in_reply_to: ObjectId<PostOrComment>,
-  published: Option<DateTime<FixedOffset>>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
-enum SourceCompat {
-  Lemmy(Source),
-  Pleroma(String),
-}
-
-impl Note {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
-  pub(crate) async fn get_parents(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(ApubPost, Option<CommentId>), LemmyError> {
-    // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
-    let parent = Box::pin(
-      self
-        .in_reply_to
-        .dereference(context, request_counter)
-        .await?,
-    );
-    match parent.deref() {
-      PostOrComment::Post(p) => {
-        // Workaround because I cant figure out how to get the post out of the box (and we dont
-        // want to stackoverflow in a deep comment hierarchy).
-        let post_id = p.id;
-        let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-        Ok((post.into(), None))
-      }
-      PostOrComment::Comment(c) => {
-        let post_id = c.post_id;
-        let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-        Ok((post.into(), Some(c.id)))
-      }
-    }
-  }
-
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let (post, _parent_comment_id) = self.get_parents(context, request_counter).await?;
-    let community_id = post.community_id;
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
-
-    if post.locked {
-      return Err(anyhow!("Post is locked").into());
-    }
-    verify_domains_match(self.attributed_to.inner(), &self.id)?;
-    verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
-    verify_is_public(&self.to)?;
-    Ok(())
-  }
-}
+use crate::{
+  activities::verify_person_in_community,
+  fetcher::object_id::ObjectId,
+  protocol::{
+    objects::{
+      note::{Note, SourceCompat},
+      tombstone::Tombstone,
+    },
+    Source,
+  },
+  PostOrComment,
+};
 
 #[derive(Clone, Debug)]
 pub struct ApubComment(Comment);
@@ -277,13 +186,16 @@ impl ApubObject for ApubComment {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  use super::*;
+  use assert_json_diff::assert_json_include;
+  use serial_test::serial;
+
   use crate::objects::{
     community::ApubCommunity,
     tests::{file_to_json_object, init_context},
   };
-  use assert_json_diff::assert_json_include;
-  use serial_test::serial;
+
+  use super::*;
+  use crate::objects::{person::ApubPerson, post::ApubPost};
 
   pub(crate) async fn prepare_comment_test(
     url: &Url,

@@ -1,3 +1,18 @@
+use activitystreams::{public, unparsed::Unparsed};
+use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
+use url::Url;
+
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  verify::{verify_domains_match, verify_urls_match},
+};
+use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+
 use crate::{
   activities::{
     check_community_deleted_or_removed,
@@ -13,25 +28,9 @@ use crate::{
     CreateOrUpdateType,
   },
   fetcher::object_id::ObjectId,
-  objects::{
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::{ApubPost, Page},
-  },
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::objects::page::Page,
 };
-use activitystreams::{public, unparsed::Unparsed};
-use anyhow::anyhow;
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  verify::{verify_domains_match, verify_urls_match},
-};
-use lemmy_db_schema::{source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]

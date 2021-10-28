@@ -1,3 +1,20 @@
+use activitystreams::{link::Mention, public, unparsed::Unparsed};
+use serde::{Deserialize, Serialize};
+use url::Url;
+
+use lemmy_api_common::{blocking, check_post_deleted_or_removed};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  verify::verify_domains_match,
+};
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+
 use crate::{
   activities::{
     check_community_deleted_or_removed,
@@ -13,27 +30,9 @@ use crate::{
     CreateOrUpdateType,
   },
   fetcher::object_id::ObjectId,
-  objects::{
-    comment::{ApubComment, Note},
-    community::ApubCommunity,
-    person::ApubPerson,
-  },
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+  protocol::objects::note::Note,
 };
-use activitystreams::{link::Mention, public, unparsed::Unparsed};
-use lemmy_api_common::{blocking, check_post_deleted_or_removed};
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
-use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
 #[serde(rename_all = "camelCase")]
@@ -153,9 +152,11 @@ impl GetCommunity for CreateOrUpdateComment {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use crate::objects::tests::file_to_json_object;
   use serial_test::serial;
+
+  use crate::objects::tests::file_to_json_object;
+
+  use super::*;
 
   #[actix_rt::test]
   #[serial]

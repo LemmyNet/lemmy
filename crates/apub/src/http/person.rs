@@ -1,3 +1,13 @@
+use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
+use log::info;
+use serde::{Deserialize, Serialize};
+
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
+use lemmy_db_schema::source::person::Person;
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+
 use crate::{
   activities::{
     community::announce::{AnnouncableActivities, AnnounceActivity},
@@ -8,7 +18,6 @@ use crate::{
       undo_delete::UndoDeletePrivateMessage,
     },
   },
-  collections::user_outbox::UserOutbox,
   context::WithContext,
   http::{
     create_apub_response,
@@ -17,15 +26,8 @@ use crate::{
     receive_activity,
   },
   objects::person::ApubPerson,
+  protocol::collections::person_outbox::UserOutbox,
 };
-use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
-use lemmy_db_schema::source::person::Person;
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-use log::info;
-use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct PersonQuery {

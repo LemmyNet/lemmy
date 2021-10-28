@@ -1,3 +1,19 @@
+use activitystreams::{activity::kind::UpdateType, public, unparsed::Unparsed};
+use serde::{Deserialize, Serialize};
+use url::Url;
+
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+};
+use lemmy_db_schema::{
+  source::community::{Community, CommunityForm},
+  traits::Crud,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
+
 use crate::{
   activities::{
     community::{
@@ -11,25 +27,9 @@ use crate::{
     verify_person_in_community,
   },
   fetcher::object_id::ObjectId,
-  objects::{
-    community::{ApubCommunity, Group},
-    person::ApubPerson,
-  },
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::objects::group::Group,
 };
-use activitystreams::{activity::kind::UpdateType, public, unparsed::Unparsed};
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-};
-use lemmy_db_schema::{
-  source::community::{Community, CommunityForm},
-  traits::Crud,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
 
 /// This activity is received from a remote community mod, and updates the description or other
 /// fields of a local community.

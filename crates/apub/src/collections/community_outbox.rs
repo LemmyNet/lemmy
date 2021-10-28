@@ -3,6 +3,7 @@ use crate::{
   collections::CommunityContext,
   generate_outbox_url,
   objects::{person::ApubPerson, post::ApubPost},
+  protocol::collections::group_outbox::GroupOutbox,
 };
 use activitystreams::collection::kind::OrderedCollectionType;
 use chrono::NaiveDateTime;
@@ -17,17 +18,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::LemmyError;
-use serde::{Deserialize, Serialize};
 use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GroupOutbox {
-  r#type: OrderedCollectionType,
-  id: Url,
-  total_items: i32,
-  ordered_items: Vec<CreateOrUpdatePost>,
-}
 
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
