@@ -6,8 +6,11 @@ use crate::{
   objects::{person::ApubPerson, post::ApubPost},
 };
 use activitystreams::{
-  base::AnyBase, chrono::NaiveDateTime, collection::kind::OrderedCollectionType,
-  primitives::OneOrMany, url::Url,
+  base::AnyBase,
+  chrono::NaiveDateTime,
+  collection::kind::OrderedCollectionType,
+  primitives::OneOrMany,
+  url::Url,
 };
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{

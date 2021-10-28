@@ -1,8 +1,14 @@
 use crate::{
-  activities::{extract_community, verify_is_public, verify_person_in_community},
+  activities::{verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{person::ApubPerson, tombstone::Tombstone, ImageObject, Source},
+  objects::{
+    community::ApubCommunity,
+    person::ApubPerson,
+    tombstone::Tombstone,
+    ImageObject,
+    Source,
+  },
 };
 use activitystreams::{
   base::AnyBase,
@@ -11,10 +17,11 @@ use activitystreams::{
   public,
   unparsed::Unparsed,
 };
+use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ActorType, ApubObject},
+  traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
 };
@@ -94,19 +101,31 @@ impl Page {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = extract_community(&self.to, context, request_counter).await?;
+    let community = self.extract_community(context, request_counter).await?;
 
     check_slurs(&self.name, &context.settings().slur_regex())?;
     verify_domains_match(self.attributed_to.inner(), &self.id.clone())?;
-    verify_person_in_community(
-      &self.attributed_to,
-      &ObjectId::new(community.actor_id()),
-      context,
-      request_counter,
-    )
-    .await?;
+    verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
     verify_is_public(&self.to.clone())?;
     Ok(())
+  }
+
+  pub(crate) async fn extract_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let mut to_iter = self.to.iter();
+    loop {
+      if let Some(cid) = to_iter.next() {
+        let cid = ObjectId::new(cid.clone());
+        if let Ok(c) = cid.dereference(context, request_counter).await {
+          break Ok(c);
+        }
+      } else {
+        return Err(anyhow!("No community found in cc").into());
+      }
+    }
   }
 }
 
@@ -223,7 +242,8 @@ impl ApubObject for ApubPost {
       .attributed_to
       .dereference(context, request_counter)
       .await?;
-    let community = extract_community(&page.to, context, request_counter).await?;
+    let community = page.extract_community(context, request_counter).await?;
+    verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
     let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {

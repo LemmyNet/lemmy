@@ -1,6 +1,10 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      get_community_from_moderators_url,
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
@@ -43,7 +47,6 @@ pub struct RemoveMod {
   cc: [ObjectId<ApubCommunity>; 1],
   #[serde(rename = "type")]
   kind: RemoveType,
-  // if target is set, this is means remove mod from community
   pub(in crate::activities) target: Url,
   id: Url,
   #[serde(rename = "@context")]
@@ -91,7 +94,8 @@ impl ActivityHandler for RemoveMod {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_add_remove_moderator_target(&self.target, &self.cc[0])?;
     Ok(())
@@ -102,7 +106,7 @@ impl ActivityHandler for RemoveMod {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.cc[0].dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
     let remove_mod = self.object.dereference(context, request_counter).await?;
 
     let form = CommunityModeratorForm {
@@ -115,5 +119,16 @@ impl ActivityHandler for RemoveMod {
     .await??;
     // TODO: send websocket notification about removed mod
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for RemoveMod {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    get_community_from_moderators_url(&self.target, context, request_counter).await
   }
 }

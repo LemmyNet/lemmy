@@ -17,12 +17,7 @@ use lemmy_apub_lib::{
   traits::ActorType,
   webfinger::{webfinger_resolve_actor, WebfingerType},
 };
-use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl},
-  source::{activity::Activity, person::Person},
-  DbPool,
-};
-use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
+use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
@@ -94,16 +89,6 @@ pub(crate) fn check_is_apub_id_valid(
   }
 
   Ok(())
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait CommunityType {
-  fn followers_url(&self) -> Url;
-  async fn get_follower_inboxes(
-    &self,
-    pool: &DbPool,
-    settings: &Settings,
-  ) -> Result<Vec<Url>, LemmyError>;
 }
 
 pub enum EndpointType {
@@ -208,24 +193,6 @@ where
     Activity::insert(conn, ap_id, &activity, local, sensitive)
   })
   .await??;
-  Ok(())
-}
-
-async fn check_community_or_site_ban(
-  person: &Person,
-  community_id: CommunityId,
-  pool: &DbPool,
-) -> Result<(), LemmyError> {
-  if person.banned {
-    return Err(anyhow!("Person is banned from site").into());
-  }
-  let person_id = person.id;
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
-    return Err(anyhow!("Person is banned from community").into());
-  }
-
   Ok(())
 }
 

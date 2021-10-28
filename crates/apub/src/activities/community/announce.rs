@@ -13,7 +13,6 @@ use crate::{
     generate_activity_id,
     post::create_or_update::CreateOrUpdatePost,
     verify_activity,
-    verify_community,
     verify_is_public,
     voting::{undo_vote::UndoVote, vote::Vote},
   },
@@ -23,7 +22,6 @@ use crate::{
   insert_activity,
   objects::community::ApubCommunity,
   send_lemmy_activity,
-  CommunityType,
 };
 use activitystreams::{
   activity::kind::AnnounceType,
@@ -35,6 +33,7 @@ use activitystreams::{
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
+  verify::verify_urls_match,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -56,6 +55,41 @@ pub enum AnnouncableActivities {
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
   RemoveMod(RemoveMod),
+}
+
+#[async_trait::async_trait(?Send)]
+pub(crate) trait GetCommunity {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError>;
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for AnnouncableActivities {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    use AnnouncableActivities::*;
+    let community = match self {
+      CreateOrUpdateComment(a) => a.get_community(context, request_counter).await?,
+      CreateOrUpdatePost(a) => a.get_community(context, request_counter).await?,
+      Vote(a) => a.get_community(context, request_counter).await?,
+      UndoVote(a) => a.get_community(context, request_counter).await?,
+      Delete(a) => a.get_community(context, request_counter).await?,
+      UndoDelete(a) => a.get_community(context, request_counter).await?,
+      UpdateCommunity(a) => a.get_community(context, request_counter).await?,
+      BlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
+      UndoBlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
+      AddMod(a) => a.get_community(context, request_counter).await?,
+      RemoveMod(a) => a.get_community(context, request_counter).await?,
+    };
+    verify_urls_match(self.actor(), &community.actor_id())?;
+    Ok(community)
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
@@ -85,7 +119,7 @@ impl AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
       to: vec![public()],
       object,
-      cc: vec![community.followers_url()],
+      cc: vec![community.followers_url.clone().into_inner()],
       kind: AnnounceType::Announce,
       id: generate_activity_id(
         &AnnounceType::Announce,
@@ -109,7 +143,6 @@ impl ActivityHandler for AnnounceActivity {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

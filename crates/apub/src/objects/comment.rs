@@ -2,7 +2,13 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
-  objects::{person::ApubPerson, post::ApubPost, tombstone::Tombstone, Source},
+  objects::{
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    tombstone::Tombstone,
+    Source,
+  },
   PostOrComment,
 };
 use activitystreams::{
@@ -121,22 +127,17 @@ impl Note {
   ) -> Result<(), LemmyError> {
     let (post, _parent_comment_id) = self.get_parents(context, request_counter).await?;
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
+    .await??
+    .into();
 
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
     verify_domains_match(self.attributed_to.inner(), &self.id)?;
-    verify_person_in_community(
-      &self.attributed_to,
-      &ObjectId::new(community.actor_id),
-      context,
-      request_counter,
-    )
-    .await?;
+    verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
     verify_is_public(&self.to)?;
     Ok(())
   }
@@ -247,6 +248,18 @@ impl ApubObject for ApubComment {
       .dereference(context, request_counter)
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    let community_id = post.community_id;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    verify_person_in_community(
+      &note.attributed_to,
+      &community.into(),
+      context,
+      request_counter,
+    )
+    .await?;
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }

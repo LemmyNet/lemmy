@@ -1,6 +1,10 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      get_community_from_moderators_url,
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
@@ -91,7 +95,8 @@ impl ActivityHandler for AddMod {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     verify_add_remove_moderator_target(&self.target, &self.cc[0])?;
     Ok(())
@@ -102,7 +107,7 @@ impl ActivityHandler for AddMod {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.cc[0].dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
     let new_mod = self.object.dereference(context, request_counter).await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
@@ -124,5 +129,16 @@ impl ActivityHandler for AddMod {
     }
     // TODO: send websocket notification about added mod
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for AddMod {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    get_community_from_moderators_url(&self.target, context, request_counter).await
   }
 }

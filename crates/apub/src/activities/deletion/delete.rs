@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     deletion::{
       receive_delete_action,
       verify_delete_activity,
@@ -244,4 +247,27 @@ pub(in crate::activities) async fn receive_remove_action(
     }
   }
   Ok(())
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for Delete {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    _request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let community_id = match DeletableObjects::read_from_db(&self.object, context).await? {
+      DeletableObjects::Community(c) => c.id,
+      DeletableObjects::Comment(c) => {
+        let post = blocking(context.pool(), move |conn| Post::read(conn, c.post_id)).await??;
+        post.community_id
+      }
+      DeletableObjects::Post(p) => p.community_id,
+    };
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    Ok(community.into())
+  }
 }

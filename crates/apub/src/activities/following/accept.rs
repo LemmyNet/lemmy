@@ -1,10 +1,5 @@
 use crate::{
-  activities::{
-    following::follow::FollowCommunity,
-    generate_activity_id,
-    verify_activity,
-    verify_community,
-  },
+  activities::{following::follow::FollowCommunity, generate_activity_id, verify_activity},
   context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -84,7 +79,6 @@ impl ActivityHandler for AcceptFollowCommunity {
     verify_activity(self, &context.settings())?;
     verify_urls_match(self.to[0].inner(), self.object.actor())?;
     verify_urls_match(self.actor(), self.object.to[0].inner())?;
-    verify_community(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

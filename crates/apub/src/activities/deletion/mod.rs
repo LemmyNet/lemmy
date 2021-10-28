@@ -94,7 +94,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       if c.local {
         // can only do this check for local community, in remote case it would try to fetch the
         // deleted community (which fails)
-        verify_person_in_community(&actor, community_id, context, request_counter).await?;
+        verify_person_in_community(&actor, &c, context, request_counter).await?;
       }
       // community deletion is always a mod (or admin) action
       verify_mod_action(
@@ -140,7 +140,8 @@ async fn verify_delete_activity_post_or_comment(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let actor = ObjectId::new(activity.actor().clone());
-  verify_person_in_community(&actor, community_id, context, request_counter).await?;
+  let community = community_id.dereference(context, request_counter).await?;
+  verify_person_in_community(&actor, &community, context, request_counter).await?;
   if is_mod_action {
     verify_mod_action(&actor, community_id, context, request_counter).await?;
   } else {

@@ -36,7 +36,7 @@ use url::Url;
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Note {
+pub struct ChatMessage {
   #[serde(rename = "@context")]
   context: OneOrMany<AnyBase>,
   r#type: ChatMessageType,
@@ -58,7 +58,7 @@ pub enum ChatMessageType {
   ChatMessage,
 }
 
-impl Note {
+impl ChatMessage {
   pub(crate) fn id_unchecked(&self) -> &Url {
     &self.id
   }
@@ -103,7 +103,7 @@ impl From<PrivateMessage> for ApubPrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
-  type ApubType = Note;
+  type ApubType = ChatMessage;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -128,7 +128,7 @@ impl ApubObject for ApubPrivateMessage {
     unimplemented!()
   }
 
-  async fn to_apub(&self, context: &LemmyContext) -> Result<Note, LemmyError> {
+  async fn to_apub(&self, context: &LemmyContext) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
 
@@ -136,7 +136,7 @@ impl ApubObject for ApubPrivateMessage {
     let recipient =
       blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
 
-    let note = Note {
+    let note = ChatMessage {
       context: lemmy_context(),
       r#type: ChatMessageType::ChatMessage,
       id: self.ap_id.clone().into(),
@@ -160,7 +160,7 @@ impl ApubObject for ApubPrivateMessage {
   }
 
   async fn from_apub(
-    note: &Note,
+    note: &ChatMessage,
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,

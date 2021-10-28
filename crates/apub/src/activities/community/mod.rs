@@ -1,10 +1,10 @@
 use crate::{
   activities::community::announce::{AnnouncableActivities, AnnounceActivity},
   check_is_apub_id_valid,
+  fetcher::object_id::ObjectId,
   insert_activity,
   objects::community::ApubCommunity,
   send_lemmy_activity,
-  CommunityType,
 };
 use itertools::Itertools;
 use lemmy_apub_lib::traits::ActorType;
@@ -60,4 +60,15 @@ pub(crate) async fn send_to_community<T: ActorType>(
   }
 
   Ok(())
+}
+
+async fn get_community_from_moderators_url(
+  moderators: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<ApubCommunity, LemmyError> {
+  let community_id = Url::parse(&moderators.to_string().replace("/moderators", ""))?;
+  ObjectId::new(community_id)
+    .dereference(context, request_counter)
+    .await
 }

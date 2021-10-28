@@ -1,9 +1,9 @@
 use crate::{
   activities::{
-    community::announce::{AnnouncableActivities, AnnounceActivity},
-    extract_community,
+    community::announce::{AnnouncableActivities, AnnounceActivity, GetCommunity},
     following::{follow::FollowCommunity, undo::UndoFollowCommunity},
     report::Report,
+    verify_person_in_community,
   },
   collections::{
     community_moderators::ApubCommunityModerators,
@@ -27,7 +27,10 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
+use lemmy_apub_lib::{
+  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  verify::verify_domains_match,
+};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::LemmyError;
@@ -92,12 +95,17 @@ pub(in crate::http) async fn receive_group_inbox(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let res = receive_activity(request, activity.clone(), context).await;
-  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity.clone() {
-    let community = extract_community(&announcable.cc(), context, &mut 0).await?;
+
+  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
+    let community = announcable.get_community(context, &mut 0).await?;
+    let actor_id = ObjectId::new(announcable.actor().clone());
+    verify_domains_match(&community.actor_id(), announcable.id_unchecked())?;
+    verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
     if community.local {
       AnnounceActivity::send(announcable, &community, vec![], context).await?;
     }
   }
+
   res
 }
 

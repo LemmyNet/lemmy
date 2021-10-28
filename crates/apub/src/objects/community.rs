@@ -10,7 +10,6 @@ use crate::{
   generate_moderators_url,
   generate_outbox_url,
   objects::{get_summary_from_string_or_source, tombstone::Tombstone, ImageObject, Source},
-  CommunityType,
 };
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
@@ -55,7 +54,7 @@ pub struct Group {
   context: OneOrMany<AnyBase>,
   #[serde(rename = "type")]
   kind: GroupType,
-  id: Url,
+  pub(crate) id: Url,
   /// username, set at account creation and can never be changed
   preferred_username: String,
   /// title (can be changed at any time)
@@ -81,16 +80,12 @@ pub struct Group {
 }
 
 impl Group {
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
   pub(crate) async fn from_apub_to_form(
     group: &Group,
     expected_domain: &Url,
     settings: &Settings,
   ) -> Result<CommunityForm, LemmyError> {
-    let actor_id = Some(group.id(expected_domain)?.clone().into());
+    verify_domains_match(expected_domain, &group.id)?;
     let name = group.preferred_username.clone();
     let title = group.name.clone();
     let description = get_summary_from_string_or_source(&group.summary, &group.source);
@@ -110,7 +105,7 @@ impl Group {
       updated: group.updated.map(|u| u.naive_local()),
       deleted: None,
       nsfw: Some(group.sensitive.unwrap_or(false)),
-      actor_id,
+      actor_id: Some(group.id.clone().into()),
       local: Some(false),
       private_key: None,
       public_key: Some(group.public_key.public_key_pem.clone()),
@@ -283,14 +278,9 @@ impl ActorType for ApubCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
-impl CommunityType for Community {
-  fn followers_url(&self) -> Url {
-    self.followers_url.clone().into()
-  }
-
+impl ApubCommunity {
   /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(
+  pub(crate) async fn get_follower_inboxes(
     &self,
     pool: &DbPool,
     settings: &Settings,

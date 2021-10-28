@@ -1,7 +1,7 @@
 use crate::{
   activities::{
     community::{
-      announce::AnnouncableActivities,
+      announce::{AnnouncableActivities, GetCommunity},
       block_user::BlockUserFromCommunity,
       send_to_community,
     },
@@ -92,7 +92,8 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
     Ok(())
@@ -103,7 +104,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.cc[0].dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
     let blocked_user = self
       .object
       .object
@@ -121,5 +122,16 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     .await??;
 
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for UndoBlockUserFromCommunity {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self.object.get_community(context, request_counter).await
   }
 }

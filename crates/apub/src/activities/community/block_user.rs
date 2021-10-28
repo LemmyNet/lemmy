@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -44,6 +47,7 @@ pub struct BlockUserFromCommunity {
   to: Vec<Url>,
   pub(in crate::activities::community) object: ObjectId<ApubPerson>,
   cc: [ObjectId<ApubCommunity>; 1],
+  target: ObjectId<ApubCommunity>,
   #[serde(rename = "type")]
   kind: BlockType,
   id: Url,
@@ -65,6 +69,7 @@ impl BlockUserFromCommunity {
       to: vec![public()],
       object: ObjectId::new(target.actor_id()),
       cc: [ObjectId::new(community.actor_id())],
+      target: ObjectId::new(community.actor_id()),
       kind: BlockType::Block,
       id: generate_activity_id(
         BlockType::Block,
@@ -100,7 +105,8 @@ impl ActivityHandler for BlockUserFromCommunity {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }
@@ -110,7 +116,7 @@ impl ActivityHandler for BlockUserFromCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.cc[0].dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
     let blocked_user = self.object.dereference(context, request_counter).await?;
 
     let community_user_ban_form = CommunityPersonBanForm {
@@ -136,5 +142,16 @@ impl ActivityHandler for BlockUserFromCommunity {
     .ok();
 
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for BlockUserFromCommunity {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self.target.dereference(context, request_counter).await
   }
 }

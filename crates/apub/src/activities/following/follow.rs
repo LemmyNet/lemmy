@@ -4,6 +4,7 @@ use crate::{
     generate_activity_id,
     verify_activity,
     verify_person,
+    verify_person_in_community,
   },
   context::lemmy_context,
   fetcher::object_id::ObjectId,
@@ -97,6 +98,8 @@ impl ActivityHandler for FollowCommunity {
     verify_activity(self, &context.settings())?;
     verify_urls_match(self.to[0].inner(), self.object.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
+    let community = self.to[0].dereference(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
 

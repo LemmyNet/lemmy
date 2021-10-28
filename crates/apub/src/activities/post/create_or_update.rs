@@ -1,7 +1,10 @@
 use crate::{
   activities::{
     check_community_deleted_or_removed,
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -99,8 +102,8 @@ impl ActivityHandler for CreateOrUpdatePost {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    let community = self.cc[0].dereference(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;
 
     match self.kind {
@@ -146,5 +149,19 @@ impl ActivityHandler for CreateOrUpdatePost {
     };
     send_post_ws_message(post.id, notif_type, None, None, context).await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for CreateOrUpdatePost {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self
+      .object
+      .extract_community(context, request_counter)
+      .await
   }
 }

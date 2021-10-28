@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -19,7 +22,11 @@ use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
 };
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -120,7 +127,8 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
 
@@ -135,5 +143,26 @@ impl ActivityHandler for Vote {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
     }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for Vote {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let object = self.object.dereference(context, request_counter).await?;
+    let cid = match object {
+      PostOrComment::Post(p) => p.community_id,
+      PostOrComment::Comment(c) => {
+        blocking(context.pool(), move |conn| Post::read(conn, c.post_id))
+          .await??
+          .community_id
+      }
+    };
+    let community = blocking(context.pool(), move |conn| Community::read(conn, cid)).await??;
+    Ok(community.into())
   }
 }

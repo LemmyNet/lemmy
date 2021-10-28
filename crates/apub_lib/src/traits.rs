@@ -8,7 +8,6 @@ use url::Url;
 pub trait ActivityFields {
   fn id_unchecked(&self) -> &Url;
   fn actor(&self) -> &Url;
-  fn cc(&self) -> Vec<Url>;
 }
 
 #[async_trait::async_trait(?Send)]

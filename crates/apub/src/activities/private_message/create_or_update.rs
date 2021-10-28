@@ -4,7 +4,7 @@ use crate::{
   fetcher::object_id::ObjectId,
   objects::{
     person::ApubPerson,
-    private_message::{ApubPrivateMessage, Note},
+    private_message::{ApubPrivateMessage, ChatMessage},
   },
   send_lemmy_activity,
 };
@@ -29,7 +29,7 @@ pub struct CreateOrUpdatePrivateMessage {
   id: Url,
   actor: ObjectId<ApubPerson>,
   to: [ObjectId<ApubPerson>; 1],
-  object: Note,
+  object: ChatMessage,
   #[serde(rename = "type")]
   kind: CreateOrUpdateType,
   #[serde(flatten)]

@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -90,7 +93,8 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
     Ok(())
   }
@@ -100,8 +104,7 @@ impl ActivityHandler for UpdateCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let cc = self.cc[0].clone();
-    let community = cc.dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
 
     let updated_community = Group::from_apub_to_form(
       &self.object,
@@ -133,5 +136,17 @@ impl ActivityHandler for UpdateCommunity {
     )
     .await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for UpdateCommunity {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let cid = ObjectId::new(self.object.id.clone());
+    cid.dereference(context, request_counter).await
   }
 }

@@ -2,8 +2,10 @@ use crate::{
   activities::{
     check_community_deleted_or_removed,
     comment::{collect_non_local_mentions, get_notif_recipients},
-    community::{announce::AnnouncableActivities, send_to_community},
-    extract_community,
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -108,12 +110,11 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
-    let community = extract_community(&self.cc, context, request_counter).await?;
-    let community_id = ObjectId::new(community.actor_id());
     let post = self.object.get_parents(context, request_counter).await?.0;
+    let community = self.get_community(context, request_counter).await?;
 
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &community_id, context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
@@ -141,6 +142,22 @@ impl ActivityHandler for CreateOrUpdateComment {
     )
     .await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for CreateOrUpdateComment {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let post = self.object.get_parents(context, request_counter).await?.0;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, post.community_id)
+    })
+    .await??;
+    Ok(community.into())
   }
 }
 

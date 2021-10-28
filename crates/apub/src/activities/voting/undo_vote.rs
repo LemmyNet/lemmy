@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{
+      announce::{AnnouncableActivities, GetCommunity},
+      send_to_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -96,7 +99,8 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_urls_match(self.actor(), self.object.actor())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
@@ -117,5 +121,16 @@ impl ActivityHandler for UndoVote {
       PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
     }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for UndoVote {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self.object.get_community(context, request_counter).await
   }
 }
