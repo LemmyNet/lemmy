@@ -31,7 +31,7 @@ use lemmy_utils::{
   utils::{convert_datetime, markdown_to_html},
   LemmyError,
 };
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
@@ -73,10 +73,12 @@ impl ApubObject for ApubCommunity {
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+    let id = self.id;
     blocking(context.pool(), move |conn| {
-      Community::update_deleted(conn, self.id, true)
+      Community::update_deleted(conn, id, true)
     })
     .await??;
+    send_community_ws_message(id, UserOperationCrud::DeleteCommunity, None, None, context).await?;
     Ok(())
   }
 

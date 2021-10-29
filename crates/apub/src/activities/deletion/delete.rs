@@ -33,12 +33,7 @@ use lemmy_websocket::{
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
-    deletion::{
-      receive_delete_action,
-      verify_delete_activity,
-      DeletableObjects,
-      WebsocketMessages,
-    },
+    deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -87,19 +82,7 @@ impl ActivityHandler for Delete {
       };
       receive_remove_action(&self.actor, &self.object, reason, context, request_counter).await
     } else {
-      receive_delete_action(
-        &self.object,
-        &self.actor,
-        WebsocketMessages {
-          community: UserOperationCrud::DeleteCommunity,
-          post: UserOperationCrud::DeletePost,
-          comment: UserOperationCrud::DeleteComment,
-        },
-        true,
-        context,
-        request_counter,
-      )
-      .await
+      receive_delete_action(&self.object, &self.actor, true, context, request_counter).await
     }
   }
 }

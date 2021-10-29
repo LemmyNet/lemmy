@@ -24,7 +24,7 @@ use lemmy_utils::{
   utils::{convert_datetime, remove_slurs},
   LemmyError,
 };
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{send::send_comment_ws_message_simple, LemmyContext, UserOperationCrud};
 
 use crate::{
   activities::verify_person_in_community,
@@ -82,10 +82,12 @@ impl ApubObject for ApubComment {
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
+      let id = self.id;
       blocking(context.pool(), move |conn| {
         Comment::update_deleted(conn, self.id, true)
       })
       .await??;
+      send_comment_ws_message_simple(id, UserOperationCrud::DeleteComment, context).await?;
     }
     Ok(())
   }

@@ -143,19 +143,12 @@ async fn verify_delete_activity_post_or_comment(
   Ok(())
 }
 
-struct WebsocketMessages {
-  community: UserOperationCrud,
-  post: UserOperationCrud,
-  comment: UserOperationCrud,
-}
-
 /// Write deletion or restoring of an object to the database, and send websocket message.
 /// TODO: we should do something similar for receive_remove_action(), but its much more complicated
 ///       because of the mod log
 async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,
-  ws_messages: WebsocketMessages,
   deleted: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -172,7 +165,14 @@ async fn receive_delete_action(
         Community::update_deleted(conn, community.id, deleted)
       })
       .await??;
-      send_community_ws_message(community.id, ws_messages.community, None, None, context).await?;
+      send_community_ws_message(
+        community.id,
+        UserOperationCrud::DeleteCommunity,
+        None,
+        None,
+        context,
+      )
+      .await?;
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
@@ -180,7 +180,14 @@ async fn receive_delete_action(
           Post::update_deleted(conn, post.id, deleted)
         })
         .await??;
-        send_post_ws_message(deleted_post.id, ws_messages.post, None, None, context).await?;
+        send_post_ws_message(
+          deleted_post.id,
+          UserOperationCrud::DeletePost,
+          None,
+          None,
+          context,
+        )
+        .await?;
       }
     }
     DeletableObjects::Comment(comment) => {
@@ -189,7 +196,12 @@ async fn receive_delete_action(
           Comment::update_deleted(conn, comment.id, deleted)
         })
         .await??;
-        send_comment_ws_message_simple(deleted_comment.id, ws_messages.comment, context).await?;
+        send_comment_ws_message_simple(
+          deleted_comment.id,
+          UserOperationCrud::DeleteComment,
+          context,
+        )
+        .await?;
       }
     }
   }
