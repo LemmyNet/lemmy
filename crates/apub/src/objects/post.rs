@@ -206,15 +206,15 @@ mod tests {
   async fn test_parse_lemmy_post() {
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
-    let community_json = file_to_json_object("assets/lemmy-community.json");
+    let community_json = file_to_json_object("assets/lemmy/objects/group.json");
     let community = ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
       .await
       .unwrap();
-    let person_json = file_to_json_object("assets/lemmy-person.json");
+    let person_json = file_to_json_object("assets/lemmy/objects/person.json");
     let person = ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
       .await
       .unwrap();
-    let json = file_to_json_object("assets/lemmy-post.json");
+    let json = file_to_json_object("assets/lemmy/objects/page.json");
     let mut request_counter = 0;
     let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
       .await

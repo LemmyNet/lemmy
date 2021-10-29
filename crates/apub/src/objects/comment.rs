@@ -186,30 +186,29 @@ impl ApubObject for ApubComment {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  use assert_json_diff::assert_json_include;
-  use serial_test::serial;
-
+  use super::*;
   use crate::objects::{
     community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
-
-  use super::*;
-  use crate::objects::{person::ApubPerson, post::ApubPost};
+  use assert_json_diff::assert_json_include;
+  use serial_test::serial;
 
   pub(crate) async fn prepare_comment_test(
     url: &Url,
     context: &LemmyContext,
   ) -> (ApubPerson, ApubCommunity, ApubPost) {
-    let person_json = file_to_json_object("assets/lemmy-person.json");
+    let person_json = file_to_json_object("assets/lemmy/objects/person.json");
     let person = ApubPerson::from_apub(&person_json, context, url, &mut 0)
       .await
       .unwrap();
-    let community_json = file_to_json_object("assets/lemmy-community.json");
+    let community_json = file_to_json_object("assets/lemmy/objects/group.json");
     let community = ApubCommunity::from_apub(&community_json, context, url, &mut 0)
       .await
       .unwrap();
-    let post_json = file_to_json_object("assets/lemmy-post.json");
+    let post_json = file_to_json_object("assets/lemmy/objects/page.json");
     let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
       .await
       .unwrap();
@@ -229,7 +228,7 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
-    let json = file_to_json_object("assets/lemmy-comment.json");
+    let json = file_to_json_object("assets/lemmy/objects/note.json");
     let mut request_counter = 0;
     let comment = ApubComment::from_apub(&json, &context, &url, &mut request_counter)
       .await
@@ -257,11 +256,11 @@ pub(crate) mod tests {
     let pleroma_url =
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
         .unwrap();
-    let person_json = file_to_json_object("assets/pleroma-person.json");
+    let person_json = file_to_json_object("assets/pleroma/objects/person.json");
     ApubPerson::from_apub(&person_json, &context, &pleroma_url, &mut 0)
       .await
       .unwrap();
-    let json = file_to_json_object("assets/pleroma-comment.json");
+    let json = file_to_json_object("assets/pleroma/objects/note.json");
     let mut request_counter = 0;
     let comment = ApubComment::from_apub(&json, &context, &pleroma_url, &mut request_counter)
       .await

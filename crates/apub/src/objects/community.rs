@@ -223,20 +223,17 @@ impl ApubCommunity {
 
 #[cfg(test)]
 mod tests {
-  use assert_json_diff::assert_json_include;
-  use serial_test::serial;
-
-  use lemmy_db_schema::traits::Crud;
-
-  use crate::objects::tests::{file_to_json_object, init_context};
-
   use super::*;
+  use crate::objects::tests::{file_to_json_object, init_context};
+  use assert_json_diff::assert_json_include;
+  use lemmy_db_schema::traits::Crud;
+  use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_community() {
     let context = init_context();
-    let mut json: Group = file_to_json_object("assets/lemmy-community.json");
+    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json");
     let json_orig = json.clone();
     // change these links so they dont fetch over the network
     json.moderators = Some(ObjectId::new(

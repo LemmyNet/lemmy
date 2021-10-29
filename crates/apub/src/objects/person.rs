@@ -256,7 +256,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_person() {
     let context = init_context();
-    let json = file_to_json_object("assets/lemmy-person.json");
+    let json = file_to_json_object("assets/lemmy/objects/person.json");
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
     let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
@@ -280,7 +280,7 @@ mod tests {
   #[serial]
   async fn test_parse_pleroma_person() {
     let context = init_context();
-    let json = file_to_json_object("assets/pleroma-person.json");
+    let json = file_to_json_object("assets/pleroma/objects/person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
     let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
