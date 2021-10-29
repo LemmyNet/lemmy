@@ -427,21 +427,3 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 
   await unfollowRemotes(alpha);
 });
-
-test('Report a comment', async () => {
-  let betaCommunity = (await resolveBetaCommunity(beta)).community;
-  let postRes = (await createPost(beta, betaCommunity.community.id)).post_view.post;
-  expect(postRes).toBeDefined();
-  let commentRes = (await createComment(beta, postRes.id)).comment_view.comment;
-  expect(commentRes).toBeDefined();
-
-  let alphaComment = (await resolveComment(alpha, commentRes)).comment.comment;
-  let alphaReport = (await reportComment(alpha, alphaComment.id, randomString(10)))
-        .comment_report_view.comment_report;
-
-  let betaReport = (await listCommentReports(beta)).comment_reports[0].comment_report;
-  expect(betaReport).toBeDefined();
-  expect(betaReport.resolved).toBe(false);
-  expect(betaReport.original_comment_text).toBe(alphaReport.original_comment_text);
-  expect(betaReport.reason).toBe(alphaReport.reason);
-});
