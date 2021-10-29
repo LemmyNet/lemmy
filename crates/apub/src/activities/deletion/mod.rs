@@ -175,18 +175,22 @@ async fn receive_delete_action(
       send_community_ws_message(community.id, ws_messages.community, None, None, context).await?;
     }
     DeletableObjects::Post(post) => {
-      let deleted_post = blocking(context.pool(), move |conn| {
-        Post::update_deleted(conn, post.id, deleted)
-      })
-      .await??;
-      send_post_ws_message(deleted_post.id, ws_messages.post, None, None, context).await?;
+      if deleted != post.deleted {
+        let deleted_post = blocking(context.pool(), move |conn| {
+          Post::update_deleted(conn, post.id, deleted)
+        })
+        .await??;
+        send_post_ws_message(deleted_post.id, ws_messages.post, None, None, context).await?;
+      }
     }
     DeletableObjects::Comment(comment) => {
-      let deleted_comment = blocking(context.pool(), move |conn| {
-        Comment::update_deleted(conn, comment.id, deleted)
-      })
-      .await??;
-      send_comment_ws_message_simple(deleted_comment.id, ws_messages.comment, context).await?;
+      if deleted != comment.deleted {
+        let deleted_comment = blocking(context.pool(), move |conn| {
+          Comment::update_deleted(conn, comment.id, deleted)
+        })
+        .await??;
+        send_comment_ws_message_simple(deleted_comment.id, ws_messages.comment, context).await?;
+      }
     }
   }
   Ok(())

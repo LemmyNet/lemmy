@@ -44,6 +44,11 @@ impl PerformCrud for DeleteComment {
     })
     .await??;
 
+    // Dont delete it if its already been deleted.
+    if orig_comment.comment.deleted == data.deleted {
+      return Err(ApiError::err_plain("couldnt_update_comment").into());
+    }
+
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,

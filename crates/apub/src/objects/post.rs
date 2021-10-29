@@ -76,10 +76,12 @@ impl ApubObject for ApubPost {
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    blocking(context.pool(), move |conn| {
-      Post::update_deleted(conn, self.id, true)
-    })
-    .await??;
+    if !self.deleted {
+      blocking(context.pool(), move |conn| {
+        Post::update_deleted(conn, self.id, true)
+      })
+      .await??;
+    }
     Ok(())
   }
 

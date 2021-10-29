@@ -36,6 +36,11 @@ impl PerformCrud for DeletePost {
     let post_id = data.post_id;
     let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
+    // Dont delete it if its already been deleted.
+    if orig_post.deleted == data.deleted {
+      return Err(ApiError::err_plain("couldnt_update_post").into());
+    }
+
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
