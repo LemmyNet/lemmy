@@ -1,11 +1,12 @@
 pub mod activities;
+pub(crate) mod activity_lists;
 pub(crate) mod collections;
 mod context;
 pub mod fetcher;
 pub mod http;
 pub mod migrations;
 pub mod objects;
-pub(crate) mod protocol;
+pub mod protocol;
 
 #[macro_use]
 extern crate lazy_static;

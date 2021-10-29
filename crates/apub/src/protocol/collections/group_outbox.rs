@@ -1,4 +1,4 @@
-use crate::activities::post::create_or_update::CreateOrUpdatePost;
+use crate::protocol::activities::create_or_update::post::CreateOrUpdatePost;
 use activitystreams::collection::kind::OrderedCollectionType;
 use serde::{Deserialize, Serialize};
 use url::Url;

@@ -1,19 +1,9 @@
-use crate::{
-  activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-    verify_person_in_community,
-  },
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  PostOrComment,
-};
-use activitystreams::{activity::kind::FlagType, unparsed::Unparsed};
+use activitystreams::activity::kind::FlagType;
+
 use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
   source::{
@@ -25,22 +15,19 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
-use serde::{Deserialize, Serialize};
-use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct Report {
-  actor: ObjectId<ApubPerson>,
-  to: [ObjectId<ApubCommunity>; 1],
-  object: ObjectId<PostOrComment>,
-  summary: String,
-  #[serde(rename = "type")]
-  kind: FlagType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_activity,
+    verify_person_in_community,
+  },
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::report::Report,
+  PostOrComment,
+};
 
 impl Report {
   pub async fn send(

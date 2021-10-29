@@ -1,12 +1,7 @@
-use crate::{
-  activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType},
-  collections::CommunityContext,
-  generate_outbox_url,
-  objects::{person::ApubPerson, post::ApubPost},
-  protocol::collections::group_outbox::GroupOutbox,
-};
 use activitystreams::collection::kind::OrderedCollectionType;
 use chrono::NaiveDateTime;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -18,7 +13,16 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::LemmyError;
-use url::Url;
+
+use crate::{
+  collections::CommunityContext,
+  generate_outbox_url,
+  objects::{person::ApubPerson, post::ApubPost},
+  protocol::{
+    activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+    collections::group_outbox::GroupOutbox,
+  },
+};
 
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);

@@ -1,7 +1,5 @@
-use activitystreams::{public, unparsed::Unparsed};
+use activitystreams::public;
 use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
-use url::Url;
 
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -16,35 +14,18 @@ use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCru
 use crate::{
   activities::{
     check_community_deleted_or_removed,
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
+    community::{announce::GetCommunity, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
-    CreateOrUpdateType,
   },
+  activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::objects::page::Page,
+  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateOrUpdatePost {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  object: Page,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: CreateOrUpdateType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(

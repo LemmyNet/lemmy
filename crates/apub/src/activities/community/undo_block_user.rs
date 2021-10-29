@@ -1,24 +1,25 @@
 use crate::{
   activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      block_user::BlockUserFromCommunity,
-      send_to_community,
-    },
+    community::{announce::GetCommunity, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
+  activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::{
+    block_user::BlockUserFromCommunity,
+    undo_block_user::UndoBlockUserFromCommunity,
+  },
 };
-use activitystreams::{activity::kind::UndoType, public, unparsed::Unparsed};
+use activitystreams::{activity::kind::UndoType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
   source::community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -26,22 +27,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoBlockUserFromCommunity {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  object: BlockUserFromCommunity,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl UndoBlockUserFromCommunity {
   pub async fn send(

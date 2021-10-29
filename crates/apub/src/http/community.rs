@@ -1,23 +1,6 @@
-use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
-use log::info;
-use serde::{Deserialize, Serialize};
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
-use lemmy_db_schema::source::community::Community;
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
-  activities::{
-    community::announce::{AnnouncableActivities, AnnounceActivity, GetCommunity},
-    following::{follow::FollowCommunity, undo::UndoFollowCommunity},
-    report::Report,
-    verify_person_in_community,
-  },
+  activities::{community::announce::GetCommunity, verify_person_in_community},
+  activity_lists::GroupInboxActivities,
   collections::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
@@ -33,8 +16,22 @@ use crate::{
     receive_activity,
   },
   objects::community::ApubCommunity,
-  protocol::collections::group_followers::CommunityFollowers,
+  protocol::{
+    activities::community::announce::AnnounceActivity,
+    collections::group_followers::CommunityFollowers,
+  },
 };
+use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  traits::{ActivityFields, ActorType, ApubObject},
+  verify::verify_domains_match,
+};
+use lemmy_db_schema::source::community::Community;
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use log::info;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub(crate) struct CommunityQuery {
@@ -59,16 +56,6 @@ pub(crate) async fn get_apub_community_http(
   } else {
     Ok(create_apub_tombstone_response(&community.to_tombstone()?))
   }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
-#[serde(untagged)]
-#[activity_handler(LemmyContext)]
-pub enum GroupInboxActivities {
-  FollowCommunity(FollowCommunity),
-  UndoFollowCommunity(UndoFollowCommunity),
-  AnnouncableActivities(AnnouncableActivities),
-  Report(Report),
 }
 
 /// Handler for all incoming receive to community inboxes.

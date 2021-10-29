@@ -1,11 +1,9 @@
 use crate::{
+  activity_lists::SharedInboxActivities,
   check_is_apub_id_valid,
   context::WithContext,
   fetcher::get_or_fetch_and_upsert_actor,
-  http::{
-    community::{receive_group_inbox, GroupInboxActivities},
-    person::{receive_person_inbox, PersonInboxActivities},
-  },
+  http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
 };
 use actix_web::{
@@ -38,16 +36,6 @@ mod community;
 mod person;
 mod post;
 pub mod routes;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
-#[serde(untagged)]
-#[activity_handler(LemmyContext)]
-pub enum SharedInboxActivities {
-  GroupInboxActivities(GroupInboxActivities),
-  // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
-  // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
-  PersonInboxActivities(PersonInboxActivities),
-}
 
 pub async fn shared_inbox(
   request: HttpRequest,

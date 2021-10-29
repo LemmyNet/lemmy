@@ -4,6 +4,7 @@ use url::Url;
 
 use lemmy_apub_lib::values::MediaTypeMarkdown;
 
+pub mod activities;
 pub(crate) mod collections;
 pub(crate) mod objects;
 

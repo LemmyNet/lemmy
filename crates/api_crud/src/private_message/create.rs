@@ -7,11 +7,11 @@ use lemmy_api_common::{
   person::{CreatePrivateMessage, PrivateMessageResponse},
 };
 use lemmy_apub::{
-  activities::{
+  generate_local_apub_endpoint,
+  protocol::activities::{
     private_message::create_or_update::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
   },
-  generate_local_apub_endpoint,
   EndpointType,
 };
 use lemmy_db_schema::{

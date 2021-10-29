@@ -1,15 +1,10 @@
 use crate::{
-  activities::{
-    following::follow::FollowCommunity,
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-    verify_person,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
 };
-use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
+use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -22,21 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoFollowCommunity {
-  actor: ObjectId<ApubPerson>,
-  to: [ObjectId<ApubCommunity>; 1],
-  object: FollowCommunity,
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl UndoFollowCommunity {
   pub async fn send(

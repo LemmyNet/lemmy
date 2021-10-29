@@ -1,11 +1,9 @@
-use activitystreams::{link::Mention, public, unparsed::Unparsed};
-use serde::{Deserialize, Serialize};
-use url::Url;
+use activitystreams::public;
 
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -19,36 +17,17 @@ use crate::{
   activities::{
     check_community_deleted_or_removed,
     comment::{collect_non_local_mentions, get_notif_recipients},
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
+    community::{announce::GetCommunity, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
     verify_person_in_community,
-    CreateOrUpdateType,
   },
+  activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-  protocol::objects::note::Note,
+  protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateOrUpdateComment {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  object: Note,
-  cc: Vec<Url>,
-  #[serde(default)]
-  tag: Vec<Mention>,
-  #[serde(rename = "type")]
-  kind: CreateOrUpdateType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl CreateOrUpdateComment {
   pub async fn send(

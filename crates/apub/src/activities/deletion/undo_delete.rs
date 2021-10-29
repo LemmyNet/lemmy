@@ -1,11 +1,24 @@
+use activitystreams::{activity::kind::UndoType, public};
+use anyhow::anyhow;
+use url::Url;
+
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityHandler, ActorType},
+};
+use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{
+  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+  LemmyContext,
+  UserOperationCrud,
+};
+
 use crate::{
   activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
+    community::{announce::GetCommunity, send_to_community},
     deletion::{
-      delete::Delete,
       receive_delete_action,
       verify_delete_activity,
       DeletableObjects,
@@ -15,39 +28,11 @@ use crate::{
     verify_activity,
     verify_is_public,
   },
+  activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitystreams::{activity::kind::UndoType, public, unparsed::Unparsed};
-use anyhow::anyhow;
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
-};
-use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{
-  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
-  LemmyContext,
-  UserOperationCrud,
-};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoDelete {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  object: Delete,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDelete {

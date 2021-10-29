@@ -12,16 +12,16 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::{
-  activities::{
-    post::create_or_update::CreateOrUpdatePost,
+  fetcher::post_or_comment::PostOrComment,
+  objects::post::ApubPost,
+  protocol::activities::{
+    create_or_update::post::CreateOrUpdatePost,
     voting::{
       undo_vote::UndoVote,
       vote::{Vote, VoteType},
     },
     CreateOrUpdateType,
   },
-  fetcher::post_or_comment::PostOrComment,
-  objects::post::ApubPost,
 };
 use lemmy_db_schema::{
   source::{moderator::*, post::*},

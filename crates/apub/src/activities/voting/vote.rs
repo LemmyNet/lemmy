@@ -1,25 +1,11 @@
-use crate::{
-  activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
-    generate_activity_id,
-    verify_activity,
-    verify_is_public,
-    verify_person_in_community,
-    voting::{vote_comment, vote_post},
-  },
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  PostOrComment,
-};
-use activitystreams::{public, unparsed::Unparsed};
-use anyhow::anyhow;
+use std::ops::Deref;
+
+use activitystreams::public;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -28,51 +14,22 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use std::{convert::TryFrom, ops::Deref};
-use strum_macros::ToString;
-use url::Url;
 
-#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
-pub enum VoteType {
-  Like,
-  Dislike,
-}
-
-impl TryFrom<i16> for VoteType {
-  type Error = LemmyError;
-
-  fn try_from(value: i16) -> Result<Self, Self::Error> {
-    match value {
-      1 => Ok(VoteType::Like),
-      -1 => Ok(VoteType::Dislike),
-      _ => Err(anyhow!("invalid vote value").into()),
-    }
-  }
-}
-
-impl From<&VoteType> for i16 {
-  fn from(value: &VoteType) -> i16 {
-    match value {
-      VoteType::Like => 1,
-      VoteType::Dislike => -1,
-    }
-  }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct Vote {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  pub(in crate::activities::voting) object: ObjectId<PostOrComment>,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  pub(in crate::activities::voting) kind: VoteType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    community::{announce::GetCommunity, send_to_community},
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+    verify_person_in_community,
+    voting::{vote_comment, vote_post},
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::voting::vote::{Vote, VoteType},
+  PostOrComment,
+};
 
 impl Vote {
   pub(in crate::activities::voting) fn new(

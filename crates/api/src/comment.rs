@@ -1,5 +1,7 @@
-use crate::Perform;
+use std::convert::TryInto;
+
 use actix_web::web::Data;
+
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -9,11 +11,11 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::{
-  activities::voting::{
+  fetcher::post_or_comment::PostOrComment,
+  protocol::activities::voting::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
-  fetcher::post_or_comment::PostOrComment,
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -23,7 +25,8 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
-use std::convert::TryInto;
+
+use crate::Perform;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkCommentAsRead {

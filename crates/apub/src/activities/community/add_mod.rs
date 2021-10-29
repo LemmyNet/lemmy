@@ -1,10 +1,6 @@
 use crate::{
   activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      get_community_from_moderators_url,
-      send_to_community,
-    },
+    community::{announce::GetCommunity, get_community_from_moderators_url, send_to_community},
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
@@ -12,15 +8,17 @@ use crate::{
     verify_mod_action,
     verify_person_in_community,
   },
+  activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::add_mod::AddMod,
 };
-use activitystreams::{activity::kind::AddType, public, unparsed::Unparsed};
+use activitystreams::{activity::kind::AddType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
@@ -28,23 +26,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct AddMod {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  object: ObjectId<ApubPerson>,
-  target: Url,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: AddType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl AddMod {
   pub async fn send(

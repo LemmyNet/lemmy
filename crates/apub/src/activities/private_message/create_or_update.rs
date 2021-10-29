@@ -1,40 +1,21 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-    verify_person,
-    CreateOrUpdateType,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  protocol::objects::chat_message::ChatMessage,
+  protocol::activities::{
+    private_message::create_or_update::CreateOrUpdatePrivateMessage,
+    CreateOrUpdateType,
+  },
 };
-use activitystreams::unparsed::Unparsed;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{source::person::Person, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateOrUpdatePrivateMessage {
-  id: Url,
-  actor: ObjectId<ApubPerson>,
-  to: [ObjectId<ApubPerson>; 1],
-  object: ChatMessage,
-  #[serde(rename = "type")]
-  kind: CreateOrUpdateType,
-  #[serde(flatten)]
-  pub unparsed: Unparsed,
-}
 
 impl CreateOrUpdatePrivateMessage {
   pub async fn send(

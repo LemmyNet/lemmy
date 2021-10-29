@@ -1,11 +1,22 @@
-use activitystreams::{activity::kind::UpdateType, public, unparsed::Unparsed};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
+use crate::{
+  activities::{
+    community::{announce::GetCommunity, send_to_community},
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+    verify_mod_action,
+    verify_person_in_community,
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::{activities::community::update::UpdateCommunity, objects::group::Group},
+};
+use activitystreams::{activity::kind::UpdateType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ActorType, ApubObject},
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityForm},
@@ -13,40 +24,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
-
-use crate::{
-  activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
-    generate_activity_id,
-    verify_activity,
-    verify_is_public,
-    verify_mod_action,
-    verify_person_in_community,
-  },
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::objects::group::Group,
-};
-
-/// This activity is received from a remote community mod, and updates the description or other
-/// fields of a local community.
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateCommunity {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  // TODO: would be nice to use a separate struct here, which only contains the fields updated here
-  object: Group,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: UpdateType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl UpdateCommunity {
   pub async fn send(

@@ -2,12 +2,13 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
+  protocol::activities::private_message::delete::DeletePrivateMessage,
 };
-use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
+use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -16,21 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct DeletePrivateMessage {
-  actor: ObjectId<ApubPerson>,
-  to: [ObjectId<ApubPerson>; 1],
-  pub(in crate::activities::private_message) object: ObjectId<ApubPrivateMessage>,
-  #[serde(rename = "type")]
-  kind: DeleteType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl DeletePrivateMessage {
   pub(in crate::activities::private_message) fn new(

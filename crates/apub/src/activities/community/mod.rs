@@ -1,23 +1,25 @@
+use itertools::Itertools;
+use url::Url;
+
+use lemmy_apub_lib::traits::ActorType;
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+
 use crate::{
-  activities::{
-    community::announce::{AnnouncableActivities, AnnounceActivity},
-    send_lemmy_activity,
-  },
+  activities::send_lemmy_activity,
+  activity_lists::AnnouncableActivities,
   check_is_apub_id_valid,
   fetcher::object_id::ObjectId,
   insert_activity,
   objects::community::ApubCommunity,
+  protocol::activities::community::announce::AnnounceActivity,
 };
-use itertools::Itertools;
-use lemmy_apub_lib::traits::ActorType;
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-use url::Url;
 
 pub mod add_mod;
 pub mod announce;
 pub mod block_user;
 pub mod remove_mod;
+pub mod report;
 pub mod undo_block_user;
 pub mod update;
 

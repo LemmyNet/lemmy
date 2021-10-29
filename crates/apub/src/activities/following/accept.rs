@@ -1,14 +1,9 @@
 use crate::{
-  activities::{
-    following::follow::FollowCommunity,
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity},
   fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
-use activitystreams::{activity::kind::AcceptType, unparsed::Unparsed};
+use activitystreams::activity::kind::AcceptType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -18,21 +13,6 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct AcceptFollowCommunity {
-  actor: ObjectId<ApubCommunity>,
-  to: [ObjectId<ApubPerson>; 1],
-  object: FollowCommunity,
-  #[serde(rename = "type")]
-  kind: AcceptType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl AcceptFollowCommunity {
   pub async fn send(

@@ -1,15 +1,13 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    private_message::delete::DeletePrivateMessage,
-    send_lemmy_activity,
-    verify_activity,
-    verify_person,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
+  protocol::activities::private_message::{
+    delete::DeletePrivateMessage,
+    undo_delete::UndoDeletePrivateMessage,
+  },
 };
-use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
+use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -22,21 +20,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoDeletePrivateMessage {
-  actor: ObjectId<ApubPerson>,
-  to: [ObjectId<ApubPerson>; 1],
-  object: DeletePrivateMessage,
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl UndoDeletePrivateMessage {
   pub async fn send(

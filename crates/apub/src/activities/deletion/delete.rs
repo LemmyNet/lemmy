@@ -1,28 +1,11 @@
-use crate::{
-  activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
-    deletion::{
-      receive_delete_action,
-      verify_delete_activity,
-      DeletableObjects,
-      WebsocketMessages,
-    },
-    generate_activity_id,
-    verify_activity,
-    verify_is_public,
-  },
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-};
-use activitystreams::{activity::kind::DeleteType, public, unparsed::Unparsed};
+use activitystreams::{activity::kind::DeleteType, public};
 use anyhow::anyhow;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
   source::{
@@ -46,35 +29,25 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use url::Url;
 
-/// This is very confusing, because there are four distinct cases to handle:
-/// - user deletes their post
-/// - user deletes their comment
-/// - remote community mod deletes local community
-/// - remote community deletes itself (triggered by a mod)
-///
-/// TODO: we should probably change how community deletions work to simplify this. Probably by
-/// wrapping it in an announce just like other activities, instead of having the community send it.
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct Delete {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  pub(in crate::activities::deletion) object: Url,
-  pub(in crate::activities::deletion) cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: DeleteType,
-  /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
-  /// deleting their own content.
-  pub(in crate::activities::deletion) summary: Option<String>,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    community::{announce::GetCommunity, send_to_community},
+    deletion::{
+      receive_delete_action,
+      verify_delete_activity,
+      DeletableObjects,
+      WebsocketMessages,
+    },
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::deletion::delete::Delete,
+};
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Delete {

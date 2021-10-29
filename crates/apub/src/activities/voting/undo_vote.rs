@@ -1,24 +1,7 @@
-use crate::{
-  activities::{
-    community::{
-      announce::{AnnouncableActivities, GetCommunity},
-      send_to_community,
-    },
-    generate_activity_id,
-    verify_activity,
-    verify_is_public,
-    verify_person_in_community,
-    voting::{
-      undo_vote_comment,
-      undo_vote_post,
-      vote::{Vote, VoteType},
-    },
-  },
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  PostOrComment,
-};
-use activitystreams::{activity::kind::UndoType, public, unparsed::Unparsed};
+use std::ops::Deref;
+
+use activitystreams::{activity::kind::UndoType, public};
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -28,23 +11,25 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use std::ops::Deref;
-use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoVote {
-  actor: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  object: Vote,
-  cc: Vec<Url>,
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    community::{announce::GetCommunity, send_to_community},
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+    verify_person_in_community,
+    voting::{undo_vote_comment, undo_vote_post},
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::voting::{
+    undo_vote::UndoVote,
+    vote::{Vote, VoteType},
+  },
+  PostOrComment,
+};
 
 impl UndoVote {
   pub async fn send(

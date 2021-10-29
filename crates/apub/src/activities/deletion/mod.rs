@@ -1,12 +1,5 @@
-use crate::{
-  activities::{
-    deletion::{delete::Delete, undo_delete::UndoDelete},
-    verify_mod_action,
-    verify_person_in_community,
-  },
-  fetcher::object_id::ObjectId,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-};
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::{ActivityFields, ActorType, ApubObject},
@@ -19,7 +12,13 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
-use url::Url;
+
+use crate::{
+  activities::{verify_mod_action, verify_person_in_community},
+  fetcher::object_id::ObjectId,
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+};
 
 pub mod delete;
 pub mod undo_delete;

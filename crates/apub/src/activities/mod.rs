@@ -22,8 +22,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
-use serde::{Deserialize, Serialize};
-use strum_macros::ToString;
+use serde::Serialize;
 use url::{ParseError, Url};
 use uuid::Uuid;
 
@@ -33,14 +32,7 @@ pub mod deletion;
 pub mod following;
 pub mod post;
 pub mod private_message;
-pub mod report;
 pub mod voting;
-
-#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
-pub enum CreateOrUpdateType {
-  Create,
-  Update,
-}
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
