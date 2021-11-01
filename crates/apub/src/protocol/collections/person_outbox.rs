@@ -7,16 +7,16 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct UserOutbox {
+pub(crate) struct PersonOutbox {
   r#type: OrderedCollectionType,
   id: Url,
   ordered_items: Vec<()>,
   total_items: i32,
 }
 
-impl UserOutbox {
-  pub(crate) async fn new(user: Person) -> Result<UserOutbox, LemmyError> {
-    Ok(UserOutbox {
+impl PersonOutbox {
+  pub(crate) async fn new(user: Person) -> Result<PersonOutbox, LemmyError> {
+    Ok(PersonOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_outbox_url(&user.actor_id)?.into_inner(),
       ordered_items: vec![],

@@ -188,26 +188,20 @@ impl ApubObject for ApubComment {
 pub(crate) mod tests {
   use super::*;
   use crate::objects::{
-    community::ApubCommunity,
-    person::ApubPerson,
+    community::{tests::parse_lemmy_community, ApubCommunity},
+    person::{tests::parse_lemmy_person, ApubPerson},
     post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
   use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
-  pub(crate) async fn prepare_comment_test(
+  async fn prepare_comment_test(
     url: &Url,
     context: &LemmyContext,
   ) -> (ApubPerson, ApubCommunity, ApubPost) {
-    let person_json = file_to_json_object("assets/lemmy/objects/person.json");
-    let person = ApubPerson::from_apub(&person_json, context, url, &mut 0)
-      .await
-      .unwrap();
-    let community_json = file_to_json_object("assets/lemmy/objects/group.json");
-    let community = ApubCommunity::from_apub(&community_json, context, url, &mut 0)
-      .await
-      .unwrap();
+    let person = parse_lemmy_person(context).await;
+    let community = parse_lemmy_community(context).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json");
     let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
       .await

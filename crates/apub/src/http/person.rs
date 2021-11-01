@@ -8,7 +8,7 @@ use crate::{
     receive_activity,
   },
   objects::person::ApubPerson,
-  protocol::collections::person_outbox::UserOutbox,
+  protocol::collections::person_outbox::PersonOutbox,
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
@@ -74,6 +74,6 @@ pub(crate) async fn get_apub_person_outbox(
     Person::find_by_name(conn, &info.user_name)
   })
   .await??;
-  let outbox = UserOutbox::new(person).await?;
+  let outbox = PersonOutbox::new(person).await?;
   Ok(create_apub_response(&outbox))
 }

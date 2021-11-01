@@ -28,7 +28,7 @@ services:
       - ./volumes/pictrs_alpha:/mnt
 
   lemmy-alpha-ui:
-    image: dessalines/lemmy-ui:dev
+    image: dessalines/lemmy-ui:0.13.3
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
       - LEMMY_EXTERNAL_HOST=localhost:8541
@@ -57,7 +57,7 @@ services:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
 
   lemmy-beta-ui:
-    image: dessalines/lemmy-ui:dev
+    image: dessalines/lemmy-ui:0.13.3
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-beta:8551
       - LEMMY_EXTERNAL_HOST=localhost:8551

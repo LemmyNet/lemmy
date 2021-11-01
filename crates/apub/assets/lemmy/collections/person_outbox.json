@@ -1,0 +1,6 @@
+{
+  "type": "OrderedCollection",
+  "id": "http://ds9.lemmy.ml/u/lemmy_alpha/outbox",
+  "orderedItems": [],
+  "totalItems": 0
+}

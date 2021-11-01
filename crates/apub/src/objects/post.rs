@@ -193,28 +193,22 @@ impl ApubObject for ApubPost {
 mod tests {
   use super::*;
   use crate::objects::{
-    community::ApubCommunity,
-    person::ApubPerson,
+    community::tests::parse_lemmy_community,
+    person::tests::parse_lemmy_person,
     post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
-  use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_post() {
     let context = init_context();
-    let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
-    let community_json = file_to_json_object("assets/lemmy/objects/group.json");
-    let community = ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
-      .await
-      .unwrap();
-    let person_json = file_to_json_object("assets/lemmy/objects/person.json");
-    let person = ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
-      .await
-      .unwrap();
+    let community = parse_lemmy_community(&context).await;
+    let person = parse_lemmy_person(&context).await;
+
     let json = file_to_json_object("assets/lemmy/objects/page.json");
+    let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
     let mut request_counter = 0;
     let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
       .await
@@ -227,9 +221,6 @@ mod tests {
     assert!(!post.locked);
     assert!(post.stickied);
     assert_eq!(request_counter, 0);
-
-    let to_apub = post.to_apub(&context).await.unwrap();
-    assert_json_include!(actual: json, expected: to_apub);
 
     Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
     Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();

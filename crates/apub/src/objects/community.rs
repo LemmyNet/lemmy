@@ -222,42 +222,39 @@ impl ApubCommunity {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
-  use assert_json_diff::assert_json_include;
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
 
-  #[actix_rt::test]
-  #[serial]
-  async fn test_parse_lemmy_community() {
-    let context = init_context();
+  pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json");
-    let json_orig = json.clone();
     // change these links so they dont fetch over the network
-    json.moderators = Some(ObjectId::new(
-      Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_moderators").unwrap(),
-    ));
+    json.moderators = None;
     json.outbox =
       ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
-    let community = ApubCommunity::from_apub(&json, &context, &url, &mut request_counter)
+    let community = ApubCommunity::from_apub(&json, context, &url, &mut request_counter)
       .await
       .unwrap();
+    // this makes two requests to the (intentionally) broken outbox/moderators collections
+    assert_eq!(request_counter, 1);
+    community
+  }
 
-    assert_eq!(community.actor_id.clone().into_inner(), url);
+  #[actix_rt::test]
+  #[serial]
+  async fn test_parse_lemmy_community() {
+    let context = init_context();
+    let community = parse_lemmy_community(&context).await;
+
     assert_eq!(community.title, "Ten Forward");
     assert!(community.public_key.is_some());
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
-    // this makes two requests to the (intentionally) broken outbox/moderators collections
-    assert_eq!(request_counter, 2);
-
-    let to_apub = community.to_apub(&context).await.unwrap();
-    assert_json_include!(actual: json_orig, expected: to_apub);
 
     Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
   }

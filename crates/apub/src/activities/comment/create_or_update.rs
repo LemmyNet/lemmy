@@ -128,16 +128,3 @@ impl GetCommunity for CreateOrUpdateComment {
     Ok(community.into())
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::objects::tests::file_to_json_object;
-  use serial_test::serial;
-
-  #[actix_rt::test]
-  #[serial]
-  async fn test_parse_pleroma_create_comment() {
-    file_to_json_object::<CreateOrUpdateComment>("assets/pleroma/activities/create-note.json");
-  }
-}

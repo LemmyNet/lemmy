@@ -16,6 +16,7 @@
     "type": "Image",
     "url": "https://enterprise.lemmy.ml/pictrs/image/XenaYI5hTn.png"
   },
+  "matrix_user_id": "@picard:matrix.org",
   "inbox": "https://enterprise.lemmy.ml/u/picard/inbox",
   "outbox": "https://enterprise.lemmy.ml/u/picard/outbox",
   "endpoints": {

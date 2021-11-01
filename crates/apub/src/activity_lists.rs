@@ -1,12 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-use lemmy_apub_lib::{
-  traits::{ActivityFields, ActivityHandler, ActorType},
-  verify::verify_urls_match,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
   activities::community::announce::GetCommunity,
   objects::community::ApubCommunity,
@@ -35,6 +26,10 @@ use crate::{
     voting::{undo_vote::UndoVote, vote::Vote},
   },
 };
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
 #[serde(untagged)]
@@ -107,7 +102,6 @@ impl GetCommunity for AnnouncableActivities {
       AddMod(a) => a.get_community(context, request_counter).await?,
       RemoveMod(a) => a.get_community(context, request_counter).await?,
     };
-    verify_urls_match(self.actor(), &community.actor_id())?;
     Ok(community)
   }
 }

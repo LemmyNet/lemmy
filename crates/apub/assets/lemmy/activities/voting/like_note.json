@@ -1,0 +1,12 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": "http://ds9.lemmy.ml/comment/1",
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Like",
+  "id": "http://ds9.lemmy.ml/activities/like/fd61d070-7382-46a9-b2b7-6bb253732877"
+}

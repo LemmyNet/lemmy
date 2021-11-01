@@ -18,13 +18,8 @@ use lemmy_websocket::LemmyContext;
 
 use crate::{
   fetcher::object_id::ObjectId,
-  objects::{
-    comment::ApubComment,
-    community::ApubCommunity,
-    person::{ApubPerson, Person},
-    post::ApubPost,
-  },
-  protocol::objects::{group::Group, note::Note, page::Page},
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::objects::{group::Group, note::Note, page::Page, person::Person},
 };
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.

@@ -10,25 +10,25 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct CommunityFollowers {
+pub(crate) struct GroupFollowers {
   id: Url,
   r#type: CollectionType,
   total_items: i32,
   items: Vec<()>,
 }
 
-impl CommunityFollowers {
+impl GroupFollowers {
   pub(crate) async fn new(
     community: Community,
     context: &LemmyContext,
-  ) -> Result<CommunityFollowers, LemmyError> {
+  ) -> Result<GroupFollowers, LemmyError> {
     let community_id = community.id;
     let community_followers = blocking(context.pool(), move |conn| {
       CommunityFollowerView::for_community(conn, community_id)
     })
     .await??;
 
-    Ok(CommunityFollowers {
+    Ok(GroupFollowers {
       id: generate_followers_url(&community.actor_id)?.into_inner(),
       r#type: CollectionType::Collection,
       total_items: community_followers.len() as i32,

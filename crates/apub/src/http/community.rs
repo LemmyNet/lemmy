@@ -18,15 +18,12 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::AnnounceActivity,
-    collections::group_followers::CommunityFollowers,
+    collections::group_followers::GroupFollowers,
   },
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  traits::{ActivityFields, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
+use lemmy_apub_lib::traits::{ActivityFields, ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -84,7 +81,6 @@ pub(in crate::http) async fn receive_group_inbox(
   if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
     let community = announcable.get_community(context, &mut 0).await?;
     let actor_id = ObjectId::new(announcable.actor().clone());
-    verify_domains_match(&community.actor_id(), announcable.id_unchecked())?;
     verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
     if community.local {
       AnnounceActivity::send(announcable, &community, vec![], context).await?;
@@ -103,7 +99,7 @@ pub(crate) async fn get_apub_community_followers(
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-  let followers = CommunityFollowers::new(community, &context).await?;
+  let followers = GroupFollowers::new(community, &context).await?;
   Ok(create_apub_response(&followers))
 }
 

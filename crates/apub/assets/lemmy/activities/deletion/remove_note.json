@@ -1,0 +1,13 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": "http://ds9.lemmy.ml/comment/1",
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Delete",
+  "summary": "bad comment",
+  "id": "http://enterprise.lemmy.ml/activities/delete/42ca1a79-f99e-4518-a2ca-ba2df221eb5e"
+}

@@ -1,0 +1,13 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "target": "http://enterprise.lemmy.ml/c/main/moderators",
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Add",
+  "id": "http://enterprise.lemmy.ml/activities/add/ec069147-77c3-447f-88c8-0ef1df10403f"
+}

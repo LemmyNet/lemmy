@@ -13,6 +13,11 @@
     "content": "This is a post in the /c/tenforward community",
     "mediaType": "text/markdown"
   },
+  "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png",
+  "image": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
+  },
   "sensitive": false,
   "commentsEnabled": true,
   "stickied": true,

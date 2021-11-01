@@ -2,13 +2,16 @@ use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
   objects::get_summary_from_string_or_source,
-  protocol::{ImageObject, Source},
+  protocol::{
+    objects::person::{Person, UserTypes},
+    ImageObject,
+    Source,
+  },
 };
-use activitystreams::{actor::Endpoints, object::kind::ImageType, unparsed::Unparsed};
-use chrono::{DateTime, FixedOffset, NaiveDateTime};
+use activitystreams::{actor::Endpoints, object::kind::ImageType};
+use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  signatures::PublicKey,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
   verify::verify_domains_match,
@@ -22,53 +25,8 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
-pub enum UserTypes {
-  Person,
-  Service,
-}
-
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Person {
-  #[serde(rename = "type")]
-  kind: UserTypes,
-  id: Url,
-  /// username, set at account creation and can never be changed
-  preferred_username: String,
-  /// displayname (can be changed at any time)
-  name: Option<String>,
-  summary: Option<String>,
-  source: Option<Source>,
-  /// user avatar
-  icon: Option<ImageObject>,
-  /// user banner
-  image: Option<ImageObject>,
-  matrix_user_id: Option<String>,
-  inbox: Url,
-  /// mandatory field in activitypub, currently empty in lemmy
-  outbox: Url,
-  endpoints: Endpoints<Url>,
-  public_key: PublicKey,
-  published: Option<DateTime<FixedOffset>>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-// TODO: can generate this with a derive macro
-impl Person {
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ApubPerson(DbPerson);
@@ -170,7 +128,8 @@ impl ApubObject for ApubPerson {
     expected_domain: &Url,
     _request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
-    let actor_id = Some(person.id(expected_domain)?.clone().into());
+    verify_domains_match(&person.id, expected_domain)?;
+    let actor_id = Some(person.id.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
     let bio = get_summary_from_string_or_source(&person.summary, &person.source);
@@ -245,33 +204,33 @@ impl ActorType for ApubPerson {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
-  use assert_json_diff::assert_json_include;
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
+
+  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
+    let json = file_to_json_object("assets/lemmy/objects/person.json");
+    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
+    let mut request_counter = 0;
+    let person = ApubPerson::from_apub(&json, context, &url, &mut request_counter)
+      .await
+      .unwrap();
+    assert_eq!(request_counter, 0);
+    person
+  }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_person() {
     let context = init_context();
-    let json = file_to_json_object("assets/lemmy/objects/person.json");
-    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
-    let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
-      .await
-      .unwrap();
+    let person = parse_lemmy_person(&context).await;
 
-    assert_eq!(person.actor_id.clone().into_inner(), url);
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(person.public_key.is_some());
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
-    assert_eq!(request_counter, 0);
-
-    let to_apub = person.to_apub(&context).await.unwrap();
-    assert_json_include!(actual: json, expected: to_apub);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
   }
