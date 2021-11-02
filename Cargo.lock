@@ -408,9 +408,9 @@ dependencies = [
 
 [[package]]
 name = "background-jobs"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ce8953ce13a4bc359900fca168b64e47d5f0af1c02f2d45527221babbb73a27"
+checksum = "bb7df0fd6abf9d55139d4c9e569c0a8cd271ec265862c41bd215b46b36c52397"
 dependencies = [
  "background-jobs-actix",
  "background-jobs-core",
@@ -418,9 +418,9 @@ dependencies = [
 
 [[package]]
 name = "background-jobs-actix"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "709bf5f9fc7ac9d99166a519170bbc0a8f72bb37673c15172c09b4a12e339684"
+checksum = "01ab01d8b4bdf0610ed50a51884c19d33d9c3e2c375085d7277b0a7865900d16"
 dependencies = [
  "actix-rt",
  "anyhow",
@@ -439,9 +439,9 @@ dependencies = [
 
 [[package]]
 name = "background-jobs-core"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19183dba9542792f7abd93c9078a93db49eb7b035d733bc135c2fac9ec822926"
+checksum = "7afe8e2a2f2ceaf0d8d57d6d108a8a4d8c00510561ae103a4f395aa5dcec450c"
 dependencies = [
  "actix-rt",
  "anyhow",
