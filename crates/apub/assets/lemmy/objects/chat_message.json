@@ -5,7 +5,7 @@
   "to": [
     "https://queer.hacktivis.me/users/lanodan"
   ],
-  "content": "Hello hello, testing",
+  "content": "<p>Hello hello, testing</p>\n",
   "mediaType": "text/html",
   "source": {
     "content": "Hello hello, testing",

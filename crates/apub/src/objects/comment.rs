@@ -38,6 +38,7 @@ use crate::{
   },
   PostOrComment,
 };
+use lemmy_utils::utils::markdown_to_html;
 
 #[derive(Clone, Debug)]
 pub struct ApubComment(Comment);
@@ -106,7 +107,7 @@ impl ApubObject for ApubComment {
       id: self.ap_id.to_owned().into_inner(),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
-      content: self.content.clone(),
+      content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: SourceCompat::Lemmy(Source {
         content: self.content.clone(),

@@ -4,7 +4,7 @@
   "attributedTo": "https://enterprise.lemmy.ml/u/picard",
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
-  "content": "first comment!",
+  "content": "<p>first comment!</p>\n",
   "mediaType": "text/html",
   "source": {
     "content": "first comment!",

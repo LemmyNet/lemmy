@@ -19,7 +19,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{utils::convert_datetime, LemmyError};
+use lemmy_utils::{
+  utils::{convert_datetime, markdown_to_html},
+  LemmyError,
+};
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use url::Url;
@@ -81,7 +84,7 @@ impl ApubObject for ApubPrivateMessage {
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
       to: [ObjectId::new(recipient.actor_id)],
-      content: self.content.clone(),
+      content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source {
         content: self.content.clone(),
