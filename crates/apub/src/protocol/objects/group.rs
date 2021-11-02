@@ -1,4 +1,5 @@
 use crate::{
+  check_is_apub_id_valid,
   collections::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
@@ -60,6 +61,7 @@ impl Group {
     expected_domain: &Url,
     settings: &Settings,
   ) -> Result<CommunityForm, LemmyError> {
+    check_is_apub_id_valid(&group.id, true, settings)?;
     verify_domains_match(expected_domain, &group.id)?;
     let name = group.preferred_username.clone();
     let title = group.name.clone();

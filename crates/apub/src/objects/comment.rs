@@ -28,6 +28,7 @@ use lemmy_websocket::LemmyContext;
 
 use crate::{
   activities::verify_person_in_community,
+  check_is_apub_id_valid,
   fetcher::object_id::ObjectId,
   protocol::{
     objects::{
@@ -149,6 +150,7 @@ impl ApubObject for ApubComment {
       Community::read(conn, community_id)
     })
     .await??;
+    check_is_apub_id_valid(&note.id, community.local, &context.settings())?;
     verify_person_in_community(
       &note.attributed_to,
       &community.into(),

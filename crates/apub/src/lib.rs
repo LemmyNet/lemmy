@@ -30,6 +30,8 @@ use url::{ParseError, Url};
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 ///
+/// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
+/// post/comment in a local community.
 pub(crate) fn check_is_apub_id_valid(
   apub_id: &Url,
   use_strict_allowlist: bool,

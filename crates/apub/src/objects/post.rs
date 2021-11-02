@@ -1,5 +1,6 @@
 use crate::{
   activities::verify_person_in_community,
+  check_is_apub_id_valid,
   fetcher::object_id::ObjectId,
   protocol::{
     objects::{page::Page, tombstone::Tombstone},
@@ -148,6 +149,7 @@ impl ApubObject for ApubPost {
       .dereference(context, request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
+    check_is_apub_id_valid(&page.id, community.local, &context.settings())?;
     verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
