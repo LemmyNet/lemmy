@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use activitystreams::{
   actor::{kind::GroupType, Endpoints},
   object::kind::ImageType,
@@ -7,21 +5,8 @@ use activitystreams::{
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use log::debug;
+use std::ops::Deref;
 use url::Url;
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  traits::{ActorType, ApubObject},
-  values::MediaTypeMarkdown,
-};
-use lemmy_db_schema::{source::community::Community, DbPool};
-use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
-use lemmy_utils::{
-  settings::structs::Settings,
-  utils::{convert_datetime, markdown_to_html},
-  LemmyError,
-};
-use lemmy_websocket::LemmyContext;
 
 use crate::{
   check_is_apub_id_valid,
@@ -35,6 +20,18 @@ use crate::{
     Source,
   },
 };
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  traits::{ActorType, ApubObject},
+  values::MediaTypeMarkdown,
+};
+use lemmy_db_schema::source::community::Community;
+use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
+use lemmy_utils::{
+  utils::{convert_datetime, markdown_to_html},
+  LemmyError,
+};
+use lemmy_websocket::LemmyContext;
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
@@ -198,23 +195,28 @@ impl ApubCommunity {
   /// For a given community, returns the inboxes of all followers.
   pub(crate) async fn get_follower_inboxes(
     &self,
-    pool: &DbPool,
-    settings: &Settings,
+    additional_inboxes: Vec<Url>,
+    context: &LemmyContext,
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let follows = blocking(pool, move |conn| {
+    let follows = blocking(context.pool(), move |conn| {
       CommunityFollowerView::for_community(conn, id)
     })
     .await??;
-    let inboxes = follows
+    let follower_inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
       .map(|f| f.follower.shared_inbox_url.unwrap_or(f.follower.inbox_url))
       .map(|i| i.into_inner())
+      .collect();
+    let inboxes = vec![follower_inboxes, additional_inboxes]
+      .into_iter()
+      .flatten()
       .unique()
+      .filter(|inbox| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
-      .filter(|inbox| check_is_apub_id_valid(inbox, false, settings).is_ok())
+      .filter(|inbox| check_is_apub_id_valid(inbox, false, &context.settings()).is_ok())
       .collect();
 
     Ok(inboxes)

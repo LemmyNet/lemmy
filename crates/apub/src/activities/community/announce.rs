@@ -1,11 +1,5 @@
 use crate::{
-  activities::{
-    community::list_community_follower_inboxes,
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-    verify_is_public,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_is_public},
   activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
   http::is_activity_already_known,
@@ -50,7 +44,9 @@ impl AnnounceActivity {
       )?,
       unparsed: Default::default(),
     };
-    let inboxes = list_community_follower_inboxes(community, additional_inboxes, context).await?;
+    let inboxes = community
+      .get_follower_inboxes(additional_inboxes, context)
+      .await?;
     send_lemmy_activity(context, &announce, &announce.id, community, inboxes, false).await
   }
 }
