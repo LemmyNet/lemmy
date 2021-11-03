@@ -1,20 +1,3 @@
-use std::ops::Deref;
-
-use activitystreams::public;
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityHandler, ActorType},
-};
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
@@ -30,6 +13,20 @@ use crate::{
   protocol::activities::voting::vote::{Vote, VoteType},
   PostOrComment,
 };
+use activitystreams::public;
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityHandler, ActorType},
+};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use std::ops::Deref;
 
 impl Vote {
   pub(in crate::activities::voting) fn new(
@@ -79,7 +76,7 @@ impl ActivityHandler for Vote {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())

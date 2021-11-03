@@ -2,7 +2,7 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_is_public},
   activity_lists::AnnouncableActivities,
   fetcher::object_id::ObjectId,
-  http::is_activity_already_known,
+  http::{is_activity_already_known, ActivityCommonFields},
   insert_activity,
   objects::community::ApubCommunity,
   protocol::activities::community::announce::AnnounceActivity,
@@ -10,7 +10,7 @@ use crate::{
 use activitystreams::{activity::kind::AnnounceType, public};
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -60,7 +60,7 @@ impl ActivityHandler for AnnounceActivity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -70,11 +70,15 @@ impl ActivityHandler for AnnounceActivity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    if is_activity_already_known(context.pool(), self.object.id_unchecked()).await? {
+    // TODO: this is pretty ugly, but i cant think of a much better way
+    let object = serde_json::to_string(&self.object)?;
+    let object_data: ActivityCommonFields = serde_json::from_str(&object)?;
+
+    if is_activity_already_known(context.pool(), &object_data.id).await? {
       return Ok(());
     }
     insert_activity(
-      self.object.id_unchecked(),
+      &object_data.id,
       self.object.clone(),
       false,
       true,

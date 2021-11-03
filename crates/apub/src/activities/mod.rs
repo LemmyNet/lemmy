@@ -11,7 +11,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
-  traits::{ActivityFields, ActorType},
+  traits::ActorType,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::community::Community;
@@ -71,9 +71,9 @@ pub(crate) async fn verify_person_in_community(
   Ok(())
 }
 
-fn verify_activity(activity: &dyn ActivityFields, settings: &Settings) -> Result<(), LemmyError> {
-  check_is_apub_id_valid(activity.actor(), false, settings)?;
-  verify_domains_match(activity.id_unchecked(), activity.actor())?;
+fn verify_activity(id: &Url, actor: &Url, settings: &Settings) -> Result<(), LemmyError> {
+  check_is_apub_id_valid(actor, false, settings)?;
+  verify_domains_match(id, actor)?;
   Ok(())
 }
 

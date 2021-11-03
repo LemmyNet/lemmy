@@ -14,6 +14,7 @@ use crate::{
     create_apub_tombstone_response,
     payload_to_string,
     receive_activity,
+    ActivityCommonFields,
   },
   objects::community::ApubCommunity,
   protocol::{
@@ -23,7 +24,7 @@ use crate::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ApubObject};
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -64,23 +65,25 @@ pub async fn community_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received community inbox activity {}", unparsed);
+  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
   let activity = serde_json::from_str::<WithContext<GroupInboxActivities>>(&unparsed)?;
 
-  receive_group_inbox(activity.inner(), request, &context).await?;
+  receive_group_inbox(activity.inner(), activity_data, request, &context).await?;
 
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(in crate::http) async fn receive_group_inbox(
   activity: GroupInboxActivities,
+  activity_data: ActivityCommonFields,
   request: HttpRequest,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let res = receive_activity(request, activity.clone(), context).await;
+  let actor_id = ObjectId::new(activity_data.actor.clone());
+  let res = receive_activity(request, activity.clone(), activity_data, context).await;
 
   if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
     let community = announcable.get_community(context, &mut 0).await?;
-    let actor_id = ObjectId::new(announcable.actor().clone());
     verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
     if community.local {
       AnnounceActivity::send(announcable, &community, vec![], context).await?;

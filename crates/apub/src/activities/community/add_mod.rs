@@ -65,7 +65,7 @@ impl ActivityHandler for AddMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &community, context, request_counter).await?;

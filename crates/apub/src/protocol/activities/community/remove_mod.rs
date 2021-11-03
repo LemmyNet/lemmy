@@ -1,10 +1,9 @@
 use crate::{fetcher::object_id::ObjectId, objects::person::ApubPerson};
 use activitystreams::{activity::kind::RemoveType, unparsed::Unparsed};
-use lemmy_apub_lib::traits::ActivityFields;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
   pub(crate) actor: ObjectId<ApubPerson>,

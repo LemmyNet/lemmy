@@ -1,12 +1,11 @@
 use crate::{fetcher::object_id::ObjectId, objects::person::ApubPerson};
 use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
-use lemmy_apub_lib::traits::ActivityFields;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
   pub(crate) actor: ObjectId<ApubPerson>,

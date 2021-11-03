@@ -1,18 +1,3 @@
-use activitystreams::public;
-
-use lemmy_api_common::{blocking, check_post_deleted_or_removed};
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityHandler, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
-use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
-
 use crate::{
   activities::{
     check_community_deleted_or_removed,
@@ -28,6 +13,19 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
+use activitystreams::public;
+use lemmy_api_common::{blocking, check_post_deleted_or_removed};
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityHandler, ActorType, ApubObject},
+  verify::verify_domains_match,
+};
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 
 impl CreateOrUpdateComment {
   pub async fn send(
@@ -81,7 +79,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     let post = self.object.get_parents(context, request_counter).await?.0;
     let community = self.get_community(context, request_counter).await?;
 
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;

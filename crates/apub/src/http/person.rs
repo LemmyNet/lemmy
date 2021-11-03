@@ -6,6 +6,7 @@ use crate::{
     create_apub_tombstone_response,
     payload_to_string,
     receive_activity,
+    ActivityCommonFields,
   },
   objects::person::ApubPerson,
   protocol::collections::person_outbox::PersonOutbox,
@@ -54,16 +55,18 @@ pub async fn person_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received person inbox activity {}", unparsed);
+  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
   let activity = serde_json::from_str::<WithContext<PersonInboxActivities>>(&unparsed)?;
-  receive_person_inbox(activity.inner(), request, &context).await
+  receive_person_inbox(activity.inner(), activity_data, request, &context).await
 }
 
 pub(in crate::http) async fn receive_person_inbox(
   activity: PersonInboxActivities,
+  activity_data: ActivityCommonFields,
   request: HttpRequest,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, activity, context).await
+  receive_activity(request, activity, activity_data, context).await
 }
 
 pub(crate) async fn get_apub_person_outbox(

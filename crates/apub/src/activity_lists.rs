@@ -26,12 +26,12 @@ use crate::{
     voting::{undo_vote::UndoVote, vote::Vote},
   },
 };
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::traits::ActivityHandler;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum SharedInboxActivities {
@@ -41,7 +41,7 @@ pub enum SharedInboxActivities {
   PersonInboxActivities(PersonInboxActivities),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum GroupInboxActivities {
@@ -51,7 +51,7 @@ pub enum GroupInboxActivities {
   Report(Report),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum PersonInboxActivities {
@@ -64,7 +64,7 @@ pub enum PersonInboxActivities {
   AnnounceActivity(Box<AnnounceActivity>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum AnnouncableActivities {

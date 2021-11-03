@@ -2,7 +2,7 @@ use crate::{
   activity_lists::SharedInboxActivities,
   check_is_apub_id_valid,
   context::WithContext,
-  fetcher::get_or_fetch_and_upsert_actor,
+  fetcher::{object_id::ObjectId, user_or_community::UserOrCommunity},
   http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
 };
@@ -20,7 +20,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   signatures::verify_signature,
-  traits::{ActivityFields, ActivityHandler},
+  traits::{ActivityHandler, ActorType},
   APUB_JSON_CONTENT_TYPE,
 };
 use lemmy_db_schema::{source::activity::Activity, DbPool};
@@ -44,13 +44,14 @@ pub async fn shared_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received shared inbox activity {}", unparsed);
+  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
   let activity = serde_json::from_str::<WithContext<SharedInboxActivities>>(&unparsed)?;
   match activity.inner() {
     SharedInboxActivities::GroupInboxActivities(g) => {
-      receive_group_inbox(g, request, &context).await
+      receive_group_inbox(g, activity_data, request, &context).await
     }
     SharedInboxActivities::PersonInboxActivities(p) => {
-      receive_person_inbox(p, request, &context).await
+      receive_person_inbox(p, activity_data, request, &context).await
     }
   }
 }
@@ -65,15 +66,22 @@ async fn payload_to_string(mut payload: Payload) -> Result<String, LemmyError> {
   Ok(unparsed)
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ActivityCommonFields {
+  pub(crate) id: Url,
+  pub(crate) actor: Url,
+}
+
 // TODO: move most of this code to library
 async fn receive_activity<'a, T>(
   request: HttpRequest,
   activity: T,
+  activity_data: ActivityCommonFields,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError>
 where
   T: ActivityHandler<DataType = LemmyContext>
-    + ActivityFields
     + Clone
     + Deserialize<'a>
     + Serialize
@@ -81,26 +89,27 @@ where
     + Send
     + 'static,
 {
+  check_is_apub_id_valid(&activity_data.actor, false, &context.settings())?;
   let request_counter = &mut 0;
-  let actor =
-    get_or_fetch_and_upsert_actor(activity.actor().clone(), context, request_counter).await?;
+  let actor = ObjectId::<UserOrCommunity>::new(activity_data.actor)
+    .dereference(context, request_counter)
+    .await?;
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
 
   // Do nothing if we received the same activity before
-  if is_activity_already_known(context.pool(), activity.id_unchecked()).await? {
+  if is_activity_already_known(context.pool(), &activity_data.id).await? {
     return Ok(HttpResponse::Ok().finish());
   }
-  check_is_apub_id_valid(activity.actor(), false, &context.settings())?;
-  info!("Verifying activity {}", activity.id_unchecked().to_string());
+  info!("Verifying activity {}", activity_data.id.to_string());
   activity
     .verify(&Data::new(context.clone()), request_counter)
     .await?;
-  assert_activity_not_local(&activity, &context.settings().hostname)?;
+  assert_activity_not_local(&activity_data.id, &context.settings().hostname)?;
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
   insert_activity(
-    activity.id_unchecked(),
+    &activity_data.id,
     activity.clone(),
     false,
     true,
@@ -108,7 +117,7 @@ where
   )
   .await?;
 
-  info!("Receiving activity {}", activity.id_unchecked().to_string());
+  info!("Receiving activity {}", activity_data.id.to_string());
   activity
     .receive(&Data::new(context.clone()), request_counter)
     .await?;
@@ -183,17 +192,14 @@ pub(crate) async fn is_activity_already_known(
   }
 }
 
-fn assert_activity_not_local<T: Debug + ActivityFields>(
-  activity: &T,
-  hostname: &str,
-) -> Result<(), LemmyError> {
-  let activity_domain = activity.id_unchecked().domain().context(location_info!())?;
+fn assert_activity_not_local(id: &Url, hostname: &str) -> Result<(), LemmyError> {
+  let activity_domain = id.domain().context(location_info!())?;
 
   if activity_domain == hostname {
     return Err(
       anyhow!(
         "Error: received activity which was sent by local instance: {:?}",
-        activity
+        id
       )
       .into(),
     );

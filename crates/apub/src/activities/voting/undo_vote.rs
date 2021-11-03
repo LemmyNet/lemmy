@@ -1,17 +1,3 @@
-use std::ops::Deref;
-
-use activitystreams::{activity::kind::UndoType, public};
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
-  verify::verify_urls_match,
-};
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
@@ -30,6 +16,17 @@ use crate::{
   },
   PostOrComment,
 };
+use activitystreams::{activity::kind::UndoType, public};
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityHandler, ActorType},
+  verify::verify_urls_match,
+};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use std::ops::Deref;
 
 impl UndoVote {
   pub async fn send(
@@ -73,10 +70,10 @@ impl ActivityHandler for UndoVote {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_urls_match(self.actor(), self.object.actor())?;
+    verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

@@ -1,16 +1,3 @@
-use activitystreams::public;
-use anyhow::anyhow;
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  verify::{verify_domains_match, verify_urls_match},
-};
-use lemmy_db_schema::{source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-
 use crate::{
   activities::{
     check_community_deleted_or_removed,
@@ -26,6 +13,17 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
+use activitystreams::public;
+use anyhow::anyhow;
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  traits::{ActivityHandler, ActorType, ApubObject},
+  verify::{verify_domains_match, verify_urls_match},
+};
+use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(
@@ -77,7 +75,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;
@@ -85,7 +83,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     match self.kind {
       CreateOrUpdateType::Create => {
         verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-        verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
+        verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
@@ -102,7 +100,7 @@ impl ActivityHandler for CreateOrUpdatePost {
           verify_mod_action(&self.actor, &community, context, request_counter).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-          verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
+          verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
         }
       }
     }

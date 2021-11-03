@@ -4,13 +4,12 @@ use crate::{
   protocol::objects::group::Group,
 };
 use activitystreams::{activity::kind::UpdateType, unparsed::Unparsed};
-use lemmy_apub_lib::traits::ActivityFields;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 /// This activity is received from a remote community mod, and updates the description or other
 /// fields of a local community.
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   pub(crate) actor: ObjectId<ApubPerson>,

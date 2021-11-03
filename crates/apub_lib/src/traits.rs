@@ -5,11 +5,6 @@ pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::{location_info, LemmyError};
 use url::Url;
 
-pub trait ActivityFields {
-  fn id_unchecked(&self) -> &Url;
-  fn actor(&self) -> &Url;
-}
-
 #[async_trait::async_trait(?Send)]
 pub trait ActivityHandler {
   type DataType;

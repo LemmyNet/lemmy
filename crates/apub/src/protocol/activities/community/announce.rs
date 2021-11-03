@@ -4,11 +4,10 @@ use crate::{
   objects::community::ApubCommunity,
 };
 use activitystreams::{activity::kind::AnnounceType, unparsed::Unparsed};
-use lemmy_apub_lib::traits::ActivityFields;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   pub(crate) actor: ObjectId<ApubCommunity>,
