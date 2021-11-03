@@ -18,12 +18,7 @@ use lemmy_websocket::{
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
-    deletion::{
-      receive_delete_action,
-      verify_delete_activity,
-      DeletableObjects,
-      WebsocketMessages,
-    },
+    deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -69,11 +64,6 @@ impl ActivityHandler for UndoDelete {
       receive_delete_action(
         &self.object.object,
         &self.actor,
-        WebsocketMessages {
-          community: UserOperationCrud::EditCommunity,
-          post: UserOperationCrud::EditPost,
-          comment: UserOperationCrud::EditComment,
-        },
         false,
         context,
         request_counter,

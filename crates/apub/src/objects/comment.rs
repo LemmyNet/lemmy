@@ -81,10 +81,12 @@ impl ApubObject for ApubComment {
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    blocking(context.pool(), move |conn| {
-      Comment::update_deleted(conn, self.id, true)
-    })
-    .await??;
+    if !self.deleted {
+      blocking(context.pool(), move |conn| {
+        Comment::update_deleted(conn, self.id, true)
+      })
+      .await??;
+    }
     Ok(())
   }
 
