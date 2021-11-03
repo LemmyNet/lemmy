@@ -1,32 +1,11 @@
-use crate::{
-  activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
-    deletion::{
-      delete::Delete,
-      receive_delete_action,
-      verify_delete_activity,
-      DeletableObjects,
-      WebsocketMessages,
-    },
-    generate_activity_id,
-    verify_activity,
-  },
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-};
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::{activity::kind::UndoType, public};
 use anyhow::anyhow;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
 use lemmy_utils::LemmyError;
@@ -35,24 +14,25 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
-use serde::{Deserialize, Serialize};
-use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoDelete {
-  actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
-  object: Delete,
-  cc: [ObjectId<ApubCommunity>; 1],
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    community::{announce::GetCommunity, send_to_community},
+    deletion::{
+      receive_delete_action,
+      verify_delete_activity,
+      DeletableObjects,
+      WebsocketMessages,
+    },
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+};
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDelete {
@@ -62,12 +42,14 @@ impl ActivityHandler for UndoDelete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
     self.object.verify(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
       &self.object.object,
       self,
-      &self.cc[0],
+      &community,
       self.object.summary.is_some(),
       context,
       request_counter,
@@ -117,12 +99,11 @@ impl UndoDelete {
     )?;
     let undo = UndoDelete {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
 
@@ -162,5 +143,16 @@ impl UndoDelete {
       }
     }
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for UndoDelete {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self.object.get_community(context, request_counter).await
   }
 }

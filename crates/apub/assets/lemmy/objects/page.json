@@ -1,23 +1,4 @@
 {
-  "@context": [
-    "https://www.w3.org/ns/activitystreams",
-    {
-      "comments_enabled": {
-        "id": "pt:commentsEnabled",
-        "type": "sc:Boolean"
-      },
-      "matrixUserId": {
-        "id": "as:alsoKnownAs",
-        "type": "sc:Text"
-      },
-      "moderators": "as:moderators",
-      "pt": "https://join-lemmy.org#",
-      "sc": "http://schema.org#",
-      "sensitive": "as:sensitive",
-      "stickied": "as:stickied"
-    },
-    "https://w3id.org/security/v1"
-  ],
   "id": "https://enterprise.lemmy.ml/post/55143",
   "type": "Page",
   "attributedTo": "https://enterprise.lemmy.ml/u/picard",
@@ -31,6 +12,11 @@
   "source": {
     "content": "This is a post in the /c/tenforward community",
     "mediaType": "text/markdown"
+  },
+  "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png",
+  "image": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
   },
   "sensitive": false,
   "commentsEnabled": true,

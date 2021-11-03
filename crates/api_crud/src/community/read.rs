@@ -2,11 +2,11 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
 use lemmy_apub::{
-  build_actor_id_from_shortname,
   fetcher::object_id::ObjectId,
+  get_actor_id_from_name,
   objects::community::ApubCommunity,
-  EndpointType,
 };
+use lemmy_apub_lib::webfinger::WebfingerType;
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   traits::DeleteableOrRemoveable,
@@ -39,7 +39,7 @@ impl PerformCrud for GetCommunity {
       None => {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
         let community_actor_id =
-          build_actor_id_from_shortname(EndpointType::Community, &name, &context.settings())?;
+          get_actor_id_from_name(WebfingerType::Group, &name, context).await?;
 
         ObjectId::<ApubCommunity>::new(community_actor_id)
           .dereference(context, &mut 0)

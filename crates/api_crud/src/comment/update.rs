@@ -1,5 +1,5 @@
-use crate::PerformCrud;
 use actix_web::web::Data;
+
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -8,8 +8,8 @@ use lemmy_api_common::{
   comment::*,
   get_local_user_view_from_jwt,
 };
-use lemmy_apub::activities::{
-  comment::create_or_update::CreateOrUpdateComment,
+use lemmy_apub::protocol::activities::{
+  create_or_update::comment::CreateOrUpdateComment,
   CreateOrUpdateType,
 };
 use lemmy_db_schema::source::comment::Comment;
@@ -25,6 +25,8 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
+
+use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {

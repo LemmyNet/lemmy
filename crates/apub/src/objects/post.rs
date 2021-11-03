@@ -1,22 +1,22 @@
 use crate::{
-  activities::{extract_community, verify_is_public, verify_person_in_community},
-  context::lemmy_context,
+  activities::verify_person_in_community,
+  check_is_apub_id_valid,
   fetcher::object_id::ObjectId,
-  objects::{person::ApubPerson, tombstone::Tombstone, ImageObject, Source},
+  protocol::{
+    objects::{page::Page, tombstone::Tombstone},
+    ImageObject,
+    Source,
+  },
 };
 use activitystreams::{
-  base::AnyBase,
   object::kind::{ImageType, PageType},
-  primitives::OneOrMany,
   public,
-  unparsed::Unparsed,
 };
-use chrono::{DateTime, FixedOffset, NaiveDateTime};
+use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  traits::{ActorType, ApubObject},
+  traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
-  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   self,
@@ -29,86 +29,12 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   request::fetch_site_data,
-  utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
+  utils::{convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
-
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Page {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  r#type: PageType,
-  id: Url,
-  pub(crate) attributed_to: ObjectId<ApubPerson>,
-  to: Vec<Url>,
-  name: String,
-  content: Option<String>,
-  media_type: Option<MediaTypeHtml>,
-  source: Option<Source>,
-  url: Option<Url>,
-  image: Option<ImageObject>,
-  pub(crate) comments_enabled: Option<bool>,
-  sensitive: Option<bool>,
-  pub(crate) stickied: Option<bool>,
-  published: Option<DateTime<FixedOffset>>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-impl Page {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
-  /// Only mods can change the post's stickied/locked status. So if either of these is changed from
-  /// the current value, it is a mod action and needs to be verified as such.
-  ///
-  /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
-    let old_post = ObjectId::<ApubPost>::new(self.id.clone())
-      .dereference_local(context)
-      .await;
-
-    let is_mod_action = if let Ok(old_post) = old_post {
-      self.stickied != Some(old_post.stickied) || self.comments_enabled != Some(!old_post.locked)
-    } else {
-      false
-    };
-    Ok(is_mod_action)
-  }
-
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = extract_community(&self.to, context, request_counter).await?;
-
-    check_slurs(&self.name, &context.settings().slur_regex())?;
-    verify_domains_match(self.attributed_to.inner(), &self.id.clone())?;
-    verify_person_in_community(
-      &self.attributed_to,
-      &ObjectId::new(community.actor_id()),
-      context,
-      request_counter,
-    )
-    .await?;
-    verify_is_public(&self.to.clone())?;
-    Ok(())
-  }
-}
 
 #[derive(Clone, Debug)]
 pub struct ApubPost(Post);
@@ -177,7 +103,6 @@ impl ApubObject for ApubPost {
     });
 
     let page = Page {
-      context: lemmy_context(),
       r#type: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: ObjectId::new(creator.actor_id),
@@ -223,7 +148,9 @@ impl ApubObject for ApubPost {
       .attributed_to
       .dereference(context, request_counter)
       .await?;
-    let community = extract_community(&page.to, context, request_counter).await?;
+    let community = page.extract_community(context, request_counter).await?;
+    check_is_apub_id_valid(&page.id, community.local, &context.settings())?;
+    verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
     let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
@@ -268,26 +195,22 @@ impl ApubObject for ApubPost {
 mod tests {
   use super::*;
   use crate::objects::{
-    community::ApubCommunity,
+    community::tests::parse_lemmy_community,
+    person::tests::parse_lemmy_person,
+    post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
-  use assert_json_diff::assert_json_include;
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_post() {
     let context = init_context();
+    let community = parse_lemmy_community(&context).await;
+    let person = parse_lemmy_person(&context).await;
+
+    let json = file_to_json_object("assets/lemmy/objects/page.json");
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
-    let community_json = file_to_json_object("assets/lemmy-community.json");
-    let community = ApubCommunity::from_apub(&community_json, &context, &url, &mut 0)
-      .await
-      .unwrap();
-    let person_json = file_to_json_object("assets/lemmy-person.json");
-    let person = ApubPerson::from_apub(&person_json, &context, &url, &mut 0)
-      .await
-      .unwrap();
-    let json = file_to_json_object("assets/lemmy-post.json");
     let mut request_counter = 0;
     let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
       .await
@@ -300,9 +223,6 @@ mod tests {
     assert!(!post.locked);
     assert!(post.stickied);
     assert_eq!(request_counter, 0);
-
-    let to_apub = post.to_apub(&context).await.unwrap();
-    assert_json_include!(actual: json, expected: to_apub);
 
     Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
     Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();

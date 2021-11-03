@@ -1,10 +1,9 @@
 use crate::{
+  activity_lists::SharedInboxActivities,
   check_is_apub_id_valid,
+  context::WithContext,
   fetcher::get_or_fetch_and_upsert_actor,
-  http::{
-    community::{receive_group_inbox, GroupInboxActivities},
-    person::{receive_person_inbox, PersonInboxActivities},
-  },
+  http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
 };
 use actix_web::{
@@ -27,7 +26,7 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::{info, trace};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
 use url::Url;
@@ -38,25 +37,15 @@ mod person;
 mod post;
 pub mod routes;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
-#[serde(untagged)]
-#[activity_handler(LemmyContext)]
-pub enum SharedInboxActivities {
-  GroupInboxActivities(GroupInboxActivities),
-  // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
-  // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
-  PersonInboxActivities(PersonInboxActivities),
-}
-
 pub async fn shared_inbox(
   request: HttpRequest,
   payload: Payload,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received shared inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<SharedInboxActivities>(&unparsed)?;
-  match activity {
+  info!("Received shared inbox activity {}", unparsed);
+  let activity = serde_json::from_str::<WithContext<SharedInboxActivities>>(&unparsed)?;
+  match activity.inner() {
     SharedInboxActivities::GroupInboxActivities(g) => {
       receive_group_inbox(g, request, &context).await
     }
@@ -134,7 +123,7 @@ where
 {
   HttpResponse::Ok()
     .content_type(APUB_JSON_CONTENT_TYPE)
-    .json(data)
+    .json(WithContext::new(data))
 }
 
 fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>
@@ -144,7 +133,7 @@ where
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .status(StatusCode::GONE)
-    .json(data)
+    .json(WithContext::new(data))
 }
 
 #[derive(Deserialize)]

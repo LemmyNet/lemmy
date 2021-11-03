@@ -1,21 +1,9 @@
 use crate::{
-  activities::{
-    following::follow::FollowCommunity,
-    generate_activity_id,
-    verify_activity,
-    verify_community,
-  },
-  context::lemmy_context,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity},
   fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  send_lemmy_activity,
+  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
-use activitystreams::{
-  activity::kind::AcceptType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::activity::kind::AcceptType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -25,23 +13,6 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct AcceptFollowCommunity {
-  actor: ObjectId<ApubCommunity>,
-  to: ObjectId<ApubPerson>,
-  object: FollowCommunity,
-  #[serde(rename = "type")]
-  kind: AcceptType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl AcceptFollowCommunity {
   pub async fn send(
@@ -57,14 +28,13 @@ impl AcceptFollowCommunity {
       .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
-      to: ObjectId::new(person.actor_id()),
+      to: [ObjectId::new(person.actor_id())],
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
         AcceptType::Accept,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let inbox = vec![person.inbox_url()];
@@ -82,9 +52,8 @@ impl ActivityHandler for AcceptFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
-    verify_urls_match(self.to.inner(), self.object.actor())?;
-    verify_urls_match(self.actor(), self.object.to.inner())?;
-    verify_community(&self.actor, context, request_counter).await?;
+    verify_urls_match(self.to[0].inner(), self.object.actor())?;
+    verify_urls_match(self.actor(), self.object.to[0].inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -95,7 +64,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;
-    let to = self.to.dereference(context, request_counter).await?;
+    let to = self.to[0].dereference(context, request_counter).await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {
       CommunityFollower::follow_accepted(conn, actor.id, to.id)

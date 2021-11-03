@@ -1,0 +1,15 @@
+{
+  "id": "https://enterprise.lemmy.ml/comment/38741",
+  "type": "Note",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
+  "content": "<p>first comment!</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "first comment!",
+    "mediaType": "text/markdown"
+  },
+  "published": "2021-03-01T13:42:43.966208+00:00",
+  "updated": "2021-03-01T13:43:03.955787+00:00"
+}

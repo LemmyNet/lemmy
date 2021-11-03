@@ -10,16 +10,16 @@ use lemmy_api_common::{
   is_mod_or_admin,
 };
 use lemmy_apub::{
-  activities::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::{
     community::{
       add_mod::AddMod,
       block_user::BlockUserFromCommunity,
       remove_mod::RemoveMod,
       undo_block_user::UndoBlockUserFromCommunity,
     },
-    following::{follow::FollowCommunity as FollowCommunityApub, undo::UndoFollowCommunity},
+    following::{follow::FollowCommunity as FollowCommunityApub, undo_follow::UndoFollowCommunity},
   },
-  objects::{community::ApubCommunity, person::ApubPerson},
 };
 use lemmy_db_schema::{
   source::{

@@ -1,21 +1,9 @@
-use crate::{
-  activities::{generate_activity_id, verify_activity, verify_person_in_community},
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  send_lemmy_activity,
-  PostOrComment,
-};
-use activitystreams::{
-  activity::kind::FlagType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::activity::kind::FlagType;
+
 use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
   source::{
@@ -27,24 +15,19 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
-use serde::{Deserialize, Serialize};
-use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct Report {
-  actor: ObjectId<ApubPerson>,
-  to: [ObjectId<ApubCommunity>; 1],
-  object: ObjectId<PostOrComment>,
-  summary: String,
-  #[serde(rename = "type")]
-  kind: FlagType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_activity,
+    verify_person_in_community,
+  },
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::report::Report,
+  PostOrComment,
+};
 
 impl Report {
   pub async fn send(
@@ -67,7 +50,6 @@ impl Report {
       summary: reason,
       kind,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     send_lemmy_activity(
@@ -91,7 +73,8 @@ impl ActivityHandler for Report {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.to[0], context, request_counter).await?;
+    let community = self.to[0].dereference(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
 

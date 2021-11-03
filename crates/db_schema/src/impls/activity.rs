@@ -1,7 +1,6 @@
 use crate::{newtypes::DbUrl, source::activity::*, traits::Crud};
-use diesel::{dsl::*, result::Error, sql_types::Text, *};
+use diesel::{dsl::*, result::Error, *};
 use serde::Serialize;
-use serde_json::Value;
 use std::{
   fmt::Debug,
   io::{Error as IoError, ErrorKind},
@@ -74,26 +73,6 @@ impl Activity {
   pub fn delete_olds(conn: &PgConnection) -> Result<usize, Error> {
     use crate::schema::activity::dsl::*;
     diesel::delete(activity.filter(published.lt(now - 6.months()))).execute(conn)
-  }
-
-  pub fn read_community_outbox(
-    conn: &PgConnection,
-    community_actor_id: &DbUrl,
-  ) -> Result<Vec<Value>, Error> {
-    use crate::schema::activity::dsl::*;
-    let res: Vec<Value> = activity
-      .select(data)
-      .filter(
-        sql("activity.data ->> 'type' = 'Announce'")
-          .sql(" AND activity.data -> 'object' ->> 'type' = 'Create'")
-          .sql(" AND activity.data -> 'object' -> 'object' ->> 'type' = 'Page'")
-          .sql(" AND activity.data ->> 'actor' = ")
-          .bind::<Text, _>(community_actor_id)
-          .sql(" ORDER BY activity.published DESC"),
-      )
-      .limit(20)
-      .get_results(conn)?;
-    Ok(res)
   }
 }
 

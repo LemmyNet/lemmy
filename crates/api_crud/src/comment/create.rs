@@ -1,5 +1,5 @@
-use crate::PerformCrud;
 use actix_web::web::Data;
+
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -11,13 +11,13 @@ use lemmy_api_common::{
   get_post,
 };
 use lemmy_apub::{
-  activities::{
-    comment::create_or_update::CreateOrUpdateComment,
+  fetcher::post_or_comment::PostOrComment,
+  generate_local_apub_endpoint,
+  protocol::activities::{
+    create_or_update::comment::CreateOrUpdateComment,
     voting::vote::{Vote, VoteType},
     CreateOrUpdateType,
   },
-  fetcher::post_or_comment::PostOrComment,
-  generate_apub_endpoint,
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -39,6 +39,8 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
+
+use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -109,7 +111,7 @@ impl PerformCrud for CreateComment {
 
     let updated_comment: Comment =
       blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
-        let apub_id = generate_apub_endpoint(
+        let apub_id = generate_local_apub_endpoint(
           EndpointType::Comment,
           &inserted_comment_id.to_string(),
           &protocol_and_hostname,

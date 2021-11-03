@@ -1,0 +1,13 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Remove",
+  "target": "http://enterprise.lemmy.ml/c/main/moderators",
+  "id": "http://enterprise.lemmy.ml/activities/remove/aab114f8-cfbd-4935-a5b7-e1a64603650d"
+}

@@ -1,5 +1,7 @@
-use crate::objects::community::ApubCommunity;
 use lemmy_websocket::LemmyContext;
+
+use crate::objects::community::ApubCommunity;
+
 pub(crate) mod community_moderators;
 pub(crate) mod community_outbox;
 

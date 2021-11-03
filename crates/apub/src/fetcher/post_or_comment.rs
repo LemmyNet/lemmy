@@ -1,14 +1,16 @@
-use crate::objects::{
-  comment::{ApubComment, Note},
-  post::{ApubPost, Page},
-};
-use activitystreams::chrono::NaiveDateTime;
+use chrono::NaiveDateTime;
+use serde::Deserialize;
+use url::Url;
+
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::{comment::CommentForm, post::PostForm};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
-use url::Url;
+
+use crate::{
+  objects::{comment::ApubComment, post::ApubPost},
+  protocol::objects::{note::Note, page::Page},
+};
 
 #[derive(Clone, Debug)]
 pub enum PostOrComment {

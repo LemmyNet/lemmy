@@ -1,20 +1,14 @@
 use crate::{
-  activities::{generate_activity_id, verify_activity, verify_person},
-  context::lemmy_context,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  send_lemmy_activity,
+  protocol::activities::private_message::delete::DeletePrivateMessage,
 };
-use activitystreams::{
-  activity::kind::DeleteType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -23,23 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct DeletePrivateMessage {
-  actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
-  pub(in crate::activities::private_message) object: ObjectId<ApubPrivateMessage>,
-  #[serde(rename = "type")]
-  kind: DeleteType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl DeletePrivateMessage {
   pub(in crate::activities::private_message) fn new(
@@ -49,14 +26,13 @@ impl DeletePrivateMessage {
   ) -> Result<DeletePrivateMessage, LemmyError> {
     Ok(DeletePrivateMessage {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(actor.actor_id()),
+      to: [ObjectId::new(actor.actor_id())],
       object: ObjectId::new(pm.ap_id.clone()),
       kind: DeleteType::Delete,
       id: generate_activity_id(
         DeleteType::Delete,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }

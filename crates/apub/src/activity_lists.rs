@@ -1,0 +1,107 @@
+use crate::{
+  activities::community::announce::GetCommunity,
+  objects::community::ApubCommunity,
+  protocol::activities::{
+    community::{
+      add_mod::AddMod,
+      announce::AnnounceActivity,
+      block_user::BlockUserFromCommunity,
+      remove_mod::RemoveMod,
+      report::Report,
+      undo_block_user::UndoBlockUserFromCommunity,
+      update::UpdateCommunity,
+    },
+    create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
+    deletion::{delete::Delete, undo_delete::UndoDelete},
+    following::{
+      accept::AcceptFollowCommunity,
+      follow::FollowCommunity,
+      undo_follow::UndoFollowCommunity,
+    },
+    private_message::{
+      create_or_update::CreateOrUpdatePrivateMessage,
+      delete::DeletePrivateMessage,
+      undo_delete::UndoDeletePrivateMessage,
+    },
+    voting::{undo_vote::UndoVote, vote::Vote},
+  },
+};
+use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[serde(untagged)]
+#[activity_handler(LemmyContext)]
+pub enum SharedInboxActivities {
+  GroupInboxActivities(GroupInboxActivities),
+  // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
+  // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
+  PersonInboxActivities(PersonInboxActivities),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[serde(untagged)]
+#[activity_handler(LemmyContext)]
+pub enum GroupInboxActivities {
+  FollowCommunity(FollowCommunity),
+  UndoFollowCommunity(UndoFollowCommunity),
+  AnnouncableActivities(AnnouncableActivities),
+  Report(Report),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[serde(untagged)]
+#[activity_handler(LemmyContext)]
+pub enum PersonInboxActivities {
+  AcceptFollowCommunity(AcceptFollowCommunity),
+  /// Some activities can also be sent from user to user, eg a comment with mentions
+  AnnouncableActivities(AnnouncableActivities),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
+  DeletePrivateMessage(DeletePrivateMessage),
+  UndoDeletePrivateMessage(UndoDeletePrivateMessage),
+  AnnounceActivity(Box<AnnounceActivity>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[serde(untagged)]
+#[activity_handler(LemmyContext)]
+pub enum AnnouncableActivities {
+  CreateOrUpdateComment(CreateOrUpdateComment),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
+  Vote(Vote),
+  UndoVote(UndoVote),
+  Delete(Delete),
+  UndoDelete(UndoDelete),
+  UpdateCommunity(Box<UpdateCommunity>),
+  BlockUserFromCommunity(BlockUserFromCommunity),
+  UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
+  AddMod(AddMod),
+  RemoveMod(RemoveMod),
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for AnnouncableActivities {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    use AnnouncableActivities::*;
+    let community = match self {
+      CreateOrUpdateComment(a) => a.get_community(context, request_counter).await?,
+      CreateOrUpdatePost(a) => a.get_community(context, request_counter).await?,
+      Vote(a) => a.get_community(context, request_counter).await?,
+      UndoVote(a) => a.get_community(context, request_counter).await?,
+      Delete(a) => a.get_community(context, request_counter).await?,
+      UndoDelete(a) => a.get_community(context, request_counter).await?,
+      UpdateCommunity(a) => a.get_community(context, request_counter).await?,
+      BlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
+      UndoBlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
+      AddMod(a) => a.get_community(context, request_counter).await?,
+      RemoveMod(a) => a.get_community(context, request_counter).await?,
+    };
+    Ok(community)
+  }
+}

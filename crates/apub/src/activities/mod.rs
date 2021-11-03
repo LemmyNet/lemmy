@@ -1,21 +1,28 @@
 use crate::{
-  check_community_or_site_ban,
   check_is_apub_id_valid,
+  context::WithContext,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::public;
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{traits::ActivityFields, verify::verify_domains_match};
+use lemmy_apub_lib::{
+  activity_queue::send_activity,
+  traits::{ActivityFields, ActorType},
+  verify::verify_domains_match,
+};
 use lemmy_db_schema::source::community::Community;
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views_actor::{
+  community_person_ban_view::CommunityPersonBanView,
+  community_view::CommunityView,
+};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use std::ops::Deref;
-use strum_macros::ToString;
+use log::info;
+use serde::Serialize;
 use url::{ParseError, Url};
 use uuid::Uuid;
 
@@ -25,14 +32,7 @@ pub mod deletion;
 pub mod following;
 pub mod post;
 pub mod private_message;
-pub mod report;
 pub mod voting;
-
-#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
-pub enum CreateOrUpdateType {
-  Create,
-  Update,
-}
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
@@ -48,44 +48,26 @@ async fn verify_person(
   Ok(())
 }
 
-pub(crate) async fn extract_community(
-  cc: &[Url],
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<ApubCommunity, LemmyError> {
-  let mut cc_iter = cc.iter();
-  loop {
-    if let Some(cid) = cc_iter.next() {
-      let cid = ObjectId::new(cid.clone());
-      if let Ok(c) = cid.dereference(context, request_counter).await {
-        break Ok(c);
-      }
-    } else {
-      return Err(anyhow!("No community found in cc").into());
-    }
-  }
-}
-
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
-  community_id: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let community = community_id.dereference(context, request_counter).await?;
   let person = person_id.dereference(context, request_counter).await?;
-  check_community_or_site_ban(person.deref(), community.id, context.pool()).await
-}
+  if person.banned {
+    return Err(anyhow!("Person is banned from site").into());
+  }
+  let person_id = person.id;
+  let community_id = community.id;
+  let is_banned =
+    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
+  if blocking(context.pool(), is_banned).await? {
+    return Err(anyhow!("Person is banned from community").into());
+  }
 
-/// Simply check that the url actually refers to a valid group.
-async fn verify_community(
-  community_id: &ObjectId<ApubCommunity>,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<(), LemmyError> {
-  community_id.dereference(context, request_counter).await?;
   Ok(())
 }
 
@@ -100,12 +82,10 @@ fn verify_activity(activity: &dyn ActivityFields, settings: &Settings) -> Result
 /// is not federated, we cant verify their actions remotely.
 pub(crate) async fn verify_mod_action(
   actor_id: &ObjectId<ApubPerson>,
-  community_id: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let community = community_id.dereference_local(context).await?;
-
   if community.local {
     let actor = actor_id.dereference(context, request_counter).await?;
 
@@ -128,9 +108,9 @@ pub(crate) async fn verify_mod_action(
 /// /c/community/moderators. Any different values are unsupported.
 fn verify_add_remove_moderator_target(
   target: &Url,
-  community: &ObjectId<ApubCommunity>,
+  community: &ApubCommunity,
 ) -> Result<(), LemmyError> {
-  if target != &generate_moderators_url(&community.clone().into())?.into_inner() {
+  if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
     return Err(anyhow!("Unkown target url").into());
   }
   Ok(())
@@ -164,4 +144,48 @@ where
     Uuid::new_v4()
   );
   Url::parse(&id)
+}
+
+async fn send_lemmy_activity<T: Serialize>(
+  context: &LemmyContext,
+  activity: &T,
+  activity_id: &Url,
+  actor: &dyn ActorType,
+  inboxes: Vec<Url>,
+  sensitive: bool,
+) -> Result<(), LemmyError> {
+  if !context.settings().federation.enabled || inboxes.is_empty() {
+    return Ok(());
+  }
+  let activity = WithContext::new(activity);
+
+  info!("Sending activity {}", activity_id.to_string());
+
+  // Don't send anything to ourselves
+  // TODO: this should be a debug assert
+  let hostname = context.settings().get_hostname_without_port()?;
+  let inboxes: Vec<&Url> = inboxes
+    .iter()
+    .filter(|i| i.domain().expect("valid inbox url") != hostname)
+    .collect();
+
+  let serialised_activity = serde_json::to_string(&activity)?;
+
+  insert_activity(
+    activity_id,
+    serialised_activity.clone(),
+    true,
+    sensitive,
+    context.pool(),
+  )
+  .await?;
+
+  send_activity(
+    serialised_activity,
+    actor,
+    inboxes,
+    context.client(),
+    context.activity_queue(),
+  )
+  .await
 }

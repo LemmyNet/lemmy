@@ -1,5 +1,7 @@
-use crate::PerformCrud;
 use actix_web::web::Data;
+use log::warn;
+use webmention::{Webmention, WebmentionError};
+
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -10,13 +12,13 @@ use lemmy_api_common::{
   post::*,
 };
 use lemmy_apub::{
-  activities::{
-    post::create_or_update::CreateOrUpdatePost,
+  fetcher::post_or_comment::PostOrComment,
+  generate_local_apub_endpoint,
+  protocol::activities::{
+    create_or_update::post::CreateOrUpdatePost,
     voting::vote::{Vote, VoteType},
     CreateOrUpdateType,
   },
-  fetcher::post_or_comment::PostOrComment,
-  generate_apub_endpoint,
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -31,8 +33,8 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-use log::warn;
-use webmention::{Webmention, WebmentionError};
+
+use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePost {
@@ -98,7 +100,7 @@ impl PerformCrud for CreatePost {
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
-      let apub_id = generate_apub_endpoint(
+      let apub_id = generate_local_apub_endpoint(
         EndpointType::Post,
         &inserted_post_id.to_string(),
         &protocol_and_hostname,

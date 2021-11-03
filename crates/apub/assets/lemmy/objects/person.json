@@ -1,23 +1,4 @@
 {
-  "@context": [
-    "https://www.w3.org/ns/activitystreams",
-    {
-      "comments_enabled": {
-        "id": "pt:commentsEnabled",
-        "type": "sc:Boolean"
-      },
-      "matrixUserId": {
-        "id": "as:alsoKnownAs",
-        "type": "sc:Text"
-      },
-      "moderators": "as:moderators",
-      "pt": "https://join-lemmy.org#",
-      "sc": "http://schema.org#",
-      "sensitive": "as:sensitive",
-      "stickied": "as:stickied"
-    },
-    "https://w3id.org/security/v1"
-  ],
   "id": "https://enterprise.lemmy.ml/u/picard",
   "type": "Person",
   "preferredUsername": "picard",
@@ -35,6 +16,7 @@
     "type": "Image",
     "url": "https://enterprise.lemmy.ml/pictrs/image/XenaYI5hTn.png"
   },
+  "matrix_user_id": "@picard:matrix.org",
   "inbox": "https://enterprise.lemmy.ml/u/picard/inbox",
   "outbox": "https://enterprise.lemmy.ml/u/picard/outbox",
   "endpoints": {

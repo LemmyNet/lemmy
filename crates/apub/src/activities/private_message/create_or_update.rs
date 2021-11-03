@@ -1,40 +1,21 @@
 use crate::{
-  activities::{generate_activity_id, verify_activity, verify_person, CreateOrUpdateType},
-  context::lemmy_context,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
-  objects::{
-    person::ApubPerson,
-    private_message::{ApubPrivateMessage, Note},
+  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
+  protocol::activities::{
+    private_message::create_or_update::CreateOrUpdatePrivateMessage,
+    CreateOrUpdateType,
   },
-  send_lemmy_activity,
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{source::person::Person, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateOrUpdatePrivateMessage {
-  #[serde(rename = "@context")]
-  pub context: OneOrMany<AnyBase>,
-  id: Url,
-  actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
-  object: Note,
-  #[serde(rename = "type")]
-  kind: CreateOrUpdateType,
-  #[serde(flatten)]
-  pub unparsed: Unparsed,
-}
 
 impl CreateOrUpdatePrivateMessage {
   pub async fn send(
@@ -54,10 +35,9 @@ impl CreateOrUpdatePrivateMessage {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let create_or_update = CreateOrUpdatePrivateMessage {
-      context: lemmy_context(),
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(recipient.actor_id()),
+      to: [ObjectId::new(recipient.actor_id())],
       object: private_message.to_apub(context).await?,
       kind,
       unparsed: Default::default(),

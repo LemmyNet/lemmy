@@ -145,36 +145,18 @@ pub fn derive_activity_fields(input: proc_macro::TokenStream) -> proc_macro::Tok
       let impl_actor = variants
         .iter()
         .map(|v| generate_match_arm(&name, v, &quote! {a.actor()}));
-      let impl_cc = variants
-        .iter()
-        .map(|v| generate_match_arm(&name, v, &quote! {a.cc()}));
       quote! {
           impl #impl_generics lemmy_apub_lib::traits::ActivityFields for #name #ty_generics #where_clause {
               fn id_unchecked(&self) -> &url::Url { match self { #(#impl_id)* } }
               fn actor(&self) -> &url::Url { match self { #(#impl_actor)* } }
-              fn cc(&self) -> Vec<url::Url> { match self { #(#impl_cc)* } }
           }
       }
     }
-    Data::Struct(s) => {
-      // check if the struct has a field "cc", and generate impl for cc() function depending on that
-      let has_cc = if let syn::Fields::Named(n) = s.fields {
-        n.named
-          .iter()
-          .any(|i| format!("{}", i.ident.as_ref().unwrap()) == "cc")
-      } else {
-        unimplemented!()
-      };
-      let cc_impl = if has_cc {
-        quote! {self.cc.iter().map(|i| i.clone().into()).collect()}
-      } else {
-        quote! {vec![]}
-      };
+    Data::Struct(_) => {
       quote! {
           impl #impl_generics lemmy_apub_lib::traits::ActivityFields for #name #ty_generics #where_clause {
               fn id_unchecked(&self) -> &url::Url { &self.id }
               fn actor(&self) -> &url::Url { &self.actor.inner() }
-              fn cc(&self) -> Vec<url::Url> { #cc_impl }
           }
       }
     }

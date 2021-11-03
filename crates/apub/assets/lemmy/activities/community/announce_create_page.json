@@ -1,0 +1,37 @@
+{
+  "actor": "http://enterprise.lemmy.ml/c/main",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": {
+    "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "object": {
+      "type": "Page",
+      "id": "http://enterprise.lemmy.ml/post/7",
+      "attributedTo": "http://enterprise.lemmy.ml/u/lemmy_beta",
+      "to": [
+        "http://enterprise.lemmy.ml/c/main",
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "name": "post 4",
+      "mediaType": "text/html",
+      "commentsEnabled": true,
+      "sensitive": false,
+      "stickied": false,
+      "published": "2021-11-01T12:11:22.871846+00:00"
+    },
+    "cc": [
+      "http://enterprise.lemmy.ml/c/main"
+    ],
+    "type": "Create",
+    "id": "http://enterprise.lemmy.ml/activities/create/2807c9ec-3ad8-4859-a9e0-28b59b6e499f"
+  },
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main/followers"
+  ],
+  "type": "Announce",
+  "id": "http://enterprise.lemmy.ml/activities/announce/8030b171-803a-4108-94b1-342688f375cf"
+}

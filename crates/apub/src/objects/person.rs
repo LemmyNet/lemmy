@@ -1,21 +1,17 @@
 use crate::{
   check_is_apub_id_valid,
-  context::lemmy_context,
   generate_outbox_url,
-  objects::{get_summary_from_string_or_source, ImageObject, Source},
+  objects::get_summary_from_string_or_source,
+  protocol::{
+    objects::person::{Person, UserTypes},
+    ImageObject,
+    Source,
+  },
 };
-use activitystreams::{
-  actor::Endpoints,
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  object::{kind::ImageType, Tombstone},
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
-use chrono::{DateTime, FixedOffset};
+use activitystreams::{actor::Endpoints, object::kind::ImageType};
+use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  signatures::PublicKey,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
   verify::verify_domains_match,
@@ -29,55 +25,8 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
-pub enum UserTypes {
-  Person,
-  Service,
-}
-
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Person {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(rename = "type")]
-  kind: UserTypes,
-  id: Url,
-  /// username, set at account creation and can never be changed
-  preferred_username: String,
-  /// displayname (can be changed at any time)
-  name: Option<String>,
-  summary: Option<String>,
-  source: Option<Source>,
-  /// user avatar
-  icon: Option<ImageObject>,
-  /// user banner
-  image: Option<ImageObject>,
-  matrix_user_id: Option<String>,
-  inbox: Url,
-  /// mandatory field in activitypub, currently empty in lemmy
-  outbox: Url,
-  endpoints: Endpoints<Url>,
-  public_key: PublicKey,
-  published: Option<DateTime<FixedOffset>>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-// TODO: can generate this with a derive macro
-impl Person {
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ApubPerson(DbPerson);
@@ -99,7 +48,7 @@ impl From<DbPerson> for ApubPerson {
 impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
-  type TombstoneType = Tombstone;
+  type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -146,7 +95,6 @@ impl ApubObject for ApubPerson {
     });
 
     let person = Person {
-      context: lemmy_context(),
       kind,
       id: self.actor_id.to_owned().into_inner(),
       preferred_username: self.name.clone(),
@@ -170,7 +118,7 @@ impl ApubObject for ApubPerson {
     Ok(person)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
+  fn to_tombstone(&self) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
@@ -180,7 +128,8 @@ impl ApubObject for ApubPerson {
     expected_domain: &Url,
     _request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
-    let actor_id = Some(person.id(expected_domain)?.clone().into());
+    verify_domains_match(&person.id, expected_domain)?;
+    let actor_id = Some(person.id.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
     let bio = get_summary_from_string_or_source(&person.summary, &person.source);
@@ -255,33 +204,33 @@ impl ActorType for ApubPerson {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
-  use assert_json_diff::assert_json_include;
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
+
+  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
+    let json = file_to_json_object("assets/lemmy/objects/person.json");
+    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
+    let mut request_counter = 0;
+    let person = ApubPerson::from_apub(&json, context, &url, &mut request_counter)
+      .await
+      .unwrap();
+    assert_eq!(request_counter, 0);
+    person
+  }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_person() {
     let context = init_context();
-    let json = file_to_json_object("assets/lemmy-person.json");
-    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
-    let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
-      .await
-      .unwrap();
+    let person = parse_lemmy_person(&context).await;
 
-    assert_eq!(person.actor_id.clone().into_inner(), url);
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(person.public_key.is_some());
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
-    assert_eq!(request_counter, 0);
-
-    let to_apub = person.to_apub(&context).await.unwrap();
-    assert_json_include!(actual: json, expected: to_apub);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
   }
@@ -290,7 +239,7 @@ mod tests {
   #[serial]
   async fn test_parse_pleroma_person() {
     let context = init_context();
-    let json = file_to_json_object("assets/pleroma-person.json");
+    let json = file_to_json_object("assets/pleroma/objects/person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
     let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)

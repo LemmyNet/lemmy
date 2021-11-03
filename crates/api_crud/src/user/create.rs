@@ -2,9 +2,9 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, honeypot_check, password_length_check, person::*};
 use lemmy_apub::{
-  generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
+  generate_local_apub_endpoint,
   generate_shared_inbox_url,
   EndpointType,
 };
@@ -96,7 +96,7 @@ impl PerformCrud for Register {
     if !is_valid_actor_name(&data.username, context.settings().actor_name_max_length) {
       return Err(ApiError::err_plain("invalid_username").into());
     }
-    let actor_id = generate_apub_endpoint(
+    let actor_id = generate_local_apub_endpoint(
       EndpointType::Person,
       &data.username,
       &context.settings().get_protocol_and_hostname(),
@@ -179,7 +179,7 @@ impl PerformCrud for Register {
       Ok(c) => c,
       Err(_e) => {
         let default_community_name = "main";
-        let actor_id = generate_apub_endpoint(
+        let actor_id = generate_local_apub_endpoint(
           EndpointType::Community,
           default_community_name,
           &protocol_and_hostname,

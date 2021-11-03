@@ -1,51 +1,31 @@
-use crate::{
-  activities::{
-    check_community_deleted_or_removed,
-    community::{announce::AnnouncableActivities, send_to_community},
-    generate_activity_id,
-    verify_activity,
-    verify_mod_action,
-    verify_person_in_community,
-    CreateOrUpdateType,
-  },
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  objects::{
-    community::ApubCommunity,
-    person::ApubPerson,
-    post::{ApubPost, Page},
-  },
-};
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
+use activitystreams::public;
 use anyhow::anyhow;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  values::PublicUrl,
   verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateOrUpdatePost {
-  actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
-  object: Page,
-  cc: [ObjectId<ApubCommunity>; 1],
-  #[serde(rename = "type")]
-  kind: CreateOrUpdateType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    check_community_deleted_or_removed,
+    community::{announce::GetCommunity, send_to_community},
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+    verify_mod_action,
+    verify_person_in_community,
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+};
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(
@@ -61,12 +41,11 @@ impl CreateOrUpdatePost {
     )?;
     Ok(CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: post.to_apub(context).await?,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }
@@ -97,9 +76,10 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    let community = self.cc[0].dereference(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;
 
     match self.kind {
@@ -119,7 +99,7 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, &self.cc[0], context, request_counter).await?;
+          verify_mod_action(&self.actor, &community, context, request_counter).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
           verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
@@ -145,5 +125,19 @@ impl ActivityHandler for CreateOrUpdatePost {
     };
     send_post_ws_message(post.id, notif_type, None, None, context).await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for CreateOrUpdatePost {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self
+      .object
+      .extract_community(context, request_counter)
+      .await
   }
 }

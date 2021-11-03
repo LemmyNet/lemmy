@@ -1,55 +1,35 @@
-use crate::{
-  activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
-    generate_activity_id,
-    verify_activity,
-    verify_person_in_community,
-    voting::{
-      undo_vote_comment,
-      undo_vote_post,
-      vote::{Vote, VoteType},
-    },
-  },
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  PostOrComment,
-};
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use std::ops::Deref;
+
+use activitystreams::{activity::kind::UndoType, public};
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use std::ops::Deref;
-use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoVote {
-  actor: ObjectId<ApubPerson>,
-  to: [PublicUrl; 1],
-  object: Vote,
-  cc: [ObjectId<ApubCommunity>; 1],
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
+use crate::{
+  activities::{
+    community::{announce::GetCommunity, send_to_community},
+    generate_activity_id,
+    verify_activity,
+    verify_is_public,
+    verify_person_in_community,
+    voting::{undo_vote_comment, undo_vote_post},
+  },
+  activity_lists::AnnouncableActivities,
+  fetcher::object_id::ObjectId,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::voting::{
+    undo_vote::UndoVote,
+    vote::{Vote, VoteType},
+  },
+  PostOrComment,
+};
 
 impl UndoVote {
   pub async fn send(
@@ -72,12 +52,11 @@ impl UndoVote {
     )?;
     let undo_vote = UndoVote {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object,
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: UndoType::Undo,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
@@ -93,8 +72,10 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    verify_is_public(&self.to)?;
     verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_urls_match(self.actor(), self.object.actor())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
@@ -115,5 +96,16 @@ impl ActivityHandler for UndoVote {
       PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
     }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for UndoVote {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self.object.get_community(context, request_counter).await
   }
 }

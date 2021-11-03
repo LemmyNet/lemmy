@@ -1,16 +1,12 @@
 use crate::{
-  activities::{
-    community::announce::{AnnouncableActivities, AnnounceActivity},
-    extract_community,
-    following::{follow::FollowCommunity, undo::UndoFollowCommunity},
-    report::Report,
-  },
+  activities::{community::announce::GetCommunity, verify_person_in_community},
+  activity_lists::GroupInboxActivities,
   collections::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
     CommunityContext,
   },
-  context::lemmy_context,
+  context::WithContext,
   fetcher::object_id::ObjectId,
   generate_outbox_url,
   http::{
@@ -20,20 +16,19 @@ use crate::{
     receive_activity,
   },
   objects::community::ApubCommunity,
-};
-use activitystreams::{
-  base::BaseExt,
-  collection::{CollectionExt, UnorderedCollection},
+  protocol::{
+    activities::community::announce::AnnounceActivity,
+    collections::group_followers::GroupFollowers,
+  },
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
+use lemmy_apub_lib::traits::{ActivityFields, ApubObject};
 use lemmy_db_schema::source::community::Community;
-use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::trace;
-use serde::{Deserialize, Serialize};
+use log::info;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub(crate) struct CommunityQuery {
@@ -60,16 +55,6 @@ pub(crate) async fn get_apub_community_http(
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
-#[serde(untagged)]
-#[activity_handler(LemmyContext)]
-pub enum GroupInboxActivities {
-  FollowCommunity(FollowCommunity),
-  UndoFollowCommunity(UndoFollowCommunity),
-  AnnouncableActivities(AnnouncableActivities),
-  Report(Report),
-}
-
 /// Handler for all incoming receive to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
@@ -78,10 +63,10 @@ pub async fn community_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received community inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<GroupInboxActivities>(&unparsed)?;
+  info!("Received community inbox activity {}", unparsed);
+  let activity = serde_json::from_str::<WithContext<GroupInboxActivities>>(&unparsed)?;
 
-  receive_group_inbox(activity.clone(), request, &context).await?;
+  receive_group_inbox(activity.inner(), request, &context).await?;
 
   Ok(HttpResponse::Ok().finish())
 }
@@ -92,12 +77,16 @@ pub(in crate::http) async fn receive_group_inbox(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let res = receive_activity(request, activity.clone(), context).await;
-  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity.clone() {
-    let community = extract_community(&announcable.cc(), context, &mut 0).await?;
+
+  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
+    let community = announcable.get_community(context, &mut 0).await?;
+    let actor_id = ObjectId::new(announcable.actor().clone());
+    verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
     if community.local {
       AnnounceActivity::send(announcable, &community, vec![], context).await?;
     }
   }
+
   res
 }
 
@@ -110,19 +99,8 @@ pub(crate) async fn get_apub_community_followers(
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-
-  let community_id = community.id;
-  let community_followers = blocking(context.pool(), move |conn| {
-    CommunityFollowerView::for_community(conn, community_id)
-  })
-  .await??;
-
-  let mut collection = UnorderedCollection::new();
-  collection
-    .set_many_contexts(lemmy_context())
-    .set_id(community.followers_url.into())
-    .set_total_items(community_followers.len() as u64);
-  Ok(create_apub_response(&collection))
+  let followers = GroupFollowers::new(community, &context).await?;
+  Ok(create_apub_response(&followers))
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other

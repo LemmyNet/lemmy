@@ -11,10 +11,10 @@ use lemmy_api_common::{
   site::*,
 };
 use lemmy_apub::{
-  build_actor_id_from_shortname,
   fetcher::search::{search_by_apub_id, SearchableObjects},
-  EndpointType,
+  get_actor_id_from_name,
 };
+use lemmy_apub_lib::webfinger::WebfingerType;
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   newtypes::PersonId,
@@ -174,11 +174,13 @@ impl Perform for Search {
     let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.listing_type);
     let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
     let community_id = data.community_id;
-    let community_actor_id = data
-      .community_name
-      .as_ref()
-      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, &context.settings()).ok())
-      .unwrap_or(None);
+    let community_actor_id = if let Some(name) = &data.community_name {
+      get_actor_id_from_name(WebfingerType::Group, name, context)
+        .await
+        .ok()
+    } else {
+      None
+    };
     let creator_id = data.creator_id;
     match search_type {
       SearchType::Posts => {

@@ -1,29 +1,17 @@
-use crate::{
-  activities::{verify_is_public, verify_person_in_community},
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  objects::{person::ApubPerson, post::ApubPost, tombstone::Tombstone, Source},
-  PostOrComment,
-};
-use activitystreams::{
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  object::kind::NoteType,
-  primitives::OneOrMany,
-  public,
-  unparsed::Unparsed,
-};
+use std::ops::Deref;
+
+use activitystreams::{object::kind::NoteType, public};
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
+use chrono::NaiveDateTime;
 use html2md::parse_html;
+use url::Url;
+
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
-  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  newtypes::CommentId,
   source::{
     comment::{Comment, CommentForm},
     community::Community,
@@ -37,107 +25,21 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use std::ops::Deref;
-use url::Url;
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Note {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  r#type: NoteType,
-  id: Url,
-  pub(crate) attributed_to: ObjectId<ApubPerson>,
-  /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
-  /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
-  /// the post in [`in_reply_to`]).
-  to: Vec<Url>,
-  content: String,
-  media_type: Option<MediaTypeHtml>,
-  source: SourceCompat,
-  in_reply_to: ObjectId<PostOrComment>,
-  published: Option<DateTime<FixedOffset>>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
-/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
-enum SourceCompat {
-  Lemmy(Source),
-  Pleroma(String),
-}
-
-impl Note {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
-  pub(crate) async fn get_parents(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(ApubPost, Option<CommentId>), LemmyError> {
-    // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
-    let parent = Box::pin(
-      self
-        .in_reply_to
-        .dereference(context, request_counter)
-        .await?,
-    );
-    match parent.deref() {
-      PostOrComment::Post(p) => {
-        // Workaround because I cant figure out how to get the post out of the box (and we dont
-        // want to stackoverflow in a deep comment hierarchy).
-        let post_id = p.id;
-        let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-        Ok((post.into(), None))
-      }
-      PostOrComment::Comment(c) => {
-        let post_id = c.post_id;
-        let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-        Ok((post.into(), Some(c.id)))
-      }
-    }
-  }
-
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let (post, _parent_comment_id) = self.get_parents(context, request_counter).await?;
-    let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
-
-    if post.locked {
-      return Err(anyhow!("Post is locked").into());
-    }
-    verify_domains_match(self.attributed_to.inner(), &self.id)?;
-    verify_person_in_community(
-      &self.attributed_to,
-      &ObjectId::new(community.actor_id),
-      context,
-      request_counter,
-    )
-    .await?;
-    verify_is_public(&self.to)?;
-    Ok(())
-  }
-}
+use crate::{
+  activities::verify_person_in_community,
+  check_is_apub_id_valid,
+  fetcher::object_id::ObjectId,
+  protocol::{
+    objects::{
+      note::{Note, SourceCompat},
+      tombstone::Tombstone,
+    },
+    Source,
+  },
+  PostOrComment,
+};
+use lemmy_utils::utils::markdown_to_html;
 
 #[derive(Clone, Debug)]
 pub struct ApubComment(Comment);
@@ -202,12 +104,11 @@ impl ApubObject for ApubComment {
     };
 
     let note = Note {
-      context: lemmy_context(),
       r#type: NoteType::Note,
       id: self.ap_id.to_owned().into_inner(),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
-      content: self.content.clone(),
+      content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: SourceCompat::Lemmy(Source {
         content: self.content.clone(),
@@ -244,6 +145,19 @@ impl ApubObject for ApubComment {
       .dereference(context, request_counter)
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    let community_id = post.community_id;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    check_is_apub_id_valid(&note.id, community.local, &context.settings())?;
+    verify_person_in_community(
+      &note.attributed_to,
+      &community.into(),
+      context,
+      request_counter,
+    )
+    .await?;
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
@@ -274,10 +188,12 @@ impl ApubObject for ApubComment {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
   use super::*;
   use crate::objects::{
-    community::ApubCommunity,
+    community::{tests::parse_lemmy_community, ApubCommunity},
+    person::{tests::parse_lemmy_person, ApubPerson},
+    post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
   use assert_json_diff::assert_json_include;
@@ -287,15 +203,9 @@ mod tests {
     url: &Url,
     context: &LemmyContext,
   ) -> (ApubPerson, ApubCommunity, ApubPost) {
-    let person_json = file_to_json_object("assets/lemmy-person.json");
-    let person = ApubPerson::from_apub(&person_json, context, url, &mut 0)
-      .await
-      .unwrap();
-    let community_json = file_to_json_object("assets/lemmy-community.json");
-    let community = ApubCommunity::from_apub(&community_json, context, url, &mut 0)
-      .await
-      .unwrap();
-    let post_json = file_to_json_object("assets/lemmy-post.json");
+    let person = parse_lemmy_person(context).await;
+    let community = parse_lemmy_community(context).await;
+    let post_json = file_to_json_object("assets/lemmy/objects/page.json");
     let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
       .await
       .unwrap();
@@ -310,14 +220,12 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_parse_lemmy_comment() {
-    // TODO: changed ObjectId::dereference() so that it always fetches if
-    //       last_refreshed_at() == None. But post doesnt store that and expects to never be refetched
+  pub(crate) async fn test_parse_lemmy_comment() {
     let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
-    let json = file_to_json_object("assets/lemmy-comment.json");
+    let json = file_to_json_object("assets/lemmy/objects/note.json");
     let mut request_counter = 0;
     let comment = ApubComment::from_apub(&json, &context, &url, &mut request_counter)
       .await
@@ -345,11 +253,11 @@ mod tests {
     let pleroma_url =
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
         .unwrap();
-    let person_json = file_to_json_object("assets/pleroma-person.json");
+    let person_json = file_to_json_object("assets/pleroma/objects/person.json");
     ApubPerson::from_apub(&person_json, &context, &pleroma_url, &mut 0)
       .await
       .unwrap();
-    let json = file_to_json_object("assets/pleroma-comment.json");
+    let json = file_to_json_object("assets/pleroma/objects/note.json");
     let mut request_counter = 0;
     let comment = ApubComment::from_apub(&json, &context, &pleroma_url, &mut request_counter)
       .await

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   get_local_user_view_from_jwt,
 };
-use lemmy_apub::activities::community::update::UpdateCommunity;
+use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   diesel_option_overwrite_to_url,
   naive_now,

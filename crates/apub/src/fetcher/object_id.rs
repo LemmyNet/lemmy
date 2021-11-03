@@ -22,7 +22,6 @@ use url::Url;
 /// fetch through the search). This should be configurable.
 static REQUEST_LIMIT: i32 = 25;
 
-// TODO: after moving this file to library, remove lazy_static dependency from apub crate
 lazy_static! {
   static ref CLIENT: Client = Client::builder()
     .user_agent(build_user_agent(&Settings::get()))

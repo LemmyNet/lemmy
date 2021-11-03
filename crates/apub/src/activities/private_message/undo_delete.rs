@@ -1,21 +1,13 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    private_message::delete::DeletePrivateMessage,
-    verify_activity,
-    verify_person,
-  },
-  context::lemmy_context,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  send_lemmy_activity,
+  protocol::activities::private_message::{
+    delete::DeletePrivateMessage,
+    undo_delete::UndoDeletePrivateMessage,
+  },
 };
-use activitystreams::{
-  activity::kind::UndoType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -28,23 +20,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UndoDeletePrivateMessage {
-  actor: ObjectId<ApubPerson>,
-  to: ObjectId<ApubPerson>,
-  object: DeletePrivateMessage,
-  #[serde(rename = "type")]
-  kind: UndoType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl UndoDeletePrivateMessage {
   pub async fn send(
@@ -65,11 +40,10 @@ impl UndoDeletePrivateMessage {
     )?;
     let undo = UndoDeletePrivateMessage {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(recipient.actor_id()),
+      to: [ObjectId::new(recipient.actor_id())],
       object,
       kind: UndoType::Undo,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
     let inbox = vec![recipient.shared_inbox_or_inbox_url()];

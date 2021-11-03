@@ -1,15 +1,6 @@
 use crate::{
-  activities::{
-    community::announce::{AnnouncableActivities, AnnounceActivity},
-    following::accept::AcceptFollowCommunity,
-    private_message::{
-      create_or_update::CreateOrUpdatePrivateMessage,
-      delete::DeletePrivateMessage,
-      undo_delete::UndoDeletePrivateMessage,
-    },
-  },
-  context::lemmy_context,
-  generate_outbox_url,
+  activity_lists::PersonInboxActivities,
+  context::WithContext,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
@@ -17,20 +8,16 @@ use crate::{
     receive_activity,
   },
   objects::person::ApubPerson,
-};
-use activitystreams::{
-  base::BaseExt,
-  collection::{CollectionExt, OrderedCollection},
+  protocol::collections::person_outbox::PersonOutbox,
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler, ApubObject};
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::trace;
-use serde::{Deserialize, Serialize};
-use url::Url;
+use log::info;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct PersonQuery {
@@ -59,19 +46,6 @@ pub(crate) async fn get_apub_person_http(
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
-#[serde(untagged)]
-#[activity_handler(LemmyContext)]
-pub enum PersonInboxActivities {
-  AcceptFollowCommunity(AcceptFollowCommunity),
-  /// Some activities can also be sent from user to user, eg a comment with mentions
-  AnnouncableActivities(AnnouncableActivities),
-  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
-  DeletePrivateMessage(DeletePrivateMessage),
-  UndoDeletePrivateMessage(UndoDeletePrivateMessage),
-  AnnounceActivity(Box<AnnounceActivity>),
-}
-
 pub async fn person_inbox(
   request: HttpRequest,
   payload: Payload,
@@ -79,9 +53,9 @@ pub async fn person_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received person inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<PersonInboxActivities>(&unparsed)?;
-  receive_person_inbox(activity, request, &context).await
+  info!("Received person inbox activity {}", unparsed);
+  let activity = serde_json::from_str::<WithContext<PersonInboxActivities>>(&unparsed)?;
+  receive_person_inbox(activity.inner(), request, &context).await
 }
 
 pub(in crate::http) async fn receive_person_inbox(
@@ -100,12 +74,6 @@ pub(crate) async fn get_apub_person_outbox(
     Person::find_by_name(conn, &info.user_name)
   })
   .await??;
-  // TODO: populate the person outbox
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_many_items(Vec::<Url>::new())
-    .set_many_contexts(lemmy_context())
-    .set_id(generate_outbox_url(&person.actor_id)?.into())
-    .set_total_items(0_u64);
-  Ok(create_apub_response(&collection))
+  let outbox = PersonOutbox::new(person).await?;
+  Ok(create_apub_response(&outbox))
 }

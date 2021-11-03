@@ -1,17 +1,11 @@
 use crate::{
   collections::CommunityContext,
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   generate_moderators_url,
   objects::person::ApubPerson,
+  protocol::collections::group_moderators::GroupModerators,
 };
-use activitystreams::{
-  base::AnyBase,
-  chrono::NaiveDateTime,
-  collection::kind::OrderedCollectionType,
-  primitives::OneOrMany,
-  url::Url,
-};
+use activitystreams::{chrono::NaiveDateTime, collection::kind::OrderedCollectionType};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
@@ -20,19 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_utils::LemmyError;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GroupModerators {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  r#type: OrderedCollectionType,
-  id: Url,
-  ordered_items: Vec<ObjectId<ApubPerson>>,
-}
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
@@ -75,7 +57,6 @@ impl ApubObject for ApubCommunityModerators {
       .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id.clone().into_inner()))
       .collect();
     Ok(GroupModerators {
-      context: lemmy_context(),
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_moderators_url(&data.0.actor_id)?.into(),
       ordered_items,
@@ -137,5 +118,76 @@ impl ApubObject for ApubCommunityModerators {
 
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityModerators { 0: vec![] })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::objects::{
+    community::tests::parse_lemmy_community,
+    person::tests::parse_lemmy_person,
+    tests::{file_to_json_object, init_context},
+  };
+  use lemmy_db_schema::{
+    source::{
+      community::Community,
+      person::{Person, PersonForm},
+    },
+    traits::Crud,
+  };
+  use serial_test::serial;
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_parse_lemmy_community_moderators() {
+    let context = init_context();
+    let community = parse_lemmy_community(&context).await;
+    let community_id = community.id;
+
+    let old_mod = PersonForm {
+      name: "holly".into(),
+      ..PersonForm::default()
+    };
+    let old_mod = Person::create(&context.pool().get().unwrap(), &old_mod).unwrap();
+    let community_moderator_form = CommunityModeratorForm {
+      community_id: community.id,
+      person_id: old_mod.id,
+    };
+
+    CommunityModerator::join(&context.pool().get().unwrap(), &community_moderator_form).unwrap();
+
+    let new_mod = parse_lemmy_person(&context).await;
+
+    let json: GroupModerators =
+      file_to_json_object("assets/lemmy/collections/group_moderators.json");
+    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
+    let mut request_counter = 0;
+    let community_context = CommunityContext {
+      0: community,
+      1: context,
+    };
+    ApubCommunityModerators::from_apub(&json, &community_context, &url, &mut request_counter)
+      .await
+      .unwrap();
+    assert_eq!(request_counter, 0);
+
+    let current_moderators = blocking(community_context.1.pool(), move |conn| {
+      CommunityModeratorView::for_community(conn, community_id)
+    })
+    .await
+    .unwrap()
+    .unwrap();
+
+    assert_eq!(current_moderators.len(), 1);
+    assert_eq!(current_moderators[0].moderator.id, new_mod.id);
+
+    Person::delete(&*community_context.1.pool().get().unwrap(), old_mod.id).unwrap();
+    Person::delete(&*community_context.1.pool().get().unwrap(), new_mod.id).unwrap();
+    Community::delete(
+      &*community_context.1.pool().get().unwrap(),
+      community_context.0.id,
+    )
+    .unwrap();
   }
 }

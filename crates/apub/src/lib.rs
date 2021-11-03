@@ -1,10 +1,12 @@
 pub mod activities;
+pub(crate) mod activity_lists;
 pub(crate) mod collections;
 mod context;
 pub mod fetcher;
 pub mod http;
 pub mod migrations;
 pub mod objects;
+pub mod protocol;
 
 #[macro_use]
 extern crate lazy_static;
@@ -12,16 +14,10 @@ extern crate lazy_static;
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{activity_queue::send_activity, traits::ActorType};
-use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl},
-  source::{activity::Activity, person::Person},
-  DbPool,
-};
-use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
+use lemmy_apub_lib::webfinger::{webfinger_resolve_actor, WebfingerType};
+use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::info;
 use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
@@ -34,6 +30,8 @@ use url::{ParseError, Url};
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 ///
+/// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
+/// post/comment in a local community.
 pub(crate) fn check_is_apub_id_valid(
   apub_id: &Url,
   use_strict_allowlist: bool,
@@ -92,16 +90,6 @@ pub(crate) fn check_is_apub_id_valid(
   Ok(())
 }
 
-#[async_trait::async_trait(?Send)]
-pub trait CommunityType {
-  fn followers_url(&self) -> Url;
-  async fn get_follower_inboxes(
-    &self,
-    pool: &DbPool,
-    settings: &Settings,
-  ) -> Result<Vec<Url>, LemmyError>;
-}
-
 pub enum EndpointType {
   Community,
   Person,
@@ -111,7 +99,7 @@ pub enum EndpointType {
 }
 
 /// Generates an apub endpoint for a given domain, IE xyz.tld
-fn generate_apub_endpoint_for_domain(
+pub fn generate_local_apub_endpoint(
   endpoint_type: EndpointType,
   name: &str,
   domain: &str,
@@ -125,15 +113,6 @@ fn generate_apub_endpoint_for_domain(
   };
 
   Ok(Url::parse(&format!("{}/{}/{}", domain, point, name))?.into())
-}
-
-/// Generates the ActivityPub ID for a given object type and ID.
-pub fn generate_apub_endpoint(
-  endpoint_type: EndpointType,
-  name: &str,
-  protocol_and_hostname: &str,
-) -> Result<DbUrl, ParseError> {
-  generate_apub_endpoint_for_domain(endpoint_type, name, protocol_and_hostname)
 }
 
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
@@ -169,23 +148,31 @@ fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
 
 /// Takes in a shortname of the type dessalines@xyz.tld or dessalines (assumed to be local), and outputs the actor id.
 /// Used in the API for communities and users.
-pub fn build_actor_id_from_shortname(
-  endpoint_type: EndpointType,
+pub async fn get_actor_id_from_name(
+  webfinger_type: WebfingerType,
   short_name: &str,
-  settings: &Settings,
-) -> Result<DbUrl, ParseError> {
+  context: &LemmyContext,
+) -> Result<DbUrl, LemmyError> {
   let split = short_name.split('@').collect::<Vec<&str>>();
 
   let name = split[0];
 
   // If there's no @, its local
-  let domain = if split.len() == 1 {
-    settings.get_protocol_and_hostname()
+  if split.len() == 1 {
+    let domain = context.settings().get_protocol_and_hostname();
+    let endpoint_type = match webfinger_type {
+      WebfingerType::Person => EndpointType::Person,
+      WebfingerType::Group => EndpointType::Community,
+    };
+    Ok(generate_local_apub_endpoint(endpoint_type, name, &domain)?)
   } else {
-    format!("{}://{}", settings.get_protocol_string(), split[1])
-  };
-
-  generate_apub_endpoint_for_domain(endpoint_type, name, &domain)
+    let protocol = context.settings().get_protocol_string();
+    Ok(
+      webfinger_resolve_actor(name, split[1], webfinger_type, context.client(), protocol)
+        .await?
+        .into(),
+    )
+  }
 }
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
@@ -206,65 +193,4 @@ where
   })
   .await??;
   Ok(())
-}
-
-async fn check_community_or_site_ban(
-  person: &Person,
-  community_id: CommunityId,
-  pool: &DbPool,
-) -> Result<(), LemmyError> {
-  if person.banned {
-    return Err(anyhow!("Person is banned from site").into());
-  }
-  let person_id = person.id;
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
-    return Err(anyhow!("Person is banned from community").into());
-  }
-
-  Ok(())
-}
-
-pub(crate) async fn send_lemmy_activity<T: Serialize>(
-  context: &LemmyContext,
-  activity: &T,
-  activity_id: &Url,
-  actor: &dyn ActorType,
-  inboxes: Vec<Url>,
-  sensitive: bool,
-) -> Result<(), LemmyError> {
-  if !context.settings().federation.enabled || inboxes.is_empty() {
-    return Ok(());
-  }
-
-  info!("Sending activity {}", activity_id.to_string());
-
-  // Don't send anything to ourselves
-  // TODO: this should be a debug assert
-  let hostname = context.settings().get_hostname_without_port()?;
-  let inboxes: Vec<&Url> = inboxes
-    .iter()
-    .filter(|i| i.domain().expect("valid inbox url") != hostname)
-    .collect();
-
-  let serialised_activity = serde_json::to_string(&activity)?;
-
-  insert_activity(
-    activity_id,
-    serialised_activity.clone(),
-    true,
-    sensitive,
-    context.pool(),
-  )
-  .await?;
-
-  send_activity(
-    serialised_activity,
-    actor,
-    inboxes,
-    context.client(),
-    context.activity_queue(),
-  )
-  .await
 }

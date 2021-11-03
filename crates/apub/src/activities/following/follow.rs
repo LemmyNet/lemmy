@@ -1,25 +1,20 @@
 use crate::{
   activities::{
-    following::accept::AcceptFollowCommunity,
     generate_activity_id,
+    send_lemmy_activity,
     verify_activity,
     verify_person,
+    verify_person_in_community,
   },
-  context::lemmy_context,
   fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
-  send_lemmy_activity,
+  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
-use activitystreams::{
-  activity::kind::FollowType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams::activity::kind::FollowType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  traits::{ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{
@@ -28,24 +23,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct FollowCommunity {
-  pub(in crate::activities::following) actor: ObjectId<ApubPerson>,
-  // TODO: is there any reason to put the same community id twice, in to and object?
-  pub(in crate::activities::following) to: ObjectId<ApubCommunity>,
-  pub(in crate::activities::following) object: ObjectId<ApubCommunity>,
-  #[serde(rename = "type")]
-  kind: FollowType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl FollowCommunity {
   pub(in crate::activities::following) fn new(
@@ -55,14 +32,13 @@ impl FollowCommunity {
   ) -> Result<FollowCommunity, LemmyError> {
     Ok(FollowCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(community.actor_id()),
+      to: [ObjectId::new(community.actor_id())],
       object: ObjectId::new(community.actor_id()),
       kind: FollowType::Follow,
       id: generate_activity_id(
         FollowType::Follow,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     })
   }
@@ -96,8 +72,10 @@ impl ActivityHandler for FollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
-    verify_urls_match(self.to.inner(), self.object.inner())?;
+    verify_urls_match(self.to[0].inner(), self.object.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
+    let community = self.to[0].dereference(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
 
@@ -107,7 +85,7 @@ impl ActivityHandler for FollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;
-    let community = self.object.dereference(context, request_counter).await?;
+    let community = self.to[0].dereference(context, request_counter).await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: actor.id,

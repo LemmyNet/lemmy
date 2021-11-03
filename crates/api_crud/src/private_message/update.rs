@@ -5,7 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{EditPrivateMessage, PrivateMessageResponse},
 };
-use lemmy_apub::activities::{
+use lemmy_apub::protocol::activities::{
   private_message::create_or_update::CreateOrUpdatePrivateMessage,
   CreateOrUpdateType,
 };

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{DeletePrivateMessage, PrivateMessageResponse},
 };
-use lemmy_apub::activities::private_message::{
+use lemmy_apub::protocol::activities::private_message::{
   delete::DeletePrivateMessage as DeletePrivateMessageApub,
   undo_delete::UndoDeletePrivateMessage,
 };
