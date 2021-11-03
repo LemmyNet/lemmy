@@ -32,7 +32,7 @@ use lemmy_utils::{
   utils::{convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use url::Url;
 
@@ -77,12 +77,10 @@ impl ApubObject for ApubPost {
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
-      let id = self.id;
       blocking(context.pool(), move |conn| {
-        Post::update_deleted(conn, id, true)
+        Post::update_deleted(conn, self.id, true)
       })
       .await??;
-      send_post_ws_message(id, UserOperationCrud::DeletePost, None, None, context).await?;
     }
     Ok(())
   }
