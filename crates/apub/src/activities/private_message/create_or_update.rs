@@ -56,7 +56,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_activity(self, &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
-    verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+    verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }

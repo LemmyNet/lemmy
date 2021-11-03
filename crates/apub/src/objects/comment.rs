@@ -39,6 +39,7 @@ use crate::{
   },
   PostOrComment,
 };
+use lemmy_apub_lib::verify::verify_domains_match;
 use lemmy_utils::utils::markdown_to_html;
 
 #[derive(Clone, Debug)]
@@ -107,7 +108,7 @@ impl ApubObject for ApubComment {
 
     let note = Note {
       r#type: NoteType::Note,
-      id: self.ap_id.to_owned().into_inner(),
+      id: ObjectId::new(self.ap_id.to_owned()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
       content: markdown_to_html(&self.content),
@@ -141,7 +142,8 @@ impl ApubObject for ApubComment {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubComment, LemmyError> {
-    let ap_id = Some(note.id(expected_domain)?.clone().into());
+    verify_domains_match(note.id.inner(), expected_domain)?;
+    let ap_id = Some(note.id.clone().into());
     let creator = note
       .attributed_to
       .dereference(context, request_counter)
@@ -152,7 +154,7 @@ impl ApubObject for ApubComment {
       Community::read(conn, community_id)
     })
     .await??;
-    check_is_apub_id_valid(&note.id, community.local, &context.settings())?;
+    check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(
       &note.attributed_to,
       &community.into(),

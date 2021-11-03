@@ -19,7 +19,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Page {
   pub(crate) r#type: PageType,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
   pub(crate) name: String,
@@ -38,14 +38,6 @@ pub struct Page {
 }
 
 impl Page {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
   /// Only mods can change the post's stickied/locked status. So if either of these is changed from
   /// the current value, it is a mod action and needs to be verified as such.
   ///
@@ -71,7 +63,7 @@ impl Page {
     let community = self.extract_community(context, request_counter).await?;
 
     check_slurs(&self.name, &context.settings().slur_regex())?;
-    verify_domains_match(self.attributed_to.inner(), &self.id.clone())?;
+    verify_domains_match(self.attributed_to.inner(), self.id.inner())?;
     verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
     verify_is_public(&self.to.clone())?;
     Ok(())

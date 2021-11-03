@@ -17,6 +17,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   self,
@@ -106,7 +107,7 @@ impl ApubObject for ApubPost {
 
     let page = Page {
       r#type: PageType::Page,
-      id: self.ap_id.clone().into(),
+      id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![community.actor_id.into(), public()],
       name: self.name.clone(),
@@ -140,18 +141,16 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
-    let ap_id = if page.is_mod_action(context).await? {
-      page.id_unchecked()
-    } else {
-      page.id(expected_domain)?
+    if !page.is_mod_action(context).await? {
+      verify_domains_match(page.id.inner(), expected_domain)?;
     };
-    let ap_id = Some(ap_id.clone().into());
+    let ap_id = Some(page.id.clone().into());
     let creator = page
       .attributed_to
       .dereference(context, request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
-    check_is_apub_id_valid(&page.id, community.local, &context.settings())?;
+    check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
 
     let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);

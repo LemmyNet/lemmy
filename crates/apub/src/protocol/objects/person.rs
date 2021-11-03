@@ -1,4 +1,8 @@
-use crate::protocol::{ImageObject, Source};
+use crate::{
+  fetcher::object_id::ObjectId,
+  objects::person::ApubPerson,
+  protocol::{ImageObject, Source},
+};
 use activitystreams::{actor::Endpoints, unparsed::Unparsed, url::Url};
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::signatures::PublicKey;
@@ -17,7 +21,7 @@ pub enum UserTypes {
 pub struct Person {
   #[serde(rename = "type")]
   pub(crate) kind: UserTypes,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubPerson>,
   /// username, set at account creation and can never be changed
   pub(crate) preferred_username: String,
   /// displayname (can be changed at any time)

@@ -84,7 +84,7 @@ impl ActivityHandler for CreateOrUpdatePost {
 
     match self.kind {
       CreateOrUpdateType::Create => {
-        verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+        verify_domains_match(self.actor.inner(), self.object.id.inner())?;
         verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
@@ -101,7 +101,7 @@ impl ActivityHandler for CreateOrUpdatePost {
         if is_mod_action {
           verify_mod_action(&self.actor, &community, context, request_counter).await?;
         } else {
-          verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+          verify_domains_match(self.actor.inner(), self.object.id.inner())?;
           verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
         }
       }

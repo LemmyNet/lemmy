@@ -96,7 +96,7 @@ impl ApubObject for ApubCommunity {
 
     let group = Group {
       kind: GroupType::Group,
-      id: self.actor_id(),
+      id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
       name: self.title.clone(),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),

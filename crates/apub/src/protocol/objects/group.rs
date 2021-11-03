@@ -5,7 +5,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   fetcher::object_id::ObjectId,
-  objects::get_summary_from_string_or_source,
+  objects::{community::ApubCommunity, get_summary_from_string_or_source},
   protocol::{ImageObject, Source},
 };
 use activitystreams::{
@@ -30,7 +30,7 @@ use url::Url;
 pub struct Group {
   #[serde(rename = "type")]
   pub(crate) kind: GroupType,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubCommunity>,
   /// username, set at account creation and can never be changed
   pub(crate) preferred_username: String,
   /// title (can be changed at any time)
@@ -61,8 +61,8 @@ impl Group {
     expected_domain: &Url,
     settings: &Settings,
   ) -> Result<CommunityForm, LemmyError> {
-    check_is_apub_id_valid(&group.id, true, settings)?;
-    verify_domains_match(expected_domain, &group.id)?;
+    check_is_apub_id_valid(group.id.inner(), true, settings)?;
+    verify_domains_match(expected_domain, group.id.inner())?;
     let name = group.preferred_username.clone();
     let title = group.name.clone();
     let description = get_summary_from_string_or_source(&group.summary, &group.source);

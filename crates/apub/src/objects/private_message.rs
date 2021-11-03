@@ -11,6 +11,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   source::{
@@ -81,7 +82,7 @@ impl ApubObject for ApubPrivateMessage {
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
-      id: self.ap_id.clone().into(),
+      id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: [ObjectId::new(recipient.actor_id)],
       content: markdown_to_html(&self.content),
@@ -107,7 +108,8 @@ impl ApubObject for ApubPrivateMessage {
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubPrivateMessage, LemmyError> {
-    let ap_id = Some(note.id(expected_domain)?.clone().into());
+    verify_domains_match(note.id.inner(), expected_domain)?;
+    let ap_id = Some(note.id.clone().into());
     let creator = note
       .attributed_to
       .dereference(context, request_counter)

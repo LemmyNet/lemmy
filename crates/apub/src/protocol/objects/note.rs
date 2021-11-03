@@ -1,7 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   fetcher::{object_id::ObjectId, post_or_comment::PostOrComment},
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
 use activitystreams::{object::kind::NoteType, unparsed::Unparsed};
@@ -26,11 +26,8 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Note {
   pub(crate) r#type: NoteType,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubComment>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
-  /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
-  /// the post in [`in_reply_to`]).
   pub(crate) to: Vec<Url>,
   pub(crate) content: String,
   pub(crate) media_type: Option<MediaTypeHtml>,
@@ -52,14 +49,6 @@ pub(crate) enum SourceCompat {
 }
 
 impl Note {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
   pub(crate) async fn get_parents(
     &self,
     context: &LemmyContext,
@@ -104,7 +93,7 @@ impl Note {
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
-    verify_domains_match(self.attributed_to.inner(), &self.id)?;
+    verify_domains_match(self.attributed_to.inner(), self.id.inner())?;
     verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
     verify_is_public(&self.to)?;
     Ok(())

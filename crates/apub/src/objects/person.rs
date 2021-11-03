@@ -1,5 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
+  fetcher::object_id::ObjectId,
   generate_outbox_url,
   objects::get_summary_from_string_or_source,
   protocol::{
@@ -96,7 +97,7 @@ impl ApubObject for ApubPerson {
 
     let person = Person {
       kind,
-      id: self.actor_id.to_owned().into_inner(),
+      id: ObjectId::new(self.actor_id.clone()),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
@@ -128,7 +129,7 @@ impl ApubObject for ApubPerson {
     expected_domain: &Url,
     _request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
-    verify_domains_match(&person.id, expected_domain)?;
+    verify_domains_match(person.id.inner(), expected_domain)?;
     let actor_id = Some(person.id.clone().into());
     let name = person.preferred_username.clone();
     let display_name: Option<String> = person.name.clone();
@@ -144,7 +145,7 @@ impl ApubObject for ApubPerson {
     check_slurs_opt(&display_name, slur_regex)?;
     check_slurs_opt(&bio, slur_regex)?;
 
-    check_is_apub_id_valid(&person.id, false, &context.settings())?;
+    check_is_apub_id_valid(person.id.inner(), false, &context.settings())?;
 
     let person_form = PersonForm {
       name,
