@@ -1,17 +1,12 @@
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
-    deletion::{
-      receive_delete_action,
-      verify_delete_activity,
-      DeletableObjects,
-    },
+    deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
     verify_activity,
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::delete::Delete,
 };
@@ -20,6 +15,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{

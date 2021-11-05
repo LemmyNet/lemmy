@@ -1,9 +1,7 @@
-use crate::{
-  fetcher::{object_id::ObjectId, post_or_comment::PostOrComment},
-  objects::person::ApubPerson,
-};
+use crate::{fetcher::post_or_comment::PostOrComment, objects::person::ApubPerson};
 use activitystreams::unparsed::Unparsed;
 use anyhow::anyhow;
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;

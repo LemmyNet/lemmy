@@ -1,15 +1,25 @@
-use std::ops::Deref;
-
+use crate::{
+  activities::verify_person_in_community,
+  check_is_apub_id_valid,
+  protocol::{
+    objects::{
+      note::{Note, SourceCompat},
+      tombstone::Tombstone,
+    },
+    Source,
+  },
+  PostOrComment,
+};
 use activitystreams::{object::kind::NoteType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
-use url::Url;
-
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,26 +31,12 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  utils::{convert_datetime, remove_slurs},
+  utils::{convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-
-use crate::{
-  activities::verify_person_in_community,
-  check_is_apub_id_valid,
-  fetcher::object_id::ObjectId,
-  protocol::{
-    objects::{
-      note::{Note, SourceCompat},
-      tombstone::Tombstone,
-    },
-    Source,
-  },
-  PostOrComment,
-};
-use lemmy_apub_lib::verify::verify_domains_match;
-use lemmy_utils::utils::markdown_to_html;
+use std::ops::Deref;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub struct ApubComment(Comment);
@@ -101,9 +97,9 @@ impl ApubObject for ApubComment {
     let in_reply_to = if let Some(comment_id) = self.parent_id {
       let parent_comment =
         blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
-      ObjectId::<PostOrComment>::new(parent_comment.ap_id.into_inner())
+      ObjectId::<PostOrComment>::new(parent_comment.ap_id)
     } else {
-      ObjectId::<PostOrComment>::new(post.ap_id.into_inner())
+      ObjectId::<PostOrComment>::new(post.ap_id)
     };
 
     let note = Note {
@@ -235,7 +231,7 @@ pub(crate) mod tests {
       .await
       .unwrap();
 
-    assert_eq!(comment.ap_id.clone().into_inner(), url);
+    assert_eq!(comment.ap_id, url.into());
     assert_eq!(comment.content.len(), 14);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
@@ -267,7 +263,7 @@ pub(crate) mod tests {
       .await
       .unwrap();
 
-    assert_eq!(comment.ap_id.clone().into_inner(), pleroma_url);
+    assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);

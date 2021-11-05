@@ -6,7 +6,6 @@ use crate::{
     verify_person,
     verify_person_in_community,
   },
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
@@ -14,6 +13,7 @@ use activitystreams::activity::kind::FollowType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
   verify::verify_urls_match,
 };

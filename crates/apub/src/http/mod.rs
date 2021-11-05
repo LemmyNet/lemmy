@@ -2,7 +2,7 @@ use crate::{
   activity_lists::SharedInboxActivities,
   check_is_apub_id_valid,
   context::WithContext,
-  fetcher::{object_id::ObjectId, user_or_community::UserOrCommunity},
+  fetcher::user_or_community::UserOrCommunity,
   http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
 };
@@ -19,6 +19,7 @@ use http::StatusCode;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   signatures::verify_signature,
   traits::{ActivityHandler, ActorType},
   APUB_JSON_CONTENT_TYPE,

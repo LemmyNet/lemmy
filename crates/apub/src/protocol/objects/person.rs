@@ -1,11 +1,10 @@
 use crate::{
-  fetcher::object_id::ObjectId,
   objects::person::ApubPerson,
   protocol::{ImageObject, Source},
 };
 use activitystreams::{actor::Endpoints, unparsed::Unparsed, url::Url};
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::signatures::PublicKey;
+use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

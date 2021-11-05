@@ -1,9 +1,9 @@
 use crate::{
-  fetcher::object_id::ObjectId,
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::note::Note},
 };
 use activitystreams::{link::Mention, unparsed::Unparsed};
+use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

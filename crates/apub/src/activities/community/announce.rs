@@ -1,7 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_is_public},
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   http::{is_activity_already_known, ActivityCommonFields},
   insert_activity,
   objects::community::ApubCommunity,
@@ -10,6 +9,7 @@ use crate::{
 use activitystreams::{activity::kind::AnnounceType, public};
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_utils::LemmyError;
@@ -36,7 +36,7 @@ impl AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
       to: vec![public()],
       object,
-      cc: vec![community.followers_url.clone().into_inner()],
+      cc: vec![community.followers_url.clone().into()],
       kind: AnnounceType::Announce,
       id: generate_activity_id(
         &AnnounceType::Announce,

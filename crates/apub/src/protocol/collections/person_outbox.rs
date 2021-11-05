@@ -18,7 +18,7 @@ impl PersonOutbox {
   pub(crate) async fn new(user: Person) -> Result<PersonOutbox, LemmyError> {
     Ok(PersonOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_outbox_url(&user.actor_id)?.into_inner(),
+      id: generate_outbox_url(&user.actor_id)?.into(),
       ordered_items: vec![],
       total_items: 0,
     })

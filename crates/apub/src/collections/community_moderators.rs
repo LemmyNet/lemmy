@@ -1,13 +1,12 @@
 use crate::{
   collections::CommunityContext,
-  fetcher::object_id::ObjectId,
   generate_moderators_url,
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitystreams::{chrono::NaiveDateTime, collection::kind::OrderedCollectionType};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{traits::ApubObject, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
@@ -54,7 +53,7 @@ impl ApubObject for ApubCommunityModerators {
     let ordered_items = self
       .0
       .iter()
-      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id.clone().into_inner()))
+      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id.clone()))
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
@@ -81,7 +80,7 @@ impl ApubObject for ApubCommunityModerators {
     .await??;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
-      let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone().into_inner());
+      let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone());
       if !apub.ordered_items.contains(&mod_id) {
         let community_moderator_form = CommunityModeratorForm {
           community_id: mod_user.community.id,

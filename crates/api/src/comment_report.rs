@@ -1,5 +1,5 @@
+use crate::Perform;
 use actix_web::web::Data;
-
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -7,7 +7,8 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   is_mod_or_admin,
 };
-use lemmy_apub::{fetcher::object_id::ObjectId, protocol::activities::community::report::Report};
+use lemmy_apub::protocol::activities::community::report::Report;
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{source::comment_report::*, traits::Reportable};
 use lemmy_db_views::{
   comment_report_view::{CommentReportQueryBuilder, CommentReportView},
@@ -15,8 +16,6 @@ use lemmy_db_views::{
 };
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
-
-use crate::Perform;
 
 /// Creates a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]

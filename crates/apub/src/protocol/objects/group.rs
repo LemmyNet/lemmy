@@ -4,7 +4,6 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, get_summary_from_string_or_source},
   protocol::{ImageObject, Source},
 };
@@ -13,7 +12,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{signatures::PublicKey, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
 use lemmy_db_schema::{naive_now, source::community::CommunityForm};
 use lemmy_utils::{
   settings::structs::Settings,
@@ -73,6 +72,7 @@ impl Group {
     check_slurs(&title, slur_regex)?;
     check_slurs_opt(&description, slur_regex)?;
 
+    // TODO: test_parse_lemmy_community_moderators() keeps failing here with stack overflow
     Ok(CommunityForm {
       name,
       title,

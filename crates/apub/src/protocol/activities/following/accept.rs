@@ -1,9 +1,9 @@
 use crate::{
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::follow::FollowCommunity,
 };
 use activitystreams::{activity::kind::AcceptType, unparsed::Unparsed};
+use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

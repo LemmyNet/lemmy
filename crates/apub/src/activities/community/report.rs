@@ -5,7 +5,6 @@ use crate::{
     verify_activity,
     verify_person_in_community,
   },
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::report::Report,
   PostOrComment,
@@ -14,6 +13,7 @@ use activitystreams::activity::kind::FlagType;
 use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{

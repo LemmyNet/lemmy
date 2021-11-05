@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
 };
@@ -8,6 +7,7 @@ use activitystreams::activity::kind::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
   verify::verify_urls_match,
 };

@@ -8,7 +8,6 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::{
     block_user::BlockUserFromCommunity,
@@ -19,6 +18,7 @@ use activitystreams::{activity::kind::UndoType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{

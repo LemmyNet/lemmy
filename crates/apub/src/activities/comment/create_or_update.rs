@@ -9,7 +9,6 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
@@ -17,6 +16,7 @@ use activitystreams::public;
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType, ApubObject},
   verify::verify_domains_match,
 };

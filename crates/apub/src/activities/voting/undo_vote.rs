@@ -8,7 +8,6 @@ use crate::{
     voting::{undo_vote_comment, undo_vote_post},
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::{
     undo_vote::UndoVote,
@@ -20,6 +19,7 @@ use activitystreams::{activity::kind::UndoType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
   verify::verify_urls_match,
 };

@@ -7,7 +7,6 @@ use crate::{
     CommunityContext,
   },
   context::WithContext,
-  fetcher::object_id::ObjectId,
   generate_outbox_url,
   http::{
     create_apub_response,
@@ -24,7 +23,7 @@ use crate::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::ApubObject;
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -116,7 +115,7 @@ pub(crate) async fn get_apub_community_outbox(
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?.into_inner());
+  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
   let outbox: ApubCommunityOutbox = id.dereference(&outbox_data, &mut 0).await?;
   Ok(create_apub_response(&outbox.to_apub(&outbox_data).await?))
@@ -131,7 +130,7 @@ pub(crate) async fn get_apub_community_moderators(
   })
   .await??
   .into();
-  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?.into_inner());
+  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community, context.get_ref().clone());
   let moderators: ApubCommunityModerators = id.dereference(&outbox_data, &mut 0).await?;
   Ok(create_apub_response(

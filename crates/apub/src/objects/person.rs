@@ -1,6 +1,5 @@
 use crate::{
   check_is_apub_id_valid,
-  fetcher::object_id::ObjectId,
   generate_outbox_url,
   objects::get_summary_from_string_or_source,
   protocol::{
@@ -13,6 +12,7 @@ use activitystreams::{actor::Endpoints, object::kind::ImageType};
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
   verify::verify_domains_match,
@@ -181,7 +181,7 @@ impl ActorType for ApubPerson {
     self.local
   }
   fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into_inner()
+    self.actor_id.to_owned().into()
   }
   fn name(&self) -> String {
     self.name.clone()
@@ -200,7 +200,7 @@ impl ActorType for ApubPerson {
   }
 
   fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
+    self.shared_inbox_url.clone().map(|s| s.into())
   }
 }
 
@@ -247,7 +247,7 @@ pub(crate) mod tests {
       .await
       .unwrap();
 
-    assert_eq!(person.actor_id.clone().into_inner(), url);
+    assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(person.public_key.is_some());
     assert!(!person.local);

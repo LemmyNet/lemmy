@@ -1,7 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
   context::WithContext,
-  fetcher::object_id::ObjectId,
   generate_moderators_url,
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -11,6 +10,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
+  object_id::ObjectId,
   traits::ActorType,
   verify::verify_domains_match,
 };
@@ -110,7 +110,7 @@ fn verify_add_remove_moderator_target(
   target: &Url,
   community: &ApubCommunity,
 ) -> Result<(), LemmyError> {
-  if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
+  if target != &generate_moderators_url(&community.actor_id)?.into() {
     return Err(anyhow!("Unkown target url").into());
   }
   Ok(())

@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
-  fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     private_message::create_or_update::CreateOrUpdatePrivateMessage,
@@ -10,6 +9,7 @@ use crate::{
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType, ApubObject},
   verify::verify_domains_match,
 };

@@ -1,8 +1,6 @@
-use crate::{
-  fetcher::object_id::ObjectId,
-  objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-};
+use crate::objects::{person::ApubPerson, private_message::ApubPrivateMessage};
 use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
+use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

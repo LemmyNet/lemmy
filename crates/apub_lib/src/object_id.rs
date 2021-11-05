@@ -1,8 +1,7 @@
-use crate::fetcher::should_refetch_object;
+use crate::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
+use activitystreams::chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use anyhow::anyhow;
 use diesel::NotFound;
-use lemmy_apub_lib::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
-use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   request::{build_user_agent, retry},
   settings::structs::Settings,
@@ -144,12 +143,34 @@ where
   }
 }
 
+static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
+static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;
+
+/// Determines when a remote actor should be refetched from its instance. In release builds, this is
+/// `ACTOR_REFETCH_INTERVAL_SECONDS` after the last refetch, in debug builds
+/// `ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG`.
+///
+/// TODO it won't pick up new avatars, summaries etc until a day after.
+/// Actors need an "update" activity pushed to other servers to fix this.
+fn should_refetch_object(last_refreshed: NaiveDateTime) -> bool {
+  let update_interval = if cfg!(debug_assertions) {
+    // avoid infinite loop when fetching community outbox
+    ChronoDuration::seconds(ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG)
+  } else {
+    ChronoDuration::seconds(ACTOR_REFETCH_INTERVAL_SECONDS)
+  };
+  let refresh_limit = Utc::now().naive_utc() - update_interval;
+  last_refreshed.lt(&refresh_limit)
+}
+
 impl<Kind> Display for ObjectId<Kind>
 where
   Kind: ApubObject + Send + 'static,
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
+  #[allow(clippy::to_string_in_display)]
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    // Use to_string here because Url.display is not useful for us
     write!(f, "{}", self.0.to_string())
   }
 }
@@ -164,12 +185,17 @@ where
   }
 }
 
-impl<Kind> From<ObjectId<Kind>> for DbUrl
-where
-  Kind: ApubObject + Send + 'static,
-  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
-{
-  fn from(id: ObjectId<Kind>) -> Self {
-    id.0.into()
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::object_id::should_refetch_object;
+
+  #[test]
+  fn test_should_refetch_object() {
+    let one_second_ago = Utc::now().naive_utc() - ChronoDuration::seconds(1);
+    assert!(!should_refetch_object(one_second_ago));
+
+    let two_days_ago = Utc::now().naive_utc() - ChronoDuration::days(2);
+    assert!(should_refetch_object(two_days_ago));
   }
 }

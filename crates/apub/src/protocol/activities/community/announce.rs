@@ -1,9 +1,6 @@
-use crate::{
-  activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
-  objects::community::ApubCommunity,
-};
+use crate::{activity_lists::AnnouncableActivities, objects::community::ApubCommunity};
 use activitystreams::{activity::kind::AnnounceType, unparsed::Unparsed};
+use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

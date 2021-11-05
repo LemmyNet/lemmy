@@ -1,13 +1,12 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
 use activitystreams::{object::kind::PageType, unparsed::Unparsed};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{values::MediaTypeHtml, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml, verify::verify_domains_match};
 use lemmy_utils::{utils::check_slurs, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

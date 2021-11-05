@@ -1,14 +1,12 @@
-use crate::{
-  fetcher::object_id::ObjectId,
-  protocol::{
-    objects::chat_message::{ChatMessage, ChatMessageType},
-    Source,
-  },
+use crate::protocol::{
+  objects::chat_message::{ChatMessage, ChatMessageType},
+  Source,
 };
 use chrono::NaiveDateTime;
 use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
@@ -180,7 +178,7 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(pm.ap_id.clone().into_inner(), url);
+    assert_eq!(pm.ap_id.clone(), url.into());
     assert_eq!(pm.content.len(), 20);
     assert_eq!(request_counter, 0);
 
@@ -204,7 +202,7 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(pm.ap_id.clone().into_inner(), pleroma_url);
+    assert_eq!(pm.ap_id, pleroma_url.into());
     assert_eq!(pm.content.len(), 3);
     assert_eq!(request_counter, 0);
 

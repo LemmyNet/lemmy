@@ -1,9 +1,6 @@
-use crate::{
-  fetcher::object_id::ObjectId,
-  objects::person::ApubPerson,
-  protocol::activities::deletion::delete::Delete,
-};
+use crate::{objects::person::ApubPerson, protocol::activities::deletion::delete::Delete};
 use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
+use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

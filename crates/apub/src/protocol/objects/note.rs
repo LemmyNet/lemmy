@@ -1,6 +1,6 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  fetcher::{object_id::ObjectId, post_or_comment::PostOrComment},
+  fetcher::post_or_comment::PostOrComment,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
@@ -8,7 +8,7 @@ use activitystreams::{object::kind::NoteType, unparsed::Unparsed};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::MediaTypeHtml, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml, verify::verify_domains_match};
 use lemmy_db_schema::{
   newtypes::CommentId,
   source::{community::Community, post::Post},

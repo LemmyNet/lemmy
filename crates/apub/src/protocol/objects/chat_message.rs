@@ -1,5 +1,4 @@
 use crate::{
-  fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::Source,
 };
@@ -8,7 +7,7 @@ use activitystreams::{
   unparsed::Unparsed,
 };
 use anyhow::anyhow;
-use lemmy_apub_lib::{values::MediaTypeHtml, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml, verify::verify_domains_match};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

@@ -1,7 +1,6 @@
 use crate::{
   activities::verify_person_in_community,
   check_is_apub_id_valid,
-  fetcher::object_id::ObjectId,
   protocol::{
     objects::{page::Page, tombstone::Tombstone},
     ImageObject,
@@ -15,6 +14,7 @@ use activitystreams::{
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
   verify::verify_domains_match,
@@ -217,7 +217,7 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(post.ap_id.clone().into_inner(), url);
+    assert_eq!(post.ap_id, url.into());
     assert_eq!(post.name, "Post title");
     assert!(post.body.is_some());
     assert_eq!(post.body.as_ref().unwrap().len(), 45);

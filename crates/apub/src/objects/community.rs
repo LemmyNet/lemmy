@@ -1,17 +1,6 @@
-use activitystreams::{
-  actor::{kind::GroupType, Endpoints},
-  object::kind::ImageType,
-};
-use chrono::NaiveDateTime;
-use itertools::Itertools;
-use log::debug;
-use std::ops::Deref;
-use url::Url;
-
 use crate::{
   check_is_apub_id_valid,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
-  fetcher::object_id::ObjectId,
   generate_moderators_url,
   generate_outbox_url,
   protocol::{
@@ -20,8 +9,15 @@ use crate::{
     Source,
   },
 };
+use activitystreams::{
+  actor::{kind::GroupType, Endpoints},
+  object::kind::ImageType,
+};
+use chrono::NaiveDateTime;
+use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
 };
@@ -32,6 +28,9 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use log::debug;
+use std::ops::Deref;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
@@ -105,7 +104,7 @@ impl ApubObject for ApubCommunity {
       image,
       sensitive: Some(self.nsfw),
       moderators: Some(ObjectId::<ApubCommunityModerators>::new(
-        generate_moderators_url(&self.actor_id)?.into_inner(),
+        generate_moderators_url(&self.actor_id)?,
       )),
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
@@ -187,7 +186,7 @@ impl ActorType for ApubCommunity {
   }
 
   fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
+    self.shared_inbox_url.clone().map(|s| s.into())
   }
 }
 
@@ -207,8 +206,12 @@ impl ApubCommunity {
     let follower_inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
-      .map(|f| f.follower.shared_inbox_url.unwrap_or(f.follower.inbox_url))
-      .map(|i| i.into_inner())
+      .map(|f| {
+        f.follower
+          .shared_inbox_url
+          .unwrap_or(f.follower.inbox_url)
+          .into()
+      })
       .collect();
     let inboxes = vec![follower_inboxes, additional_inboxes]
       .into_iter()

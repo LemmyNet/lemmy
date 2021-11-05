@@ -9,7 +9,6 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
@@ -18,6 +17,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType, ApubObject},
   verify::{verify_domains_match, verify_urls_match},
 };

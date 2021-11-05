@@ -7,7 +7,6 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
@@ -16,6 +15,7 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
