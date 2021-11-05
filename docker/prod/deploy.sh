@@ -10,6 +10,8 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
+  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
+  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
   git add ../prod/docker-compose.yml
 
   # Setting the version for Ansible
