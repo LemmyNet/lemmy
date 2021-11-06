@@ -63,6 +63,13 @@ impl ActivityHandler for UpdateCommunity {
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    ApubCommunity::verify(
+      &self.object,
+      &community.actor_id.clone().into(),
+      context,
+      request_counter,
+    )
+    .await?;
     Ok(())
   }
 
@@ -73,10 +80,7 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
 
-    let updated_community = self
-      .object
-      .into_form(&community.actor_id.clone().into(), &context.settings())
-      .await?;
+    let updated_community = self.object.into_form()?;
     let cf = CommunityForm {
       name: updated_community.name,
       title: updated_community.title,

@@ -2,6 +2,7 @@ use crate::protocol::{
   objects::chat_message::{ChatMessage, ChatMessageType},
   Source,
 };
+use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
 use lemmy_api_common::blocking;
@@ -100,14 +101,29 @@ impl ApubObject for ApubPrivateMessage {
     unimplemented!()
   }
 
+  async fn verify(
+    note: &ChatMessage,
+    expected_domain: &Url,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(note.id.inner(), expected_domain)?;
+    verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    let person = note
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
+    if person.banned {
+      return Err(anyhow!("Person is banned from site").into());
+    }
+    Ok(())
+  }
+
   async fn from_apub(
     note: ChatMessage,
     context: &LemmyContext,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubPrivateMessage, LemmyError> {
-    verify_domains_match(note.id.inner(), expected_domain)?;
-    let ap_id = Some(note.id.into());
     let creator = note
       .attributed_to
       .dereference(context, request_counter)
@@ -127,7 +143,7 @@ impl ApubObject for ApubPrivateMessage {
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,
       read: None,
-      ap_id,
+      ap_id: Some(note.id.into()),
       local: Some(false),
     };
     let pm = blocking(context.pool(), move |conn| {
@@ -150,12 +166,18 @@ mod tests {
 
   async fn prepare_comment_test(url: &Url, context: &LemmyContext) -> (ApubPerson, ApubPerson) {
     let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json");
-    let person1 = ApubPerson::from_apub(lemmy_person, context, url, &mut 0)
+    ApubPerson::verify(&lemmy_person, url, context, &mut 0)
+      .await
+      .unwrap();
+    let person1 = ApubPerson::from_apub(lemmy_person, context, &mut 0)
       .await
       .unwrap();
     let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json");
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    let person2 = ApubPerson::from_apub(pleroma_person, context, &pleroma_url, &mut 0)
+    ApubPerson::verify(&pleroma_person, &pleroma_url, context, &mut 0)
+      .await
+      .unwrap();
+    let person2 = ApubPerson::from_apub(pleroma_person, context, &mut 0)
       .await
       .unwrap();
     (person1, person2)
@@ -174,7 +196,10 @@ mod tests {
     let data = prepare_comment_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json");
     let mut request_counter = 0;
-    let pm = ApubPrivateMessage::from_apub(json.clone(), &context, &url, &mut request_counter)
+    ApubPrivateMessage::verify(&json, &url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let pm = ApubPrivateMessage::from_apub(json.clone(), &context, &mut request_counter)
       .await
       .unwrap();
 
@@ -199,7 +224,10 @@ mod tests {
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
     let json = file_to_json_object("assets/pleroma/objects/chat_message.json");
     let mut request_counter = 0;
-    let pm = ApubPrivateMessage::from_apub(json, &context, &pleroma_url, &mut request_counter)
+    ApubPrivateMessage::verify(&json, &pleroma_url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let pm = ApubPrivateMessage::from_apub(json, &context, &mut request_counter)
       .await
       .unwrap();
 

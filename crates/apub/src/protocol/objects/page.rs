@@ -1,13 +1,12 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
 use activitystreams::{object::kind::PageType, unparsed::Unparsed};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml, verify::verify_domains_match};
-use lemmy_utils::{utils::check_slurs, LemmyError};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -52,20 +51,6 @@ impl Page {
       false
     };
     Ok(is_mod_action)
-  }
-
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = self.extract_community(context, request_counter).await?;
-
-    check_slurs(&self.name, &context.settings().slur_regex())?;
-    verify_domains_match(self.attributed_to.inner(), self.id.inner())?;
-    verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
-    verify_is_public(&self.to.clone())?;
-    Ok(())
   }
 
   pub(crate) async fn extract_community(

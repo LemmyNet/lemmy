@@ -62,19 +62,34 @@ impl ApubObject for UserOrCommunity {
     unimplemented!()
   }
 
+  async fn verify(
+    apub: &Self::ApubType,
+    expected_domain: &Url,
+    data: &Self::DataType,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    match apub {
+      PersonOrGroup::Person(a) => {
+        ApubPerson::verify(a, expected_domain, data, request_counter).await
+      }
+      PersonOrGroup::Group(a) => {
+        ApubCommunity::verify(a, expected_domain, data, request_counter).await
+      }
+    }
+  }
+
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PersonOrGroup::Person(p) => UserOrCommunity::User(
-        ApubPerson::from_apub(p, data, expected_domain, request_counter).await?,
-      ),
-      PersonOrGroup::Group(p) => UserOrCommunity::Community(
-        ApubCommunity::from_apub(p, data, expected_domain, request_counter).await?,
-      ),
+      PersonOrGroup::Person(p) => {
+        UserOrCommunity::User(ApubPerson::from_apub(p, data, request_counter).await?)
+      }
+      PersonOrGroup::Group(p) => {
+        UserOrCommunity::Community(ApubCommunity::from_apub(p, data, request_counter).await?)
+      }
     })
   }
 }

@@ -163,19 +163,40 @@ impl ApubObject for SearchableObjects {
     unimplemented!()
   }
 
+  async fn verify(
+    apub: &Self::ApubType,
+    expected_domain: &Url,
+    data: &Self::DataType,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    match apub {
+      SearchableApubTypes::Group(a) => {
+        ApubCommunity::verify(a, expected_domain, data, request_counter).await
+      }
+      SearchableApubTypes::Person(a) => {
+        ApubPerson::verify(a, expected_domain, data, request_counter).await
+      }
+      SearchableApubTypes::Page(a) => {
+        ApubPost::verify(a, expected_domain, data, request_counter).await
+      }
+      SearchableApubTypes::Note(a) => {
+        ApubComment::verify(a, expected_domain, data, request_counter).await
+      }
+    }
+  }
+
   async fn from_apub(
     apub: Self::ApubType,
     context: &LemmyContext,
-    ed: &Url,
     rc: &mut i32,
   ) -> Result<Self, LemmyError> {
     use SearchableApubTypes as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, ed, rc).await?),
-      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, ed, rc).await?),
-      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, ed, rc).await?),
-      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, ed, rc).await?),
+      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, rc).await?),
+      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, rc).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, rc).await?),
+      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, rc).await?),
     })
   }
 }

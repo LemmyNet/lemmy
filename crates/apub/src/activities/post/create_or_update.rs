@@ -104,7 +104,7 @@ impl ActivityHandler for CreateOrUpdatePost {
         }
       }
     }
-    self.object.verify(context, request_counter).await?;
+    ApubPost::verify(&self.object, self.actor.inner(), context, request_counter).await?;
     Ok(())
   }
 
@@ -113,9 +113,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let post =
-      ApubPost::from_apub(self.object, context, &actor.actor_id(), request_counter).await?;
+    let post = ApubPost::from_apub(self.object, context, request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

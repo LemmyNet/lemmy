@@ -12,10 +12,10 @@ use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
 use lemmy_db_schema::{naive_now, source::community::CommunityForm};
 use lemmy_utils::{
-  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   LemmyError,
 };
+use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -52,27 +52,27 @@ pub struct Group {
 }
 
 impl Group {
-  pub(crate) async fn into_form(
-    self,
+  pub(crate) async fn verify(
+    &self,
     expected_domain: &Url,
-    settings: &Settings,
-  ) -> Result<CommunityForm, LemmyError> {
-    check_is_apub_id_valid(self.id.inner(), true, settings)?;
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    check_is_apub_id_valid(self.id.inner(), true, &context.settings())?;
     verify_domains_match(expected_domain, self.id.inner())?;
-    let name = self.preferred_username;
-    let title = self.name;
+
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs(&self.preferred_username, slur_regex)?;
+    check_slurs(&self.name, slur_regex)?;
     let description = get_summary_from_string_or_source(&self.summary, &self.source);
-    let shared_inbox = self.endpoints.shared_inbox.map(|s| s.into());
-
-    let slur_regex = &settings.slur_regex();
-    check_slurs(&name, slur_regex)?;
-    check_slurs(&title, slur_regex)?;
     check_slurs_opt(&description, slur_regex)?;
+    Ok(())
+  }
 
+  pub(crate) fn into_form(self) -> Result<CommunityForm, LemmyError> {
     Ok(CommunityForm {
-      name,
-      title,
-      description,
+      name: self.preferred_username,
+      title: self.name,
+      description: get_summary_from_string_or_source(&self.summary, &self.source),
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),
@@ -87,7 +87,7 @@ impl Group {
       banner: Some(self.image.map(|i| i.url.into())),
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
-      shared_inbox_url: Some(shared_inbox),
+      shared_inbox_url: Some(self.endpoints.shared_inbox.map(|s| s.into())),
     })
   }
 }

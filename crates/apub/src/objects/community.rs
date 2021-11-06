@@ -124,14 +124,22 @@ impl ApubObject for ApubCommunity {
     ))
   }
 
+  async fn verify(
+    group: &Group,
+    expected_domain: &Url,
+    context: &LemmyContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    group.verify(expected_domain, context).await
+  }
+
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_apub(
     group: Group,
     context: &LemmyContext,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let form = Group::into_form(group.clone(), expected_domain, &context.settings()).await?;
+    let form = Group::into_form(group.clone())?;
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
@@ -232,7 +240,10 @@ pub(crate) mod tests {
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
-    let community = ApubCommunity::from_apub(json, context, &url, &mut request_counter)
+    ApubCommunity::verify(&json, &url, context, &mut request_counter)
+      .await
+      .unwrap();
+    let community = ApubCommunity::from_apub(json, context, &mut request_counter)
       .await
       .unwrap();
     // this makes two requests to the (intentionally) broken outbox/moderators collections

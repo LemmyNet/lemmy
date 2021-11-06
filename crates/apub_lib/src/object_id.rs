@@ -140,7 +140,8 @@ where
 
     let res2: Kind::ApubType = res.json().await?;
 
-    Ok(Kind::from_apub(res2, data, self.inner(), request_counter).await?)
+    Kind::verify(&res2, self.inner(), data, request_counter).await?;
+    Ok(Kind::from_apub(res2, data, request_counter).await?)
   }
 }
 

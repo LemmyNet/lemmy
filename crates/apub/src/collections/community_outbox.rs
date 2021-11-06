@@ -85,13 +85,21 @@ impl ApubObject for ApubCommunityOutbox {
     unimplemented!()
   }
 
+  async fn verify(
+    group_outbox: &GroupOutbox,
+    expected_domain: &Url,
+    _context: &CommunityContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(expected_domain, &group_outbox.id)?;
+    Ok(())
+  }
+
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    verify_domains_match(expected_domain, &apub.id)?;
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() > 20 {
       outbox_activities = outbox_activities[0..20].to_vec();

@@ -44,6 +44,13 @@ pub trait ApubObject {
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError>;
 
+  async fn verify(
+    apub: &Self::ApubType,
+    expected_domain: &Url,
+    data: &Self::DataType,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError>;
+
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///
   /// * `apub` The object to read from
@@ -53,7 +60,6 @@ pub trait ApubObject {
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where

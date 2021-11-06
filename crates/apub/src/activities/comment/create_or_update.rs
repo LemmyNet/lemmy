@@ -85,9 +85,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
 
-    // TODO: should add a check that the correct community is in cc (probably needs changes to
-    //       comment deserialization)
-    self.object.verify(context, request_counter).await?;
+    ApubComment::verify(&self.object, self.actor.inner(), context, request_counter).await?;
     Ok(())
   }
 
@@ -96,8 +94,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let comment =
-      ApubComment::from_apub(self.object, context, self.actor.inner(), request_counter).await?;
+    let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
     let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,

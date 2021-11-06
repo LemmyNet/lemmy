@@ -1,5 +1,5 @@
 use crate::{
-  activities::verify_person_in_community,
+  activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
   protocol::{
     objects::{
@@ -129,21 +129,16 @@ impl ApubObject for ApubComment {
     ))
   }
 
-  /// Converts a `Note` to `Comment`.
-  ///
-  /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-  async fn from_apub(
-    note: Note,
-    context: &LemmyContext,
+  async fn verify(
+    note: &Note,
     expected_domain: &Url,
+    context: &LemmyContext,
     request_counter: &mut i32,
-  ) -> Result<ApubComment, LemmyError> {
+  ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
-    let creator = note
-      .attributed_to
-      .dereference(context, request_counter)
-      .await?;
-    let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    verify_is_public(&note.to)?;
+    let (post, _) = note.get_parents(context, request_counter).await?;
     let community_id = post.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
@@ -160,6 +155,22 @@ impl ApubObject for ApubComment {
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
+    Ok(())
+  }
+
+  /// Converts a `Note` to `Comment`.
+  ///
+  /// If the parent community, post and comment(s) are not known locally, these are also fetched.
+  async fn from_apub(
+    note: Note,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubComment, LemmyError> {
+    let creator = note
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
+    let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 
     let content = if let SourceCompat::Lemmy(source) = &note.source {
       source.content.clone()
@@ -205,7 +216,10 @@ pub(crate) mod tests {
     let person = parse_lemmy_person(context).await;
     let community = parse_lemmy_community(context).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json");
-    let post = ApubPost::from_apub(post_json, context, url, &mut 0)
+    ApubPost::verify(&post_json, url, context, &mut 0)
+      .await
+      .unwrap();
+    let post = ApubPost::from_apub(post_json, context, &mut 0)
       .await
       .unwrap();
     (person, community, post)
@@ -226,7 +240,10 @@ pub(crate) mod tests {
 
     let json: Note = file_to_json_object("assets/lemmy/objects/note.json");
     let mut request_counter = 0;
-    let comment = ApubComment::from_apub(json.clone(), &context, &url, &mut request_counter)
+    ApubComment::verify(&json, &url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let comment = ApubComment::from_apub(json.clone(), &context, &mut request_counter)
       .await
       .unwrap();
 
@@ -254,12 +271,18 @@ pub(crate) mod tests {
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
         .unwrap();
     let person_json = file_to_json_object("assets/pleroma/objects/person.json");
-    ApubPerson::from_apub(person_json, &context, &pleroma_url, &mut 0)
+    ApubPerson::verify(&person_json, &pleroma_url, &context, &mut 0)
+      .await
+      .unwrap();
+    ApubPerson::from_apub(person_json, &context, &mut 0)
       .await
       .unwrap();
     let json = file_to_json_object("assets/pleroma/objects/note.json");
     let mut request_counter = 0;
-    let comment = ApubComment::from_apub(json, &context, &pleroma_url, &mut request_counter)
+    ApubComment::verify(&json, &pleroma_url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let comment = ApubComment::from_apub(json, &context, &mut request_counter)
       .await
       .unwrap();
 

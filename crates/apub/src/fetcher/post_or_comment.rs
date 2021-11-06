@@ -61,19 +61,30 @@ impl ApubObject for PostOrComment {
     unimplemented!()
   }
 
+  async fn verify(
+    apub: &Self::ApubType,
+    expected_domain: &Url,
+    data: &Self::DataType,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    match apub {
+      PageOrNote::Page(a) => ApubPost::verify(a, expected_domain, data, request_counter).await,
+      PageOrNote::Note(a) => ApubComment::verify(a, expected_domain, data, request_counter).await,
+    }
+  }
+
   async fn from_apub(
     apub: PageOrNote,
     context: &LemmyContext,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PageOrNote::Page(p) => PostOrComment::Post(
-        ApubPost::from_apub(p, context, expected_domain, request_counter).await?,
-      ),
-      PageOrNote::Note(n) => PostOrComment::Comment(
-        ApubComment::from_apub(n, context, expected_domain, request_counter).await?,
-      ),
+      PageOrNote::Page(p) => {
+        PostOrComment::Post(ApubPost::from_apub(p, context, request_counter).await?)
+      }
+      PageOrNote::Note(n) => {
+        PostOrComment::Comment(ApubComment::from_apub(n, context, request_counter).await?)
+      }
     })
   }
 }

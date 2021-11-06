@@ -66,13 +66,21 @@ impl ApubObject for ApubCommunityModerators {
     unimplemented!()
   }
 
+  async fn verify(
+    group_moderators: &GroupModerators,
+    expected_domain: &Url,
+    _context: &CommunityContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(&group_moderators.id, expected_domain)?;
+    Ok(())
+  }
+
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    verify_domains_match(expected_domain, &apub.id)?;
     let community_id = data.0.id;
     let current_moderators = blocking(data.1.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
@@ -165,7 +173,10 @@ mod tests {
       0: community,
       1: context,
     };
-    ApubCommunityModerators::from_apub(json, &community_context, &url, &mut request_counter)
+    ApubCommunityModerators::verify(&json, &url, &community_context, &mut request_counter)
+      .await
+      .unwrap();
+    ApubCommunityModerators::from_apub(json, &community_context, &mut request_counter)
       .await
       .unwrap();
     assert_eq!(request_counter, 0);

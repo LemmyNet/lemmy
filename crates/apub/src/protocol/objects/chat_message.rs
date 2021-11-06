@@ -6,10 +6,7 @@ use activitystreams::{
   chrono::{DateTime, FixedOffset},
   unparsed::Unparsed,
 };
-use anyhow::anyhow;
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml, verify::verify_domains_match};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -34,22 +31,4 @@ pub struct ChatMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ChatMessageType {
   ChatMessage,
-}
-
-impl ChatMessage {
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    verify_domains_match(self.attributed_to.inner(), self.id.inner())?;
-    let person = self
-      .attributed_to
-      .dereference(context, request_counter)
-      .await?;
-    if person.banned {
-      return Err(anyhow!("Person is banned from site").into());
-    }
-    Ok(())
-  }
 }
