@@ -47,7 +47,7 @@ impl PerformCrud for EditPrivateMessage {
 
     // Send the apub update
     CreateOrUpdatePrivateMessage::send(
-      &updated_private_message.into(),
+      updated_private_message.into(),
       &local_user_view.person.into(),
       CreateOrUpdateType::Update,
       context,

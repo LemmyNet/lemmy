@@ -83,7 +83,7 @@ impl PerformCrud for CreatePrivateMessage {
     .map_err(|e| ApiError::err("couldnt_create_private_message", e))?;
 
     CreateOrUpdatePrivateMessage::send(
-      &updated_private_message.into(),
+      updated_private_message.into(),
       &local_user_view.person.into(),
       CreateOrUpdateType::Create,
       context,

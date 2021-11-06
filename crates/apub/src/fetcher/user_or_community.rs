@@ -54,7 +54,7 @@ impl ApubObject for UserOrCommunity {
     }
   }
 
-  async fn to_apub(&self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -63,7 +63,7 @@ impl ApubObject for UserOrCommunity {
   }
 
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: Self::ApubType,
     data: &Self::DataType,
     expected_domain: &Url,
     request_counter: &mut i32,

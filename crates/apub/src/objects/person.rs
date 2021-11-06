@@ -76,7 +76,7 @@ impl ApubObject for ApubPerson {
     Ok(())
   }
 
-  async fn to_apub(&self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
+  async fn into_apub(self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -124,17 +124,16 @@ impl ApubObject for ApubPerson {
   }
 
   async fn from_apub(
-    person: &Person,
+    person: Person,
     context: &LemmyContext,
     expected_domain: &Url,
     _request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
     verify_domains_match(person.id.inner(), expected_domain)?;
-    let actor_id = Some(person.id.clone().into());
-    let name = person.preferred_username.clone();
-    let display_name: Option<String> = person.name.clone();
+    let name = person.preferred_username;
+    let display_name: Option<String> = person.name;
     let bio = get_summary_from_string_or_source(&person.summary, &person.source);
-    let shared_inbox = person.endpoints.shared_inbox.clone().map(|s| s.into());
+    let shared_inbox = person.endpoints.shared_inbox.map(|s| s.into());
     let bot_account = match person.kind {
       UserTypes::Person => false,
       UserTypes::Service => true,
@@ -152,21 +151,21 @@ impl ApubObject for ApubPerson {
       display_name: Some(display_name),
       banned: None,
       deleted: None,
-      avatar: Some(person.icon.clone().map(|i| i.url.into())),
-      banner: Some(person.image.clone().map(|i| i.url.into())),
-      published: person.published.map(|u| u.clone().naive_local()),
-      updated: person.updated.map(|u| u.clone().naive_local()),
-      actor_id,
+      avatar: Some(person.icon.map(|i| i.url.into())),
+      banner: Some(person.image.map(|i| i.url.into())),
+      published: person.published.map(|u| u.naive_local()),
+      updated: person.updated.map(|u| u.naive_local()),
+      actor_id: Some(person.id.into()),
       bio: Some(bio),
       local: Some(false),
       admin: Some(false),
       bot_account: Some(bot_account),
       private_key: None,
-      public_key: Some(Some(person.public_key.public_key_pem.clone())),
+      public_key: Some(Some(person.public_key.public_key_pem)),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(person.inbox.to_owned().into()),
+      inbox_url: Some(person.inbox.into()),
       shared_inbox_url: Some(shared_inbox),
-      matrix_user_id: Some(person.matrix_user_id.clone()),
+      matrix_user_id: Some(person.matrix_user_id),
     };
     let person = blocking(context.pool(), move |conn| {
       DbPerson::upsert(conn, &person_form)
@@ -215,7 +214,7 @@ pub(crate) mod tests {
     let json = file_to_json_object("assets/lemmy/objects/person.json");
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, context, &url, &mut request_counter)
+    let person = ApubPerson::from_apub(json, context, &url, &mut request_counter)
       .await
       .unwrap();
     assert_eq!(request_counter, 0);
@@ -243,7 +242,7 @@ pub(crate) mod tests {
     let json = file_to_json_object("assets/pleroma/objects/person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
+    let person = ApubPerson::from_apub(json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 

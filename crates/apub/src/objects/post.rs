@@ -87,7 +87,7 @@ impl ApubObject for ApubPost {
   }
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  async fn to_apub(&self, context: &LemmyContext) -> Result<Page, LemmyError> {
+  async fn into_apub(self, context: &LemmyContext) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
     let community_id = self.community_id;
@@ -134,7 +134,7 @@ impl ApubObject for ApubPost {
   }
 
   async fn from_apub(
-    page: &Page,
+    page: Page,
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,
@@ -144,7 +144,6 @@ impl ApubObject for ApubPost {
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
     };
-    let ap_id = Some(page.id.clone().into());
     let creator = page
       .attributed_to
       .dereference(context, request_counter)
@@ -153,7 +152,7 @@ impl ApubObject for ApubPost {
     check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
 
-    let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
+    let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
     let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
       fetch_site_data(context.client(), &context.settings(), Some(url)).await
     } else {
@@ -168,8 +167,8 @@ impl ApubObject for ApubPost {
       .as_ref()
       .map(|s| remove_slurs(&s.content, &context.settings().slur_regex()));
     let form = PostForm {
-      name: page.name.clone(),
-      url: page.url.clone().map(|u| u.into()),
+      name: page.name,
+      url: page.url.map(|u| u.into()),
       body: body_slurs_removed,
       creator_id: creator.id,
       community_id: community.id,
@@ -184,7 +183,7 @@ impl ApubObject for ApubPost {
       embed_description,
       embed_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id,
+      ap_id: Some(page.id.into()),
       local: Some(false),
     };
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
@@ -213,7 +212,7 @@ mod tests {
     let json = file_to_json_object("assets/lemmy/objects/page.json");
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
     let mut request_counter = 0;
-    let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
+    let post = ApubPost::from_apub(json, &context, &url, &mut request_counter)
       .await
       .unwrap();
 

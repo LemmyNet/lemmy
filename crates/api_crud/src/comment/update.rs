@@ -72,15 +72,6 @@ impl PerformCrud for EditComment {
     .await?
     .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
-    // Send the apub update
-    CreateOrUpdateComment::send(
-      &updated_comment.clone().into(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
-
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
@@ -90,6 +81,15 @@ impl PerformCrud for EditComment {
       &local_user_view.person,
       &orig_comment.post,
       false,
+      context,
+    )
+    .await?;
+
+    // Send the apub update
+    CreateOrUpdateComment::send(
+      updated_comment.into(),
+      &local_user_view.person.into(),
+      CreateOrUpdateType::Update,
       context,
     )
     .await?;

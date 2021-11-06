@@ -27,7 +27,7 @@ use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCru
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(
-    post: &ApubPost,
+    post: ApubPost,
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
@@ -40,7 +40,7 @@ impl CreateOrUpdatePost {
     Ok(CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: post.to_apub(context).await?,
+      object: post.into_apub(context).await?,
       cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
@@ -48,7 +48,7 @@ impl CreateOrUpdatePost {
     })
   }
   pub async fn send(
-    post: &ApubPost,
+    post: ApubPost,
     actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
@@ -115,7 +115,7 @@ impl ActivityHandler for CreateOrUpdatePost {
   ) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context, request_counter).await?;
     let post =
-      ApubPost::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
+      ApubPost::from_apub(self.object, context, &actor.actor_id(), request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

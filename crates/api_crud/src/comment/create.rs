@@ -1,5 +1,5 @@
+use crate::PerformCrud;
 use actix_web::web::Data;
-
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -13,6 +13,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   fetcher::post_or_comment::PostOrComment,
   generate_local_apub_endpoint,
+  objects::comment::ApubComment,
   protocol::activities::{
     create_or_update::comment::CreateOrUpdateComment,
     voting::vote::{Vote, VoteType},
@@ -39,8 +40,6 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
-
-use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -121,14 +120,6 @@ impl PerformCrud for CreateComment {
       .await?
       .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
-    CreateOrUpdateComment::send(
-      &updated_comment.clone().into(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
-
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
     let mentions = scrape_text_for_mentions(&comment_form.content);
@@ -155,7 +146,15 @@ impl PerformCrud for CreateComment {
       .await?
       .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
 
-    let object = PostOrComment::Comment(updated_comment.into());
+    let apub_comment: ApubComment = updated_comment.into();
+    CreateOrUpdateComment::send(
+      apub_comment.clone(),
+      &local_user_view.person.clone().into(),
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await?;
+    let object = PostOrComment::Comment(apub_comment);
     Vote::send(
       &object,
       &local_user_view.person.clone().into(),

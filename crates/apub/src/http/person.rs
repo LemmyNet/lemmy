@@ -39,7 +39,7 @@ pub(crate) async fn get_apub_person_http(
   .into();
 
   if !person.deleted {
-    let apub = person.to_apub(&context).await?;
+    let apub = person.into_apub(&context).await?;
 
     Ok(create_apub_response(&apub))
   } else {

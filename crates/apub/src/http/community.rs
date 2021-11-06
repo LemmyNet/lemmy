@@ -47,7 +47,7 @@ pub(crate) async fn get_apub_community_http(
   .into();
 
   if !community.deleted {
-    let apub = community.to_apub(&**context).await?;
+    let apub = community.into_apub(&**context).await?;
 
     Ok(create_apub_response(&apub))
   } else {
@@ -118,7 +118,7 @@ pub(crate) async fn get_apub_community_outbox(
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
   let outbox: ApubCommunityOutbox = id.dereference(&outbox_data, &mut 0).await?;
-  Ok(create_apub_response(&outbox.to_apub(&outbox_data).await?))
+  Ok(create_apub_response(&outbox.into_apub(&outbox_data).await?))
 }
 
 pub(crate) async fn get_apub_community_moderators(
@@ -134,6 +134,6 @@ pub(crate) async fn get_apub_community_moderators(
   let outbox_data = CommunityContext(community, context.get_ref().clone());
   let moderators: ApubCommunityModerators = id.dereference(&outbox_data, &mut 0).await?;
   Ok(create_apub_response(
-    &moderators.to_apub(&outbox_data).await?,
+    &moderators.into_apub(&outbox_data).await?,
   ))
 }

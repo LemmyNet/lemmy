@@ -29,7 +29,7 @@ use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation
 
 impl CreateOrUpdateComment {
   pub async fn send(
-    comment: &ApubComment,
+    comment: ApubComment,
     actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
@@ -48,12 +48,12 @@ impl CreateOrUpdateComment {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let maa = collect_non_local_mentions(comment, &community, context).await?;
+    let maa = collect_non_local_mentions(&comment, &community, context).await?;
 
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: comment.to_apub(context).await?,
+      object: comment.into_apub(context).await?,
       cc: maa.ccs,
       tag: maa.tags,
       kind,
@@ -97,7 +97,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment =
-      ApubComment::from_apub(&self.object, context, self.actor.inner(), request_counter).await?;
+      ApubComment::from_apub(self.object, context, self.actor.inner(), request_counter).await?;
     let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,

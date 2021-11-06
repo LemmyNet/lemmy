@@ -27,7 +27,7 @@ use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperati
 
 impl UpdateCommunity {
   pub async fn send(
-    community: &ApubCommunity,
+    community: ApubCommunity,
     actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
@@ -38,7 +38,7 @@ impl UpdateCommunity {
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: community.to_apub(context).await?,
+      object: community.clone().into_apub(context).await?,
       cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
@@ -46,7 +46,7 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
-    send_to_community(activity, &id, actor, community, vec![], context).await
+    send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 
@@ -73,8 +73,8 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
 
-    let updated_community = Group::from_apub_to_form(
-      &self.object,
+    let updated_community = Group::into_form(
+      self.object,
       &community.actor_id.clone().into(),
       &context.settings(),
     )

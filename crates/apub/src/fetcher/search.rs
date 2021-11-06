@@ -155,7 +155,7 @@ impl ApubObject for SearchableObjects {
     }
   }
 
-  async fn to_apub(&self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -164,7 +164,7 @@ impl ApubObject for SearchableObjects {
   }
 
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: Self::ApubType,
     context: &LemmyContext,
     ed: &Url,
     rc: &mut i32,

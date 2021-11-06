@@ -169,7 +169,7 @@ impl Perform for LockPost {
 
     // apub updates
     CreateOrUpdatePost::send(
-      &updated_post,
+      updated_post,
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
@@ -242,7 +242,7 @@ impl Perform for StickyPost {
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
     CreateOrUpdatePost::send(
-      &updated_post,
+      updated_post,
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,

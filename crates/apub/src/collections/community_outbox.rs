@@ -60,9 +60,9 @@ impl ApubObject for ApubCommunityOutbox {
     Ok(())
   }
 
-  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
-    for post in &self.0 {
+    for post in self.0 {
       let actor = post.creator_id;
       let actor: ApubPerson = blocking(data.1.pool(), move |conn| Person::read(conn, actor))
         .await??
@@ -86,13 +86,13 @@ impl ApubObject for ApubCommunityOutbox {
   }
 
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: Self::ApubType,
     data: &Self::DataType,
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     verify_domains_match(expected_domain, &apub.id)?;
-    let mut outbox_activities = apub.ordered_items.clone();
+    let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() > 20 {
       outbox_activities = outbox_activities[0..20].to_vec();
     }

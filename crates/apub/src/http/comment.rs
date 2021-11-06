@@ -30,7 +30,7 @@ pub(crate) async fn get_apub_comment(
   }
 
   if !comment.deleted {
-    Ok(create_apub_response(&comment.to_apub(&**context).await?))
+    Ok(create_apub_response(&comment.into_apub(&**context).await?))
   } else {
     Ok(create_apub_tombstone_response(&comment.to_tombstone()?))
   }

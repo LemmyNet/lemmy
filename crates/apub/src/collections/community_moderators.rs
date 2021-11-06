@@ -49,11 +49,11 @@ impl ApubObject for ApubCommunityModerators {
     unimplemented!()
   }
 
-  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let ordered_items = self
       .0
-      .iter()
-      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id.clone()))
+      .into_iter()
+      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id))
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
@@ -67,7 +67,7 @@ impl ApubObject for ApubCommunityModerators {
   }
 
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: Self::ApubType,
     data: &Self::DataType,
     expected_domain: &Url,
     request_counter: &mut i32,
@@ -94,12 +94,11 @@ impl ApubObject for ApubCommunityModerators {
     }
 
     // Add new mods to database which have been added to moderators collection
-    for mod_id in &apub.ordered_items {
-      let mod_id = ObjectId::new(mod_id.clone());
+    for mod_id in apub.ordered_items {
+      let mod_id = ObjectId::new(mod_id);
       let mod_user: ApubPerson = mod_id.dereference(&data.1, request_counter).await?;
 
       if !current_moderators
-        .clone()
         .iter()
         .map(|c| c.moderator.actor_id.clone())
         .any(|x| x == mod_user.actor_id)
@@ -166,7 +165,7 @@ mod tests {
       0: community,
       1: context,
     };
-    ApubCommunityModerators::from_apub(&json, &community_context, &url, &mut request_counter)
+    ApubCommunityModerators::from_apub(json, &community_context, &url, &mut request_counter)
       .await
       .unwrap();
     assert_eq!(request_counter, 0);

@@ -19,7 +19,7 @@ use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud}
 
 impl CreateOrUpdatePrivateMessage {
   pub async fn send(
-    private_message: &ApubPrivateMessage,
+    private_message: ApubPrivateMessage,
     actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
@@ -38,7 +38,7 @@ impl CreateOrUpdatePrivateMessage {
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
       to: [ObjectId::new(recipient.actor_id())],
-      object: private_message.to_apub(context).await?,
+      object: private_message.into_apub(context).await?,
       kind,
       unparsed: Default::default(),
     };
@@ -67,7 +67,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let private_message =
-      ApubPrivateMessage::from_apub(&self.object, context, self.actor.inner(), request_counter)
+      ApubPrivateMessage::from_apub(self.object, context, self.actor.inner(), request_counter)
         .await?;
 
     let notif_type = match self.kind {

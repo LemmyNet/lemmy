@@ -30,7 +30,7 @@ pub(crate) async fn get_apub_post(
   }
 
   if !post.deleted {
-    Ok(create_apub_response(&post.to_apub(&context).await?))
+    Ok(create_apub_response(&post.into_apub(&context).await?))
   } else {
     Ok(create_apub_tombstone_response(&post.to_tombstone()?))
   }

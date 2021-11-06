@@ -87,7 +87,7 @@ impl ApubObject for ApubComment {
     Ok(())
   }
 
-  async fn to_apub(&self, context: &LemmyContext) -> Result<Note, LemmyError> {
+  async fn into_apub(self, context: &LemmyContext) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
 
@@ -104,7 +104,7 @@ impl ApubObject for ApubComment {
 
     let note = Note {
       r#type: NoteType::Note,
-      id: ObjectId::new(self.ap_id.to_owned()),
+      id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
       content: markdown_to_html(&self.content),
@@ -133,13 +133,12 @@ impl ApubObject for ApubComment {
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   async fn from_apub(
-    note: &Note,
+    note: Note,
     context: &LemmyContext,
     expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubComment, LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
-    let ap_id = Some(note.id.clone().into());
     let creator = note
       .attributed_to
       .dereference(context, request_counter)
@@ -176,10 +175,10 @@ impl ApubObject for ApubComment {
       content: content_slurs_removed,
       removed: None,
       read: None,
-      published: note.published.map(|u| u.to_owned().naive_local()),
-      updated: note.updated.map(|u| u.to_owned().naive_local()),
+      published: note.published.map(|u| u.naive_local()),
+      updated: note.updated.map(|u| u.naive_local()),
       deleted: None,
-      ap_id,
+      ap_id: Some(note.id.into()),
       local: Some(false),
     };
     let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
@@ -206,7 +205,7 @@ pub(crate) mod tests {
     let person = parse_lemmy_person(context).await;
     let community = parse_lemmy_community(context).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json");
-    let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
+    let post = ApubPost::from_apub(post_json, context, url, &mut 0)
       .await
       .unwrap();
     (person, community, post)
@@ -225,9 +224,9 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
-    let json = file_to_json_object("assets/lemmy/objects/note.json");
+    let json: Note = file_to_json_object("assets/lemmy/objects/note.json");
     let mut request_counter = 0;
-    let comment = ApubComment::from_apub(&json, &context, &url, &mut request_counter)
+    let comment = ApubComment::from_apub(json.clone(), &context, &url, &mut request_counter)
       .await
       .unwrap();
 
@@ -236,10 +235,11 @@ pub(crate) mod tests {
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
 
-    let to_apub = comment.to_apub(&context).await.unwrap();
+    let comment_id = comment.id;
+    let to_apub = comment.into_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    Comment::delete(&*context.pool().get().unwrap(), comment_id).unwrap();
     cleanup(data, &context);
   }
 
@@ -254,12 +254,12 @@ pub(crate) mod tests {
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
         .unwrap();
     let person_json = file_to_json_object("assets/pleroma/objects/person.json");
-    ApubPerson::from_apub(&person_json, &context, &pleroma_url, &mut 0)
+    ApubPerson::from_apub(person_json, &context, &pleroma_url, &mut 0)
       .await
       .unwrap();
     let json = file_to_json_object("assets/pleroma/objects/note.json");
     let mut request_counter = 0;
-    let comment = ApubComment::from_apub(&json, &context, &pleroma_url, &mut request_counter)
+    let comment = ApubComment::from_apub(json, &context, &pleroma_url, &mut request_counter)
       .await
       .unwrap();
 

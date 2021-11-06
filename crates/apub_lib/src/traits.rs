@@ -41,7 +41,7 @@ pub trait ApubObject {
   async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
 
   /// Trait for converting an object or actor into the respective ActivityPub type.
-  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError>;
 
   /// Converts an object from ActivityPub type to Lemmy internal type.
@@ -51,7 +51,7 @@ pub trait ApubObject {
   /// * `expected_domain` Domain where the object was received from. None in case of mod action.
   /// * `mod_action_allowed` True if the object can be a mod activity, ignore `expected_domain` in this case
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: Self::ApubType,
     data: &Self::DataType,
     expected_domain: &Url,
     request_counter: &mut i32,

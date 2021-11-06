@@ -12,6 +12,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   fetcher::post_or_comment::PostOrComment,
   generate_local_apub_endpoint,
+  objects::post::ApubPost,
   protocol::activities::{
     create_or_update::post::CreateOrUpdatePost,
     voting::vote::{Vote, VoteType},
@@ -109,14 +110,6 @@ impl PerformCrud for CreatePost {
     .await?
     .map_err(|e| ApiError::err("couldnt_create_post", e))?;
 
-    CreateOrUpdatePost::send(
-      &updated_post.clone().into(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
-
     // They like their own post by default
     let person_id = local_user_view.person.id;
     let post_id = inserted_post.id;
@@ -145,7 +138,15 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    let object = PostOrComment::Post(Box::new(updated_post.into()));
+    let apub_post: ApubPost = updated_post.into();
+    CreateOrUpdatePost::send(
+      apub_post.clone(),
+      &local_user_view.person.clone().into(),
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await?;
+    let object = PostOrComment::Post(Box::new(apub_post));
     Vote::send(
       &object,
       &local_user_view.person.clone().into(),

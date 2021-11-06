@@ -72,7 +72,7 @@ impl PerformCrud for EditCommunity {
     .map_err(|e| ApiError::err("couldnt_update_community", e))?;
 
     UpdateCommunity::send(
-      &updated_community.into(),
+      updated_community.into(),
       &local_user_view.person.into(),
       context,
     )
