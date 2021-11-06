@@ -52,7 +52,7 @@ pub async fn shared_inbox(
       receive_group_inbox(g, activity_data, request, &context).await
     }
     SharedInboxActivities::PersonInboxActivities(p) => {
-      receive_person_inbox(p, activity_data, request, &context).await
+      receive_person_inbox(*p, activity_data, request, &context).await
     }
   }
 }

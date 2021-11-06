@@ -61,7 +61,7 @@ impl CreateOrUpdatePost {
     .into();
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let id = create_or_update.id.clone();
-    let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
+    let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }

@@ -38,7 +38,7 @@ pub enum SharedInboxActivities {
   GroupInboxActivities(GroupInboxActivities),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
   // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
-  PersonInboxActivities(PersonInboxActivities),
+  PersonInboxActivities(Box<PersonInboxActivities>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
@@ -47,7 +47,7 @@ pub enum SharedInboxActivities {
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
-  AnnouncableActivities(AnnouncableActivities),
+  AnnouncableActivities(Box<AnnouncableActivities>),
   Report(Report),
 }
 
@@ -61,7 +61,7 @@ pub enum PersonInboxActivities {
   CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
-  AnnounceActivity(Box<AnnounceActivity>),
+  AnnounceActivity(AnnounceActivity),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
@@ -69,12 +69,12 @@ pub enum PersonInboxActivities {
 #[activity_handler(LemmyContext)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
+  CreateOrUpdatePost(CreateOrUpdatePost),
   Vote(Vote),
   UndoVote(UndoVote),
   Delete(Delete),
   UndoDelete(UndoDelete),
-  UpdateCommunity(Box<UpdateCommunity>),
+  UpdateCommunity(UpdateCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),

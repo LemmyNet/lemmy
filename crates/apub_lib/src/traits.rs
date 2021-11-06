@@ -82,7 +82,7 @@ pub trait ActorType {
   fn get_public_key(&self) -> Result<PublicKey, LemmyError> {
     Ok(PublicKey {
       id: format!("{}#main-key", self.actor_id()),
-      owner: self.actor_id(),
+      owner: Box::new(self.actor_id()),
       public_key_pem: self.public_key().context(location_info!())?,
     })
   }

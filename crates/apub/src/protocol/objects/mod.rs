@@ -1,9 +1,19 @@
+use serde::{Deserialize, Serialize};
+use url::Url;
+
 pub(crate) mod chat_message;
 pub(crate) mod group;
 pub(crate) mod note;
 pub(crate) mod page;
 pub(crate) mod person;
 pub(crate) mod tombstone;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Endpoints {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub shared_inbox: Option<Url>,
+}
 
 #[cfg(test)]
 mod tests {

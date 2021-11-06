@@ -28,9 +28,10 @@ lazy_static! {
     .unwrap();
 }
 
+/// We store Url on the heap because it is quite large (88 bytes).
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 #[serde(transparent)]
-pub struct ObjectId<Kind>(Url, #[serde(skip)] PhantomData<Kind>)
+pub struct ObjectId<Kind>(Box<Url>, #[serde(skip)] PhantomData<Kind>)
 where
   Kind: ApubObject + Send + 'static,
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>;
@@ -44,7 +45,7 @@ where
   where
     T: Into<Url>,
   {
-    ObjectId(url.into(), PhantomData::<Kind>)
+    ObjectId(Box::new(url.into()), PhantomData::<Kind>)
   }
 
   pub fn inner(&self) -> &Url {
@@ -103,7 +104,7 @@ where
     data: &<Kind as ApubObject>::DataType,
   ) -> Result<Option<Kind>, LemmyError> {
     let id = self.0.clone();
-    ApubObject::read_from_apub_id(id, data).await
+    ApubObject::read_from_apub_id(*id, data).await
   }
 
   async fn dereference_from_http(
@@ -181,7 +182,7 @@ where
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
-    id.0
+    *id.0
   }
 }
 

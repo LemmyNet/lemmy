@@ -4,15 +4,12 @@ use crate::{
   generate_moderators_url,
   generate_outbox_url,
   protocol::{
-    objects::{group::Group, tombstone::Tombstone},
+    objects::{group::Group, tombstone::Tombstone, Endpoints},
     ImageObject,
     Source,
   },
 };
-use activitystreams::{
-  actor::{kind::GroupType, Endpoints},
-  object::kind::ImageType,
-};
+use activitystreams::{actor::kind::GroupType, object::kind::ImageType};
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
@@ -111,7 +108,6 @@ impl ApubObject for ApubCommunity {
       followers: self.followers_url.clone().into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-        ..Default::default()
       },
       public_key: self.get_public_key()?,
       published: Some(convert_datetime(self.published)),

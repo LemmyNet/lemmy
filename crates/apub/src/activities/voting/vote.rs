@@ -26,7 +26,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use std::ops::Deref;
 
 impl Vote {
   pub(in crate::activities::voting) fn new(
@@ -90,7 +89,7 @@ impl ActivityHandler for Vote {
     let actor = self.actor.dereference(context, request_counter).await?;
     let object = self.object.dereference(context, request_counter).await?;
     match object {
-      PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
+      PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
     }
   }

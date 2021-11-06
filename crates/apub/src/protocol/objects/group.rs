@@ -5,12 +5,9 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   objects::{community::ApubCommunity, get_summary_from_string_or_source},
-  protocol::{ImageObject, Source},
+  protocol::{objects::Endpoints, ImageObject, Source},
 };
-use activitystreams::{
-  actor::{kind::GroupType, Endpoints},
-  unparsed::Unparsed,
-};
+use activitystreams::{actor::kind::GroupType, unparsed::Unparsed};
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
 use lemmy_db_schema::{naive_now, source::community::CommunityForm};
@@ -46,7 +43,7 @@ pub struct Group {
   pub(crate) inbox: Url,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   pub(crate) followers: Url,
-  pub(crate) endpoints: Endpoints<Url>,
+  pub(crate) endpoints: Endpoints,
   pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
@@ -72,7 +69,6 @@ impl Group {
     check_slurs(&title, slur_regex)?;
     check_slurs_opt(&description, slur_regex)?;
 
-    // TODO: test_parse_lemmy_community_moderators() keeps failing here with stack overflow
     Ok(CommunityForm {
       name,
       title,

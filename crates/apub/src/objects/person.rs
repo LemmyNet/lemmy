@@ -3,12 +3,15 @@ use crate::{
   generate_outbox_url,
   objects::get_summary_from_string_or_source,
   protocol::{
-    objects::person::{Person, UserTypes},
+    objects::{
+      person::{Person, UserTypes},
+      Endpoints,
+    },
     ImageObject,
     Source,
   },
 };
-use activitystreams::{actor::Endpoints, object::kind::ImageType};
+use activitystreams::object::kind::ImageType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -109,7 +112,6 @@ impl ApubObject for ApubPerson {
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-        ..Default::default()
       },
       public_key: self.get_public_key()?,
       updated: self.updated.map(convert_datetime),

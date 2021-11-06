@@ -1,8 +1,8 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{ImageObject, Source},
+  protocol::{objects::Endpoints, ImageObject, Source},
 };
-use activitystreams::{actor::Endpoints, unparsed::Unparsed, url::Url};
+use activitystreams::{unparsed::Unparsed, url::Url};
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey};
 use serde::{Deserialize, Serialize};
@@ -35,7 +35,7 @@ pub struct Person {
   pub(crate) inbox: Url,
   /// mandatory field in activitypub, currently empty in lemmy
   pub(crate) outbox: Url,
-  pub(crate) endpoints: Endpoints<Url>,
+  pub(crate) endpoints: Endpoints,
   pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,

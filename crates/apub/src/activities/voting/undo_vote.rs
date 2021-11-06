@@ -26,7 +26,6 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use std::ops::Deref;
 
 impl UndoVote {
   pub async fn send(
@@ -90,7 +89,7 @@ impl ActivityHandler for UndoVote {
       .dereference(context, request_counter)
       .await?;
     match object {
-      PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
+      PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
     }
   }

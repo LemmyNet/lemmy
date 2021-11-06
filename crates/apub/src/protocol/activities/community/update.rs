@@ -12,7 +12,7 @@ pub struct UpdateCommunity {
   pub(crate) actor: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
-  pub(crate) object: Group,
+  pub(crate) object: Box<Group>,
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: UpdateType,

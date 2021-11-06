@@ -11,15 +11,15 @@ use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum PostOrComment {
-  Post(Box<ApubPost>),
+  Post(ApubPost),
   Comment(ApubComment),
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum PageOrNote {
-  Page(Box<Page>),
-  Note(Box<Note>),
+  Page(Page),
+  Note(Note),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -39,7 +39,7 @@ impl ApubObject for PostOrComment {
   ) -> Result<Option<Self>, LemmyError> {
     let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match post {
-      Some(o) => Some(PostOrComment::Post(Box::new(o))),
+      Some(o) => Some(PostOrComment::Post(o)),
       None => ApubComment::read_from_apub_id(object_id, data)
         .await?
         .map(PostOrComment::Comment),
@@ -68,11 +68,11 @@ impl ApubObject for PostOrComment {
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PageOrNote::Page(p) => PostOrComment::Post(Box::new(
-        ApubPost::from_apub(*p, context, expected_domain, request_counter).await?,
-      )),
+      PageOrNote::Page(p) => PostOrComment::Post(
+        ApubPost::from_apub(p, context, expected_domain, request_counter).await?,
+      ),
       PageOrNote::Note(n) => PostOrComment::Comment(
-        ApubComment::from_apub(*n, context, expected_domain, request_counter).await?,
+        ApubComment::from_apub(n, context, expected_domain, request_counter).await?,
       ),
     })
   }

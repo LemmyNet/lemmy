@@ -9,7 +9,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::community::update::UpdateCommunity, objects::group::Group},
+  protocol::activities::community::update::UpdateCommunity,
 };
 use activitystreams::{activity::kind::UpdateType, public};
 use lemmy_api_common::blocking;
@@ -38,14 +38,14 @@ impl UpdateCommunity {
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: community.clone().into_apub(context).await?,
+      object: Box::new(community.clone().into_apub(context).await?),
       cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
       unparsed: Default::default(),
     };
 
-    let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
+    let activity = AnnouncableActivities::UpdateCommunity(update);
     send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }
@@ -73,12 +73,10 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
 
-    let updated_community = Group::into_form(
-      self.object,
-      &community.actor_id.clone().into(),
-      &context.settings(),
-    )
-    .await?;
+    let updated_community = self
+      .object
+      .into_form(&community.actor_id.clone().into(), &context.settings())
+      .await?;
     let cf = CommunityForm {
       name: updated_community.name,
       title: updated_community.title,
