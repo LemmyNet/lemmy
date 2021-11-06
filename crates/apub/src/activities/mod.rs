@@ -116,8 +116,8 @@ fn verify_add_remove_moderator_target(
   Ok(())
 }
 
-pub(crate) fn verify_is_public(to: &[Url]) -> Result<(), LemmyError> {
-  if !to.contains(&public()) {
+pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
+  if !to.contains(&public()) && !cc.contains(&public()) {
     return Err(anyhow!("Object is not public").into());
   }
   Ok(())

@@ -110,6 +110,7 @@ impl ApubObject for ApubPost {
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![community.actor_id.into(), public()],
+      cc: vec![],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeHtml::Html),
@@ -150,7 +151,7 @@ impl ApubObject for ApubPost {
     verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
     verify_domains_match(page.attributed_to.inner(), page.id.inner())?;
-    verify_is_public(&page.to.clone())?;
+    verify_is_public(&page.to, &page.cc)?;
     Ok(())
   }
 

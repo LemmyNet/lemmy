@@ -75,7 +75,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to)?;
+    verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context, request_counter).await?.0;
     let community = self.get_community(context, request_counter).await?;
 

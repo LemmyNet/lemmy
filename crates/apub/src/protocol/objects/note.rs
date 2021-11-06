@@ -23,6 +23,8 @@ pub struct Note {
   pub(crate) id: ObjectId<ApubComment>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
+  #[serde(default)]
+  pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) media_type: Option<MediaTypeHtml>,
   pub(crate) source: SourceCompat,

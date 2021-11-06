@@ -20,6 +20,8 @@ pub struct Page {
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
+  #[serde(default)]
+  pub(crate) cc: Vec<Url>,
   pub(crate) name: String,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,

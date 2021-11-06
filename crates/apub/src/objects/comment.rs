@@ -107,6 +107,7 @@ impl ApubObject for ApubComment {
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
+      cc: vec![],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: SourceCompat::Lemmy(Source {
@@ -137,7 +138,7 @@ impl ApubObject for ApubComment {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    verify_is_public(&note.to)?;
+    verify_is_public(&note.to, &note.cc)?;
     let (post, _) = note.get_parents(context, request_counter).await?;
     let community_id = post.community_id;
     let community = blocking(context.pool(), move |conn| {
