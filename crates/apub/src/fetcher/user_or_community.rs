@@ -80,15 +80,7 @@ impl ApubObject for UserOrCommunity {
 }
 
 impl ActorType for UserOrCommunity {
-  fn is_local(&self) -> bool {
-    todo!()
-  }
-
   fn actor_id(&self) -> Url {
-    todo!()
-  }
-
-  fn name(&self) -> String {
     todo!()
   }
 

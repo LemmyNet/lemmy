@@ -63,9 +63,7 @@ pub trait ApubObject {
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
 pub trait ActorType {
-  fn is_local(&self) -> bool;
   fn actor_id(&self) -> Url;
-  fn name(&self) -> String;
 
   // TODO: this should not be an option (needs db migration in lemmy)
   fn public_key(&self) -> Option<String>;

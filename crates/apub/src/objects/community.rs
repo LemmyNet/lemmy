@@ -161,14 +161,8 @@ impl ApubObject for ApubCommunity {
 }
 
 impl ActorType for ApubCommunity {
-  fn is_local(&self) -> bool {
-    self.local
-  }
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
-  }
-  fn name(&self) -> String {
-    self.name.clone()
   }
   fn public_key(&self) -> Option<String> {
     self.public_key.to_owned()
