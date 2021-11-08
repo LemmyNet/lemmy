@@ -80,7 +80,7 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
 
-    let updated_community = self.object.into_form()?;
+    let updated_community = self.object.into_form();
     let cf = CommunityForm {
       name: updated_community.name,
       title: updated_community.title,

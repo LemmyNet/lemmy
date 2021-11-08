@@ -68,8 +68,8 @@ impl Group {
     Ok(())
   }
 
-  pub(crate) fn into_form(self) -> Result<CommunityForm, LemmyError> {
-    Ok(CommunityForm {
+  pub(crate) fn into_form(self) -> CommunityForm {
+    CommunityForm {
       name: self.preferred_username,
       title: self.name,
       description: get_summary_from_string_or_source(&self.summary, &self.source),
@@ -88,6 +88,6 @@ impl Group {
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
       shared_inbox_url: Some(self.endpoints.shared_inbox.map(|s| s.into())),
-    })
+    }
   }
 }
