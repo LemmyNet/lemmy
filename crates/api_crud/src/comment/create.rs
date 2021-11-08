@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_community_deleted_or_removed,
   check_person_block,
@@ -76,7 +75,10 @@ impl PerformCrud for CreateComment {
     // If there's a parent_id, check to make sure that comment is in that post
     if let Some(parent_id) = data.parent_id {
       // Make sure the parent comment exists
-      let parent = blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
+      let parent = context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::read(conn, parent_id))
         .await?
         .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
@@ -98,18 +100,21 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let comment_form2 = comment_form.clone();
-    let inserted_comment = blocking(context.pool(), move |conn| {
-      Comment::create(conn, &comment_form2)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
+    let inserted_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| Comment::create(conn, &comment_form2))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
-    let updated_comment: Comment =
-      blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
+    let updated_comment: Comment = context
+      .conn()
+      .await?
+      .interact(move |conn| -> Result<Comment, LemmyError> {
         let apub_id = generate_local_apub_endpoint(
           EndpointType::Comment,
           &inserted_comment_id.to_string(),
@@ -141,8 +146,10 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    let like = move |conn: &'_ _| CommentLike::like(conn, &like_form);
-    blocking(context.pool(), like)
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommentLike::like(conn, &like_form))
       .await?
       .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
 
@@ -166,45 +173,51 @@ impl PerformCrud for CreateComment {
 
     let person_id = local_user_view.person.id;
     let comment_id = inserted_comment.id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
+    let comment_view = context
+      .conn()
+      .await?
+      .interact(move |conn| CommentView::read(conn, comment_id, Some(person_id)))
+      .await??;
 
     // If its a comment to yourself, mark it as read
     if local_user_view.person.id == comment_view.get_recipient_id() {
       let comment_id = inserted_comment.id;
-      blocking(context.pool(), move |conn| {
-        Comment::update_read(conn, comment_id, true)
-      })
-      .await?
-      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::update_read(conn, comment_id, true))
+        .await?
+        .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
     }
     // If its a reply, mark the parent as read
     if let Some(parent_id) = data.parent_id {
-      let parent_comment = blocking(context.pool(), move |conn| {
-        CommentView::read(conn, parent_id, Some(person_id))
-      })
-      .await??;
-      if local_user_view.person.id == parent_comment.get_recipient_id() {
-        blocking(context.pool(), move |conn| {
-          Comment::update_read(conn, parent_id, true)
-        })
+      let parent_comment = context
+        .conn()
         .await?
-        .map_err(|e| ApiError::err("couldnt_update_parent_comment", e))?;
+        .interact(move |conn| CommentView::read(conn, parent_id, Some(person_id)))
+        .await??;
+      if local_user_view.person.id == parent_comment.get_recipient_id() {
+        context
+          .conn()
+          .await?
+          .interact(move |conn| Comment::update_read(conn, parent_id, true))
+          .await?
+          .map_err(|e| ApiError::err("couldnt_update_parent_comment", e))?;
       }
       // If the parent has PersonMentions mark them as read too
       let person_id = local_user_view.person.id;
-      let person_mention = blocking(context.pool(), move |conn| {
-        PersonMention::read_by_comment_and_person(conn, parent_id, person_id)
-      })
-      .await?;
-      if let Ok(mention) = person_mention {
-        blocking(context.pool(), move |conn| {
-          PersonMention::update_read(conn, mention.id, true)
-        })
+      let person_mention = context
+        .conn()
         .await?
-        .map_err(|e| ApiError::err("couldnt_update_person_mentions", e))?;
+        .interact(move |conn| PersonMention::read_by_comment_and_person(conn, parent_id, person_id))
+        .await?;
+      if let Ok(mention) = person_mention {
+        context
+          .conn()
+          .await?
+          .interact(move |conn| PersonMention::update_read(conn, mention.id, true))
+          .await?
+          .map_err(|e| ApiError::err("couldnt_update_person_mentions", e))?;
       }
     }
 

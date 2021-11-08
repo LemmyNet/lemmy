@@ -16,7 +16,6 @@ use crate::{
   PostOrComment,
 };
 use activitystreams::{activity::kind::UndoType, public};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -35,11 +34,12 @@ impl UndoVote {
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??
+      .into();
 
     let object = Vote::new(object, actor, &community, kind.clone(), context)?;
     let id = generate_activity_id(

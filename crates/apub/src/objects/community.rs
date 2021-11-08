@@ -12,7 +12,6 @@ use crate::{
 use activitystreams::{actor::kind::GroupType, object::kind::ImageType};
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
@@ -60,19 +59,21 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        Community::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Community::read_from_apub_id(conn, object_id))
+        .await??
+        .map(Into::into),
     )
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    blocking(context.pool(), move |conn| {
-      Community::update_deleted(conn, self.id, true)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| Community::update_deleted(conn, self.id, true))
+      .await??;
     Ok(())
   }
 
@@ -143,10 +144,12 @@ impl ApubObject for ApubCommunity {
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
-    let community: ApubCommunity =
-      blocking(context.pool(), move |conn| Community::upsert(conn, &form))
-        .await??
-        .into();
+    let community: ApubCommunity = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::upsert(conn, &form))
+      .await??
+      .into();
     let outbox_data = CommunityContext(community.clone(), context.clone());
 
     group
@@ -197,10 +200,11 @@ impl ApubCommunity {
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let follows = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_community(conn, id)
-    })
-    .await??;
+    let follows = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollowerView::for_community(conn, id))
+      .await??;
     let follower_inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
@@ -228,7 +232,7 @@ impl ApubCommunity {
 pub(crate) mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
-  use lemmy_db_schema::traits::Crud;
+  use lemmy_db_schema::{establish_unpooled_connection, traits::Crud};
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
@@ -256,12 +260,13 @@ pub(crate) mod tests {
   async fn test_parse_lemmy_community() {
     let context = init_context();
     let community = parse_lemmy_community(&context).await;
+    let conn = establish_unpooled_connection();
 
     assert_eq!(community.title, "Ten Forward");
     assert!(community.public_key.is_some());
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
-    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
+    Community::delete(&conn, community.id).unwrap();
   }
 }

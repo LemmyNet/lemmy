@@ -12,7 +12,6 @@ use crate::{
   protocol::activities::community::update::UpdateCommunity,
 };
 use activitystreams::{activity::kind::UpdateType, public};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -91,10 +90,11 @@ impl ActivityHandler for UpdateCommunity {
       banner: updated_community.banner,
       ..CommunityForm::default()
     };
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(conn, community.id, &cf)
-    })
-    .await??;
+    let updated_community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::update(conn, community.id, &cf))
+      .await??;
 
     send_community_ws_message(
       updated_community.id,

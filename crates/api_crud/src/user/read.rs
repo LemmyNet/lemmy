@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*};
+use lemmy_api_common::{get_local_user_view_from_jwt_opt, person::*};
 use lemmy_apub::{get_actor_id_from_name, objects::person::ApubPerson};
 use lemmy_apub_lib::{object_id::ObjectId, webfinger::WebfingerType};
 use lemmy_db_schema::{from_opt_str_to_opt_enum, SortType};
@@ -57,55 +57,60 @@ impl PerformCrud for GetPersonDetails {
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_details_id)
-    })
-    .await??;
+    let person_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PersonViewSafe::read(conn, person_details_id))
+      .await??;
 
     let page = data.page;
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
 
-    let (posts, comments) = blocking(context.pool(), move |conn| {
-      let mut posts_query = PostQueryBuilder::create(conn)
-        .sort(sort)
-        .show_nsfw(show_nsfw)
-        .show_bot_accounts(show_bot_accounts)
-        .show_read_posts(show_read_posts)
-        .saved_only(saved_only)
-        .community_id(community_id)
-        .my_person_id(person_id)
-        .page(page)
-        .limit(limit);
+    let (posts, comments) = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        let mut posts_query = PostQueryBuilder::create(conn)
+          .sort(sort)
+          .show_nsfw(show_nsfw)
+          .show_bot_accounts(show_bot_accounts)
+          .show_read_posts(show_read_posts)
+          .saved_only(saved_only)
+          .community_id(community_id)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit);
 
-      let mut comments_query = CommentQueryBuilder::create(conn)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
-        .sort(sort)
-        .saved_only(saved_only)
-        .community_id(community_id)
-        .page(page)
-        .limit(limit);
+        let mut comments_query = CommentQueryBuilder::create(conn)
+          .my_person_id(person_id)
+          .show_bot_accounts(show_bot_accounts)
+          .sort(sort)
+          .saved_only(saved_only)
+          .community_id(community_id)
+          .page(page)
+          .limit(limit);
 
-      // If its saved only, you don't care what creator it was
-      // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only.unwrap_or(false) {
-        posts_query = posts_query.creator_id(person_details_id);
-        comments_query = comments_query.creator_id(person_details_id);
-      }
+        // If its saved only, you don't care what creator it was
+        // Or, if its not saved, then you only want it for that specific creator
+        if !saved_only.unwrap_or(false) {
+          posts_query = posts_query.creator_id(person_details_id);
+          comments_query = comments_query.creator_id(person_details_id);
+        }
 
-      let posts = posts_query.list()?;
-      let comments = comments_query.list()?;
+        let posts = posts_query.list()?;
+        let comments = comments_query.list()?;
 
-      Ok((posts, comments)) as Result<_, LemmyError>
-    })
-    .await??;
+        Ok((posts, comments)) as Result<_, LemmyError>
+      })
+      .await??;
 
-    let moderates = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_person(conn, person_details_id)
-    })
-    .await??;
+    let moderates = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityModeratorView::for_person(conn, person_details_id))
+      .await??;
 
     // Return the jwt
     Ok(GetPersonDetailsResponse {

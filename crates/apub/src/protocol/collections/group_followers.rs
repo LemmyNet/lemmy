@@ -1,6 +1,5 @@
 use crate::generate_followers_url;
 use activitystreams::collection::kind::CollectionType;
-use lemmy_api_common::blocking;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::LemmyError;
@@ -23,10 +22,11 @@ impl GroupFollowers {
     context: &LemmyContext,
   ) -> Result<GroupFollowers, LemmyError> {
     let community_id = community.id;
-    let community_followers = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_community(conn, community_id)
-    })
-    .await??;
+    let community_followers = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollowerView::for_community(conn, community_id))
+      .await??;
 
     Ok(GroupFollowers {
       id: generate_followers_url(&community.actor_id)?.into(),

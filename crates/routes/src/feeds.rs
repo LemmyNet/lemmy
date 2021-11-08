@@ -2,7 +2,6 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
-use lemmy_api_common::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
@@ -80,15 +79,22 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = blocking(context.pool(), SiteView::read).await??;
+  let site_view = context
+    .conn()
+    .await?
+    .interact(|conn| SiteView::read(conn))
+    .await??;
 
-  let posts = blocking(context.pool(), move |conn| {
-    PostQueryBuilder::create(conn)
-      .listing_type(listing_type)
-      .sort(sort_type)
-      .list()
-  })
-  .await??;
+  let posts = context
+    .conn()
+    .await?
+    .interact(move |conn| {
+      PostQueryBuilder::create(conn)
+        .listing_type(listing_type)
+        .sort(sort_type)
+        .list()
+    })
+    .await??;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
@@ -136,20 +142,26 @@ async fn get_feed(
   let jwt_secret = context.secret().jwt_secret.to_owned();
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
-  let builder = blocking(context.pool(), move |conn| match request_type {
-    RequestType::User => get_feed_user(conn, &sort_type, &param, &protocol_and_hostname),
-    RequestType::Community => get_feed_community(conn, &sort_type, &param, &protocol_and_hostname),
-    RequestType::Front => get_feed_front(
-      conn,
-      &jwt_secret,
-      &sort_type,
-      &param,
-      &protocol_and_hostname,
-    ),
-    RequestType::Inbox => get_feed_inbox(conn, &jwt_secret, &param, &protocol_and_hostname),
-  })
-  .await?
-  .map_err(ErrorBadRequest)?;
+  let builder = context
+    .conn()
+    .await
+    .map_err(ErrorBadRequest)?
+    .interact(move |conn| match request_type {
+      RequestType::User => get_feed_user(conn, &sort_type, &param, &protocol_and_hostname),
+      RequestType::Community => {
+        get_feed_community(conn, &sort_type, &param, &protocol_and_hostname)
+      }
+      RequestType::Front => get_feed_front(
+        conn,
+        &jwt_secret,
+        &sort_type,
+        &param,
+        &protocol_and_hostname,
+      ),
+      RequestType::Inbox => get_feed_inbox(conn, &jwt_secret, &param, &protocol_and_hostname),
+    })
+    .await
+    .map_err(ErrorBadRequest)??;
 
   let rss = builder.build().map_err(ErrorBadRequest)?.to_string();
 

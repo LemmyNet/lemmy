@@ -12,7 +12,6 @@ use crate::{
   protocol::activities::community::block_user::BlockUserFromCommunity,
 };
 use activitystreams::{activity::kind::BlockType, public};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -96,10 +95,11 @@ impl ActivityHandler for BlockUserFromCommunity {
       person_id: blocked_user.id,
     };
 
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityPersonBan::ban(conn, &community_user_ban_form)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityPersonBan::ban(conn, &community_user_ban_form))
+      .await??;
 
     // Also unsubscribe them from the community, if they are subscribed
     let community_follower_form = CommunityFollowerForm {
@@ -107,11 +107,12 @@ impl ActivityHandler for BlockUserFromCommunity {
       person_id: blocked_user.id,
       pending: false,
     };
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityFollower::unfollow(conn, &community_follower_form)
-    })
-    .await?
-    .ok();
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollower::unfollow(conn, &community_follower_form))
+      .await?
+      .ok();
 
     Ok(())
   }

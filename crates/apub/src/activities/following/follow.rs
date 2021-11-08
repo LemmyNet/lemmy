@@ -10,7 +10,6 @@ use crate::{
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
 use activitystreams::activity::kind::FollowType;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -52,10 +51,11 @@ impl FollowCommunity {
       person_id: actor.id,
       pending: true,
     };
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollower::follow(conn, &community_follower_form).ok())
+      .await?;
 
     let follow = FollowCommunity::new(actor, community, context)?;
     let inbox = vec![community.inbox_url.clone().into()];
@@ -93,10 +93,11 @@ impl ActivityHandler for FollowCommunity {
     };
 
     // This will fail if they're already a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollower::follow(conn, &community_follower_form).ok())
+      .await?;
 
     AcceptFollowCommunity::send(self, context, request_counter).await
   }

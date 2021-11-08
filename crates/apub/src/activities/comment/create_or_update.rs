@@ -13,7 +13,7 @@ use crate::{
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
 use activitystreams::public;
-use lemmy_api_common::{blocking, check_post_deleted_or_removed};
+use lemmy_api_common::check_post_deleted_or_removed;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -36,13 +36,18 @@ impl CreateOrUpdateComment {
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::read(conn, post_id))
+      .await??;
     let community_id = post.community_id;
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??
+      .into();
 
     let id = generate_activity_id(
       kind.clone(),
@@ -116,10 +121,11 @@ impl GetCommunity for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let post = self.object.get_parents(context, request_counter).await?.0;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, post.community_id)
-    })
-    .await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, post.community_id))
+      .await??;
     Ok(community.into())
   }
 }

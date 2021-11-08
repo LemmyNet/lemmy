@@ -1,7 +1,6 @@
 use actix_web::web::Data;
 
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_community_deleted_or_removed,
   get_local_user_view_from_jwt,
@@ -51,7 +50,11 @@ impl PerformCrud for EditPost {
     }
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::read(conn, post_id))
+      .await??;
 
     check_community_ban(
       local_user_view.person.id,
@@ -90,10 +93,11 @@ impl PerformCrud for EditPost {
     };
 
     let post_id = data.post_id;
-    let res = blocking(context.pool(), move |conn| {
-      Post::update(conn, post_id, &post_form)
-    })
-    .await?;
+    let res = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::update(conn, post_id, &post_form))
+      .await?;
     let updated_post: Post = match res {
       Ok(post) => post,
       Err(e) => {

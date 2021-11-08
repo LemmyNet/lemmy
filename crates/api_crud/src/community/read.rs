@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
+use lemmy_api_common::{community::*, get_local_user_view_from_jwt_opt};
 use lemmy_apub::{get_actor_id_from_name, objects::community::ApubCommunity};
 use lemmy_apub_lib::{object_id::ObjectId, webfinger::WebfingerType};
 use lemmy_db_schema::{
@@ -45,11 +45,12 @@ impl PerformCrud for GetCommunity {
       }
     };
 
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, person_id)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    let mut community_view = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityView::read(conn, community_id, person_id))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
@@ -57,11 +58,12 @@ impl PerformCrud for GetCommunity {
       community_view.community = community_view.community.blank_out_deleted_or_removed_info();
     }
 
-    let moderators: Vec<CommunityModeratorView> = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    let moderators: Vec<CommunityModeratorView> = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityModeratorView::for_community(conn, community_id))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     let online = context
       .chat_server()
@@ -106,17 +108,20 @@ impl PerformCrud for ListCommunities {
 
     let page = data.page;
     let limit = data.limit;
-    let mut communities = blocking(context.pool(), move |conn| {
-      CommunityQueryBuilder::create(conn)
-        .listing_type(listing_type)
-        .sort(sort)
-        .show_nsfw(show_nsfw)
-        .my_person_id(person_id)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await??;
+    let mut communities = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        CommunityQueryBuilder::create(conn)
+          .listing_type(listing_type)
+          .sort(sort)
+          .show_nsfw(show_nsfw)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit)
+          .list()
+      })
+      .await??;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {

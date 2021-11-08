@@ -14,7 +14,6 @@ use crate::{
   protocol::activities::community::remove_mod::RemoveMod,
 };
 use activitystreams::{activity::kind::RemoveType, public};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -84,10 +83,11 @@ impl ActivityHandler for RemoveMod {
       community_id: community.id,
       person_id: remove_mod.id,
     };
-    blocking(context.pool(), move |conn| {
-      CommunityModerator::leave(conn, &form)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityModerator::leave(conn, &form))
+      .await??;
     // TODO: send websocket notification about removed mod
     Ok(())
   }

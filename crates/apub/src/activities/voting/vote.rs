@@ -13,7 +13,6 @@ use crate::{
   PostOrComment,
 };
 use activitystreams::public;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -53,11 +52,12 @@ impl Vote {
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??
+      .into();
     let vote = Vote::new(object, actor, &community, kind, context)?;
     let vote_id = vote.id.clone();
 
@@ -106,12 +106,19 @@ impl GetCommunity for Vote {
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,
       PostOrComment::Comment(c) => {
-        blocking(context.pool(), move |conn| Post::read(conn, c.post_id))
+        context
+          .conn()
+          .await?
+          .interact(move |conn| Post::read(conn, c.post_id))
           .await??
           .community_id
       }
     };
-    let community = blocking(context.pool(), move |conn| Community::read(conn, cid)).await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, cid))
+      .await??;
     Ok(community.into())
   }
 }

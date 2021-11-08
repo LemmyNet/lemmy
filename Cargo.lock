@@ -883,6 +883,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "deadpool"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51dc1e92ba8164da131a4753a26cb1e7ebcfe617e56bb3c2b6136049c8ee5730"
+dependencies = [
+ "async-trait",
+ "deadpool-runtime",
+ "num_cpus",
+ "tokio",
+]
+
+[[package]]
+name = "deadpool-diesel"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f19e58f3b8948ab3408fb9c28534a9d7e34b3e34deb93114f6cddf1aa1fbe81d"
+dependencies = [
+ "deadpool",
+ "deadpool-sync",
+ "diesel",
+]
+
+[[package]]
+name = "deadpool-runtime"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eaa37046cc0f6c3cc6090fbdbf73ef0b8ef4cfcc37f6befc0020f63e8cf121e1"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
+name = "deadpool-sync"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1bea344b64b32537fde6e0f0179b1ede34d435636719dd40fe6a0f28218a61c"
+dependencies = [
+ "deadpool",
+]
+
+[[package]]
 name = "deflate"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -950,7 +991,6 @@ dependencies = [
  "chrono",
  "diesel_derives",
  "pq-sys",
- "r2d2",
  "serde_json",
 ]
 
@@ -1828,6 +1868,7 @@ dependencies = [
  "background-jobs",
  "bcrypt",
  "chrono",
+ "deadpool-diesel",
  "diesel",
  "futures",
  "html2md",
@@ -1901,6 +1942,7 @@ version = "0.13.5-rc.7"
 dependencies = [
  "bcrypt",
  "chrono",
+ "deadpool-diesel",
  "diesel",
  "diesel-derive-newtype",
  "diesel_migrations",
@@ -1988,6 +2030,7 @@ dependencies = [
  "cargo-husky",
  "chrono",
  "clokwerk",
+ "deadpool-diesel",
  "diesel",
  "diesel_migrations",
  "doku",
@@ -2019,16 +2062,25 @@ dependencies = [
 name = "lemmy_utils"
 version = "0.13.5-rc.7"
 dependencies = [
+ "activitystreams",
+ "actix",
  "actix-rt",
  "actix-web",
  "anyhow",
+ "base64 0.13.0",
  "chrono",
  "comrak",
+ "deadpool",
+ "deadpool-diesel",
+ "deadpool-sync",
  "deser-hjson",
  "diesel",
+ "diesel_migrations",
  "doku",
  "futures",
  "http",
+ "http-signature-normalization-actix",
+ "http-signature-normalization-reqwest",
  "itertools",
  "jsonwebtoken",
  "lazy_static",
@@ -2061,6 +2113,8 @@ dependencies = [
  "anyhow",
  "background-jobs",
  "chrono",
+ "deadpool",
+ "deadpool-diesel",
  "diesel",
  "lemmy_api_common",
  "lemmy_db_schema",

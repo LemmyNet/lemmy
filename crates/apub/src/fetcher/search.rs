@@ -5,16 +5,12 @@ use crate::{
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
   webfinger::{webfinger_resolve_actor, WebfingerType},
 };
-use lemmy_db_schema::{
-  source::{community::Community, person::Person as DbPerson},
-  DbPool,
-};
+use lemmy_db_schema::source::{community::Community, person::Person as DbPerson};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -54,7 +50,7 @@ pub async fn search_by_apub_id(
       }
       // local actor, read from database and return
       else {
-        return find_local_actor_by_name(name, kind, context.pool()).await;
+        return find_local_actor_by_name(name, kind, context).await;
       }
     }
   };
@@ -68,17 +64,23 @@ pub async fn search_by_apub_id(
 async fn find_local_actor_by_name(
   name: &str,
   kind: WebfingerType,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<SearchableObjects, LemmyError> {
   let name: String = name.into();
   Ok(match kind {
     WebfingerType::Group => SearchableObjects::Community(
-      blocking(pool, move |conn| Community::read_from_name(conn, &name))
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Community::read_from_name(conn, &name))
         .await??
         .into(),
     ),
     WebfingerType::Person => SearchableObjects::Person(
-      blocking(pool, move |conn| DbPerson::find_by_name(conn, &name))
+      context
+        .conn()
+        .await?
+        .interact(move |conn| DbPerson::find_by_name(conn, &name))
         .await??
         .into(),
     ),

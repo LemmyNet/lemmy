@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   get_local_user_view_from_jwt,
   is_admin,
   site::*,
@@ -33,8 +32,13 @@ impl PerformCrud for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let read_site = Site::read_simple;
-    if blocking(context.pool(), read_site).await?.is_ok() {
+    if context
+      .conn()
+      .await?
+      .interact(|conn| Site::read_simple(conn))
+      .await?
+      .is_ok()
+    {
       return Err(ApiError::err_plain("site_already_exists").into());
     };
 
@@ -70,12 +74,21 @@ impl PerformCrud for CreateSite {
       community_creation_admin_only: data.community_creation_admin_only,
     };
 
-    let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
-    if blocking(context.pool(), create_site).await?.is_err() {
+    if context
+      .conn()
+      .await?
+      .interact(move |conn| Site::create(conn, &site_form))
+      .await?
+      .is_err()
+    {
       return Err(ApiError::err_plain("site_already_exists").into());
     }
 
-    let site_view = blocking(context.pool(), SiteView::read).await??;
+    let site_view = context
+      .conn()
+      .await?
+      .interact(|conn| SiteView::read(conn))
+      .await??;
 
     Ok(SiteResponse { site_view })
   }

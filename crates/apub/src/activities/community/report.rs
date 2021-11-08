@@ -10,7 +10,7 @@ use crate::{
   PostOrComment,
 };
 use activitystreams::activity::kind::FlagType;
-use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
+use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -93,15 +93,17 @@ impl ActivityHandler for Report {
           original_post_body: post.body.clone(),
         };
 
-        let report = blocking(context.pool(), move |conn| {
-          PostReport::report(conn, &report_form)
-        })
-        .await??;
+        let report = context
+          .conn()
+          .await?
+          .interact(move |conn| PostReport::report(conn, &report_form))
+          .await??;
 
-        let post_report_view = blocking(context.pool(), move |conn| {
-          PostReportView::read(conn, report.id, actor.id)
-        })
-        .await??;
+        let post_report_view = context
+          .conn()
+          .await?
+          .interact(move |conn| PostReportView::read(conn, report.id, actor.id))
+          .await??;
 
         context.chat_server().do_send(SendModRoomMessage {
           op: UserOperation::CreateCommentReport,
@@ -118,15 +120,17 @@ impl ActivityHandler for Report {
           reason: self.summary,
         };
 
-        let report = blocking(context.pool(), move |conn| {
-          CommentReport::report(conn, &report_form)
-        })
-        .await??;
+        let report = context
+          .conn()
+          .await?
+          .interact(move |conn| CommentReport::report(conn, &report_form))
+          .await??;
 
-        let comment_report_view = blocking(context.pool(), move |conn| {
-          CommentReportView::read(conn, report.id, actor.id)
-        })
-        .await??;
+        let comment_report_view = context
+          .conn()
+          .await?
+          .interact(move |conn| CommentReportView::read(conn, report.id, actor.id))
+          .await??;
         let community_id = comment_report_view.community.id;
 
         context.chat_server().do_send(SendModRoomMessage {

@@ -3,7 +3,6 @@ use crate::{
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
 use activitystreams::activity::kind::AcceptType;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -66,10 +65,11 @@ impl ActivityHandler for AcceptFollowCommunity {
     let actor = self.actor.dereference(context, request_counter).await?;
     let to = self.to[0].dereference(context, request_counter).await?;
     // This will throw an error if no follow was requested
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow_accepted(conn, actor.id, to.id)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollower::follow_accepted(conn, actor.id, to.id))
+      .await??;
 
     Ok(())
   }

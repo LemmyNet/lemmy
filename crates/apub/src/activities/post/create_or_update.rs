@@ -14,7 +14,6 @@ use crate::{
 };
 use activitystreams::public;
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -54,11 +53,12 @@ impl CreateOrUpdatePost {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_id = post.community_id;
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??
+      .into();
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let id = create_or_update.id.clone();
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);

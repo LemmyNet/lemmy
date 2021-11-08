@@ -29,6 +29,7 @@ openssl = "0.10.36"
 url = { version = "2.2.2", features = ["serde"] }
 actix-web = { version = "4.0.0-beta.9", default-features = false, features = ["rustls"] }
 actix-rt = { version = "2.2.0", default-features = false }
+actix = "0.12.0"
 anyhow = "1.0.44"
 reqwest = { version = "0.11.4", features = ["json"] }
 tokio = { version = "1.12.0", features = ["sync"] }
@@ -36,6 +37,10 @@ strum = "0.21.0"
 strum_macros = "0.21.1"
 futures = "0.3.17"
 diesel = "1.4.8"
+diesel_migrations = "1.4.0"
+deadpool-sync = "0.1.0"
+deadpool = "0.9.1"
+deadpool-diesel = { version = "0.3.1", features = ["postgres"] }
 http = "0.2.5"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
@@ -43,3 +48,7 @@ webpage = { version = "1.3.0", default-features = false, features = ["serde"] }
 jsonwebtoken = "7.2.0"
 doku = "0.10.1"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
+activitystreams = "0.7.0-alpha.11"
+base64 = "0.13.0"
+http-signature-normalization-reqwest = { version = "0.2.0", default-features = false, features = ["sha-2"] }
+http-signature-normalization-actix = { version = "0.5.0-beta.10", default-features = false, features = ["server", "sha-2"] }

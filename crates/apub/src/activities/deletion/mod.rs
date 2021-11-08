@@ -3,7 +3,6 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
@@ -157,10 +156,11 @@ async fn receive_delete_action(
         send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
       }
 
-      let community = blocking(context.pool(), move |conn| {
-        Community::update_deleted(conn, community.id, deleted)
-      })
-      .await??;
+      let community = context
+        .conn()
+        .await?
+        .interact(move |conn| Community::update_deleted(conn, community.id, deleted))
+        .await??;
       send_community_ws_message(
         community.id,
         UserOperationCrud::DeleteCommunity,
@@ -172,10 +172,11 @@ async fn receive_delete_action(
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
-        let deleted_post = blocking(context.pool(), move |conn| {
-          Post::update_deleted(conn, post.id, deleted)
-        })
-        .await??;
+        let deleted_post = context
+          .conn()
+          .await?
+          .interact(move |conn| Post::update_deleted(conn, post.id, deleted))
+          .await??;
         send_post_ws_message(
           deleted_post.id,
           UserOperationCrud::DeletePost,
@@ -188,10 +189,11 @@ async fn receive_delete_action(
     }
     DeletableObjects::Comment(comment) => {
       if deleted != comment.deleted {
-        let deleted_comment = blocking(context.pool(), move |conn| {
-          Comment::update_deleted(conn, comment.id, deleted)
-        })
-        .await??;
+        let deleted_comment = context
+          .conn()
+          .await?
+          .interact(move |conn| Comment::update_deleted(conn, comment.id, deleted))
+          .await??;
         send_comment_ws_message_simple(
           deleted_comment.id,
           UserOperationCrud::DeleteComment,

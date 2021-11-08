@@ -74,7 +74,7 @@ impl ActivityHandler for AnnounceActivity {
     let object = serde_json::to_string(&self.object)?;
     let object_data: ActivityCommonFields = serde_json::from_str(&object)?;
 
-    if is_activity_already_known(context.pool(), &object_data.id).await? {
+    if is_activity_already_known(context, &object_data.id).await? {
       return Ok(());
     }
     insert_activity(

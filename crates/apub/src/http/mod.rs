@@ -16,7 +16,6 @@ use actix_web::{
 use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -24,7 +23,7 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ActorType},
   APUB_JSON_CONTENT_TYPE,
 };
-use lemmy_db_schema::{source::activity::Activity, DbPool};
+use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::info;
@@ -98,7 +97,7 @@ where
   verify_signature(&request, &actor.public_key().context(location_info!())?)?;
 
   // Do nothing if we received the same activity before
-  if is_activity_already_known(context.pool(), &activity_data.id).await? {
+  if is_activity_already_known(context, &activity_data.id).await? {
     return Ok(HttpResponse::Ok().finish());
   }
   info!("Verifying activity {}", activity_data.id.to_string());
@@ -165,10 +164,11 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = blocking(context.pool(), move |conn| {
-    Activity::read_from_apub_id(conn, &activity_id)
-  })
-  .await??;
+  let activity = context
+    .conn()
+    .await?
+    .interact(move |conn| Activity::read_from_apub_id(conn, &activity_id))
+    .await??;
 
   let sensitive = activity.sensitive.unwrap_or(true);
   if !activity.local || sensitive {
@@ -179,14 +179,15 @@ pub(crate) async fn get_activity(
 }
 
 pub(crate) async fn is_activity_already_known(
-  pool: &DbPool,
+  context: &LemmyContext,
   activity_id: &Url,
 ) -> Result<bool, LemmyError> {
   let activity_id = activity_id.to_owned().into();
-  let existing = blocking(pool, move |conn| {
-    Activity::read_from_apub_id(conn, &activity_id)
-  })
-  .await?;
+  let existing = context
+    .conn()
+    .await?
+    .interact(move |conn| Activity::read_from_apub_id(conn, &activity_id))
+    .await?;
   match existing {
     Ok(_) => Ok(true),
     Err(_) => Ok(false),

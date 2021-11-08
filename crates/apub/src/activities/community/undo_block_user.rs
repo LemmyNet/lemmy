@@ -15,7 +15,6 @@ use crate::{
   },
 };
 use activitystreams::{activity::kind::UndoType, public};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -91,10 +90,11 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
       person_id: blocked_user.id,
     };
 
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityPersonBan::unban(conn, &community_user_ban_form)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityPersonBan::unban(conn, &community_user_ban_form))
+      .await??;
 
     Ok(())
   }

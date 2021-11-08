@@ -14,7 +14,6 @@ use activitystreams::{object::kind::NoteType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
@@ -69,34 +68,47 @@ impl ApubObject for ApubComment {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        Comment::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::read_from_apub_id(conn, object_id))
+        .await??
+        .map(Into::into),
     )
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
-      blocking(context.pool(), move |conn| {
-        Comment::update_deleted(conn, self.id, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::update_deleted(conn, self.id, true))
+        .await??;
     }
     Ok(())
   }
 
   async fn into_apub(self, context: &LemmyContext) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
+    let creator = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, creator_id))
+      .await??;
 
     let post_id = self.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::read(conn, post_id))
+      .await??;
 
     let in_reply_to = if let Some(comment_id) = self.parent_id {
-      let parent_comment =
-        blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
+      let parent_comment = context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::read(conn, comment_id))
+        .await??;
       ObjectId::<PostOrComment>::new(parent_comment.ap_id)
     } else {
       ObjectId::<PostOrComment>::new(post.ap_id)
@@ -141,10 +153,11 @@ impl ApubObject for ApubComment {
     verify_is_public(&note.to, &note.cc)?;
     let (post, _) = note.get_parents(context, request_counter).await?;
     let community_id = post.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??;
     check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(
       &note.attributed_to,
@@ -193,7 +206,11 @@ impl ApubObject for ApubComment {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
+    let comment = context
+      .conn()
+      .await?
+      .interact(move |conn| Comment::upsert(conn, &form))
+      .await??;
     Ok(comment.into())
   }
 }
@@ -208,6 +225,7 @@ pub(crate) mod tests {
     tests::{file_to_json_object, init_context},
   };
   use assert_json_diff::assert_json_include;
+  use lemmy_db_schema::establish_unpooled_connection;
   use serial_test::serial;
 
   async fn prepare_comment_test(
@@ -226,16 +244,18 @@ pub(crate) mod tests {
     (person, community, post)
   }
 
-  fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost), context: &LemmyContext) {
-    Post::delete(&*context.pool().get().unwrap(), data.2.id).unwrap();
-    Community::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
+  fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost), _context: &LemmyContext) {
+    let conn = establish_unpooled_connection();
+    Post::delete(&conn, data.2.id).unwrap();
+    Community::delete(&conn, data.1.id).unwrap();
+    Person::delete(&conn, data.0.id).unwrap();
   }
 
   #[actix_rt::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
@@ -257,7 +277,7 @@ pub(crate) mod tests {
     let to_apub = comment.into_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    Comment::delete(&*context.pool().get().unwrap(), comment_id).unwrap();
+    Comment::delete(&conn, comment_id).unwrap();
     cleanup(data, &context);
   }
 
@@ -265,6 +285,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_pleroma_comment() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
@@ -292,7 +313,7 @@ pub(crate) mod tests {
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
 
-    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    Comment::delete(&conn, comment.id).unwrap();
     cleanup(data, &context);
   }
 

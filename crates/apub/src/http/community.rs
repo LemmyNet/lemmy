@@ -22,7 +22,6 @@ use crate::{
   },
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
@@ -40,11 +39,12 @@ pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community: ApubCommunity = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??
-  .into();
+  let community: ApubCommunity = context
+    .conn()
+    .await?
+    .interact(move |conn| Community::read_from_name(conn, &info.community_name))
+    .await??
+    .into();
 
   if !community.deleted {
     let apub = community.into_apub(&**context).await?;
@@ -97,10 +97,11 @@ pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = context
+    .conn()
+    .await?
+    .interact(move |conn| Community::read_from_name(conn, &info.community_name))
+    .await??;
   let followers = GroupFollowers::new(community, &context).await?;
   Ok(create_apub_response(&followers))
 }
@@ -111,10 +112,11 @@ pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
+  let community = context
+    .conn()
+    .await?
+    .interact(move |conn| Community::read_from_name(conn, &info.community_name))
+    .await??;
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
   let outbox: ApubCommunityOutbox = id.dereference(&outbox_data, &mut 0).await?;
@@ -125,11 +127,12 @@ pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community: ApubCommunity = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??
-  .into();
+  let community: ApubCommunity = context
+    .conn()
+    .await?
+    .interact(move |conn| Community::read_from_name(conn, &info.community_name))
+    .await??
+    .into();
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community, context.get_ref().clone());
   let moderators: ApubCommunityModerators = id.dereference(&outbox_data, &mut 0).await?;

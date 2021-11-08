@@ -5,7 +5,6 @@ use crate::{
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitystreams::{chrono::NaiveDateTime, collection::kind::OrderedCollectionType};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
@@ -32,13 +31,15 @@ impl ApubObject for ApubCommunityModerators {
     _object_id: Url,
     data: &Self::DataType,
   ) -> Result<Option<Self>, LemmyError> {
+    let context = &data.1;
     // Only read from database if its a local community, otherwise fetch over http
     if data.0.local {
       let cid = data.0.id;
-      let moderators = blocking(data.1.pool(), move |conn| {
-        CommunityModeratorView::for_community(conn, cid)
-      })
-      .await??;
+      let moderators = context
+        .conn()
+        .await?
+        .interact(move |conn| CommunityModeratorView::for_community(conn, cid))
+        .await??;
       Ok(Some(ApubCommunityModerators { 0: moderators }))
     } else {
       Ok(None)
@@ -81,11 +82,13 @@ impl ApubObject for ApubCommunityModerators {
     data: &Self::DataType,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
+    let context = &data.1;
     let community_id = data.0.id;
-    let current_moderators = blocking(data.1.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let current_moderators = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityModeratorView::for_community(conn, community_id))
+      .await??;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
       let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone());
@@ -94,10 +97,11 @@ impl ApubObject for ApubCommunityModerators {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        blocking(data.1.pool(), move |conn| {
-          CommunityModerator::leave(conn, &community_moderator_form)
-        })
-        .await??;
+        context
+          .conn()
+          .await?
+          .interact(move |conn| CommunityModerator::leave(conn, &community_moderator_form))
+          .await??;
       }
     }
 
@@ -115,10 +119,11 @@ impl ApubObject for ApubCommunityModerators {
           community_id: data.0.id,
           person_id: mod_user.id,
         };
-        blocking(data.1.pool(), move |conn| {
-          CommunityModerator::join(conn, &community_moderator_form)
-        })
-        .await??;
+        context
+          .conn()
+          .await?
+          .interact(move |conn| CommunityModerator::join(conn, &community_moderator_form))
+          .await??;
       }
     }
 
@@ -136,6 +141,7 @@ mod tests {
     tests::{file_to_json_object, init_context},
   };
   use lemmy_db_schema::{
+    establish_unpooled_connection,
     source::{
       community::Community,
       person::{Person, PersonForm},
@@ -150,18 +156,19 @@ mod tests {
     let context = init_context();
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
+    let conn = establish_unpooled_connection();
 
     let old_mod = PersonForm {
       name: "holly".into(),
       ..PersonForm::default()
     };
-    let old_mod = Person::create(&context.pool().get().unwrap(), &old_mod).unwrap();
+    let old_mod = Person::create(&conn, &old_mod).unwrap();
     let community_moderator_form = CommunityModeratorForm {
       community_id: community.id,
       person_id: old_mod.id,
     };
 
-    CommunityModerator::join(&context.pool().get().unwrap(), &community_moderator_form).unwrap();
+    CommunityModerator::join(&conn, &community_moderator_form).unwrap();
 
     let new_mod = parse_lemmy_person(&context).await;
 
@@ -181,22 +188,13 @@ mod tests {
       .unwrap();
     assert_eq!(request_counter, 0);
 
-    let current_moderators = blocking(community_context.1.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await
-    .unwrap()
-    .unwrap();
+    let current_moderators = CommunityModeratorView::for_community(&conn, community_id).unwrap();
 
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(&*community_context.1.pool().get().unwrap(), old_mod.id).unwrap();
-    Person::delete(&*community_context.1.pool().get().unwrap(), new_mod.id).unwrap();
-    Community::delete(
-      &*community_context.1.pool().get().unwrap(),
-      community_context.0.id,
-    )
-    .unwrap();
+    Person::delete(&conn, old_mod.id).unwrap();
+    Person::delete(&conn, new_mod.id).unwrap();
+    Community::delete(&conn, community_context.0.id).unwrap();
   }
 }

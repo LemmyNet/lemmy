@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{CommunityResponse, CreateCommunity},
   get_local_user_view_from_jwt,
   is_admin,
@@ -53,7 +52,11 @@ impl PerformCrud for CreateCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
+    let site = context
+      .conn()
+      .await?
+      .interact(move |conn| Site::read(conn, 0))
+      .await??;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(ApiError::err_plain("only_admins_can_create_communities").into());
     }
@@ -101,11 +104,12 @@ impl PerformCrud for CreateCommunity {
       ..CommunityForm::default()
     };
 
-    let inserted_community = blocking(context.pool(), move |conn| {
-      Community::create(conn, &community_form)
-    })
-    .await?
-    .map_err(|e| ApiError::err("community_already_exists", e))?;
+    let inserted_community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::create(conn, &community_form))
+      .await?
+      .map_err(|e| ApiError::err("community_already_exists", e))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -113,8 +117,13 @@ impl PerformCrud for CreateCommunity {
       person_id: local_user_view.person.id,
     };
 
-    let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-    if blocking(context.pool(), join).await?.is_err() {
+    if context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityModerator::join(conn, &community_moderator_form))
+      .await?
+      .is_err()
+    {
       return Err(ApiError::err_plain("community_moderator_already_exists").into());
     }
 
@@ -125,16 +134,22 @@ impl PerformCrud for CreateCommunity {
       pending: false,
     };
 
-    let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-    if blocking(context.pool(), follow).await?.is_err() {
+    if context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollower::follow(conn, &community_follower_form))
+      .await?
+      .is_err()
+    {
       return Err(ApiError::err_plain("community_follower_already_exists").into());
     }
 
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, inserted_community.id, Some(person_id))
-    })
-    .await??;
+    let community_view = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityView::read(conn, inserted_community.id, Some(person_id)))
+      .await??;
 
     Ok(CommunityResponse { community_view })
   }

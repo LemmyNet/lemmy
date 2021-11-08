@@ -12,7 +12,7 @@ doctest = false
 
 [dependencies]
 lemmy_db_schema = { version = "=0.13.5-rc.7", path = "../db_schema" }
-diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
+diesel = { version = "1.4.8", features = ["postgres","chrono","serde_json"] }
 serde = { version = "1.0.130", features = ["derive"] }
 log = "0.4.14"
 url = "2.2.2"

@@ -13,7 +13,6 @@ use crate::{
 };
 use activitystreams::object::kind::ImageType;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
@@ -63,19 +62,21 @@ impl ApubObject for ApubPerson {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        DbPerson::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      context
+        .conn()
+        .await?
+        .interact(move |conn| DbPerson::read_from_apub_id(conn, object_id))
+        .await??
+        .map(Into::into),
     )
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    blocking(context.pool(), move |conn| {
-      DbPerson::update_deleted(conn, self.id, true)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| DbPerson::update_deleted(conn, self.id, true))
+      .await??;
     Ok(())
   }
 
@@ -171,10 +172,11 @@ impl ApubObject for ApubPerson {
       shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
       matrix_user_id: Some(person.matrix_user_id),
     };
-    let person = blocking(context.pool(), move |conn| {
-      DbPerson::upsert(conn, &person_form)
-    })
-    .await??;
+    let person = context
+      .conn()
+      .await?
+      .interact(move |conn| DbPerson::upsert(conn, &person_form))
+      .await??;
     Ok(person.into())
   }
 }
@@ -205,7 +207,7 @@ impl ActorType for ApubPerson {
 pub(crate) mod tests {
   use super::*;
   use crate::objects::tests::{file_to_json_object, init_context};
-  use lemmy_db_schema::traits::Crud;
+  use lemmy_db_schema::{establish_unpooled_connection, traits::Crud};
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
@@ -226,6 +228,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_person() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let person = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
@@ -233,13 +236,14 @@ pub(crate) mod tests {
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
-    DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    DbPerson::delete(&conn, person.id).unwrap();
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_person() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let json = file_to_json_object("assets/pleroma/objects/person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
@@ -257,6 +261,6 @@ pub(crate) mod tests {
     assert_eq!(request_counter, 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
-    DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    DbPerson::delete(&conn, person.id).unwrap();
   }
 }

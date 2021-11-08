@@ -70,12 +70,175 @@ pub struct LemmyError {
   pub inner: anyhow::Error,
 }
 
-impl<T> From<T> for LemmyError
-where
-  T: Into<anyhow::Error>,
-{
-  fn from(t: T) -> Self {
-    LemmyError { inner: t.into() }
+impl From<deadpool_sync::InteractError> for LemmyError {
+  fn from(e: deadpool_sync::InteractError) -> Self {
+    LemmyError {
+      inner: anyhow::anyhow!(e.to_string()),
+    }
+  }
+}
+
+impl From<deadpool::managed::PoolError<deadpool_diesel::Error>> for LemmyError {
+  fn from(e: deadpool::managed::PoolError<deadpool_diesel::Error>) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<deadpool::managed::BuildError<deadpool_diesel::Error>> for LemmyError {
+  fn from(e: deadpool::managed::BuildError<deadpool_diesel::Error>) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<jsonwebtoken::errors::Error> for LemmyError {
+  fn from(e: jsonwebtoken::errors::Error) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<std::io::Error> for LemmyError {
+  fn from(e: std::io::Error) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<deser_hjson::Error> for LemmyError {
+  fn from(e: deser_hjson::Error) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<actix_web::error::PayloadError> for LemmyError {
+  fn from(e: actix_web::error::PayloadError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<std::time::SystemTimeError> for LemmyError {
+  fn from(e: std::time::SystemTimeError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<ApiError> for LemmyError {
+  fn from(e: ApiError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<reqwest::Error> for LemmyError {
+  fn from(e: reqwest::Error) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<actix::MailboxError> for LemmyError {
+  fn from(e: actix::MailboxError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<actix_web::error::Error> for LemmyError {
+  fn from(e: actix_web::error::Error) -> Self {
+    LemmyError {
+      inner: anyhow::anyhow!(e.to_string()),
+    }
+  }
+}
+
+impl From<http::header::ToStrError> for LemmyError {
+  fn from(e: http::header::ToStrError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<request::RecvError> for LemmyError {
+  fn from(e: request::RecvError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<serde_json::Error> for LemmyError {
+  fn from(e: serde_json::Error) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<strum::ParseError> for LemmyError {
+  fn from(e: strum::ParseError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<openssl::error::ErrorStack> for LemmyError {
+  fn from(e: openssl::error::ErrorStack) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<std::num::ParseIntError> for LemmyError {
+  fn from(e: std::num::ParseIntError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<url::ParseError> for LemmyError {
+  fn from(e: url::ParseError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<activitystreams::error::DomainError> for LemmyError {
+  fn from(e: activitystreams::error::DomainError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<base64::DecodeError> for LemmyError {
+  fn from(e: base64::DecodeError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<diesel::result::Error> for LemmyError {
+  fn from(e: diesel::result::Error) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<diesel_migrations::RunMigrationsError> for LemmyError {
+  fn from(e: diesel_migrations::RunMigrationsError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<http::header::InvalidHeaderValue> for LemmyError {
+  fn from(e: http::header::InvalidHeaderValue) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<http::header::InvalidHeaderName> for LemmyError {
+  fn from(e: http::header::InvalidHeaderName) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<http_signature_normalization_reqwest::SignError> for LemmyError {
+  fn from(e: http_signature_normalization_reqwest::SignError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<http_signature_normalization_actix::PrepareVerifyError> for LemmyError {
+  fn from(e: http_signature_normalization_actix::PrepareVerifyError) -> Self {
+    LemmyError { inner: e.into() }
+  }
+}
+
+impl From<anyhow::Error> for LemmyError {
+  fn from(e: anyhow::Error) -> Self {
+    LemmyError { inner: e }
   }
 }
 
@@ -93,3 +256,7 @@ impl actix_web::error::ResponseError for LemmyError {
     }
   }
 }
+
+// impl From<deadpool_sync::InteractError> for LemmyError {
+
+// }

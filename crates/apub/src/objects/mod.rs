@@ -21,10 +21,7 @@ pub(crate) fn get_summary_from_string_or_source(
 #[cfg(test)]
 pub(crate) mod tests {
   use actix::Actor;
-  use diesel::{
-    r2d2::{ConnectionManager, Pool},
-    PgConnection,
-  };
+  use deadpool_diesel::postgres::{Manager, Pool, Runtime};
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{
     establish_unpooled_connection,
@@ -66,11 +63,12 @@ pub(crate) mod tests {
       Ok(url) => url,
       Err(_) => settings.get_database_url(),
     };
-    let manager = ConnectionManager::<PgConnection>::new(&db_url);
-    let pool = Pool::builder()
+
+    let manager = Manager::new(&db_url, Runtime::Tokio1);
+    let pool = Pool::builder(manager)
       .max_size(settings.database.pool_size)
-      .build(manager)
-      .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+      .build()
+      .unwrap();
     async fn x() -> Result<String, LemmyError> {
       Ok("".to_string())
     }

@@ -9,7 +9,6 @@ use crate::{
 };
 use activitystreams::collection::kind::OrderedCollectionType;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityHandler, ApubObject},
@@ -39,16 +38,18 @@ impl ApubObject for ApubCommunityOutbox {
     _object_id: Url,
     data: &Self::DataType,
   ) -> Result<Option<Self>, LemmyError> {
+    let context = &data.1;
     // Only read from database if its a local community, otherwise fetch over http
     if data.0.local {
       let community_id = data.0.id;
-      let post_list: Vec<ApubPost> = blocking(data.1.pool(), move |conn| {
-        Post::list_for_community(conn, community_id)
-      })
-      .await??
-      .into_iter()
-      .map(Into::into)
-      .collect();
+      let post_list: Vec<ApubPost> = context
+        .conn()
+        .await?
+        .interact(move |conn| Post::list_for_community(conn, community_id))
+        .await??
+        .into_iter()
+        .map(Into::into)
+        .collect();
       Ok(Some(ApubCommunityOutbox(post_list)))
     } else {
       Ok(None)
@@ -61,14 +62,18 @@ impl ApubObject for ApubCommunityOutbox {
   }
 
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+    let context = &data.1;
     let mut ordered_items = vec![];
     for post in self.0 {
       let actor = post.creator_id;
-      let actor: ApubPerson = blocking(data.1.pool(), move |conn| Person::read(conn, actor))
+      let actor: ApubPerson = context
+        .conn()
+        .await?
+        .interact(move |conn| Person::read(conn, actor))
         .await??
         .into();
       let a =
-        CreateOrUpdatePost::new(post, &actor, &data.0, CreateOrUpdateType::Create, &data.1).await?;
+        CreateOrUpdatePost::new(post, &actor, &data.0, CreateOrUpdateType::Create, context).await?;
       ordered_items.push(a);
     }
 
@@ -100,6 +105,7 @@ impl ApubObject for ApubCommunityOutbox {
     data: &Self::DataType,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
+    let context = &data.1;
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() > 20 {
       outbox_activities = outbox_activities[0..20].to_vec();
@@ -110,7 +116,7 @@ impl ApubObject for ApubCommunityOutbox {
     // item and only parse the ones that work.
     for activity in outbox_activities {
       activity
-        .receive(&Data::new(data.1.clone()), request_counter)
+        .receive(&Data::new(context.clone()), request_counter)
         .await
         .ok();
     }

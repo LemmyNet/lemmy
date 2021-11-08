@@ -4,7 +4,6 @@ use crate::{
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
 };
 use activitystreams::activity::kind::UndoType;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -72,10 +71,11 @@ impl ActivityHandler for UndoFollowCommunity {
     };
 
     // This will fail if they aren't a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::unfollow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityFollower::unfollow(conn, &community_follower_form).ok())
+      .await?;
     Ok(())
   }
 }

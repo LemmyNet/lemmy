@@ -9,14 +9,11 @@ use crate::{
 use actix::prelude::*;
 use anyhow::Context as acontext;
 use background_jobs::QueueHandle;
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
 use lemmy_api_common::{comment::*, post::*};
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PostId},
   source::secret::Secret,
+  DbPool,
 };
 use lemmy_utils::{
   location_info,
@@ -73,7 +70,7 @@ pub struct ChatServer {
   pub(super) rng: ThreadRng,
 
   /// The DB Pool
-  pub(super) pool: Pool<ConnectionManager<PgConnection>>,
+  pub(super) pool: DbPool,
 
   /// The Settings
   pub(super) settings: Settings,
@@ -107,7 +104,7 @@ pub struct SessionInfo {
 impl ChatServer {
   #![allow(clippy::too_many_arguments)]
   pub fn startup(
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     rate_limiter: RateLimit,
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,

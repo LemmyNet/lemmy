@@ -4,7 +4,6 @@ use crate::{
   protocol::activities::private_message::delete::DeletePrivateMessage,
 };
 use activitystreams::activity::kind::DeleteType;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -45,10 +44,12 @@ impl DeletePrivateMessage {
     let delete_id = delete.id.clone();
 
     let recipient_id = pm.recipient_id;
-    let recipient: ApubPerson =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
-        .await??
-        .into();
+    let recipient: ApubPerson = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, recipient_id))
+      .await??
+      .into();
     let inbox = vec![recipient.shared_inbox_or_inbox_url()];
     send_lemmy_activity(context, &delete, &delete_id, actor, inbox, true).await
   }
@@ -74,10 +75,11 @@ impl ActivityHandler for DeletePrivateMessage {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let private_message = self.object.dereference_local(context).await?;
-    let deleted_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::update_deleted(conn, private_message.id, true)
-    })
-    .await??;
+    let deleted_private_message = context
+      .conn()
+      .await?
+      .interact(move |conn| PrivateMessage::update_deleted(conn, private_message.id, true))
+      .await??;
 
     send_pm_ws_message(
       deleted_private_message.id,

@@ -18,8 +18,6 @@ pub mod schema;
 pub mod source;
 pub mod traits;
 
-pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
-
 use crate::newtypes::DbUrl;
 use chrono::NaiveDateTime;
 use diesel::{Connection, PgConnection};
@@ -28,6 +26,8 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 use url::Url;
+
+pub type DbPool = deadpool_diesel::postgres::Pool;
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
@@ -125,6 +125,13 @@ pub fn establish_unpooled_connection() -> PgConnection {
   };
   let conn =
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  embedded_migrations::run(&conn).expect("load migrations");
+  conn
+}
+
+pub fn establish_unpooled_connection_with_db_url(db_url: &str) -> PgConnection {
+  let conn =
+    PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
   embedded_migrations::run(&conn).expect("load migrations");
   conn
 }

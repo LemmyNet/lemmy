@@ -6,7 +6,6 @@ use crate::{
     CreateOrUpdateType,
   },
 };
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -25,10 +24,12 @@ impl CreateOrUpdatePrivateMessage {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
-    let recipient: ApubPerson =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
-        .await??
-        .into();
+    let recipient: ApubPerson = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, recipient_id))
+      .await??
+      .into();
 
     let id = generate_activity_id(
       kind.clone(),

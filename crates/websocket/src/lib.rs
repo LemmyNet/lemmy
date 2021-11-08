@@ -4,6 +4,8 @@ extern crate strum_macros;
 use crate::chat_server::ChatServer;
 use actix::Addr;
 use background_jobs::QueueHandle;
+use deadpool::managed::{Object, PoolError};
+use deadpool_diesel::postgres::Manager;
 use lemmy_db_schema::{source::secret::Secret, DbPool};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use reqwest::Client;
@@ -44,6 +46,9 @@ impl LemmyContext {
   }
   pub fn pool(&self) -> &DbPool {
     &self.pool
+  }
+  pub async fn conn(&self) -> Result<Object<Manager>, PoolError<deadpool_diesel::Error>> {
+    self.pool.get().await
   }
   pub fn chat_server(&self) -> &Addr<ChatServer> {
     &self.chat_server

@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_community_deleted_or_removed,
   get_local_user_view_from_jwt,
@@ -83,32 +82,39 @@ impl PerformCrud for CreatePost {
       ..PostForm::default()
     };
 
-    let inserted_post =
-      match blocking(context.pool(), move |conn| Post::create(conn, &post_form)).await? {
-        Ok(post) => post,
-        Err(e) => {
-          let err_type = if e.to_string() == "value too long for type character varying(200)" {
-            "post_title_too_long"
-          } else {
-            "couldnt_create_post"
-          };
+    let inserted_post = match context
+      .conn()
+      .await?
+      .interact(move |conn| Post::create(conn, &post_form))
+      .await?
+    {
+      Ok(post) => post,
+      Err(e) => {
+        let err_type = if e.to_string() == "value too long for type character varying(200)" {
+          "post_title_too_long"
+        } else {
+          "couldnt_create_post"
+        };
 
-          return Err(ApiError::err(err_type, e).into());
-        }
-      };
+        return Err(ApiError::err(err_type, e).into());
+      }
+    };
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
-      let apub_id = generate_local_apub_endpoint(
-        EndpointType::Post,
-        &inserted_post_id.to_string(),
-        &protocol_and_hostname,
-      )?;
-      Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_create_post", e))?;
+    let updated_post = context
+      .conn()
+      .await?
+      .interact(move |conn| -> Result<Post, LemmyError> {
+        let apub_id = generate_local_apub_endpoint(
+          EndpointType::Post,
+          &inserted_post_id.to_string(),
+          &protocol_and_hostname,
+        )?;
+        Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
+      })
+      .await?
+      .map_err(|e| ApiError::err("couldnt_create_post", e))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -119,8 +125,13 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
-    if blocking(context.pool(), like).await?.is_err() {
+    if context
+      .conn()
+      .await?
+      .interact(move |conn| PostLike::like(conn, &like_form))
+      .await?
+      .is_err()
+    {
       return Err(ApiError::err_plain("couldnt_like_post").into());
     }
 

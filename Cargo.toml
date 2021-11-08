@@ -45,6 +45,7 @@ lemmy_websocket = { version = "=0.13.5-rc.7", path = "./crates/websocket" }
 lemmy_routes = { version = "=0.13.5-rc.7", path = "./crates/routes" }
 diesel = "1.4.8"
 diesel_migrations = "1.4.0"
+deadpool-diesel = { version = "0.3.1", features = ["postgres"] }
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.130", features = ["derive"] }
 actix = "0.12.0"

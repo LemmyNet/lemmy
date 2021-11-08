@@ -5,7 +5,6 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType, webfinger::WebfingerResponse};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -31,7 +30,11 @@ async fn get_notif_recipients(
   request_counter: &mut i32,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
-  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+  let post = context
+    .conn()
+    .await?
+    .interact(move |conn| Post::read(conn, post_id))
+    .await??;
   let actor = actor.dereference(context, request_counter).await?;
 
   // Note:
@@ -106,16 +109,26 @@ async fn get_comment_parent_creator(
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
-    let parent_comment =
-      blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
+    let parent_comment = pool
+      .get()
+      .await?
+      .interact(move |conn| Comment::read(conn, parent_comment_id))
+      .await??;
     parent_comment.creator_id
   } else {
     let parent_post_id = comment.post_id;
-    let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
+    let parent_post = pool
+      .get()
+      .await?
+      .interact(move |conn| Post::read(conn, parent_post_id))
+      .await??;
     parent_post.creator_id
   };
   Ok(
-    blocking(pool, move |conn| Person::read(conn, parent_creator_id))
+    pool
+      .get()
+      .await?
+      .interact(move |conn| Person::read(conn, parent_creator_id))
       .await??
       .into(),
   )

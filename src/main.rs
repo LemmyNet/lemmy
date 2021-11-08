@@ -3,13 +3,9 @@ extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_web::{web::Data, *};
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
+use deadpool_diesel::postgres::{Manager, Pool, Runtime};
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
-use lemmy_api_common::blocking;
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub_lib::activity_queue::create_activity_queue;
 use lemmy_db_schema::{get_database_url_from_env, source::secret::Secret};
@@ -43,29 +39,30 @@ async fn main() -> Result<(), LemmyError> {
   env_logger::init();
   let settings = Settings::init().expect("Couldn't initialize settings.");
 
-  // Set up the r2d2 connection pool
+  // Set up the deadpool connection pool
   let db_url = match get_database_url_from_env() {
     Ok(url) => url,
     Err(_) => settings.get_database_url(),
   };
-  let manager = ConnectionManager::<PgConnection>::new(&db_url);
-  let pool = Pool::builder()
+
+  let manager = Manager::new(&db_url, Runtime::Tokio1);
+  let pool = Pool::builder(manager)
     .max_size(settings.database.pool_size)
-    .build(manager)
-    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    .build()?;
 
   // Run the migrations from code
   let protocol_and_hostname = settings.get_protocol_and_hostname();
-  blocking(&pool, move |conn| {
-    embedded_migrations::run(conn)?;
-    run_advanced_migrations(conn, &protocol_and_hostname)?;
-    Ok(()) as Result<(), LemmyError>
-  })
-  .await??;
+  let conn = pool.get().await?;
+  conn
+    .interact(move |conn| {
+      embedded_migrations::run(conn)?;
+      run_advanced_migrations(conn, &protocol_and_hostname)?;
+      Ok(()) as Result<(), LemmyError>
+    })
+    .await??;
 
-  let pool2 = pool.clone();
   thread::spawn(move || {
-    scheduled_tasks::setup(pool2);
+    scheduled_tasks::setup(&db_url);
   });
 
   // Set up the rate limiter
@@ -75,8 +72,11 @@ async fn main() -> Result<(), LemmyError> {
   };
 
   // Initialize the secrets
-  let conn = pool.get()?;
-  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
+  let conn = pool.get().await?;
+  let secret = conn
+    .interact(|conn| Secret::init(conn))
+    .await?
+    .expect("Couldn't initialize secrets.");
 
   println!(
     "Starting http server at {}:{}",

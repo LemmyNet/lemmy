@@ -1,6 +1,5 @@
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::webfinger::{WebfingerLink, WebfingerResponse};
 use lemmy_db_schema::source::{community::Community, person::Person};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
@@ -48,21 +47,27 @@ async fn get_webfinger_response(
   let url = if let Some(community_name) = community_regex_parsed {
     let community_name = community_name.as_str().to_owned();
     // Make sure the requested community exists.
-    blocking(context.pool(), move |conn| {
-      Community::read_from_name(conn, &community_name)
-    })
-    .await?
-    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
-    .actor_id
+    context
+      .conn()
+      .await
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+      .interact(move |conn| Community::read_from_name(conn, &community_name))
+      .await
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+      .actor_id
   } else if let Some(person_name) = username_regex_parsed {
     let person_name = person_name.as_str().to_owned();
     // Make sure the requested person exists.
-    blocking(context.pool(), move |conn| {
-      Person::find_by_name(conn, &person_name)
-    })
-    .await?
-    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
-    .actor_id
+    context
+      .conn()
+      .await
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+      .interact(move |conn| Person::find_by_name(conn, &person_name))
+      .await
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+      .actor_id
   } else {
     return Err(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))));
   };

@@ -5,7 +5,6 @@ use crate::{
 };
 use activitystreams::{object::kind::NoteType, unparsed::Unparsed};
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
@@ -62,12 +61,20 @@ impl Note {
         // Workaround because I cant figure out how to get the post out of the box (and we dont
         // want to stackoverflow in a deep comment hierarchy).
         let post_id = p.id;
-        let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+        let post = context
+          .conn()
+          .await?
+          .interact(move |conn| Post::read(conn, post_id))
+          .await??;
         Ok((post.into(), None))
       }
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
-        let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+        let post = context
+          .conn()
+          .await?
+          .interact(move |conn| Post::read(conn, post_id))
+          .await??;
         Ok((post.into(), Some(c.id)))
       }
     }

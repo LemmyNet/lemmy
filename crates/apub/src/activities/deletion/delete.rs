@@ -12,7 +12,6 @@ use crate::{
 };
 use activitystreams::{activity::kind::DeleteType, public};
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -143,14 +142,16 @@ pub(in crate::activities) async fn receive_remove_action(
         reason,
         expires: None,
       };
-      blocking(context.pool(), move |conn| {
-        ModRemoveCommunity::create(conn, &form)
-      })
-      .await??;
-      let deleted_community = blocking(context.pool(), move |conn| {
-        Community::update_removed(conn, community.id, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| ModRemoveCommunity::create(conn, &form))
+        .await??;
+      let deleted_community = context
+        .conn()
+        .await?
+        .interact(move |conn| Community::update_removed(conn, community.id, true))
+        .await??;
 
       send_community_ws_message(deleted_community.id, RemoveCommunity, None, None, context).await?;
     }
@@ -161,14 +162,16 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      blocking(context.pool(), move |conn| {
-        ModRemovePost::create(conn, &form)
-      })
-      .await??;
-      let removed_post = blocking(context.pool(), move |conn| {
-        Post::update_removed(conn, post.id, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| ModRemovePost::create(conn, &form))
+        .await??;
+      let removed_post = context
+        .conn()
+        .await?
+        .interact(move |conn| Post::update_removed(conn, post.id, true))
+        .await??;
 
       send_post_ws_message(removed_post.id, RemovePost, None, None, context).await?;
     }
@@ -179,14 +182,16 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      blocking(context.pool(), move |conn| {
-        ModRemoveComment::create(conn, &form)
-      })
-      .await??;
-      let removed_comment = blocking(context.pool(), move |conn| {
-        Comment::update_removed(conn, comment.id, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| ModRemoveComment::create(conn, &form))
+        .await??;
+      let removed_comment = context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::update_removed(conn, comment.id, true))
+        .await??;
 
       send_comment_ws_message_simple(removed_comment.id, RemoveComment, context).await?;
     }
@@ -204,15 +209,20 @@ impl GetCommunity for Delete {
     let community_id = match DeletableObjects::read_from_db(&self.object, context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
-        let post = blocking(context.pool(), move |conn| Post::read(conn, c.post_id)).await??;
+        let post = context
+          .conn()
+          .await?
+          .interact(move |conn| Post::read(conn, c.post_id))
+          .await??;
         post.community_id
       }
       DeletableObjects::Post(p) => p.community_id,
     };
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??;
     Ok(community.into())
   }
 }

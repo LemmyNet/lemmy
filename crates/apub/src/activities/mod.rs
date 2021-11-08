@@ -7,7 +7,6 @@ use crate::{
 };
 use activitystreams::public;
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
   object_id::ObjectId,
@@ -62,9 +61,12 @@ pub(crate) async fn verify_person_in_community(
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(context.pool(), is_banned).await? {
+  if context
+    .conn()
+    .await?
+    .interact(move |conn| CommunityPersonBanView::get(conn, person_id, community_id).is_ok())
+    .await?
+  {
     return Err(anyhow!("Person is banned from community").into());
   }
 
@@ -93,10 +95,11 @@ pub(crate) async fn verify_mod_action(
     //       remote admins, it doesnt make any difference.
     let community_id = community.id;
     let actor_id = actor.id;
-    let is_mod_or_admin = blocking(context.pool(), move |conn| {
-      CommunityView::is_mod_or_admin(conn, actor_id, community_id)
-    })
-    .await?;
+    let is_mod_or_admin = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityView::is_mod_or_admin(conn, actor_id, community_id))
+      .await?;
     if !is_mod_or_admin {
       return Err(anyhow!("Not a mod").into());
     }

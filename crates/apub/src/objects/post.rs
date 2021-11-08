@@ -12,7 +12,6 @@ use activitystreams::{
   public,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
@@ -68,20 +67,22 @@ impl ApubObject for ApubPost {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        Post::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Post::read_from_apub_id(conn, object_id))
+        .await??
+        .map(Into::into),
     )
   }
 
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
-      blocking(context.pool(), move |conn| {
-        Post::update_deleted(conn, self.id, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Post::update_deleted(conn, self.id, true))
+        .await??;
     }
     Ok(())
   }
@@ -89,12 +90,17 @@ impl ApubObject for ApubPost {
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   async fn into_apub(self, context: &LemmyContext) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
+    let creator = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, creator_id))
+      .await??;
     let community_id = self.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, community_id))
+      .await??;
 
     let source = self.body.clone().map(|body| Source {
       content: body,
@@ -200,7 +206,11 @@ impl ApubObject for ApubPost {
       ap_id: Some(page.id.into()),
       local: Some(false),
     };
-    let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
+    let post = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::upsert(conn, &form))
+      .await??;
     Ok(post.into())
   }
 }
@@ -214,12 +224,14 @@ mod tests {
     post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
+  use lemmy_db_schema::establish_unpooled_connection;
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_post() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let community = parse_lemmy_community(&context).await;
     let person = parse_lemmy_person(&context).await;
 
@@ -241,8 +253,8 @@ mod tests {
     assert!(post.stickied);
     assert_eq!(request_counter, 0);
 
-    Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();
-    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
+    Post::delete(&conn, post.id).unwrap();
+    Person::delete(&conn, person.id).unwrap();
+    Community::delete(&conn, community.id).unwrap();
   }
 }

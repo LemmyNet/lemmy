@@ -5,7 +5,6 @@ use crate::protocol::{
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
@@ -58,11 +57,12 @@ impl ApubObject for ApubPrivateMessage {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        PrivateMessage::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      context
+        .conn()
+        .await?
+        .interact(move |conn| PrivateMessage::read_from_apub_id(conn, object_id))
+        .await??
+        .map(Into::into),
     )
   }
 
@@ -73,11 +73,18 @@ impl ApubObject for ApubPrivateMessage {
 
   async fn into_apub(self, context: &LemmyContext) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
+    let creator = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, creator_id))
+      .await??;
 
     let recipient_id = self.recipient_id;
-    let recipient =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id)).await??;
+    let recipient = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, recipient_id))
+      .await??;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
@@ -146,10 +153,11 @@ impl ApubObject for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = blocking(context.pool(), move |conn| {
-      PrivateMessage::upsert(conn, &form)
-    })
-    .await??;
+    let pm = context
+      .conn()
+      .await?
+      .interact(move |conn| PrivateMessage::upsert(conn, &form))
+      .await??;
     Ok(pm.into())
   }
 }
@@ -162,6 +170,7 @@ mod tests {
     tests::{file_to_json_object, init_context},
   };
   use assert_json_diff::assert_json_include;
+  use lemmy_db_schema::establish_unpooled_connection;
   use serial_test::serial;
 
   async fn prepare_comment_test(url: &Url, context: &LemmyContext) -> (ApubPerson, ApubPerson) {
@@ -183,15 +192,17 @@ mod tests {
     (person1, person2)
   }
 
-  fn cleanup(data: (ApubPerson, ApubPerson), context: &LemmyContext) {
-    Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
+  fn cleanup(data: (ApubPerson, ApubPerson), _context: &LemmyContext) {
+    let conn = establish_unpooled_connection();
+    Person::delete(&conn, data.0.id).unwrap();
+    Person::delete(&conn, data.1.id).unwrap();
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_pm() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json");
@@ -211,7 +222,7 @@ mod tests {
     let to_apub = pm.into_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    PrivateMessage::delete(&*context.pool().get().unwrap(), pm_id).unwrap();
+    PrivateMessage::delete(&conn, pm_id).unwrap();
     cleanup(data, &context);
   }
 
@@ -219,6 +230,7 @@ mod tests {
   #[serial]
   async fn test_parse_pleroma_pm() {
     let context = init_context();
+    let conn = establish_unpooled_connection();
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
@@ -235,7 +247,7 @@ mod tests {
     assert_eq!(pm.content.len(), 3);
     assert_eq!(request_counter, 0);
 
-    PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();
+    PrivateMessage::delete(&conn, pm.id).unwrap();
     cleanup(data, &context);
   }
 }

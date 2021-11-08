@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   comment::*,
   get_local_user_view_from_jwt,
@@ -39,10 +38,11 @@ impl PerformCrud for DeleteComment {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| CommentView::read(conn, comment_id, None))
+      .await??;
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
@@ -63,17 +63,19 @@ impl PerformCrud for DeleteComment {
 
     // Do the delete
     let deleted = data.deleted;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_deleted(conn, comment_id, deleted)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    let updated_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| Comment::update_deleted(conn, comment_id, deleted))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Send the apub message
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_comment.post.community_id)
-    })
-    .await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, orig_comment.post.community_id))
+      .await??;
     send_apub_delete(
       &local_user_view.person.clone().into(),
       &community.clone().into(),
@@ -84,7 +86,11 @@ impl PerformCrud for DeleteComment {
     .await?;
 
     let post_id = updated_comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::read(conn, post_id))
+      .await??;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,
@@ -122,10 +128,11 @@ impl PerformCrud for RemoveComment {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| CommentView::read(conn, comment_id, None))
+      .await??;
 
     check_community_ban(
       local_user_view.person.id,
@@ -144,11 +151,12 @@ impl PerformCrud for RemoveComment {
 
     // Do the remove
     let removed = data.removed;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_removed(conn, comment_id, removed)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    let updated_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| Comment::update_removed(conn, comment_id, removed))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {
@@ -157,16 +165,18 @@ impl PerformCrud for RemoveComment {
       removed: Some(removed),
       reason: data.reason.to_owned(),
     };
-    blocking(context.pool(), move |conn| {
-      ModRemoveComment::create(conn, &form)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| ModRemoveComment::create(conn, &form))
+      .await??;
 
     // Send the apub message
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_comment.post.community_id)
-    })
-    .await??;
+    let community = context
+      .conn()
+      .await?
+      .interact(move |conn| Community::read(conn, orig_comment.post.community_id))
+      .await??;
     send_apub_remove(
       &local_user_view.person.clone().into(),
       &community.into(),
@@ -178,7 +188,11 @@ impl PerformCrud for RemoveComment {
     .await?;
 
     let post_id = updated_comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = context
+      .conn()
+      .await?
+      .interact(move |conn| Post::read(conn, post_id))
+      .await??;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

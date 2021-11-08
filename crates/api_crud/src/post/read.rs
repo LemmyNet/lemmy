@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, mark_post_as_read, post::*};
+use lemmy_api_common::{get_local_user_view_from_jwt_opt, mark_post_as_read, post::*};
 use lemmy_apub::get_actor_id_from_name;
 use lemmy_apub_lib::webfinger::WebfingerType;
 use lemmy_db_schema::{
@@ -39,11 +39,12 @@ impl PerformCrud for GetPost {
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
-    let mut post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, id, person_id)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_find_post", e))?;
+    let mut post_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PostView::read(conn, id, person_id))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_find_post", e))?;
 
     // Mark the post as read
     if let Some(person_id) = person_id {
@@ -51,23 +52,27 @@ impl PerformCrud for GetPost {
     }
 
     let id = data.id;
-    let mut comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
-        .post_id(id)
-        .limit(9999)
-        .list()
-    })
-    .await??;
+    let mut comments = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        CommentQueryBuilder::create(conn)
+          .my_person_id(person_id)
+          .show_bot_accounts(show_bot_accounts)
+          .post_id(id)
+          .limit(9999)
+          .list()
+      })
+      .await??;
 
     // Necessary for the sidebar
     let community_id = post_view.community.id;
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, person_id)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    let mut community_view = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityView::read(conn, community_id, person_id))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_find_community", e))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {
@@ -86,10 +91,11 @@ impl PerformCrud for GetPost {
       }
     }
 
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let moderators = context
+      .conn()
+      .await?
+      .interact(move |conn| CommunityModeratorView::for_community(conn, community_id))
+      .await??;
 
     let online = context
       .chat_server()
@@ -146,23 +152,26 @@ impl PerformCrud for GetPosts {
     };
     let saved_only = data.saved_only;
 
-    let mut posts = blocking(context.pool(), move |conn| {
-      PostQueryBuilder::create(conn)
-        .listing_type(listing_type)
-        .sort(sort)
-        .show_nsfw(show_nsfw)
-        .show_bot_accounts(show_bot_accounts)
-        .show_read_posts(show_read_posts)
-        .community_id(community_id)
-        .community_actor_id(community_actor_id)
-        .saved_only(saved_only)
-        .my_person_id(person_id)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_get_posts", e))?;
+    let mut posts = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        PostQueryBuilder::create(conn)
+          .listing_type(listing_type)
+          .sort(sort)
+          .show_nsfw(show_nsfw)
+          .show_bot_accounts(show_bot_accounts)
+          .show_read_posts(show_read_posts)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id)
+          .saved_only(saved_only)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit)
+          .list()
+      })
+      .await?
+      .map_err(|e| ApiError::err("couldnt_get_posts", e))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {

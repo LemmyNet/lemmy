@@ -1,7 +1,6 @@
 use actix_web::web::Data;
 
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   check_community_deleted_or_removed,
   check_post_deleted_or_removed,
@@ -42,10 +41,11 @@ impl PerformCrud for EditComment {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| CommentView::read(conn, comment_id, None))
+      .await??;
 
     // TODO is this necessary? It should really only need to check on create
     check_community_ban(
@@ -66,11 +66,12 @@ impl PerformCrud for EditComment {
     let content_slurs_removed =
       remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
     let comment_id = data.comment_id;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_content(conn, comment_id, &content_slurs_removed)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    let updated_comment = context
+      .conn()
+      .await?
+      .interact(move |conn| Comment::update_content(conn, comment_id, &content_slurs_removed))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();

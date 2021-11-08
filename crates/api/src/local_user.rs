@@ -4,13 +4,7 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
-  is_admin,
-  password_length_check,
-  person::*,
-};
+use lemmy_api_common::{get_local_user_view_from_jwt, is_admin, password_length_check, person::*};
 use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
@@ -72,11 +66,12 @@ impl Perform for Login {
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let local_user_view = blocking(context.pool(), move |conn| {
-      LocalUserView::find_by_email_or_name(conn, &username_or_email)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
+    let local_user_view = context
+      .conn()
+      .await?
+      .interact(move |conn| LocalUserView::find_by_email_or_name(conn, &username_or_email))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
 
     // Verify the password
     let valid: bool = verify(
@@ -214,11 +209,12 @@ impl Perform for SaveUserSettings {
       bot_account,
     };
 
-    blocking(context.pool(), move |conn| {
-      Person::update(conn, person_id, &person_form)
-    })
-    .await?
-    .map_err(|e| ApiError::err("user_already_exists", e))?;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| Person::update(conn, person_id, &person_form))
+      .await?
+      .map_err(|e| ApiError::err("user_already_exists", e))?;
 
     let local_user_form = LocalUserForm {
       person_id,
@@ -237,10 +233,11 @@ impl Perform for SaveUserSettings {
       send_notifications_to_email: data.send_notifications_to_email,
     };
 
-    let local_user_res = blocking(context.pool(), move |conn| {
-      LocalUser::update(conn, local_user_id, &local_user_form)
-    })
-    .await?;
+    let local_user_res = context
+      .conn()
+      .await?
+      .interact(move |conn| LocalUser::update(conn, local_user_id, &local_user_form))
+      .await?;
     let updated_local_user = match local_user_res {
       Ok(u) => u,
       Err(e) => {
@@ -299,10 +296,11 @@ impl Perform for ChangePassword {
 
     let local_user_id = local_user_view.local_user.id;
     let new_password = data.new_password.to_owned();
-    let updated_local_user = blocking(context.pool(), move |conn| {
-      LocalUser::update_password(conn, local_user_id, &new_password)
-    })
-    .await??;
+    let updated_local_user = context
+      .conn()
+      .await?
+      .interact(move |conn| LocalUser::update_password(conn, local_user_id, &new_password))
+      .await??;
 
     // Return the jwt
     Ok(LoginResponse {
@@ -333,11 +331,12 @@ impl Perform for AddAdmin {
 
     let added = data.added;
     let added_person_id = data.person_id;
-    let added_admin = blocking(context.pool(), move |conn| {
-      Person::add_admin(conn, added_person_id, added)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_update_user", e))?;
+    let added_admin = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::add_admin(conn, added_person_id, added))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_user", e))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -346,14 +345,23 @@ impl Perform for AddAdmin {
       removed: Some(!data.added),
     };
 
-    blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| ModAdd::create(conn, &form))
+      .await??;
 
-    let site_creator_id = blocking(context.pool(), move |conn| {
-      Site::read(conn, 1).map(|s| s.creator_id)
-    })
-    .await??;
+    let site_creator_id = context
+      .conn()
+      .await?
+      .interact(move |conn| Site::read(conn, 1).map(|s| s.creator_id))
+      .await??;
 
-    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    let mut admins = context
+      .conn()
+      .await?
+      .interact(|conn| PersonViewSafe::admins(conn))
+      .await??;
     let creator_index = admins
       .iter()
       .position(|r| r.person.id == site_creator_id)
@@ -391,26 +399,30 @@ impl Perform for BanPerson {
 
     let ban = data.ban;
     let banned_person_id = data.person_id;
-    let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban);
-    blocking(context.pool(), ban_person)
+    context
+      .conn()
+      .await?
+      .interact(move |conn| Person::ban_person(conn, banned_person_id, ban))
       .await?
       .map_err(|e| ApiError::err("couldnt_update_user", e))?;
 
     // Remove their data if that's desired
     if data.remove_data.unwrap_or(false) {
       // Posts
-      blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_person_id, None, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Post::update_removed_for_creator(conn, banned_person_id, None, true))
+        .await??;
 
       // Communities
       // Remove all communities where they're the top mod
       // for now, remove the communities manually
-      let first_mod_communities = blocking(context.pool(), move |conn: &'_ _| {
-        CommunityModeratorView::get_community_first_mods(conn)
-      })
-      .await??;
+      let first_mod_communities = context
+        .conn()
+        .await?
+        .interact(move |conn| CommunityModeratorView::get_community_first_mods(conn))
+        .await??;
 
       // Filter to only this banned users top communities
       let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
@@ -419,17 +431,21 @@ impl Perform for BanPerson {
         .collect();
 
       for first_mod_community in banned_user_first_communities {
-        blocking(context.pool(), move |conn: &'_ _| {
-          Community::update_removed(conn, first_mod_community.community.id, true)
-        })
-        .await??;
+        context
+          .conn()
+          .await?
+          .interact(move |conn| {
+            Community::update_removed(conn, first_mod_community.community.id, true)
+          })
+          .await??;
       }
 
       // Comments
-      blocking(context.pool(), move |conn: &'_ _| {
-        Comment::update_removed_for_creator(conn, banned_person_id, true)
-      })
-      .await??;
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::update_removed_for_creator(conn, banned_person_id, true))
+        .await??;
     }
 
     // Mod tables
@@ -443,13 +459,18 @@ impl Perform for BanPerson {
       expires,
     };
 
-    blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| ModBan::create(conn, &form))
+      .await??;
 
     let person_id = data.person_id;
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_id)
-    })
-    .await??;
+    let person_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PersonViewSafe::read(conn, person_id))
+      .await??;
 
     let res = BanPersonResponse {
       person_view,
@@ -493,23 +514,28 @@ impl Perform for BlockPerson {
     };
 
     if data.block {
-      let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
-      blocking(context.pool(), block)
+      context
+        .conn()
+        .await?
+        .interact(move |conn| PersonBlock::block(conn, &person_block_form))
         .await?
         .map_err(|e| ApiError::err("person_block_already_exists", e))?;
     } else {
-      let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
-      blocking(context.pool(), unblock)
+      context
+        .conn()
+        .await?
+        .interact(move |conn| PersonBlock::unblock(conn, &person_block_form))
         .await?
         .map_err(|e| ApiError::err("person_block_already_exists", e))?;
     }
 
     // TODO does any federated stuff need to be done here?
 
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, target_id)
-    })
-    .await??;
+    let person_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PersonViewSafe::read(conn, target_id))
+      .await??;
 
     let res = BlockPersonResponse {
       person_view,
@@ -541,18 +567,21 @@ impl Perform for GetReplies {
     let person_id = local_user_view.person.id;
     let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
 
-    let replies = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .sort(sort)
-        .unread_only(unread_only)
-        .recipient_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
-        .my_person_id(person_id)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await??;
+    let replies = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        CommentQueryBuilder::create(conn)
+          .sort(sort)
+          .unread_only(unread_only)
+          .recipient_id(person_id)
+          .show_bot_accounts(show_bot_accounts)
+          .my_person_id(person_id)
+          .page(page)
+          .limit(limit)
+          .list()
+      })
+      .await??;
 
     Ok(GetRepliesResponse { replies })
   }
@@ -577,17 +606,20 @@ impl Perform for GetPersonMentions {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let person_id = local_user_view.person.id;
-    let mentions = blocking(context.pool(), move |conn| {
-      PersonMentionQueryBuilder::create(conn)
-        .recipient_id(person_id)
-        .my_person_id(person_id)
-        .sort(sort)
-        .unread_only(unread_only)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await??;
+    let mentions = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        PersonMentionQueryBuilder::create(conn)
+          .recipient_id(person_id)
+          .my_person_id(person_id)
+          .sort(sort)
+          .unread_only(unread_only)
+          .page(page)
+          .limit(limit)
+          .list()
+      })
+      .await??;
 
     Ok(GetPersonMentionsResponse { mentions })
   }
@@ -607,10 +639,11 @@ impl Perform for MarkPersonMentionAsRead {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_mention_id = data.person_mention_id;
-    let read_person_mention = blocking(context.pool(), move |conn| {
-      PersonMention::read(conn, person_mention_id)
-    })
-    .await??;
+    let read_person_mention = context
+      .conn()
+      .await?
+      .interact(move |conn| PersonMention::read(conn, person_mention_id))
+      .await??;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
       return Err(ApiError::err_plain("couldnt_update_comment").into());
@@ -618,18 +651,21 @@ impl Perform for MarkPersonMentionAsRead {
 
     let person_mention_id = read_person_mention.id;
     let read = data.read;
-    let update_mention =
-      move |conn: &'_ _| PersonMention::update_read(conn, person_mention_id, read);
-    blocking(context.pool(), update_mention)
+
+    context
+      .conn()
+      .await?
+      .interact(move |conn| PersonMention::update_read(conn, person_mention_id, read))
       .await?
       .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
-    let person_mention_view = blocking(context.pool(), move |conn| {
-      PersonMentionView::read(conn, person_mention_id, Some(person_id))
-    })
-    .await??;
+    let person_mention_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PersonMentionView::read(conn, person_mention_id, Some(person_id)))
+      .await??;
 
     Ok(PersonMentionResponse {
       person_mention_view,
@@ -651,38 +687,46 @@ impl Perform for MarkAllAsRead {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
-    let replies = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .my_person_id(person_id)
-        .recipient_id(person_id)
-        .unread_only(true)
-        .page(1)
-        .limit(999)
-        .list()
-    })
-    .await??;
+    let replies = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        CommentQueryBuilder::create(conn)
+          .my_person_id(person_id)
+          .recipient_id(person_id)
+          .unread_only(true)
+          .page(1)
+          .limit(999)
+          .list()
+      })
+      .await??;
 
     // TODO: this should probably be a bulk operation
     // Not easy to do as a bulk operation,
     // because recipient_id isn't in the comment table
     for comment_view in &replies {
       let reply_id = comment_view.comment.id;
-      let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
-      blocking(context.pool(), mark_as_read)
+      context
+        .conn()
+        .await?
+        .interact(move |conn| Comment::update_read(conn, reply_id, true))
         .await?
         .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
     }
 
     // Mark all user mentions as read
-    let update_person_mentions =
-      move |conn: &'_ _| PersonMention::mark_all_as_read(conn, person_id);
-    blocking(context.pool(), update_person_mentions)
+    context
+      .conn()
+      .await?
+      .interact(move |conn| PersonMention::mark_all_as_read(conn, person_id))
       .await?
       .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
 
     // Mark all private_messages as read
-    let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, person_id);
-    blocking(context.pool(), update_pm)
+    context
+      .conn()
+      .await?
+      .interact(move |conn| PrivateMessage::mark_all_as_read(conn, person_id))
       .await?
       .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
 
@@ -703,11 +747,12 @@ impl Perform for PasswordReset {
 
     // Fetch that email
     let email = data.email.clone();
-    let local_user_view = blocking(context.pool(), move |conn| {
-      LocalUserView::find_by_email(conn, &email)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
+    let local_user_view = context
+      .conn()
+      .await?
+      .interact(move |conn| LocalUserView::find_by_email(conn, &email))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
 
     // Generate a random token
     let token = generate_random_string();
@@ -715,10 +760,11 @@ impl Perform for PasswordReset {
     // Insert the row
     let token2 = token.clone();
     let local_user_id = local_user_view.local_user.id;
-    blocking(context.pool(), move |conn| {
-      PasswordResetRequest::create_token(conn, local_user_id, &token2)
-    })
-    .await??;
+    context
+      .conn()
+      .await?
+      .interact(move |conn| PasswordResetRequest::create_token(conn, local_user_id, &token2))
+      .await??;
 
     // Email the pure token to the user.
     // TODO no i18n support here.
@@ -752,10 +798,13 @@ impl Perform for PasswordChange {
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let local_user_id = blocking(context.pool(), move |conn| {
-      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.local_user_id)
-    })
-    .await??;
+    let local_user_id = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        PasswordResetRequest::read_from_token(conn, &token).map(|p| p.local_user_id)
+      })
+      .await??;
 
     password_length_check(&data.password)?;
 
@@ -766,11 +815,12 @@ impl Perform for PasswordChange {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = blocking(context.pool(), move |conn| {
-      LocalUser::update_password(conn, local_user_id, &password)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_update_user", e))?;
+    let updated_local_user = context
+      .conn()
+      .await?
+      .interact(move |conn| LocalUser::update_password(conn, local_user_id, &password))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_update_user", e))?;
 
     // Return the jwt
     Ok(LoginResponse {
@@ -800,15 +850,19 @@ impl Perform for GetReportCount {
     let admin = local_user_view.person.admin;
     let community_id = data.community_id;
 
-    let comment_reports = blocking(context.pool(), move |conn| {
-      CommentReportView::get_report_count(conn, person_id, admin, community_id)
-    })
-    .await??;
+    let comment_reports = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        CommentReportView::get_report_count(conn, person_id, admin, community_id)
+      })
+      .await??;
 
-    let post_reports = blocking(context.pool(), move |conn| {
-      PostReportView::get_report_count(conn, person_id, admin, community_id)
-    })
-    .await??;
+    let post_reports = context
+      .conn()
+      .await?
+      .interact(move |conn| PostReportView::get_report_count(conn, person_id, admin, community_id))
+      .await??;
 
     let res = GetReportCountResponse {
       community_id,
@@ -835,20 +889,23 @@ impl Perform for GetUnreadCount {
 
     let person_id = local_user_view.person.id;
 
-    let replies = blocking(context.pool(), move |conn| {
-      CommentView::get_unread_replies(conn, person_id)
-    })
-    .await??;
+    let replies = context
+      .conn()
+      .await?
+      .interact(move |conn| CommentView::get_unread_replies(conn, person_id))
+      .await??;
 
-    let mentions = blocking(context.pool(), move |conn| {
-      PersonMentionView::get_unread_mentions(conn, person_id)
-    })
-    .await??;
+    let mentions = context
+      .conn()
+      .await?
+      .interact(move |conn| PersonMentionView::get_unread_mentions(conn, person_id))
+      .await??;
 
-    let private_messages = blocking(context.pool(), move |conn| {
-      PrivateMessageView::get_unread_messages(conn, person_id)
-    })
-    .await??;
+    let private_messages = context
+      .conn()
+      .await?
+      .interact(move |conn| PrivateMessageView::get_unread_messages(conn, person_id))
+      .await??;
 
     let res = Self::Response {
       replies,

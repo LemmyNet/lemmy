@@ -13,7 +13,6 @@ extern crate lazy_static;
 
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::webfinger::{webfinger_resolve_actor, WebfingerType};
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
@@ -188,9 +187,10 @@ where
   T: Serialize + std::fmt::Debug + Send + 'static,
 {
   let ap_id = ap_id.to_owned().into();
-  blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, &activity, local, sensitive)
-  })
-  .await??;
+  pool
+    .get()
+    .await?
+    .interact(move |conn| Activity::insert(conn, ap_id, &activity, local, sensitive))
+    .await??;
   Ok(())
 }

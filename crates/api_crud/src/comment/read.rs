@@ -1,6 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, comment::*, get_local_user_view_from_jwt_opt};
+use lemmy_api_common::{comment::*, get_local_user_view_from_jwt_opt};
 use lemmy_apub::get_actor_id_from_name;
 use lemmy_apub_lib::webfinger::WebfingerType;
 use lemmy_db_schema::{
@@ -45,21 +45,24 @@ impl PerformCrud for GetComments {
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
-    let mut comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .listing_type(listing_type)
-        .sort(sort)
-        .saved_only(saved_only)
-        .community_id(community_id)
-        .community_actor_id(community_actor_id)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_get_comments", e))?;
+    let mut comments = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        CommentQueryBuilder::create(conn)
+          .listing_type(listing_type)
+          .sort(sort)
+          .saved_only(saved_only)
+          .community_id(community_id)
+          .community_actor_id(community_actor_id)
+          .my_person_id(person_id)
+          .show_bot_accounts(show_bot_accounts)
+          .page(page)
+          .limit(limit)
+          .list()
+      })
+      .await?
+      .map_err(|e| ApiError::err("couldnt_get_comments", e))?;
 
     // Blank out deleted or removed info
     for cv in comments

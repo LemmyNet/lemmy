@@ -7,7 +7,6 @@ use crate::{
   },
 };
 use activitystreams::activity::kind::UndoType;
-use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -28,10 +27,12 @@ impl UndoDeletePrivateMessage {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = pm.recipient_id;
-    let recipient: ApubPerson =
-      blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
-        .await??
-        .into();
+    let recipient: ApubPerson = context
+      .conn()
+      .await?
+      .interact(move |conn| Person::read(conn, recipient_id))
+      .await??
+      .into();
 
     let object = DeletePrivateMessage::new(actor, pm, context)?;
     let id = generate_activity_id(
@@ -75,10 +76,11 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     let ap_id = self.object.object.clone();
     let private_message = ap_id.dereference_local(context).await?;
 
-    let deleted_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::update_deleted(conn, private_message.id, false)
-    })
-    .await??;
+    let deleted_private_message = context
+      .conn()
+      .await?
+      .interact(move |conn| PrivateMessage::update_deleted(conn, private_message.id, false))
+      .await??;
 
     send_pm_ws_message(
       deleted_private_message.id,

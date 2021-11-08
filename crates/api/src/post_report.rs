@@ -1,7 +1,6 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   check_community_ban,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
@@ -51,10 +50,11 @@ impl Perform for CreatePostReport {
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, None)
-    })
-    .await??;
+    let post_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PostView::read(conn, post_id, None))
+      .await??;
 
     check_community_ban(person_id, post_view.community.id, context.pool()).await?;
 
@@ -67,16 +67,18 @@ impl Perform for CreatePostReport {
       reason: data.reason.to_owned(),
     };
 
-    let report = blocking(context.pool(), move |conn| {
-      PostReport::report(conn, &report_form)
-    })
-    .await?
-    .map_err(|e| ApiError::err("couldnt_create_report", e))?;
+    let report = context
+      .conn()
+      .await?
+      .interact(move |conn| PostReport::report(conn, &report_form))
+      .await?
+      .map_err(|e| ApiError::err("couldnt_create_report", e))?;
 
-    let post_report_view = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report.id, person_id)
-    })
-    .await??;
+    let post_report_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PostReportView::read(conn, report.id, person_id))
+      .await??;
 
     let res = PostReportResponse { post_report_view };
 
@@ -116,31 +118,34 @@ impl Perform for ResolvePostReport {
 
     let report_id = data.report_id;
     let person_id = local_user_view.person.id;
-    let report = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report_id, person_id)
-    })
-    .await??;
+    let report = context
+      .conn()
+      .await?
+      .interact(move |conn| PostReportView::read(conn, report_id, person_id))
+      .await??;
 
     let person_id = local_user_view.person.id;
     is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
 
     let resolved = data.resolved;
-    let resolve_fun = move |conn: &'_ _| {
-      if resolved {
-        PostReport::resolve(conn, report_id, person_id)
-      } else {
-        PostReport::unresolve(conn, report_id, person_id)
-      }
-    };
-
-    blocking(context.pool(), resolve_fun)
+    context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        if resolved {
+          PostReport::resolve(conn, report_id, person_id)
+        } else {
+          PostReport::unresolve(conn, report_id, person_id)
+        }
+      })
       .await?
       .map_err(|e| ApiError::err("couldnt_resolve_report", e))?;
 
-    let post_report_view = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report_id, person_id)
-    })
-    .await??;
+    let post_report_view = context
+      .conn()
+      .await?
+      .interact(move |conn| PostReportView::read(conn, report_id, person_id))
+      .await??;
 
     let res = PostReportResponse { post_report_view };
 
@@ -177,15 +182,18 @@ impl Perform for ListPostReports {
 
     let page = data.page;
     let limit = data.limit;
-    let post_reports = blocking(context.pool(), move |conn| {
-      PostReportQueryBuilder::create(conn, person_id, admin)
-        .community_id(community_id)
-        .unresolved_only(unresolved_only)
-        .page(page)
-        .limit(limit)
-        .list()
-    })
-    .await??;
+    let post_reports = context
+      .conn()
+      .await?
+      .interact(move |conn| {
+        PostReportQueryBuilder::create(conn, person_id, admin)
+          .community_id(community_id)
+          .unresolved_only(unresolved_only)
+          .page(page)
+          .limit(limit)
+          .list()
+      })
+      .await??;
 
     let res = ListPostReportsResponse { post_reports };
 
