@@ -20,12 +20,12 @@ steps:
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
 
-  - name: cargo clippy
-    image: ekidd/rust-musl-builder:1.51.0
-    commands:
-      # TODO disable this, because deadpool_diesel uses nightly features
-      # - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
-      - cargo clippy --workspace -- -D clippy::unwrap_used
+  # TODO disable this, because deadpool_diesel uses nightly features
+  # - name: cargo clippy
+  #   image: ekidd/rust-musl-builder:1.51.0
+  #   commands:
+  #     - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
+  #     - cargo clippy --workspace -- -D clippy::unwrap_used
 
   - name: cargo test
     image: ekidd/rust-musl-builder:1.51.0
