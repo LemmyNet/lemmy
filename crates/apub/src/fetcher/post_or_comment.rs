@@ -1,33 +1,25 @@
-use chrono::NaiveDateTime;
-use serde::Deserialize;
-use url::Url;
-
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_db_schema::source::{comment::CommentForm, post::PostForm};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
   objects::{comment::ApubComment, post::ApubPost},
   protocol::objects::{note::Note, page::Page},
 };
+use chrono::NaiveDateTime;
+use lemmy_apub_lib::traits::ApubObject;
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use serde::Deserialize;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum PostOrComment {
-  Post(Box<ApubPost>),
+  Post(ApubPost),
   Comment(ApubComment),
-}
-
-pub enum PostOrCommentForm {
-  PostForm(Box<PostForm>),
-  CommentForm(CommentForm),
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum PageOrNote {
-  Page(Box<Page>),
-  Note(Box<Note>),
+  Page(Page),
+  Note(Note),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -44,13 +36,10 @@ impl ApubObject for PostOrComment {
   async fn read_from_apub_id(
     object_id: Url,
     data: &Self::DataType,
-  ) -> Result<Option<Self>, LemmyError>
-  where
-    Self: Sized,
-  {
+  ) -> Result<Option<Self>, LemmyError> {
     let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match post {
-      Some(o) => Some(PostOrComment::Post(Box::new(o))),
+      Some(o) => Some(PostOrComment::Post(o)),
       None => ApubComment::read_from_apub_id(object_id, data)
         .await?
         .map(PostOrComment::Comment),
@@ -64,7 +53,7 @@ impl ApubObject for PostOrComment {
     }
   }
 
-  async fn to_apub(&self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -72,22 +61,30 @@ impl ApubObject for PostOrComment {
     unimplemented!()
   }
 
-  async fn from_apub(
-    apub: &PageOrNote,
-    context: &LemmyContext,
+  async fn verify(
+    apub: &Self::ApubType,
     expected_domain: &Url,
+    data: &Self::DataType,
     request_counter: &mut i32,
-  ) -> Result<Self, LemmyError>
-  where
-    Self: Sized,
-  {
+  ) -> Result<(), LemmyError> {
+    match apub {
+      PageOrNote::Page(a) => ApubPost::verify(a, expected_domain, data, request_counter).await,
+      PageOrNote::Note(a) => ApubComment::verify(a, expected_domain, data, request_counter).await,
+    }
+  }
+
+  async fn from_apub(
+    apub: PageOrNote,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PageOrNote::Page(p) => PostOrComment::Post(Box::new(
-        ApubPost::from_apub(p, context, expected_domain, request_counter).await?,
-      )),
-      PageOrNote::Note(n) => PostOrComment::Comment(
-        ApubComment::from_apub(n, context, expected_domain, request_counter).await?,
-      ),
+      PageOrNote::Page(p) => {
+        PostOrComment::Post(ApubPost::from_apub(p, context, request_counter).await?)
+      }
+      PageOrNote::Note(n) => {
+        PostOrComment::Comment(ApubComment::from_apub(n, context, request_counter).await?)
+      }
     })
   }
 }

@@ -1,13 +1,12 @@
 use crate::{
   collections::CommunityContext,
-  fetcher::object_id::ObjectId,
   generate_moderators_url,
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitystreams::{chrono::NaiveDateTime, collection::kind::OrderedCollectionType};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{traits::ApubObject, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
@@ -50,11 +49,11 @@ impl ApubObject for ApubCommunityModerators {
     unimplemented!()
   }
 
-  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let ordered_items = self
       .0
-      .iter()
-      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id.clone().into_inner()))
+      .into_iter()
+      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id))
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
@@ -67,13 +66,21 @@ impl ApubObject for ApubCommunityModerators {
     unimplemented!()
   }
 
-  async fn from_apub(
-    apub: &Self::ApubType,
-    data: &Self::DataType,
+  async fn verify(
+    group_moderators: &GroupModerators,
     expected_domain: &Url,
+    _context: &CommunityContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(&group_moderators.id, expected_domain)?;
+    Ok(())
+  }
+
+  async fn from_apub(
+    apub: Self::ApubType,
+    data: &Self::DataType,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    verify_domains_match(expected_domain, &apub.id)?;
     let community_id = data.0.id;
     let current_moderators = blocking(data.1.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
@@ -81,7 +88,7 @@ impl ApubObject for ApubCommunityModerators {
     .await??;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
-      let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone().into_inner());
+      let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone());
       if !apub.ordered_items.contains(&mod_id) {
         let community_moderator_form = CommunityModeratorForm {
           community_id: mod_user.community.id,
@@ -95,12 +102,11 @@ impl ApubObject for ApubCommunityModerators {
     }
 
     // Add new mods to database which have been added to moderators collection
-    for mod_id in &apub.ordered_items {
-      let mod_id = ObjectId::new(mod_id.clone());
+    for mod_id in apub.ordered_items {
+      let mod_id = ObjectId::new(mod_id);
       let mod_user: ApubPerson = mod_id.dereference(&data.1, request_counter).await?;
 
       if !current_moderators
-        .clone()
         .iter()
         .map(|c| c.moderator.actor_id.clone())
         .any(|x| x == mod_user.actor_id)
@@ -167,7 +173,10 @@ mod tests {
       0: community,
       1: context,
     };
-    ApubCommunityModerators::from_apub(&json, &community_context, &url, &mut request_counter)
+    ApubCommunityModerators::verify(&json, &url, &community_context, &mut request_counter)
+      .await
+      .unwrap();
+    ApubCommunityModerators::from_apub(json, &community_context, &mut request_counter)
       .await
       .unwrap();
     assert_eq!(request_counter, 0);

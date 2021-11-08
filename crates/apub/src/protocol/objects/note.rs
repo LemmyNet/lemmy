@@ -1,19 +1,13 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
-  fetcher::{object_id::ObjectId, post_or_comment::PostOrComment},
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  fetcher::post_or_comment::PostOrComment,
+  objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
 use activitystreams::{object::kind::NoteType, unparsed::Unparsed};
-use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::MediaTypeHtml, verify::verify_domains_match};
-use lemmy_db_schema::{
-  newtypes::CommentId,
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -26,12 +20,11 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Note {
   pub(crate) r#type: NoteType,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubComment>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  /// Indicates that the object is publicly readable. Unlike [`Post.to`], this one doesn't contain
-  /// the community ID, as it would be incompatible with Pleroma (and we can get the community from
-  /// the post in [`in_reply_to`]).
   pub(crate) to: Vec<Url>,
+  #[serde(default)]
+  pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) media_type: Option<MediaTypeHtml>,
   pub(crate) source: SourceCompat,
@@ -52,14 +45,6 @@ pub(crate) enum SourceCompat {
 }
 
 impl Note {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
   pub(crate) async fn get_parents(
     &self,
     context: &LemmyContext,
@@ -86,27 +71,5 @@ impl Note {
         Ok((post.into(), Some(c.id)))
       }
     }
-  }
-
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let (post, _parent_comment_id) = self.get_parents(context, request_counter).await?;
-    let community_id = post.community_id;
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
-
-    if post.locked {
-      return Err(anyhow!("Post is locked").into());
-    }
-    verify_domains_match(self.attributed_to.inner(), &self.id)?;
-    verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
-    verify_is_public(&self.to)?;
-    Ok(())
   }
 }

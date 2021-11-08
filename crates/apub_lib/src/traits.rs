@@ -5,11 +5,6 @@ pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::{location_info, LemmyError};
 use url::Url;
 
-pub trait ActivityFields {
-  fn id_unchecked(&self) -> &Url;
-  fn actor(&self) -> &Url;
-}
-
 #[async_trait::async_trait(?Send)]
 pub trait ActivityHandler {
   type DataType;
@@ -46,8 +41,15 @@ pub trait ApubObject {
   async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
 
   /// Trait for converting an object or actor into the respective ActivityPub type.
-  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError>;
+
+  async fn verify(
+    apub: &Self::ApubType,
+    expected_domain: &Url,
+    data: &Self::DataType,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError>;
 
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///
@@ -56,9 +58,8 @@ pub trait ApubObject {
   /// * `expected_domain` Domain where the object was received from. None in case of mod action.
   /// * `mod_action_allowed` True if the object can be a mod activity, ignore `expected_domain` in this case
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: Self::ApubType,
     data: &Self::DataType,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
@@ -68,9 +69,7 @@ pub trait ApubObject {
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
 pub trait ActorType {
-  fn is_local(&self) -> bool;
   fn actor_id(&self) -> Url;
-  fn name(&self) -> String;
 
   // TODO: this should not be an option (needs db migration in lemmy)
   fn public_key(&self) -> Option<String>;
@@ -87,7 +86,7 @@ pub trait ActorType {
   fn get_public_key(&self) -> Result<PublicKey, LemmyError> {
     Ok(PublicKey {
       id: format!("{}#main-key", self.actor_id()),
-      owner: self.actor_id(),
+      owner: Box::new(self.actor_id()),
       public_key_pem: self.public_key().context(location_info!())?,
     })
   }

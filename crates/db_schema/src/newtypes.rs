@@ -4,6 +4,7 @@ use diesel::{
   serialize::{Output, ToSql},
   sql_types::Text,
 };
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -93,27 +94,32 @@ where
   }
 }
 
-impl DbUrl {
-  // TODO: remove this method and just use into()
-  pub fn into_inner(self) -> Url {
-    self.0
-  }
-}
-
 impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     self.to_owned().0.fmt(f)
   }
 }
 
-impl From<DbUrl> for Url {
-  fn from(url: DbUrl) -> Self {
-    url.0
+// the project doesnt compile with From
+#[allow(clippy::from_over_into)]
+impl Into<DbUrl> for Url {
+  fn into(self) -> DbUrl {
+    DbUrl(self)
+  }
+}
+#[allow(clippy::from_over_into)]
+impl Into<Url> for DbUrl {
+  fn into(self) -> Url {
+    self.0
   }
 }
 
-impl From<Url> for DbUrl {
-  fn from(url: Url) -> Self {
-    DbUrl(url)
+impl<Kind> From<ObjectId<Kind>> for DbUrl
+where
+  Kind: ApubObject + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
+{
+  fn from(id: ObjectId<Kind>) -> Self {
+    DbUrl(id.into())
   }
 }

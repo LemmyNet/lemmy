@@ -1,17 +1,14 @@
-use crate::{
-  fetcher::{object_id::ObjectId, post_or_comment::PostOrComment},
-  objects::person::ApubPerson,
-};
+use crate::{fetcher::post_or_comment::PostOrComment, objects::person::ApubPerson};
 use activitystreams::unparsed::Unparsed;
 use anyhow::anyhow;
-use lemmy_apub_lib::traits::ActivityFields;
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use strum_macros::ToString;
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
   pub(crate) actor: ObjectId<ApubPerson>,

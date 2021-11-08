@@ -1,27 +1,20 @@
-use activitystreams::{
-  actor::{kind::GroupType, Endpoints},
-  object::kind::ImageType,
-};
-use chrono::NaiveDateTime;
-use itertools::Itertools;
-use log::debug;
-use std::ops::Deref;
-use url::Url;
-
 use crate::{
   check_is_apub_id_valid,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
-  fetcher::object_id::ObjectId,
   generate_moderators_url,
   generate_outbox_url,
   protocol::{
-    objects::{group::Group, tombstone::Tombstone},
+    objects::{group::Group, tombstone::Tombstone, Endpoints},
     ImageObject,
     Source,
   },
 };
+use activitystreams::{actor::kind::GroupType, object::kind::ImageType};
+use chrono::NaiveDateTime;
+use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
 };
@@ -32,6 +25,9 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use log::debug;
+use std::ops::Deref;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
@@ -80,7 +76,7 @@ impl ApubObject for ApubCommunity {
     Ok(())
   }
 
-  async fn to_apub(&self, _context: &LemmyContext) -> Result<Group, LemmyError> {
+  async fn into_apub(self, _context: &LemmyContext) -> Result<Group, LemmyError> {
     let source = self.description.clone().map(|bio| Source {
       content: bio,
       media_type: MediaTypeMarkdown::Markdown,
@@ -96,7 +92,7 @@ impl ApubObject for ApubCommunity {
 
     let group = Group {
       kind: GroupType::Group,
-      id: self.actor_id(),
+      id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
       name: self.title.clone(),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
@@ -105,14 +101,13 @@ impl ApubObject for ApubCommunity {
       image,
       sensitive: Some(self.nsfw),
       moderators: Some(ObjectId::<ApubCommunityModerators>::new(
-        generate_moderators_url(&self.actor_id)?.into_inner(),
+        generate_moderators_url(&self.actor_id)?,
       )),
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-        ..Default::default()
       },
       public_key: self.get_public_key()?,
       published: Some(convert_datetime(self.published)),
@@ -129,14 +124,22 @@ impl ApubObject for ApubCommunity {
     ))
   }
 
+  async fn verify(
+    group: &Group,
+    expected_domain: &Url,
+    context: &LemmyContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    group.verify(expected_domain, context).await
+  }
+
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_apub(
-    group: &Group,
+    group: Group,
     context: &LemmyContext,
-    expected_domain: &Url,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let form = Group::from_apub_to_form(group, expected_domain, &context.settings()).await?;
+    let form = Group::into_form(group.clone());
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
@@ -166,14 +169,8 @@ impl ApubObject for ApubCommunity {
 }
 
 impl ActorType for ApubCommunity {
-  fn is_local(&self) -> bool {
-    self.local
-  }
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
-  }
-  fn name(&self) -> String {
-    self.name.clone()
   }
   fn public_key(&self) -> Option<String> {
     self.public_key.to_owned()
@@ -187,7 +184,7 @@ impl ActorType for ApubCommunity {
   }
 
   fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
+    self.shared_inbox_url.clone().map(|s| s.into())
   }
 }
 
@@ -207,8 +204,12 @@ impl ApubCommunity {
     let follower_inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
-      .map(|f| f.follower.shared_inbox_url.unwrap_or(f.follower.inbox_url))
-      .map(|i| i.into_inner())
+      .map(|f| {
+        f.follower
+          .shared_inbox_url
+          .unwrap_or(f.follower.inbox_url)
+          .into()
+      })
       .collect();
     let inboxes = vec![follower_inboxes, additional_inboxes]
       .into_iter()
@@ -239,7 +240,10 @@ pub(crate) mod tests {
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
-    let community = ApubCommunity::from_apub(&json, context, &url, &mut request_counter)
+    ApubCommunity::verify(&json, &url, context, &mut request_counter)
+      .await
+      .unwrap();
+    let community = ApubCommunity::from_apub(json, context, &mut request_counter)
       .await
       .unwrap();
     // this makes two requests to the (intentionally) broken outbox/moderators collections

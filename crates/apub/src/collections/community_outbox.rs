@@ -1,7 +1,14 @@
+use crate::{
+  collections::CommunityContext,
+  generate_outbox_url,
+  objects::{person::ApubPerson, post::ApubPost},
+  protocol::{
+    activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+    collections::group_outbox::GroupOutbox,
+  },
+};
 use activitystreams::collection::kind::OrderedCollectionType;
 use chrono::NaiveDateTime;
-use url::Url;
-
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -13,16 +20,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::LemmyError;
-
-use crate::{
-  collections::CommunityContext,
-  generate_outbox_url,
-  objects::{person::ApubPerson, post::ApubPost},
-  protocol::{
-    activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
-    collections::group_outbox::GroupOutbox,
-  },
-};
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
@@ -62,9 +60,9 @@ impl ApubObject for ApubCommunityOutbox {
     Ok(())
   }
 
-  async fn to_apub(&self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
-    for post in &self.0 {
+    for post in self.0 {
       let actor = post.creator_id;
       let actor: ApubPerson = blocking(data.1.pool(), move |conn| Person::read(conn, actor))
         .await??
@@ -87,14 +85,22 @@ impl ApubObject for ApubCommunityOutbox {
     unimplemented!()
   }
 
-  async fn from_apub(
-    apub: &Self::ApubType,
-    data: &Self::DataType,
+  async fn verify(
+    group_outbox: &GroupOutbox,
     expected_domain: &Url,
+    _context: &CommunityContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(expected_domain, &group_outbox.id)?;
+    Ok(())
+  }
+
+  async fn from_apub(
+    apub: Self::ApubType,
+    data: &Self::DataType,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    verify_domains_match(expected_domain, &apub.id)?;
-    let mut outbox_activities = apub.ordered_items.clone();
+    let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() > 20 {
       outbox_activities = outbox_activities[0..20].to_vec();
     }

@@ -1,16 +1,3 @@
-use activitystreams::public;
-use anyhow::anyhow;
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType, ApubObject},
-  verify::{verify_domains_match, verify_urls_match},
-};
-use lemmy_db_schema::{source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-
 use crate::{
   activities::{
     check_community_deleted_or_removed,
@@ -22,14 +9,25 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
+use activitystreams::public;
+use anyhow::anyhow;
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType, ApubObject},
+  verify::{verify_domains_match, verify_urls_match},
+};
+use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(
-    post: &ApubPost,
+    post: ApubPost,
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
@@ -42,7 +40,7 @@ impl CreateOrUpdatePost {
     Ok(CreateOrUpdatePost {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: post.to_apub(context).await?,
+      object: post.into_apub(context).await?,
       cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
@@ -50,7 +48,7 @@ impl CreateOrUpdatePost {
     })
   }
   pub async fn send(
-    post: &ApubPost,
+    post: ApubPost,
     actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
@@ -63,7 +61,7 @@ impl CreateOrUpdatePost {
     .into();
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let id = create_or_update.id.clone();
-    let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
+    let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_to_community(activity, &id, actor, &community, vec![], context).await
   }
 }
@@ -76,16 +74,16 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;
 
     match self.kind {
       CreateOrUpdateType::Create => {
-        verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
-        verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
+        verify_domains_match(self.actor.inner(), self.object.id.inner())?;
+        verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
@@ -101,12 +99,12 @@ impl ActivityHandler for CreateOrUpdatePost {
         if is_mod_action {
           verify_mod_action(&self.actor, &community, context, request_counter).await?;
         } else {
-          verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
-          verify_urls_match(self.actor(), self.object.attributed_to.inner())?;
+          verify_domains_match(self.actor.inner(), self.object.id.inner())?;
+          verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
         }
       }
     }
-    self.object.verify(context, request_counter).await?;
+    ApubPost::verify(&self.object, self.actor.inner(), context, request_counter).await?;
     Ok(())
   }
 
@@ -115,9 +113,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let post =
-      ApubPost::from_apub(&self.object, context, &actor.actor_id(), request_counter).await?;
+    let post = ApubPost::from_apub(self.object, context, request_counter).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

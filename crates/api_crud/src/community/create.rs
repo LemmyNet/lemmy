@@ -7,7 +7,6 @@ use lemmy_api_common::{
   is_admin,
 };
 use lemmy_apub::{
-  fetcher::object_id::ObjectId,
   generate_followers_url,
   generate_inbox_url,
   generate_local_apub_endpoint,
@@ -15,6 +14,7 @@ use lemmy_apub::{
   objects::community::ApubCommunity,
   EndpointType,
 };
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   diesel_option_overwrite_to_url,
   source::{

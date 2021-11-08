@@ -1,12 +1,11 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   insert_activity,
   objects::community::ApubCommunity,
   protocol::activities::community::announce::AnnounceActivity,
 };
-use lemmy_apub_lib::traits::ActorType;
+use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

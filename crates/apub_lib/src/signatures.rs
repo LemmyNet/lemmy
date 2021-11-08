@@ -91,7 +91,7 @@ pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), L
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
-  pub id: String,
-  pub owner: Url,
+  pub(crate) id: String,
+  pub(crate) owner: Box<Url>,
   pub public_key_pem: String,
 }

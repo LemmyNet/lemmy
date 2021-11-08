@@ -1,7 +1,6 @@
 use crate::{
-  activities::verify_person_in_community,
+  activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
-  fetcher::object_id::ObjectId,
   protocol::{
     objects::{page::Page, tombstone::Tombstone},
     ImageObject,
@@ -15,8 +14,10 @@ use activitystreams::{
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   self,
@@ -29,7 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   request::fetch_site_data,
-  utils::{convert_datetime, markdown_to_html, remove_slurs},
+  utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
@@ -86,7 +87,7 @@ impl ApubObject for ApubPost {
   }
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  async fn to_apub(&self, context: &LemmyContext) -> Result<Page, LemmyError> {
+  async fn into_apub(self, context: &LemmyContext) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
     let community_id = self.community_id;
@@ -106,9 +107,10 @@ impl ApubObject for ApubPost {
 
     let page = Page {
       r#type: PageType::Page,
-      id: self.ap_id.clone().into(),
+      id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![community.actor_id.into(), public()],
+      cc: vec![],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeHtml::Html),
@@ -132,29 +134,39 @@ impl ApubObject for ApubPost {
     ))
   }
 
-  async fn from_apub(
+  async fn verify(
     page: &Page,
-    context: &LemmyContext,
     expected_domain: &Url,
+    context: &LemmyContext,
     request_counter: &mut i32,
-  ) -> Result<ApubPost, LemmyError> {
+  ) -> Result<(), LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
-    let ap_id = if page.is_mod_action(context).await? {
-      page.id_unchecked()
-    } else {
-      page.id(expected_domain)?
+    if !page.is_mod_action(context).await? {
+      verify_domains_match(page.id.inner(), expected_domain)?;
     };
-    let ap_id = Some(ap_id.clone().into());
+
+    let community = page.extract_community(context, request_counter).await?;
+    check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
+    verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
+    check_slurs(&page.name, &context.settings().slur_regex())?;
+    verify_domains_match(page.attributed_to.inner(), page.id.inner())?;
+    verify_is_public(&page.to, &page.cc)?;
+    Ok(())
+  }
+
+  async fn from_apub(
+    page: Page,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .attributed_to
       .dereference(context, request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
-    check_is_apub_id_valid(&page.id, community.local, &context.settings())?;
-    verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
 
-    let thumbnail_url: Option<Url> = page.image.clone().map(|i| i.url);
+    let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
     let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
       fetch_site_data(context.client(), &context.settings(), Some(url)).await
     } else {
@@ -169,8 +181,8 @@ impl ApubObject for ApubPost {
       .as_ref()
       .map(|s| remove_slurs(&s.content, &context.settings().slur_regex()));
     let form = PostForm {
-      name: page.name.clone(),
-      url: page.url.clone().map(|u| u.into()),
+      name: page.name,
+      url: page.url.map(|u| u.into()),
       body: body_slurs_removed,
       creator_id: creator.id,
       community_id: community.id,
@@ -185,7 +197,7 @@ impl ApubObject for ApubPost {
       embed_description,
       embed_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id,
+      ap_id: Some(page.id.into()),
       local: Some(false),
     };
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
@@ -214,11 +226,14 @@ mod tests {
     let json = file_to_json_object("assets/lemmy/objects/page.json");
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
     let mut request_counter = 0;
-    let post = ApubPost::from_apub(&json, &context, &url, &mut request_counter)
+    ApubPost::verify(&json, &url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let post = ApubPost::from_apub(json, &context, &mut request_counter)
       .await
       .unwrap();
 
-    assert_eq!(post.ap_id.clone().into_inner(), url);
+    assert_eq!(post.ap_id, url.into());
     assert_eq!(post.name, "Post title");
     assert!(post.body.is_some());
     assert_eq!(post.body.as_ref().unwrap().len(), 45);

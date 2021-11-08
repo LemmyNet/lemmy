@@ -1,17 +1,3 @@
-use std::ops::Deref;
-
-use activitystreams::{activity::kind::UndoType, public};
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
-  verify::verify_urls_match,
-};
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
@@ -22,7 +8,6 @@ use crate::{
     voting::{undo_vote_comment, undo_vote_post},
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::{
     undo_vote::UndoVote,
@@ -30,6 +15,17 @@ use crate::{
   },
   PostOrComment,
 };
+use activitystreams::{activity::kind::UndoType, public};
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
+  verify::verify_urls_match,
+};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
 
 impl UndoVote {
   pub async fn send(
@@ -72,11 +68,11 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_urls_match(self.actor(), self.object.actor())?;
+    verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -93,7 +89,7 @@ impl ActivityHandler for UndoVote {
       .dereference(context, request_counter)
       .await?;
     match object {
-      PostOrComment::Post(p) => undo_vote_post(actor, p.deref(), context).await,
+      PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
     }
   }

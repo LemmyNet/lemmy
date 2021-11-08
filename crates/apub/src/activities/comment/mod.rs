@@ -1,7 +1,4 @@
-use crate::{
-  fetcher::object_id::ObjectId,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-};
+use crate::objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson};
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},
@@ -9,7 +6,7 @@ use activitystreams::{
 use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{traits::ActorType, webfinger::WebfingerResponse};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType, webfinger::WebfingerResponse};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, person::Person, post::Post},

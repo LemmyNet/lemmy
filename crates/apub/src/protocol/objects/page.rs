@@ -1,14 +1,12 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
 use activitystreams::{object::kind::PageType, unparsed::Unparsed};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{values::MediaTypeHtml, verify::verify_domains_match};
-use lemmy_utils::{utils::check_slurs, LemmyError};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -19,9 +17,11 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Page {
   pub(crate) r#type: PageType,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
+  #[serde(default)]
+  pub(crate) cc: Vec<Url>,
   pub(crate) name: String,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
@@ -38,14 +38,6 @@ pub struct Page {
 }
 
 impl Page {
-  pub(crate) fn id_unchecked(&self) -> &Url {
-    &self.id
-  }
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-
   /// Only mods can change the post's stickied/locked status. So if either of these is changed from
   /// the current value, it is a mod action and needs to be verified as such.
   ///
@@ -61,20 +53,6 @@ impl Page {
       false
     };
     Ok(is_mod_action)
-  }
-
-  pub(crate) async fn verify(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = self.extract_community(context, request_counter).await?;
-
-    check_slurs(&self.name, &context.settings().slur_regex())?;
-    verify_domains_match(self.attributed_to.inner(), &self.id.clone())?;
-    verify_person_in_community(&self.attributed_to, &community, context, request_counter).await?;
-    verify_is_public(&self.to.clone())?;
-    Ok(())
   }
 
   pub(crate) async fn extract_community(

@@ -7,13 +7,13 @@ use crate::{
     CommunityContext,
   },
   context::WithContext,
-  fetcher::object_id::ObjectId,
   generate_outbox_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
     payload_to_string,
     receive_activity,
+    ActivityCommonFields,
   },
   objects::community::ApubCommunity,
   protocol::{
@@ -23,7 +23,7 @@ use crate::{
 };
 use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::traits::{ActivityFields, ApubObject};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -47,7 +47,7 @@ pub(crate) async fn get_apub_community_http(
   .into();
 
   if !community.deleted {
-    let apub = community.to_apub(&**context).await?;
+    let apub = community.into_apub(&**context).await?;
 
     Ok(create_apub_response(&apub))
   } else {
@@ -64,26 +64,28 @@ pub async fn community_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
   info!("Received community inbox activity {}", unparsed);
+  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
   let activity = serde_json::from_str::<WithContext<GroupInboxActivities>>(&unparsed)?;
 
-  receive_group_inbox(activity.inner(), request, &context).await?;
+  receive_group_inbox(activity.inner(), activity_data, request, &context).await?;
 
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(in crate::http) async fn receive_group_inbox(
   activity: GroupInboxActivities,
+  activity_data: ActivityCommonFields,
   request: HttpRequest,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let res = receive_activity(request, activity.clone(), context).await;
+  let actor_id = ObjectId::new(activity_data.actor.clone());
+  let res = receive_activity(request, activity.clone(), activity_data, context).await;
 
   if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
     let community = announcable.get_community(context, &mut 0).await?;
-    let actor_id = ObjectId::new(announcable.actor().clone());
     verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
     if community.local {
-      AnnounceActivity::send(announcable, &community, vec![], context).await?;
+      AnnounceActivity::send(*announcable, &community, vec![], context).await?;
     }
   }
 
@@ -113,10 +115,10 @@ pub(crate) async fn get_apub_community_outbox(
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?.into_inner());
+  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
   let outbox: ApubCommunityOutbox = id.dereference(&outbox_data, &mut 0).await?;
-  Ok(create_apub_response(&outbox.to_apub(&outbox_data).await?))
+  Ok(create_apub_response(&outbox.into_apub(&outbox_data).await?))
 }
 
 pub(crate) async fn get_apub_community_moderators(
@@ -128,10 +130,10 @@ pub(crate) async fn get_apub_community_moderators(
   })
   .await??
   .into();
-  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?.into_inner());
+  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community, context.get_ref().clone());
   let moderators: ApubCommunityModerators = id.dereference(&outbox_data, &mut 0).await?;
   Ok(create_apub_response(
-    &moderators.to_apub(&outbox_data).await?,
+    &moderators.into_apub(&outbox_data).await?,
   ))
 }

@@ -1,14 +1,13 @@
 use crate::{
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::follow::FollowCommunity,
 };
 use activitystreams::{activity::kind::AcceptType, unparsed::Unparsed};
-use lemmy_apub_lib::traits::ActivityFields;
+use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AcceptFollowCommunity {
   pub(crate) actor: ObjectId<ApubCommunity>,

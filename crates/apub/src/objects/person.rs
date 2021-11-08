@@ -3,15 +3,19 @@ use crate::{
   generate_outbox_url,
   objects::get_summary_from_string_or_source,
   protocol::{
-    objects::person::{Person, UserTypes},
+    objects::{
+      person::{Person, UserTypes},
+      Endpoints,
+    },
     ImageObject,
     Source,
   },
 };
-use activitystreams::{actor::Endpoints, object::kind::ImageType};
+use activitystreams::object::kind::ImageType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
   verify::verify_domains_match,
@@ -75,7 +79,7 @@ impl ApubObject for ApubPerson {
     Ok(())
   }
 
-  async fn to_apub(&self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
+  async fn into_apub(self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -96,7 +100,7 @@ impl ApubObject for ApubPerson {
 
     let person = Person {
       kind,
-      id: self.actor_id.to_owned().into_inner(),
+      id: ObjectId::new(self.actor_id.clone()),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
@@ -108,7 +112,6 @@ impl ApubObject for ApubPerson {
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: Endpoints {
         shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-        ..Default::default()
       },
       public_key: self.get_public_key()?,
       updated: self.updated.map(convert_datetime),
@@ -122,50 +125,51 @@ impl ApubObject for ApubPerson {
     unimplemented!()
   }
 
-  async fn from_apub(
+  async fn verify(
     person: &Person,
-    context: &LemmyContext,
     expected_domain: &Url,
+    context: &LemmyContext,
     _request_counter: &mut i32,
-  ) -> Result<ApubPerson, LemmyError> {
-    verify_domains_match(&person.id, expected_domain)?;
-    let actor_id = Some(person.id.clone().into());
-    let name = person.preferred_username.clone();
-    let display_name: Option<String> = person.name.clone();
-    let bio = get_summary_from_string_or_source(&person.summary, &person.source);
-    let shared_inbox = person.endpoints.shared_inbox.clone().map(|s| s.into());
-    let bot_account = match person.kind {
-      UserTypes::Person => false,
-      UserTypes::Service => true,
-    };
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(person.id.inner(), expected_domain)?;
+    check_is_apub_id_valid(person.id.inner(), false, &context.settings())?;
 
     let slur_regex = &context.settings().slur_regex();
-    check_slurs(&name, slur_regex)?;
-    check_slurs_opt(&display_name, slur_regex)?;
+    check_slurs(&person.preferred_username, slur_regex)?;
+    check_slurs_opt(&person.name, slur_regex)?;
+    let bio = get_summary_from_string_or_source(&person.summary, &person.source);
     check_slurs_opt(&bio, slur_regex)?;
+    Ok(())
+  }
 
-    check_is_apub_id_valid(&person.id, false, &context.settings())?;
-
+  async fn from_apub(
+    person: Person,
+    context: &LemmyContext,
+    _request_counter: &mut i32,
+  ) -> Result<ApubPerson, LemmyError> {
     let person_form = PersonForm {
-      name,
-      display_name: Some(display_name),
+      name: person.preferred_username,
+      display_name: Some(person.name),
       banned: None,
       deleted: None,
-      avatar: Some(person.icon.clone().map(|i| i.url.into())),
-      banner: Some(person.image.clone().map(|i| i.url.into())),
-      published: person.published.map(|u| u.clone().naive_local()),
-      updated: person.updated.map(|u| u.clone().naive_local()),
-      actor_id,
-      bio: Some(bio),
+      avatar: Some(person.icon.map(|i| i.url.into())),
+      banner: Some(person.image.map(|i| i.url.into())),
+      published: person.published.map(|u| u.naive_local()),
+      updated: person.updated.map(|u| u.naive_local()),
+      actor_id: Some(person.id.into()),
+      bio: Some(get_summary_from_string_or_source(
+        &person.summary,
+        &person.source,
+      )),
       local: Some(false),
       admin: Some(false),
-      bot_account: Some(bot_account),
+      bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
-      public_key: Some(Some(person.public_key.public_key_pem.clone())),
+      public_key: Some(Some(person.public_key.public_key_pem)),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(person.inbox.to_owned().into()),
-      shared_inbox_url: Some(shared_inbox),
-      matrix_user_id: Some(person.matrix_user_id.clone()),
+      inbox_url: Some(person.inbox.into()),
+      shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
+      matrix_user_id: Some(person.matrix_user_id),
     };
     let person = blocking(context.pool(), move |conn| {
       DbPerson::upsert(conn, &person_form)
@@ -176,14 +180,8 @@ impl ApubObject for ApubPerson {
 }
 
 impl ActorType for ApubPerson {
-  fn is_local(&self) -> bool {
-    self.local
-  }
   fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into_inner()
-  }
-  fn name(&self) -> String {
-    self.name.clone()
+    self.actor_id.to_owned().into()
   }
 
   fn public_key(&self) -> Option<String> {
@@ -199,7 +197,7 @@ impl ActorType for ApubPerson {
   }
 
   fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into_inner())
+    self.shared_inbox_url.clone().map(|s| s.into())
   }
 }
 
@@ -214,7 +212,10 @@ pub(crate) mod tests {
     let json = file_to_json_object("assets/lemmy/objects/person.json");
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, context, &url, &mut request_counter)
+    ApubPerson::verify(&json, &url, context, &mut request_counter)
+      .await
+      .unwrap();
+    let person = ApubPerson::from_apub(json, context, &mut request_counter)
       .await
       .unwrap();
     assert_eq!(request_counter, 0);
@@ -242,11 +243,14 @@ pub(crate) mod tests {
     let json = file_to_json_object("assets/pleroma/objects/person.json");
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
-    let person = ApubPerson::from_apub(&json, &context, &url, &mut request_counter)
+    ApubPerson::verify(&json, &url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let person = ApubPerson::from_apub(json, &context, &mut request_counter)
       .await
       .unwrap();
 
-    assert_eq!(person.actor_id.clone().into_inner(), url);
+    assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(person.public_key.is_some());
     assert!(!person.local);

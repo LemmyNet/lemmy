@@ -4,22 +4,18 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  fetcher::object_id::ObjectId,
-  objects::get_summary_from_string_or_source,
-  protocol::{ImageObject, Source},
+  objects::{community::ApubCommunity, get_summary_from_string_or_source},
+  protocol::{objects::Endpoints, ImageObject, Source},
 };
-use activitystreams::{
-  actor::{kind::GroupType, Endpoints},
-  unparsed::Unparsed,
-};
+use activitystreams::{actor::kind::GroupType, unparsed::Unparsed};
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{signatures::PublicKey, verify::verify_domains_match};
+use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
 use lemmy_db_schema::{naive_now, source::community::CommunityForm};
 use lemmy_utils::{
-  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   LemmyError,
 };
+use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -30,7 +26,7 @@ use url::Url;
 pub struct Group {
   #[serde(rename = "type")]
   pub(crate) kind: GroupType,
-  pub(crate) id: Url,
+  pub(crate) id: ObjectId<ApubCommunity>,
   /// username, set at account creation and can never be changed
   pub(crate) preferred_username: String,
   /// title (can be changed at any time)
@@ -47,7 +43,7 @@ pub struct Group {
   pub(crate) inbox: Url,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   pub(crate) followers: Url,
-  pub(crate) endpoints: Endpoints<Url>,
+  pub(crate) endpoints: Endpoints,
   pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
@@ -56,42 +52,42 @@ pub struct Group {
 }
 
 impl Group {
-  pub(crate) async fn from_apub_to_form(
-    group: &Group,
+  pub(crate) async fn verify(
+    &self,
     expected_domain: &Url,
-    settings: &Settings,
-  ) -> Result<CommunityForm, LemmyError> {
-    check_is_apub_id_valid(&group.id, true, settings)?;
-    verify_domains_match(expected_domain, &group.id)?;
-    let name = group.preferred_username.clone();
-    let title = group.name.clone();
-    let description = get_summary_from_string_or_source(&group.summary, &group.source);
-    let shared_inbox = group.endpoints.shared_inbox.clone().map(|s| s.into());
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    check_is_apub_id_valid(self.id.inner(), true, &context.settings())?;
+    verify_domains_match(expected_domain, self.id.inner())?;
 
-    let slur_regex = &settings.slur_regex();
-    check_slurs(&name, slur_regex)?;
-    check_slurs(&title, slur_regex)?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs(&self.preferred_username, slur_regex)?;
+    check_slurs(&self.name, slur_regex)?;
+    let description = get_summary_from_string_or_source(&self.summary, &self.source);
     check_slurs_opt(&description, slur_regex)?;
+    Ok(())
+  }
 
-    Ok(CommunityForm {
-      name,
-      title,
-      description,
+  pub(crate) fn into_form(self) -> CommunityForm {
+    CommunityForm {
+      name: self.preferred_username,
+      title: self.name,
+      description: get_summary_from_string_or_source(&self.summary, &self.source),
       removed: None,
-      published: group.published.map(|u| u.naive_local()),
-      updated: group.updated.map(|u| u.naive_local()),
+      published: self.published.map(|u| u.naive_local()),
+      updated: self.updated.map(|u| u.naive_local()),
       deleted: None,
-      nsfw: Some(group.sensitive.unwrap_or(false)),
-      actor_id: Some(group.id.clone().into()),
+      nsfw: Some(self.sensitive.unwrap_or(false)),
+      actor_id: Some(self.id.into()),
       local: Some(false),
       private_key: None,
-      public_key: Some(group.public_key.public_key_pem.clone()),
+      public_key: Some(self.public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
-      icon: Some(group.icon.clone().map(|i| i.url.into())),
-      banner: Some(group.image.clone().map(|i| i.url.into())),
-      followers_url: Some(group.followers.clone().into()),
-      inbox_url: Some(group.inbox.clone().into()),
-      shared_inbox_url: Some(shared_inbox),
-    })
+      icon: Some(self.icon.map(|i| i.url.into())),
+      banner: Some(self.image.map(|i| i.url.into())),
+      followers_url: Some(self.followers.into()),
+      inbox_url: Some(self.inbox.into()),
+      shared_inbox_url: Some(self.endpoints.shared_inbox.map(|s| s.into())),
+    }
   }
 }

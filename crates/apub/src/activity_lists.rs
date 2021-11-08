@@ -26,32 +26,32 @@ use crate::{
     voting::{undo_vote::UndoVote, vote::Vote},
   },
 };
-use lemmy_apub_lib::traits::{ActivityFields, ActivityHandler};
+use lemmy_apub_lib::traits::ActivityHandler;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum SharedInboxActivities {
   GroupInboxActivities(GroupInboxActivities),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
   // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
-  PersonInboxActivities(PersonInboxActivities),
+  PersonInboxActivities(Box<PersonInboxActivities>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
-  AnnouncableActivities(AnnouncableActivities),
+  AnnouncableActivities(Box<AnnouncableActivities>),
   Report(Report),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum PersonInboxActivities {
@@ -61,20 +61,20 @@ pub enum PersonInboxActivities {
   CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   DeletePrivateMessage(DeletePrivateMessage),
   UndoDeletePrivateMessage(UndoDeletePrivateMessage),
-  AnnounceActivity(Box<AnnounceActivity>),
+  AnnounceActivity(AnnounceActivity),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
+  CreateOrUpdatePost(CreateOrUpdatePost),
   Vote(Vote),
   UndoVote(UndoVote),
   Delete(Delete),
   UndoDelete(UndoDelete),
-  UpdateCommunity(Box<UpdateCommunity>),
+  UpdateCommunity(UpdateCommunity),
   BlockUserFromCommunity(BlockUserFromCommunity),
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),

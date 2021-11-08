@@ -73,7 +73,7 @@ impl Perform for CreatePostLike {
     .await??;
 
     let community_id = post.community_id;
-    let object = PostOrComment::Post(Box::new(post));
+    let object = PostOrComment::Post(post);
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
@@ -169,7 +169,7 @@ impl Perform for LockPost {
 
     // apub updates
     CreateOrUpdatePost::send(
-      &updated_post,
+      updated_post,
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
@@ -242,7 +242,7 @@ impl Perform for StickyPost {
     // Apub updates
     // TODO stickied should pry work like locked for ease of use
     CreateOrUpdatePost::send(
-      &updated_post,
+      updated_post,
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,

@@ -1,7 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
   context::WithContext,
-  fetcher::object_id::ObjectId,
   generate_moderators_url,
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -11,7 +10,8 @@ use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
-  traits::{ActivityFields, ActorType},
+  object_id::ObjectId,
+  traits::ActorType,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::community::Community;
@@ -71,9 +71,9 @@ pub(crate) async fn verify_person_in_community(
   Ok(())
 }
 
-fn verify_activity(activity: &dyn ActivityFields, settings: &Settings) -> Result<(), LemmyError> {
-  check_is_apub_id_valid(activity.actor(), false, settings)?;
-  verify_domains_match(activity.id_unchecked(), activity.actor())?;
+fn verify_activity(id: &Url, actor: &Url, settings: &Settings) -> Result<(), LemmyError> {
+  check_is_apub_id_valid(actor, false, settings)?;
+  verify_domains_match(id, actor)?;
   Ok(())
 }
 
@@ -110,14 +110,14 @@ fn verify_add_remove_moderator_target(
   target: &Url,
   community: &ApubCommunity,
 ) -> Result<(), LemmyError> {
-  if target != &generate_moderators_url(&community.actor_id)?.into_inner() {
+  if target != &generate_moderators_url(&community.actor_id)?.into() {
     return Err(anyhow!("Unkown target url").into());
   }
   Ok(())
 }
 
-pub(crate) fn verify_is_public(to: &[Url]) -> Result<(), LemmyError> {
-  if !to.contains(&public()) {
+pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
+  if !to.contains(&public()) && !cc.contains(&public()) {
     return Err(anyhow!("Object is not public").into());
   }
   Ok(())

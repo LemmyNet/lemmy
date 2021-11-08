@@ -1,18 +1,3 @@
-use activitystreams::public;
-
-use lemmy_api_common::{blocking, check_post_deleted_or_removed};
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityHandler, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
-use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
-
 use crate::{
   activities::{
     check_community_deleted_or_removed,
@@ -24,14 +9,27 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
+use activitystreams::public;
+use lemmy_api_common::{blocking, check_post_deleted_or_removed};
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType, ApubObject},
+  verify::verify_domains_match,
+};
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 
 impl CreateOrUpdateComment {
   pub async fn send(
-    comment: &ApubComment,
+    comment: ApubComment,
     actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
@@ -50,12 +48,12 @@ impl CreateOrUpdateComment {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let maa = collect_non_local_mentions(comment, &community, context).await?;
+    let maa = collect_non_local_mentions(&comment, &community, context).await?;
 
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: comment.to_apub(context).await?,
+      object: comment.into_apub(context).await?,
       cc: maa.ccs,
       tag: maa.tags,
       kind,
@@ -77,19 +75,17 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to)?;
+    verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context, request_counter).await?.0;
     let community = self.get_community(context, request_counter).await?;
 
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_domains_match(self.actor.inner(), self.object.id_unchecked())?;
+    verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
 
-    // TODO: should add a check that the correct community is in cc (probably needs changes to
-    //       comment deserialization)
-    self.object.verify(context, request_counter).await?;
+    ApubComment::verify(&self.object, self.actor.inner(), context, request_counter).await?;
     Ok(())
   }
 
@@ -98,8 +94,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let comment =
-      ApubComment::from_apub(&self.object, context, self.actor.inner(), request_counter).await?;
+    let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
     let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,

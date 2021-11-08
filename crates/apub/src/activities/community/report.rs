@@ -1,8 +1,19 @@
+use crate::{
+  activities::{
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_activity,
+    verify_person_in_community,
+  },
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::report::Report,
+  PostOrComment,
+};
 use activitystreams::activity::kind::FlagType;
-
 use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
@@ -15,19 +26,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
-
-use crate::{
-  activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-    verify_person_in_community,
-  },
-  fetcher::object_id::ObjectId,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::report::Report,
-  PostOrComment,
-};
 
 impl Report {
   pub async fn send(
@@ -72,7 +70,7 @@ impl ActivityHandler for Report {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.to[0].dereference(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())

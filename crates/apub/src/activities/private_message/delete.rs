@@ -1,6 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
-  fetcher::object_id::ObjectId,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::private_message::delete::DeletePrivateMessage,
 };
@@ -8,6 +7,7 @@ use activitystreams::activity::kind::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
   verify::verify_domains_match,
 };
@@ -62,7 +62,7 @@ impl ActivityHandler for DeletePrivateMessage {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.inner())?;
     Ok(())

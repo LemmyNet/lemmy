@@ -1,20 +1,3 @@
-use std::ops::Deref;
-
-use activitystreams::public;
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityHandler, ActorType},
-};
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
-
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
@@ -25,11 +8,24 @@ use crate::{
     voting::{vote_comment, vote_post},
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::vote::{Vote, VoteType},
   PostOrComment,
 };
+use activitystreams::public;
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
+};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
 
 impl Vote {
   pub(in crate::activities::voting) fn new(
@@ -78,8 +74,8 @@ impl ActivityHandler for Vote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -93,7 +89,7 @@ impl ActivityHandler for Vote {
     let actor = self.actor.dereference(context, request_counter).await?;
     let object = self.object.dereference(context, request_counter).await?;
     match object {
-      PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
+      PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
     }
   }

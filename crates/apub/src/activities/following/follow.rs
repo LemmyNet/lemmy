@@ -6,7 +6,6 @@ use crate::{
     verify_person,
     verify_person_in_community,
   },
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
@@ -14,6 +13,7 @@ use activitystreams::activity::kind::FollowType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
@@ -71,7 +71,7 @@ impl ActivityHandler for FollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, &context.settings())?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_urls_match(self.to[0].inner(), self.object.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
     let community = self.to[0].dereference(context, request_counter).await?;

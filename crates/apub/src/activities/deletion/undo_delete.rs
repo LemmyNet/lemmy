@@ -1,20 +1,3 @@
-use activitystreams::{activity::kind::UndoType, public};
-use anyhow::anyhow;
-use url::Url;
-
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityHandler, ActorType},
-};
-use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
-use lemmy_utils::LemmyError;
-use lemmy_websocket::{
-  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
-  LemmyContext,
-  UserOperationCrud,
-};
-
 use crate::{
   activities::{
     community::{announce::GetCommunity, send_to_community},
@@ -24,10 +7,25 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
-  fetcher::object_id::ObjectId,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
+use activitystreams::{activity::kind::UndoType, public};
+use anyhow::anyhow;
+use lemmy_api_common::blocking;
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
+};
+use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::{
+  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+  LemmyContext,
+  UserOperationCrud,
+};
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDelete {
@@ -37,13 +35,13 @@ impl ActivityHandler for UndoDelete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to)?;
-    verify_activity(self, &context.settings())?;
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     self.object.verify(context, request_counter).await?;
     let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
       &self.object.object,
-      self,
+      &self.actor,
       &community,
       self.object.summary.is_some(),
       context,

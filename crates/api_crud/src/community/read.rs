@@ -1,12 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
-use lemmy_apub::{
-  fetcher::object_id::ObjectId,
-  get_actor_id_from_name,
-  objects::community::ApubCommunity,
-};
-use lemmy_apub_lib::webfinger::WebfingerType;
+use lemmy_apub::{get_actor_id_from_name, objects::community::ApubCommunity};
+use lemmy_apub_lib::{object_id::ObjectId, webfinger::WebfingerType};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   traits::DeleteableOrRemoveable,

@@ -1,15 +1,25 @@
-use std::ops::Deref;
-
+use crate::{
+  activities::{verify_is_public, verify_person_in_community},
+  check_is_apub_id_valid,
+  protocol::{
+    objects::{
+      note::{Note, SourceCompat},
+      tombstone::Tombstone,
+    },
+    Source,
+  },
+  PostOrComment,
+};
 use activitystreams::{object::kind::NoteType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
-use url::Url;
-
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::{MediaTypeHtml, MediaTypeMarkdown},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,25 +31,12 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  utils::{convert_datetime, remove_slurs},
+  utils::{convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-
-use crate::{
-  activities::verify_person_in_community,
-  check_is_apub_id_valid,
-  fetcher::object_id::ObjectId,
-  protocol::{
-    objects::{
-      note::{Note, SourceCompat},
-      tombstone::Tombstone,
-    },
-    Source,
-  },
-  PostOrComment,
-};
-use lemmy_utils::utils::markdown_to_html;
+use std::ops::Deref;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub struct ApubComment(Comment);
@@ -90,7 +87,7 @@ impl ApubObject for ApubComment {
     Ok(())
   }
 
-  async fn to_apub(&self, context: &LemmyContext) -> Result<Note, LemmyError> {
+  async fn into_apub(self, context: &LemmyContext) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
 
@@ -100,16 +97,17 @@ impl ApubObject for ApubComment {
     let in_reply_to = if let Some(comment_id) = self.parent_id {
       let parent_comment =
         blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
-      ObjectId::<PostOrComment>::new(parent_comment.ap_id.into_inner())
+      ObjectId::<PostOrComment>::new(parent_comment.ap_id)
     } else {
-      ObjectId::<PostOrComment>::new(post.ap_id.into_inner())
+      ObjectId::<PostOrComment>::new(post.ap_id)
     };
 
     let note = Note {
       r#type: NoteType::Note,
-      id: self.ap_id.to_owned().into_inner(),
+      id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
+      cc: vec![],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: SourceCompat::Lemmy(Source {
@@ -132,27 +130,22 @@ impl ApubObject for ApubComment {
     ))
   }
 
-  /// Converts a `Note` to `Comment`.
-  ///
-  /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-  async fn from_apub(
+  async fn verify(
     note: &Note,
-    context: &LemmyContext,
     expected_domain: &Url,
+    context: &LemmyContext,
     request_counter: &mut i32,
-  ) -> Result<ApubComment, LemmyError> {
-    let ap_id = Some(note.id(expected_domain)?.clone().into());
-    let creator = note
-      .attributed_to
-      .dereference(context, request_counter)
-      .await?;
-    let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+  ) -> Result<(), LemmyError> {
+    verify_domains_match(note.id.inner(), expected_domain)?;
+    verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    verify_is_public(&note.to, &note.cc)?;
+    let (post, _) = note.get_parents(context, request_counter).await?;
     let community_id = post.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
-    check_is_apub_id_valid(&note.id, community.local, &context.settings())?;
+    check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(
       &note.attributed_to,
       &community.into(),
@@ -163,6 +156,22 @@ impl ApubObject for ApubComment {
     if post.locked {
       return Err(anyhow!("Post is locked").into());
     }
+    Ok(())
+  }
+
+  /// Converts a `Note` to `Comment`.
+  ///
+  /// If the parent community, post and comment(s) are not known locally, these are also fetched.
+  async fn from_apub(
+    note: Note,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubComment, LemmyError> {
+    let creator = note
+      .attributed_to
+      .dereference(context, request_counter)
+      .await?;
+    let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 
     let content = if let SourceCompat::Lemmy(source) = &note.source {
       source.content.clone()
@@ -178,10 +187,10 @@ impl ApubObject for ApubComment {
       content: content_slurs_removed,
       removed: None,
       read: None,
-      published: note.published.map(|u| u.to_owned().naive_local()),
-      updated: note.updated.map(|u| u.to_owned().naive_local()),
+      published: note.published.map(|u| u.naive_local()),
+      updated: note.updated.map(|u| u.naive_local()),
       deleted: None,
-      ap_id,
+      ap_id: Some(note.id.into()),
       local: Some(false),
     };
     let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
@@ -208,7 +217,10 @@ pub(crate) mod tests {
     let person = parse_lemmy_person(context).await;
     let community = parse_lemmy_community(context).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json");
-    let post = ApubPost::from_apub(&post_json, context, url, &mut 0)
+    ApubPost::verify(&post_json, url, context, &mut 0)
+      .await
+      .unwrap();
+    let post = ApubPost::from_apub(post_json, context, &mut 0)
       .await
       .unwrap();
     (person, community, post)
@@ -227,21 +239,25 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
-    let json = file_to_json_object("assets/lemmy/objects/note.json");
+    let json: Note = file_to_json_object("assets/lemmy/objects/note.json");
     let mut request_counter = 0;
-    let comment = ApubComment::from_apub(&json, &context, &url, &mut request_counter)
+    ApubComment::verify(&json, &url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let comment = ApubComment::from_apub(json.clone(), &context, &mut request_counter)
       .await
       .unwrap();
 
-    assert_eq!(comment.ap_id.clone().into_inner(), url);
+    assert_eq!(comment.ap_id, url.into());
     assert_eq!(comment.content.len(), 14);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);
 
-    let to_apub = comment.to_apub(&context).await.unwrap();
+    let comment_id = comment.id;
+    let to_apub = comment.into_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    Comment::delete(&*context.pool().get().unwrap(), comment.id).unwrap();
+    Comment::delete(&*context.pool().get().unwrap(), comment_id).unwrap();
     cleanup(data, &context);
   }
 
@@ -256,16 +272,22 @@ pub(crate) mod tests {
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
         .unwrap();
     let person_json = file_to_json_object("assets/pleroma/objects/person.json");
-    ApubPerson::from_apub(&person_json, &context, &pleroma_url, &mut 0)
+    ApubPerson::verify(&person_json, &pleroma_url, &context, &mut 0)
+      .await
+      .unwrap();
+    ApubPerson::from_apub(person_json, &context, &mut 0)
       .await
       .unwrap();
     let json = file_to_json_object("assets/pleroma/objects/note.json");
     let mut request_counter = 0;
-    let comment = ApubComment::from_apub(&json, &context, &pleroma_url, &mut request_counter)
+    ApubComment::verify(&json, &pleroma_url, &context, &mut request_counter)
+      .await
+      .unwrap();
+    let comment = ApubComment::from_apub(json, &context, &mut request_counter)
       .await
       .unwrap();
 
-    assert_eq!(comment.ap_id.clone().into_inner(), pleroma_url);
+    assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
     assert_eq!(request_counter, 0);

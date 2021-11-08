@@ -1,11 +1,13 @@
+use crate::{
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::objects::{group::Group, note::Note, page::Page, person::Person},
+};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use serde::Deserialize;
-use url::Url;
-
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
+  object_id::ObjectId,
   traits::ApubObject,
   webfinger::{webfinger_resolve_actor, WebfingerType},
 };
@@ -15,12 +17,8 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-
-use crate::{
-  fetcher::object_id::ObjectId,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::objects::{group::Group, note::Note, page::Page, person::Person},
-};
+use serde::Deserialize;
+use url::Url;
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
 ///
@@ -157,7 +155,7 @@ impl ApubObject for SearchableObjects {
     }
   }
 
-  async fn to_apub(&self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -165,19 +163,40 @@ impl ApubObject for SearchableObjects {
     unimplemented!()
   }
 
-  async fn from_apub(
+  async fn verify(
     apub: &Self::ApubType,
+    expected_domain: &Url,
+    data: &Self::DataType,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    match apub {
+      SearchableApubTypes::Group(a) => {
+        ApubCommunity::verify(a, expected_domain, data, request_counter).await
+      }
+      SearchableApubTypes::Person(a) => {
+        ApubPerson::verify(a, expected_domain, data, request_counter).await
+      }
+      SearchableApubTypes::Page(a) => {
+        ApubPost::verify(a, expected_domain, data, request_counter).await
+      }
+      SearchableApubTypes::Note(a) => {
+        ApubComment::verify(a, expected_domain, data, request_counter).await
+      }
+    }
+  }
+
+  async fn from_apub(
+    apub: Self::ApubType,
     context: &LemmyContext,
-    ed: &Url,
     rc: &mut i32,
   ) -> Result<Self, LemmyError> {
     use SearchableApubTypes as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, ed, rc).await?),
-      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, ed, rc).await?),
-      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, ed, rc).await?),
-      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, ed, rc).await?),
+      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, rc).await?),
+      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, rc).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, rc).await?),
+      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, rc).await?),
     })
   }
 }

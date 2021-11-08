@@ -1,7 +1,5 @@
+use crate::PerformCrud;
 use actix_web::web::Data;
-use log::warn;
-use webmention::{Webmention, WebmentionError};
-
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -14,6 +12,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   fetcher::post_or_comment::PostOrComment,
   generate_local_apub_endpoint,
+  objects::post::ApubPost,
   protocol::activities::{
     create_or_update::post::CreateOrUpdatePost,
     voting::vote::{Vote, VoteType},
@@ -33,8 +32,9 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-
-use crate::PerformCrud;
+use log::warn;
+use url::Url;
+use webmention::{Webmention, WebmentionError};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePost {
@@ -110,14 +110,6 @@ impl PerformCrud for CreatePost {
     .await?
     .map_err(|e| ApiError::err("couldnt_create_post", e))?;
 
-    CreateOrUpdatePost::send(
-      &updated_post.clone().into(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
-
     // They like their own post by default
     let person_id = local_user_view.person.id;
     let post_id = inserted_post.id;
@@ -136,10 +128,8 @@ impl PerformCrud for CreatePost {
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
     if let Some(url) = &updated_post.url {
-      let mut webmention = Webmention::new(
-        updated_post.ap_id.clone().into_inner(),
-        url.clone().into_inner(),
-      )?;
+      let mut webmention =
+        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
       match webmention.send().await {
         Ok(_) => {}
@@ -148,7 +138,15 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    let object = PostOrComment::Post(Box::new(updated_post.into()));
+    let apub_post: ApubPost = updated_post.into();
+    CreateOrUpdatePost::send(
+      apub_post.clone(),
+      &local_user_view.person.clone().into(),
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await?;
+    let object = PostOrComment::Post(apub_post);
     Vote::send(
       &object,
       &local_user_view.person.clone().into(),

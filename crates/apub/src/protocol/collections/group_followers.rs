@@ -29,7 +29,7 @@ impl GroupFollowers {
     .await??;
 
     Ok(GroupFollowers {
-      id: generate_followers_url(&community.actor_id)?.into_inner(),
+      id: generate_followers_url(&community.actor_id)?.into(),
       r#type: CollectionType::Collection,
       total_items: community_followers.len() as i32,
       items: vec![],

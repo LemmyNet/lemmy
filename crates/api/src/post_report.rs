@@ -1,5 +1,5 @@
+use crate::Perform;
 use actix_web::web::Data;
-
 use lemmy_api_common::{
   blocking,
   check_community_ban,
@@ -13,7 +13,8 @@ use lemmy_api_common::{
     ResolvePostReport,
   },
 };
-use lemmy_apub::{fetcher::object_id::ObjectId, protocol::activities::community::report::Report};
+use lemmy_apub::protocol::activities::community::report::Report;
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
@@ -24,8 +25,6 @@ use lemmy_db_views::{
 };
 use lemmy_utils::{ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
-
-use crate::Perform;
 
 /// Creates a post report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
