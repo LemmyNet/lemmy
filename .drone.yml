@@ -23,8 +23,8 @@ steps:
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.51.0
     commands:
-      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
-      - cargo clippy --workspace -- -D clippy::unwrap_used
+      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro -A rustdoc::private_intra_doc_links
+      - cargo clippy --workspace -- -D clippy::unwrap_used 
 
   - name: cargo test
     image: ekidd/rust-musl-builder:1.51.0
