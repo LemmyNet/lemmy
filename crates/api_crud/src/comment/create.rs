@@ -154,7 +154,7 @@ impl PerformCrud for CreateComment {
       context,
     )
     .await?;
-    let object = PostOrComment::Comment(apub_comment);
+    let object = PostOrComment::Comment(Box::new(apub_comment));
     Vote::send(
       &object,
       &local_user_view.person.clone().into(),

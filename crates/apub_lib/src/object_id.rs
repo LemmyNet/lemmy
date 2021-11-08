@@ -173,7 +173,7 @@ where
   #[allow(clippy::to_string_in_display)]
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
     // Use to_string here because Url.display is not useful for us
-    write!(f, "{}", self.0.to_string())
+    write!(f, "{}", self.0)
   }
 }
 
