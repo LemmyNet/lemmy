@@ -27,6 +27,7 @@ pub struct Note {
   pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) media_type: Option<MediaTypeHtml>,
+  #[serde(default)]
   pub(crate) source: SourceCompat,
   pub(crate) in_reply_to: ObjectId<PostOrComment>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
@@ -40,8 +41,15 @@ pub struct Note {
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 pub(crate) enum SourceCompat {
+  None,
   Lemmy(Source),
   Pleroma(String),
+}
+
+impl Default for SourceCompat {
+  fn default() -> Self {
+    SourceCompat::None
+  }
 }
 
 impl Note {

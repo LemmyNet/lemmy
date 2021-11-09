@@ -17,19 +17,32 @@ pub struct Endpoints {
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    objects::{chat_message::ChatMessage, group::Group, note::Note, page::Page, person::Person},
-    tests::test_parse_lemmy_item,
+  use crate::{
+    objects::tests::file_to_json_object,
+    protocol::{
+      objects::{chat_message::ChatMessage, group::Group, note::Note, page::Page, person::Person},
+      tests::test_parse_lemmy_item,
+    },
   };
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
-  async fn test_parse_lemmy_object() {
+  async fn test_parse_object() {
     test_parse_lemmy_item::<Person>("assets/lemmy/objects/person.json");
     test_parse_lemmy_item::<Group>("assets/lemmy/objects/group.json");
     test_parse_lemmy_item::<Page>("assets/lemmy/objects/page.json");
     test_parse_lemmy_item::<Note>("assets/lemmy/objects/note.json");
     test_parse_lemmy_item::<ChatMessage>("assets/lemmy/objects/chat_message.json");
+
+    file_to_json_object::<Person>("assets/pleroma/objects/person.json");
+    file_to_json_object::<Note>("assets/pleroma/objects/note.json");
+    file_to_json_object::<ChatMessage>("assets/pleroma/objects/chat_message.json");
+
+    file_to_json_object::<Person>("assets/smithereen/objects/person.json");
+    file_to_json_object::<Note>("assets/smithereen/objects/note.json");
+
+    file_to_json_object::<Person>("assets/mastodon/objects/person.json");
+    file_to_json_object::<Note>("assets/mastodon/objects/note.json");
   }
 }
