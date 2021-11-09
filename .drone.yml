@@ -24,6 +24,7 @@ steps:
   - name: cargo clippy
     image: rust:1.56-alpine
     commands:
+      - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
 
