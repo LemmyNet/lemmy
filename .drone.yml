@@ -21,13 +21,13 @@ steps:
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
 
-  - name: cargo clippy
-    image: rust:1.56-alpine
-    commands:
-      - rustup component add clippy
-      - apk add musl-dev openssl-dev postgresql-dev libpq
-      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
-      - cargo clippy --workspace -- -D clippy::unwrap_used
+  # - name: cargo clippy
+  #   image: rust:1.56-alpine
+  #   commands:
+  #     - rustup component add clippy
+  #     - apk add musl-dev openssl-dev postgresql-dev libpq
+  #     - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
+  #     - cargo clippy --workspace -- -D clippy::unwrap_used
 
   - name: cargo test
     image: rust:1.56-alpine
@@ -37,8 +37,7 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      - sudo apt-get update
-      - sudo apt-get -y install --no-install-recommends postgresql-client
+      - apk add libpq
       - cargo test --workspace --no-fail-fast
 
   - name: check defaults.hjson updated
