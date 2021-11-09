@@ -73,7 +73,7 @@ impl Perform for CreatePostLike {
     .await??;
 
     let community_id = post.community_id;
-    let object = PostOrComment::Post(post);
+    let object = PostOrComment::Post(Box::new(post));
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);

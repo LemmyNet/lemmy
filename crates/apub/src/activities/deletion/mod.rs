@@ -53,9 +53,9 @@ pub async fn send_apub_remove(
 }
 
 pub enum DeletableObjects {
-  Community(ApubCommunity),
-  Comment(ApubComment),
-  Post(ApubPost),
+  Community(Box<ApubCommunity>),
+  Comment(Box<ApubComment>),
+  Post(Box<ApubPost>),
 }
 
 impl DeletableObjects {
@@ -64,13 +64,13 @@ impl DeletableObjects {
     context: &LemmyContext,
   ) -> Result<DeletableObjects, LemmyError> {
     if let Some(c) = ApubCommunity::read_from_apub_id(ap_id.clone(), context).await? {
-      return Ok(DeletableObjects::Community(c));
+      return Ok(DeletableObjects::Community(Box::new(c)));
     }
     if let Some(p) = ApubPost::read_from_apub_id(ap_id.clone(), context).await? {
-      return Ok(DeletableObjects::Post(p));
+      return Ok(DeletableObjects::Post(Box::new(p)));
     }
     if let Some(c) = ApubComment::read_from_apub_id(ap_id.clone(), context).await? {
-      return Ok(DeletableObjects::Comment(c));
+      return Ok(DeletableObjects::Comment(Box::new(c)));
     }
     Err(diesel::NotFound.into())
   }

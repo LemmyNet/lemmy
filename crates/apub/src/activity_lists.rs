@@ -35,7 +35,7 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
 pub enum SharedInboxActivities {
-  GroupInboxActivities(GroupInboxActivities),
+  GroupInboxActivities(Box<GroupInboxActivities>),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
   // avoid this problem by replacing createpm.object with our own struct, instead of NoteExt.
   PersonInboxActivities(Box<PersonInboxActivities>),
