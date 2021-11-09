@@ -1,0 +1,83 @@
+{
+  "type": "Person",
+  "id": "https://friends.grishka.me/users/1",
+  "name": "Григорий Клюшников",
+  "icon": {
+    "type": "Image",
+    "image": {
+      "type": "Image",
+      "url": "https://friends.grishka.me/i/6QLsOws97AWp5N_osd74C1IC1ijnFopyCBD9MSEeXNQ/q:93/bG9jYWw6Ly8vcy91cGxvYWRzL2F2YXRhcnMvNTYzODRhODEwODk5ZTRjMzI4YmY4YmQwM2Q2MWM3NmMud2VicA.jpg",
+      "mediaType": "image/jpeg",
+      "width": 1280,
+      "height": 960
+    },
+    "width": 573,
+    "height": 572,
+    "cropRegion": [
+      0.26422762870788574,
+      0.3766937553882599,
+      0.7113820910453796,
+      0.9728997349739075
+    ],
+    "url": "https://friends.grishka.me/i/ql_49PQcETAWgY_nC-Qj63H_Oa6FyOAEoWFkUSSkUvQ/c:573:572:nowe:338:362/q:93/bG9jYWw6Ly8vcy91cGxvYWRzL2F2YXRhcnMvNTYzODRhODEwODk5ZTRjMzI4YmY4YmQwM2Q2MWM3NmMud2VicA.jpg",
+    "mediaType": "image/jpeg"
+  },
+  "summary": "<p>Делаю эту хрень, пытаюсь вырвать социальные сети из жадных лап корпораций</p>\n<p></p>\n<p></p>\n<p></p>\n<p>This server does NOT support direct messages. Please write me <a href=\"https://t.me/grishka\">on Telegram</a> or Matrix (@grishk:matrix<span>.org</span>).</p>",
+  "url": "https://friends.grishka.me/grishka",
+  "preferredUsername": "grishka",
+  "inbox": "https://friends.grishka.me/users/1/inbox",
+  "outbox": "https://friends.grishka.me/users/1/outbox",
+  "followers": "https://friends.grishka.me/users/1/followers",
+  "following": "https://friends.grishka.me/users/1/following",
+  "endpoints": {
+    "sharedInbox": "https://friends.grishka.me/activitypub/sharedInbox"
+  },
+  "publicKey": {
+    "id": "https://friends.grishka.me/users/1#main-key",
+    "owner": "https://friends.grishka.me/users/1",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjlakm+i/d9ER/hIeR7KfiFW+SdLZj2SkKIeM8cmR+YFJuh9ghFqXrkFEjcaqUnAFqe5gYDNSQACnDLA8y4DnzjfGNIohKAnRoa9x6GORmfKQvcnjaTZ53S1NvUiPPyc0Pv/vfCtY/Ab0CEXe5BLqL38oZn817Jf7pBrPRTYH7m012kvwAUTT6k0Y8lPITBEG7nzYbbuGcrN9Y/RDdwE08jmBXlZ45bahRH3VNXVpQE17dCzJB+7k+iJ1R7YCoI+DuMlBYGXGE2KVk46NZTuLnOjFV9SyXfWX4/SrJM4oxev+SX2N75tQgmNZmVVHeqg2ZcbC0WCfNjJOi2HHS9MujwIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "wall": "https://friends.grishka.me/users/1/wall",
+  "firstName": "Григорий",
+  "lastName": "Клюшников",
+  "middleName": "Александрович",
+  "vcard:bday": "1993-01-22",
+  "gender": "http://schema.org#Male",
+  "supportsFriendRequests": true,
+  "friends": "https://friends.grishka.me/users/1/friends",
+  "groups": "https://friends.grishka.me/users/1/groups",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "sm": "http://smithereen.software/ns#",
+      "cropRegion": {
+        "@id": "sm:cropRegion",
+        "@container": "@list"
+      },
+      "wall": {
+        "@id": "sm:wall",
+        "@type": "@id"
+      },
+      "sc": "http://schema.org#",
+      "firstName": "sc:givenName",
+      "lastName": "sc:familyName",
+      "middleName": "sc:additionalName",
+      "gender": {
+        "@id": "sc:gender",
+        "@type": "sc:GenderType"
+      },
+      "supportsFriendRequests": "sm:supportsFriendRequests",
+      "maidenName": "sm:maidenName",
+      "friends": {
+        "@id": "sm:friends",
+        "@type": "@id"
+      },
+      "groups": {
+        "@id": "sm:groups",
+        "@type": "@id"
+      },
+      "vcard": "http://www.w3.org/2006/vcard/ns#"
+    },
+    "https://w3id.org/security/v1"
+  ]
+}
