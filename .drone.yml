@@ -25,7 +25,7 @@ steps:
     image: rust:1.56-alpine
     commands:
       - rustup component add clippy
-      - apk add musl-dev openssl-dev libpq
+      - apk add musl-dev openssl-dev postgresql-dev libpq
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
 
