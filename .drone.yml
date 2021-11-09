@@ -13,7 +13,7 @@ steps:
     user: root
     commands:
       - chown 1000:1000 . -R
-      - apk install git
+      - apk add git
       - git fetch --tags
 
   - name: check formatting
