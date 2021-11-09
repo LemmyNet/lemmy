@@ -25,7 +25,7 @@ lazy_static! {
   static ref CLIENT: Client = Client::builder()
     .user_agent(build_user_agent(&Settings::get()))
     .build()
-    .unwrap();
+    .expect("Couldn't build client");
 }
 
 /// We store Url on the heap because it is quite large (88 bytes).

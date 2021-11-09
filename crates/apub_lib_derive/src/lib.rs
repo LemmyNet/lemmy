@@ -56,7 +56,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
     .collect();
   let attrs: &Vec<TokenStream> = &attrs
     .first()
-    .unwrap()
+    .expect("Could not decode first attribute from token stream")
     .tokens
     .clone()
     .into_iter()
