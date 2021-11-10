@@ -9,7 +9,7 @@ platform:
 steps:
 
   - name: prepare repo
-    image: ekidd/rust-musl-builder:1.51.0
+    image: clux/muslrust:1.56.0
     user: root
     commands:
       - chown 1000:1000 . -R
@@ -21,31 +21,32 @@ steps:
       - /root/.cargo/bin/cargo fmt -- --check
 
   - name: cargo clippy
-    image: ekidd/rust-musl-builder:1.51.0
+    image: clux/muslrust:1.56.0
     commands:
+      - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: ekidd/rust-musl-builder:1.51.0
+    image: clux/muslrust:1.56.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      - sudo apt-get update
-      - sudo apt-get -y install --no-install-recommends postgresql-client
+      - apt-get update
+      - apt-get -y install --no-install-recommends postgresql-client
       - cargo test --workspace --no-fail-fast
 
   - name: check defaults.hjson updated
-    image: ekidd/rust-musl-builder:1.51.0
+    image: clux/muslrust:1.56.0
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: cargo build
-    image: ekidd/rust-musl-builder:1.51.0
+    image: clux/muslrust:1.56.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
@@ -129,7 +130,7 @@ steps:
   - name: prepare repo
     # Not sure why, but rust ARM64 builds are failing on drone for rust:1.54 and later:
     # https://discourse.drone.io/t/arm-build-stalls-out-on-cloud-drone-io-ram-issue/9701
-    image: rust:1.51-slim
+    image: rust:1.56-slim
     user: root
     commands:
       - chown 1000:1000 . -R
@@ -138,7 +139,7 @@ steps:
       - git fetch --tags
 
   - name: cargo test
-    image: rust:1.51-slim
+    image: rust:1.56-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -152,7 +153,7 @@ steps:
 
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
   - name: cargo build
-    image: rust:1.51-slim
+    image: rust:1.56-slim
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev

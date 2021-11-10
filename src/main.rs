@@ -65,7 +65,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let pool2 = pool.clone();
   thread::spawn(move || {
-    scheduled_tasks::setup(pool2);
+    scheduled_tasks::setup(pool2).expect("Couldn't set up scheduled_tasks");
   });
 
   // Set up the rate limiter
