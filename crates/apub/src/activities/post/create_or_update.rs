@@ -59,6 +59,7 @@ impl CreateOrUpdatePost {
     })
     .await??
     .into();
+
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let id = create_or_update.id.clone();
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);

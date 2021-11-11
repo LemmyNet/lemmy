@@ -109,14 +109,7 @@ where
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
-  insert_activity(
-    &activity_data.id,
-    activity.clone(),
-    false,
-    true,
-    context.pool(),
-  )
-  .await?;
+  insert_activity(&activity_data.id, &activity, false, true, context.pool()).await?;
 
   info!("Receiving activity {}", activity_data.id.to_string());
   activity

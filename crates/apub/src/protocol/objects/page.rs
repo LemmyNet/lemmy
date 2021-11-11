@@ -1,11 +1,17 @@
 use crate::{
+  activities::community::announce::GetCommunity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
 use activitystreams::{object::kind::PageType, unparsed::Unparsed};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::ActivityHandler,
+  values::MediaTypeHtml,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -71,5 +77,28 @@ impl Page {
         return Err(anyhow!("No community found in cc").into());
       }
     }
+  }
+}
+
+// For Pleroma/Mastodon compat. Unimplemented because its only used for sending.
+#[async_trait::async_trait(?Send)]
+impl ActivityHandler for Page {
+  type DataType = LemmyContext;
+  async fn verify(&self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
+    Err(anyhow!("Announce/Page can only be sent, not received").into())
+  }
+  async fn receive(self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
+    Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for Page {
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    self.extract_community(context, request_counter).await
   }
 }
