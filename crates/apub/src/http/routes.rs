@@ -69,7 +69,10 @@ impl Guard for InboxRequestGuard {
       return false;
     }
     if let Some(val) = request.headers.get("Content-Type") {
-      return val.to_str().unwrap().starts_with("application/");
+      return val
+        .to_str()
+        .expect("Content-Type header contains non-ascii chars.")
+        .starts_with("application/");
     }
     false
   }
