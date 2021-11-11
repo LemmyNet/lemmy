@@ -1,5 +1,4 @@
 use crate::{
-  activities::community::announce::GetCommunity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
@@ -88,17 +87,6 @@ impl ActivityHandler for Page {
     Err(anyhow!("Announce/Page can only be sent, not received").into())
   }
   async fn receive(self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
-    Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for Page {
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    self.extract_community(context, request_counter).await
+    unimplemented!()
   }
 }

@@ -108,8 +108,8 @@ impl GetCommunity for AnnouncableActivities {
       UndoBlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
       AddMod(a) => a.get_community(context, request_counter).await?,
       RemoveMod(a) => a.get_community(context, request_counter).await?,
-      Page(a) => a.get_community(context, request_counter).await?,
-      Note(a) => a.get_community(context, request_counter).await?,
+      Page(_) => unimplemented!(),
+      Note(_) => unimplemented!(),
     };
     Ok(community)
   }

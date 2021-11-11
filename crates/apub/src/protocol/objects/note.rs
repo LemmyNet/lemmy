@@ -1,7 +1,6 @@
 use crate::{
-  activities::community::announce::GetCommunity,
   fetcher::post_or_comment::PostOrComment,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
 use activitystreams::{object::kind::NoteType, unparsed::Unparsed};
@@ -14,11 +13,7 @@ use lemmy_apub_lib::{
   traits::ActivityHandler,
   values::MediaTypeHtml,
 };
-use lemmy_db_schema::{
-  newtypes::CommentId,
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
+use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -101,24 +96,6 @@ impl ActivityHandler for Note {
     Err(anyhow!("Announce/Page can only be sent, not received").into())
   }
   async fn receive(self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
-    Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for Note {
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let post = self.get_parents(context, request_counter).await?.0;
-    Ok(
-      blocking(context.pool(), move |conn| {
-        Community::read(conn, post.community_id)
-      })
-      .await??
-      .into(),
-    )
+    unimplemented!()
   }
 }
