@@ -128,8 +128,6 @@ platform:
 steps:
 
   - name: prepare repo
-    # Not sure why, but rust ARM64 builds are failing on drone for rust:1.54 and later:
-    # https://discourse.drone.io/t/arm-build-stalls-out-on-cloud-drone-io-ram-issue/9701
     image: rust:1.56-slim
     user: root
     commands:
@@ -152,14 +150,15 @@ steps:
   #     - cargo test --workspace --no-fail-fast
   #     - cargo build
 
+  # TODO temporarily disable arm tests
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
-  - name: cargo build
-    image: rust:1.56-slim
-    commands:
-      - apt-get update
-      - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
+  # - name: cargo build
+  #   image: rust:1.56-slim
+  #   commands:
+  #     - apt-get update
+  #     - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
+  #     - cargo build
+  #     - mv target/debug/lemmy_server target/lemmy_server
 
   # TODO temporarily disable arm tests
   # - name: run federation tests
