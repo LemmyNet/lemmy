@@ -79,7 +79,7 @@ pub(in crate::http) async fn receive_group_inbox(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let actor_id = ObjectId::new(activity_data.actor.clone());
-  let res = receive_activity(request, activity.clone(), activity_data, context).await;
+  let res = receive_activity(request, activity.clone(), activity_data, context).await?;
 
   if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
     let community = announcable.get_community(context, &mut 0).await?;
@@ -89,7 +89,7 @@ pub(in crate::http) async fn receive_group_inbox(
     }
   }
 
-  res
+  Ok(res)
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

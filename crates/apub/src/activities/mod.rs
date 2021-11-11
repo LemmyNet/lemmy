@@ -173,7 +173,7 @@ async fn send_lemmy_activity<T: Serialize>(
 
   insert_activity(
     activity_id,
-    serialised_activity.clone(),
+    &serialised_activity,
     true,
     sensitive,
     context.pool(),

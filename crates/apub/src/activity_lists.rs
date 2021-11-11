@@ -1,29 +1,32 @@
 use crate::{
   activities::community::announce::GetCommunity,
   objects::community::ApubCommunity,
-  protocol::activities::{
-    community::{
-      add_mod::AddMod,
-      announce::AnnounceActivity,
-      block_user::BlockUserFromCommunity,
-      remove_mod::RemoveMod,
-      report::Report,
-      undo_block_user::UndoBlockUserFromCommunity,
-      update::UpdateCommunity,
+  protocol::{
+    activities::{
+      community::{
+        add_mod::AddMod,
+        announce::AnnounceActivity,
+        block_user::BlockUserFromCommunity,
+        remove_mod::RemoveMod,
+        report::Report,
+        undo_block_user::UndoBlockUserFromCommunity,
+        update::UpdateCommunity,
+      },
+      create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
+      deletion::{delete::Delete, undo_delete::UndoDelete},
+      following::{
+        accept::AcceptFollowCommunity,
+        follow::FollowCommunity,
+        undo_follow::UndoFollowCommunity,
+      },
+      private_message::{
+        create_or_update::CreateOrUpdatePrivateMessage,
+        delete::DeletePrivateMessage,
+        undo_delete::UndoDeletePrivateMessage,
+      },
+      voting::{undo_vote::UndoVote, vote::Vote},
     },
-    create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
-    deletion::{delete::Delete, undo_delete::UndoDelete},
-    following::{
-      accept::AcceptFollowCommunity,
-      follow::FollowCommunity,
-      undo_follow::UndoFollowCommunity,
-    },
-    private_message::{
-      create_or_update::CreateOrUpdatePrivateMessage,
-      delete::DeletePrivateMessage,
-      undo_delete::UndoDeletePrivateMessage,
-    },
-    voting::{undo_vote::UndoVote, vote::Vote},
+    objects::{note::Note, page::Page},
   },
 };
 use lemmy_apub_lib::traits::ActivityHandler;
@@ -79,6 +82,10 @@ pub enum AnnouncableActivities {
   UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
   AddMod(AddMod),
   RemoveMod(RemoveMod),
+  // For compatibility with Pleroma/Mastodon (send only)
+  Page(Page),
+  // For compatibility with Pleroma/Mastodon (send only)
+  Note(Note),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -101,6 +108,8 @@ impl GetCommunity for AnnouncableActivities {
       UndoBlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
       AddMod(a) => a.get_community(context, request_counter).await?,
       RemoveMod(a) => a.get_community(context, request_counter).await?,
+      Page(_) => unimplemented!(),
+      Note(_) => unimplemented!(),
     };
     Ok(community)
   }

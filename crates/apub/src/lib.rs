@@ -179,7 +179,7 @@ pub async fn get_actor_id_from_name(
 /// persistent.
 async fn insert_activity<T>(
   ap_id: &Url,
-  activity: T,
+  activity: &T,
   local: bool,
   sensitive: bool,
   pool: &DbPool,
@@ -187,9 +187,10 @@ async fn insert_activity<T>(
 where
   T: Serialize + std::fmt::Debug + Send + 'static,
 {
+  let data = serde_json::to_value(activity)?;
   let ap_id = ap_id.to_owned().into();
   blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, &activity, local, sensitive)
+    Activity::insert(conn, ap_id, data, local, sensitive)
   })
   .await??;
   Ok(())

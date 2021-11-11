@@ -1,4 +1,4 @@
-use crate::{signatures::sign_and_send, traits::ActorType, APUB_JSON_CONTENT_TYPE};
+use crate::{signatures::sign_and_send, traits::ActorType};
 use anyhow::{anyhow, Context, Error};
 use background_jobs::{
   create_server,
@@ -13,7 +13,7 @@ use lemmy_utils::{location_info, LemmyError};
 use log::warn;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, env, fmt::Debug, future::Future, pin::Pin};
+use std::{env, fmt::Debug, future::Future, pin::Pin};
 use url::Url;
 
 pub async fn send_activity(
@@ -64,11 +64,8 @@ impl ActixJob for SendActivityTask {
 }
 
 async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
-  let mut headers = BTreeMap::<String, String>::new();
-  headers.insert("Content-Type".into(), APUB_JSON_CONTENT_TYPE.to_string());
   let result = sign_and_send(
     client,
-    headers,
     &task.inbox,
     task.activity.clone(),
     &task.actor_id,

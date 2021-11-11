@@ -28,7 +28,7 @@ pub(crate) async fn send_to_community<T: ActorType>(
 ) -> Result<(), LemmyError> {
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
-    insert_activity(activity_id, activity.clone(), true, false, context.pool()).await?;
+    insert_activity(activity_id, &activity, true, false, context.pool()).await?;
     AnnounceActivity::send(activity, community, additional_inboxes, context).await?;
   } else {
     let mut inboxes = additional_inboxes;

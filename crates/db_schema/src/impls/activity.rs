@@ -1,10 +1,7 @@
 use crate::{newtypes::DbUrl, source::activity::*, traits::Crud};
 use diesel::{dsl::*, result::Error, *};
-use serde::Serialize;
-use std::{
-  fmt::Debug,
-  io::{Error as IoError, ErrorKind},
-};
+use serde_json::Value;
+use std::io::{Error as IoError, ErrorKind};
 
 impl Crud for Activity {
   type Form = ActivityForm;
@@ -38,19 +35,16 @@ impl Crud for Activity {
 }
 
 impl Activity {
-  pub fn insert<T>(
+  pub fn insert(
     conn: &PgConnection,
     ap_id: DbUrl,
-    data: &T,
+    data: Value,
     local: bool,
     sensitive: bool,
-  ) -> Result<Activity, IoError>
-  where
-    T: Serialize + Debug,
-  {
+  ) -> Result<Activity, IoError> {
     let activity_form = ActivityForm {
       ap_id,
-      data: serde_json::to_value(&data)?,
+      data,
       local: Some(local),
       sensitive,
       updated: None,

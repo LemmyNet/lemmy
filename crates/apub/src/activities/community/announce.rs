@@ -26,13 +26,12 @@ pub(crate) trait GetCommunity {
 }
 
 impl AnnounceActivity {
-  pub async fn send(
+  fn new(
     object: AnnouncableActivities,
     community: &ApubCommunity,
-    additional_inboxes: Vec<Url>,
     context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    let announce = AnnounceActivity {
+  ) -> Result<AnnounceActivity, LemmyError> {
+    Ok(AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
       to: vec![public()],
       object,
@@ -43,11 +42,49 @@ impl AnnounceActivity {
         &context.settings().get_protocol_and_hostname(),
       )?,
       unparsed: Default::default(),
-    };
+    })
+  }
+
+  pub async fn send(
+    object: AnnouncableActivities,
+    community: &ApubCommunity,
+    additional_inboxes: Vec<Url>,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let announce = AnnounceActivity::new(object.clone(), community, context)?;
     let inboxes = community
-      .get_follower_inboxes(additional_inboxes, context)
+      .get_follower_inboxes(additional_inboxes.clone(), context)
       .await?;
-    send_lemmy_activity(context, &announce, &announce.id, community, inboxes, false).await
+    send_lemmy_activity(
+      context,
+      &announce,
+      &announce.id,
+      community,
+      inboxes.clone(),
+      false,
+    )
+    .await?;
+
+    // Pleroma (and likely Mastodon) can't handle activities like Announce/Create/Page, so for
+    // compatibility, we also send Announce/Page and Announce/Note (for new and updated
+    // posts/comments).
+    use AnnouncableActivities::*;
+    let object = match object {
+      CreateOrUpdatePost(c) => Page(c.object),
+      CreateOrUpdateComment(c) => Note(c.object),
+      _ => return Ok(()),
+    };
+    let announce_compat = AnnounceActivity::new(object, community, context)?;
+    send_lemmy_activity(
+      context,
+      &announce_compat,
+      &announce_compat.id,
+      community,
+      inboxes,
+      false,
+    )
+    .await?;
+    Ok(())
   }
 }
 
@@ -77,14 +114,7 @@ impl ActivityHandler for AnnounceActivity {
     if is_activity_already_known(context.pool(), &object_data.id).await? {
       return Ok(());
     }
-    insert_activity(
-      &object_data.id,
-      self.object.clone(),
-      false,
-      true,
-      context.pool(),
-    )
-    .await?;
+    insert_activity(&object_data.id, &self.object, false, true, context.pool()).await?;
     self.object.receive(context, request_counter).await
   }
 }
