@@ -149,6 +149,12 @@ pub struct RateLimitConfig {
   /// Interval length for image uploads, in seconds
   #[default(3600)]
   pub image_per_second: i32,
+  /// Maximum number of comments created in interval
+  #[default(6)]
+  pub comment: i32,
+  /// Interval length for comment limit, in seconds
+  #[default(600)]
+  pub comment_per_second: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

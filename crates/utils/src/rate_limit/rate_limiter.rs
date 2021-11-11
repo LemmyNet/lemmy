@@ -15,6 +15,7 @@ pub(crate) enum RateLimitType {
   Register,
   Post,
   Image,
+  Comment,
 }
 
 /// Rate limiting based on rate type and IP addr

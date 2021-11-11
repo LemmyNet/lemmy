@@ -485,6 +485,7 @@ impl ChatServer {
           UserOperationCrud::Register => rate_limiter.register().wrap(ip, fut).await,
           UserOperationCrud::CreatePost => rate_limiter.post().wrap(ip, fut).await,
           UserOperationCrud::CreateCommunity => rate_limiter.register().wrap(ip, fut).await,
+          UserOperationCrud::CreateComment => rate_limiter.comment().wrap(ip, fut).await,
           _ => rate_limiter.message().wrap(ip, fut).await,
         }
       } else {
