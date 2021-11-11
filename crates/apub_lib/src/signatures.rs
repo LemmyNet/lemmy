@@ -1,3 +1,5 @@
+use crate::APUB_JSON_CONTENT_TYPE;
+use activitystreams::chrono::Utc;
 use actix_web::HttpRequest;
 use anyhow::anyhow;
 use http::{header::HeaderName, HeaderMap, HeaderValue};
@@ -13,19 +15,18 @@ use openssl::{
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, str::FromStr};
+use std::str::FromStr;
 use url::Url;
 
 lazy_static! {
   static ref CONFIG2: ConfigActix = ConfigActix::new();
-  static ref HTTP_SIG_CONFIG: Config = Config::new();
+  static ref HTTP_SIG_CONFIG: Config = Config::new().mastodon_compat();
 }
 
 /// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
 /// `activity` as request body. The request is signed with `private_key` and then sent.
 pub async fn sign_and_send(
   client: &Client,
-  headers: BTreeMap<String, String>,
   inbox_url: &Url,
   activity: String,
   actor_id: &Url,
@@ -33,16 +34,24 @@ pub async fn sign_and_send(
 ) -> Result<Response, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor_id);
 
-  let mut header_map = HeaderMap::new();
-  for h in headers {
-    header_map.insert(
-      HeaderName::from_str(h.0.as_str())?,
-      HeaderValue::from_str(h.1.as_str())?,
-    );
+  let mut headers = HeaderMap::new();
+  let mut host = inbox_url.domain().expect("read inbox domain").to_string();
+  if let Some(port) = inbox_url.port() {
+    host = format!("{}:{}", host, port);
   }
+  headers.insert(
+    HeaderName::from_str("Content-Type")?,
+    HeaderValue::from_str(APUB_JSON_CONTENT_TYPE)?,
+  );
+  headers.insert(HeaderName::from_str("Host")?, HeaderValue::from_str(&host)?);
+  headers.insert(
+    HeaderName::from_str("Date")?,
+    HeaderValue::from_str(&Utc::now().to_rfc2822())?,
+  );
+
   let response = client
     .post(&inbox_url.to_string())
-    .headers(header_map)
+    .headers(headers)
     .signature_with_digest(
       HTTP_SIG_CONFIG.clone(),
       signing_key_id,
