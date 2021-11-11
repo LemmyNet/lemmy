@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_apub_lib_derive"
-version = "0.13.5-rc.7"
+version = "0.14.0-rc.1"
 edition = "2018"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
