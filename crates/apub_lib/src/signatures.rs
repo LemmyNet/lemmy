@@ -44,10 +44,9 @@ pub async fn sign_and_send(
     HeaderValue::from_str(APUB_JSON_CONTENT_TYPE)?,
   );
   headers.insert(HeaderName::from_str("Host")?, HeaderValue::from_str(&host)?);
-  headers.insert(
-    HeaderName::from_str("Date")?,
-    HeaderValue::from_str(&Utc::now().to_rfc2822())?,
-  );
+  // Need to use legacy timezone because mastodon and doesnt understand any new standards
+  let date = Utc::now().to_rfc2822().replace("+0000", "GMT");
+  headers.insert(HeaderName::from_str("Date")?, HeaderValue::from_str(&date)?);
 
   let response = client
     .post(&inbox_url.to_string())
