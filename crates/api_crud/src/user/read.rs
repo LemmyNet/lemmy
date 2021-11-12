@@ -1,8 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*};
-use lemmy_apub::{get_actor_id_from_name, objects::person::ApubPerson};
-use lemmy_apub_lib::{object_id::ObjectId, webfinger::WebfingerType};
+use lemmy_apub::{
+  fetcher::webfinger::webfinger_resolve,
+  objects::person::ApubPerson,
+  EndpointType,
+};
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{from_opt_str_to_opt_enum, SortType};
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::{
@@ -42,7 +46,8 @@ impl PerformCrud for GetPersonDetails {
           .username
           .to_owned()
           .unwrap_or_else(|| "admin".to_string());
-        let actor_id = get_actor_id_from_name(WebfingerType::Person, &name, context).await?;
+        let actor_id =
+          webfinger_resolve::<ApubPerson>(&name, EndpointType::Person, context, &mut 0).await?;
 
         let person = ObjectId::<ApubPerson>::new(actor_id)
           .dereference(context, &mut 0)

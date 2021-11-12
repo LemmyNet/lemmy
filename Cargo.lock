@@ -1962,7 +1962,7 @@ dependencies = [
  "diesel",
  "lazy_static",
  "lemmy_api_common",
- "lemmy_apub_lib",
+ "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",

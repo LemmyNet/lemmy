@@ -1,12 +1,14 @@
-use crate::objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson};
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},
 };
 use anyhow::anyhow;
 use itertools::Itertools;
+use log::debug;
+use url::Url;
+
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType, webfinger::WebfingerResponse};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, person::Person, post::Post},
@@ -19,8 +21,11 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_local_notifs, LemmyContext};
-use log::debug;
-use url::Url;
+
+use crate::{
+  fetcher::webfinger::WebfingerResponse,
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+};
 
 pub mod create_or_update;
 

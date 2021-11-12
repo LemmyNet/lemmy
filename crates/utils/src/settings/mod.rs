@@ -11,12 +11,7 @@ static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 lazy_static! {
   static ref SETTINGS: RwLock<Settings> =
     RwLock::new(Settings::init().expect("Failed to load settings file"));
-  static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
-    "^group:([a-z0-9_]{{3,}})@{}$",
-    Settings::get().hostname
-  ))
-  .expect("compile webfinger regex");
-  static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
+  static ref WEBFINGER_REGEX: Regex = Regex::new(&format!(
     "^acct:([a-z0-9_]{{3,}})@{}$",
     Settings::get().hostname
   ))
@@ -105,12 +100,8 @@ impl Settings {
     Ok(Self::read_config_file()?)
   }
 
-  pub fn webfinger_community_regex(&self) -> Regex {
-    WEBFINGER_COMMUNITY_REGEX.to_owned()
-  }
-
-  pub fn webfinger_username_regex(&self) -> Regex {
-    WEBFINGER_USER_REGEX.to_owned()
+  pub fn webfinger_regex(&self) -> Regex {
+    WEBFINGER_REGEX.to_owned()
   }
 
   pub fn slur_regex(&self) -> Option<Regex> {

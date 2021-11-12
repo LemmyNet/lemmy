@@ -10,24 +10,26 @@ use background_jobs::{
   WorkerConfig,
 };
 use lemmy_utils::{location_info, LemmyError};
-use log::warn;
+use log::{info, warn};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::{env, fmt::Debug, future::Future, pin::Pin};
 use url::Url;
 
 pub async fn send_activity(
-  activity: String,
+  activity_id: &Url,
   actor: &dyn ActorType,
   inboxes: Vec<&Url>,
+  activity: String,
   client: &Client,
   activity_queue: &QueueHandle,
 ) -> Result<(), LemmyError> {
   for i in inboxes {
     let message = SendActivityTask {
-      activity: activity.clone(),
+      activity_id: activity_id.clone(),
       inbox: i.to_owned(),
       actor_id: actor.actor_id(),
+      activity: activity.clone(),
       private_key: actor.private_key().context(location_info!())?,
     };
     if env::var("APUB_TESTING_SEND_SYNC").is_ok() {
@@ -42,9 +44,10 @@ pub async fn send_activity(
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct SendActivityTask {
-  activity: String,
+  activity_id: Url,
   inbox: Url,
   actor_id: Url,
+  activity: String,
   private_key: String,
 }
 
@@ -64,6 +67,7 @@ impl ActixJob for SendActivityTask {
 }
 
 async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
+  info!("Sending {} to {}", task.activity_id, task.inbox);
   let result = sign_and_send(
     client,
     &task.inbox,
@@ -73,13 +77,26 @@ async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
   )
   .await;
 
-  if let Err(e) = result {
-    warn!("{}", e);
-    return Err(anyhow!(
-      "Failed to send activity {} to {}",
-      &task.activity,
-      task.inbox
-    ));
+  match result {
+    Ok(o) => {
+      if !o.status().is_success() {
+        warn!(
+          "Send {} to {} failed with status {}: {}",
+          task.activity_id,
+          task.inbox,
+          o.status(),
+          o.text().await?
+        );
+      }
+    }
+    Err(e) => {
+      return Err(anyhow!(
+        "Failed to send activity {} to {}: {}",
+        &task.activity_id,
+        task.inbox,
+        e
+      ));
+    }
   }
   Ok(())
 }
