@@ -1,7 +1,7 @@
 use crate::{
   activity_lists::SharedInboxActivities,
   check_is_apub_id_valid,
-  context::WithContext,
+  context::{WithContext, WithContextJson},
   fetcher::user_or_community::UserOrCommunity,
   http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
@@ -129,6 +129,12 @@ where
     .json(WithContext::new(data))
 }
 
+fn create_json_apub_response(data: serde_json::Value) -> HttpResponse<Body> {
+  HttpResponse::Ok()
+    .content_type(APUB_JSON_CONTENT_TYPE)
+    .json(WithContextJson::new(data))
+}
+
 fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>
 where
   T: Serialize,
@@ -167,7 +173,7 @@ pub(crate) async fn get_activity(
   if !activity.local || sensitive {
     Ok(HttpResponse::NotFound().finish())
   } else {
-    Ok(create_apub_response(&activity.data))
+    Ok(create_json_apub_response(activity.data))
   }
 }
 
