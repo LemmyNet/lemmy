@@ -1,6 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
+  mentions::collect_non_local_mentions,
   protocol::{
     objects::{
       note::{Note, SourceCompat},
@@ -93,6 +94,11 @@ impl ApubObject for ApubComment {
 
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let community_id = post.community_id;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
 
     let in_reply_to = if let Some(comment_id) = self.parent_id {
       let parent_comment =
@@ -101,13 +107,14 @@ impl ApubObject for ApubComment {
     } else {
       ObjectId::<PostOrComment>::new(post.ap_id)
     };
+    let maa = collect_non_local_mentions(&self, ObjectId::new(community.actor_id), context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
       to: vec![public()],
-      cc: vec![],
+      cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: SourceCompat::Lemmy(Source {
@@ -117,6 +124,7 @@ impl ApubObject for ApubComment {
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
+      tag: maa.tags,
       unparsed: Default::default(),
     };
 

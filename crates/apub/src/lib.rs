@@ -12,6 +12,7 @@ pub(crate) mod collections;
 mod context;
 pub mod fetcher;
 pub mod http;
+pub(crate) mod mentions;
 pub mod migrations;
 pub mod objects;
 pub mod protocol;

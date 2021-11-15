@@ -30,7 +30,9 @@ pub(crate) mod tests {
   use serde::{de::DeserializeOwned, Serialize};
   use std::collections::HashMap;
 
-  pub(crate) fn test_parse_lemmy_item<T: Serialize + DeserializeOwned>(path: &str) -> T {
+  pub(crate) fn test_parse_lemmy_item<T: Serialize + DeserializeOwned + std::fmt::Debug>(
+    path: &str,
+  ) -> T {
     let parsed = file_to_json_object::<T>(path);
 
     // ensure that no field is ignored when parsing

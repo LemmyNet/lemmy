@@ -14,7 +14,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_parsey_create_or_update() {
+  async fn test_parse_create_or_update() {
     test_parse_lemmy_item::<CreateOrUpdatePost>(
       "assets/lemmy/activities/create_or_update/create_page.json",
     );
