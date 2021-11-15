@@ -26,6 +26,7 @@ use crate::{
   fetcher::webfinger::WebfingerResponse,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
 };
+use lemmy_utils::settings::structs::Settings;
 
 pub mod create_or_update;
 
@@ -68,7 +69,15 @@ pub async fn collect_non_local_mentions(
   let mut inboxes = vec![parent_creator.shared_inbox_or_inbox_url()];
 
   // Add the mention tag
-  let mut tags = Vec::new();
+  let mut parent_creator_tag = Mention::new();
+  parent_creator_tag
+    .set_href(parent_creator.actor_id.clone().into())
+    .set_name(format!(
+      "@{}@{}",
+      &parent_creator.name,
+      &Settings::get().hostname
+    ));
+  let mut tags = vec![parent_creator_tag];
 
   // Get the person IDs for any mentions
   let mentions = scrape_text_for_mentions(&comment.content)

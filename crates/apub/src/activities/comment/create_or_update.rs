@@ -50,7 +50,7 @@ impl CreateOrUpdateComment {
     )?;
     let maa = collect_non_local_mentions(&comment, &community, context).await?;
 
-    let create_or_update = CreateOrUpdateComment {
+    let mut create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: comment.into_apub(context).await?,
@@ -60,6 +60,11 @@ impl CreateOrUpdateComment {
       id: id.clone(),
       unparsed: Default::default(),
     };
+
+    // To make mention notifications work on Mastodon/Pleroma, it is necessary that tag and cc
+    // are set on both the activity and the object.
+    create_or_update.object.tag = Some(create_or_update.tag.clone());
+    create_or_update.object.cc = create_or_update.cc.clone();
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
     send_activity_in_community(activity, &id, actor, &community, maa.inboxes, context).await

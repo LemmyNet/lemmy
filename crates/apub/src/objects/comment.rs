@@ -117,6 +117,7 @@ impl ApubObject for ApubComment {
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
+      tag: None,
       unparsed: Default::default(),
     };
 
