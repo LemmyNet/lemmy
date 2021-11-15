@@ -1,6 +1,10 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, get_community_from_moderators_url, send_to_community},
+    community::{
+      announce::GetCommunity,
+      get_community_from_moderators_url,
+      send_activity_in_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
@@ -51,7 +55,7 @@ impl AddMod {
 
     let activity = AnnouncableActivities::AddMod(add);
     let inboxes = vec![added_mod.shared_inbox_or_inbox_url()];
-    send_to_community(activity, &id, actor, community, inboxes, context).await
+    send_activity_in_community(activity, &id, actor, community, inboxes, context).await
   }
 }
 

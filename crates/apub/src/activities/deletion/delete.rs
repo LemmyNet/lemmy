@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
     verify_activity,
@@ -118,7 +118,7 @@ impl Delete {
     let delete_id = delete.id.clone();
 
     let activity = AnnouncableActivities::Delete(delete);
-    send_to_community(activity, &delete_id, actor, community, vec![], context).await
+    send_activity_in_community(activity, &delete_id, actor, community, vec![], context).await
   }
 }
 

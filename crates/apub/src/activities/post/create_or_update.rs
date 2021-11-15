@@ -1,7 +1,7 @@
 use crate::{
   activities::{
     check_community_deleted_or_removed,
-    community::{announce::GetCommunity, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -63,7 +63,7 @@ impl CreateOrUpdatePost {
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let id = create_or_update.id.clone();
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
-    send_to_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 
