@@ -85,7 +85,7 @@ pub(in crate::http) async fn receive_group_inbox(
     let community = announcable.get_community(context, &mut 0).await?;
     verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
     if community.local {
-      AnnounceActivity::send(*announcable, &community, vec![], context).await?;
+      AnnounceActivity::send(*announcable, &community, context).await?;
     }
   }
 

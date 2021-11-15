@@ -18,22 +18,20 @@ pub mod report;
 pub mod undo_block_user;
 pub mod update;
 
-pub(crate) async fn send_to_community<T: ActorType>(
+pub(crate) async fn send_activity_in_community<T: ActorType>(
   activity: AnnouncableActivities,
   activity_id: &Url,
   actor: &T,
   community: &ApubCommunity,
-  additional_inboxes: Vec<Url>,
+  mut inboxes: Vec<Url>,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  // if this is a local community, we need to do an announce from the community instead
+  inboxes.push(community.shared_inbox_or_inbox_url());
+  send_lemmy_activity(context, &activity, activity_id, actor, inboxes, false).await?;
+
   if community.local {
     insert_activity(activity_id, &activity, true, false, context.pool()).await?;
-    AnnounceActivity::send(activity, community, additional_inboxes, context).await?;
-  } else {
-    let mut inboxes = additional_inboxes;
-    inboxes.push(community.shared_inbox_or_inbox_url());
-    send_lemmy_activity(context, &activity, activity_id, actor, inboxes, false).await?;
+    AnnounceActivity::send(activity, community, context).await?;
   }
 
   Ok(())

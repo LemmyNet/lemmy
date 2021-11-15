@@ -2,7 +2,7 @@ use crate::{
   activities::{
     check_community_deleted_or_removed,
     comment::{collect_non_local_mentions, get_notif_recipients},
-    community::{announce::GetCommunity, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -62,7 +62,7 @@ impl CreateOrUpdateComment {
     };
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_to_community(activity, &id, actor, &community, maa.inboxes, context).await
+    send_activity_in_community(activity, &id, actor, &community, maa.inboxes, context).await
   }
 }
 

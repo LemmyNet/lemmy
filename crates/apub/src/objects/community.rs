@@ -192,7 +192,6 @@ impl ApubCommunity {
   /// For a given community, returns the inboxes of all followers.
   pub(crate) async fn get_follower_inboxes(
     &self,
-    additional_inboxes: Vec<Url>,
     context: &LemmyContext,
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
@@ -201,7 +200,7 @@ impl ApubCommunity {
       CommunityFollowerView::for_community(conn, id)
     })
     .await??;
-    let follower_inboxes: Vec<Url> = follows
+    let inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
       .map(|f| {
@@ -210,12 +209,8 @@ impl ApubCommunity {
           .unwrap_or(f.follower.inbox_url)
           .into()
       })
-      .collect();
-    let inboxes = vec![follower_inboxes, additional_inboxes]
-      .into_iter()
-      .flatten()
       .unique()
-      .filter(|inbox| inbox.host_str() != Some(&context.settings().hostname))
+      .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
       .filter(|inbox| check_is_apub_id_valid(inbox, false, &context.settings()).is_ok())
       .collect();

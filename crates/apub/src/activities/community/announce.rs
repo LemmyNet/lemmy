@@ -14,7 +14,6 @@ use lemmy_apub_lib::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use url::Url;
 
 #[async_trait::async_trait(?Send)]
 pub(crate) trait GetCommunity {
@@ -48,13 +47,10 @@ impl AnnounceActivity {
   pub async fn send(
     object: AnnouncableActivities,
     community: &ApubCommunity,
-    additional_inboxes: Vec<Url>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
-    let inboxes = community
-      .get_follower_inboxes(additional_inboxes.clone(), context)
-      .await?;
+    let inboxes = community.get_follower_inboxes(context).await?;
     send_lemmy_activity(
       context,
       &announce,
@@ -65,9 +61,9 @@ impl AnnounceActivity {
     )
     .await?;
 
-    // Pleroma (and likely Mastodon) can't handle activities like Announce/Create/Page, so for
-    // compatibility, we also send Announce/Page and Announce/Note (for new and updated
-    // posts/comments).
+    // Pleroma (and likely Mastodon) can't handle activities like Announce/Create/Page. So for
+    // compatibility to allow them to follow Lemmy communities, we also send Announce/Page and
+    // Announce/Note (for new and updated posts/comments).
     use AnnouncableActivities::*;
     let object = match object {
       CreateOrUpdatePost(c) => Page(c.object),
