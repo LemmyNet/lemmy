@@ -8,10 +8,10 @@
     "to": [
       "https://www.w3.org/ns/activitystreams#Public"
     ],
-    "object": "http://ds9.lemmy.ml/post/1",
-    "cc": [
-      "http://enterprise.lemmy.ml/c/main"
-    ],
+    "object": {
+      "id": "http://ds9.lemmy.ml/post/1",
+      "type": "Tombstone"
+    },
     "type": "Delete",
     "id": "http://ds9.lemmy.ml/activities/delete/b13cca96-7737-41e1-9769-8fbf972b3509"
   },
