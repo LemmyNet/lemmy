@@ -2,7 +2,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::note::Note},
 };
-use activitystreams::{link::Mention, unparsed::Unparsed};
+use activitystreams::{link::Mention, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -15,7 +15,7 @@ pub struct CreateOrUpdateComment {
   pub(crate) object: Note,
   pub(crate) cc: Vec<Url>,
   #[serde(default)]
-  pub(crate) tag: Vec<Mention>,
+  pub(crate) tag: Option<OneOrMany<Mention>>,
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,

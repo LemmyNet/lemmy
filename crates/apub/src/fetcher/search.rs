@@ -82,7 +82,7 @@ pub enum SearchableApubTypes {
   Group(Group),
   Person(Person),
   Page(Page),
-  Note(Note),
+  Note(Box<Note>),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -178,7 +178,7 @@ impl ApubObject for SearchableObjects {
       SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, rc).await?),
       SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, rc).await?),
       SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, rc).await?),
-      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, rc).await?),
+      SAT::Note(n) => SO::Comment(ApubComment::from_apub(*n, context, rc).await?),
     })
   }
 }

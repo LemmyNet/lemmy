@@ -12,7 +12,7 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
-use activitystreams::public;
+use activitystreams::{primitives::OneOrMany, public};
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
@@ -55,7 +55,16 @@ impl CreateOrUpdateComment {
       to: vec![public()],
       object: comment.into_apub(context).await?,
       cc: maa.ccs,
-      tag: maa.tags,
+      tag: if maa.tags.is_empty() {
+        None
+      } else if maa.tags.len() == 1 {
+        let mut tags = maa.tags;
+        Some(OneOrMany::from_one(
+          tags.pop().expect("Verified there is 1 element already"),
+        ))
+      } else {
+        Some(OneOrMany::from_many(maa.tags))
+      },
       kind,
       id: id.clone(),
       unparsed: Default::default(),
@@ -63,7 +72,7 @@ impl CreateOrUpdateComment {
 
     // To make mention notifications work on Mastodon/Pleroma, it is necessary that tag and cc
     // are set on both the activity and the object.
-    create_or_update.object.tag = Some(create_or_update.tag.clone());
+    create_or_update.object.tag = create_or_update.tag.clone();
     create_or_update.object.cc = create_or_update.cc.clone();
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
