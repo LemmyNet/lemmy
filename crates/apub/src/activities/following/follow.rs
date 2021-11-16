@@ -15,7 +15,6 @@ use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
-  verify::verify_urls_match,
 };
 use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
@@ -32,7 +31,6 @@ impl FollowCommunity {
   ) -> Result<FollowCommunity, LemmyError> {
     Ok(FollowCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [ObjectId::new(community.actor_id())],
       object: ObjectId::new(community.actor_id()),
       kind: FollowType::Follow,
       id: generate_activity_id(
@@ -72,9 +70,8 @@ impl ActivityHandler for FollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
-    verify_urls_match(self.to[0].inner(), self.object.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
-    let community = self.to[0].dereference(context, request_counter).await?;
+    let community = self.object.dereference(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
@@ -84,11 +81,11 @@ impl ActivityHandler for FollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let community = self.to[0].dereference(context, request_counter).await?;
+    let person = self.actor.dereference(context, request_counter).await?;
+    let community = self.object.dereference(context, request_counter).await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
-      person_id: actor.id,
+      person_id: person.id,
       pending: false,
     };
 

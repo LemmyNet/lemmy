@@ -27,7 +27,6 @@ impl UndoFollowCommunity {
     let object = FollowCommunity::new(actor, community, context)?;
     let undo = UndoFollowCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [ObjectId::new(community.actor_id())],
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(
@@ -50,7 +49,6 @@ impl ActivityHandler for UndoFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
-    verify_urls_match(self.to[0].inner(), self.object.object.inner())?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;
@@ -62,12 +60,16 @@ impl ActivityHandler for UndoFollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let community = self.to[0].dereference(context, request_counter).await?;
+    let person = self.actor.dereference(context, request_counter).await?;
+    let community = self
+      .object
+      .object
+      .dereference(context, request_counter)
+      .await?;
 
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
-      person_id: actor.id,
+      person_id: person.id,
       pending: false,
     };
 

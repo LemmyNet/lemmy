@@ -1,5 +1,5 @@
 use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::following::follow::FollowCommunity,
 };
 use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
@@ -11,7 +11,6 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoFollowCommunity {
   pub(crate) actor: ObjectId<ApubPerson>,
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
   pub(crate) object: FollowCommunity,
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
