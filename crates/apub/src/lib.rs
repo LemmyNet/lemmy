@@ -18,7 +18,6 @@ use lemmy_apub_lib::webfinger::{webfinger_resolve_actor, WebfingerType};
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use serde::Serialize;
 use std::net::IpAddr;
 use url::{ParseError, Url};
 
@@ -177,20 +176,16 @@ pub async fn get_actor_id_from_name(
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-async fn insert_activity<T>(
+async fn insert_activity(
   ap_id: &Url,
-  activity: &T,
+  activity: serde_json::Value,
   local: bool,
   sensitive: bool,
   pool: &DbPool,
-) -> Result<(), LemmyError>
-where
-  T: Serialize + std::fmt::Debug + Send + 'static,
-{
-  let data = serde_json::to_value(activity)?;
+) -> Result<(), LemmyError> {
   let ap_id = ap_id.to_owned().into();
   blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, data, local, sensitive)
+    Activity::insert(conn, ap_id, activity, local, sensitive)
   })
   .await??;
   Ok(())

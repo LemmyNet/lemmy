@@ -107,14 +107,13 @@ impl ActivityHandler for AnnounceActivity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    // TODO: this is pretty ugly, but i cant think of a much better way
-    let object = serde_json::to_string(&self.object)?;
-    let object_data: ActivityCommonFields = serde_json::from_str(&object)?;
+    let object_value = serde_json::to_value(&self.object)?;
+    let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
 
     if is_activity_already_known(context.pool(), &object_data.id).await? {
       return Ok(());
     }
-    insert_activity(&object_data.id, &self.object, false, true, context.pool()).await?;
+    insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
     self.object.receive(context, request_counter).await
   }
 }
