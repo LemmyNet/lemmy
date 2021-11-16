@@ -80,7 +80,7 @@ impl CommentReportView {
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -215,7 +215,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
       // Test this join
       .inner_join(
         community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
