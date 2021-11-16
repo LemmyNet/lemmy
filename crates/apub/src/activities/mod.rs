@@ -175,9 +175,10 @@ async fn send_lemmy_activity<T: Serialize>(
   insert_activity(activity_id, object_value, true, sensitive, context.pool()).await?;
 
   send_activity(
-    serialised_activity,
+    activity_id,
     actor,
     inboxes,
+    serialised_activity,
     context.client(),
     context.activity_queue(),
   )

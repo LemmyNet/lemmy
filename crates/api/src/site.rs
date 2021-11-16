@@ -11,10 +11,13 @@ use lemmy_api_common::{
   site::*,
 };
 use lemmy_apub::{
-  fetcher::search::{search_by_apub_id, SearchableObjects},
-  get_actor_id_from_name,
+  fetcher::{
+    search::{search_by_apub_id, SearchableObjects},
+    webfinger::webfinger_resolve,
+  },
+  objects::community::ApubCommunity,
+  EndpointType,
 };
-use lemmy_apub_lib::webfinger::WebfingerType;
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   newtypes::PersonId,
@@ -175,7 +178,7 @@ impl Perform for Search {
     let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      get_actor_id_from_name(WebfingerType::Group, name, context)
+      webfinger_resolve::<ApubCommunity>(name, EndpointType::Community, context, &mut 0)
         .await
         .ok()
     } else {

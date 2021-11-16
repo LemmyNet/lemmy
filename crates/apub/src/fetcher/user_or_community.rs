@@ -96,7 +96,10 @@ impl ApubObject for UserOrCommunity {
 
 impl ActorType for UserOrCommunity {
   fn actor_id(&self) -> Url {
-    todo!()
+    match self {
+      UserOrCommunity::User(p) => p.actor_id(),
+      UserOrCommunity::Community(p) => p.actor_id(),
+    }
   }
 
   fn public_key(&self) -> Option<String> {
