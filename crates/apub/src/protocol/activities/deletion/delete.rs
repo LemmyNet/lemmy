@@ -1,4 +1,4 @@
-use crate::objects::person::ApubPerson;
+use crate::{objects::person::ApubPerson, protocol::objects::tombstone::Tombstone};
 use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
@@ -11,8 +11,7 @@ use url::Url;
 pub struct Delete {
   pub(crate) actor: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
-  pub(crate) object: Url,
-  pub(crate) cc: Vec<Url>,
+  pub(crate) object: Tombstone,
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user

@@ -1,7 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt, is_admin};
-use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
+use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove, DeletableObjects};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -51,7 +51,7 @@ impl PerformCrud for DeleteCommunity {
     send_apub_delete(
       &local_user_view.person.clone().into(),
       &updated_community.clone().into(),
-      updated_community.actor_id.clone().into(),
+      DeletableObjects::Community(Box::new(updated_community.into())),
       deleted,
       context,
     )
@@ -111,7 +111,7 @@ impl PerformCrud for RemoveCommunity {
     send_apub_remove(
       &local_user_view.person.clone().into(),
       &updated_community.clone().into(),
-      updated_community.actor_id.clone().into(),
+      DeletableObjects::Community(Box::new(updated_community.into())),
       data.reason.clone().unwrap_or_else(|| "".to_string()),
       removed,
       context,

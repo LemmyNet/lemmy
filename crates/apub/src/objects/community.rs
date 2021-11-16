@@ -118,10 +118,7 @@ impl ApubObject for ApubCommunity {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(
-      GroupType::Group,
-      self.updated.unwrap_or(self.published),
-    ))
+    Ok(Tombstone::new(self.actor_id()))
   }
 
   async fn verify(

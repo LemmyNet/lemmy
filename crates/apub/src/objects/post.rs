@@ -128,10 +128,7 @@ impl ApubObject for ApubPost {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(
-      PageType::Page,
-      self.updated.unwrap_or(self.published),
-    ))
+    Ok(Tombstone::new(self.ap_id.clone().into()))
   }
 
   async fn verify(
