@@ -25,19 +25,3 @@ impl<T> WithContext<T> {
     self.inner
   }
 }
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct WithContextJson {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  inner: serde_json::Value,
-}
-
-impl WithContextJson {
-  pub(crate) fn new(inner: serde_json::Value) -> WithContextJson {
-    WithContextJson {
-      context: CONTEXT.clone(),
-      inner,
-    }
-  }
-}

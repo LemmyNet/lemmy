@@ -1,7 +1,7 @@
 use crate::{
   activity_lists::SharedInboxActivities,
   check_is_apub_id_valid,
-  context::{WithContext, WithContextJson},
+  context::WithContext,
   fetcher::user_or_community::UserOrCommunity,
   http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
@@ -109,7 +109,8 @@ where
 
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
-  insert_activity(&activity_data.id, &activity, false, true, context.pool()).await?;
+  let object_value = serde_json::to_value(&activity)?;
+  insert_activity(&activity_data.id, object_value, false, true, context.pool()).await?;
 
   info!("Receiving activity {}", activity_data.id.to_string());
   activity
@@ -132,7 +133,7 @@ where
 fn create_json_apub_response(data: serde_json::Value) -> HttpResponse<Body> {
   HttpResponse::Ok()
     .content_type(APUB_JSON_CONTENT_TYPE)
-    .json(WithContextJson::new(data))
+    .json(data)
 }
 
 fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>

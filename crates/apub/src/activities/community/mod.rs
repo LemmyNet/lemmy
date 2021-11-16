@@ -27,8 +27,9 @@ pub(crate) async fn send_to_community<T: ActorType>(
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   // if this is a local community, we need to do an announce from the community instead
+  let object_value = serde_json::to_value(&activity)?;
   if community.local {
-    insert_activity(activity_id, &activity, true, false, context.pool()).await?;
+    insert_activity(activity_id, object_value, true, false, context.pool()).await?;
     AnnounceActivity::send(activity, community, additional_inboxes, context).await?;
   } else {
     let mut inboxes = additional_inboxes;

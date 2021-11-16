@@ -171,14 +171,8 @@ async fn send_lemmy_activity<T: Serialize>(
 
   let serialised_activity = serde_json::to_string(&activity)?;
 
-  insert_activity(
-    activity_id,
-    &serialised_activity,
-    true,
-    sensitive,
-    context.pool(),
-  )
-  .await?;
+  let object_value = serde_json::to_value(&activity)?;
+  insert_activity(activity_id, object_value, true, sensitive, context.pool()).await?;
 
   send_activity(
     serialised_activity,
