@@ -8,7 +8,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::deletion::delete::Delete,
+  protocol::activities::deletion::delete::{Delete, ObjectOrTombstone},
 };
 use activitystreams::{activity::kind::DeleteType, public};
 use anyhow::anyhow;
@@ -50,11 +50,12 @@ impl ActivityHandler for Delete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &self.cc)?;
+    let cc = self.cc.as_deref().unwrap_or(&[]);
+    verify_is_public(&self.to, cc)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
-      &self.object,
+      self.object.as_url(),
       &self.actor,
       &community,
       self.summary.is_some(),
@@ -78,9 +79,23 @@ impl ActivityHandler for Delete {
       } else {
         Some(reason)
       };
-      receive_remove_action(&self.actor, &self.object, reason, context, request_counter).await
+      receive_remove_action(
+        &self.actor,
+        self.object.as_url(),
+        reason,
+        context,
+        request_counter,
+      )
+      .await
     } else {
-      receive_delete_action(&self.object, &self.actor, true, context, request_counter).await
+      receive_delete_action(
+        self.object.as_url(),
+        &self.actor,
+        true,
+        context,
+        request_counter,
+      )
+      .await
     }
   }
 }
@@ -96,8 +111,8 @@ impl Delete {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: object_id,
-      cc: vec![community.actor_id()],
+      object: ObjectOrTombstone::Url(object_id),
+      cc: Some(vec![community.actor_id()]),
       kind: DeleteType::Delete,
       summary,
       id: generate_activity_id(
@@ -201,7 +216,7 @@ impl GetCommunity for Delete {
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let community_id = match DeletableObjects::read_from_db(&self.object, context).await? {
+    let community_id = match DeletableObjects::read_from_db(self.object.as_url(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
         let post = blocking(context.pool(), move |conn| Post::read(conn, c.post_id)).await??;
