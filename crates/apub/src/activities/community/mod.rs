@@ -1,7 +1,6 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  insert_activity,
   objects::community::ApubCommunity,
   protocol::activities::community::announce::AnnounceActivity,
 };
@@ -30,8 +29,6 @@ pub(crate) async fn send_activity_in_community<T: ActorType>(
   send_lemmy_activity(context, &activity, activity_id, actor, inboxes, false).await?;
 
   if community.local {
-    let object_value = serde_json::to_value(&activity)?;
-    insert_activity(activity_id, object_value, true, false, context.pool()).await?;
     AnnounceActivity::send(activity, community, context).await?;
   }
 
