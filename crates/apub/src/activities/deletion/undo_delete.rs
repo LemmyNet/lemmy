@@ -40,7 +40,7 @@ impl ActivityHandler for UndoDelete {
     self.object.verify(context, request_counter).await?;
     let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
-      self.object.object.as_url(),
+      &self.object.object.id,
       &self.actor,
       &community,
       self.object.summary.is_some(),
@@ -57,10 +57,10 @@ impl ActivityHandler for UndoDelete {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if self.object.summary.is_some() {
-      UndoDelete::receive_undo_remove_action(self.object.object.as_url(), context).await
+      UndoDelete::receive_undo_remove_action(&self.object.object.id, context).await
     } else {
       receive_delete_action(
-        self.object.object.as_url(),
+        &self.object.object.id,
         &self.actor,
         false,
         context,
@@ -79,7 +79,7 @@ impl UndoDelete {
     summary: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let object = Delete::new(actor, community, object_id, summary, context)?;
+    let object = Delete::new(actor, object_id, summary, context)?;
 
     let id = generate_activity_id(
       UndoType::Undo,

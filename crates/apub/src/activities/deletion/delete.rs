@@ -8,9 +8,9 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::deletion::delete::{Delete, ObjectOrTombstone},
+  protocol::activities::deletion::delete::{Delete, Tombstone},
 };
-use activitystreams::{activity::kind::DeleteType, public};
+use activitystreams::{activity::kind::DeleteType, object::kind::TombstoneType, public};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -50,12 +50,11 @@ impl ActivityHandler for Delete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let cc = self.cc.as_deref().unwrap_or(&[]);
-    verify_is_public(&self.to, cc)?;
+    verify_is_public(&self.to, &[])?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
-      self.object.as_url(),
+      &self.object.id,
       &self.actor,
       &community,
       self.summary.is_some(),
@@ -81,21 +80,14 @@ impl ActivityHandler for Delete {
       };
       receive_remove_action(
         &self.actor,
-        self.object.as_url(),
+        &self.object.id,
         reason,
         context,
         request_counter,
       )
       .await
     } else {
-      receive_delete_action(
-        self.object.as_url(),
-        &self.actor,
-        true,
-        context,
-        request_counter,
-      )
-      .await
+      receive_delete_action(&self.object.id, &self.actor, true, context, request_counter).await
     }
   }
 }
@@ -103,7 +95,6 @@ impl ActivityHandler for Delete {
 impl Delete {
   pub(in crate::activities::deletion) fn new(
     actor: &ApubPerson,
-    community: &ApubCommunity,
     object_id: Url,
     summary: Option<String>,
     context: &LemmyContext,
@@ -111,8 +102,10 @@ impl Delete {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: ObjectOrTombstone::Url(object_id),
-      cc: Some(vec![community.actor_id()]),
+      object: Tombstone {
+        id: object_id,
+        kind: TombstoneType::Tombstone,
+      },
       kind: DeleteType::Delete,
       summary,
       id: generate_activity_id(
@@ -129,7 +122,7 @@ impl Delete {
     summary: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let delete = Delete::new(actor, community, object_id, summary, context)?;
+    let delete = Delete::new(actor, object_id, summary, context)?;
     let delete_id = delete.id.clone();
 
     let activity = AnnouncableActivities::Delete(delete);
@@ -216,7 +209,7 @@ impl GetCommunity for Delete {
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let community_id = match DeletableObjects::read_from_db(self.object.as_url(), context).await? {
+    let community_id = match DeletableObjects::read_from_db(&self.object.id, context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
         let post = blocking(context.pool(), move |conn| Post::read(conn, c.post_id)).await??;

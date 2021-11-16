@@ -10,15 +10,11 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
 #[serde(rename_all = "camelCase")]
-pub enum ObjectOrTombstone {
-  Url(Url),
-  Tombstone {
-    id: Url,
-    #[serde(rename = "type")]
-    kind: TombstoneType,
-  },
+pub struct Tombstone {
+  pub(crate) id: Url,
+  #[serde(rename = "type")]
+  pub(crate) kind: TombstoneType,
 }
 
 #[skip_serializing_none]
@@ -27,8 +23,7 @@ pub enum ObjectOrTombstone {
 pub struct Delete {
   pub(crate) actor: ObjectId<ApubPerson>,
   pub(crate) to: Vec<Url>,
-  pub(crate) object: ObjectOrTombstone,
-  pub(crate) cc: Option<Vec<Url>>,
+  pub(crate) object: Tombstone,
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
@@ -37,13 +32,4 @@ pub struct Delete {
   pub(crate) id: Url,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
-}
-
-impl ObjectOrTombstone {
-  pub fn as_url(&self) -> &Url {
-    match self {
-      Self::Url(ref url) => url,
-      Self::Tombstone { ref id, .. } => id,
-    }
-  }
 }
