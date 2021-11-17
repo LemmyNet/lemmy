@@ -1,4 +1,4 @@
-# Lemmy Release 0.14.0: Federation with Mastodon and Pleroma (2021-11-17)
+# Lemmy Release v0.14.0: Federation with Mastodon and Pleroma (2021-11-17)
 
 Today is an exciting day for the Lemmy project.
 
