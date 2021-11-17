@@ -1707,7 +1707,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "actix",
  "actix-rt",
@@ -1752,7 +1752,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "actix-web",
  "chrono",
@@ -1770,7 +1770,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "actix",
  "actix-rt",
@@ -1815,7 +1815,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "activitystreams",
  "actix",
@@ -1861,7 +1861,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub_lib"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "activitystreams",
  "actix-web",
@@ -1887,7 +1887,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub_lib_derive"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "proc-macro2 1.0.29",
  "quote 1.0.10",
@@ -1897,7 +1897,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "bcrypt",
  "chrono",
@@ -1920,7 +1920,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "diesel",
  "lemmy_db_schema",
@@ -1932,7 +1932,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "diesel",
  "lemmy_db_schema",
@@ -1941,7 +1941,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "diesel",
  "lemmy_db_schema",
@@ -1950,7 +1950,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "actix",
  "actix-http",
@@ -1978,7 +1978,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "activitystreams",
  "actix",
@@ -2017,7 +2017,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "actix-rt",
  "actix-web",
@@ -2053,7 +2053,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_websocket"
-version = "0.14.0-rc.2"
+version = "0.14.0"
 dependencies = [
  "actix",
  "actix-web",
