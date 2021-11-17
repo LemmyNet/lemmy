@@ -8,7 +8,6 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct FollowCommunity {
   pub(crate) actor: ObjectId<ApubPerson>,
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
   pub(crate) object: ObjectId<ApubCommunity>,
   #[serde(rename = "type")]
   pub(crate) kind: FollowType,

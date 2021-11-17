@@ -11,7 +11,7 @@ mod tests {
 
   #[actix_rt::test]
   #[serial]
-  async fn test_parse_lemmy_voting() {
+  async fn test_parse_lemmy_deletion() {
     test_parse_lemmy_item::<Delete>("assets/lemmy/activities/deletion/remove_note.json");
     test_parse_lemmy_item::<Delete>("assets/lemmy/activities/deletion/delete_page.json");
 

@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -62,7 +62,7 @@ impl Vote {
     let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
-    send_to_community(activity, &vote_id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, &vote_id, actor, &community, vec![], context).await
   }
 }
 

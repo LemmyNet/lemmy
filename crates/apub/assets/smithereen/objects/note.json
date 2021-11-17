@@ -5,10 +5,12 @@
   "content": "<p>So does this federate now?</p>",
   "inReplyTo": "https://ds9.lemmy.ml/post/1723",
   "published": "2021-11-09T11:42:35Z",
-  "tag": {
-    "type": "Mention",
-    "href": "https://ds9.lemmy.ml/u/nutomic"
-  },
+  "tag": [
+    {
+      "type": "Mention",
+      "href": "https://ds9.lemmy.ml/u/nutomic"
+    }
+  ],
   "url": "https://friends.grishka.me/posts/66561",
   "to": [
     "https://www.w3.org/ns/activitystreams#Public"

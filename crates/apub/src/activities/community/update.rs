@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -46,7 +46,7 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
-    send_to_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 

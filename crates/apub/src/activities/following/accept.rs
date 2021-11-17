@@ -28,7 +28,6 @@ impl AcceptFollowCommunity {
       .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
-      to: [ObjectId::new(person.actor_id())],
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
@@ -52,8 +51,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
-    verify_urls_match(self.to[0].inner(), self.object.actor.inner())?;
-    verify_urls_match(self.actor.inner(), self.object.to[0].inner())?;
+    verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -63,11 +61,15 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let to = self.to[0].dereference(context, request_counter).await?;
+    let person = self.actor.dereference(context, request_counter).await?;
+    let community = self
+      .object
+      .actor
+      .dereference(context, request_counter)
+      .await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {
-      CommunityFollower::follow_accepted(conn, actor.id, to.id)
+      CommunityFollower::follow_accepted(conn, person.id, community.id)
     })
     .await??;
 

@@ -1,8 +1,8 @@
 use crate::{
   activities::{
     check_community_deleted_or_removed,
-    comment::{collect_non_local_mentions, get_notif_recipients},
-    community::{announce::GetCommunity, send_to_community},
+    comment::get_notif_recipients,
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -12,7 +12,7 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
-use activitystreams::public;
+use activitystreams::{link::LinkExt, public};
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
@@ -33,6 +33,7 @@ impl CreateOrUpdateComment {
     actor: &ApubPerson,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
+    request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
@@ -48,21 +49,34 @@ impl CreateOrUpdateComment {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let maa = collect_non_local_mentions(&comment, &community, context).await?;
+    let note = comment.into_apub(context).await?;
 
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
-      object: comment.into_apub(context).await?,
-      cc: maa.ccs,
-      tag: maa.tags,
+      cc: note.cc.clone(),
+      tag: note.tag.clone(),
+      object: note,
       kind,
       id: id.clone(),
       unparsed: Default::default(),
     };
 
+    let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
+      .tag
+      .iter()
+      .map(|t| t.href())
+      .flatten()
+      .map(|t| ObjectId::new(t.clone()))
+      .collect();
+    let mut inboxes = vec![];
+    for t in tagged_users {
+      let person = t.dereference(context, request_counter).await?;
+      inboxes.push(person.shared_inbox_or_inbox_url());
+    }
+
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_to_community(activity, &id, actor, &community, maa.inboxes, context).await
+    send_activity_in_community(activity, &id, actor, &community, inboxes, context).await
   }
 }
 

@@ -117,7 +117,7 @@ fn verify_add_remove_moderator_target(
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
-  if !to.contains(&public()) && !cc.contains(&public()) {
+  if ![to, cc].iter().any(|set| set.contains(&public())) {
     return Err(anyhow!("Object is not public").into());
   }
   Ok(())
@@ -175,9 +175,10 @@ async fn send_lemmy_activity<T: Serialize>(
   insert_activity(activity_id, object_value, true, sensitive, context.pool()).await?;
 
   send_activity(
-    serialised_activity,
+    activity_id,
     actor,
     inboxes,
+    serialised_activity,
     context.client(),
     context.activity_queue(),
   )

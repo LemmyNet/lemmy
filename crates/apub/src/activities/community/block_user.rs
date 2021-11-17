@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -63,7 +63,7 @@ impl BlockUserFromCommunity {
 
     let activity = AnnouncableActivities::BlockUserFromCommunity(block);
     let inboxes = vec![target.shared_inbox_or_inbox_url()];
-    send_to_community(activity, &block_id, actor, community, inboxes, context).await
+    send_activity_in_community(activity, &block_id, actor, community, inboxes, context).await
   }
 }
 

@@ -8,7 +8,7 @@ use lemmy_api_common::{
   is_mod_or_admin,
   post::*,
 };
-use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove};
+use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove, DeletableObjects};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -70,7 +70,7 @@ impl PerformCrud for DeletePost {
     send_apub_delete(
       &local_user_view.person.clone().into(),
       &community.into(),
-      updated_post.ap_id.into(),
+      DeletableObjects::Post(Box::new(updated_post.into())),
       deleted,
       context,
     )
@@ -146,7 +146,7 @@ impl PerformCrud for RemovePost {
     send_apub_remove(
       &local_user_view.person.clone().into(),
       &community.into(),
-      updated_post.ap_id.into(),
+      DeletableObjects::Post(Box::new(updated_post.into())),
       data.reason.clone().unwrap_or_else(|| "".to_string()),
       removed,
       context,

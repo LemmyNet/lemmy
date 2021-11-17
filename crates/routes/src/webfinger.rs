@@ -1,11 +1,12 @@
 use actix_web::{web, web::Query, HttpResponse};
-use anyhow::anyhow;
+use anyhow::Context;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::webfinger::{WebfingerLink, WebfingerResponse};
+use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
 use lemmy_db_schema::source::{community::Community, person::Person};
-use lemmy_utils::{settings::structs::Settings, ApiError, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 struct Params {
@@ -31,64 +32,60 @@ async fn get_webfinger_response(
   info: Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let community_regex_parsed = context
+  let name = context
     .settings()
-    .webfinger_community_regex()
+    .webfinger_regex()
     .captures(&info.resource)
     .map(|c| c.get(1))
-    .flatten();
+    .flatten()
+    .context(location_info!())?
+    .as_str()
+    .to_string();
 
-  let username_regex_parsed = context
-    .settings()
-    .webfinger_username_regex()
-    .captures(&info.resource)
-    .map(|c| c.get(1))
-    .flatten();
-
-  let url = if let Some(community_name) = community_regex_parsed {
-    let community_name = community_name.as_str().to_owned();
-    // Make sure the requested community exists.
-    blocking(context.pool(), move |conn| {
-      Community::read_from_name(conn, &community_name)
-    })
-    .await?
-    .map_err(|e| ApiError::err("not_found", e))?
-    .actor_id
-  } else if let Some(person_name) = username_regex_parsed {
-    let person_name = person_name.as_str().to_owned();
-    // Make sure the requested person exists.
-    blocking(context.pool(), move |conn| {
-      Person::find_by_name(conn, &person_name)
-    })
-    .await?
-    .map_err(|e| ApiError::err("not_found", e))?
-    .actor_id
-  } else {
-    return Err(LemmyError::from(anyhow!("not_found")));
-  };
+  let name_ = name.clone();
+  let community_id: Option<Url> = blocking(context.pool(), move |conn| {
+    Community::read_from_name(conn, &name_)
+  })
+  .await?
+  .ok()
+  .map(|c| c.actor_id.into());
+  let user_id: Option<Url> = blocking(context.pool(), move |conn| {
+    Person::find_by_name(conn, &name)
+  })
+  .await?
+  .ok()
+  .map(|c| c.actor_id.into());
+  let links = vec![
+    webfinger_link_for_actor(community_id),
+    webfinger_link_for_actor(user_id),
+  ]
+  .into_iter()
+  .flatten()
+  .collect();
 
   let json = WebfingerResponse {
     subject: info.resource.to_owned(),
-    aliases: vec![url.to_owned().into()],
-    links: vec![
+    links,
+  };
+
+  Ok(HttpResponse::Ok().json(json))
+}
+
+fn webfinger_link_for_actor(url: Option<Url>) -> Vec<WebfingerLink> {
+  if let Some(url) = url {
+    vec![
       WebfingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         type_: Some("text/html".to_string()),
-        href: Some(url.to_owned().into()),
-        template: None,
+        href: Some(url.to_owned()),
       },
       WebfingerLink {
         rel: Some("self".to_string()),
         type_: Some("application/activity+json".to_string()),
-        href: Some(url.into()),
-        template: None,
-      }, // TODO: this also needs to return the subscribe link once that's implemented
-         //{
-         //  "rel": "http://ostatus.org/schema/1.0/subscribe",
-         //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
-         //}
-    ],
-  };
-
-  Ok(HttpResponse::Ok().json(json))
+        href: Some(url),
+      },
+    ]
+  } else {
+    vec![]
+  }
 }

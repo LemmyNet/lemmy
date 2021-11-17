@@ -152,6 +152,7 @@ impl PerformCrud for CreateComment {
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Create,
       context,
+      &mut 0,
     )
     .await?;
     let object = PostOrComment::Comment(Box::new(apub_comment));

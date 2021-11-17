@@ -1,8 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, comment::*, get_local_user_view_from_jwt_opt};
-use lemmy_apub::get_actor_id_from_name;
-use lemmy_apub_lib::webfinger::WebfingerType;
+use lemmy_apub::{
+  fetcher::webfinger::webfinger_resolve,
+  objects::community::ApubCommunity,
+  EndpointType,
+};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   traits::DeleteableOrRemoveable,
@@ -36,7 +39,7 @@ impl PerformCrud for GetComments {
 
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      get_actor_id_from_name(WebfingerType::Group, name, context)
+      webfinger_resolve::<ApubCommunity>(name, EndpointType::Community, context, &mut 0)
         .await
         .ok()
     } else {

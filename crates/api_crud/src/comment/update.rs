@@ -91,6 +91,7 @@ impl PerformCrud for EditComment {
       &local_user_view.person.into(),
       CreateOrUpdateType::Update,
       context,
+      &mut 0,
     )
     .await?;
 

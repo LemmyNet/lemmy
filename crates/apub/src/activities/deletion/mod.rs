@@ -1,14 +1,13 @@
 use crate::{
   activities::{verify_mod_action, verify_person_in_community},
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+  protocol::{
+    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+    objects::tombstone::Tombstone,
+  },
 };
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-  verify::verify_domains_match,
-};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{
@@ -24,14 +23,14 @@ pub mod undo_delete;
 pub async fn send_apub_delete(
   actor: &ApubPerson,
   community: &ApubCommunity,
-  object_id: Url,
+  object: DeletableObjects,
   deleted: bool,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   if deleted {
-    Delete::send(actor, community, object_id, None, context).await
+    Delete::send(actor, community, object, None, context).await
   } else {
-    UndoDelete::send(actor, community, object_id, None, context).await
+    UndoDelete::send(actor, community, object, None, context).await
   }
 }
 
@@ -40,15 +39,15 @@ pub async fn send_apub_delete(
 pub async fn send_apub_remove(
   actor: &ApubPerson,
   community: &ApubCommunity,
-  object_id: Url,
+  object: DeletableObjects,
   reason: String,
   removed: bool,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   if removed {
-    Delete::send(actor, community, object_id, Some(reason), context).await
+    Delete::send(actor, community, object, Some(reason), context).await
   } else {
-    UndoDelete::send(actor, community, object_id, Some(reason), context).await
+    UndoDelete::send(actor, community, object, Some(reason), context).await
   }
 }
 
@@ -73,6 +72,14 @@ impl DeletableObjects {
       return Ok(DeletableObjects::Comment(Box::new(c)));
     }
     Err(diesel::NotFound.into())
+  }
+
+  pub(crate) fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
+    match self {
+      DeletableObjects::Community(c) => c.to_tombstone(),
+      DeletableObjects::Comment(c) => c.to_tombstone(),
+      DeletableObjects::Post(p) => p.to_tombstone(),
+    }
   }
 }
 
@@ -153,7 +160,7 @@ async fn receive_delete_action(
     DeletableObjects::Community(community) => {
       if community.local {
         let mod_ = actor.dereference(context, request_counter).await?;
-        let object = community.actor_id();
+        let object = DeletableObjects::Community(community.clone());
         send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
       }
 
