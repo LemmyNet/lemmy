@@ -13,6 +13,8 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
   git add ../prod/docker-compose.yml
+  git add ../dev/docker-compose.yml
+  git add ../federation/docker-compose.yml
 
   # Setting the version for Ansible
   pushd ../../../lemmy-ansible
