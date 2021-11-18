@@ -8,7 +8,7 @@ pub mod following;
 pub mod private_message;
 pub mod voting;
 
-#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
+#[derive(Clone, Debug, ToString, Deserialize, Serialize, PartialEq)]
 pub enum CreateOrUpdateType {
   Create,
   Update,

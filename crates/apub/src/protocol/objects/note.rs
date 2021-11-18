@@ -4,15 +4,9 @@ use crate::{
   protocol::Source,
 };
 use activitystreams::{link::Mention, object::kind::NoteType, unparsed::Unparsed};
-use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  values::MediaTypeHtml,
-};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -87,17 +81,5 @@ impl Note {
         Ok((post.into(), Some(c.id)))
       }
     }
-  }
-}
-
-// For Pleroma/Mastodon compat. Unimplemented because its only used for sending.
-#[async_trait::async_trait(?Send)]
-impl ActivityHandler for Note {
-  type DataType = LemmyContext;
-  async fn verify(&self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
-    Err(anyhow!("Announce/Page can only be sent, not received").into())
-  }
-  async fn receive(self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
-    unimplemented!()
   }
 }
