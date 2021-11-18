@@ -1,209 +1,61 @@
 {
   "type": "OrderedCollection",
-  "id": "https://ds9.lemmy.ml/c/main/outbox",
-  "totalItems": 7,
+  "id": "https://ds9.lemmy.ml/c/testcom/outbox",
+  "totalItems": 2,
   "orderedItems": [
     {
-      "actor": "https://ds9.lemmy.ml/u/dess_ds9",
+      "actor": "https://ds9.lemmy.ml/c/testcom",
       "to": [
         "https://www.w3.org/ns/activitystreams#Public"
       ],
       "object": {
         "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1685",
-        "attributedTo": "https://ds9.lemmy.ml/u/dess_ds9",
-        "to": [
-          "https://ds9.lemmy.ml/c/main",
-          "https://www.w3.org/ns/activitystreams#Public"
-        ],
-        "name": "Test post",
-        "mediaType": "text/html",
-        "commentsEnabled": true,
-        "sensitive": false,
-        "stickied": false,
-        "published": "2021-09-30T16:37:58.425718+00:00",
-        "updated": "2021-09-30T16:39:50.934055+00:00"
-      },
-      "cc": [
-        "https://ds9.lemmy.ml/c/main"
-      ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/157bc329-05cb-4dc3-ad9e-5110fde3f3aa"
-    },
-    {
-      "actor": "https://ds9.lemmy.ml/u/nutomic",
-      "to": [
-        "https://www.w3.org/ns/activitystreams#Public"
-      ],
-      "object": {
-        "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1665",
+        "id": "https://ds9.lemmy.ml/post/2328",
         "attributedTo": "https://ds9.lemmy.ml/u/nutomic",
         "to": [
-          "https://ds9.lemmy.ml/c/main",
+          "https://ds9.lemmy.ml/c/testcom",
           "https://www.w3.org/ns/activitystreams#Public"
         ],
-        "name": "another webmention test",
+        "cc": [],
+        "name": "another outbox test",
         "mediaType": "text/html",
-        "url": "https://webmention.rocks/test/1",
         "commentsEnabled": true,
         "sensitive": false,
         "stickied": false,
-        "published": "2021-09-17T13:22:15.026912+00:00"
+        "published": "2021-11-18T17:19:45.895163+00:00"
       },
       "cc": [
-        "https://ds9.lemmy.ml/c/main"
+        "https://ds9.lemmy.ml/c/testcom/followers"
       ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/c54e4509-16ac-42bf-b3b4-0bf8516f8152"
+      "type": "Announce",
+      "id": "https://ds9.lemmy.ml/activities/announce/b204fe9f-b13d-4af2-9d22-239ac2d892e6"
     },
     {
-      "actor": "https://ds9.lemmy.ml/u/nutomic",
+      "actor": "https://ds9.lemmy.ml/c/testcom",
       "to": [
         "https://www.w3.org/ns/activitystreams#Public"
       ],
       "object": {
         "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1664",
+        "id": "https://ds9.lemmy.ml/post/2327",
         "attributedTo": "https://ds9.lemmy.ml/u/nutomic",
         "to": [
-          "https://ds9.lemmy.ml/c/main",
+          "https://ds9.lemmy.ml/c/testcom",
           "https://www.w3.org/ns/activitystreams#Public"
         ],
-        "name": "another test",
-        "mediaType": "text/html",
-        "url": "https://webmention.rocks/test/1",
-        "commentsEnabled": true,
-        "sensitive": false,
-        "stickied": false,
-        "published": "2021-09-17T13:13:21.675891+00:00"
-      },
-      "cc": [
-        "https://ds9.lemmy.ml/c/main"
-      ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/25f7d2cb-11d5-4c9c-aa3c-85fbff9f9e0c"
-    },
-    {
-      "actor": "https://ds9.lemmy.ml/u/nutomic",
-      "to": [
-        "https://www.w3.org/ns/activitystreams#Public"
-      ],
-      "object": {
-        "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1663",
-        "attributedTo": "https://ds9.lemmy.ml/u/nutomic",
-        "to": [
-          "https://ds9.lemmy.ml/c/main",
-          "https://www.w3.org/ns/activitystreams#Public"
-        ],
-        "name": "Webmention test from Lemmy",
-        "mediaType": "text/html",
-        "url": "https://webmention.rocks/test/1",
-        "commentsEnabled": true,
-        "sensitive": false,
-        "stickied": false,
-        "published": "2021-09-17T13:00:15.392844+00:00"
-      },
-      "cc": [
-        "https://ds9.lemmy.ml/c/main"
-      ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/cfbd12b8-2e11-42b6-a609-b482decbaf11"
-    },
-    {
-      "actor": "https://ds9.lemmy.ml/u/dess_tester_3",
-      "to": [
-        "https://www.w3.org/ns/activitystreams#Public"
-      ],
-      "object": {
-        "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1644",
-        "attributedTo": "https://ds9.lemmy.ml/u/dess_tester_3",
-        "to": [
-          "https://ds9.lemmy.ml/c/main",
-          "https://www.w3.org/ns/activitystreams#Public"
-        ],
-        "name": "The best wireless earbuds you can buy right now | Engadget",
-        "mediaType": "text/html",
-        "url": "https://www.engadget.com/best-wireless-earbuds-120058222.html",
-        "image": {
-          "type": "Image",
-          "url": "https://ds9.lemmy.ml/pictrs/image/0WWsYOuwAE.jpg"
-        },
-        "commentsEnabled": true,
-        "sensitive": false,
-        "stickied": false,
-        "published": "2021-08-26T01:22:06.428368+00:00"
-      },
-      "cc": [
-        "https://ds9.lemmy.ml/c/main"
-      ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/76c94408-944a-4a2f-a88b-d10f12b472b0"
-    },
-    {
-      "actor": "https://ds9.lemmy.ml/u/dess_ds9",
-      "to": [
-        "https://www.w3.org/ns/activitystreams#Public"
-      ],
-      "object": {
-        "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1643",
-        "attributedTo": "https://ds9.lemmy.ml/u/dess_ds9",
-        "to": [
-          "https://ds9.lemmy.ml/c/main",
-          "https://www.w3.org/ns/activitystreams#Public"
-        ],
-        "name": "First Look: Cadillac’s luxury EV debut seems like a winner | Engadges",
-        "content": "<p>test</p>\n",
-        "mediaType": "text/html",
-        "source": {
-          "content": "test",
-          "mediaType": "text/markdown"
-        },
-        "url": "https://www.engadget.com/cadillac-lyriq-luxury-ev-first-look-video-171543752.html",
-        "image": {
-          "type": "Image",
-          "url": "https://ds9.lemmy.ml/pictrs/image/gnmtvgXP31.jpg"
-        },
-        "commentsEnabled": true,
-        "sensitive": false,
-        "stickied": false,
-        "published": "2021-08-23T23:43:06.560543+00:00",
-        "updated": "2021-08-23T23:52:51.832606+00:00"
-      },
-      "cc": [
-        "https://ds9.lemmy.ml/c/main"
-      ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/b1f95918-f593-4951-91cf-2c3340cd9509"
-    },
-    {
-      "actor": "https://ds9.lemmy.ml/u/dess_ds9_2",
-      "to": [
-        "https://www.w3.org/ns/activitystreams#Public"
-      ],
-      "object": {
-        "type": "Page",
-        "id": "https://ds9.lemmy.ml/post/1642",
-        "attributedTo": "https://ds9.lemmy.ml/u/dess_ds9_2",
-        "to": [
-          "https://ds9.lemmy.ml/c/main",
-          "https://www.w3.org/ns/activitystreams#Public"
-        ],
-        "name": "A test post from DS9",
+        "cc": [],
+        "name": "outbox test",
         "mediaType": "text/html",
         "commentsEnabled": true,
         "sensitive": false,
         "stickied": false,
-        "published": "2021-08-06T14:10:47.493075+00:00"
+        "published": "2021-11-18T17:19:05.763109+00:00"
       },
       "cc": [
-        "https://ds9.lemmy.ml/c/main"
+        "https://ds9.lemmy.ml/c/testcom/followers"
       ],
-      "type": "Create",
-      "id": "https://ds9.lemmy.ml/activities/create/6359b2e7-badb-4241-b5ee-b093078361bd"
+      "type": "Announce",
+      "id": "https://ds9.lemmy.ml/activities/announce/c6c960ce-c8d8-4231-925e-3ba367468f18"
     }
   ]
 }

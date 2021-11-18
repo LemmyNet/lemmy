@@ -1,4 +1,4 @@
-use crate::protocol::activities::create_or_update::post::CreateOrUpdatePost;
+use crate::protocol::activities::community::announce::AnnounceActivity;
 use activitystreams::collection::kind::OrderedCollectionType;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -9,5 +9,5 @@ pub struct GroupOutbox {
   pub(crate) r#type: OrderedCollectionType,
   pub(crate) id: Url,
   pub(crate) total_items: i32,
-  pub(crate) ordered_items: Vec<CreateOrUpdatePost>,
+  pub(crate) ordered_items: Vec<AnnounceActivity>,
 }

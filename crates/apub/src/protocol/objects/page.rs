@@ -8,7 +8,7 @@ use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, ApubObject},
   values::MediaTypeHtml,
 };
 use lemmy_utils::LemmyError;
@@ -79,14 +79,23 @@ impl Page {
   }
 }
 
-// For Pleroma/Mastodon compat. Unimplemented because its only used for sending.
+// Used for community outbox, so that it can be compatible with Pleroma/Mastodon.
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Page {
   type DataType = LemmyContext;
-  async fn verify(&self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
-    Err(anyhow!("Announce/Page can only be sent, not received").into())
+  async fn verify(
+    &self,
+    data: &Data<Self::DataType>,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    ApubPost::verify(self, self.id.inner(), data, request_counter).await
   }
-  async fn receive(self, _: &Data<Self::DataType>, _: &mut i32) -> Result<(), LemmyError> {
-    unimplemented!()
+  async fn receive(
+    self,
+    data: &Data<Self::DataType>,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    ApubPost::from_apub(self, data, request_counter).await?;
+    Ok(())
   }
 }
