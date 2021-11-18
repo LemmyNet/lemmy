@@ -102,9 +102,15 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       )
       // Comment
       .service(
+        // Handle POST to /comment separately to add the comment() rate limitter
+        web::resource("/comment")
+          .guard(guard::Post())
+          .wrap(rate_limit.comment())
+          .route(web::post().to(route_post_crud::<CreateComment>)),
+      )
+      .service(
         web::scope("/comment")
           .wrap(rate_limit.message())
-          .route("", web::post().to(route_post_crud::<CreateComment>))
           .route("", web::put().to(route_post_crud::<EditComment>))
           .route("/delete", web::post().to(route_post_crud::<DeleteComment>))
           .route("/remove", web::post().to(route_post_crud::<RemoveComment>))
