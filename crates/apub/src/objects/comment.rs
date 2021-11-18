@@ -107,7 +107,8 @@ impl ApubObject for ApubComment {
     } else {
       ObjectId::<PostOrComment>::new(post.ap_id)
     };
-    let maa = collect_non_local_mentions(&self, ObjectId::new(community.actor_id), context).await?;
+    let maa =
+      collect_non_local_mentions(&self, ObjectId::new(community.actor_id), context, &mut 0).await?;
 
     let note = Note {
       r#type: NoteType::Note,

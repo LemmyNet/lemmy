@@ -1,12 +1,11 @@
 use crate::{
-  fetcher::webfinger::WebfingerResponse,
+  fetcher::webfinger::webfinger_resolve_actor,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams::{
   base::BaseExt,
   link::{LinkExt, Mention},
 };
-use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
 use lemmy_db_schema::{
@@ -15,12 +14,10 @@ use lemmy_db_schema::{
   DbPool,
 };
 use lemmy_utils::{
-  request::{retry, RecvError},
   utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use url::Url;
 
 pub struct MentionsAndAddresses {
@@ -35,6 +32,7 @@ pub async fn collect_non_local_mentions(
   comment: &ApubComment,
   community_id: ObjectId<ApubCommunity>,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<MentionsAndAddresses, LemmyError> {
   let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.actor_id()];
@@ -59,9 +57,11 @@ pub async fn collect_non_local_mentions(
 
   for mention in &mentions {
     // TODO should it be fetching it every time?
-    if let Ok(actor_id) = fetch_webfinger_url(mention, context).await {
+    let identifier = format!("{}@{}", mention.name, mention.domain);
+    let actor_id =
+      webfinger_resolve_actor::<ApubPerson>(&identifier, context, request_counter).await;
+    if let Ok(actor_id) = actor_id {
       let actor_id: ObjectId<ApubPerson> = ObjectId::new(actor_id);
-      debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_string().parse()?);
 
       let mut mention_tag = Mention::new();
@@ -98,37 +98,4 @@ async fn get_comment_parent_creator(
       .await??
       .into(),
   )
-}
-
-/// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
-/// using webfinger.
-async fn fetch_webfinger_url(
-  mention: &MentionData,
-  context: &LemmyContext,
-) -> Result<Url, LemmyError> {
-  let fetch_url = format!(
-    "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
-    context.settings().get_protocol_string(),
-    mention.domain,
-    mention.name,
-    mention.domain
-  );
-  debug!("Fetching webfinger url: {}", &fetch_url);
-
-  let response = retry(|| context.client().get(&fetch_url).send()).await?;
-
-  let res: WebfingerResponse = response
-    .json()
-    .await
-    .map_err(|e| RecvError(e.to_string()))?;
-
-  let link = res
-    .links
-    .iter()
-    .find(|l| l.type_.eq(&Some("application/activity+json".to_string())))
-    .ok_or_else(|| anyhow!("No application/activity+json link found."))?;
-  link
-    .href
-    .to_owned()
-    .ok_or_else(|| anyhow!("No href found.").into())
 }

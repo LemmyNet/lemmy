@@ -18,8 +18,8 @@ use url::Url;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebfingerLink {
   pub rel: Option<String>,
-  #[serde(rename(serialize = "type", deserialize = "type"))]
-  pub type_: Option<String>,
+  #[serde(rename = "type")]
+  pub kind: Option<String>,
   pub href: Option<Url>,
 }
 
@@ -61,7 +61,7 @@ where
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
-async fn webfinger_resolve_actor<Kind>(
+pub(crate) async fn webfinger_resolve_actor<Kind>(
   identifier: &str,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -91,7 +91,13 @@ where
   let links: Vec<Url> = res
     .links
     .iter()
-    .filter(|l| l.type_.eq(&Some("application/activity+json".to_string())))
+    .filter(|link| {
+      if let Some(type_) = &link.kind {
+        type_.starts_with("application/")
+      } else {
+        false
+      }
+    })
     .map(|l| l.href.clone())
     .flatten()
     .collect();
