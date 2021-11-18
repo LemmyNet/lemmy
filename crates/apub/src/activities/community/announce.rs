@@ -25,7 +25,7 @@ pub(crate) trait GetCommunity {
 }
 
 impl AnnounceActivity {
-  fn new(
+  pub(crate) fn new(
     object: AnnouncableActivities,
     community: &ApubCommunity,
     context: &LemmyContext,
@@ -103,13 +103,20 @@ impl ActivityHandler for AnnounceActivity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let object_value = serde_json::to_value(&self.object)?;
-    let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
+    // TODO: this can probably be implemented in a cleaner way
+    match self.object {
+      // Dont insert these into activities table, as they are not activities.
+      AnnouncableActivities::Page(_) | AnnouncableActivities::Note(_) => {}
+      _ => {
+        let object_value = serde_json::to_value(&self.object)?;
+        let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
 
-    if is_activity_already_known(context.pool(), &object_data.id).await? {
-      return Ok(());
+        if is_activity_already_known(context.pool(), &object_data.id).await? {
+          return Ok(());
+        }
+        insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
+      }
     }
-    insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
     self.object.receive(context, request_counter).await
   }
 }

@@ -1,9 +1,10 @@
 use crate::{
+  activity_lists::AnnouncableActivities,
   collections::CommunityContext,
   generate_outbox_url,
-  objects::{person::ApubPerson, post::ApubPost},
+  objects::post::ApubPost,
   protocol::{
-    activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+    activities::community::announce::AnnounceActivity,
     collections::group_outbox::GroupOutbox,
   },
 };
@@ -15,10 +16,7 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
-use lemmy_db_schema::{
-  source::{person::Person, post::Post},
-  traits::Crud,
-};
+use lemmy_db_schema::source::post::Post;
 use lemmy_utils::LemmyError;
 use url::Url;
 
@@ -63,13 +61,10 @@ impl ApubObject for ApubCommunityOutbox {
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
     for post in self.0 {
-      let actor = post.creator_id;
-      let actor: ApubPerson = blocking(data.1.pool(), move |conn| Person::read(conn, actor))
-        .await??
-        .into();
-      let a =
-        CreateOrUpdatePost::new(post, &actor, &data.0, CreateOrUpdateType::Create, &data.1).await?;
-      ordered_items.push(a);
+      let page = post.into_apub(&data.1).await?;
+      let announcable = AnnouncableActivities::Page(page);
+      let announce = AnnounceActivity::new(announcable, &data.0, &data.1)?;
+      ordered_items.push(announce);
     }
 
     Ok(GroupOutbox {
@@ -108,11 +103,12 @@ impl ApubObject for ApubCommunityOutbox {
     // We intentionally ignore errors here. This is because the outbox might contain posts from old
     // Lemmy versions, or from other software which we cant parse. In that case, we simply skip the
     // item and only parse the ones that work.
+    let data = Data::new(data.1.clone());
     for activity in outbox_activities {
-      activity
-        .receive(&Data::new(data.1.clone()), request_counter)
-        .await
-        .ok();
+      let verify = activity.verify(&data, request_counter).await;
+      if verify.is_ok() {
+        activity.receive(&data, request_counter).await.ok();
+      }
     }
 
     // This return value is unused, so just set an empty vec
