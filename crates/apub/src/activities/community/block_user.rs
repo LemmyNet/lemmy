@@ -39,9 +39,9 @@ impl BlockUserFromCommunity {
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object: ObjectId::new(target.actor_id()),
-      cc: vec![community.actor_id()],
+      cc: Some(community.actor_id().into()),
       target: ObjectId::new(community.actor_id()),
       kind: BlockType::Block,
       id: generate_activity_id(

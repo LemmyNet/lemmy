@@ -6,7 +6,7 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::activities::community::announce::AnnounceActivity,
 };
-use activitystreams::{activity::kind::AnnounceType, public};
+use activitystreams::{activity::kind::AnnounceType, primitives::OneOrMany, public};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -32,9 +32,9 @@ impl AnnounceActivity {
   ) -> Result<AnnounceActivity, LemmyError> {
     Ok(AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object,
-      cc: vec![community.followers_url.clone().into()],
+      cc: Some(OneOrMany::from_one(community.followers_url.clone().into())),
       kind: AnnounceType::Announce,
       id: generate_activity_id(
         &AnnounceType::Announce,

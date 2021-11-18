@@ -53,7 +53,7 @@ impl CreateOrUpdateComment {
 
     let create_or_update = CreateOrUpdateComment {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,

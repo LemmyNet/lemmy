@@ -37,9 +37,9 @@ impl UpdateCommunity {
     )?;
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object: Box::new(community.clone().into_apub(context).await?),
-      cc: vec![community.actor_id()],
+      cc: Some(community.actor_id().into()),
       kind: UpdateType::Update,
       id: id.clone(),
       unparsed: Default::default(),

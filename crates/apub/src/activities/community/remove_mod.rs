@@ -44,11 +44,11 @@ impl RemoveMod {
     )?;
     let remove = RemoveMod {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object: ObjectId::new(removed_mod.actor_id()),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
-      cc: vec![community.actor_id()],
+      cc: Some(community.actor_id().into()),
       kind: RemoveType::Remove,
       unparsed: Default::default(),
     };

@@ -37,9 +37,9 @@ impl Vote {
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object: ObjectId::new(object.ap_id()),
-      cc: vec![community.actor_id()],
+      cc: Some(community.actor_id().into()),
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
       unparsed: Default::default(),

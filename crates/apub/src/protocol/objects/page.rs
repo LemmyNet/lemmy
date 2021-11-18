@@ -2,7 +2,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
-use activitystreams::{object::kind::PageType, unparsed::Unparsed};
+use activitystreams::{object::kind::PageType, primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{
@@ -24,9 +24,8 @@ pub struct Page {
   pub(crate) r#type: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  pub(crate) to: Vec<Url>,
-  #[serde(default)]
-  pub(crate) cc: Vec<Url>,
+  pub(crate) to: Option<OneOrMany<Url>>,
+  pub(crate) cc: Option<OneOrMany<Url>>,
   pub(crate) name: String,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
@@ -65,7 +64,7 @@ impl Page {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let mut to_iter = self.to.iter();
+    let mut to_iter = self.to.iter().map(|x| x.iter()).flatten();
     loop {
       if let Some(cid) = to_iter.next() {
         let cid = ObjectId::new(cid.clone());

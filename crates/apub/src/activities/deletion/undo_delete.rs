@@ -87,9 +87,9 @@ impl UndoDelete {
     )?;
     let undo = UndoDelete {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object,
-      cc: vec![community.actor_id()],
+      cc: Some(community.actor_id().into()),
       kind: UndoType::Undo,
       id: id.clone(),
       unparsed: Default::default(),

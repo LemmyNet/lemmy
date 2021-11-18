@@ -50,7 +50,7 @@ impl ActivityHandler for Delete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &[])?;
+    verify_is_public(&self.to, &None)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
@@ -101,7 +101,7 @@ impl Delete {
   ) -> Result<Delete, LemmyError> {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object: object.to_tombstone()?,
       kind: DeleteType::Delete,
       summary,

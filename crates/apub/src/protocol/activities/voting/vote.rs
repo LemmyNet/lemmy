@@ -1,5 +1,5 @@
 use crate::{fetcher::post_or_comment::PostOrComment, objects::person::ApubPerson};
-use activitystreams::unparsed::Unparsed;
+use activitystreams::{primitives::OneOrMany, unparsed::Unparsed};
 use anyhow::anyhow;
 use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;
@@ -12,9 +12,9 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
   pub(crate) actor: ObjectId<ApubPerson>,
-  pub(crate) to: Vec<Url>,
+  pub(crate) to: Option<OneOrMany<Url>>,
   pub(crate) object: ObjectId<PostOrComment>,
-  pub(crate) cc: Vec<Url>,
+  pub(crate) cc: Option<OneOrMany<Url>>,
   #[serde(rename = "type")]
   pub(crate) kind: VoteType,
   pub(crate) id: Url,

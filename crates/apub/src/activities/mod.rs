@@ -5,7 +5,7 @@ use crate::{
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::public;
+use activitystreams::{primitives::OneOrMany, public};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -116,8 +116,18 @@ fn verify_add_remove_moderator_target(
   Ok(())
 }
 
-pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
-  if ![to, cc].iter().any(|set| set.contains(&public())) {
+pub(crate) fn verify_is_public(
+  to: &Option<OneOrMany<Url>>,
+  cc: &Option<OneOrMany<Url>>,
+) -> Result<(), LemmyError> {
+  let public = public();
+  if !to
+    .iter()
+    .chain(cc.iter())
+    .map(|x| x.iter())
+    .flatten()
+    .any(|x| x == &public)
+  {
     return Err(anyhow!("Object is not public").into());
   }
   Ok(())

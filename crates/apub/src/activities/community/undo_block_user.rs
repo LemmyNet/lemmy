@@ -43,9 +43,9 @@ impl UndoBlockUserFromCommunity {
     )?;
     let undo = UndoBlockUserFromCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: Some(public().into()),
       object: block,
-      cc: vec![community.actor_id()],
+      cc: Some(community.actor_id().into()),
       kind: UndoType::Undo,
       id: id.clone(),
       unparsed: Default::default(),

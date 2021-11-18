@@ -3,7 +3,12 @@ use crate::{
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
-use activitystreams::{link::Mention, object::kind::NoteType, unparsed::Unparsed};
+use activitystreams::{
+  link::Mention,
+  object::kind::NoteType,
+  primitives::OneOrMany,
+  unparsed::Unparsed,
+};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
@@ -28,9 +33,8 @@ pub struct Note {
   pub(crate) r#type: NoteType,
   pub(crate) id: ObjectId<ApubComment>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  pub(crate) to: Vec<Url>,
-  #[serde(default)]
-  pub(crate) cc: Vec<Url>,
+  pub(crate) to: Option<OneOrMany<Url>>,
+  pub(crate) cc: Option<OneOrMany<Url>>,
   pub(crate) content: String,
   pub(crate) media_type: Option<MediaTypeHtml>,
   #[serde(default)]

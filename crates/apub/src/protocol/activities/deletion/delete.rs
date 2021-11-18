@@ -1,5 +1,5 @@
 use crate::{objects::person::ApubPerson, protocol::objects::tombstone::Tombstone};
-use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
+use activitystreams::{activity::kind::DeleteType, primitives::OneOrMany, unparsed::Unparsed};
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -10,7 +10,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
   pub(crate) actor: ObjectId<ApubPerson>,
-  pub(crate) to: Vec<Url>,
+  pub(crate) to: Option<OneOrMany<Url>>,
   pub(crate) object: Tombstone,
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,

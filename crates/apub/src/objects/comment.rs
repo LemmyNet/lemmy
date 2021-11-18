@@ -113,8 +113,8 @@ impl ApubObject for ApubComment {
       r#type: NoteType::Note,
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: vec![public()],
-      cc: maa.ccs,
+      to: Some(public().into()),
+      cc: Some(maa.ccs.into()),
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: SourceCompat::Lemmy(Source {
