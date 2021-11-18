@@ -76,12 +76,12 @@ fn webfinger_link_for_actor(url: Option<Url>) -> Vec<WebfingerLink> {
     vec![
       WebfingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
-        type_: Some("text/html".to_string()),
+        kind: Some("text/html".to_string()),
         href: Some(url.to_owned()),
       },
       WebfingerLink {
         rel: Some("self".to_string()),
-        type_: Some("application/activity+json".to_string()),
+        kind: Some("application/activity+json".to_string()),
         href: Some(url),
       },
     ]
