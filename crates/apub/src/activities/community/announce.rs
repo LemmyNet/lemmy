@@ -4,7 +4,7 @@ use crate::{
   http::{is_activity_already_known, ActivityCommonFields},
   insert_activity,
   objects::community::ApubCommunity,
-  protocol::activities::community::announce::AnnounceActivity,
+  protocol::activities::{community::announce::AnnounceActivity, CreateOrUpdateType},
 };
 use activitystreams::{activity::kind::AnnounceType, public};
 use lemmy_apub_lib::{
@@ -61,13 +61,11 @@ impl AnnounceActivity {
     )
     .await?;
 
-    // Pleroma (and likely Mastodon) can't handle activities like Announce/Create/Page. So for
-    // compatibility to allow them to follow Lemmy communities, we also send Announce/Page and
-    // Announce/Note (for new and updated posts/comments).
+    // Pleroma and Mastodon can't handle activities like Announce/Create/Page. So for
+    // compatibility, we also send Announce/Page so that they can follow Lemmy communities.
     use AnnouncableActivities::*;
     let object = match object {
-      CreateOrUpdatePost(c) => Page(c.object),
-      CreateOrUpdateComment(c) => Note(c.object),
+      CreateOrUpdatePost(c) if c.kind == CreateOrUpdateType::Create => Page(c.object),
       _ => return Ok(()),
     };
     let announce_compat = AnnounceActivity::new(object, community, context)?;

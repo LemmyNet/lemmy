@@ -26,7 +26,7 @@ use crate::{
       },
       voting::{undo_vote::UndoVote, vote::Vote},
     },
-    objects::{note::Note, page::Page},
+    objects::page::Page,
   },
 };
 use lemmy_apub_lib::traits::ActivityHandler;
@@ -84,8 +84,6 @@ pub enum AnnouncableActivities {
   RemoveMod(RemoveMod),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
-  // For compatibility with Pleroma/Mastodon (send only)
-  Note(Note),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -109,7 +107,6 @@ impl GetCommunity for AnnouncableActivities {
       AddMod(a) => a.get_community(context, request_counter).await?,
       RemoveMod(a) => a.get_community(context, request_counter).await?,
       Page(_) => unimplemented!(),
-      Note(_) => unimplemented!(),
     };
     Ok(community)
   }
