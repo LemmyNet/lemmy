@@ -1,8 +1,8 @@
 use crate::{
+  mentions::Mention,
   objects::person::ApubPerson,
-  protocol::{activities::CreateOrUpdateType, objects::note::Note},
+  protocol::{activities::CreateOrUpdateType, objects::note::Note, Unparsed},
 };
-use activitystreams::{link::Mention, unparsed::Unparsed};
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

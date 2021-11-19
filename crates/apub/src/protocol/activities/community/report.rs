@@ -1,8 +1,9 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::Unparsed,
 };
-use activitystreams::{activity::kind::FlagType, unparsed::Unparsed};
+use activitystreams_kinds::activity::FlagType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

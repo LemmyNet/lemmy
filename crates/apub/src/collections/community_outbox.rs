@@ -8,7 +8,7 @@ use crate::{
     collections::group_outbox::GroupOutbox,
   },
 };
-use activitystreams::collection::kind::OrderedCollectionType;
+use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{

@@ -1,8 +1,7 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{activities::CreateOrUpdateType, objects::chat_message::ChatMessage},
+  protocol::{activities::CreateOrUpdateType, objects::chat_message::ChatMessage, Unparsed},
 };
-use activitystreams::unparsed::Unparsed;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

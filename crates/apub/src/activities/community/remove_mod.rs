@@ -17,7 +17,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::remove_mod::RemoveMod,
 };
-use activitystreams::{activity::kind::RemoveType, public};
+use activitystreams_kinds::{activity::RemoveType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,

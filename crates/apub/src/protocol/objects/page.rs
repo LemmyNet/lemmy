@@ -1,8 +1,8 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{ImageObject, Source},
+  protocol::{ImageObject, Source, Unparsed},
 };
-use activitystreams::{object::kind::PageType, unparsed::Unparsed};
+use activitystreams_kinds::object::PageType;
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{

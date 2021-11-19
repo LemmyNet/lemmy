@@ -14,10 +14,8 @@ mod tests {
     },
     tests::test_parse_lemmy_item,
   };
-  use serial_test::serial;
 
   #[actix_rt::test]
-  #[serial]
   async fn test_parse_lemmy_collections() {
     test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json");
     let outbox = test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json");

@@ -12,7 +12,7 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
-use activitystreams::{link::LinkExt, public};
+use activitystreams_kinds::public;
 use lemmy_api_common::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
@@ -65,9 +65,8 @@ impl CreateOrUpdateComment {
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
       .tag
       .iter()
-      .map(|t| t.href())
-      .flatten()
-      .map(|t| ObjectId::new(t.clone()))
+      .map(|t| t.href.clone())
+      .map(ObjectId::new)
       .collect();
     let mut inboxes = vec![];
     for t in tagged_users {

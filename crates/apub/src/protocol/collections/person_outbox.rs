@@ -1,5 +1,5 @@
 use crate::generate_outbox_url;
-use activitystreams::collection::kind::OrderedCollectionType;
+use activitystreams_kinds::collection::OrderedCollectionType;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};

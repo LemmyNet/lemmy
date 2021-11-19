@@ -12,10 +12,8 @@ mod tests {
     },
     tests::test_parse_lemmy_item,
   };
-  use serial_test::serial;
 
   #[actix_rt::test]
-  #[serial]
   async fn test_parse_lemmy_private_message() {
     test_parse_lemmy_item::<CreateOrUpdatePrivateMessage>(
       "assets/lemmy/activities/private_message/create.json",

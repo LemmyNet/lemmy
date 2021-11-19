@@ -1,5 +1,8 @@
-use crate::{objects::person::ApubPerson, protocol::activities::voting::vote::Vote};
-use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
+use crate::{
+  objects::person::ApubPerson,
+  protocol::{activities::voting::vote::Vote, Unparsed},
+};
+use activitystreams_kinds::activity::UndoType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

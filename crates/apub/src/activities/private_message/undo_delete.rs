@@ -6,7 +6,7 @@ use crate::{
     undo_delete::UndoDeletePrivateMessage,
   },
 };
-use activitystreams::activity::kind::UndoType;
+use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,

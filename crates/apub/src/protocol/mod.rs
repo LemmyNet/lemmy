@@ -1,8 +1,10 @@
-use activitystreams::object::kind::ImageType;
+use activitystreams_kinds::object::ImageType;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 use lemmy_apub_lib::values::MediaTypeMarkdown;
+use lemmy_db_schema::newtypes::DbUrl;
+use std::collections::HashMap;
 
 pub mod activities;
 pub(crate) mod collections;
@@ -19,9 +21,22 @@ pub struct Source {
 #[serde(rename_all = "camelCase")]
 pub struct ImageObject {
   #[serde(rename = "type")]
-  pub(crate) kind: ImageType,
+  kind: ImageType,
   pub(crate) url: Url,
 }
+
+impl ImageObject {
+  pub(crate) fn new(url: DbUrl) -> Self {
+    ImageObject {
+      kind: ImageType::Image,
+      url: url.into(),
+    }
+  }
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+pub struct Unparsed(HashMap<String, serde_json::Value>);
 
 #[cfg(test)]
 pub(crate) mod tests {

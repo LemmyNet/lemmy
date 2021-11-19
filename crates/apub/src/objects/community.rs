@@ -9,7 +9,7 @@ use crate::{
     Source,
   },
 };
-use activitystreams::{actor::kind::GroupType, object::kind::ImageType};
+use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::blocking;
@@ -81,14 +81,8 @@ impl ApubObject for ApubCommunity {
       content: bio,
       media_type: MediaTypeMarkdown::Markdown,
     });
-    let icon = self.icon.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
-    let image = self.banner.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
+    let icon = self.icon.clone().map(ImageObject::new);
+    let image = self.banner.clone().map(ImageObject::new);
 
     let group = Group {
       kind: GroupType::Group,

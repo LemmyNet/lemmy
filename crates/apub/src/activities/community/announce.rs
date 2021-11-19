@@ -6,7 +6,7 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::activities::{community::announce::AnnounceActivity, CreateOrUpdateType},
 };
-use activitystreams::{activity::kind::AnnounceType, public};
+use activitystreams_kinds::{activity::AnnounceType, public};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

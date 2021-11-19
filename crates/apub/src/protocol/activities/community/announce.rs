@@ -1,5 +1,9 @@
-use crate::{activity_lists::AnnouncableActivities, objects::community::ApubCommunity};
-use activitystreams::{activity::kind::AnnounceType, unparsed::Unparsed};
+use crate::{
+  activity_lists::AnnouncableActivities,
+  objects::community::ApubCommunity,
+  protocol::Unparsed,
+};
+use activitystreams_kinds::activity::AnnounceType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

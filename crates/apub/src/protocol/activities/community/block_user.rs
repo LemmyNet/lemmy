@@ -1,5 +1,8 @@
-use crate::objects::{community::ApubCommunity, person::ApubPerson};
-use activitystreams::{activity::kind::BlockType, unparsed::Unparsed};
+use crate::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::Unparsed,
+};
+use activitystreams_kinds::activity::BlockType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

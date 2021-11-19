@@ -1,15 +1,14 @@
-use activitystreams::{base::AnyBase, primitives::OneOrMany};
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
-  static ref CONTEXT: OneOrMany<AnyBase> =
+  static ref CONTEXT: Vec<serde_json::Value> =
     serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context");
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct WithContext<T> {
   #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
+  context: Vec<serde_json::Value>,
   #[serde(flatten)]
   inner: T,
 }

@@ -7,10 +7,7 @@ use crate::{
     Source,
   },
 };
-use activitystreams::{
-  object::kind::{ImageType, PageType},
-  public,
-};
+use activitystreams_kinds::{object::PageType, public};
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -100,10 +97,7 @@ impl ApubObject for ApubPost {
       content: body,
       media_type: MediaTypeMarkdown::Markdown,
     });
-    let image = self.thumbnail_url.clone().map(|thumb| ImageObject {
-      kind: ImageType::Image,
-      url: thumb.into(),
-    });
+    let image = self.thumbnail_url.clone().map(ImageObject::new);
 
     let page = Page {
       r#type: PageType::Page,

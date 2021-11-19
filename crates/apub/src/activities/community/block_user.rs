@@ -11,7 +11,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::block_user::BlockUserFromCommunity,
 };
-use activitystreams::{activity::kind::BlockType, public};
+use activitystreams_kinds::{activity::BlockType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
