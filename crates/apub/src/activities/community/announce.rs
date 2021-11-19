@@ -104,7 +104,7 @@ impl ActivityHandler for AnnounceActivity {
     // TODO: this can probably be implemented in a cleaner way
     match self.object {
       // Dont insert these into activities table, as they are not activities.
-      AnnouncableActivities::Page(_) | AnnouncableActivities::Note(_) => {}
+      AnnouncableActivities::Page(_) => {}
       _ => {
         let object_value = serde_json::to_value(&self.object)?;
         let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
