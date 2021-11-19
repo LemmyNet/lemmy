@@ -82,8 +82,8 @@ impl LocalUserView {
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .filter(
         person::name
-          .ilike(name_or_email)
-          .or(local_user::email.ilike(name_or_email)),
+          .eq(name_or_email)
+          .or(local_user::email.eq(name_or_email)),
       )
       .select((
         local_user::all_columns,
