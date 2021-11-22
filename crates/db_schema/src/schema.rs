@@ -5,7 +5,7 @@ table! {
         local -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
-        ap_id -> Nullable<Text>,
+        ap_id -> Text,
         sensitive -> Nullable<Bool>,
     }
 }

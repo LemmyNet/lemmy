@@ -127,7 +127,7 @@ mod tests {
     let inserted_activity = Activity::create(&conn, &activity_form).unwrap();
 
     let expected_activity = Activity {
-      ap_id: Some(ap_id.clone()),
+      ap_id: ap_id.clone(),
       id: inserted_activity.id,
       data: test_json,
       local: true,
