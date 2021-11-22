@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
-
 pub mod activity_queue;
 pub mod data;
 pub mod object_id;

@@ -18,6 +18,7 @@ use lemmy_db_views::{
 use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
 use lemmy_utils::{claims::Claims, utils::markdown_to_html, LemmyError};
 use lemmy_websocket::LemmyContext;
+use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
   ChannelBuilder,
@@ -48,16 +49,14 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/local.xml", web::get().to(get_local_feed));
 }
 
-lazy_static! {
-  static ref RSS_NAMESPACE: HashMap<String, String> = {
-    let mut h = HashMap::new();
-    h.insert(
-      "dc".to_string(),
-      rss::extension::dublincore::NAMESPACE.to_string(),
-    );
-    h
-  };
-}
+static RSS_NAMESPACE: Lazy<HashMap<String, String>> = Lazy::new(|| {
+  let mut h = HashMap::new();
+  h.insert(
+    "dc".to_string(),
+    rss::extension::dublincore::NAMESPACE.to_string(),
+  );
+  h
+});
 
 async fn get_all_feed(
   info: web::Query<Params>,

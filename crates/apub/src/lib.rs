@@ -17,9 +17,6 @@ pub mod migrations;
 pub mod objects;
 pub mod protocol;
 
-#[macro_use]
-extern crate lazy_static;
-
 /// Checks if the ID is allowed for sending or receiving.
 ///
 /// In particular, it checks for:
