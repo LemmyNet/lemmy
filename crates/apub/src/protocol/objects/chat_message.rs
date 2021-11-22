@@ -1,11 +1,8 @@
 use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  protocol::Source,
+  protocol::{Source, Unparsed},
 };
-use activitystreams::{
-  chrono::{DateTime, FixedOffset},
-  unparsed::Unparsed,
-};
+use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

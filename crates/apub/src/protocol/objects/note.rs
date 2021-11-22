@@ -1,9 +1,10 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
+  mentions::Mention,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::Source,
+  protocol::{Source, Unparsed},
 };
-use activitystreams::{link::Mention, object::kind::NoteType, unparsed::Unparsed};
+use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};

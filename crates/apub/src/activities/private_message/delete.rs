@@ -3,7 +3,7 @@ use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::private_message::delete::DeletePrivateMessage,
 };
-use activitystreams::activity::kind::DeleteType;
+use activitystreams_kinds::activity::DeleteType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,

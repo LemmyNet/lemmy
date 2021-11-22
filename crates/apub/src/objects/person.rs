@@ -11,7 +11,6 @@ use crate::{
     Source,
   },
 };
-use activitystreams::object::kind::ImageType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -89,14 +88,8 @@ impl ApubObject for ApubPerson {
       content: bio,
       media_type: MediaTypeMarkdown::Markdown,
     });
-    let icon = self.avatar.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
-    let image = self.banner.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
+    let icon = self.avatar.clone().map(ImageObject::new);
+    let image = self.banner.clone().map(ImageObject::new);
 
     let person = Person {
       kind,

@@ -24,10 +24,8 @@ mod tests {
       tests::test_parse_lemmy_item,
     },
   };
-  use serial_test::serial;
 
   #[actix_rt::test]
-  #[serial]
   async fn test_parse_object() {
     test_parse_lemmy_item::<Person>("assets/lemmy/objects/person.json");
     test_parse_lemmy_item::<Group>("assets/lemmy/objects/group.json");

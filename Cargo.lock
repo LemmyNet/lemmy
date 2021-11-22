@@ -17,6 +17,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "activitystreams-kinds"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0784e99afd032199d3ed70cefb8eb3a8d1aef15f7f2c4e68d033c4e12bb6079e"
+dependencies = [
+ "serde",
+ "url",
+]
+
+[[package]]
 name = "actix"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1842,7 +1852,7 @@ dependencies = [
 name = "lemmy_apub"
 version = "0.14.1"
 dependencies = [
- "activitystreams",
+ "activitystreams-kinds",
  "actix",
  "actix-rt",
  "actix-web",

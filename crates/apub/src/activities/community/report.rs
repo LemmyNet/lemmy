@@ -9,7 +9,7 @@ use crate::{
   protocol::activities::community::report::Report,
   PostOrComment,
 };
-use activitystreams::activity::kind::FlagType;
+use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_apub_lib::{
   data::Data,

@@ -5,7 +5,7 @@ use crate::{
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::public;
+use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{

@@ -11,6 +11,7 @@ mod tests {
   use crate::protocol::{
     activities::community::{
       add_mod::AddMod,
+      announce::AnnounceActivity,
       block_user::BlockUserFromCommunity,
       remove_mod::RemoveMod,
       report::Report,
@@ -19,13 +20,10 @@ mod tests {
     },
     tests::test_parse_lemmy_item,
   };
-  use activitystreams::activity::Announce;
-  use serial_test::serial;
 
   #[actix_rt::test]
-  #[serial]
   async fn test_parse_lemmy_community() {
-    test_parse_lemmy_item::<Announce>(
+    test_parse_lemmy_item::<AnnounceActivity>(
       "assets/lemmy/activities/community/announce_create_page.json",
     );
 

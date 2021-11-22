@@ -14,7 +14,7 @@ use crate::{
     undo_block_user::UndoBlockUserFromCommunity,
   },
 };
-use activitystreams::{activity::kind::UndoType, public};
+use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,

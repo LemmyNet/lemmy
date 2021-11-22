@@ -10,10 +10,8 @@ mod tests {
       tests::test_parse_lemmy_item,
     },
   };
-  use serial_test::serial;
 
   #[actix_rt::test]
-  #[serial]
   async fn test_parse_create_or_update() {
     test_parse_lemmy_item::<CreateOrUpdatePost>(
       "assets/lemmy/activities/create_or_update/create_page.json",

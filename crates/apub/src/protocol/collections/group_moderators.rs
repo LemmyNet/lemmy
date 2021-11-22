@@ -1,5 +1,5 @@
 use crate::objects::person::ApubPerson;
-use activitystreams::collection::kind::OrderedCollectionType;
+use activitystreams_kinds::collection::OrderedCollectionType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

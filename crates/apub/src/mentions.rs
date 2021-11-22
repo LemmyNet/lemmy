@@ -2,10 +2,7 @@ use crate::{
   fetcher::webfinger::webfinger_resolve_actor,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
 };
-use activitystreams::{
-  base::BaseExt,
-  link::{LinkExt, Mention},
-};
+use activitystreams_kinds::link::MentionType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
 use lemmy_db_schema::{
@@ -18,7 +15,16 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use serde::{Deserialize, Serialize};
 use url::Url;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Mention {
+  pub href: Url,
+  name: Option<String>,
+  #[serde(rename = "type")]
+  pub kind: MentionType,
+}
 
 pub struct MentionsAndAddresses {
   pub ccs: Vec<Url>,
@@ -38,14 +44,15 @@ pub async fn collect_non_local_mentions(
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.actor_id()];
 
   // Add the mention tag
-  let mut parent_creator_tag = Mention::new();
-  parent_creator_tag
-    .set_href(parent_creator.actor_id.clone().into())
-    .set_name(format!(
+  let parent_creator_tag = Mention {
+    href: parent_creator.actor_id.clone().into(),
+    name: Some(format!(
       "@{}@{}",
       &parent_creator.name,
       &parent_creator.actor_id().domain().expect("has domain")
-    ));
+    )),
+    kind: MentionType::Mention,
+  };
   let mut tags = vec![parent_creator_tag];
 
   // Get the person IDs for any mentions
@@ -64,10 +71,11 @@ pub async fn collect_non_local_mentions(
       let actor_id: ObjectId<ApubPerson> = ObjectId::new(actor_id);
       addressed_ccs.push(actor_id.to_string().parse()?);
 
-      let mut mention_tag = Mention::new();
-      mention_tag
-        .set_href(actor_id.into())
-        .set_name(mention.full_name());
+      let mention_tag = Mention {
+        href: actor_id.into(),
+        name: Some(mention.full_name()),
+        kind: MentionType::Mention,
+      };
       tags.push(mention_tag);
     }
   }

@@ -1,5 +1,5 @@
 use crate::generate_followers_url;
-use activitystreams::collection::kind::CollectionType;
+use activitystreams_kinds::collection::CollectionType;
 use lemmy_api_common::blocking;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;

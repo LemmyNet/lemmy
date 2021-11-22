@@ -1,5 +1,8 @@
-use crate::{objects::person::ApubPerson, protocol::objects::tombstone::Tombstone};
-use activitystreams::{activity::kind::DeleteType, unparsed::Unparsed};
+use crate::{
+  objects::person::ApubPerson,
+  protocol::{objects::tombstone::Tombstone, Unparsed},
+};
+use activitystreams_kinds::activity::DeleteType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

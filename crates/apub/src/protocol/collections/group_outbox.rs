@@ -1,5 +1,5 @@
 use crate::protocol::activities::community::announce::AnnounceActivity;
-use activitystreams::collection::kind::OrderedCollectionType;
+use activitystreams_kinds::collection::OrderedCollectionType;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

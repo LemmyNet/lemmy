@@ -5,9 +5,9 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   objects::{community::ApubCommunity, get_summary_from_string_or_source},
-  protocol::{objects::Endpoints, ImageObject, Source},
+  protocol::{objects::Endpoints, ImageObject, Source, Unparsed},
 };
-use activitystreams::{actor::kind::GroupType, unparsed::Unparsed};
+use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
 use lemmy_db_schema::{naive_now, source::community::CommunityForm};

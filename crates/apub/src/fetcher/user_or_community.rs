@@ -2,11 +2,12 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
 };
-use activitystreams::{chrono::NaiveDateTime, url::Url};
+use chrono::NaiveDateTime;
 use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum UserOrCommunity {

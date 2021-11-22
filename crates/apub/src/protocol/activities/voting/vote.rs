@@ -1,5 +1,8 @@
-use crate::{fetcher::post_or_comment::PostOrComment, objects::person::ApubPerson};
-use activitystreams::unparsed::Unparsed;
+use crate::{
+  fetcher::post_or_comment::PostOrComment,
+  objects::person::ApubPerson,
+  protocol::Unparsed,
+};
 use anyhow::anyhow;
 use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;

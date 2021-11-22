@@ -11,7 +11,7 @@ use crate::{
   },
   PostOrComment,
 };
-use activitystreams::{object::kind::NoteType, public};
+use activitystreams_kinds::{object::NoteType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;

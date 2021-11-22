@@ -1,8 +1,8 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::activities::following::follow::FollowCommunity,
+  protocol::{activities::following::follow::FollowCommunity, Unparsed},
 };
-use activitystreams::{activity::kind::UndoType, unparsed::Unparsed};
+use activitystreams_kinds::activity::UndoType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;

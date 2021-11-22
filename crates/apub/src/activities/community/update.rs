@@ -11,7 +11,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
 };
-use activitystreams::{activity::kind::UpdateType, public};
+use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,

@@ -10,7 +10,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitystreams::{activity::kind::UndoType, public};
+use activitystreams_kinds::{activity::UndoType, public};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{

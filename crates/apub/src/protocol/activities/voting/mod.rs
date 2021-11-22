@@ -7,10 +7,8 @@ mod tests {
     activities::voting::{undo_vote::UndoVote, vote::Vote},
     tests::test_parse_lemmy_item,
   };
-  use serial_test::serial;
 
   #[actix_rt::test]
-  #[serial]
   async fn test_parse_lemmy_voting() {
     test_parse_lemmy_item::<Vote>("assets/lemmy/activities/voting/like_note.json");
     test_parse_lemmy_item::<Vote>("assets/lemmy/activities/voting/dislike_page.json");

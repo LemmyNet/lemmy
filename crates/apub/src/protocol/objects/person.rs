@@ -1,12 +1,12 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{objects::Endpoints, ImageObject, Source},
+  protocol::{objects::Endpoints, ImageObject, Source, Unparsed},
 };
-use activitystreams::{unparsed::Unparsed, url::Url};
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use url::Url;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
 pub enum UserTypes {
