@@ -191,6 +191,7 @@ impl Perform for SaveUserSettings {
     let default_listing_type = data.default_listing_type;
     let default_sort_type = data.default_sort_type;
     let password_encrypted = local_user_view.local_user.password_encrypted;
+    let public_key = local_user_view.person.public_key;
 
     let person_form = PersonForm {
       name: local_user_view.person.name,
@@ -207,7 +208,7 @@ impl Perform for SaveUserSettings {
       local: None,
       admin: None,
       private_key: None,
-      public_key: None,
+      public_key,
       last_refreshed_at: None,
       shared_inbox_url: None,
       matrix_user_id,

@@ -163,7 +163,7 @@ impl ActorType for ApubCommunity {
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
   }
-  fn public_key(&self) -> Option<String> {
+  fn public_key(&self) -> String {
     self.public_key.to_owned()
   }
   fn private_key(&self) -> Option<String> {
@@ -244,7 +244,6 @@ pub(crate) mod tests {
     let community = parse_lemmy_community(&context).await;
 
     assert_eq!(community.title, "Ten Forward");
-    assert!(community.public_key.is_some());
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 

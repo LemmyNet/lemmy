@@ -95,7 +95,7 @@ where
   let actor = ObjectId::<UserOrCommunity>::new(activity_data.actor)
     .dereference(context, request_counter)
     .await?;
-  verify_signature(&request, &actor.public_key().context(location_info!())?)?;
+  verify_signature(&request, &actor.public_key())?;
 
   // Do nothing if we received the same activity before
   if is_activity_already_known(context.pool(), &activity_data.id).await? {

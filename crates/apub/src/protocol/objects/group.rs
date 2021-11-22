@@ -81,7 +81,7 @@ impl Group {
       actor_id: Some(self.id.into()),
       local: Some(false),
       private_key: None,
-      public_key: Some(self.public_key.public_key_pem),
+      public_key: self.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.icon.map(|i| i.url.into())),
       banner: Some(self.image.map(|i| i.url.into())),

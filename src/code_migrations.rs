@@ -64,7 +64,7 @@ fn user_updates_2020_04_02(
         protocol_and_hostname,
       )?),
       private_key: Some(Some(keypair.private_key)),
-      public_key: Some(Some(keypair.public_key)),
+      public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
       ..PersonForm::default()
     };
@@ -109,8 +109,8 @@ fn community_updates_2020_04_02(
       updated: None,
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),
-      private_key: Some(keypair.private_key),
-      public_key: Some(keypair.public_key),
+      private_key: Some(Some(keypair.private_key)),
+      public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
       published: None,
       icon: Some(ccommunity.icon.to_owned()),
