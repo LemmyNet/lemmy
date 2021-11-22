@@ -17,13 +17,13 @@ async fn node_info_well_known(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let node_info = NodeInfoWellKnown {
-    links: NodeInfoWellKnownLinks {
+    links: vec![NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
       href: Url::parse(&format!(
         "{}/nodeinfo/2.0.json",
         &context.settings().get_protocol_and_hostname(),
       ))?,
-    },
+    }],
   };
   Ok(HttpResponse::Ok().json(node_info))
 }
@@ -63,7 +63,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NodeInfoWellKnown {
-  pub links: NodeInfoWellKnownLinks,
+  pub links: Vec<NodeInfoWellKnownLinks>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
