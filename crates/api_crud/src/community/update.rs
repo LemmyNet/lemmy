@@ -57,6 +57,7 @@ impl PerformCrud for EditCommunity {
       name: read_community.name,
       title: data.title.to_owned().unwrap_or(read_community.title),
       description: data.description.to_owned(),
+      public_key: read_community.public_key,
       icon,
       banner,
       nsfw: data.nsfw,

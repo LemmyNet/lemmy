@@ -270,6 +270,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "holly".into(),
+      public_key: "nada".to_owned(),
       ..PersonForm::default()
     };
 
@@ -291,7 +292,7 @@ mod tests {
       bot_account: false,
       admin: false,
       private_key: None,
-      public_key: None,
+      public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.to_owned(),
       shared_inbox_url: None,

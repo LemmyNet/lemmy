@@ -158,7 +158,7 @@ impl ApubObject for ApubPerson {
       admin: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
-      public_key: Some(Some(person.public_key.public_key_pem)),
+      public_key: person.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(person.inbox.into()),
       shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
@@ -177,7 +177,7 @@ impl ActorType for ApubPerson {
     self.actor_id.to_owned().into()
   }
 
-  fn public_key(&self) -> Option<String> {
+  fn public_key(&self) -> String {
     self.public_key.to_owned()
   }
 
@@ -222,7 +222,6 @@ pub(crate) mod tests {
     let person = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
-    assert!(person.public_key.is_some());
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
@@ -245,7 +244,6 @@ pub(crate) mod tests {
 
     assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
-    assert!(person.public_key.is_some());
     assert!(!person.local);
     assert_eq!(request_counter, 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);

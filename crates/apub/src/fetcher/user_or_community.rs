@@ -103,7 +103,7 @@ impl ActorType for UserOrCommunity {
     }
   }
 
-  fn public_key(&self) -> Option<String> {
+  fn public_key(&self) -> String {
     match self {
       UserOrCommunity::User(p) => p.public_key(),
       UserOrCommunity::Community(p) => p.public_key(),

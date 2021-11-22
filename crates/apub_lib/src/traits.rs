@@ -1,8 +1,7 @@
 use crate::{data::Data, signatures::PublicKey};
 use activitystreams::chrono::NaiveDateTime;
-use anyhow::Context;
 pub use lemmy_apub_lib_derive::*;
-use lemmy_utils::{location_info, LemmyError};
+use lemmy_utils::LemmyError;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -71,8 +70,7 @@ pub trait ApubObject {
 pub trait ActorType {
   fn actor_id(&self) -> Url;
 
-  // TODO: this should not be an option (needs db migration in lemmy)
-  fn public_key(&self) -> Option<String>;
+  fn public_key(&self) -> String;
   fn private_key(&self) -> Option<String>;
 
   fn inbox_url(&self) -> Url;
@@ -87,7 +85,7 @@ pub trait ActorType {
     Ok(PublicKey {
       id: format!("{}#main-key", self.actor_id()),
       owner: Box::new(self.actor_id()),
-      public_key_pem: self.public_key().context(location_info!())?,
+      public_key_pem: self.public_key(),
     })
   }
 }
