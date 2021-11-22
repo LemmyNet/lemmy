@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_is_public},
   activity_lists::AnnouncableActivities,
-  http::{is_activity_already_known, ActivityCommonFields},
+  http::ActivityCommonFields,
   insert_activity,
   objects::community::ApubCommunity,
   protocol::activities::{community::announce::AnnounceActivity, CreateOrUpdateType},
@@ -109,9 +109,6 @@ impl ActivityHandler for AnnounceActivity {
         let object_value = serde_json::to_value(&self.object)?;
         let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
 
-        if is_activity_already_known(context.pool(), &object_data.id).await? {
-          return Ok(());
-        }
         insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
       }
     }
