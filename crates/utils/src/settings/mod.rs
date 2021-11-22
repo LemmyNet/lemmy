@@ -1,6 +1,7 @@
 use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
+use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use std::{env, fs, io::Error, sync::RwLock};
 
@@ -8,15 +9,15 @@ pub mod structs;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-lazy_static! {
-  static ref SETTINGS: RwLock<Settings> =
-    RwLock::new(Settings::init().expect("Failed to load settings file"));
-  static ref WEBFINGER_REGEX: Regex = Regex::new(&format!(
+static SETTINGS: Lazy<RwLock<Settings>> =
+  Lazy::new(|| RwLock::new(Settings::init().expect("Failed to load settings file")));
+static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(&format!(
     "^acct:([a-z0-9_]{{3,}})@{}$",
     Settings::get().hostname
   ))
-  .expect("compile webfinger regex");
-}
+  .expect("compile webfinger regex")
+});
 
 impl Settings {
   /// Reads config from configuration file.

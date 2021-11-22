@@ -2,8 +2,6 @@
 extern crate diesel;
 #[macro_use]
 extern crate diesel_derive_newtype;
-#[macro_use]
-extern crate lazy_static;
 // this is used in tests
 #[allow(unused_imports)]
 #[macro_use]
@@ -24,6 +22,7 @@ use crate::newtypes::DbUrl;
 use chrono::NaiveDateTime;
 use diesel::{Connection, PgConnection};
 use lemmy_utils::ApiError;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
@@ -133,11 +132,10 @@ pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
 }
 
-lazy_static! {
-  static ref EMAIL_REGEX: Regex =
-    Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
-      .expect("compile email regex");
-}
+static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
+    .expect("compile email regex")
+});
 
 pub mod functions {
   use diesel::sql_types::*;

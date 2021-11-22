@@ -1,9 +1,9 @@
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-lazy_static! {
-  static ref CONTEXT: Vec<serde_json::Value> =
-    serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context");
-}
+static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
+  serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
+});
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct WithContext<T> {
@@ -16,7 +16,7 @@ pub(crate) struct WithContext<T> {
 impl<T> WithContext<T> {
   pub(crate) fn new(inner: T) -> WithContext<T> {
     WithContext {
-      context: CONTEXT.clone(),
+      context: (*CONTEXT).clone(),
       inner,
     }
   }

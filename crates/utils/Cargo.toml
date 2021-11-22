@@ -24,7 +24,7 @@ serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { version = "1.0.68", features = ["preserve_order"] }
 thiserror = "1.0.29"
 comrak = { version = "0.12.1", default-features = false }
-lazy_static = "1.4.0"
+once_cell = "1.8.0"
 openssl = "0.10.36"
 url = { version = "2.2.2", features = ["serde"] }
 actix-web = { version = "4.0.0-beta.9", default-features = false, features = ["rustls"] }

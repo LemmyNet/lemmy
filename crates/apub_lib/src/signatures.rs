@@ -6,6 +6,7 @@ use http_signature_normalization_actix::Config as ConfigActix;
 use http_signature_normalization_reqwest::prelude::{Config, SignExt};
 use lemmy_utils::LemmyError;
 use log::debug;
+use once_cell::sync::Lazy;
 use openssl::{
   hash::MessageDigest,
   pkey::PKey,
@@ -17,10 +18,8 @@ use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use url::Url;
 
-lazy_static! {
-  static ref CONFIG2: ConfigActix = ConfigActix::new();
-  static ref HTTP_SIG_CONFIG: Config = Config::new();
-}
+static CONFIG2: Lazy<ConfigActix> = Lazy::new(ConfigActix::new);
+static HTTP_SIG_CONFIG: Lazy<Config> = Lazy::new(Config::new);
 
 /// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
 /// `activity` as request body. The request is signed with `private_key` and then sent.

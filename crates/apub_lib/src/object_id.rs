@@ -8,6 +8,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use log::info;
+use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -21,12 +22,12 @@ use url::Url;
 /// fetch through the search). This should be configurable.
 static REQUEST_LIMIT: i32 = 25;
 
-lazy_static! {
-  static ref CLIENT: Client = Client::builder()
+static CLIENT: Lazy<Client> = Lazy::new(|| {
+  Client::builder()
     .user_agent(build_user_agent(&Settings::get()))
     .build()
-    .expect("Couldn't build client");
-}
+    .expect("Couldn't build client")
+});
 
 /// We store Url on the heap because it is quite large (88 bytes).
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]

@@ -30,7 +30,6 @@ log = "0.4.14"
 rand = "0.8.4"
 strum = "0.21.0"
 strum_macros = "0.21.1"
-lazy_static = "1.4.0"
 url = { version = "2.2.2", features = ["serde"] }
 openssl = "0.10.36"
 http = "0.2.5"
