@@ -5,7 +5,7 @@ use crate::{
   source::person::{Person, PersonForm},
   traits::Crud,
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
+use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;
 
 mod safe_type {
@@ -194,7 +194,7 @@ impl Person {
     person
       .filter(deleted.eq(false))
       .filter(local.eq(true))
-      .filter(name.ilike(from_name))
+      .filter(name.eq(from_name))
       .first::<Person>(conn)
   }
 

@@ -70,7 +70,7 @@ pub fn from_opt_str_to_opt_enum<T: std::str::FromStr>(opt: &Option<String>) -> O
 }
 
 pub fn fuzzy_search(q: &str) -> String {
-  let replaced = q.replace(" ", "%");
+  let replaced = q.replace("%", "\\%").replace("_", "\\_").replace(" ", "%");
   format!("%{}%", replaced)
 }
 
@@ -154,8 +154,11 @@ mod tests {
 
   #[test]
   fn test_fuzzy_search() {
-    let test = "This is a fuzzy search";
-    assert_eq!(fuzzy_search(test), "%This%is%a%fuzzy%search%".to_string());
+    let test = "This %is% _a_ fuzzy search";
+    assert_eq!(
+      fuzzy_search(test),
+      "%This%\\%is\\%%\\_a\\_%fuzzy%search%".to_string()
+    );
   }
 
   #[test]
