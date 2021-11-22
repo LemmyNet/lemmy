@@ -137,7 +137,7 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
 }
 
 pub fn is_valid_post_title(title: &str) -> bool {
-  VALID_POST_TITLE_REGEX.is_match(title)
+  VALID_POST_TITLE_REGEX.is_match(title) && title.chars().count() >= 3 && !title.contains('\n')
 }
 
 pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
