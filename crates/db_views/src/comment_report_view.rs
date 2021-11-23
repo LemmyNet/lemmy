@@ -509,8 +509,8 @@ mod tests {
     assert_eq!(
       reports,
       [
-        expected_sara_report_view.to_owned(),
-        expected_jessica_report_view.to_owned()
+        expected_jessica_report_view.to_owned(),
+        expected_sara_report_view.to_owned()
       ]
     );
 
