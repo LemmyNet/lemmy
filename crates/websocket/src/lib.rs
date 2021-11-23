@@ -169,6 +169,7 @@ pub enum UserOperationCrud {
   RemovePost,
   // Comment
   CreateComment,
+  GetComment,
   GetComments,
   EditComment,
   DeleteComment,
