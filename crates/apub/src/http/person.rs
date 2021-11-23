@@ -17,8 +17,8 @@ use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::person::Person;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::info;
 use serde::Deserialize;
+use tracing::info;
 
 #[derive(Deserialize)]
 pub struct PersonQuery {

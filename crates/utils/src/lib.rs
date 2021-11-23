@@ -16,9 +16,10 @@ pub mod utils;
 pub mod version;
 
 use http::StatusCode;
-use log::warn;
 use std::{fmt, fmt::Display};
 use thiserror::Error;
+use tracing::warn;
+use tracing_error::SpanTrace;
 
 pub type ConnectionId = usize;
 
@@ -66,6 +67,7 @@ impl ApiError {
 #[derive(Debug)]
 pub struct LemmyError {
   pub inner: anyhow::Error,
+  pub context: SpanTrace,
 }
 
 impl<T> From<T> for LemmyError
@@ -73,13 +75,17 @@ where
   T: Into<anyhow::Error>,
 {
   fn from(t: T) -> Self {
-    LemmyError { inner: t.into() }
+    LemmyError {
+      inner: t.into(),
+      context: SpanTrace::capture(),
+    }
   }
 }
 
 impl Display for LemmyError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    self.inner.fmt(f)
+    self.inner.fmt(f)?;
+    self.context.fmt(f)
   }
 }
 

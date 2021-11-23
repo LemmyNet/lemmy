@@ -17,7 +17,7 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{version, ApiError, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
-use log::info;
+use tracing::info;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {

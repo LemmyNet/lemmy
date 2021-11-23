@@ -14,7 +14,12 @@ use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub_lib::activity_queue::create_activity_queue;
 use lemmy_db_schema::{get_database_url_from_env, source::secret::Secret};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
+use lemmy_server::{
+  api_routes,
+  code_migrations::run_advanced_migrations,
+  init_tracing,
+  scheduled_tasks,
+};
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   request::build_user_agent,
@@ -25,6 +30,7 @@ use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use std::{env, sync::Arc, thread};
 use tokio::sync::Mutex;
+use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
 
@@ -40,7 +46,8 @@ async fn main() -> Result<(), LemmyError> {
     return Ok(());
   }
 
-  env_logger::init();
+  init_tracing()?;
+
   let settings = Settings::init().expect("Couldn't initialize settings.");
 
   // Set up the r2d2 connection pool
@@ -114,7 +121,7 @@ async fn main() -> Result<(), LemmyError> {
     );
     let rate_limiter = rate_limiter.clone();
     App::new()
-      .wrap(middleware::Logger::default())
+      .wrap(TracingLogger::default())
       .app_data(Data::new(context))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))

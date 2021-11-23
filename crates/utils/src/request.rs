@@ -1,11 +1,11 @@
 use crate::{settings::structs::Settings, version::VERSION, LemmyError};
 use anyhow::anyhow;
-use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use thiserror::Error;
+use tracing::error;
 use url::Url;
 use webpage::HTML;
 

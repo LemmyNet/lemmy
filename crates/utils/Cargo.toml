@@ -16,7 +16,8 @@ doctest = false
 regex = "1.5.4"
 chrono = { version = "0.4.19", features = ["serde"] }
 lettre = "0.10.0-rc.3"
-log = "0.4.14"
+tracing = "0.1.29"
+tracing-error = "0.2.0"
 itertools = "0.10.1"
 rand = "0.8.4"
 percent-encoding = "2.1.0"

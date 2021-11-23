@@ -7,7 +7,6 @@ use lemmy_utils::{
   settings::structs::Settings,
   LemmyError,
 };
-use log::info;
 use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -16,6 +15,7 @@ use std::{
   marker::PhantomData,
   time::Duration,
 };
+use tracing::info;
 use url::Url;
 
 /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object

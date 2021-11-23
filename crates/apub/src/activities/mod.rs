@@ -21,8 +21,8 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::info;
 use serde::Serialize;
+use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
 

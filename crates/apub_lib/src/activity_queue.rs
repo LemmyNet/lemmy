@@ -10,10 +10,10 @@ use background_jobs::{
   WorkerConfig,
 };
 use lemmy_utils::{location_info, LemmyError};
-use log::{info, warn};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::{env, fmt::Debug, future::Future, pin::Pin};
+use tracing::{info, warn};
 use url::Url;
 
 pub async fn send_activity(

@@ -7,8 +7,8 @@ use actix::prelude::*;
 use actix_web::*;
 use actix_web_actors::ws;
 use lemmy_utils::{utils::get_ip, ConnectionId, IpAddr};
-use log::{debug, error, info};
 use std::time::{Duration, Instant};
+use tracing::{debug, error, info};
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);

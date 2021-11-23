@@ -17,7 +17,7 @@ url = { version = "2.2.2", features = ["serde"] }
 serde_json = { version = "1.0.68", features = ["preserve_order"] }
 anyhow = "1.0.44"
 reqwest = { version = "0.11.4", features = ["json"] }
-log = "0.4.14"
+tracing = "0.1.29"
 base64 = "0.13.0"
 openssl = "0.10.36"
 once_cell = "1.8.0"

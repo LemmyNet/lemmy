@@ -27,9 +27,9 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
+use tracing::info;
 use url::Url;
 
 mod comment;

@@ -1,7 +1,7 @@
 use crate::{ApiError, IpAddr, LemmyError};
-use log::debug;
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 struct RateLimitBucket {

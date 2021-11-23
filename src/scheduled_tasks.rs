@@ -4,8 +4,8 @@ use clokwerk::{Scheduler, TimeUnits};
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_db_schema::{source::activity::Activity, DbPool};
 use lemmy_utils::LemmyError;
-use log::info;
 use std::{thread, time::Duration};
+use tracing::info;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
