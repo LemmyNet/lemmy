@@ -111,6 +111,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       .service(
         web::scope("/comment")
           .wrap(rate_limit.message())
+          .route("", web::get().to(route_get_crud::<GetComment>))
           .route("", web::put().to(route_post_crud::<EditComment>))
           .route("/delete", web::post().to(route_post_crud::<DeleteComment>))
           .route("/remove", web::post().to(route_post_crud::<RemoveComment>))
