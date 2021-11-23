@@ -147,22 +147,28 @@ impl CommentReportView {
     let mut query = comment_report::table
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(
-        community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
-      )
       .filter(comment_report::resolved.eq(false))
       .into_boxed();
-
-    // If its not an admin, get only the ones you mod
-    if !admin {
-      query = query.filter(community_moderator::person_id.eq(my_person_id));
-    }
 
     if let Some(community_id) = community_id {
       query = query.filter(post::community_id.eq(community_id))
     }
 
-    query.select(count(comment_report::id)).first::<i64>(conn)
+    // If its not an admin, get only the ones you mod
+    if !admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person_id)),
+          ),
+        )
+        .select(count(comment_report::id))
+        .first::<i64>(conn)
+    } else {
+      query.select(count(comment_report::id)).first::<i64>(conn)
+    }
   }
 }
 
@@ -216,10 +222,6 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
       .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
-      // Test this join
-      .inner_join(
-        community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
-      )
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -254,11 +256,6 @@ impl<'a> CommentReportQueryBuilder<'a> {
       ))
       .into_boxed();
 
-    // If its not an admin, get only the ones you mod
-    if !self.admin {
-      query = query.filter(community_moderator::person_id.eq(self.my_person_id));
-    }
-
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
@@ -269,11 +266,25 @@ impl<'a> CommentReportQueryBuilder<'a> {
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
-    let res = query
-      .order_by(comment_report::published.asc())
+    query = query
+      .order_by(comment_report::published.desc())
       .limit(limit)
-      .offset(offset)
-      .load::<CommentReportViewTuple>(self.conn)?;
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    let res = if !self.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(self.my_person_id)),
+          ),
+        )
+        .load::<CommentReportViewTuple>(self.conn)?
+    } else {
+      query.load::<CommentReportViewTuple>(self.conn)?
+    };
 
     Ok(CommentReportView::from_tuple_to_vec(res))
   }
