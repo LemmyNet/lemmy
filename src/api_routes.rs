@@ -159,7 +159,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       .service(
         // Handle captcha separately
         web::resource("/user/get_captcha")
-          .wrap(rate_limit.image())
+          .wrap(rate_limit.post())
           .route(web::get().to(route_get::<GetCaptcha>)),
       )
       // User actions
