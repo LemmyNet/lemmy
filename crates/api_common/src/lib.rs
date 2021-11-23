@@ -81,7 +81,7 @@ pub async fn mark_post_as_read(
     PostRead::mark_as_read(conn, &post_read_form)
   })
   .await?
-  .map_err(|_| ApiError::err_plain("couldnt_mark_post_as_read").into())
+  .map_err(|e| ApiError::err("couldnt_mark_post_as_read", e).into())
 }
 
 pub async fn mark_post_as_unread(
@@ -95,7 +95,7 @@ pub async fn mark_post_as_unread(
     PostRead::mark_as_unread(conn, &post_read_form)
   })
   .await?
-  .map_err(|_| ApiError::err_plain("couldnt_mark_post_as_read").into())
+  .map_err(|e| ApiError::err("couldnt_mark_post_as_read", e).into())
 }
 
 pub async fn get_local_user_view_from_jwt(
