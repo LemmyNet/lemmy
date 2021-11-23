@@ -110,6 +110,7 @@ pub enum UserOperation {
   CreatePostLike,
   LockPost,
   StickyPost,
+  MarkPostAsRead,
   SavePost,
   CreatePostReport,
   ResolvePostReport,

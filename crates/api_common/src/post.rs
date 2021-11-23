@@ -93,6 +93,13 @@ pub struct RemovePost {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct MarkPostAsRead {
+  pub post_id: PostId,
+  pub read: bool,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
