@@ -87,7 +87,9 @@ async fn main() -> Result<(), LemmyError> {
     .user_agent(build_user_agent(&settings))
     .build()?;
 
-  let activity_queue = create_activity_queue();
+  let queue_manager = create_activity_queue();
+
+  let activity_queue = queue_manager.queue_handle().clone();
 
   let chat_server = ChatServer::startup(
     pool.clone(),
@@ -127,6 +129,8 @@ async fn main() -> Result<(), LemmyError> {
   .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
+
+  drop(queue_manager);
 
   Ok(())
 }

@@ -205,12 +205,14 @@ mod tests {
     post::ApubPost,
     tests::{file_to_json_object, init_context},
   };
+  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use serial_test::serial;
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_post() {
-    let context = init_context();
+    let manager = create_activity_queue();
+    let context = init_context(manager.queue_handle().clone());
     let community = parse_lemmy_community(&context).await;
     let person = parse_lemmy_person(&context).await;
 

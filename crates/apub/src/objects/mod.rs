@@ -21,11 +21,11 @@ pub(crate) fn get_summary_from_string_or_source(
 #[cfg(test)]
 pub(crate) mod tests {
   use actix::Actor;
+  use background_jobs::QueueHandle;
   use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
   };
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{
     establish_unpooled_connection,
     get_database_url_from_env,
@@ -45,7 +45,7 @@ pub(crate) mod tests {
 
   // TODO: would be nice if we didnt have to use a full context for tests.
   //       or at least write a helper function so this code is shared with main.rs
-  pub(crate) fn init_context() -> LemmyContext {
+  pub(crate) fn init_context(activity_queue: QueueHandle) -> LemmyContext {
     // call this to run migrations
     establish_unpooled_connection();
     let settings = Settings::init().unwrap();
@@ -57,7 +57,6 @@ pub(crate) mod tests {
       .user_agent(build_user_agent(&settings))
       .build()
       .unwrap();
-    let activity_queue = create_activity_queue();
     let secret = Secret {
       id: 0,
       jwt_secret: "".to_string(),
