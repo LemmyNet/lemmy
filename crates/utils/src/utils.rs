@@ -120,10 +120,14 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
+fn has_newline(name: &str) -> bool {
+  name.contains('\n')
+}
+
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> bool {
   name.chars().count() <= actor_name_max_length
     && VALID_ACTOR_NAME_REGEX.is_match(name)
-    && !name.contains('\n')
+    && !has_newline(name)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
@@ -132,15 +136,15 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> bool {
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
     && name.chars().count() <= actor_name_max_length
-    && !name.contains('\n')
+    && !has_newline(name)
 }
 
 pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
-  VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !matrix_id.contains('\n')
+  VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !has_newline(matrix_id)
 }
 
 pub fn is_valid_post_title(title: &str) -> bool {
-  VALID_POST_TITLE_REGEX.is_match(title) && !title.contains('\n')
+  VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title)
 }
 
 pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
