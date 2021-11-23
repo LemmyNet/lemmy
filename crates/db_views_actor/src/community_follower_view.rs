@@ -28,7 +28,6 @@ impl CommunityFollowerView {
         Person::safe_columns_tuple(),
       ))
       .filter(community_follower::community_id.eq(community_id))
-      .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 
     Ok(Self::from_tuple_to_vec(res))
@@ -43,7 +42,6 @@ impl CommunityFollowerView {
         Person::safe_columns_tuple(),
       ))
       .filter(community_follower::person_id.eq(person_id))
-      .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 
     Ok(Self::from_tuple_to_vec(res))
