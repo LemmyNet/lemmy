@@ -1,10 +1,10 @@
 use crate::{signatures::sign_and_send, traits::ActorType};
 use anyhow::{anyhow, Context, Error};
 use background_jobs::{
-  create_server,
   memory_storage::Storage,
   ActixJob,
   Backoff,
+  Manager,
   MaxRetries,
   QueueHandle,
   WorkerConfig,
@@ -35,7 +35,7 @@ pub async fn send_activity(
     if env::var("APUB_TESTING_SEND_SYNC").is_ok() {
       do_send(message, client).await?;
     } else {
-      activity_queue.queue::<SendActivityTask>(message)?;
+      activity_queue.queue::<SendActivityTask>(message).await?;
     }
   }
 
@@ -101,19 +101,13 @@ async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
   Ok(())
 }
 
-pub fn create_activity_queue() -> QueueHandle {
-  // Start the application server. This guards access to to the jobs store
-  let queue_handle = create_server(Storage::new());
-  let arbiter = actix_web::rt::Arbiter::new();
-
+pub fn create_activity_queue() -> Manager {
   // Configure and start our workers
-  WorkerConfig::new(|| MyState {
+  WorkerConfig::new_managed(Storage::new(), |_| MyState {
     client: Client::default(),
   })
   .register::<SendActivityTask>()
-  .start_in_arbiter(&arbiter, queue_handle.clone());
-
-  queue_handle
+  .start()
 }
 
 #[derive(Clone)]

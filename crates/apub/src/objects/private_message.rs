@@ -162,6 +162,7 @@ mod tests {
     tests::{file_to_json_object, init_context},
   };
   use assert_json_diff::assert_json_include;
+  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use serial_test::serial;
 
   async fn prepare_comment_test(url: &Url, context: &LemmyContext) -> (ApubPerson, ApubPerson) {
@@ -191,7 +192,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_pm() {
-    let context = init_context();
+    let manager = create_activity_queue();
+    let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json");
@@ -218,7 +220,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_pm() {
-    let context = init_context();
+    let manager = create_activity_queue();
+    let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();

@@ -421,9 +421,9 @@ dependencies = [
 
 [[package]]
 name = "background-jobs"
-version = "0.9.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb7df0fd6abf9d55139d4c9e569c0a8cd271ec265862c41bd215b46b36c52397"
+checksum = "77f4508c6c5b5cfc6c18d43d0ba6ecda339710206854da9e1c9ac9dfb7e3eb6f"
 dependencies = [
  "background-jobs-actix",
  "background-jobs-core",
@@ -431,9 +431,9 @@ dependencies = [
 
 [[package]]
 name = "background-jobs-actix"
-version = "0.9.6"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38aebb545b0fac45046421993890eb49cc04896a93b85bbfb1b9017decc413f9"
+checksum = "5dabf6a2204fe034db7910a38f8e2d183fe24eb92abd4c0aaca59f8cacf4e48b"
 dependencies = [
  "actix-rt",
  "anyhow",
@@ -441,31 +441,32 @@ dependencies = [
  "async-trait",
  "background-jobs-core",
  "chrono",
- "log",
  "num_cpus",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
+ "tracing",
+ "tracing-futures",
  "uuid",
 ]
 
 [[package]]
 name = "background-jobs-core"
-version = "0.9.5"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee8604ff89c62ca8eefc1ea2c3f359a53b7930e640fb22bf7890eab13b4640d2"
+checksum = "174d36b170699ecc13b7513bda9eff6f12cc889eae5d16b792daa3f7b21be452"
 dependencies = [
  "actix-rt",
  "anyhow",
  "async-mutex",
  "async-trait",
  "chrono",
- "log",
  "serde",
  "serde_json",
  "thiserror",
- "tokio",
+ "tracing",
+ "tracing-futures",
  "uuid",
 ]
 
