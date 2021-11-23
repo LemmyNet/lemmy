@@ -32,7 +32,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-use log::warn;
+use tracing::warn;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
 

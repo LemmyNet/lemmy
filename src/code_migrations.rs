@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
-use log::info;
+use tracing::info;
 
 pub fn run_advanced_migrations(
   conn: &PgConnection,

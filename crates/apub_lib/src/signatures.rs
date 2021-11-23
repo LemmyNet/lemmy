@@ -5,7 +5,6 @@ use http::{header::HeaderName, HeaderMap, HeaderValue};
 use http_signature_normalization_actix::Config as ConfigActix;
 use http_signature_normalization_reqwest::prelude::{Config, SignExt};
 use lemmy_utils::LemmyError;
-use log::debug;
 use once_cell::sync::Lazy;
 use openssl::{
   hash::MessageDigest,
@@ -16,6 +15,7 @@ use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
+use tracing::debug;
 use url::Url;
 
 static CONFIG2: Lazy<ConfigActix> = Lazy::new(ConfigActix::new);

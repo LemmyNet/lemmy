@@ -34,7 +34,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use log::error;
+use tracing::error;
 
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(
   post_id: PostId,

@@ -27,8 +27,8 @@ use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::info;
 use serde::Deserialize;
+use tracing::info;
 
 #[derive(Deserialize)]
 pub(crate) struct CommunityQuery {

@@ -9,8 +9,8 @@ use lemmy_db_schema::{
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
 };
-use log::debug;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PrivateMessageView {

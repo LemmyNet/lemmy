@@ -11,8 +11,8 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use url::Url;
 
 #[derive(Serialize, Deserialize, Debug)]

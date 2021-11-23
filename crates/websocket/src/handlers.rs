@@ -6,9 +6,9 @@ use crate::{
 use actix::{Actor, Context, Handler, ResponseFuture};
 use lemmy_db_schema::naive_now;
 use lemmy_utils::ConnectionId;
-use log::{error, info};
 use rand::Rng;
 use serde::Serialize;
+use tracing::{error, info};
 
 /// Make actor from `ChatServer`
 impl Actor for ChatServer {

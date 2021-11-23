@@ -18,7 +18,6 @@ diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { version = "1.0.68", features = ["preserve_order"] }
-log = "0.4.14"
 url = { version = "2.2.2", features = ["serde"] }
 diesel-derive-newtype = "0.1.2"
 regex = "1.5.4"

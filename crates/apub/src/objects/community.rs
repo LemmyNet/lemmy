@@ -25,8 +25,8 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use std::ops::Deref;
+use tracing::debug;
 use url::Url;
 
 #[derive(Clone, Debug)]
