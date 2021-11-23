@@ -83,6 +83,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("", web::put().to(route_post_crud::<EditPost>))
           .route("/delete", web::post().to(route_post_crud::<DeletePost>))
           .route("/remove", web::post().to(route_post_crud::<RemovePost>))
+          .route(
+            "/mark_as_read",
+            web::post().to(route_post::<MarkPostAsRead>),
+          )
           .route("/lock", web::post().to(route_post::<LockPost>))
           .route("/sticky", web::post().to(route_post::<StickyPost>))
           .route("/list", web::get().to(route_get_crud::<GetPosts>))

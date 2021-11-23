@@ -84,6 +84,20 @@ pub async fn mark_post_as_read(
   .map_err(|_| ApiError::err_plain("couldnt_mark_post_as_read").into())
 }
 
+pub async fn mark_post_as_unread(
+  person_id: PersonId,
+  post_id: PostId,
+  pool: &DbPool,
+) -> Result<usize, LemmyError> {
+  let post_read_form = PostReadForm { post_id, person_id };
+
+  blocking(pool, move |conn| {
+    PostRead::mark_as_unread(conn, &post_read_form)
+  })
+  .await?
+  .map_err(|_| ApiError::err_plain("couldnt_mark_post_as_read").into())
+}
+
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,

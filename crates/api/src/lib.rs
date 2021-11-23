@@ -120,6 +120,9 @@ pub async fn match_websocket_operation(
     UserOperation::CreatePostLike => {
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
     }
+    UserOperation::MarkPostAsRead => {
+      do_websocket_operation::<MarkPostAsRead>(context, id, op, data).await
+    }
     UserOperation::SavePost => do_websocket_operation::<SavePost>(context, id, op, data).await,
     UserOperation::CreatePostReport => {
       do_websocket_operation::<CreatePostReport>(context, id, op, data).await
