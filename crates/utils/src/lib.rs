@@ -15,10 +15,9 @@ mod test;
 pub mod utils;
 pub mod version;
 
+use actix_web::HttpResponse;
 use http::StatusCode;
 use std::{fmt, fmt::Display};
-use thiserror::Error;
-use tracing::warn;
 use tracing_error::SpanTrace;
 
 pub type ConnectionId = usize;
@@ -44,30 +43,33 @@ macro_rules! location_info {
   };
 }
 
-#[derive(Debug, Error)]
-#[error("{{\"error\":\"{message}\"}}")]
-pub struct ApiError {
-  message: String,
-}
-
-impl ApiError {
-  pub fn err_plain(msg: &str) -> Self {
-    ApiError {
-      message: msg.to_string(),
-    }
-  }
-  pub fn err<E: Display>(msg: &str, original_error: E) -> Self {
-    warn!("{}", original_error);
-    ApiError {
-      message: msg.to_string(),
-    }
-  }
+#[derive(serde::Serialize)]
+struct ApiError {
+  error: String,
 }
 
 #[derive(Debug)]
 pub struct LemmyError {
+  pub message: Option<String>,
   pub inner: anyhow::Error,
   pub context: SpanTrace,
+}
+
+impl LemmyError {
+  pub fn from_message(message: String) -> Self {
+    let inner = anyhow::anyhow!("{}", message);
+    LemmyError {
+      message: Some(message),
+      inner,
+      context: SpanTrace::capture(),
+    }
+  }
+  pub fn with_message(self, message: String) -> Self {
+    LemmyError {
+      message: Some(message),
+      ..self
+    }
+  }
 }
 
 impl<T> From<T> for LemmyError
@@ -76,6 +78,7 @@ where
 {
   fn from(t: T) -> Self {
     LemmyError {
+      message: None,
       inner: t.into(),
       context: SpanTrace::capture(),
     }
@@ -93,7 +96,19 @@ impl actix_web::error::ResponseError for LemmyError {
   fn status_code(&self) -> StatusCode {
     match self.inner.downcast_ref::<diesel::result::Error>() {
       Some(diesel::result::Error::NotFound) => StatusCode::NOT_FOUND,
-      _ => StatusCode::INTERNAL_SERVER_ERROR,
+      _ => StatusCode::BAD_REQUEST,
+    }
+  }
+
+  fn error_response(&self) -> HttpResponse {
+    if let Some(message) = &self.message {
+      HttpResponse::build(self.status_code()).json(ApiError {
+        error: message.clone(),
+      })
+    } else {
+      HttpResponse::build(self.status_code())
+        .content_type("text/plain")
+        .body(self.inner.to_string())
     }
   }
 }

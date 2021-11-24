@@ -15,7 +15,7 @@ use lemmy_db_views_actor::{
   person_block_view::PersonBlockView,
   person_view::PersonViewSafe,
 };
-use lemmy_utils::{version, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{version, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 use tracing::info;
 
@@ -23,6 +23,7 @@ use tracing::info;
 impl PerformCrud for GetSite {
   type Response = GetSiteResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -100,27 +101,31 @@ impl PerformCrud for GetSite {
         CommunityFollowerView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login".into()))?;
 
       let person_id = local_user_view.person.id;
       let community_blocks = blocking(context.pool(), move |conn| {
         CommunityBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login".into()))?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = blocking(context.pool(), move |conn| {
         PersonBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login".into()))?;
 
       let moderates = blocking(context.pool(), move |conn| {
         CommunityModeratorView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login".into()))?;
 
       Some(MyUserInfo {
         local_user_view,

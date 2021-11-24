@@ -17,13 +17,14 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::{CommunityQueryBuilder, CommunityView},
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetCommunity {
   type Response = GetCommunityResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -45,7 +46,8 @@ impl PerformCrud for GetCommunity {
         ObjectId::<ApubCommunity>::new(community_actor_id)
           .dereference(context, &mut 0)
           .await
-          .map_err(|e| ApiError::err("couldnt_find_community", e))?
+          .map_err(LemmyError::from)
+          .map_err(|e| e.with_message("couldnt_find_community".into()))?
           .id
       }
     };
@@ -54,7 +56,8 @@ impl PerformCrud for GetCommunity {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_community".into()))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
@@ -66,7 +69,8 @@ impl PerformCrud for GetCommunity {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_community".into()))?;
 
     let online = context
       .chat_server()
@@ -89,6 +93,7 @@ impl PerformCrud for GetCommunity {
 impl PerformCrud for ListCommunities {
   type Response = ListCommunitiesResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

@@ -20,13 +20,14 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetPostUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPost {
   type Response = GetPostResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -46,7 +47,8 @@ impl PerformCrud for GetPost {
       PostView::read(conn, id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_post", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_post".into()))?;
 
     // Mark the post as read
     if let Some(person_id) = person_id {
@@ -70,7 +72,8 @@ impl PerformCrud for GetPost {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_community".into()))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {
@@ -115,6 +118,7 @@ impl PerformCrud for GetPost {
 impl PerformCrud for GetPosts {
   type Response = GetPostsResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -165,7 +169,8 @@ impl PerformCrud for GetPosts {
         .list()
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_get_posts", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_get_posts".into()))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {

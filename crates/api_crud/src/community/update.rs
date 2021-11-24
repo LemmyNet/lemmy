@@ -14,13 +14,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
-use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditCommunity {
   type Response = CommunityResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -41,7 +42,7 @@ impl PerformCrud for EditCommunity {
     })
     .await??;
     if !mods.contains(&local_user_view.person.id) {
-      return Err(ApiError::err_plain("not_a_moderator").into());
+      return Err(LemmyError::from_message("not_a_moderator".into()));
     }
 
     let community_id = data.community_id;
@@ -70,7 +71,8 @@ impl PerformCrud for EditCommunity {
       Community::update(conn, community_id, &community_form)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_community".into()))?;
 
     UpdateCommunity::send(
       updated_community.into(),

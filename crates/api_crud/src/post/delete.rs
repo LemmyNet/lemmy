@@ -17,13 +17,14 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePost {
   type Response = PostResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -38,7 +39,7 @@ impl PerformCrud for DeletePost {
 
     // Dont delete it if its already been deleted.
     if orig_post.deleted == data.deleted {
-      return Err(ApiError::err_plain("couldnt_update_post").into());
+      return Err(LemmyError::from_message("couldnt_update_post".into()));
     }
 
     check_community_ban(
@@ -51,7 +52,7 @@ impl PerformCrud for DeletePost {
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(ApiError::err_plain("no_post_edit_allowed").into());
+      return Err(LemmyError::from_message("no_post_edit_allowed".into()));
     }
 
     // Update the post
@@ -91,6 +92,7 @@ impl PerformCrud for DeletePost {
 impl PerformCrud for RemovePost {
   type Response = PostResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

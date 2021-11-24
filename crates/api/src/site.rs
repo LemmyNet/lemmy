@@ -49,20 +49,14 @@ use lemmy_db_views_moderator::{
   mod_sticky_post_view::ModStickyPostView,
   mod_transfer_community_view::ModTransferCommunityView,
 };
-use lemmy_utils::{
-  location_info,
-  settings::structs::Settings,
-  version,
-  ApiError,
-  ConnectionId,
-  LemmyError,
-};
+use lemmy_utils::{location_info, settings::structs::Settings, version, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetModlog {
   type Response = GetModlogResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -143,6 +137,7 @@ impl Perform for GetModlog {
 impl Perform for Search {
   type Response = SearchResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -383,6 +378,7 @@ impl Perform for Search {
 impl Perform for ResolveObject {
   type Response = ResolveObjectResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -392,10 +388,12 @@ impl Perform for ResolveObject {
       get_local_user_view_from_jwt_opt(&self.auth, context.pool(), context.secret()).await?;
     let res = search_by_apub_id(&self.q, context)
       .await
-      .map_err(|e| ApiError::err("couldnt_find_object", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_find_object".into()))?;
     convert_response(res, local_user_view.map(|l| l.person.id), context.pool())
       .await
-      .map_err(|e| ApiError::err("couldnt_find_object", e).into())
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_find_object".into()))
   }
 }
 
@@ -442,6 +440,7 @@ async fn convert_response(
 impl Perform for TransferSite {
   type Response = GetSiteResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -457,14 +456,15 @@ impl Perform for TransferSite {
 
     // Make sure user is the creator
     if read_site.creator_id != local_user_view.person.id {
-      return Err(ApiError::err_plain("not_an_admin").into());
+      return Err(LemmyError::from_message("not_an_admin".into()));
     }
 
     let new_creator_id = data.person_id;
     let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
     blocking(context.pool(), transfer_site)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_site".into()))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -509,6 +509,7 @@ impl Perform for TransferSite {
 impl Perform for GetSiteConfig {
   type Response = GetSiteConfigResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -531,6 +532,7 @@ impl Perform for GetSiteConfig {
 impl Perform for SaveSiteConfig {
   type Response = GetSiteConfigResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -545,7 +547,8 @@ impl Perform for SaveSiteConfig {
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = Settings::save_config_file(&data.config_hjson)
-      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_site".into()))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
   }

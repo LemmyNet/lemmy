@@ -48,5 +48,6 @@ async-trait = "0.1.51"
 captcha = "0.0.8"
 anyhow = "1.0.44"
 thiserror = "1.0.29"
+tracing = "0.1.29"
 background-jobs = "0.11.0"
 reqwest = { version = "0.11.4", features = ["json"] }

@@ -1,4 +1,4 @@
-use crate::{ApiError, IpAddr, LemmyError};
+use crate::{IpAddr, LemmyError};
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
 use tracing::debug;
@@ -79,18 +79,13 @@ impl RateLimiter {
             time_passed,
             rate_limit.allowance
           );
-          Err(
-            ApiError {
-              message: format!(
-                "Too many requests. type: {}, IP: {}, {} per {} seconds",
-                type_.as_ref(),
-                ip,
-                rate,
-                per
-              ),
-            }
-            .into(),
-          )
+          Err(LemmyError::from_message(format!(
+            "Too many requests. type: {}, IP: {}, {} per {} seconds",
+            type_.as_ref(),
+            ip,
+            rate,
+            per
+          )))
         } else {
           if !check_only {
             rate_limit.allowance -= 1.0;

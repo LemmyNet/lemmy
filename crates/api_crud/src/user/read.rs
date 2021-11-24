@@ -13,13 +13,14 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   person_view::PersonViewSafe,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPersonDetails {
   type Response = GetPersonDetailsResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -53,7 +54,8 @@ impl PerformCrud for GetPersonDetails {
           .dereference(context, &mut 0)
           .await;
         person
-          .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?
+          .map_err(LemmyError::from)
+          .map_err(|e| e.with_message("couldnt_find_that_username_or_email".into()))?
           .id
       }
     };

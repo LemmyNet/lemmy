@@ -13,13 +13,14 @@ use lemmy_db_schema::{
   source::private_message::PrivateMessage,
   traits::{Crud, DeleteableOrRemoveable},
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePrivateMessage {
   type Response = PrivateMessageResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -36,7 +37,9 @@ impl PerformCrud for DeletePrivateMessage {
     })
     .await??;
     if local_user_view.person.id != orig_private_message.creator_id {
-      return Err(ApiError::err_plain("no_private_message_edit_allowed").into());
+      return Err(LemmyError::from_message(
+        "no_private_message_edit_allowed".into(),
+      ));
     }
 
     // Doing the update
@@ -46,7 +49,8 @@ impl PerformCrud for DeletePrivateMessage {
       PrivateMessage::update_deleted(conn, private_message_id, deleted)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_private_message".into()))?;
 
     // Send the apub update
     if data.deleted {

@@ -14,6 +14,7 @@ use lemmy_websocket::LemmyContext;
 impl PerformCrud for GetPrivateMessages {
   type Response = PrivateMessagesResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

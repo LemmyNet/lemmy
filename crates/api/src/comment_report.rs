@@ -14,7 +14,7 @@ use lemmy_db_views::{
   comment_report_view::{CommentReportQueryBuilder, CommentReportView},
   comment_view::CommentView,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a comment report and notifies the moderators of the community
@@ -22,6 +22,7 @@ use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation}
 impl Perform for CreateCommentReport {
   type Response = CommentReportResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -34,10 +35,10 @@ impl Perform for CreateCommentReport {
     // check size of report and check for whitespace
     let reason = data.reason.trim();
     if reason.is_empty() {
-      return Err(ApiError::err_plain("report_reason_required").into());
+      return Err(LemmyError::from_message("report_reason_required".into()));
     }
     if reason.chars().count() > 1000 {
-      return Err(ApiError::err_plain("report_too_long").into());
+      return Err(LemmyError::from_message("report_too_long".into()));
     }
 
     let person_id = local_user_view.person.id;
@@ -60,7 +61,8 @@ impl Perform for CreateCommentReport {
       CommentReport::report(conn, &report_form)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_create_report", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_create_report".into()))?;
 
     let comment_report_view = blocking(context.pool(), move |conn| {
       CommentReportView::read(conn, report.id, person_id)
@@ -96,6 +98,7 @@ impl Perform for CreateCommentReport {
 impl Perform for ResolveCommentReport {
   type Response = CommentReportResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -126,7 +129,8 @@ impl Perform for ResolveCommentReport {
 
     blocking(context.pool(), resolve_fun)
       .await?
-      .map_err(|e| ApiError::err("couldnt_resolve_report", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_resolve_report".into()))?;
 
     let report_id = data.report_id;
     let comment_report_view = blocking(context.pool(), move |conn| {
@@ -155,6 +159,7 @@ impl Perform for ResolveCommentReport {
 impl Perform for ListCommentReports {
   type Response = ListCommentReportsResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
