@@ -48,7 +48,6 @@ struct ApiError {
   error: String,
 }
 
-#[derive(Debug)]
 pub struct LemmyError {
   pub message: Option<String>,
   pub inner: anyhow::Error,
@@ -82,6 +81,16 @@ where
       inner: t.into(),
       context: SpanTrace::capture(),
     }
+  }
+}
+
+impl std::fmt::Debug for LemmyError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("LemmyError")
+      .field("message", &self.message)
+      .field("inner", &self.inner)
+      .field("context", &"SpanTrace")
+      .finish()
   }
 }
 
