@@ -96,7 +96,7 @@ impl std::fmt::Debug for LemmyError {
 
 impl Display for LemmyError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    self.inner.fmt(f)?;
+    writeln!(f, "{}", self.inner)?;
     self.context.fmt(f)
   }
 }
