@@ -47,8 +47,6 @@ impl PerformCrud for DeleteAccount {
     })
     .await??;
 
-    Ok(LoginResponse {
-      jwt: data.auth.to_owned(),
-    })
+    Ok(LoginResponse { jwt: None })
   }
 }

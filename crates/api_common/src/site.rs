@@ -111,6 +111,7 @@ pub struct EditSite {
   pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
+  pub require_email_verification: Option<bool>,
   pub auth: String,
 }
 

@@ -23,6 +23,7 @@ pub struct Register {
   pub password: String,
   pub password_verify: String,
   pub show_nsfw: bool,
+  /// email is mandatory if email verification is enabled on the server
   pub email: Option<String>,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
@@ -77,7 +78,9 @@ pub struct ChangePassword {
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
-  pub jwt: String,
+  /// This is None in response to `Register` if email verification is enabled, and in response to
+  /// `DeleteAccount`.
+  pub jwt: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -277,4 +280,9 @@ pub struct GetUnreadCountResponse {
   pub replies: i64,
   pub mentions: i64,
   pub private_messages: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct VerifyEmail {
+  pub token: String,
 }

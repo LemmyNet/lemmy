@@ -65,6 +65,7 @@ mod tests {
       enable_nsfw: None,
       updated: None,
       community_creation_admin_only: Some(false),
+      require_email_verification: None,
     };
 
     Site::create(&conn, &site_form).unwrap();

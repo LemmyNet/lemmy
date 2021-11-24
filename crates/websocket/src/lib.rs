@@ -10,6 +10,7 @@ use reqwest::Client;
 use serde::Serialize;
 
 pub mod chat_server;
+pub mod email;
 pub mod handlers;
 pub mod messages;
 pub mod routes;

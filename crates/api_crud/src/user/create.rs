@@ -24,8 +24,6 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Followable, Joinable},
-  ListingType,
-  SortType,
 };
 use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
@@ -36,7 +34,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
+use lemmy_websocket::{email::send_verification_email, messages::CheckCaptcha, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for Register {
@@ -49,15 +47,23 @@ impl PerformCrud for Register {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
+    // no email verification if the site is not setup yet
+    let mut email_verification = false;
+
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), Site::read_simple).await? {
       if !site.open_registration {
         return Err(ApiError::err_plain("registration_closed").into());
       }
+      email_verification = site.require_email_verification;
     }
 
     password_length_check(&data.password)?;
     honeypot_check(&data.honeypot)?;
+
+    if email_verification && data.email.is_none() {
+      return Err(ApiError::err_plain("email_required").into());
+    }
 
     // Make sure passwords match
     if data.password != data.password_verify {
@@ -124,22 +130,13 @@ impl PerformCrud for Register {
     .map_err(|e| ApiError::err("user_already_exists", e))?;
 
     // Create the local user
-    // TODO some of these could probably use the DB defaults
     let local_user_form = LocalUserForm {
-      person_id: inserted_person.id,
+      person_id: Some(inserted_person.id),
       email: Some(data.email.to_owned()),
-      password_encrypted: data.password.to_owned(),
+      password_encrypted: Some(data.password.to_owned()),
       show_nsfw: Some(data.show_nsfw),
-      show_bot_accounts: Some(true),
-      theme: Some("browser".into()),
-      default_sort_type: Some(SortType::Active as i16),
-      default_listing_type: Some(ListingType::Subscribed as i16),
-      lang: Some("browser".into()),
-      show_avatars: Some(true),
-      show_scores: Some(true),
-      show_read_posts: Some(true),
-      show_new_post_notifs: Some(false),
-      send_notifications_to_email: Some(false),
+      email_verified: Some(!email_verification),
+      ..LocalUserForm::default()
     };
 
     let inserted_local_user = match blocking(context.pool(), move |conn| {
@@ -228,13 +225,24 @@ impl PerformCrud for Register {
         .map_err(|e| ApiError::err("community_moderator_already_exists", e))?;
     }
 
-    // Return the jwt
-    Ok(LoginResponse {
-      jwt: Claims::jwt(
+    // Log the user in directly if email verification is not required
+    let jwt = if email_verification {
+      send_verification_email(
+        inserted_local_user.id,
+        // we check at the beginning of this method that email is set
+        &inserted_local_user.email.unwrap(),
+        &inserted_person.name,
+        context,
+      )
+      .await?;
+      None
+    } else {
+      Some(Claims::jwt(
         inserted_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
-    })
+      )?)
+    };
+    Ok(LoginResponse { jwt })
   }
 }

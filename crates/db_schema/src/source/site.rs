@@ -20,9 +20,10 @@ pub struct Site {
   pub banner: Option<DbUrl>,
   pub description: Option<String>,
   pub community_creation_admin_only: bool,
+  pub require_email_verification: bool,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Default)]
 #[table_name = "site"]
 pub struct SiteForm {
   pub name: String,
@@ -37,4 +38,5 @@ pub struct SiteForm {
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,
   pub community_creation_admin_only: Option<bool>,
+  pub require_email_verification: Option<bool>,
 }

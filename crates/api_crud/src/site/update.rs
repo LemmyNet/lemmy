@@ -59,6 +59,7 @@ impl PerformCrud for EditSite {
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
+      require_email_verification: data.require_email_verification,
     };
 
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);

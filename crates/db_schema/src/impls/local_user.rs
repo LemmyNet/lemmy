@@ -62,8 +62,10 @@ mod safe_settings_type {
 impl LocalUser {
   pub fn register(conn: &PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+    let password_hash = form
+      .password_encrypted
+      .as_ref()
+      .map(|p| hash(p, DEFAULT_COST).expect("Couldn't hash password"));
     edited_user.password_encrypted = password_hash;
 
     Self::create(conn, &edited_user)

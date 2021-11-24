@@ -93,8 +93,8 @@ mod tests {
     let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let new_local_user = LocalUserForm {
-      person_id: inserted_person.id,
-      password_encrypted: "pass".to_string(),
+      person_id: Some(inserted_person.id),
+      password_encrypted: Some("pass".to_string()),
       ..LocalUserForm::default()
     };
 
