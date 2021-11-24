@@ -11,7 +11,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::collections::person_outbox::PersonOutbox,
 };
-use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
+use actix_web::{body::AnyBody, web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::person::Person;
@@ -29,7 +29,7 @@ pub struct PersonQuery {
 pub(crate) async fn get_apub_person_http(
   info: web::Path<PersonQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse<AnyBody>, LemmyError> {
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = blocking(context.pool(), move |conn| {
@@ -72,7 +72,7 @@ pub(in crate::http) async fn receive_person_inbox(
 pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse<AnyBody>, LemmyError> {
   let person = blocking(context.pool(), move |conn| {
     Person::find_by_name(conn, &info.user_name)
   })

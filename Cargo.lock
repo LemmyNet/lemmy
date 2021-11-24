@@ -69,9 +69,9 @@ dependencies = [
 
 [[package]]
 name = "actix-http"
-version = "3.0.0-beta.12"
+version = "3.0.0-beta.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afaeb3d3fcb06b775ac62f05d580aae4afe5a149513333a73f688fdf26c06639"
+checksum = "1bc3f9d97e32d75fae3ad7d955ac005eea3fd3ea60a89132768700911a60fd94"
 dependencies = [
  "actix-codec",
  "actix-rt",
@@ -170,9 +170,9 @@ dependencies = [
 
 [[package]]
 name = "actix-tls"
-version = "3.0.0-beta.8"
+version = "3.0.0-beta.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a563b0245222230c860c1b077ca7309179fff0f575b1914967c1ee385aa5da64"
+checksum = "53d4739910b49c77ea88308a9fbfae544524b34884161527f9978c0102052da0"
 dependencies = [
  "actix-codec",
  "actix-rt",
@@ -182,6 +182,7 @@ dependencies = [
  "futures-core",
  "http",
  "log",
+ "pin-project-lite",
  "tokio-rustls",
  "tokio-util",
  "webpki-roots",
@@ -199,9 +200,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web"
-version = "4.0.0-beta.11"
+version = "4.0.0-beta.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e85aa9bb018d83a0db70f557ba0cde9c6170a5d1de4fede02e377f68c1ac5aa9"
+checksum = "e87cfc4efaad42f8a054e269d1b85046397ff4e8707e49128dea3f99a512a9d6"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -388,9 +389,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "awc"
-version = "3.0.0-beta.10"
+version = "3.0.0-beta.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f122bed94dc044b13a991b292ff6a3cde4c3fba890a4e3dbbec0f2eedc607f0a"
+checksum = "f9f7d0c472987e454f41c3f4c7fa336ca139707ab255644b0480144c2060c800"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -3999,9 +4000,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-actix-web"
-version = "0.5.0-beta.2"
+version = "0.5.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cac34827e06f78b69523b2fbe5b2dd4dfc75940b2ea5ba37e4fa2a25d4a0edf"
+checksum = "994e4a59135823bdca121a8d086e3fcc71741c8677b47fa95a6afdd15e8f646f"
 dependencies = [
  "actix-web",
  "pin-project",

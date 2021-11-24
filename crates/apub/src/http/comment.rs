@@ -2,7 +2,7 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
   objects::comment::ApubComment,
 };
-use actix_web::{body::Body, web, web::Path, HttpResponse};
+use actix_web::{body::AnyBody, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::traits::ApubObject;
@@ -20,7 +20,7 @@ pub(crate) struct CommentQuery {
 pub(crate) async fn get_apub_comment(
   info: Path<CommentQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse<AnyBody>, LemmyError> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
   let comment: ApubComment = blocking(context.pool(), move |conn| Comment::read(conn, id))
     .await??

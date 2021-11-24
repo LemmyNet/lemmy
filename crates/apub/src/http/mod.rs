@@ -7,7 +7,7 @@ use crate::{
   insert_activity,
 };
 use actix_web::{
-  body::Body,
+  body::AnyBody,
   web,
   web::{Bytes, BytesMut, Payload},
   HttpRequest,
@@ -117,7 +117,7 @@ where
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
 /// headers.
-fn create_apub_response<T>(data: &T) -> HttpResponse<Body>
+fn create_apub_response<T>(data: &T) -> HttpResponse<AnyBody>
 where
   T: Serialize,
 {
@@ -126,13 +126,13 @@ where
     .json(WithContext::new(data))
 }
 
-fn create_json_apub_response(data: serde_json::Value) -> HttpResponse<Body> {
+fn create_json_apub_response(data: serde_json::Value) -> HttpResponse<AnyBody> {
   HttpResponse::Ok()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .json(data)
 }
 
-fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>
+fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<AnyBody>
 where
   T: Serialize,
 {
@@ -152,7 +152,7 @@ pub struct ActivityQuery {
 pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse<AnyBody>, LemmyError> {
   let settings = context.settings();
   let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",
