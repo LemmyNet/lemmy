@@ -14,6 +14,7 @@ pub mod create_or_update;
 async fn get_notif_recipients(
   actor: &ObjectId<ApubPerson>,
   comment: &Comment,
+  do_send_email: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
@@ -27,5 +28,5 @@ async fn get_notif_recipients(
   // anyway.
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
-  send_local_notifs(mentions, comment, &*actor, &post, true, context).await
+  send_local_notifs(mentions, comment, &*actor, &post, do_send_email, context).await
 }
