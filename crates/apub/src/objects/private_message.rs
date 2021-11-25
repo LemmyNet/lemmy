@@ -2,7 +2,6 @@ use crate::protocol::{
   objects::chat_message::{ChatMessage, ChatMessageType},
   Source,
 };
-use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
 use lemmy_api_common::blocking;
@@ -53,6 +52,7 @@ impl ApubObject for ApubPrivateMessage {
     None
   }
 
+  #[tracing::instrument(skip(object_id, context))]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -71,6 +71,7 @@ impl ApubObject for ApubPrivateMessage {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn into_apub(self, context: &LemmyContext) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
@@ -101,6 +102,7 @@ impl ApubObject for ApubPrivateMessage {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip(note, expected_domain, context))]
   async fn verify(
     note: &ChatMessage,
     expected_domain: &Url,
@@ -114,11 +116,14 @@ impl ApubObject for ApubPrivateMessage {
       .dereference(context, request_counter)
       .await?;
     if person.banned {
-      return Err(anyhow!("Person is banned from site").into());
+      return Err(LemmyError::from_message(
+        "Person is banned from site".into(),
+      ));
     }
     Ok(())
   }
 
+  #[tracing::instrument(skip(note, context))]
   async fn from_apub(
     note: ChatMessage,
     context: &LemmyContext,

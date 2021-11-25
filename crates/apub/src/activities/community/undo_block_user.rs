@@ -29,6 +29,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 impl UndoBlockUserFromCommunity {
+  #[tracing::instrument(skip(community, target, actor, context))]
   pub async fn send(
     community: &ApubCommunity,
     target: &ApubPerson,
@@ -60,6 +61,8 @@ impl UndoBlockUserFromCommunity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoBlockUserFromCommunity {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip(self, context))]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -74,6 +77,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -102,6 +106,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for UndoBlockUserFromCommunity {
+  #[tracing::instrument(skip(self, context))]
   async fn get_community(
     &self,
     context: &LemmyContext,

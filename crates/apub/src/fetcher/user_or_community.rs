@@ -35,6 +35,7 @@ impl ApubObject for UserOrCommunity {
     })
   }
 
+  #[tracing::instrument(skip(object_id, data))]
   async fn read_from_apub_id(
     object_id: Url,
     data: &Self::DataType,
@@ -48,6 +49,7 @@ impl ApubObject for UserOrCommunity {
     })
   }
 
+  #[tracing::instrument(skip(self, data))]
   async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
     match self {
       UserOrCommunity::User(p) => p.delete(data).await,
@@ -63,6 +65,7 @@ impl ApubObject for UserOrCommunity {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip(apub, expected_domain, data))]
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
@@ -79,6 +82,7 @@ impl ApubObject for UserOrCommunity {
     }
   }
 
+  #[tracing::instrument(skip(apub, data))]
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,

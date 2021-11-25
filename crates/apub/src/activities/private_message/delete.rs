@@ -36,6 +36,8 @@ impl DeletePrivateMessage {
       unparsed: Default::default(),
     })
   }
+
+  #[tracing::instrument(skip(actor, pm, context))]
   pub async fn send(
     actor: &ApubPerson,
     pm: &ApubPrivateMessage,
@@ -57,6 +59,8 @@ impl DeletePrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for DeletePrivateMessage {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip(self, context))]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -68,6 +72,7 @@ impl ActivityHandler for DeletePrivateMessage {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

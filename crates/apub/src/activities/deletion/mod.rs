@@ -20,6 +20,7 @@ use url::Url;
 pub mod delete;
 pub mod undo_delete;
 
+#[tracing::instrument(skip(actor, community, object, deleted, context))]
 pub async fn send_apub_delete(
   actor: &ApubPerson,
   community: &ApubCommunity,
@@ -36,6 +37,7 @@ pub async fn send_apub_delete(
 
 // TODO: remove reason is actually optional in lemmy. we set an empty string in that case, but its
 //       ugly
+#[tracing::instrument(skip(actor, community, object, reason, removed, context))]
 pub async fn send_apub_remove(
   actor: &ApubPerson,
   community: &ApubCommunity,
@@ -58,6 +60,7 @@ pub enum DeletableObjects {
 }
 
 impl DeletableObjects {
+  #[tracing::instrument(skip(ap_id, context))]
   pub(crate) async fn read_from_db(
     ap_id: &Url,
     context: &LemmyContext,
@@ -83,6 +86,7 @@ impl DeletableObjects {
   }
 }
 
+#[tracing::instrument(skip(object, actor, community, is_mod_action, context))]
 pub(in crate::activities) async fn verify_delete_activity(
   object: &Url,
   actor: &ObjectId<ApubPerson>,
@@ -128,6 +132,7 @@ pub(in crate::activities) async fn verify_delete_activity(
   Ok(())
 }
 
+#[tracing::instrument(skip(actor, object_id, community, is_mod_action, context))]
 async fn verify_delete_activity_post_or_comment(
   actor: &ObjectId<ApubPerson>,
   object_id: &Url,
@@ -149,6 +154,7 @@ async fn verify_delete_activity_post_or_comment(
 /// Write deletion or restoring of an object to the database, and send websocket message.
 /// TODO: we should do something similar for receive_remove_action(), but its much more complicated
 ///       because of the mod log
+#[tracing::instrument(skip(object, actor, deleted, context))]
 async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,

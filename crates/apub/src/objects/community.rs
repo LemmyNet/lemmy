@@ -55,6 +55,7 @@ impl ApubObject for ApubCommunity {
     Some(self.last_refreshed_at)
   }
 
+  #[tracing::instrument(skip(object_id, context))]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -68,6 +69,7 @@ impl ApubObject for ApubCommunity {
     )
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     blocking(context.pool(), move |conn| {
       Community::update_deleted(conn, self.id, true)
@@ -76,6 +78,7 @@ impl ApubObject for ApubCommunity {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, _context))]
   async fn into_apub(self, _context: &LemmyContext) -> Result<Group, LemmyError> {
     let source = self.description.clone().map(|bio| Source {
       content: bio,
@@ -115,6 +118,7 @@ impl ApubObject for ApubCommunity {
     Ok(Tombstone::new(self.actor_id()))
   }
 
+  #[tracing::instrument(skip(group, expected_domain, context))]
   async fn verify(
     group: &Group,
     expected_domain: &Url,
@@ -125,6 +129,7 @@ impl ApubObject for ApubCommunity {
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
+  #[tracing::instrument(skip(group, context))]
   async fn from_apub(
     group: Group,
     context: &LemmyContext,
@@ -181,6 +186,7 @@ impl ActorType for ApubCommunity {
 
 impl ApubCommunity {
   /// For a given community, returns the inboxes of all followers.
+  #[tracing::instrument(skip(self, context))]
   pub(crate) async fn get_follower_inboxes(
     &self,
     context: &LemmyContext,

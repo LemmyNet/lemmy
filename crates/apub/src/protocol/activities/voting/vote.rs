@@ -3,7 +3,6 @@ use crate::{
   objects::person::ApubPerson,
   protocol::Unparsed,
 };
-use anyhow::anyhow;
 use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -38,7 +37,7 @@ impl TryFrom<i16> for VoteType {
     match value {
       1 => Ok(VoteType::Like),
       -1 => Ok(VoteType::Dislike),
-      _ => Err(anyhow!("invalid vote value").into()),
+      _ => Err(LemmyError::from_message("invalid vote value".into())),
     }
   }
 }

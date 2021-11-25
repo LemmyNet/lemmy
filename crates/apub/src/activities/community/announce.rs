@@ -44,6 +44,7 @@ impl AnnounceActivity {
     })
   }
 
+  #[tracing::instrument(skip(object, community, context))]
   pub async fn send(
     object: AnnouncableActivities,
     community: &ApubCommunity,
@@ -85,6 +86,8 @@ impl AnnounceActivity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AnnounceActivity {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip(self, context))]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -96,6 +99,7 @@ impl ActivityHandler for AnnounceActivity {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

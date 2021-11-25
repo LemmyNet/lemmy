@@ -11,6 +11,7 @@ use lemmy_websocket::{send::send_local_notifs, LemmyContext};
 
 pub mod create_or_update;
 
+#[tracing::instrument(skip(actor, comment, context))]
 async fn get_notif_recipients(
   actor: &ObjectId<ApubPerson>,
   comment: &Comment,

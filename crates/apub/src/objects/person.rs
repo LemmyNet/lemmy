@@ -57,6 +57,7 @@ impl ApubObject for ApubPerson {
     Some(self.last_refreshed_at)
   }
 
+  #[tracing::instrument(skip(object_id, context))]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -70,6 +71,7 @@ impl ApubObject for ApubPerson {
     )
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     blocking(context.pool(), move |conn| {
       DbPerson::update_deleted(conn, self.id, true)
@@ -78,6 +80,7 @@ impl ApubObject for ApubPerson {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, _pool))]
   async fn into_apub(self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
@@ -118,6 +121,7 @@ impl ApubObject for ApubPerson {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip(person, expected_domain, context))]
   async fn verify(
     person: &Person,
     expected_domain: &Url,
@@ -135,6 +139,7 @@ impl ApubObject for ApubPerson {
     Ok(())
   }
 
+  #[tracing::instrument(skip(person, context))]
   async fn from_apub(
     person: Person,
     context: &LemmyContext,

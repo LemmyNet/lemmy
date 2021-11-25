@@ -3,7 +3,6 @@ use crate::{
   protocol::{ImageObject, Source, Unparsed},
 };
 use activitystreams_kinds::object::PageType;
-use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{
   data::Data,
@@ -73,7 +72,7 @@ impl Page {
           break Ok(c);
         }
       } else {
-        return Err(anyhow!("No community found in cc").into());
+        return Err(LemmyError::from_message("No community found in cc".into()));
       }
     }
   }

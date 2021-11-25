@@ -11,7 +11,6 @@ use crate::{
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitystreams_kinds::{activity::UndoType, public};
-use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -30,6 +29,8 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDelete {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip(self, context))]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -51,6 +52,7 @@ impl ActivityHandler for UndoDelete {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -72,6 +74,7 @@ impl ActivityHandler for UndoDelete {
 }
 
 impl UndoDelete {
+  #[tracing::instrument(skip(actor, community, object, summary, context))]
   pub(in crate::activities::deletion) async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -99,6 +102,7 @@ impl UndoDelete {
     send_activity_in_community(activity, &id, actor, community, vec![], context).await
   }
 
+  #[tracing::instrument(skip(object, context))]
   pub(in crate::activities) async fn receive_undo_remove_action(
     object: &Url,
     context: &LemmyContext,
@@ -107,7 +111,9 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          return Err(anyhow!("Only local admin can restore community").into());
+          return Err(LemmyError::from_message(
+            "Only local admin can restore community".into(),
+          ));
         }
         let deleted_community = blocking(context.pool(), move |conn| {
           Community::update_removed(conn, community.id, false)
@@ -136,6 +142,7 @@ impl UndoDelete {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for UndoDelete {
+  #[tracing::instrument(skip(self, context))]
   async fn get_community(
     &self,
     context: &LemmyContext,

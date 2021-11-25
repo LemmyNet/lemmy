@@ -34,6 +34,7 @@ pub struct MentionsAndAddresses {
 /// This takes a comment, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the persons / addresses that go in the cc field.
+#[tracing::instrument(skip(comment, community_id, context))]
 pub async fn collect_non_local_mentions(
   comment: &ApubComment,
   community_id: ObjectId<ApubCommunity>,
@@ -88,6 +89,7 @@ pub async fn collect_non_local_mentions(
 
 /// Returns the apub ID of the person this comment is responding to. Meaning, in case this is a
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
+#[tracing::instrument(skip(pool, comment))]
 async fn get_comment_parent_creator(
   pool: &DbPool,
   comment: &Comment,

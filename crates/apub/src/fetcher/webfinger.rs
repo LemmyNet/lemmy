@@ -1,5 +1,4 @@
 use crate::{generate_local_apub_endpoint, EndpointType};
-use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_apub_lib::{
   object_id::ObjectId,
@@ -34,6 +33,7 @@ pub struct WebfingerResponse {
 ///
 /// TODO: later provide a method in ApubObject to generate the endpoint, so that we dont have to
 ///       pass in EndpointType
+#[tracing::instrument(skip(identifier, endpoint_type, context))]
 pub async fn webfinger_resolve<Kind>(
   identifier: &str,
   endpoint_type: EndpointType,
@@ -61,6 +61,7 @@ where
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
+#[tracing::instrument(skip(identifier, context))]
 pub(crate) async fn webfinger_resolve_actor<Kind>(
   identifier: &str,
   context: &LemmyContext,
@@ -109,5 +110,8 @@ where
       return object.map(|o| o.actor_id().into());
     }
   }
-  Err(anyhow!("Failed to resolve actor for {}", identifier).into())
+  Err(LemmyError::from_message(format!(
+    "Failed to resolve actor for {}",
+    identifier
+  )))
 }

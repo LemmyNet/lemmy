@@ -60,6 +60,7 @@ impl ApubObject for ApubPost {
     None
   }
 
+  #[tracing::instrument(skip(object_id, context))]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -73,6 +74,7 @@ impl ApubObject for ApubPost {
     )
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
       blocking(context.pool(), move |conn| {
@@ -84,6 +86,7 @@ impl ApubObject for ApubPost {
   }
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
+  #[tracing::instrument(skip(self, context))]
   async fn into_apub(self, context: &LemmyContext) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
@@ -125,6 +128,7 @@ impl ApubObject for ApubPost {
     Ok(Tombstone::new(self.ap_id.clone().into()))
   }
 
+  #[tracing::instrument(skip(page, expected_domain, context))]
   async fn verify(
     page: &Page,
     expected_domain: &Url,
@@ -146,6 +150,7 @@ impl ApubObject for ApubPost {
     Ok(())
   }
 
+  #[tracing::instrument(skip(page, context))]
   async fn from_apub(
     page: Page,
     context: &LemmyContext,

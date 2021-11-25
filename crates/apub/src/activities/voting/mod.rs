@@ -21,6 +21,7 @@ use crate::{
 pub mod undo_vote;
 pub mod vote;
 
+#[tracing::instrument(skip(vote_type, actor, comment, context))]
 async fn vote_comment(
   vote_type: &VoteType,
   actor: ApubPerson,
@@ -45,6 +46,7 @@ async fn vote_comment(
   Ok(())
 }
 
+#[tracing::instrument(skip(vote_type, actor, post, context))]
 async fn vote_post(
   vote_type: &VoteType,
   actor: ApubPerson,
@@ -68,6 +70,7 @@ async fn vote_post(
   Ok(())
 }
 
+#[tracing::instrument(skip(actor, comment, context))]
 async fn undo_vote_comment(
   actor: ApubPerson,
   comment: &ApubComment,
@@ -84,6 +87,7 @@ async fn undo_vote_comment(
   Ok(())
 }
 
+#[tracing::instrument(skip(actor, post, context))]
 async fn undo_vote_post(
   actor: ApubPerson,
   post: &ApubPost,

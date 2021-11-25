@@ -13,7 +13,7 @@ use actix_web::{
   HttpRequest,
   HttpResponse,
 };
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use futures::StreamExt;
 use http::StatusCode;
 use lemmy_api_common::blocking;
@@ -38,6 +38,7 @@ mod person;
 mod post;
 pub mod routes;
 
+#[tracing::instrument(skip(request, payload, context))]
 pub async fn shared_inbox(
   request: HttpRequest,
   payload: Payload,
@@ -75,6 +76,7 @@ pub(crate) struct ActivityCommonFields {
 }
 
 // TODO: move most of this code to library
+#[tracing::instrument(skip(request, activity, activity_data, context))]
 async fn receive_activity<'a, T>(
   request: HttpRequest,
   activity: T,
@@ -149,6 +151,7 @@ pub struct ActivityQuery {
 }
 
 /// Return the ActivityPub json representation of a local activity over HTTP.
+#[tracing::instrument(skip(info, context))]
 pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,
@@ -178,13 +181,10 @@ fn assert_activity_not_local(id: &Url, hostname: &str) -> Result<(), LemmyError>
   let activity_domain = id.domain().context(location_info!())?;
 
   if activity_domain == hostname {
-    return Err(
-      anyhow!(
-        "Error: received activity which was sent by local instance: {:?}",
-        id
-      )
-      .into(),
-    );
+    return Err(LemmyError::from_message(format!(
+      "Error: received activity which was sent by local instance: {:?}",
+      id
+    )));
   }
   Ok(())
 }

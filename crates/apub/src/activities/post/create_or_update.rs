@@ -13,7 +13,6 @@ use crate::{
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
 use activitystreams_kinds::public;
-use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -47,6 +46,8 @@ impl CreateOrUpdatePost {
       unparsed: Default::default(),
     })
   }
+
+  #[tracing::instrument(skip(post, actor, kind, context))]
   pub async fn send(
     post: ApubPost,
     actor: &ApubPerson,
@@ -70,6 +71,8 @@ impl CreateOrUpdatePost {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdatePost {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip(self, context))]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -92,7 +95,9 @@ impl ActivityHandler for CreateOrUpdatePost {
         let is_stickied_or_locked =
           self.object.stickied == Some(true) || self.object.comments_enabled == Some(false);
         if community.local && is_stickied_or_locked {
-          return Err(anyhow!("New post cannot be stickied or locked").into());
+          return Err(LemmyError::from_message(
+            "New post cannot be stickied or locked".into(),
+          ));
         }
       }
       CreateOrUpdateType::Update => {
@@ -109,6 +114,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     Ok(())
   }
 
+  #[tracing::instrument(skip(self, context))]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -127,6 +133,7 @@ impl ActivityHandler for CreateOrUpdatePost {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for CreateOrUpdatePost {
+  #[tracing::instrument(skip(self, context))]
   async fn get_community(
     &self,
     context: &LemmyContext,
