@@ -44,10 +44,10 @@ impl Perform for CreatePostReport {
     // check size of report and check for whitespace
     let reason = data.reason.trim();
     if reason.is_empty() {
-      return Err(LemmyError::from_message("report_reason_required".into()));
+      return Err(LemmyError::from_message("report_reason_required"));
     }
     if reason.chars().count() > 1000 {
-      return Err(LemmyError::from_message("report_too_long".into()));
+      return Err(LemmyError::from_message("report_too_long"));
     }
 
     let person_id = local_user_view.person.id;
@@ -73,7 +73,7 @@ impl Perform for CreatePostReport {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_create_report".into()))?;
+    .map_err(|e| e.with_message("couldnt_create_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report.id, person_id)
@@ -139,7 +139,7 @@ impl Perform for ResolvePostReport {
     blocking(context.pool(), resolve_fun)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_resolve_report".into()))?;
+      .map_err(|e| e.with_message("couldnt_resolve_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report_id, person_id)

@@ -389,11 +389,11 @@ impl Perform for ResolveObject {
     let res = search_by_apub_id(&self.q, context)
       .await
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_find_object".into()))?;
+      .map_err(|e| e.with_message("couldnt_find_object"))?;
     convert_response(res, local_user_view.map(|l| l.person.id), context.pool())
       .await
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_find_object".into()))
+      .map_err(|e| e.with_message("couldnt_find_object"))
   }
 }
 
@@ -456,7 +456,7 @@ impl Perform for TransferSite {
 
     // Make sure user is the creator
     if read_site.creator_id != local_user_view.person.id {
-      return Err(LemmyError::from_message("not_an_admin".into()));
+      return Err(LemmyError::from_message("not_an_admin"));
     }
 
     let new_creator_id = data.person_id;
@@ -464,7 +464,7 @@ impl Perform for TransferSite {
     blocking(context.pool(), transfer_site)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_site".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_site"))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -548,7 +548,7 @@ impl Perform for SaveSiteConfig {
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = Settings::save_config_file(&data.config_hjson)
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_site".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_site"))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
   }

@@ -47,7 +47,7 @@ impl PerformCrud for DeleteComment {
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
-      return Err(LemmyError::from_message("couldnt_update_comment".into()));
+      return Err(LemmyError::from_message("couldnt_update_comment"));
     }
 
     check_community_ban(
@@ -59,7 +59,7 @@ impl PerformCrud for DeleteComment {
 
     // Verify that only the creator can delete
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyError::from_message("no_comment_edit_allowed".into()));
+      return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the delete
@@ -69,7 +69,7 @@ impl PerformCrud for DeleteComment {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     let post_id = updated_comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -152,7 +152,7 @@ impl PerformCrud for RemoveComment {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {

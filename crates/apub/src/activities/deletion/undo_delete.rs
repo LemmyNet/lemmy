@@ -112,7 +112,7 @@ impl UndoDelete {
       DeletableObjects::Community(community) => {
         if community.local {
           return Err(LemmyError::from_message(
-            "Only local admin can restore community".into(),
+            "Only local admin can restore community",
           ));
         }
         let deleted_community = blocking(context.pool(), move |conn| {

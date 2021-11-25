@@ -37,7 +37,7 @@ impl PerformCrud for GetComment {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_comment".into()))?;
+    .map_err(|e| e.with_message("couldnt_find_comment"))?;
 
     Ok(Self::Response {
       comment_view,
@@ -95,7 +95,7 @@ impl PerformCrud for GetComments {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_get_comments".into()))?;
+    .map_err(|e| e.with_message("couldnt_get_comments"))?;
 
     // Blank out deleted or removed info
     for cv in comments

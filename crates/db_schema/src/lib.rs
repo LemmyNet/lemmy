@@ -106,7 +106,7 @@ pub fn diesel_option_overwrite_to_url(
     Some("") => Ok(Some(None)),
     Some(str_url) => match Url::parse(str_url) {
       Ok(url) => Ok(Some(Some(url.into()))),
-      Err(e) => Err(LemmyError::from(e).with_message("invalid_url".into())),
+      Err(e) => Err(LemmyError::from(e).with_message("invalid_url")),
     },
     None => Ok(None),
   }

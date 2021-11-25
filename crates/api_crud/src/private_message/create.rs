@@ -59,7 +59,7 @@ impl PerformCrud for CreatePrivateMessage {
     {
       Ok(private_message) => private_message,
       Err(e) => {
-        return Err(LemmyError::from(e).with_message("couldnt_create_private_message".into()));
+        return Err(LemmyError::from(e).with_message("couldnt_create_private_message"));
       }
     };
 
@@ -82,7 +82,7 @@ impl PerformCrud for CreatePrivateMessage {
     )
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_create_private_message".into()))?;
+    .map_err(|e| e.with_message("couldnt_create_private_message"))?;
 
     CreateOrUpdatePrivateMessage::send(
       updated_private_message.into(),

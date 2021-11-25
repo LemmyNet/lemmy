@@ -61,7 +61,7 @@ pub async fn search_by_apub_id(
               .await?,
           ))
         }
-        _ => Err(LemmyError::from_message("invalid query".into())),
+        _ => Err(LemmyError::from_message("invalid query")),
       }
     }
   }

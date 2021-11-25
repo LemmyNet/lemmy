@@ -476,7 +476,7 @@ impl ChatServer {
       let data = &json["data"].to_string();
       let op = &json["op"]
         .as_str()
-        .ok_or_else(|| LemmyError::from_message("missing op".into()))?;
+        .ok_or_else(|| LemmyError::from_message("missing op"))?;
 
       if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);

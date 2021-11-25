@@ -57,7 +57,7 @@ impl Perform for MarkCommentAsRead {
 
     // Verify that only the recipient can mark as read
     if local_user_view.person.id != orig_comment.get_recipient_id() {
-      return Err(LemmyError::from_message("no_comment_edit_allowed".into()));
+      return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the mark as read
@@ -67,7 +67,7 @@ impl Perform for MarkCommentAsRead {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;
@@ -111,13 +111,13 @@ impl Perform for SaveComment {
       blocking(context.pool(), save_comment)
         .await?
         .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_save_comment".into()))?;
+        .map_err(|e| e.with_message("couldnt_save_comment"))?;
     } else {
       let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
       blocking(context.pool(), unsave_comment)
         .await?
         .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_save_comment".into()))?;
+        .map_err(|e| e.with_message("couldnt_save_comment"))?;
     }
 
     let comment_id = data.comment_id;
@@ -208,7 +208,7 @@ impl Perform for CreateCommentLike {
       blocking(context.pool(), like)
         .await?
         .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_like_comment".into()))?;
+        .map_err(|e| e.with_message("couldnt_like_comment"))?;
 
       Vote::send(
         &object,

@@ -110,8 +110,9 @@ where
       return object.map(|o| o.actor_id().into());
     }
   }
-  Err(LemmyError::from_message(format!(
+  let error = LemmyError::from(anyhow::anyhow!(
     "Failed to resolve actor for {}",
     identifier
-  )))
+  ));
+  Err(error.with_message("failed_to_resolve"))
 }

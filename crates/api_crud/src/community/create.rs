@@ -56,7 +56,7 @@ impl PerformCrud for CreateCommunity {
     let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(LemmyError::from_message(
-        "only_admins_can_create_communities".into(),
+        "only_admins_can_create_communities",
       ));
     }
 
@@ -65,7 +65,7 @@ impl PerformCrud for CreateCommunity {
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
 
     if !is_valid_actor_name(&data.name, context.settings().actor_name_max_length) {
-      return Err(LemmyError::from_message("invalid_community_name".into()));
+      return Err(LemmyError::from_message("invalid_community_name"));
     }
 
     // Double check for duplicate community actor_ids
@@ -77,7 +77,7 @@ impl PerformCrud for CreateCommunity {
     let community_actor_id_wrapped = ObjectId::<ApubCommunity>::new(community_actor_id.clone());
     let community_dupe = community_actor_id_wrapped.dereference_local(context).await;
     if community_dupe.is_ok() {
-      return Err(LemmyError::from_message("community_already_exists".into()));
+      return Err(LemmyError::from_message("community_already_exists"));
     }
 
     // Check to make sure the icon and banners are urls
@@ -108,7 +108,7 @@ impl PerformCrud for CreateCommunity {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("community_already_exists".into()))?;
+    .map_err(|e| e.with_message("community_already_exists"))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -119,7 +119,7 @@ impl PerformCrud for CreateCommunity {
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
     if blocking(context.pool(), join).await?.is_err() {
       return Err(LemmyError::from_message(
-        "community_moderator_already_exists".into(),
+        "community_moderator_already_exists",
       ));
     }
 
@@ -133,7 +133,7 @@ impl PerformCrud for CreateCommunity {
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
     if blocking(context.pool(), follow).await?.is_err() {
       return Err(LemmyError::from_message(
-        "community_follower_already_exists".into(),
+        "community_follower_already_exists",
       ));
     }
 

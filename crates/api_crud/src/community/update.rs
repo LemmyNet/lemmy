@@ -42,7 +42,7 @@ impl PerformCrud for EditCommunity {
     })
     .await??;
     if !mods.contains(&local_user_view.person.id) {
-      return Err(LemmyError::from_message("not_a_moderator".into()));
+      return Err(LemmyError::from_message("not_a_moderator"));
     }
 
     let community_id = data.community_id;
@@ -72,7 +72,7 @@ impl PerformCrud for EditCommunity {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_community"))?;
 
     UpdateCommunity::send(
       updated_community.into(),

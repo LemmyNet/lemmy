@@ -116,9 +116,7 @@ impl ApubObject for ApubPrivateMessage {
       .dereference(context, request_counter)
       .await?;
     if person.banned {
-      return Err(LemmyError::from_message(
-        "Person is banned from site".into(),
-      ));
+      return Err(LemmyError::from_message("Person is banned from site"));
     }
     Ok(())
   }

@@ -39,7 +39,7 @@ impl PerformCrud for DeletePost {
 
     // Dont delete it if its already been deleted.
     if orig_post.deleted == data.deleted {
-      return Err(LemmyError::from_message("couldnt_update_post".into()));
+      return Err(LemmyError::from_message("couldnt_update_post"));
     }
 
     check_community_ban(
@@ -52,7 +52,7 @@ impl PerformCrud for DeletePost {
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(LemmyError::from_message("no_post_edit_allowed".into()));
+      return Err(LemmyError::from_message("no_post_edit_allowed"));
     }
 
     // Update the post

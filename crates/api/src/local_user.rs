@@ -77,7 +77,7 @@ impl Perform for Login {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_that_username_or_email".into()))?;
+    .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
 
     // Verify the password
     let valid: bool = verify(
@@ -86,7 +86,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message("password_incorrect".into()));
+      return Err(LemmyError::from_message("password_incorrect"));
     }
 
     // Return the jwt
@@ -170,7 +170,7 @@ impl Perform for SaveUserSettings {
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
-        return Err(LemmyError::from_message("bio_length_overflow".into()));
+        return Err(LemmyError::from_message("bio_length_overflow"));
       }
     }
 
@@ -179,13 +179,13 @@ impl Perform for SaveUserSettings {
         display_name.trim(),
         context.settings().actor_name_max_length,
       ) {
-        return Err(LemmyError::from_message("invalid_username".into()));
+        return Err(LemmyError::from_message("invalid_username"));
       }
     }
 
     if let Some(Some(matrix_user_id)) = &matrix_user_id {
       if !is_valid_matrix_id(matrix_user_id) {
-        return Err(LemmyError::from_message("invalid_matrix_id".into()));
+        return Err(LemmyError::from_message("invalid_matrix_id"));
       }
     }
 
@@ -223,7 +223,7 @@ impl Perform for SaveUserSettings {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("user_already_exists".into()))?;
+    .map_err(|e| e.with_message("user_already_exists"))?;
 
     let local_user_form = LocalUserForm {
       person_id,
@@ -257,7 +257,7 @@ impl Perform for SaveUserSettings {
           "user_already_exists"
         };
 
-        return Err(LemmyError::from(e).with_message(err_type.into()));
+        return Err(LemmyError::from(e).with_message(err_type));
       }
     };
 
@@ -290,7 +290,7 @@ impl Perform for ChangePassword {
 
     // Make sure passwords match
     if data.new_password != data.new_password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match".into()));
+      return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
     // Check the old password
@@ -300,7 +300,7 @@ impl Perform for ChangePassword {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message("password_incorrect".into()));
+      return Err(LemmyError::from_message("password_incorrect"));
     }
 
     let local_user_id = local_user_view.local_user.id;
@@ -345,7 +345,7 @@ impl Perform for AddAdmin {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_user".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -404,7 +404,7 @@ impl Perform for BanPerson {
     blocking(context.pool(), ban_person)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_user".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Remove their data if that's desired
     if data.remove_data.unwrap_or(false) {
@@ -495,7 +495,7 @@ impl Perform for BlockPerson {
 
     // Don't let a person block themselves
     if target_id == person_id {
-      return Err(LemmyError::from_message("cant_block_yourself".into()));
+      return Err(LemmyError::from_message("cant_block_yourself"));
     }
 
     let person_block_form = PersonBlockForm {
@@ -508,13 +508,13 @@ impl Perform for BlockPerson {
       blocking(context.pool(), block)
         .await?
         .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("person_block_already_exists".into()))?;
+        .map_err(|e| e.with_message("person_block_already_exists"))?;
     } else {
       let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
       blocking(context.pool(), unblock)
         .await?
         .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("person_block_already_exists".into()))?;
+        .map_err(|e| e.with_message("person_block_already_exists"))?;
     }
 
     // TODO does any federated stuff need to be done here?
@@ -629,7 +629,7 @@ impl Perform for MarkPersonMentionAsRead {
     .await??;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(LemmyError::from_message("couldnt_update_comment".into()));
+      return Err(LemmyError::from_message("couldnt_update_comment"));
     }
 
     let person_mention_id = read_person_mention.id;
@@ -639,7 +639,7 @@ impl Perform for MarkPersonMentionAsRead {
     blocking(context.pool(), update_mention)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
@@ -689,7 +689,7 @@ impl Perform for MarkAllAsRead {
       blocking(context.pool(), mark_as_read)
         .await?
         .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+        .map_err(|e| e.with_message("couldnt_update_comment"))?;
     }
 
     // Mark all user mentions as read
@@ -698,14 +698,14 @@ impl Perform for MarkAllAsRead {
     blocking(context.pool(), update_person_mentions)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Mark all private_messages as read
     let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, person_id);
     blocking(context.pool(), update_pm)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_private_message".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_private_message"))?;
 
     Ok(GetRepliesResponse { replies: vec![] })
   }
@@ -730,7 +730,7 @@ impl Perform for PasswordReset {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_that_username_or_email".into()))?;
+    .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
 
     // Generate a random token
     let token = generate_random_string();
@@ -756,8 +756,9 @@ impl Perform for PasswordReset {
       html,
       &context.settings(),
     )
-    .map_err(LemmyError::from_message)
-    .map_err(|e| e.with_message("email_send_failed".into()))?;
+    .map_err(|e| anyhow::anyhow!("{}", e))
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("email_send_failed"))?;
 
     Ok(PasswordResetResponse {})
   }
@@ -786,7 +787,7 @@ impl Perform for PasswordChange {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match".into()));
+      return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
     // Update the user with the new password
@@ -796,7 +797,7 @@ impl Perform for PasswordChange {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_user".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Return the jwt
     Ok(LoginResponse {

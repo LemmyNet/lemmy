@@ -37,9 +37,7 @@ impl PerformCrud for DeletePrivateMessage {
     })
     .await??;
     if local_user_view.person.id != orig_private_message.creator_id {
-      return Err(LemmyError::from_message(
-        "no_private_message_edit_allowed".into(),
-      ));
+      return Err(LemmyError::from_message("no_private_message_edit_allowed"));
     }
 
     // Doing the update
@@ -50,7 +48,7 @@ impl PerformCrud for DeletePrivateMessage {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_private_message".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_private_message"))?;
 
     // Send the apub update
     if data.deleted {

@@ -55,7 +55,7 @@ impl PerformCrud for GetPersonDetails {
           .await;
         person
           .map_err(LemmyError::from)
-          .map_err(|e| e.with_message("couldnt_find_that_username_or_email".into()))?
+          .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
           .id
       }
     };

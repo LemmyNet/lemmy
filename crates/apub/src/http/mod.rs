@@ -181,10 +181,11 @@ fn assert_activity_not_local(id: &Url, hostname: &str) -> Result<(), LemmyError>
   let activity_domain = id.domain().context(location_info!())?;
 
   if activity_domain == hostname {
-    return Err(LemmyError::from_message(format!(
+    let error = LemmyError::from(anyhow::anyhow!(
       "Error: received activity which was sent by local instance: {:?}",
       id
-    )));
+    ));
+    return Err(error.with_message("received_local_activity"));
   }
   Ok(())
 }

@@ -43,10 +43,8 @@ async fn verify_person(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context, request_counter).await?;
   if person.banned {
-    return Err(LemmyError::from_message(format!(
-      "Person {} is banned",
-      person_id
-    )));
+    let error = LemmyError::from(anyhow::anyhow!("Person {} is banned", person_id));
+    return Err(error.with_message("banned"));
   }
   Ok(())
 }
@@ -62,18 +60,14 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context, request_counter).await?;
   if person.banned {
-    return Err(LemmyError::from_message(
-      "Person is banned from site".to_string(),
-    ));
+    return Err(LemmyError::from_message("Person is banned from site"));
   }
   let person_id = person.id;
   let community_id = community.id;
   let is_banned =
     move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(context.pool(), is_banned).await? {
-    return Err(LemmyError::from_message(
-      "Person is banned from community".to_string(),
-    ));
+    return Err(LemmyError::from_message("Person is banned from community"));
   }
 
   Ok(())
@@ -107,7 +101,7 @@ pub(crate) async fn verify_mod_action(
     })
     .await?;
     if !is_mod_or_admin {
-      return Err(LemmyError::from_message("Not a mod".into()));
+      return Err(LemmyError::from_message("Not a mod"));
     }
   }
   Ok(())
@@ -120,14 +114,14 @@ fn verify_add_remove_moderator_target(
   community: &ApubCommunity,
 ) -> Result<(), LemmyError> {
   if target != &generate_moderators_url(&community.actor_id)?.into() {
-    return Err(LemmyError::from_message("Unkown target url".into()));
+    return Err(LemmyError::from_message("Unkown target url"));
   }
   Ok(())
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyError::from_message("Object is not public".into()));
+    return Err(LemmyError::from_message("Object is not public"));
   }
   Ok(())
 }
@@ -135,7 +129,7 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError>
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
   if community.deleted || community.removed {
     Err(LemmyError::from_message(
-      "New post or comment cannot be created in deleted or removed community".into(),
+      "New post or comment cannot be created in deleted or removed community",
     ))
   } else {
     Ok(())

@@ -96,7 +96,7 @@ impl ActivityHandler for CreateOrUpdatePost {
           self.object.stickied == Some(true) || self.object.comments_enabled == Some(false);
         if community.local && is_stickied_or_locked {
           return Err(LemmyError::from_message(
-            "New post cannot be stickied or locked".into(),
+            "New post cannot be stickied or locked",
           ));
         }
       }

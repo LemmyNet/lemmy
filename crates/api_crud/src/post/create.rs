@@ -55,7 +55,7 @@ impl PerformCrud for CreatePost {
     honeypot_check(&data.honeypot)?;
 
     if !is_valid_post_title(&data.name) {
-      return Err(LemmyError::from_message("invalid_post_title".into()));
+      return Err(LemmyError::from_message("invalid_post_title"));
     }
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
@@ -93,7 +93,7 @@ impl PerformCrud for CreatePost {
             "couldnt_create_post"
           };
 
-          return Err(LemmyError::from(e).with_message(err_type.into()));
+          return Err(LemmyError::from(e).with_message(err_type));
         }
       };
 
@@ -109,7 +109,7 @@ impl PerformCrud for CreatePost {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_create_post".into()))?;
+    .map_err(|e| e.with_message("couldnt_create_post"))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -122,7 +122,7 @@ impl PerformCrud for CreatePost {
 
     let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
     if blocking(context.pool(), like).await?.is_err() {
-      return Err(LemmyError::from_message("couldnt_like_post".into()));
+      return Err(LemmyError::from_message("couldnt_like_post"));
     }
 
     // Mark the post as read

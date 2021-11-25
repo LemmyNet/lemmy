@@ -45,17 +45,17 @@ macro_rules! location_info {
 
 #[derive(serde::Serialize)]
 struct ApiError {
-  error: String,
+  error: &'static str,
 }
 
 pub struct LemmyError {
-  pub message: Option<String>,
+  pub message: Option<&'static str>,
   pub inner: anyhow::Error,
   pub context: SpanTrace,
 }
 
 impl LemmyError {
-  pub fn from_message(message: String) -> Self {
+  pub fn from_message(message: &'static str) -> Self {
     let inner = anyhow::anyhow!("{}", message);
     LemmyError {
       message: Some(message),
@@ -63,7 +63,7 @@ impl LemmyError {
       context: SpanTrace::capture(),
     }
   }
-  pub fn with_message(self, message: String) -> Self {
+  pub fn with_message(self, message: &'static str) -> Self {
     LemmyError {
       message: Some(message),
       ..self
@@ -111,9 +111,7 @@ impl actix_web::error::ResponseError for LemmyError {
 
   fn error_response(&self) -> HttpResponse {
     if let Some(message) = &self.message {
-      HttpResponse::build(self.status_code()).json(ApiError {
-        error: message.clone(),
-      })
+      HttpResponse::build(self.status_code()).json(ApiError { error: message })
     } else {
       HttpResponse::build(self.status_code())
         .content_type("text/plain")

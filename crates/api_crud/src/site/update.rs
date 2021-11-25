@@ -67,7 +67,7 @@ impl PerformCrud for EditSite {
     blocking(context.pool(), update_site)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_site".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_site"))?;
 
     let site_view = blocking(context.pool(), SiteView::read).await??;
 

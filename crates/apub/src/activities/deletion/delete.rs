@@ -145,7 +145,7 @@ pub(in crate::activities) async fn receive_remove_action(
     DeletableObjects::Community(community) => {
       if community.local {
         return Err(LemmyError::from_message(
-          "Only local admin can remove community".into(),
+          "Only local admin can remove community",
         ));
       }
       let form = ModRemoveCommunityForm {

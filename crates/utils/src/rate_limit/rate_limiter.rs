@@ -79,13 +79,14 @@ impl RateLimiter {
             time_passed,
             rate_limit.allowance
           );
-          Err(LemmyError::from_message(format!(
+          let error = LemmyError::from(anyhow::anyhow!(
             "Too many requests. type: {}, IP: {}, {} per {} seconds",
             type_.as_ref(),
             ip,
             rate,
             per
-          )))
+          ));
+          Err(error.with_message("too_many_requests"))
         } else {
           if !check_only {
             rate_limit.allowance -= 1.0;

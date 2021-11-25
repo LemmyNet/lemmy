@@ -47,7 +47,7 @@ impl PerformCrud for GetCommunity {
           .dereference(context, &mut 0)
           .await
           .map_err(LemmyError::from)
-          .map_err(|e| e.with_message("couldnt_find_community".into()))?
+          .map_err(|e| e.with_message("couldnt_find_community"))?
           .id
       }
     };
@@ -57,7 +57,7 @@ impl PerformCrud for GetCommunity {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community".into()))?;
+    .map_err(|e| e.with_message("couldnt_find_community"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
@@ -70,7 +70,7 @@ impl PerformCrud for GetCommunity {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community".into()))?;
+    .map_err(|e| e.with_message("couldnt_find_community"))?;
 
     let online = context
       .chat_server()

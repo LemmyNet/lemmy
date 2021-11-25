@@ -27,7 +27,7 @@ impl PerformCrud for DeleteAccount {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message("password_incorrect".into()));
+      return Err(LemmyError::from_message("password_incorrect"));
     }
 
     // Comments
@@ -36,14 +36,14 @@ impl PerformCrud for DeleteAccount {
     blocking(context.pool(), permadelete)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Posts
     let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
     blocking(context.pool(), permadelete)
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_post".into()))?;
+      .map_err(|e| e.with_message("couldnt_update_post"))?;
 
     blocking(context.pool(), move |conn| {
       Person::delete_account(conn, person_id)

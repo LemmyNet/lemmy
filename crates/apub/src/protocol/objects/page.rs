@@ -72,7 +72,7 @@ impl Page {
           break Ok(c);
         }
       } else {
-        return Err(LemmyError::from_message("No community found in cc".into()));
+        return Err(LemmyError::from_message("No community found in cc"));
       }
     }
   }

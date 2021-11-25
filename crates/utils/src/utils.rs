@@ -62,7 +62,8 @@ pub(crate) fn slur_check<'a>(
 
 pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
   if let Err(slurs) = slur_check(text, slur_regex) {
-    Err(LemmyError::from_message(slurs_vec_to_str(slurs)))
+    let error = LemmyError::from(anyhow::anyhow!("{}", slurs_vec_to_str(slurs)));
+    Err(error.with_message("slurs"))
   } else {
     Ok(())
   }

@@ -36,7 +36,7 @@ impl PerformCrud for DeleteCommunity {
 
     // Make sure deleter is the top mod
     if local_user_view.person.id != community_mods[0].moderator.id {
-      return Err(LemmyError::from_message("no_community_edit_allowed".into()));
+      return Err(LemmyError::from_message("no_community_edit_allowed"));
     }
 
     // Do the delete
@@ -47,7 +47,7 @@ impl PerformCrud for DeleteCommunity {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_community"))?;
 
     // Send apub messages
     send_apub_delete(
@@ -95,7 +95,7 @@ impl PerformCrud for RemoveCommunity {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_community"))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

@@ -30,9 +30,7 @@ impl Perform for MarkPrivateMessageAsRead {
     })
     .await??;
     if local_user_view.person.id != orig_private_message.recipient_id {
-      return Err(LemmyError::from_message(
-        "couldnt_update_private_message".into(),
-      ));
+      return Err(LemmyError::from_message("couldnt_update_private_message"));
     }
 
     // Doing the update
@@ -43,7 +41,7 @@ impl Perform for MarkPrivateMessageAsRead {
     })
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_private_message".into()))?;
+    .map_err(|e| e.with_message("couldnt_update_private_message"))?;
 
     // No need to send an apub update
     let op = UserOperation::MarkPrivateMessageAsRead;

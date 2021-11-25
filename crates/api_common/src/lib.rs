@@ -55,14 +55,14 @@ pub async fn is_mod_or_admin(
   })
   .await?;
   if !is_mod_or_admin {
-    return Err(LemmyError::from_message("not_a_mod_or_admin".into()));
+    return Err(LemmyError::from_message("not_a_mod_or_admin"));
   }
   Ok(())
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyError::from_message("not_an_admin".into()));
+    return Err(LemmyError::from_message("not_an_admin"));
   }
   Ok(())
 }
@@ -71,7 +71,7 @@ pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError
   blocking(pool, move |conn| Post::read(conn, post_id))
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_post".into()))
+    .map_err(|e| e.with_message("couldnt_find_post"))
 }
 
 pub async fn mark_post_as_read(
@@ -86,7 +86,7 @@ pub async fn mark_post_as_read(
   })
   .await?
   .map_err(LemmyError::from)
-  .map_err(|e| e.with_message("couldnt_mark_post_as_read".into()))
+  .map_err(|e| e.with_message("couldnt_mark_post_as_read"))
 }
 
 pub async fn mark_post_as_unread(
@@ -101,7 +101,7 @@ pub async fn mark_post_as_unread(
   })
   .await?
   .map_err(LemmyError::from)
-  .map_err(|e| e.with_message("couldnt_mark_post_as_read".into()))
+  .map_err(|e| e.with_message("couldnt_mark_post_as_read"))
 }
 
 pub async fn get_local_user_view_from_jwt(
@@ -111,19 +111,19 @@ pub async fn get_local_user_view_from_jwt(
 ) -> Result<LocalUserView, LemmyError> {
   let claims = Claims::decode(jwt, &secret.jwt_secret)
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("not_logged_in".into()))?
+    .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
   // Check for a site ban
   if local_user_view.person.banned {
-    return Err(LemmyError::from_message("site_ban".into()));
+    return Err(LemmyError::from_message("site_ban"));
   }
 
   // Check for user deletion
   if local_user_view.person.deleted {
-    return Err(LemmyError::from_message("deleted".into()));
+    return Err(LemmyError::from_message("deleted"));
   }
 
   check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
@@ -138,7 +138,7 @@ pub fn check_validator_time(
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
-    Err(LemmyError::from_message("not_logged_in".into()))
+    Err(LemmyError::from_message("not_logged_in"))
   } else {
     Ok(())
   }
@@ -162,7 +162,7 @@ pub async fn get_local_user_settings_view_from_jwt(
 ) -> Result<LocalUserSettingsView, LemmyError> {
   let claims = Claims::decode(jwt, &secret.jwt_secret)
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("not_logged_in".into()))?
+    .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view = blocking(pool, move |conn| {
@@ -171,7 +171,7 @@ pub async fn get_local_user_settings_view_from_jwt(
   .await??;
   // Check for a site ban
   if local_user_view.person.banned {
-    return Err(LemmyError::from_message("site_ban".into()));
+    return Err(LemmyError::from_message("site_ban"));
   }
 
   check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
@@ -200,7 +200,7 @@ pub async fn check_community_ban(
   let is_banned =
     move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
-    Err(LemmyError::from_message("community_ban".into()))
+    Err(LemmyError::from_message("community_ban"))
   } else {
     Ok(())
   }
@@ -213,9 +213,9 @@ pub async fn check_community_deleted_or_removed(
   let community = blocking(pool, move |conn| Community::read(conn, community_id))
     .await?
     .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community".into()))?;
+    .map_err(|e| e.with_message("couldnt_find_community"))?;
   if community.deleted || community.removed {
-    Err(LemmyError::from_message("deleted".into()))
+    Err(LemmyError::from_message("deleted"))
   } else {
     Ok(())
   }
@@ -223,7 +223,7 @@ pub async fn check_community_deleted_or_removed(
 
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
-    Err(LemmyError::from_message("deleted".into()))
+    Err(LemmyError::from_message("deleted"))
   } else {
     Ok(())
   }
@@ -236,7 +236,7 @@ pub async fn check_person_block(
 ) -> Result<(), LemmyError> {
   let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, potential_blocker_id, my_id).is_ok();
   if blocking(pool, is_blocked).await? {
-    Err(LemmyError::from_message("person_block".into()))
+    Err(LemmyError::from_message("person_block"))
   } else {
     Ok(())
   }
@@ -246,7 +246,7 @@ pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), Le
   if score == -1 {
     let site = blocking(pool, Site::read_simple).await??;
     if !site.enable_downvotes {
-      return Err(LemmyError::from_message("downvotes_disabled".into()));
+      return Err(LemmyError::from_message("downvotes_disabled"));
     }
   }
   Ok(())
@@ -297,7 +297,7 @@ pub async fn build_federated_instances(
 /// Checks the password length
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   if !(10..=60).contains(&pass.len()) {
-    Err(LemmyError::from_message("invalid_password".into()))
+    Err(LemmyError::from_message("invalid_password"))
   } else {
     Ok(())
   }
@@ -306,9 +306,7 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 /// Checks the site description length
 pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
   if description.len() > 150 {
-    Err(LemmyError::from_message(
-      "site_description_length_overflow".into(),
-    ))
+    Err(LemmyError::from_message("site_description_length_overflow"))
   } else {
     Ok(())
   }
@@ -317,7 +315,7 @@ pub fn site_description_length_check(description: &str) -> Result<(), LemmyError
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   if honeypot.is_some() {
-    Err(LemmyError::from_message("honeypot_fail".into()))
+    Err(LemmyError::from_message("honeypot_fail"))
   } else {
     Ok(())
   }

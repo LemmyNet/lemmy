@@ -163,7 +163,7 @@ impl ApubObject for ApubComment {
     )
     .await?;
     if post.locked {
-      return Err(LemmyError::from_message("Post is locked".into()));
+      return Err(LemmyError::from_message("Post is locked"));
     }
     Ok(())
   }
