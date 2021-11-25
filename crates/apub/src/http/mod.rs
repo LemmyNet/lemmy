@@ -38,7 +38,7 @@ mod person;
 mod post;
 pub mod routes;
 
-#[tracing::instrument(skip(request, payload, context))]
+#[tracing::instrument(skip_all)]
 pub async fn shared_inbox(
   request: HttpRequest,
   payload: Payload,
@@ -76,7 +76,7 @@ pub(crate) struct ActivityCommonFields {
 }
 
 // TODO: move most of this code to library
-#[tracing::instrument(skip(request, activity, activity_data, context))]
+#[tracing::instrument(skip_all)]
 async fn receive_activity<'a, T>(
   request: HttpRequest,
   activity: T,
@@ -151,7 +151,7 @@ pub struct ActivityQuery {
 }
 
 /// Return the ActivityPub json representation of a local activity over HTTP.
-#[tracing::instrument(skip(info, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,

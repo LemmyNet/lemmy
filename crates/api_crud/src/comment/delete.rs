@@ -29,7 +29,7 @@ use lemmy_websocket::{
 impl PerformCrud for DeleteComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -114,7 +114,7 @@ impl PerformCrud for DeleteComment {
 impl PerformCrud for RemoveComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

@@ -33,7 +33,7 @@ impl ApubObject for PostOrComment {
   }
 
   // TODO: this can probably be implemented using a single sql query
-  #[tracing::instrument(skip(object_id, data))]
+  #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
     data: &Self::DataType,
@@ -47,7 +47,7 @@ impl ApubObject for PostOrComment {
     })
   }
 
-  #[tracing::instrument(skip(self, data))]
+  #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
     match self {
       PostOrComment::Post(p) => p.delete(data).await,
@@ -63,7 +63,7 @@ impl ApubObject for PostOrComment {
     unimplemented!()
   }
 
-  #[tracing::instrument(skip(apub, expected_domain, data))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
@@ -76,7 +76,7 @@ impl ApubObject for PostOrComment {
     }
   }
 
-  #[tracing::instrument(skip(apub, context))]
+  #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: PageOrNote,
     context: &LemmyContext,

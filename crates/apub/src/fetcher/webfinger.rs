@@ -33,7 +33,7 @@ pub struct WebfingerResponse {
 ///
 /// TODO: later provide a method in ApubObject to generate the endpoint, so that we dont have to
 ///       pass in EndpointType
-#[tracing::instrument(skip(identifier, endpoint_type, context))]
+#[tracing::instrument(skip_all)]
 pub async fn webfinger_resolve<Kind>(
   identifier: &str,
   endpoint_type: EndpointType,
@@ -61,7 +61,7 @@ where
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
-#[tracing::instrument(skip(identifier, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn webfinger_resolve_actor<Kind>(
   identifier: &str,
   context: &LemmyContext,

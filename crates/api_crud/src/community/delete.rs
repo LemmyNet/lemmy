@@ -17,7 +17,7 @@ use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperati
 impl PerformCrud for DeleteCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -74,7 +74,7 @@ impl PerformCrud for DeleteCommunity {
 impl PerformCrud for RemoveCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

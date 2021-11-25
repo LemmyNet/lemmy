@@ -18,7 +18,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 impl CreateOrUpdatePrivateMessage {
-  #[tracing::instrument(skip(private_message, actor, kind, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     private_message: ApubPrivateMessage,
     actor: &ApubPerson,
@@ -52,7 +52,7 @@ impl CreateOrUpdatePrivateMessage {
 impl ActivityHandler for CreateOrUpdatePrivateMessage {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -65,7 +65,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

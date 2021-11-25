@@ -56,7 +56,7 @@ use lemmy_websocket::LemmyContext;
 impl Perform for GetModlog {
   type Response = GetModlogResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -137,7 +137,7 @@ impl Perform for GetModlog {
 impl Perform for Search {
   type Response = SearchResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -378,7 +378,7 @@ impl Perform for Search {
 impl Perform for ResolveObject {
   type Response = ResolveObjectResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -440,7 +440,7 @@ async fn convert_response(
 impl Perform for TransferSite {
   type Response = GetSiteResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -509,7 +509,7 @@ impl Perform for TransferSite {
 impl Perform for GetSiteConfig {
   type Response = GetSiteConfigResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -532,7 +532,7 @@ impl Perform for GetSiteConfig {
 impl Perform for SaveSiteConfig {
   type Response = GetSiteConfigResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

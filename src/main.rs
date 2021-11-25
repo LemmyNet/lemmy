@@ -123,6 +123,7 @@ async fn main() -> Result<(), LemmyError> {
     );
     let rate_limiter = rate_limiter.clone();
     App::new()
+      .wrap(actix_web::middleware::Logger::default())
       .wrap(TracingLogger::default())
       .app_data(Data::new(context))
       // The routes

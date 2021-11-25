@@ -43,7 +43,7 @@ use lemmy_websocket::LemmyContext;
 impl PerformCrud for CreateCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

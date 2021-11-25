@@ -30,7 +30,7 @@ use url::Url;
 impl ActivityHandler for UndoDelete {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -52,7 +52,7 @@ impl ActivityHandler for UndoDelete {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -74,7 +74,7 @@ impl ActivityHandler for UndoDelete {
 }
 
 impl UndoDelete {
-  #[tracing::instrument(skip(actor, community, object, summary, context))]
+  #[tracing::instrument(skip_all)]
   pub(in crate::activities::deletion) async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -102,7 +102,7 @@ impl UndoDelete {
     send_activity_in_community(activity, &id, actor, community, vec![], context).await
   }
 
-  #[tracing::instrument(skip(object, context))]
+  #[tracing::instrument(skip_all)]
   pub(in crate::activities) async fn receive_undo_remove_action(
     object: &Url,
     context: &LemmyContext,
@@ -142,7 +142,7 @@ impl UndoDelete {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for UndoDelete {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

@@ -31,7 +31,7 @@ use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation}
 impl Perform for CreatePostReport {
   type Response = PostReportResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -107,7 +107,7 @@ impl Perform for CreatePostReport {
 impl Perform for ResolvePostReport {
   type Response = PostReportResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -165,7 +165,7 @@ impl Perform for ResolvePostReport {
 impl Perform for ListPostReports {
   type Response = ListPostReportsResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

@@ -21,7 +21,7 @@ use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperati
 impl PerformCrud for EditCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

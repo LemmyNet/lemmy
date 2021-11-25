@@ -24,7 +24,7 @@ use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 impl PerformCrud for GetCommunity {
   type Response = GetCommunityResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -93,7 +93,7 @@ impl PerformCrud for GetCommunity {
 impl PerformCrud for ListCommunities {
   type Response = ListCommunitiesResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

@@ -6,7 +6,7 @@ pub struct UserJoin {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserJoinResponse {
   pub joined: bool,
 }
@@ -16,7 +16,7 @@ pub struct CommunityJoin {
   pub community_id: CommunityId,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityJoinResponse {
   pub joined: bool,
 }
@@ -26,7 +26,7 @@ pub struct ModJoin {
   pub community_id: CommunityId,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModJoinResponse {
   pub joined: bool,
 }
@@ -36,7 +36,7 @@ pub struct PostJoin {
   pub post_id: PostId,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PostJoinResponse {
   pub joined: bool,
 }

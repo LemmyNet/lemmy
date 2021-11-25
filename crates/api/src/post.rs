@@ -37,7 +37,7 @@ use std::convert::TryInto;
 impl Perform for CreatePostLike {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -125,7 +125,7 @@ impl Perform for CreatePostLike {
 impl Perform for MarkPostAsRead {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -161,7 +161,7 @@ impl Perform for MarkPostAsRead {
 impl Perform for LockPost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -231,7 +231,7 @@ impl Perform for LockPost {
 impl Perform for StickyPost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -305,7 +305,7 @@ impl Perform for StickyPost {
 impl Perform for SavePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -352,7 +352,7 @@ impl Perform for SavePost {
 impl Perform for GetSiteMetadata {
   type Response = GetSiteMetadataResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

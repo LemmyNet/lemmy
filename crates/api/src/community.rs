@@ -61,7 +61,7 @@ use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOper
 impl Perform for FollowCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -138,7 +138,7 @@ impl Perform for FollowCommunity {
 impl Perform for BlockCommunity {
   type Response = BlockCommunityResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -202,7 +202,7 @@ impl Perform for BlockCommunity {
 impl Perform for BanFromCommunity {
   type Response = BanFromCommunityResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -346,7 +346,7 @@ impl Perform for BanFromCommunity {
 impl Perform for AddModToCommunity {
   type Response = AddModToCommunityResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -447,7 +447,7 @@ impl Perform for AddModToCommunity {
 impl Perform for TransferCommunity {
   type Response = GetCommunityResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

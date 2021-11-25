@@ -84,7 +84,7 @@ impl CreateOrUpdateComment {
 impl ActivityHandler for CreateOrUpdateComment {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -104,7 +104,7 @@ impl ActivityHandler for CreateOrUpdateComment {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -134,7 +134,7 @@ impl ActivityHandler for CreateOrUpdateComment {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for CreateOrUpdateComment {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

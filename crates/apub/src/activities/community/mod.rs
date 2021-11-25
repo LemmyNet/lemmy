@@ -17,7 +17,7 @@ pub mod report;
 pub mod undo_block_user;
 pub mod update;
 
-#[tracing::instrument(skip(activity, actor, community, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn send_activity_in_community<T: ActorType>(
   activity: AnnouncableActivities,
   activity_id: &Url,
@@ -36,7 +36,7 @@ pub(crate) async fn send_activity_in_community<T: ActorType>(
   Ok(())
 }
 
-#[tracing::instrument(skip(moderators, context))]
+#[tracing::instrument(skip_all)]
 async fn get_community_from_moderators_url(
   moderators: &Url,
   context: &LemmyContext,

@@ -32,7 +32,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 impl RemoveMod {
-  #[tracing::instrument(skip(community, removed_mod, actor, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
@@ -64,7 +64,7 @@ impl RemoveMod {
 impl ActivityHandler for RemoveMod {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -79,7 +79,7 @@ impl ActivityHandler for RemoveMod {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -103,7 +103,7 @@ impl ActivityHandler for RemoveMod {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for RemoveMod {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

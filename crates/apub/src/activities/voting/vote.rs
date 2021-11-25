@@ -46,7 +46,7 @@ impl Vote {
     })
   }
 
-  #[tracing::instrument(skip(object, actor, community_id, kind, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     object: &PostOrComment,
     actor: &ApubPerson,
@@ -71,7 +71,7 @@ impl Vote {
 impl ActivityHandler for Vote {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -84,7 +84,7 @@ impl ActivityHandler for Vote {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -101,7 +101,7 @@ impl ActivityHandler for Vote {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for Vote {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

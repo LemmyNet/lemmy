@@ -7,15 +7,13 @@ use lemmy_utils::LemmyError;
 use tracing::subscriber::set_global_default;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
-use tracing_subscriber::{fmt::format::FmtSpan, layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
 pub fn init_tracing() -> Result<(), LemmyError> {
   LogTracer::init()?;
 
   let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-  let format_layer = tracing_subscriber::fmt::layer()
-    .with_span_events(FmtSpan::CLOSE)
-    .pretty();
+  let format_layer = tracing_subscriber::fmt::layer().pretty();
 
   let subscriber = Registry::default()
     .with(env_filter)

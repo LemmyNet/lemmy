@@ -22,7 +22,7 @@ use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud}
 impl PerformCrud for EditSite {
   type Response = SiteResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

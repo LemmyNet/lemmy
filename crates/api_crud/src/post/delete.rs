@@ -24,7 +24,7 @@ use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCru
 impl PerformCrud for DeletePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -92,7 +92,7 @@ impl PerformCrud for DeletePost {
 impl PerformCrud for RemovePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

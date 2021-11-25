@@ -52,7 +52,7 @@ impl BlockUserFromCommunity {
     })
   }
 
-  #[tracing::instrument(skip(community, target, actor, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     community: &ApubCommunity,
     target: &ApubPerson,
@@ -72,7 +72,7 @@ impl BlockUserFromCommunity {
 impl ActivityHandler for BlockUserFromCommunity {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -86,7 +86,7 @@ impl ActivityHandler for BlockUserFromCommunity {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -123,7 +123,7 @@ impl ActivityHandler for BlockUserFromCommunity {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for BlockUserFromCommunity {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

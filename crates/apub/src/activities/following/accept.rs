@@ -15,7 +15,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 impl AcceptFollowCommunity {
-  #[tracing::instrument(skip(follow, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     follow: FollowCommunity,
     context: &LemmyContext,
@@ -47,7 +47,7 @@ impl AcceptFollowCommunity {
 impl ActivityHandler for AcceptFollowCommunity {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -59,7 +59,7 @@ impl ActivityHandler for AcceptFollowCommunity {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

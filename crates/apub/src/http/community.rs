@@ -36,7 +36,7 @@ pub(crate) struct CommunityQuery {
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
-#[tracing::instrument(skip(info, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
@@ -57,7 +57,7 @@ pub(crate) async fn get_apub_community_http(
 }
 
 /// Handler for all incoming receive to community inboxes.
-#[tracing::instrument(skip(request, payload, _path, context))]
+#[tracing::instrument(skip_all)]
 pub async fn community_inbox(
   request: HttpRequest,
   payload: Payload,
@@ -123,7 +123,7 @@ pub(crate) async fn get_apub_community_outbox(
   Ok(create_apub_response(&outbox.into_apub(&outbox_data).await?))
 }
 
-#[tracing::instrument(skip(info, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,

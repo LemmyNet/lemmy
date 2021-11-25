@@ -13,7 +13,7 @@ use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperation};
 impl Perform for MarkPrivateMessageAsRead {
   type Response = PrivateMessageResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

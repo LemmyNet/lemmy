@@ -45,7 +45,7 @@ use url::Url;
 impl ActivityHandler for Delete {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -66,7 +66,7 @@ impl ActivityHandler for Delete {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -115,7 +115,7 @@ impl Delete {
     })
   }
 
-  #[tracing::instrument(skip(actor, community, object, summary, context))]
+  #[tracing::instrument(skip_all)]
   pub(in crate::activities::deletion) async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -131,7 +131,7 @@ impl Delete {
   }
 }
 
-#[tracing::instrument(skip(actor, object, reason, context))]
+#[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn receive_remove_action(
   actor: &ObjectId<ApubPerson>,
   object: &Url,
@@ -208,7 +208,7 @@ pub(in crate::activities) async fn receive_remove_action(
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for Delete {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

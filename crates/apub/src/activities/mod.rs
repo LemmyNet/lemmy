@@ -35,7 +35,7 @@ pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
-#[tracing::instrument(skip(person_id, context))]
+#[tracing::instrument(skip_all)]
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
   context: &LemmyContext,
@@ -53,7 +53,7 @@ async fn verify_person(
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
-#[tracing::instrument(skip(person_id, community, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
@@ -88,7 +88,7 @@ fn verify_activity(id: &Url, actor: &Url, settings: &Settings) -> Result<(), Lem
 /// Verify that the actor is a community mod. This check is only run if the community is local,
 /// because in case of remote communities, admins can also perform mod actions. As admin status
 /// is not federated, we cant verify their actions remotely.
-#[tracing::instrument(skip(actor_id, community, context))]
+#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_mod_action(
   actor_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
@@ -157,7 +157,7 @@ where
   Url::parse(&id)
 }
 
-#[tracing::instrument(skip(context, activity, activity_id, actor, inboxes, sensitive))]
+#[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<T: Serialize>(
   context: &LemmyContext,
   activity: &T,

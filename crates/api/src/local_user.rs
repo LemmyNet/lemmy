@@ -62,7 +62,7 @@ use lemmy_websocket::{
 impl Perform for Login {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -104,7 +104,7 @@ impl Perform for Login {
 impl Perform for GetCaptcha {
   type Response = GetCaptchaResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -150,7 +150,7 @@ impl Perform for GetCaptcha {
 impl Perform for SaveUserSettings {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -325,7 +325,7 @@ impl Perform for ChangePassword {
 impl Perform for AddAdmin {
   type Response = AddAdminResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -385,7 +385,7 @@ impl Perform for AddAdmin {
 impl Perform for BanPerson {
   type Response = BanPersonResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -480,7 +480,7 @@ impl Perform for BanPerson {
 impl Perform for BlockPerson {
   type Response = BlockPersonResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -537,7 +537,7 @@ impl Perform for BlockPerson {
 impl Perform for GetReplies {
   type Response = GetRepliesResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -576,7 +576,7 @@ impl Perform for GetReplies {
 impl Perform for GetPersonMentions {
   type Response = GetPersonMentionsResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -612,7 +612,7 @@ impl Perform for GetPersonMentions {
 impl Perform for MarkPersonMentionAsRead {
   type Response = PersonMentionResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -658,7 +658,7 @@ impl Perform for MarkPersonMentionAsRead {
 impl Perform for MarkAllAsRead {
   type Response = GetRepliesResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -813,7 +813,7 @@ impl Perform for PasswordChange {
 impl Perform for GetReportCount {
   type Response = GetReportCountResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -851,7 +851,7 @@ impl Perform for GetReportCount {
 impl Perform for GetUnreadCount {
   type Response = GetUnreadCountResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

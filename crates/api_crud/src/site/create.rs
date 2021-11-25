@@ -25,7 +25,7 @@ use lemmy_websocket::LemmyContext;
 impl PerformCrud for CreateSite {
   type Response = SiteResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

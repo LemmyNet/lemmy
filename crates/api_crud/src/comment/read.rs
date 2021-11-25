@@ -20,7 +20,7 @@ use lemmy_websocket::LemmyContext;
 impl PerformCrud for GetComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -51,7 +51,7 @@ impl PerformCrud for GetComment {
 impl PerformCrud for GetComments {
   type Response = GetCommentsResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

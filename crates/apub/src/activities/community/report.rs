@@ -28,7 +28,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 impl Report {
-  #[tracing::instrument(skip(object_id, actor, community_id, reason, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     object_id: ObjectId<PostOrComment>,
     actor: &ApubPerson,
@@ -67,7 +67,7 @@ impl Report {
 impl ActivityHandler for Report {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -79,7 +79,7 @@ impl ActivityHandler for Report {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

@@ -23,18 +23,18 @@ pub struct CreatePost {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PostResponse {
   pub post_view: PostView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetPost {
   pub id: PostId,
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
@@ -60,14 +60,14 @@ pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreatePostLike {
   pub post_id: PostId,
   pub score: i16,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct EditPost {
   pub post_id: PostId,
   pub name: Option<String>,
@@ -77,14 +77,14 @@ pub struct EditPost {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
@@ -92,54 +92,54 @@ pub struct RemovePost {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StickyPost {
   pub post_id: PostId,
   pub stickied: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PostReportResponse {
   pub post_report_view: PostReportView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ListPostReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -150,7 +150,7 @@ pub struct ListPostReports {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ListPostReportsResponse {
   pub post_reports: Vec<PostReportView>,
 }

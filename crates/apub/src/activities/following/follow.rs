@@ -41,7 +41,7 @@ impl FollowCommunity {
     })
   }
 
-  #[tracing::instrument(skip(actor, community, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -67,7 +67,7 @@ impl FollowCommunity {
 impl ActivityHandler for FollowCommunity {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -80,7 +80,7 @@ impl ActivityHandler for FollowCommunity {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

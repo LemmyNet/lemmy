@@ -64,7 +64,7 @@ impl ApubObject for ApubComment {
     None
   }
 
-  #[tracing::instrument(skip(object_id, context))]
+  #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -78,7 +78,7 @@ impl ApubObject for ApubComment {
     )
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
       blocking(context.pool(), move |conn| {
@@ -89,7 +89,7 @@ impl ApubObject for ApubComment {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn into_apub(self, context: &LemmyContext) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
@@ -138,7 +138,7 @@ impl ApubObject for ApubComment {
     Ok(Tombstone::new(self.ap_id.clone().into()))
   }
 
-  #[tracing::instrument(skip(note, expected_domain, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
     expected_domain: &Url,
@@ -171,7 +171,7 @@ impl ApubObject for ApubComment {
   /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-  #[tracing::instrument(skip(note, context))]
+  #[tracing::instrument(skip_all)]
   async fn from_apub(
     note: Note,
     context: &LemmyContext,

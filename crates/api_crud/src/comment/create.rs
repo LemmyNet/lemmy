@@ -44,7 +44,7 @@ use lemmy_websocket::{
 impl PerformCrud for CreateComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

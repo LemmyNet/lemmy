@@ -19,7 +19,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 impl UndoFollowCommunity {
-  #[tracing::instrument(skip(actor, community, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -45,7 +45,7 @@ impl UndoFollowCommunity {
 impl ActivityHandler for UndoFollowCommunity {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -58,7 +58,7 @@ impl ActivityHandler for UndoFollowCommunity {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

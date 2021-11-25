@@ -39,7 +39,7 @@ use webmention::{Webmention, WebmentionError};
 impl PerformCrud for CreatePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

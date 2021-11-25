@@ -23,7 +23,7 @@ use tracing::info;
 impl PerformCrud for GetSite {
   type Response = GetSiteResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

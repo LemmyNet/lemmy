@@ -52,7 +52,7 @@ impl ApubObject for ApubPrivateMessage {
     None
   }
 
-  #[tracing::instrument(skip(object_id, context))]
+  #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -71,7 +71,7 @@ impl ApubObject for ApubPrivateMessage {
     unimplemented!()
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn into_apub(self, context: &LemmyContext) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
     let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
@@ -102,7 +102,7 @@ impl ApubObject for ApubPrivateMessage {
     unimplemented!()
   }
 
-  #[tracing::instrument(skip(note, expected_domain, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     note: &ChatMessage,
     expected_domain: &Url,
@@ -123,7 +123,7 @@ impl ApubObject for ApubPrivateMessage {
     Ok(())
   }
 
-  #[tracing::instrument(skip(note, context))]
+  #[tracing::instrument(skip_all)]
   async fn from_apub(
     note: ChatMessage,
     context: &LemmyContext,

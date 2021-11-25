@@ -47,7 +47,7 @@ impl CreateOrUpdatePost {
     })
   }
 
-  #[tracing::instrument(skip(post, actor, kind, context))]
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     post: ApubPost,
     actor: &ApubPerson,
@@ -72,7 +72,7 @@ impl CreateOrUpdatePost {
 impl ActivityHandler for CreateOrUpdatePost {
   type DataType = LemmyContext;
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -114,7 +114,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     Ok(())
   }
 
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -133,7 +133,7 @@ impl ActivityHandler for CreateOrUpdatePost {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for CreateOrUpdatePost {
-  #[tracing::instrument(skip(self, context))]
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

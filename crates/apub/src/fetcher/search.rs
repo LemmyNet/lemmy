@@ -18,7 +18,7 @@ use url::Url;
 /// http://lemmy_beta:8551/u/lemmy_alpha, or @lemmy_beta@lemmy_beta:8551
 /// http://lemmy_gamma:8561/post/3
 /// http://lemmy_delta:8571/comment/2
-#[tracing::instrument(skip(query, context))]
+#[tracing::instrument(skip_all)]
 pub async fn search_by_apub_id(
   query: &str,
   context: &LemmyContext,
@@ -105,7 +105,7 @@ impl ApubObject for SearchableObjects {
   //       a single query.
   //       we could skip this and always return an error, but then it would always fetch objects
   //       over http, and not be able to mark objects as deleted that were deleted by remote server.
-  #[tracing::instrument(skip(object_id, context))]
+  #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
     context: &LemmyContext,
@@ -129,7 +129,7 @@ impl ApubObject for SearchableObjects {
     Ok(None)
   }
 
-  #[tracing::instrument(skip(self, data))]
+  #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
     match self {
       SearchableObjects::Person(p) => p.delete(data).await,
@@ -147,7 +147,7 @@ impl ApubObject for SearchableObjects {
     unimplemented!()
   }
 
-  #[tracing::instrument(skip(apub, expected_domain, data))]
+  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
@@ -170,7 +170,7 @@ impl ApubObject for SearchableObjects {
     }
   }
 
-  #[tracing::instrument(skip(apub, context))]
+  #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
     context: &LemmyContext,
