@@ -1779,6 +1779,7 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_json",
+ "tracing",
  "url",
 ]
 

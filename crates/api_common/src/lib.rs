@@ -32,9 +32,12 @@ where
   T: Send + 'static,
 {
   let pool = pool.clone();
+  let blocking_span = tracing::info_span!("blocking operation");
   let res = actix_web::web::block(move || {
+    let entered = blocking_span.enter();
     let conn = pool.get()?;
     let res = (f)(&conn);
+    drop(entered);
     Ok(res) as Result<T, LemmyError>
   })
   .await?;
