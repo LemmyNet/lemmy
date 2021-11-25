@@ -108,7 +108,15 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
-    let recipients = get_notif_recipients(&self.actor, &comment, context, request_counter).await?;
+    let do_send_email = self.kind == CreateOrUpdateType::Create;
+    let recipients = get_notif_recipients(
+      &self.actor,
+      &comment,
+      do_send_email,
+      context,
+      request_counter,
+    )
+    .await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,
       CreateOrUpdateType::Update => UserOperationCrud::EditComment,
