@@ -80,12 +80,29 @@ steps:
 
   - name: publish release docker manifest
     image: plugins/manifest
-    settings: 
+    settings:
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
       target: "dessalines/lemmy:${DRONE_TAG}"
+      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: publish latest release docker manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:latest"
       template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
       platforms:
         - linux/amd64
@@ -192,12 +209,29 @@ steps:
 
   - name: publish release docker manifest
     image: plugins/manifest
-    settings: 
+    settings:
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
       target: "dessalines/lemmy:${DRONE_TAG}"
+      template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      ignore_missing: true
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: publish latest release docker manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "dessalines/lemmy:latest"
       template: "dessalines/lemmy:${DRONE_TAG}-OS-ARCH"
       platforms:
         - linux/amd64
