@@ -69,6 +69,14 @@ impl LemmyError {
       ..self
     }
   }
+  pub fn to_json(&self) -> Result<String, Self> {
+    let api_error = match self.message {
+      Some(error) => ApiError { error },
+      None => ApiError { error: "Unknown" },
+    };
+
+    Ok(serde_json::to_string(&api_error)?)
+  }
 }
 
 impl<T> From<T> for LemmyError

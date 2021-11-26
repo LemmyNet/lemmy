@@ -62,7 +62,7 @@ use lemmy_websocket::{
 impl Perform for Login {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip_all)]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

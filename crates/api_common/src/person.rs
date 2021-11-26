@@ -10,7 +10,7 @@ use lemmy_db_views_actor::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct Login {
   pub username_or_email: String,
   pub password: String,
