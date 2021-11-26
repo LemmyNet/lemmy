@@ -38,9 +38,9 @@ impl PerformCrud for GetSite {
         if let Some(setup) = context.settings().setup.as_ref() {
           let register = Register {
             username: setup.admin_username.to_owned(),
-            email: setup.admin_email.to_owned(),
-            password: setup.admin_password.to_owned(),
-            password_verify: setup.admin_password.to_owned(),
+            email: setup.admin_email.clone().map(|s| s.into()),
+            password: setup.admin_password.clone().into(),
+            password_verify: setup.admin_password.clone().into(),
             show_nsfw: true,
             captcha_uuid: None,
             captcha_answer: None,
@@ -92,9 +92,12 @@ impl PerformCrud for GetSite {
       .unwrap_or(1);
 
     // Build the local user
-    let my_user = if let Some(local_user_view) =
-      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool(), context.secret())
-        .await?
+    let my_user = if let Some(local_user_view) = get_local_user_settings_view_from_jwt_opt(
+      data.auth.as_ref(),
+      context.pool(),
+      context.secret(),
+    )
+    .await?
     {
       let person_id = local_user_view.person.id;
       let follows = blocking(context.pool(), move |conn| {

@@ -51,6 +51,7 @@ use lemmy_utils::{
   utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ConnectionId,
   LemmyError,
+  Sensitive,
 };
 use lemmy_websocket::{
   messages::{CaptchaItem, SendAllMessage},
@@ -95,7 +96,8 @@ impl Perform for Login {
         local_user_view.local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -162,7 +164,7 @@ impl Perform for SaveUserSettings {
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
-    let email = diesel_option_overwrite(&data.email);
+    let email = diesel_option_overwrite(&data.email.clone().map(Sensitive::into_inner));
     let bio = diesel_option_overwrite(&data.bio);
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
@@ -267,7 +269,8 @@ impl Perform for SaveUserSettings {
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -284,7 +287,7 @@ impl Perform for ChangePassword {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &ChangePassword = self;
     let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
 
     password_length_check(&data.new_password)?;
 
@@ -316,7 +319,8 @@ impl Perform for ChangePassword {
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -805,7 +809,8 @@ impl Perform for PasswordChange {
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }

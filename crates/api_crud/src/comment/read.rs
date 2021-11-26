@@ -28,7 +28,8 @@ impl PerformCrud for GetComment {
   ) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     let person_id = local_user_view.map(|u| u.person.id);
     let id = data.id;
@@ -59,7 +60,8 @@ impl PerformCrud for GetComments {
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     let show_bot_accounts = local_user_view
       .as_ref()

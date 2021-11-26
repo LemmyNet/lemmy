@@ -18,7 +18,7 @@ impl PerformCrud for DeleteAccount {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &DeleteAccount = self;
     let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
 
     // Verify the password
     let valid: bool = verify(
@@ -51,7 +51,7 @@ impl PerformCrud for DeleteAccount {
     .await??;
 
     Ok(LoginResponse {
-      jwt: data.auth.to_owned(),
+      jwt: data.auth.clone(),
     })
   }
 }

@@ -128,8 +128,8 @@ impl PerformCrud for Register {
     // TODO some of these could probably use the DB defaults
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
-      email: Some(data.email.to_owned()),
-      password_encrypted: data.password.to_owned(),
+      email: Some(data.email.as_deref().map(|s| s.to_owned())),
+      password_encrypted: data.password.to_string(),
       show_nsfw: Some(data.show_nsfw),
       show_bot_accounts: Some(true),
       theme: Some("browser".into()),
@@ -237,7 +237,8 @@ impl PerformCrud for Register {
         inserted_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }

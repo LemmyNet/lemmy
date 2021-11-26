@@ -23,7 +23,7 @@ use lemmy_db_views_actor::{
   community_person_ban_view::CommunityPersonBanView,
   community_view::CommunityView,
 };
-use lemmy_utils::{claims::Claims, settings::structs::FederationConfig, LemmyError};
+use lemmy_utils::{claims::Claims, settings::structs::FederationConfig, LemmyError, Sensitive};
 use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
@@ -145,7 +145,7 @@ pub fn check_validator_time(
 }
 
 pub async fn get_local_user_view_from_jwt_opt(
-  jwt: &Option<String>,
+  jwt: Option<&Sensitive>,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<Option<LocalUserView>, LemmyError> {
@@ -156,11 +156,11 @@ pub async fn get_local_user_view_from_jwt_opt(
 }
 
 pub async fn get_local_user_settings_view_from_jwt(
-  jwt: &str,
+  jwt: &Sensitive,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = Claims::decode(jwt, &secret.jwt_secret)
+  let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
     .map_err(LemmyError::from)
     .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
@@ -180,7 +180,7 @@ pub async fn get_local_user_settings_view_from_jwt(
 }
 
 pub async fn get_local_user_settings_view_from_jwt_opt(
-  jwt: &Option<String>,
+  jwt: Option<&Sensitive>,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<Option<LocalUserSettingsView>, LemmyError> {

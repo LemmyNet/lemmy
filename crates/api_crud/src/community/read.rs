@@ -32,7 +32,8 @@ impl PerformCrud for GetCommunity {
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
     let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = match data.id {
@@ -101,7 +102,8 @@ impl PerformCrud for ListCommunities {
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);
 

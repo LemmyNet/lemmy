@@ -15,6 +15,10 @@ mod test;
 pub mod utils;
 pub mod version;
 
+mod sensitive;
+
+pub use sensitive::Sensitive;
+
 use actix_web::HttpResponse;
 use http::StatusCode;
 use std::{fmt, fmt::Display};

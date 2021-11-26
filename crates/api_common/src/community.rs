@@ -4,6 +4,7 @@ use lemmy_db_views_actor::{
   community_view::CommunityView,
   person_view::PersonViewSafe,
 };
+use lemmy_utils::Sensitive;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -11,7 +12,7 @@ pub struct GetCommunity {
   pub id: Option<CommunityId>,
   /// Example: star_trek , or star_trek@xyz.tld
   pub name: Option<String>,
-  pub auth: Option<String>,
+  pub auth: Option<Sensitive>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +30,7 @@ pub struct CreateCommunity {
   pub icon: Option<String>,
   pub banner: Option<String>,
   pub nsfw: Option<bool>,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -43,7 +44,7 @@ pub struct ListCommunities {
   pub sort: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Option<String>,
+  pub auth: Option<Sensitive>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -59,7 +60,7 @@ pub struct BanFromCommunity {
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -73,7 +74,7 @@ pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub added: bool,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -89,14 +90,14 @@ pub struct EditCommunity {
   pub icon: Option<String>,
   pub banner: Option<String>,
   pub nsfw: Option<bool>,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
   pub deleted: bool,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,21 +106,21 @@ pub struct RemoveCommunity {
   pub removed: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FollowCommunity {
   pub community_id: CommunityId,
   pub follow: bool,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
-  pub auth: String,
+  pub auth: Sensitive,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -132,5 +133,5 @@ pub struct BlockCommunityResponse {
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  pub auth: String,
+  pub auth: Sensitive,
 }
