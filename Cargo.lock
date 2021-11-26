@@ -1985,6 +1985,7 @@ dependencies = [
  "serde",
  "sha2",
  "strum",
+ "tracing",
  "url",
 ]
 
