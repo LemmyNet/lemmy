@@ -230,7 +230,7 @@ impl PerformCrud for Register {
       send_verification_email(
         inserted_local_user.id,
         // we check at the beginning of this method that email is set
-        &inserted_local_user.email.unwrap(),
+        &inserted_local_user.email.expect("email was provided"),
         &inserted_person.name,
         context,
       )
