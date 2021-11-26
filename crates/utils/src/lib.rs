@@ -104,6 +104,9 @@ impl std::fmt::Debug for LemmyError {
 
 impl Display for LemmyError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(message) = self.message {
+      write!(f, "{}: ", message)?;
+    }
     writeln!(f, "{}", self.inner)?;
     self.context.fmt(f)
   }
