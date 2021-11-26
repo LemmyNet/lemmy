@@ -11,7 +11,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::Sensitive;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Login {
   pub username_or_email: Sensitive,
   pub password: Sensitive,
