@@ -1,6 +1,7 @@
 #![recursion_limit = "512"]
 pub mod api_routes;
 pub mod code_migrations;
+pub mod root_span_builder;
 pub mod scheduled_tasks;
 
 use lemmy_utils::LemmyError;
@@ -13,7 +14,7 @@ pub fn init_tracing() -> Result<(), LemmyError> {
   LogTracer::init()?;
 
   let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-  let format_layer = tracing_subscriber::fmt::layer().pretty();
+  let format_layer = tracing_subscriber::fmt::layer();
 
   let subscriber = Registry::default()
     .with(env_filter)
