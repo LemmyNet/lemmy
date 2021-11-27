@@ -13,6 +13,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Delete {
   pub(crate) actor: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: Tombstone,
   #[serde(rename = "type")]

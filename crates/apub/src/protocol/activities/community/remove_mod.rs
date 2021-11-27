@@ -8,8 +8,10 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct RemoveMod {
   pub(crate) actor: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: RemoveType,

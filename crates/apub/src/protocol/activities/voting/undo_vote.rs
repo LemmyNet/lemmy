@@ -11,8 +11,10 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoVote {
   pub(crate) actor: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: Vote,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
