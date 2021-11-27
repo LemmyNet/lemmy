@@ -3,6 +3,7 @@ use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use serde::{Deserialize, Deserializer};
 use std::net::IpAddr;
 use url::{ParseError, Url};
 
@@ -83,6 +84,25 @@ pub(crate) fn check_is_apub_id_valid(
   }
 
   Ok(())
+}
+
+pub(crate) fn deserialize_one_or_many<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+  T: Deserialize<'de>,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum OneOrMany<T> {
+    One(T),
+    Many(Vec<T>),
+  }
+
+  let result: OneOrMany<T> = Deserialize::deserialize(deserializer)?;
+  Ok(match result {
+    OneOrMany::Many(list) => list,
+    OneOrMany::One(value) => vec![value],
+  })
 }
 
 pub enum EndpointType {
