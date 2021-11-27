@@ -1,4 +1,4 @@
-use actix_web::{dev::ServiceResponse, http::StatusCode, ResponseError};
+use actix_web::{http::StatusCode, ResponseError};
 use tracing::Span;
 use tracing_actix_web::RootSpanBuilder;
 
@@ -34,8 +34,6 @@ impl RootSpanBuilder for QuieterRootSpanBuilder {
     span: tracing::Span,
     outcome: &Result<actix_web::dev::ServiceResponse<B>, actix_web::Error>,
   ) {
-    emit_event_on_error::<B>(outcome);
-
     match &outcome {
       Ok(response) => {
         if let Some(error) = response.response().error() {
@@ -56,11 +54,6 @@ impl RootSpanBuilder for QuieterRootSpanBuilder {
 }
 
 fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn ResponseError) {
-  // pre-formatting errors is a workaround for https://github.com/tokio-rs/tracing/issues/1565
-  let display = format!("{}", response_error);
-  let debug = format!("{:?}", response_error);
-  span.record("exception.message", &tracing::field::display(display));
-  span.record("exception.details", &tracing::field::display(debug));
   let code: i32 = status_code.as_u16().into();
 
   span.record("http.status_code", &code);
@@ -70,33 +63,23 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
   } else {
     span.record("otel.status_code", &"ERROR");
   }
-}
 
-fn emit_event_on_error<B>(outcome: &Result<ServiceResponse<B>, actix_web::Error>) {
-  match outcome {
-    Ok(response) => {
-      if let Some(err) = response.response().error() {
-        // use the status code already constructed for the outgoing HTTP response
-        emit_error_event(err.as_response_error(), response.status())
-      }
-    }
-    Err(error) => {
-      let response_error = error.as_response_error();
-      emit_error_event(response_error, response_error.status_code())
-    }
-  }
-}
+  // pre-formatting errors is a workaround for https://github.com/tokio-rs/tracing/issues/1565
+  let display_error = format!("{}", response_error);
+  let debug_error = format!("{:?}", response_error);
 
-fn emit_error_event(response_error: &dyn ResponseError, status_code: StatusCode) {
-  let span = tracing::info_span!(
+  tracing::info_span!(
     parent: None,
     "Error encountered while processing the incoming HTTP request"
-  );
-  let entered = span.enter();
-  if status_code.is_client_error() {
-    tracing::warn!("{}\n{:?}", response_error, response_error);
-  } else {
-    tracing::error!("{}\n{:?}", response_error, response_error);
-  }
-  drop(entered);
+  )
+  .in_scope(|| {
+    if status_code.is_client_error() {
+      tracing::warn!("{}\n{}", display_error, debug_error);
+    } else {
+      tracing::error!("{}\n{}", display_error, debug_error);
+    }
+  });
+
+  span.record("exception.message", &tracing::field::display(display_error));
+  span.record("exception.details", &tracing::field::display(debug_error));
 }
