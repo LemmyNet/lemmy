@@ -1,4 +1,4 @@
-use actix_web::{http::StatusCode, ResponseError};
+use actix_web::{dev::ServiceResponse, http::StatusCode, ResponseError};
 use tracing::Span;
 use tracing_actix_web::RootSpanBuilder;
 
@@ -34,6 +34,8 @@ impl RootSpanBuilder for QuieterRootSpanBuilder {
     span: tracing::Span,
     outcome: &Result<actix_web::dev::ServiceResponse<B>, actix_web::Error>,
   ) {
+    emit_event_on_error::<B>(outcome);
+
     match &outcome {
       Ok(response) => {
         if let Some(error) = response.response().error() {
@@ -68,4 +70,33 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
   } else {
     span.record("otel.status_code", &"ERROR");
   }
+}
+
+fn emit_event_on_error<B>(outcome: &Result<ServiceResponse<B>, actix_web::Error>) {
+  match outcome {
+    Ok(response) => {
+      if let Some(err) = response.response().error() {
+        // use the status code already constructed for the outgoing HTTP response
+        emit_error_event(err.as_response_error(), response.status())
+      }
+    }
+    Err(error) => {
+      let response_error = error.as_response_error();
+      emit_error_event(response_error, response_error.status_code())
+    }
+  }
+}
+
+fn emit_error_event(response_error: &dyn ResponseError, status_code: StatusCode) {
+  let span = tracing::info_span!(
+    parent: None,
+    "Error encountered while processing the incoming HTTP request"
+  );
+  let entered = span.enter();
+  if status_code.is_client_error() {
+    tracing::warn!("{}\n{:?}", response_error, response_error);
+  } else {
+    tracing::error!("{}\n{:?}", response_error, response_error);
+  }
+  drop(entered);
 }
