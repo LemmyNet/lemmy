@@ -145,7 +145,7 @@ pub fn check_validator_time(
 }
 
 pub async fn get_local_user_view_from_jwt_opt(
-  jwt: Option<&Sensitive>,
+  jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<Option<LocalUserView>, LemmyError> {
@@ -156,7 +156,7 @@ pub async fn get_local_user_view_from_jwt_opt(
 }
 
 pub async fn get_local_user_settings_view_from_jwt(
-  jwt: &Sensitive,
+  jwt: &Sensitive<String>,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<LocalUserSettingsView, LemmyError> {
@@ -180,7 +180,7 @@ pub async fn get_local_user_settings_view_from_jwt(
 }
 
 pub async fn get_local_user_settings_view_from_jwt_opt(
-  jwt: Option<&Sensitive>,
+  jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<Option<LocalUserSettingsView>, LemmyError> {

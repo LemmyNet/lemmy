@@ -5,55 +5,61 @@ use std::{
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize)]
 #[serde(transparent)]
-pub struct Sensitive(String);
+pub struct Sensitive<T>(T);
 
-impl Sensitive {
-  pub fn new(string: String) -> Self {
-    Sensitive(string)
+impl<T> Sensitive<T> {
+  pub fn new(item: T) -> Self {
+    Sensitive(item)
   }
 
-  pub fn into_inner(this: Self) -> String {
+  pub fn into_inner(this: Self) -> T {
     this.0
   }
 }
 
-impl std::fmt::Debug for Sensitive {
+impl<T> std::fmt::Debug for Sensitive<T> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("Sensitive").finish()
   }
 }
 
-impl AsRef<String> for Sensitive {
-  fn as_ref(&self) -> &String {
+impl<T> AsRef<T> for Sensitive<T> {
+  fn as_ref(&self) -> &T {
     &self.0
   }
 }
 
-impl AsRef<str> for Sensitive {
+impl AsRef<str> for Sensitive<String> {
   fn as_ref(&self) -> &str {
     &self.0
   }
 }
 
-impl AsRef<[u8]> for Sensitive {
+impl AsRef<[u8]> for Sensitive<String> {
   fn as_ref(&self) -> &[u8] {
     self.0.as_ref()
   }
 }
 
-impl AsMut<String> for Sensitive {
-  fn as_mut(&mut self) -> &mut String {
+impl AsRef<[u8]> for Sensitive<Vec<u8>> {
+  fn as_ref(&self) -> &[u8] {
+    self.0.as_ref()
+  }
+}
+
+impl<T> AsMut<T> for Sensitive<T> {
+  fn as_mut(&mut self) -> &mut T {
     &mut self.0
   }
 }
 
-impl AsMut<str> for Sensitive {
+impl AsMut<str> for Sensitive<String> {
   fn as_mut(&mut self) -> &mut str {
     &mut self.0
   }
 }
 
-impl Deref for Sensitive {
+impl Deref for Sensitive<String> {
   type Target = str;
 
   fn deref(&self) -> &Self::Target {
@@ -61,31 +67,31 @@ impl Deref for Sensitive {
   }
 }
 
-impl DerefMut for Sensitive {
+impl DerefMut for Sensitive<String> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.0
   }
 }
 
-impl From<String> for Sensitive {
-  fn from(s: String) -> Self {
-    Sensitive(s)
+impl<T> From<T> for Sensitive<T> {
+  fn from(t: T) -> Self {
+    Sensitive(t)
   }
 }
 
-impl From<&str> for Sensitive {
+impl From<&str> for Sensitive<String> {
   fn from(s: &str) -> Self {
     Sensitive(s.into())
   }
 }
 
-impl Borrow<String> for Sensitive {
-  fn borrow(&self) -> &String {
+impl<T> Borrow<T> for Sensitive<T> {
+  fn borrow(&self) -> &T {
     &self.0
   }
 }
 
-impl Borrow<str> for Sensitive {
+impl Borrow<str> for Sensitive<String> {
   fn borrow(&self) -> &str {
     &self.0
   }

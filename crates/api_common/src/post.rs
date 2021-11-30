@@ -20,7 +20,7 @@ pub struct CreatePost {
   pub body: Option<String>,
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -31,7 +31,7 @@ pub struct PostResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetPost {
   pub id: PostId,
-  pub auth: Option<Sensitive>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,7 +52,7 @@ pub struct GetPosts {
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub saved_only: Option<bool>,
-  pub auth: Option<Sensitive>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -64,7 +64,7 @@ pub struct GetPostsResponse {
 pub struct CreatePostLike {
   pub post_id: PostId,
   pub score: i16,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,14 +74,14 @@ pub struct EditPost {
   pub url: Option<Url>,
   pub body: Option<String>,
   pub nsfw: Option<bool>,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,42 +89,42 @@ pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StickyPost {
   pub post_id: PostId,
   pub stickied: bool,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -136,7 +136,7 @@ pub struct PostReportResponse {
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -147,7 +147,7 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  pub auth: Sensitive,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
