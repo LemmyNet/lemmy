@@ -17,6 +17,10 @@ struct SendError(pub String);
 #[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
+/// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object
+/// fetch through the search). This should be configurable.
+pub static RETRY_LIMIT: i32 = 25;
+
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
 where
   F: Fn() -> Fut,
@@ -58,7 +62,7 @@ pub struct SiteMetadata {
 
 /// Fetches the post link html tags (like title, description, image, etc)
 pub async fn fetch_site_metadata(client: &Client, url: &Url) -> Result<SiteMetadata, LemmyError> {
-  let response = retry(|| client.get(url.as_str()).send()).await?;
+  let response = client.get(url.as_str()).send().await?;
 
   let html = response
     .text()
@@ -132,7 +136,7 @@ pub(crate) async fn fetch_pictrs(
       utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
     );
 
-    let response = retry(|| client.get(&fetch_url).send()).await?;
+    let response = client.get(&fetch_url).send().await?;
 
     let response: PictrsResponse = response
       .json()
@@ -201,8 +205,8 @@ pub async fn fetch_site_data(
   }
 }
 
-async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyError> {
-  let response = retry(|| client.get(test.to_owned()).send()).await?;
+async fn is_image_content_type(client: &Client, url: &Url) -> Result<(), LemmyError> {
+  let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
     .get("Content-Type")

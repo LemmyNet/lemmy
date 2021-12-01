@@ -7,7 +7,7 @@ use lemmy_apub_lib::{
 };
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
-  request::{retry, RecvError},
+  request::{retry, RecvError, RETRY_LIMIT},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
@@ -80,6 +80,11 @@ where
     protocol, domain, identifier
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
+
+  *request_counter += 1;
+  if *request_counter > RETRY_LIMIT {
+    return Err(LemmyError::from(anyhow!("Request retry limit reached")));
+  }
 
   let response = retry(|| context.client().get(&fetch_url).send()).await?;
 

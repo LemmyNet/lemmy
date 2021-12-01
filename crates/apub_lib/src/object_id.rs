@@ -3,7 +3,7 @@ use activitystreams::chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use anyhow::anyhow;
 use diesel::NotFound;
 use lemmy_utils::{
-  request::{build_user_agent, retry},
+  request::{build_user_agent, retry, RETRY_LIMIT},
   settings::structs::Settings,
   LemmyError,
 };
@@ -17,10 +17,6 @@ use std::{
 };
 use tracing::info;
 use url::Url;
-
-/// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object
-/// fetch through the search). This should be configurable.
-static REQUEST_LIMIT: i32 = 25;
 
 static CLIENT: Lazy<Client> = Lazy::new(|| {
   Client::builder()
@@ -119,8 +115,8 @@ where
     info!("Fetching remote object {}", self.to_string());
 
     *request_counter += 1;
-    if *request_counter > REQUEST_LIMIT {
-      return Err(LemmyError::from(anyhow!("Request limit reached")));
+    if *request_counter > RETRY_LIMIT {
+      return Err(LemmyError::from(anyhow!("Request retry limit reached")));
     }
 
     let res = retry(|| {
