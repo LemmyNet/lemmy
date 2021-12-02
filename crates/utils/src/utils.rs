@@ -13,7 +13,7 @@ static MENTIONS_REGEX: Lazy<Regex> = Lazy::new(|| {
 static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r".*\S.*").expect("compile regex"));
+  Lazy::new(|| Regex::new(r".*\S{3,}.*").expect("compile regex"));
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
 });
@@ -120,8 +120,14 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
+fn has_newline(name: &str) -> bool {
+  name.contains('\n')
+}
+
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> bool {
-  name.chars().count() <= actor_name_max_length && VALID_ACTOR_NAME_REGEX.is_match(name)
+  name.chars().count() <= actor_name_max_length
+    && VALID_ACTOR_NAME_REGEX.is_match(name)
+    && !has_newline(name)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
@@ -130,14 +136,15 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> bool {
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
     && name.chars().count() <= actor_name_max_length
+    && !has_newline(name)
 }
 
 pub fn is_valid_matrix_id(matrix_id: &str) -> bool {
-  VALID_MATRIX_ID_REGEX.is_match(matrix_id)
+  VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !has_newline(matrix_id)
 }
 
 pub fn is_valid_post_title(title: &str) -> bool {
-  VALID_POST_TITLE_REGEX.is_match(title)
+  VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title)
 }
 
 pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
@@ -166,7 +173,7 @@ pub fn clean_url_params(mut url: Url) -> Url {
 
 #[cfg(test)]
 mod tests {
-  use crate::utils::clean_url_params;
+  use crate::utils::{clean_url_params, is_valid_post_title};
   use url::Url;
 
   #[test]
@@ -179,5 +186,14 @@ mod tests {
     let url = Url::parse("https://example.com/path/123").unwrap();
     let cleaned = clean_url_params(url.clone());
     assert_eq!(url.to_string(), cleaned.to_string());
+  }
+
+  #[test]
+  fn regex_checks() {
+    assert!(!is_valid_post_title("hi"));
+    assert!(is_valid_post_title("him"));
+    assert!(!is_valid_post_title("n\n\n\n\nanother"));
+    assert!(!is_valid_post_title("hello there!\n this is a test."));
+    assert!(is_valid_post_title("hello there! this is a test."));
   }
 }

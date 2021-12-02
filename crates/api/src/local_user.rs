@@ -19,6 +19,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
+    email_verification::EmailVerification,
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
     password_reset_request::*,
@@ -54,6 +55,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
+  email::send_verification_email,
   messages::{CaptchaItem, SendAllMessage},
   LemmyContext,
   UserOperation,
@@ -88,13 +90,18 @@ impl Perform for Login {
       return Err(ApiError::err_plain("password_incorrect").into());
     }
 
+    let site = blocking(context.pool(), Site::read_simple).await??;
+    if site.require_email_verification && !local_user_view.local_user.email_verified {
+      return Err(ApiError::err_plain("email_not_verified").into());
+    }
+
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
+      jwt: Some(Claims::jwt(
         local_user_view.local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?),
     })
   }
 }
@@ -159,11 +166,28 @@ impl Perform for SaveUserSettings {
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
-    let email = diesel_option_overwrite(&data.email);
     let bio = diesel_option_overwrite(&data.bio);
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
     let bot_account = data.bot_account;
+
+    let email = if let Some(email) = &data.email {
+      let site = blocking(context.pool(), Site::read_simple).await??;
+      if site.require_email_verification {
+        send_verification_email(
+          local_user_view.local_user.id,
+          email,
+          &local_user_view.person.name,
+          context,
+        )
+        .await?;
+        None
+      } else {
+        diesel_option_overwrite(&data.email)
+      }
+    } else {
+      None
+    };
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
@@ -222,9 +246,9 @@ impl Perform for SaveUserSettings {
     .map_err(|e| ApiError::err("user_already_exists", e))?;
 
     let local_user_form = LocalUserForm {
-      person_id,
+      person_id: Some(person_id),
       email,
-      password_encrypted,
+      password_encrypted: Some(password_encrypted),
       show_nsfw: data.show_nsfw,
       show_bot_accounts: data.show_bot_accounts,
       show_scores: data.show_scores,
@@ -236,6 +260,7 @@ impl Perform for SaveUserSettings {
       show_read_posts: data.show_read_posts,
       show_new_post_notifs: data.show_new_post_notifs,
       send_notifications_to_email: data.send_notifications_to_email,
+      email_verified: None,
     };
 
     let local_user_res = blocking(context.pool(), move |conn| {
@@ -259,11 +284,11 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
+      jwt: Some(Claims::jwt(
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?),
     })
   }
 }
@@ -307,11 +332,11 @@ impl Perform for ChangePassword {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
+      jwt: Some(Claims::jwt(
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?),
     })
   }
 }
@@ -775,11 +800,11 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
+      jwt: Some(Claims::jwt(
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?),
     })
   }
 }
@@ -858,5 +883,38 @@ impl Perform for GetUnreadCount {
     };
 
     Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for VerifyEmail {
+  type Response = ();
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<usize>,
+  ) -> Result<Self::Response, LemmyError> {
+    let token = self.token.clone();
+    let verification = blocking(context.pool(), move |conn| {
+      EmailVerification::read_for_token(conn, &token)
+    })
+    .await?
+    .map_err(|e| ApiError::err("token_not_found", e))?;
+
+    let form = LocalUserForm {
+      // necessary in case this is a new signup
+      email_verified: Some(true),
+      // necessary in case email of an existing user was changed
+      email: Some(Some(verification.email)),
+      ..LocalUserForm::default()
+    };
+    let local_user_id = verification.local_user_id;
+    blocking(context.pool(), move |conn| {
+      LocalUser::update(conn, local_user_id, &form)
+    })
+    .await??;
+
+    Ok(())
   }
 }

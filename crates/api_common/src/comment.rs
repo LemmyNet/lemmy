@@ -12,6 +12,12 @@ pub struct CreateComment {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct GetComment {
+  pub id: CommentId,
+  pub auth: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct EditComment {
   pub content: String,
   pub comment_id: CommentId,
