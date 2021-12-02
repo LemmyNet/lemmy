@@ -5,6 +5,7 @@ use crate::{
 };
 use lemmy_api_common::{
   blocking,
+  check_person_block,
   comment::CommentResponse,
   community::CommunityResponse,
   person::PrivateMessageResponse,
@@ -233,11 +234,18 @@ pub async fn send_local_notifs(
       let parent_comment =
         blocking(context.pool(), move |conn| Comment::read(conn, parent_id)).await?;
       if let Ok(parent_comment) = parent_comment {
+        // Get the parent commenter local_user
+        let parent_creator_id = parent_comment.creator_id;
+
         // Don't send a notif to yourself
-        if parent_comment.creator_id != person.id {
-          // Get the parent commenter local_user
+        if parent_comment.creator_id != person.id
+        // And only add to recipients if that person isn't blocked
+          && check_person_block(person.id, parent_creator_id, context.pool())
+            .await
+            .is_ok()
+        {
           let user_view = blocking(context.pool(), move |conn| {
-            LocalUserView::read_person(conn, parent_comment.creator_id)
+            LocalUserView::read_person(conn, parent_creator_id)
           })
           .await?;
           if let Ok(parent_user_view) = user_view {
@@ -258,7 +266,13 @@ pub async fn send_local_notifs(
     }
     // Its a post
     None => {
-      if post.creator_id != person.id {
+      // Don't send a notif to yourself
+      if post.creator_id != person.id
+        // And only add to recipients if that person isn't blocked
+        && check_person_block(person.id, post.creator_id, context.pool())
+          .await
+          .is_ok()
+      {
         let creator_id = post.creator_id;
         let parent_user = blocking(context.pool(), move |conn| {
           LocalUserView::read_person(conn, creator_id)
