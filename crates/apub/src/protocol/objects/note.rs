@@ -23,8 +23,10 @@ pub struct Note {
   pub(crate) r#type: NoteType,
   pub(crate) id: ObjectId<ApubComment>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) media_type: Option<MediaTypeHtml>,

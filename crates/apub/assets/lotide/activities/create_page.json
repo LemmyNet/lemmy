@@ -1,0 +1,20 @@
+{
+  "actor": "https://b.tide.tk/apub/users/1",
+  "object": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "https://b.tide.tk/apub/posts/60",
+    "type": "Page",
+    "name": "test post from b",
+    "summary": "test post from b",
+    "to": "https://c.tide.tk/communities/1",
+    "cc": "https://www.w3.org/ns/activitystreams#Public",
+    "published": "2020-12-19T19:20:26.941381+00:00",
+    "attributedTo": "https://b.tide.tk/apub/users/1",
+    "url": "https://blog.twitter.com/engineering/en_us/a/2010/announcing-snowflake.html"
+  },
+  "to": "https://c.tide.tk/communities/1",
+  "cc": "https://www.w3.org/ns/activitystreams#Public",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://b.tide.tk/apub/posts/60/create",
+  "type": "Create"
+}

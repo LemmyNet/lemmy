@@ -12,8 +12,10 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   pub(crate) actor: ObjectId<ApubCommunity>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: AnnouncableActivities,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: AnnounceType,

@@ -8,6 +8,7 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct WithContext<T> {
   #[serde(rename = "@context")]
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   context: Vec<serde_json::Value>,
   #[serde(flatten)]
   inner: T,
