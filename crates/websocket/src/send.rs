@@ -237,13 +237,13 @@ pub async fn send_local_notifs(
         // Get the parent commenter local_user
         let parent_creator_id = parent_comment.creator_id;
 
+        // Only add to recipients if that person isn't blocked
+        let creator_blocked = check_person_block(person.id, parent_creator_id, context.pool())
+          .await
+          .is_err();
+
         // Don't send a notif to yourself
-        if parent_comment.creator_id != person.id
-        // And only add to recipients if that person isn't blocked
-          && check_person_block(person.id, parent_creator_id, context.pool())
-            .await
-            .is_ok()
-        {
+        if parent_comment.creator_id != person.id && !creator_blocked {
           let user_view = blocking(context.pool(), move |conn| {
             LocalUserView::read_person(conn, parent_creator_id)
           })
@@ -265,14 +265,14 @@ pub async fn send_local_notifs(
       }
     }
     // Its a post
+    // Don't send a notif to yourself
     None => {
-      // Don't send a notif to yourself
-      if post.creator_id != person.id
-        // And only add to recipients if that person isn't blocked
-        && check_person_block(person.id, post.creator_id, context.pool())
-          .await
-          .is_ok()
-      {
+      // Only add to recipients if that person isn't blocked
+      let creator_blocked = check_person_block(person.id, post.creator_id, context.pool())
+        .await
+        .is_err();
+
+      if post.creator_id != person.id && !creator_blocked {
         let creator_id = post.creator_id;
         let parent_user = blocking(context.pool(), move |conn| {
           LocalUserView::read_person(conn, creator_id)
