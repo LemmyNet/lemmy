@@ -100,6 +100,7 @@
     require_email_verification: true
     require_application: true
     application_question: "string"
+    private_instance: true
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"

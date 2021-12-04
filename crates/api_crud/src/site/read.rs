@@ -66,6 +66,7 @@ impl PerformCrud for GetSite {
             require_email_verification: setup.require_email_verification,
             require_application: setup.require_application,
             application_question: setup.application_question.to_owned(),
+            private_instance: setup.private_instance,
             auth: admin_jwt,
           };
           create_site.perform(context, websocket_id).await?;

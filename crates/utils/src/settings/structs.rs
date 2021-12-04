@@ -193,4 +193,6 @@ pub struct SetupConfig {
   pub require_application: Option<bool>,
   #[default(None)]
   pub application_question: Option<String>,
+  #[default(None)]
+  pub private_instance: Option<bool>,
 }
