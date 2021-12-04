@@ -46,6 +46,9 @@ pub struct Settings {
   /// Maximum length of local community and user names
   #[default(20)]
   pub actor_name_max_length: usize,
+  /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
+  #[default(25)]
+  pub http_fetch_retry_limit: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

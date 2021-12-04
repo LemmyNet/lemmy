@@ -17,10 +17,6 @@ struct SendError(pub String);
 #[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
-/// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object
-/// fetch through the search). This should be configurable.
-pub static RETRY_LIMIT: i32 = 25;
-
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
 where
   F: Fn() -> Fut,

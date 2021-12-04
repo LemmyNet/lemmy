@@ -3,7 +3,7 @@ use activitystreams::chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use anyhow::anyhow;
 use diesel::NotFound;
 use lemmy_utils::{
-  request::{build_user_agent, retry, RETRY_LIMIT},
+  request::{build_user_agent, retry},
   settings::structs::Settings,
   LemmyError,
 };
@@ -115,7 +115,7 @@ where
     info!("Fetching remote object {}", self.to_string());
 
     *request_counter += 1;
-    if *request_counter > RETRY_LIMIT {
+    if *request_counter > Settings::get().http_fetch_retry_limit {
       return Err(LemmyError::from(anyhow!("Request retry limit reached")));
     }
 
