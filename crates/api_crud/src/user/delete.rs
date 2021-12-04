@@ -47,6 +47,10 @@ impl PerformCrud for DeleteAccount {
     })
     .await??;
 
-    Ok(LoginResponse { jwt: None })
+    Ok(LoginResponse {
+      jwt: None,
+      verify_email_sent: false,
+      registration_created: false,
+    })
   }
 }

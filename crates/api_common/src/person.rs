@@ -83,6 +83,8 @@ pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, and in response to
   /// `DeleteAccount`.
   pub jwt: Option<String>,
+  pub registration_created: bool,
+  pub verify_email_sent: bool,
 }
 
 #[derive(Serialize, Deserialize)]

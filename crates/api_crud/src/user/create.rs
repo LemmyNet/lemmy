@@ -247,7 +247,7 @@ impl PerformCrud for Register {
     }
 
     // Log the user in directly if email verification is not required
-    let jwt = if email_verification {
+    let login_response = if email_verification {
       send_verification_email(
         inserted_local_user.id,
         // we check at the beginning of this method that email is set
@@ -256,15 +256,29 @@ impl PerformCrud for Register {
         context,
       )
       .await?;
-      None
+      LoginResponse {
+        jwt: None,
+        verify_email_sent: true,
+        registration_created: false,
+      }
+    } else if require_application {
+      LoginResponse {
+        jwt: None,
+        verify_email_sent: false,
+        registration_created: true,
+      }
     } else {
-      Some(Claims::jwt(
-        inserted_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?)
+      LoginResponse {
+        jwt: Some(Claims::jwt(
+          inserted_local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?),
+        verify_email_sent: false,
+        registration_created: false,
+      }
     };
-    // TODO this needs a "registration created" type response
-    Ok(LoginResponse { jwt })
+
+    Ok(login_response)
   }
 }

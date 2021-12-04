@@ -102,6 +102,8 @@ impl Perform for Login {
         &context.secret().jwt_secret,
         &context.settings().hostname,
       )?),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -290,6 +292,8 @@ impl Perform for SaveUserSettings {
         &context.secret().jwt_secret,
         &context.settings().hostname,
       )?),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -338,6 +342,8 @@ impl Perform for ChangePassword {
         &context.secret().jwt_secret,
         &context.settings().hostname,
       )?),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -806,6 +812,8 @@ impl Perform for PasswordChange {
         &context.secret().jwt_secret,
         &context.settings().hostname,
       )?),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
