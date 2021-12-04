@@ -1,6 +1,7 @@
 -- Add columns to site table
 alter table site add column require_application boolean not null default false;
 alter table site add column application_question text;
+alter table site add column private_instance boolean not null default false;
 
 -- Add pending to local_user
 alter table local_user add column accepted_application boolean not null default false;

@@ -5,6 +5,7 @@ use diesel::NotFound;
 use lemmy_api_common::{
   blocking,
   build_federated_instances,
+  check_private_instance,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
@@ -162,6 +163,8 @@ impl Perform for Search {
 
     let local_user_view =
       get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
@@ -400,6 +403,8 @@ impl Perform for ResolveObject {
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt_opt(&self.auth, context.pool(), context.secret()).await?;
+    check_private_instance(&local_user_view, context.pool()).await?;
+
     let res = search_by_apub_id(&self.q, context)
       .await
       .map_err(|e| ApiError::err("couldnt_find_object", e))?;

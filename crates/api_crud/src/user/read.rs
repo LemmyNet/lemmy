@@ -1,6 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt_opt, person::*};
+use lemmy_api_common::{
+  blocking,
+  check_private_instance,
+  get_local_user_view_from_jwt_opt,
+  person::*,
+};
 use lemmy_apub::{
   fetcher::webfinger::webfinger_resolve,
   objects::person::ApubPerson,
@@ -28,6 +33,8 @@ impl PerformCrud for GetPersonDetails {
     let data: &GetPersonDetails = self;
     let local_user_view =
       get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view

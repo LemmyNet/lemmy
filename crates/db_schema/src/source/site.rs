@@ -23,6 +23,7 @@ pub struct Site {
   pub require_email_verification: bool,
   pub require_application: bool,
   pub application_question: Option<String>,
+  pub private_instance: bool,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
@@ -43,4 +44,5 @@ pub struct SiteForm {
   pub require_email_verification: Option<bool>,
   pub require_application: Option<bool>,
   pub application_question: Option<Option<String>>,
+  pub private_instance: Option<bool>,
 }

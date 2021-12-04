@@ -63,6 +63,7 @@ impl PerformCrud for EditSite {
       require_email_verification: data.require_email_verification,
       require_application: data.require_application,
       application_question,
+      private_instance: data.private_instance,
     };
 
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);

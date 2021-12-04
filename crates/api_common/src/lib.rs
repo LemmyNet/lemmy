@@ -243,6 +243,19 @@ pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), Le
   Ok(())
 }
 
+pub async fn check_private_instance(
+  local_user_view: &Option<LocalUserView>,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  if local_user_view.is_none() {
+    let site = blocking(pool, Site::read_simple).await??;
+    if site.private_instance {
+      return Err(ApiError::err_plain("instance_is_private").into());
+    }
+  }
+  Ok(())
+}
+
 pub async fn build_federated_instances(
   pool: &DbPool,
   federation_config: &FederationConfig,

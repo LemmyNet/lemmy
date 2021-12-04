@@ -118,6 +118,7 @@ pub struct EditSite {
   pub require_email_verification: Option<bool>,
   pub require_application: Option<bool>,
   pub application_question: Option<String>,
+  pub private_instance: Option<bool>,
   pub auth: String,
 }
 

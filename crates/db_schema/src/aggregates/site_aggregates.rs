@@ -68,6 +68,7 @@ mod tests {
       require_email_verification: None,
       require_application: None,
       application_question: None,
+      private_instance: None,
     };
 
     Site::create(&conn, &site_form).unwrap();

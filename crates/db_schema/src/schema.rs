@@ -452,6 +452,7 @@ table! {
         require_email_verification -> Bool,
         require_application -> Bool,
         application_question -> Nullable<Text>,
+        private_instance -> Bool,
     }
 }
 
