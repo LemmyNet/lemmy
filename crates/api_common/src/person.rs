@@ -28,6 +28,8 @@ pub struct Register {
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
   pub honeypot: Option<String>,
+  /// An answer is mandatory if require application is enabled on the server
+  pub answer: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

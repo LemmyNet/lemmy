@@ -97,6 +97,9 @@
     open_registration: true
     enable_nsfw: true
     community_creation_admin_only: true
+    require_email_verification: true
+    require_application: true
+    application_question: "string"
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"

@@ -66,6 +66,8 @@ mod tests {
       updated: None,
       community_creation_admin_only: Some(false),
       require_email_verification: None,
+      require_application: None,
+      application_question: None,
     };
 
     Site::create(&conn, &site_form).unwrap();

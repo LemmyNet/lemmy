@@ -40,6 +40,7 @@ impl PerformCrud for EditSite {
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
+    let application_question = diesel_option_overwrite(&data.application_question);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
@@ -60,6 +61,8 @@ impl PerformCrud for EditSite {
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
       require_email_verification: data.require_email_verification,
+      require_application: data.require_application,
+      application_question,
     };
 
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);

@@ -24,6 +24,7 @@ pub struct LocalUser {
   pub show_read_posts: bool,
   pub show_new_post_notifs: bool,
   pub email_verified: bool,
+  pub accepted_application: bool,
 }
 
 // TODO redo these, check table defaults
@@ -45,6 +46,7 @@ pub struct LocalUserForm {
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
+  pub accepted_application: Option<bool>,
 }
 
 /// A local user view that removes password encrypted

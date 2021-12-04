@@ -261,6 +261,7 @@ impl Perform for SaveUserSettings {
       show_new_post_notifs: data.show_new_post_notifs,
       send_notifications_to_email: data.send_notifications_to_email,
       email_verified: None,
+      accepted_application: None,
     };
 
     let local_user_res = blocking(context.pool(), move |conn| {

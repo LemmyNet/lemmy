@@ -38,6 +38,15 @@ pub async fn match_websocket_operation(
     UserOperation::GetCaptcha => do_websocket_operation::<GetCaptcha>(context, id, op, data).await,
     UserOperation::GetReplies => do_websocket_operation::<GetReplies>(context, id, op, data).await,
     UserOperation::AddAdmin => do_websocket_operation::<AddAdmin>(context, id, op, data).await,
+    UserOperation::GetUnreadRegistrationApplicationCount => {
+      do_websocket_operation::<GetUnreadRegistrationApplicationCount>(context, id, op, data).await
+    }
+    UserOperation::ListRegistrationApplications => {
+      do_websocket_operation::<ListRegistrationApplications>(context, id, op, data).await
+    }
+    UserOperation::ApproveRegistrationApplication => {
+      do_websocket_operation::<ApproveRegistrationApplication>(context, id, op, data).await
+    }
     UserOperation::BanPerson => do_websocket_operation::<BanPerson>(context, id, op, data).await,
     UserOperation::BlockPerson => {
       do_websocket_operation::<BlockPerson>(context, id, op, data).await

@@ -44,6 +44,7 @@ impl PerformCrud for GetSite {
             captcha_uuid: None,
             captcha_answer: None,
             honeypot: None,
+            answer: None,
           };
           let admin_jwt = register
             .perform(context, websocket_id)
@@ -62,6 +63,9 @@ impl PerformCrud for GetSite {
             open_registration: setup.open_registration,
             enable_nsfw: setup.enable_nsfw,
             community_creation_admin_only: setup.community_creation_admin_only,
+            require_email_verification: setup.require_email_verification,
+            require_application: setup.require_application,
+            application_question: setup.application_question.to_owned(),
             auth: admin_jwt,
           };
           create_site.perform(context, websocket_id).await?;

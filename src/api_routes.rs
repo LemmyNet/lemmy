@@ -211,9 +211,21 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       )
       // Admin Actions
       .service(
-        web::resource("/admin/add")
+        web::scope("/admin")
           .wrap(rate_limit.message())
-          .route(web::post().to(route_post::<AddAdmin>)),
+          .route("/add", web::post().to(route_post::<AddAdmin>))
+          .route(
+            "/registration_application/count",
+            web::get().to(route_get::<GetUnreadRegistrationApplicationCount>),
+          )
+          .route(
+            "/registration_application/list",
+            web::get().to(route_get::<ListRegistrationApplications>),
+          )
+          .route(
+            "/registration_application/approve",
+            web::put().to(route_post::<ApproveRegistrationApplication>),
+          ),
       ),
   );
 }

@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     },
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
+    registration_application::{RegistrationApplication, RegistrationApplicationForm},
     site::Site,
   },
   traits::{Crud, Followable, Joinable},
@@ -47,8 +48,8 @@ impl PerformCrud for Register {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
-    // no email verification if the site is not setup yet
-    let mut email_verification = false;
+    // no email verification, or applications if the site is not setup yet
+    let (mut email_verification, mut require_application) = (false, false);
 
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), Site::read_simple).await? {
@@ -56,6 +57,7 @@ impl PerformCrud for Register {
         return Err(ApiError::err_plain("registration_closed").into());
       }
       email_verification = site.require_email_verification;
+      require_application = site.require_application;
     }
 
     password_length_check(&data.password)?;
@@ -63,6 +65,10 @@ impl PerformCrud for Register {
 
     if email_verification && data.email.is_none() {
       return Err(ApiError::err_plain("email_required").into());
+    }
+
+    if require_application && data.answer.is_none() {
+      return Err(ApiError::err_plain("registration_application_answer_required").into());
     }
 
     // Make sure passwords match
@@ -164,6 +170,21 @@ impl PerformCrud for Register {
       }
     };
 
+    if require_application {
+      // Create the registration application
+      let form = RegistrationApplicationForm {
+        local_user_id: Some(inserted_local_user.id),
+        // We already made sure answer was not null above
+        answer: data.answer.to_owned(),
+        ..RegistrationApplicationForm::default()
+      };
+
+      blocking(context.pool(), move |conn| {
+        RegistrationApplication::create(conn, &form)
+      })
+      .await??;
+    }
+
     let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
@@ -243,6 +264,7 @@ impl PerformCrud for Register {
         &context.settings().hostname,
       )?)
     };
+    // TODO this needs a "registration created" type response
     Ok(LoginResponse { jwt })
   }
 }

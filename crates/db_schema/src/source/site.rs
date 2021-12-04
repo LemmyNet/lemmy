@@ -21,6 +21,8 @@ pub struct Site {
   pub description: Option<String>,
   pub community_creation_admin_only: bool,
   pub require_email_verification: bool,
+  pub require_application: bool,
+  pub application_question: Option<String>,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
@@ -39,4 +41,6 @@ pub struct SiteForm {
   pub description: Option<Option<String>>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
+  pub require_application: Option<bool>,
+  pub application_question: Option<Option<String>>,
 }

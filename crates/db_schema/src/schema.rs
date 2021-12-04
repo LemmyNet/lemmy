@@ -158,6 +158,7 @@ table! {
         show_read_posts -> Bool,
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
+        accepted_application -> Bool,
     }
 }
 
@@ -449,6 +450,8 @@ table! {
         description -> Nullable<Text>,
         community_creation_admin_only -> Bool,
         require_email_verification -> Bool,
+        require_application -> Bool,
+        application_question -> Nullable<Text>,
     }
 }
 
@@ -569,6 +572,17 @@ table! {
   }
 }
 
+table! {
+    registration_application (id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        answer -> Text,
+        admin_id -> Nullable<Int4>,
+        deny_reason -> Nullable<Text>,
+        published -> Timestamp,
+    }
+}
+
 joinable!(comment_alias_1 -> person_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(person_mention -> person_alias_1 (recipient_id));
@@ -631,6 +645,8 @@ joinable!(post_saved -> post (post_id));
 joinable!(site -> person (creator_id));
 joinable!(site_aggregates -> site (site_id));
 joinable!(email_verification -> local_user (local_user_id));
+joinable!(registration_application -> local_user (local_user_id));
+joinable!(registration_application -> person (admin_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -674,5 +690,6 @@ allow_tables_to_appear_in_same_query!(
   comment_alias_1,
   person_alias_1,
   person_alias_2,
-  email_verification
+  email_verification,
+  registration_application
 );
