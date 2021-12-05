@@ -81,6 +81,11 @@ where
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 
+  *request_counter += 1;
+  if *request_counter > context.settings().http_fetch_retry_limit {
+    return Err(LemmyError::from(anyhow!("Request retry limit reached")));
+  }
+
   let response = retry(|| context.client().get(&fetch_url).send()).await?;
 
   let res: WebfingerResponse = response
