@@ -117,14 +117,14 @@
 ### Приложения
 
 - [lemmy-ui - Официальное веб приложение для lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [Lemmur - Мобильные клиенты Lemmy для (Android, Linux, Windows)](https://github.com/krawieck/lemmur)
+- [Lemmur - Мобильные клиенты Lemmy для (Android, Linux, Windows)](https://github.com/LemmurOrg/lemmur)
 - [Remmel - Оригинальное приложение для iOS](https://github.com/uuttff8/Lemmy-iOS)
 
 ### Библиотеки
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
 - [Kotlin API ( в разработке )](https://github.com/eiknat/lemmy-client)
-- [Dart API client ( в разработке )](https://github.com/krawieck/lemmy_api_client)
+- [Dart API client ( в разработке )](https://github.com/LemmurOrg/lemmy_api_client)
 
 ## Поддержать / Пожертвовать
 
