@@ -84,7 +84,9 @@ where
 
   *request_counter += 1;
   if *request_counter > context.settings().http_fetch_retry_limit {
-    return Err(LemmyError::from(anyhow!("Request retry limit reached")));
+    return Err(LemmyError::from(anyhow::anyhow!(
+      "Request retry limit reached"
+    )));
   }
 
   let response = retry(|| context.client().get(&fetch_url).send()).await?;
@@ -109,7 +111,7 @@ where
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await;
     if object.is_ok() {
       return object.map(|o| o.actor_id().into());

@@ -64,11 +64,14 @@ impl ActivityHandler for UndoFollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let person = self.actor.dereference(context, request_counter).await?;
+    let person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
     let community = self
       .object
       .object
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
 
     let community_follower_form = CommunityFollowerForm {

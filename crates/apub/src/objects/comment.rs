@@ -179,7 +179,7 @@ impl ApubObject for ApubComment {
   ) -> Result<ApubComment, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 
@@ -246,7 +246,8 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
@@ -276,7 +277,8 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_comment() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;

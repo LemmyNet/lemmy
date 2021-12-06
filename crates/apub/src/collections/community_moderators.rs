@@ -110,7 +110,9 @@ impl ApubObject for ApubCommunityModerators {
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
       let mod_id = ObjectId::new(mod_id);
-      let mod_user: ApubPerson = mod_id.dereference(&data.1, request_counter).await?;
+      let mod_user: ApubPerson = mod_id
+        .dereference(&data.1, data.1.client(), request_counter)
+        .await?;
 
       if !current_moderators
         .iter()
@@ -154,7 +156,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_community_moderators() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;

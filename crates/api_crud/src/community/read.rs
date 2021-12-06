@@ -45,7 +45,7 @@ impl PerformCrud for GetCommunity {
             .await?;
 
         ObjectId::<ApubCommunity>::new(community_actor_id)
-          .dereference(context, &mut 0)
+          .dereference(context, context.client(), &mut 0)
           .await
           .map_err(LemmyError::from)
           .map_err(|e| e.with_message("couldnt_find_community"))?

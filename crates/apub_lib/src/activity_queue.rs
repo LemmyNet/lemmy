@@ -10,7 +10,7 @@ use background_jobs::{
   WorkerConfig,
 };
 use lemmy_utils::{location_info, LemmyError};
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::{env, fmt::Debug, future::Future, pin::Pin};
 use tracing::{info, warn};
@@ -21,7 +21,7 @@ pub async fn send_activity(
   actor: &dyn ActorType,
   inboxes: Vec<&Url>,
   activity: String,
-  client: &Client,
+  client: &ClientWithMiddleware,
   activity_queue: &QueueHandle,
 ) -> Result<(), LemmyError> {
   for i in inboxes {
@@ -66,7 +66,7 @@ impl ActixJob for SendActivityTask {
   }
 }
 
-async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
+async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Result<(), Error> {
   info!("Sending {} to {}", task.activity_id, task.inbox);
   let result = sign_and_send(
     client,
@@ -101,10 +101,10 @@ async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
   Ok(())
 }
 
-pub fn create_activity_queue() -> Manager {
+pub fn create_activity_queue(client: ClientWithMiddleware) -> Manager {
   // Configure and start our workers
-  WorkerConfig::new_managed(Storage::new(), |_| MyState {
-    client: Client::default(),
+  WorkerConfig::new_managed(Storage::new(), move |_| MyState {
+    client: client.clone(),
   })
   .register::<SendActivityTask>()
   .start()
@@ -112,5 +112,5 @@ pub fn create_activity_queue() -> Manager {
 
 #[derive(Clone)]
 struct MyState {
-  pub client: Client,
+  pub client: ClientWithMiddleware,
 }
