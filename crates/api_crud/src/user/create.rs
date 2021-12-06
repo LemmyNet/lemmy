@@ -1,6 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, honeypot_check, password_length_check, person::*};
+use lemmy_api_common::{
+  blocking,
+  honeypot_check,
+  password_length_check,
+  person::*,
+  send_verification_email,
+};
 use lemmy_apub::{
   generate_followers_url,
   generate_inbox_url,
@@ -34,7 +40,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{email::send_verification_email, messages::CheckCaptcha, LemmyContext};
+use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for Register {
@@ -258,7 +264,8 @@ impl PerformCrud for Register {
         // we check at the beginning of this method that email is set
         &inserted_local_user.email.expect("email was provided"),
         &inserted_person.name,
-        context,
+        context.pool(),
+        &context.settings(),
       )
       .await?;
       LoginResponse {

@@ -10,6 +10,9 @@ use lemmy_api_common::{
   is_admin,
   password_length_check,
   person::*,
+  send_email_verification_success,
+  send_password_reset_email,
+  send_verification_email,
 };
 use lemmy_db_schema::{
   diesel_option_overwrite,
@@ -47,14 +50,12 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{
   claims::Claims,
-  email::send_email,
   location_info,
-  utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
+  utils::{is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ConnectionId,
   LemmyError,
 };
 use lemmy_websocket::{
-  email::send_verification_email,
   messages::{CaptchaItem, SendAllMessage},
   LemmyContext,
   UserOperation,
@@ -94,6 +95,10 @@ impl Perform for Login {
     let site = blocking(context.pool(), Site::read_simple).await??;
     if site.require_email_verification && !local_user_view.local_user.email_verified {
       return Err(LemmyError::from_message("email_not_verified"));
+    }
+
+    if site.require_application && !local_user_view.local_user.accepted_application {
+      return Err(LemmyError::from_message("registration_application_pending"));
     }
 
     // Return the jwt
@@ -187,7 +192,8 @@ impl Perform for SaveUserSettings {
           local_user_view.local_user.id,
           email,
           &local_user_view.person.name,
-          context,
+          context.pool(),
+          &context.settings(),
         )
         .await?;
         None
@@ -774,31 +780,8 @@ impl Perform for PasswordReset {
     .map_err(LemmyError::from)
     .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
 
-    // Generate a random token
-    let token = generate_random_string();
-
-    // Insert the row
-    let token2 = token.clone();
-    let local_user_id = local_user_view.local_user.id;
-    blocking(context.pool(), move |conn| {
-      PasswordResetRequest::create_token(conn, local_user_id, &token2)
-    })
-    .await??;
-
     // Email the pure token to the user.
-    // TODO no i18n support here.
-    let email = &local_user_view.local_user.email.expect("email");
-    let subject = &format!("Password reset for {}", local_user_view.person.name);
-    let protocol_and_hostname = &context.settings().get_protocol_and_hostname();
-    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, protocol_and_hostname, &token);
-    send_email(
-      subject,
-      email,
-      &local_user_view.person.name,
-      html,
-      &context.settings(),
-    )?;
-
+    send_password_reset_email(&local_user_view, context.pool(), &context.settings()).await?;
     Ok(PasswordResetResponse {})
   }
 }
@@ -962,6 +945,13 @@ impl Perform for VerifyEmail {
       LocalUser::update(conn, local_user_id, &form)
     })
     .await??;
+
+    let local_user_view = blocking(context.pool(), move |conn| {
+      LocalUserView::read(conn, local_user_id)
+    })
+    .await??;
+
+    send_email_verification_success(&local_user_view, &context.settings())?;
 
     Ok(VerifyEmailResponse {})
   }

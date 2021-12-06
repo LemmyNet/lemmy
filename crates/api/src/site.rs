@@ -9,6 +9,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
+  send_application_approved_email,
   site::*,
 };
 use lemmy_apub::{
@@ -655,6 +656,14 @@ impl Perform for ApproveRegistrationApplication {
       LocalUser::update(conn, approved_user_id, &local_user_form)
     })
     .await??;
+
+    let require_email_verification = blocking(context.pool(), Site::read_simple)
+      .await??
+      .require_email_verification;
+
+    if require_email_verification && data.approve {
+      send_application_approved_email(&local_user_view, &context.settings())?;
+    }
 
     // Read the view
     let registration_application = blocking(context.pool(), move |conn| {
