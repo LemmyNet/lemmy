@@ -3,25 +3,25 @@ use lemmy_db_schema::{
   limit_and_offset,
   schema::{local_user, person, person_alias_1, registration_application},
   source::{
-    local_user::LocalUser,
+    local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     registration_application::RegistrationApplication,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{MaybeOptional, ToSafe, ToSafeSettings, ViewToVec},
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct RegistrationApplicationView {
   pub registration_application: RegistrationApplication,
-  pub creator_local_user: LocalUser,
+  pub creator_local_user: LocalUserSettings,
   pub creator: PersonSafe,
   pub admin: Option<PersonSafeAlias1>,
 }
 
 type RegistrationApplicationViewTuple = (
   RegistrationApplication,
-  LocalUser,
+  LocalUserSettings,
   PersonSafe,
   Option<PersonSafeAlias1>,
 );
@@ -42,7 +42,7 @@ impl RegistrationApplicationView {
         .order_by(registration_application::published.desc())
         .select((
           registration_application::all_columns,
-          local_user::all_columns,
+          LocalUser::safe_settings_columns_tuple(),
           Person::safe_columns_tuple(),
           PersonAlias1::safe_columns_tuple().nullable(),
         ))
@@ -128,7 +128,7 @@ impl<'a> RegistrationApplicationQueryBuilder<'a> {
       .order_by(registration_application::published.desc())
       .select((
         registration_application::all_columns,
-        local_user::all_columns,
+        LocalUser::safe_settings_columns_tuple(),
         Person::safe_columns_tuple(),
         PersonAlias1::safe_columns_tuple().nullable(),
       ))
@@ -179,7 +179,7 @@ mod tests {
   use lemmy_db_schema::{
     establish_unpooled_connection,
     source::{
-      local_user::{LocalUser, LocalUserForm},
+      local_user::{LocalUser, LocalUserForm, LocalUserSettings},
       person::*,
       registration_application::{RegistrationApplication, RegistrationApplicationForm},
     },
@@ -262,7 +262,25 @@ mod tests {
 
     let mut expected_sara_app_view = RegistrationApplicationView {
       registration_application: sara_app.to_owned(),
-      creator_local_user: inserted_sara_local_user.to_owned(),
+      creator_local_user: LocalUserSettings {
+        id: inserted_sara_local_user.id,
+        person_id: inserted_sara_local_user.person_id,
+        email: inserted_sara_local_user.email,
+        show_nsfw: inserted_sara_local_user.show_nsfw,
+        theme: inserted_sara_local_user.theme,
+        default_sort_type: inserted_sara_local_user.default_sort_type,
+        default_listing_type: inserted_sara_local_user.default_listing_type,
+        lang: inserted_sara_local_user.lang,
+        show_avatars: inserted_sara_local_user.show_avatars,
+        send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
+        validator_time: inserted_sara_local_user.validator_time,
+        show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
+        show_scores: inserted_sara_local_user.show_scores,
+        show_read_posts: inserted_sara_local_user.show_read_posts,
+        show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
+        email_verified: inserted_sara_local_user.email_verified,
+        accepted_application: inserted_sara_local_user.accepted_application,
+      },
       creator: PersonSafe {
         id: inserted_sara_person.id,
         name: inserted_sara_person.name.to_owned(),

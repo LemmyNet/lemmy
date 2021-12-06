@@ -31,6 +31,8 @@ mod safe_settings_type {
     show_scores,
     show_read_posts,
     show_new_post_notifs,
+    email_verified,
+    accepted_application,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -54,6 +56,8 @@ mod safe_settings_type {
         show_scores,
         show_read_posts,
         show_new_post_notifs,
+        email_verified,
+        accepted_application,
       )
     }
   }

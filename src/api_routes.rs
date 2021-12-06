@@ -211,8 +211,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/report_count", web::get().to(route_get::<GetReportCount>))
           .route("/unread_count", web::get().to(route_get::<GetUnreadCount>))
-          // TODO: currently GET for easier testing, but should probably be POST
-          .route("/verify_email", web::get().to(route_get::<VerifyEmail>)),
+          .route("/verify_email", web::post().to(route_post::<VerifyEmail>)),
       )
       // Admin Actions
       .service(

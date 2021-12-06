@@ -68,4 +68,6 @@ pub struct LocalUserSettings {
   pub show_scores: bool,
   pub show_read_posts: bool,
   pub show_new_post_notifs: bool,
+  pub email_verified: bool,
+  pub accepted_application: bool,
 }

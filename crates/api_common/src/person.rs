@@ -81,8 +81,7 @@ pub struct ChangePassword {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginResponse {
-  /// This is None in response to `Register` if email verification is enabled, and in response to
-  /// `DeleteAccount`.
+  /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
   pub jwt: Option<Sensitive<String>>,
   pub registration_created: bool,
   pub verify_email_sent: bool,
@@ -201,6 +200,9 @@ pub struct DeleteAccount {
   pub auth: Sensitive<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeleteAccountResponse {}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PasswordReset {
   pub email: Sensitive<String>,
@@ -291,3 +293,6 @@ pub struct GetUnreadCountResponse {
 pub struct VerifyEmail {
   pub token: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VerifyEmailResponse {}

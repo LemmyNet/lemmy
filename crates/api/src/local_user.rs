@@ -935,7 +935,7 @@ impl Perform for GetUnreadCount {
 
 #[async_trait::async_trait(?Send)]
 impl Perform for VerifyEmail {
-  type Response = ();
+  type Response = VerifyEmailResponse;
 
   async fn perform(
     &self,
@@ -963,6 +963,6 @@ impl Perform for VerifyEmail {
     })
     .await??;
 
-    Ok(())
+    Ok(VerifyEmailResponse {})
   }
 }
