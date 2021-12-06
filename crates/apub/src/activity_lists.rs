@@ -88,6 +88,7 @@ pub enum AnnouncableActivities {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for AnnouncableActivities {
+  #[tracing::instrument(skip(self, context))]
   async fn get_community(
     &self,
     context: &LemmyContext,

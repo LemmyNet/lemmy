@@ -26,13 +26,14 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetPostUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPost {
   type Response = GetPostResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -40,7 +41,8 @@ impl PerformCrud for GetPost {
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
@@ -54,7 +56,8 @@ impl PerformCrud for GetPost {
       PostView::read(conn, id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_post", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_post"))?;
 
     // Mark the post as read
     if let Some(person_id) = person_id {
@@ -78,7 +81,8 @@ impl PerformCrud for GetPost {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_community"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {
@@ -123,6 +127,7 @@ impl PerformCrud for GetPost {
 impl PerformCrud for GetPosts {
   type Response = GetPostsResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -130,7 +135,8 @@ impl PerformCrud for GetPosts {
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
@@ -175,7 +181,8 @@ impl PerformCrud for GetPosts {
         .list()
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_get_posts", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_get_posts"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {

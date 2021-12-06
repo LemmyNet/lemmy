@@ -115,7 +115,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
       }
       ws::Message::Text(text) => {
         let m = text.trim().to_owned();
-        info!("Message received: {:?} from id: {}", &m, self.id);
 
         self
           .cs_addr

@@ -10,13 +10,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
-use lemmy_utils::{utils::naive_from_unix, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{utils::naive_from_unix, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteCommunity {
   type Response = CommunityResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -35,7 +36,7 @@ impl PerformCrud for DeleteCommunity {
 
     // Make sure deleter is the top mod
     if local_user_view.person.id != community_mods[0].moderator.id {
-      return Err(ApiError::err_plain("no_community_edit_allowed").into());
+      return Err(LemmyError::from_message("no_community_edit_allowed"));
     }
 
     // Do the delete
@@ -45,7 +46,8 @@ impl PerformCrud for DeleteCommunity {
       Community::update_deleted(conn, community_id, deleted)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_community"))?;
 
     // Send apub messages
     send_apub_delete(
@@ -72,6 +74,7 @@ impl PerformCrud for DeleteCommunity {
 impl PerformCrud for RemoveCommunity {
   type Response = CommunityResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -91,7 +94,8 @@ impl PerformCrud for RemoveCommunity {
       Community::update_removed(conn, community_id, removed)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_community"))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

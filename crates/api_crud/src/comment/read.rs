@@ -18,13 +18,14 @@ use lemmy_db_schema::{
   SortType,
 };
 use lemmy_db_views::comment_view::{CommentQueryBuilder, CommentView};
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -32,7 +33,8 @@ impl PerformCrud for GetComment {
   ) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
@@ -42,7 +44,8 @@ impl PerformCrud for GetComment {
       CommentView::read(conn, id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_comment", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_comment"))?;
 
     Ok(Self::Response {
       comment_view,
@@ -56,6 +59,7 @@ impl PerformCrud for GetComment {
 impl PerformCrud for GetComments {
   type Response = GetCommentsResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -63,7 +67,8 @@ impl PerformCrud for GetComments {
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
@@ -100,7 +105,8 @@ impl PerformCrud for GetComments {
         .list()
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_get_comments", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_get_comments"))?;
 
     // Blank out deleted or removed info
     for cv in comments

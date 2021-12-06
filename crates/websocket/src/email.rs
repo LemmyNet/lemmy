@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::email_verification::{EmailVerification, EmailVerificationForm},
   traits::Crud,
 };
-use lemmy_utils::{email::send_email, utils::generate_random_string, ApiError, LemmyError};
+use lemmy_utils::{email::send_email, utils::generate_random_string, LemmyError};
 
 pub async fn send_verification_email(
   local_user_id: LocalUserId,
@@ -39,8 +39,7 @@ pub async fn send_verification_email(
     ),
     username, settings.hostname, verify_link
   );
-  send_email(&subject, new_email, username, &body, &context.settings())
-    .map_err(|e| ApiError::err("email_send_failed", e))?;
+  send_email(&subject, new_email, username, &body, &context.settings())?;
 
   Ok(())
 }

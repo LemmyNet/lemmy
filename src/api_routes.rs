@@ -1,4 +1,4 @@
-use actix_web::{error::ErrorBadRequest, *};
+use actix_web::*;
 use lemmy_api::Perform;
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
 use lemmy_api_crud::PerformCrud;
@@ -246,8 +246,7 @@ where
   let res = data
     .perform(&context, None)
     .await
-    .map(|json| HttpResponse::Ok().json(json))
-    .map_err(ErrorBadRequest)?;
+    .map(|json| HttpResponse::Ok().json(json))?;
   Ok(res)
 }
 
@@ -282,8 +281,7 @@ where
   let res = data
     .perform(&context, None)
     .await
-    .map(|json| HttpResponse::Ok().json(json))
-    .map_err(ErrorBadRequest)?;
+    .map(|json| HttpResponse::Ok().json(json))?;
   Ok(res)
 }
 

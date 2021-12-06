@@ -1,5 +1,5 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
@@ -28,6 +28,7 @@ pub mod protocol;
 ///
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
+#[tracing::instrument(skip(settings))]
 pub(crate) fn check_is_apub_id_valid(
   apub_id: &Url,
   use_strict_allowlist: bool,
@@ -40,24 +41,28 @@ pub(crate) fn check_is_apub_id_valid(
     return if domain == local_instance {
       Ok(())
     } else {
-      Err(
-        anyhow!(
-          "Trying to connect with {}, but federation is disabled",
-          domain
-        )
-        .into(),
-      )
+      let error = LemmyError::from(anyhow::anyhow!(
+        "Trying to connect with {}, but federation is disabled",
+        domain
+      ));
+      Err(error.with_message("federation_disabled"))
     };
   }
 
   let host = apub_id.host_str().context(location_info!())?;
   let host_as_ip = host.parse::<IpAddr>();
   if host == "localhost" || host_as_ip.is_ok() {
-    return Err(anyhow!("invalid hostname {}: {}", host, apub_id).into());
+    let error = LemmyError::from(anyhow::anyhow!("invalid hostname {}: {}", host, apub_id));
+    return Err(error.with_message("invalid_hostname"));
   }
 
   if apub_id.scheme() != settings.get_protocol_string() {
-    return Err(anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id).into());
+    let error = LemmyError::from(anyhow::anyhow!(
+      "invalid apub id scheme {}: {}",
+      apub_id.scheme(),
+      apub_id
+    ));
+    return Err(error.with_message("invalid_scheme"));
   }
 
   // TODO: might be good to put the part above in one method, and below in another
@@ -65,7 +70,8 @@ pub(crate) fn check_is_apub_id_valid(
   //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
   if let Some(blocked) = settings.to_owned().federation.blocked_instances {
     if blocked.contains(&domain) {
-      return Err(anyhow!("{} is in federation blocklist", domain).into());
+      let error = LemmyError::from(anyhow::anyhow!("{} is in federation blocklist", domain));
+      return Err(error.with_message("federation_blocked"));
     }
   }
 
@@ -78,7 +84,8 @@ pub(crate) fn check_is_apub_id_valid(
       allowed.push(local_instance);
 
       if !allowed.contains(&domain) {
-        return Err(anyhow!("{} not in federation allowlist", domain).into());
+        let error = LemmyError::from(anyhow::anyhow!("{} not in federation allowlist", domain));
+        return Err(error.with_message("federation_not_allowed"));
       }
     }
   }
@@ -163,6 +170,7 @@ fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
+#[tracing::instrument(skip(pool))]
 async fn insert_activity(
   ap_id: &Url,
   activity: serde_json::Value,

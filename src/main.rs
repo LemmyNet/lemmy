@@ -18,6 +18,7 @@ use lemmy_server::{
   api_routes,
   code_migrations::run_advanced_migrations,
   init_tracing,
+  root_span_builder::QuieterRootSpanBuilder,
   scheduled_tasks,
 };
 use lemmy_utils::{
@@ -123,7 +124,8 @@ async fn main() -> Result<(), LemmyError> {
     );
     let rate_limiter = rate_limiter.clone();
     App::new()
-      .wrap(TracingLogger::default())
+      .wrap(actix_web::middleware::Logger::default())
+      .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))

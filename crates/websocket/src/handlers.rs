@@ -76,7 +76,10 @@ impl Handler<StandardMessage> for ChatServer {
         }
         Err(e) => {
           error!("Error during message handling {}", e);
-          Ok(e.to_string())
+          Ok(
+            e.to_json()
+              .unwrap_or_else(|_| String::from(r#"{"error":"failed to serialize json"}"#)),
+          )
         }
       }
     })

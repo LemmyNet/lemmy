@@ -116,14 +116,14 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 ### Apps
 
 - [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/krawieck/lemmur)
+- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/LemmurOrg/lemmur)
 - [Remmel - A native iOS app](https://github.com/uuttff8/Lemmy-iOS)
 
 ### Libraries
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
 - [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
-- [Dart API client](https://github.com/krawieck/lemmy_api_client)
+- [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
 
 ## Support / Donate
 

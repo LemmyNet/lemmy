@@ -11,6 +11,7 @@ use lemmy_websocket::{
 impl Perform for UserJoin {
   type Response = UserJoinResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -35,6 +36,7 @@ impl Perform for UserJoin {
 impl Perform for CommunityJoin {
   type Response = CommunityJoinResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -57,6 +59,7 @@ impl Perform for CommunityJoin {
 impl Perform for ModJoin {
   type Response = ModJoinResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -79,6 +82,7 @@ impl Perform for ModJoin {
 impl Perform for PostJoin {
   type Response = PostJoinResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

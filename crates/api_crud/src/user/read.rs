@@ -18,13 +18,14 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   person_view::PersonViewSafe,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPersonDetails {
   type Response = GetPersonDetailsResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -32,7 +33,8 @@ impl PerformCrud for GetPersonDetails {
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let data: &GetPersonDetails = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
@@ -60,7 +62,8 @@ impl PerformCrud for GetPersonDetails {
           .dereference(context, &mut 0)
           .await;
         person
-          .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?
+          .map_err(LemmyError::from)
+          .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
           .id
       }
     };

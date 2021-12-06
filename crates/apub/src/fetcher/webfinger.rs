@@ -1,5 +1,4 @@
 use crate::{generate_local_apub_endpoint, EndpointType};
-use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_apub_lib::{
   object_id::ObjectId,
@@ -34,6 +33,7 @@ pub struct WebfingerResponse {
 ///
 /// TODO: later provide a method in ApubObject to generate the endpoint, so that we dont have to
 ///       pass in EndpointType
+#[tracing::instrument(skip_all)]
 pub async fn webfinger_resolve<Kind>(
   identifier: &str,
   endpoint_type: EndpointType,
@@ -61,6 +61,7 @@ where
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
+#[tracing::instrument(skip_all)]
 pub(crate) async fn webfinger_resolve_actor<Kind>(
   identifier: &str,
   context: &LemmyContext,
@@ -83,7 +84,9 @@ where
 
   *request_counter += 1;
   if *request_counter > context.settings().http_fetch_retry_limit {
-    return Err(LemmyError::from(anyhow!("Request retry limit reached")));
+    return Err(LemmyError::from(anyhow::anyhow!(
+      "Request retry limit reached"
+    )));
   }
 
   let response = retry(|| context.client().get(&fetch_url).send()).await?;
@@ -114,5 +117,9 @@ where
       return object.map(|o| o.actor_id().into());
     }
   }
-  Err(anyhow!("Failed to resolve actor for {}", identifier).into())
+  let error = LemmyError::from(anyhow::anyhow!(
+    "Failed to resolve actor for {}",
+    identifier
+  ));
+  Err(error.with_message("failed_to_resolve"))
 }

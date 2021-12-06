@@ -22,13 +22,14 @@ use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::{CommunityQueryBuilder, CommunityView},
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetCommunity {
   type Response = GetCommunityResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -36,7 +37,8 @@ impl PerformCrud for GetCommunity {
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
@@ -53,7 +55,8 @@ impl PerformCrud for GetCommunity {
         ObjectId::<ApubCommunity>::new(community_actor_id)
           .dereference(context, &mut 0)
           .await
-          .map_err(|e| ApiError::err("couldnt_find_community", e))?
+          .map_err(LemmyError::from)
+          .map_err(|e| e.with_message("couldnt_find_community"))?
           .id
       }
     };
@@ -62,7 +65,8 @@ impl PerformCrud for GetCommunity {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_community"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
@@ -74,7 +78,8 @@ impl PerformCrud for GetCommunity {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_community", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_community"))?;
 
     let online = context
       .chat_server()
@@ -97,6 +102,7 @@ impl PerformCrud for GetCommunity {
 impl PerformCrud for ListCommunities {
   type Response = ListCommunitiesResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -104,7 +110,8 @@ impl PerformCrud for ListCommunities {
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 

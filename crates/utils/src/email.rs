@@ -1,4 +1,4 @@
-use crate::settings::structs::Settings;
+use crate::{settings::structs::Settings, LemmyError};
 use lettre::{
   message::{header, Mailbox, MultiPart, SinglePart},
   transport::smtp::{
@@ -20,8 +20,11 @@ pub fn send_email(
   to_username: &str,
   html: &str,
   settings: &Settings,
-) -> Result<(), String> {
-  let email_config = settings.email.to_owned().ok_or("no_email_setup")?;
+) -> Result<(), LemmyError> {
+  let email_config = settings
+    .email
+    .to_owned()
+    .ok_or_else(|| LemmyError::from_message("no_email_setup"))?;
   let domain = settings.hostname.to_owned();
 
   let (smtp_server, smtp_port) = {
@@ -87,6 +90,6 @@ pub fn send_email(
 
   match result {
     Ok(_) => Ok(()),
-    Err(e) => Err(e.to_string()),
+    Err(e) => Err(LemmyError::from(e).with_message("email_send_failed")),
   }
 }

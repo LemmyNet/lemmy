@@ -58,6 +58,7 @@ static RSS_NAMESPACE: Lazy<HashMap<String, String>> = Lazy::new(|| {
   h
 });
 
+#[tracing::instrument(skip_all)]
 async fn get_all_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -66,6 +67,7 @@ async fn get_all_feed(
   Ok(get_feed_data(&context, ListingType::All, sort_type).await?)
 }
 
+#[tracing::instrument(skip_all)]
 async fn get_local_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -74,6 +76,7 @@ async fn get_local_feed(
   Ok(get_feed_data(&context, ListingType::Local, sort_type).await?)
 }
 
+#[tracing::instrument(skip_all)]
 async fn get_feed_data(
   context: &LemmyContext,
   listing_type: ListingType,
@@ -114,6 +117,7 @@ async fn get_feed_data(
   )
 }
 
+#[tracing::instrument(skip_all)]
 async fn get_feed(
   req: HttpRequest,
   info: web::Query<Params>,
@@ -167,6 +171,7 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   SortType::from_str(&sort_query)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
@@ -194,6 +199,7 @@ fn get_feed_user(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
@@ -225,6 +231,7 @@ fn get_feed_community(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_front(
   conn: &PgConnection,
   jwt_secret: &str,
@@ -260,6 +267,7 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_inbox(
   conn: &PgConnection,
   jwt_secret: &str,
@@ -303,6 +311,7 @@ fn get_feed_inbox(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
   replies: Vec<CommentView>,
   mentions: Vec<PersonMentionView>,
@@ -346,6 +355,7 @@ fn create_reply_and_mention_items(
   Ok(reply_items)
 }
 
+#[tracing::instrument(skip_all)]
 fn build_item(
   creator_name: &str,
   published: &NaiveDateTime,
@@ -376,6 +386,7 @@ fn build_item(
   Ok(i.build().map_err(|e| anyhow!(e))?)
 }
 
+#[tracing::instrument(skip_all)]
 fn create_post_items(
   posts: Vec<PostView>,
   protocol_and_hostname: &str,

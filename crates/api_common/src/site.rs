@@ -26,6 +26,7 @@ use lemmy_db_views_moderator::{
   mod_sticky_post_view::ModStickyPostView,
   mod_transfer_community_view::ModTransferCommunityView,
 };
+use lemmy_utils::Sensitive;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -39,7 +40,7 @@ pub struct Search {
   pub listing_type: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Option<String>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -54,10 +55,10 @@ pub struct SearchResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ResolveObject {
   pub q: String,
-  pub auth: Option<String>,
+  pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ResolveObjectResponse {
   pub comment: Option<CommentView>,
   pub post: Option<PostView>,
@@ -65,7 +66,7 @@ pub struct ResolveObjectResponse {
   pub person: Option<PersonViewSafe>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetModlog {
   pub mod_person_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
@@ -73,7 +74,7 @@ pub struct GetModlog {
   pub limit: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetModlogResponse {
   pub removed_posts: Vec<ModRemovePostView>,
   pub locked_posts: Vec<ModLockPostView>,
@@ -87,7 +88,7 @@ pub struct GetModlogResponse {
   pub added: Vec<ModAddView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateSite {
   pub name: String,
   pub sidebar: Option<String>,
@@ -102,10 +103,10 @@ pub struct CreateSite {
   pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
-  pub auth: String,
+  pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct EditSite {
   pub name: Option<String>,
   pub sidebar: Option<String>,
@@ -120,20 +121,20 @@ pub struct EditSite {
   pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
-  pub auth: String,
+  pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetSite {
-  pub auth: Option<String>,
+  pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SiteResponse {
   pub site_view: SiteView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetSiteResponse {
   pub site_view: Option<SiteView>, // Because the site might not be set up yet
   pub admins: Vec<PersonViewSafe>,
@@ -144,7 +145,7 @@ pub struct GetSiteResponse {
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MyUserInfo {
   pub local_user_view: LocalUserSettingsView,
   pub follows: Vec<CommunityFollowerView>,
@@ -153,29 +154,29 @@ pub struct MyUserInfo {
   pub person_blocks: Vec<PersonBlockView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TransferSite {
   pub person_id: PersonId,
-  pub auth: String,
+  pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetSiteConfig {
-  pub auth: String,
+  pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetSiteConfigResponse {
   pub config_hjson: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SaveSiteConfig {
   pub config_hjson: String,
-  pub auth: String,
+  pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FederatedInstances {
   pub linked: Vec<String>,
   pub allowed: Option<Vec<String>>,

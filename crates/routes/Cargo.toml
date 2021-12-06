@@ -32,3 +32,4 @@ awc = { version = "3.0.0-beta.8", default-features = false }
 url = { version = "2.2.2", features = ["serde"] }
 strum = "0.21.0"
 once_cell = "1.8.0"
+tracing = "0.1.29"

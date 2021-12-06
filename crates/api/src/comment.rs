@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   traits::{Likeable, Saveable},
 };
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
 
 use crate::Perform;
@@ -32,6 +32,7 @@ use crate::Perform;
 impl Perform for MarkCommentAsRead {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -56,7 +57,7 @@ impl Perform for MarkCommentAsRead {
 
     // Verify that only the recipient can mark as read
     if local_user_view.person.id != orig_comment.get_recipient_id() {
-      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
+      return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the mark as read
@@ -65,7 +66,8 @@ impl Perform for MarkCommentAsRead {
       Comment::update_read(conn, comment_id, read)
     })
     .await?
-    .map_err(|_| ApiError::err_plain("couldnt_update_comment"))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;
@@ -89,6 +91,7 @@ impl Perform for MarkCommentAsRead {
 impl Perform for SaveComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -107,12 +110,14 @@ impl Perform for SaveComment {
       let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
       blocking(context.pool(), save_comment)
         .await?
-        .map_err(|e| ApiError::err("couldnt_save_comment", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("couldnt_save_comment"))?;
     } else {
       let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
       blocking(context.pool(), unsave_comment)
         .await?
-        .map_err(|e| ApiError::err("couldnt_save_comment", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("couldnt_save_comment"))?;
     }
 
     let comment_id = data.comment_id;
@@ -134,6 +139,7 @@ impl Perform for SaveComment {
 impl Perform for CreateCommentLike {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -201,7 +207,8 @@ impl Perform for CreateCommentLike {
       let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
       blocking(context.pool(), like)
         .await?
-        .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("couldnt_like_comment"))?;
 
       Vote::send(
         &object,

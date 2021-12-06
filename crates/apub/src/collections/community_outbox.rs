@@ -33,6 +33,7 @@ impl ApubObject for ApubCommunityOutbox {
     None
   }
 
+  #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     _object_id: Url,
     data: &Self::DataType,
@@ -58,6 +59,7 @@ impl ApubObject for ApubCommunityOutbox {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
     for post in self.0 {
@@ -80,6 +82,7 @@ impl ApubObject for ApubCommunityOutbox {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(
     group_outbox: &GroupOutbox,
     expected_domain: &Url,
@@ -90,6 +93,7 @@ impl ApubObject for ApubCommunityOutbox {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,
