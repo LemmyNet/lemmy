@@ -491,7 +491,10 @@ impl ChatServer {
       } else {
         let user_operation = UserOperation::from_str(op)?;
         let fut = (message_handler)(context, msg.id, user_operation.clone(), data);
-        rate_limiter.message().wrap(ip, fut).await
+        match user_operation {
+          UserOperation::GetCaptcha => rate_limiter.post().wrap(ip, fut).await,
+          _ => rate_limiter.message().wrap(ip, fut).await,
+        }
       }
     }
   }

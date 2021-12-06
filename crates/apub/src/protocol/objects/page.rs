@@ -24,8 +24,10 @@ pub struct Page {
   pub(crate) r#type: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   pub(crate) name: String,
   pub(crate) content: Option<String>,
