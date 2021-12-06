@@ -5,7 +5,7 @@ FROM $RUST_BUILDER_IMAGE as builder
 
 # Install compilation dependencies
 RUN apt-get update \
- && apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev \
+ && apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev git \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -25,11 +25,11 @@ FROM debian:buster-slim as lemmy
 
 # Install libpq for postgres
 RUN apt-get update \
- && apt-get -y install --no-install-recommends postgresql-client libc6 libssl1.1 \
+ && apt-get -y install --no-install-recommends postgresql-client libc6 libssl1.1 ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --gid 1000 lemmy
-RUN adduser --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
+RUN useradd --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
 
 # Copy resources
 COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
