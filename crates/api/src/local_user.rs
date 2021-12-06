@@ -49,9 +49,9 @@ use lemmy_utils::{
   email::send_email,
   location_info,
   utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
-  ApiError,
   ConnectionId,
   LemmyError,
+  Sensitive,
 };
 use lemmy_websocket::{
   messages::{CaptchaItem, SendAllMessage},
@@ -63,6 +63,7 @@ use lemmy_websocket::{
 impl Perform for Login {
   type Response = LoginResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -76,7 +77,8 @@ impl Perform for Login {
       LocalUserView::find_by_email_or_name(conn, &username_or_email)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
 
     // Verify the password
     let valid: bool = verify(
@@ -85,7 +87,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(ApiError::err_plain("password_incorrect").into());
+      return Err(LemmyError::from_message("password_incorrect"));
     }
 
     // Return the jwt
@@ -94,7 +96,8 @@ impl Perform for Login {
         local_user_view.local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -103,6 +106,7 @@ impl Perform for Login {
 impl Perform for GetCaptcha {
   type Response = GetCaptchaResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -148,6 +152,7 @@ impl Perform for GetCaptcha {
 impl Perform for SaveUserSettings {
   type Response = LoginResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -159,7 +164,7 @@ impl Perform for SaveUserSettings {
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
-    let email = diesel_option_overwrite(&data.email);
+    let email = diesel_option_overwrite(&data.email.clone().map(Sensitive::into_inner));
     let bio = diesel_option_overwrite(&data.bio);
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
@@ -167,7 +172,7 @@ impl Perform for SaveUserSettings {
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
-        return Err(ApiError::err_plain("bio_length_overflow").into());
+        return Err(LemmyError::from_message("bio_length_overflow"));
       }
     }
 
@@ -176,13 +181,13 @@ impl Perform for SaveUserSettings {
         display_name.trim(),
         context.settings().actor_name_max_length,
       ) {
-        return Err(ApiError::err_plain("invalid_username").into());
+        return Err(LemmyError::from_message("invalid_username"));
       }
     }
 
     if let Some(Some(matrix_user_id)) = &matrix_user_id {
       if !is_valid_matrix_id(matrix_user_id) {
-        return Err(ApiError::err_plain("invalid_matrix_id").into());
+        return Err(LemmyError::from_message("invalid_matrix_id"));
       }
     }
 
@@ -219,7 +224,8 @@ impl Perform for SaveUserSettings {
       Person::update(conn, person_id, &person_form)
     })
     .await?
-    .map_err(|e| ApiError::err("user_already_exists", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("user_already_exists"))?;
 
     let local_user_form = LocalUserForm {
       person_id,
@@ -253,7 +259,7 @@ impl Perform for SaveUserSettings {
           "user_already_exists"
         };
 
-        return Err(ApiError::err(err_type, e).into());
+        return Err(LemmyError::from(e).with_message(err_type));
       }
     };
 
@@ -263,7 +269,8 @@ impl Perform for SaveUserSettings {
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -272,6 +279,7 @@ impl Perform for SaveUserSettings {
 impl Perform for ChangePassword {
   type Response = LoginResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -279,13 +287,13 @@ impl Perform for ChangePassword {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &ChangePassword = self;
     let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
 
     password_length_check(&data.new_password)?;
 
     // Make sure passwords match
     if data.new_password != data.new_password_verify {
-      return Err(ApiError::err_plain("passwords_dont_match").into());
+      return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
     // Check the old password
@@ -295,7 +303,7 @@ impl Perform for ChangePassword {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(ApiError::err_plain("password_incorrect").into());
+      return Err(LemmyError::from_message("password_incorrect"));
     }
 
     let local_user_id = local_user_view.local_user.id;
@@ -311,7 +319,8 @@ impl Perform for ChangePassword {
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -320,6 +329,7 @@ impl Perform for ChangePassword {
 impl Perform for AddAdmin {
   type Response = AddAdminResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -338,7 +348,8 @@ impl Perform for AddAdmin {
       Person::add_admin(conn, added_person_id, added)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_user", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -378,6 +389,7 @@ impl Perform for AddAdmin {
 impl Perform for BanPerson {
   type Response = BanPersonResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -395,7 +407,8 @@ impl Perform for BanPerson {
     let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban);
     blocking(context.pool(), ban_person)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_user", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Remove their data if that's desired
     if data.remove_data.unwrap_or(false) {
@@ -471,6 +484,7 @@ impl Perform for BanPerson {
 impl Perform for BlockPerson {
   type Response = BlockPersonResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -485,7 +499,7 @@ impl Perform for BlockPerson {
 
     // Don't let a person block themselves
     if target_id == person_id {
-      return Err(ApiError::err_plain("cant_block_yourself").into());
+      return Err(LemmyError::from_message("cant_block_yourself"));
     }
 
     let person_block_form = PersonBlockForm {
@@ -497,12 +511,14 @@ impl Perform for BlockPerson {
       let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
       blocking(context.pool(), block)
         .await?
-        .map_err(|e| ApiError::err("person_block_already_exists", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("person_block_already_exists"))?;
     } else {
       let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
       blocking(context.pool(), unblock)
         .await?
-        .map_err(|e| ApiError::err("person_block_already_exists", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("person_block_already_exists"))?;
     }
 
     // TODO does any federated stuff need to be done here?
@@ -525,6 +541,7 @@ impl Perform for BlockPerson {
 impl Perform for GetReplies {
   type Response = GetRepliesResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -563,6 +580,7 @@ impl Perform for GetReplies {
 impl Perform for GetPersonMentions {
   type Response = GetPersonMentionsResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -598,6 +616,7 @@ impl Perform for GetPersonMentions {
 impl Perform for MarkPersonMentionAsRead {
   type Response = PersonMentionResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -614,7 +633,7 @@ impl Perform for MarkPersonMentionAsRead {
     .await??;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(ApiError::err_plain("couldnt_update_comment").into());
+      return Err(LemmyError::from_message("couldnt_update_comment"));
     }
 
     let person_mention_id = read_person_mention.id;
@@ -623,7 +642,8 @@ impl Perform for MarkPersonMentionAsRead {
       move |conn: &'_ _| PersonMention::update_read(conn, person_mention_id, read);
     blocking(context.pool(), update_mention)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
@@ -642,6 +662,7 @@ impl Perform for MarkPersonMentionAsRead {
 impl Perform for MarkAllAsRead {
   type Response = GetRepliesResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -671,7 +692,8 @@ impl Perform for MarkAllAsRead {
       let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
       blocking(context.pool(), mark_as_read)
         .await?
-        .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("couldnt_update_comment"))?;
     }
 
     // Mark all user mentions as read
@@ -679,13 +701,15 @@ impl Perform for MarkAllAsRead {
       move |conn: &'_ _| PersonMention::mark_all_as_read(conn, person_id);
     blocking(context.pool(), update_person_mentions)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Mark all private_messages as read
     let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, person_id);
     blocking(context.pool(), update_pm)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_private_message"))?;
 
     Ok(GetRepliesResponse { replies: vec![] })
   }
@@ -695,6 +719,7 @@ impl Perform for MarkAllAsRead {
 impl Perform for PasswordReset {
   type Response = PasswordResetResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -708,7 +733,8 @@ impl Perform for PasswordReset {
       LocalUserView::find_by_email(conn, &email)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_find_that_username_or_email", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
 
     // Generate a random token
     let token = generate_random_string();
@@ -734,7 +760,9 @@ impl Perform for PasswordReset {
       html,
       &context.settings(),
     )
-    .map_err(|e| ApiError::err("email_send_failed", e))?;
+    .map_err(|e| anyhow::anyhow!("{}", e))
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("email_send_failed"))?;
 
     Ok(PasswordResetResponse {})
   }
@@ -744,6 +772,7 @@ impl Perform for PasswordReset {
 impl Perform for PasswordChange {
   type Response = LoginResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -762,7 +791,7 @@ impl Perform for PasswordChange {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(ApiError::err_plain("passwords_dont_match").into());
+      return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
     // Update the user with the new password
@@ -771,7 +800,8 @@ impl Perform for PasswordChange {
       LocalUser::update_password(conn, local_user_id, &password)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_user", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Return the jwt
     Ok(LoginResponse {
@@ -779,7 +809,8 @@ impl Perform for PasswordChange {
         updated_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }
@@ -788,6 +819,7 @@ impl Perform for PasswordChange {
 impl Perform for GetReportCount {
   type Response = GetReportCountResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -825,6 +857,7 @@ impl Perform for GetReportCount {
 impl Perform for GetUnreadCount {
   type Response = GetUnreadCountResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

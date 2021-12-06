@@ -16,7 +16,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt},
-  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -26,6 +25,7 @@ use lemmy_websocket::LemmyContext;
 impl PerformCrud for CreateSite {
   type Response = SiteResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -35,7 +35,7 @@ impl PerformCrud for CreateSite {
 
     let read_site = Site::read_simple;
     if blocking(context.pool(), read_site).await?.is_ok() {
-      return Err(ApiError::err_plain("site_already_exists").into());
+      return Err(LemmyError::from_message("site_already_exists"));
     };
 
     let local_user_view =
@@ -72,7 +72,7 @@ impl PerformCrud for CreateSite {
 
     let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
     if blocking(context.pool(), create_site).await?.is_err() {
-      return Err(ApiError::err_plain("site_already_exists").into());
+      return Err(LemmyError::from_message("site_already_exists"));
     }
 
     let site_view = blocking(context.pool(), SiteView::read).await??;

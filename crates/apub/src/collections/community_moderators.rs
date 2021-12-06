@@ -29,6 +29,7 @@ impl ApubObject for ApubCommunityModerators {
     None
   }
 
+  #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     _object_id: Url,
     data: &Self::DataType,
@@ -46,10 +47,12 @@ impl ApubObject for ApubCommunityModerators {
     }
   }
 
+  #[tracing::instrument(skip_all)]
   async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip_all)]
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let ordered_items = self
       .0
@@ -67,6 +70,7 @@ impl ApubObject for ApubCommunityModerators {
     unimplemented!()
   }
 
+  #[tracing::instrument(skip_all)]
   async fn verify(
     group_moderators: &GroupModerators,
     expected_domain: &Url,
@@ -77,6 +81,7 @@ impl ApubObject for ApubCommunityModerators {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,

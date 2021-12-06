@@ -22,6 +22,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 impl UndoDeletePrivateMessage {
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     actor: &ApubPerson,
     pm: &ApubPrivateMessage,
@@ -54,6 +55,8 @@ impl UndoDeletePrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDeletePrivateMessage {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -67,6 +70,7 @@ impl ActivityHandler for UndoDeletePrivateMessage {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,

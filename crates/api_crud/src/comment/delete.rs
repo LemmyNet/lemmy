@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::comment_view::CommentView;
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{
   send::{send_comment_ws_message, send_local_notifs},
   LemmyContext,
@@ -29,6 +29,7 @@ use lemmy_websocket::{
 impl PerformCrud for DeleteComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -46,7 +47,7 @@ impl PerformCrud for DeleteComment {
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
-      return Err(ApiError::err_plain("couldnt_update_comment").into());
+      return Err(LemmyError::from_message("couldnt_update_comment"));
     }
 
     check_community_ban(
@@ -58,7 +59,7 @@ impl PerformCrud for DeleteComment {
 
     // Verify that only the creator can delete
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
+      return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the delete
@@ -67,7 +68,8 @@ impl PerformCrud for DeleteComment {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     let post_id = updated_comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -112,6 +114,7 @@ impl PerformCrud for DeleteComment {
 impl PerformCrud for RemoveComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -148,7 +151,8 @@ impl PerformCrud for RemoveComment {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {

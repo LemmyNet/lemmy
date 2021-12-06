@@ -32,6 +32,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 impl AddMod {
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     community: &ApubCommunity,
     added_mod: &ApubPerson,
@@ -63,6 +64,7 @@ impl AddMod {
 impl ActivityHandler for AddMod {
   type DataType = LemmyContext;
 
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
@@ -77,6 +79,7 @@ impl ActivityHandler for AddMod {
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
@@ -109,6 +112,7 @@ impl ActivityHandler for AddMod {
 
 #[async_trait::async_trait(?Send)]
 impl GetCommunity for AddMod {
+  #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,

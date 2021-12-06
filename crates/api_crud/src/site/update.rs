@@ -15,12 +15,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::site_view::SiteView;
-use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
   type Response = SiteResponse;
+
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -64,7 +66,8 @@ impl PerformCrud for EditSite {
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
     blocking(context.pool(), update_site)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_update_site"))?;
 
     let site_view = blocking(context.pool(), SiteView::read).await??;
 

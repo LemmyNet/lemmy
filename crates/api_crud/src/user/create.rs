@@ -32,7 +32,6 @@ use lemmy_utils::{
   apub::generate_actor_keypair,
   claims::Claims,
   utils::{check_slurs, is_valid_actor_name},
-  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -42,6 +41,7 @@ use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
 impl PerformCrud for Register {
   type Response = LoginResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -52,7 +52,7 @@ impl PerformCrud for Register {
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), Site::read_simple).await? {
       if !site.open_registration {
-        return Err(ApiError::err_plain("registration_closed").into());
+        return Err(LemmyError::from_message("registration_closed"));
       }
     }
 
@@ -61,7 +61,7 @@ impl PerformCrud for Register {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(ApiError::err_plain("passwords_dont_match").into());
+      return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
     // Check if there are admins. False if admins exist
@@ -86,7 +86,7 @@ impl PerformCrud for Register {
         })
         .await?;
       if !check {
-        return Err(ApiError::err_plain("captcha_incorrect").into());
+        return Err(LemmyError::from_message("captcha_incorrect"));
       }
     }
 
@@ -94,7 +94,7 @@ impl PerformCrud for Register {
 
     let actor_keypair = generate_actor_keypair()?;
     if !is_valid_actor_name(&data.username, context.settings().actor_name_max_length) {
-      return Err(ApiError::err_plain("invalid_username").into());
+      return Err(LemmyError::from_message("invalid_username"));
     }
     let actor_id = generate_local_apub_endpoint(
       EndpointType::Person,
@@ -121,14 +121,15 @@ impl PerformCrud for Register {
       Person::create(conn, &person_form)
     })
     .await?
-    .map_err(|e| ApiError::err("user_already_exists", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("user_already_exists"))?;
 
     // Create the local user
     // TODO some of these could probably use the DB defaults
     let local_user_form = LocalUserForm {
       person_id: inserted_person.id,
-      email: Some(data.email.to_owned()),
-      password_encrypted: data.password.to_owned(),
+      email: Some(data.email.as_deref().map(|s| s.to_owned())),
+      password_encrypted: data.password.to_string(),
       show_nsfw: Some(data.show_nsfw),
       show_bot_accounts: Some(true),
       theme: Some("browser".into()),
@@ -163,7 +164,7 @@ impl PerformCrud for Register {
         })
         .await??;
 
-        return Err(ApiError::err(err_type, e).into());
+        return Err(LemmyError::from(e).with_message(err_type));
       }
     };
 
@@ -213,7 +214,8 @@ impl PerformCrud for Register {
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
     blocking(context.pool(), follow)
       .await?
-      .map_err(|e| ApiError::err("community_follower_already_exists", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("community_follower_already_exists"))?;
 
     // If its an admin, add them as a mod and follower to main
     if no_admins {
@@ -225,7 +227,8 @@ impl PerformCrud for Register {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       blocking(context.pool(), join)
         .await?
-        .map_err(|e| ApiError::err("community_moderator_already_exists", e))?;
+        .map_err(LemmyError::from)
+        .map_err(|e| e.with_message("community_moderator_already_exists"))?;
     }
 
     // Return the jwt
@@ -234,7 +237,8 @@ impl PerformCrud for Register {
         inserted_local_user.id.0,
         &context.secret().jwt_secret,
         &context.settings().hostname,
-      )?,
+      )?
+      .into(),
     })
   }
 }

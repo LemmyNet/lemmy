@@ -21,7 +21,7 @@ pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgC
 use crate::newtypes::DbUrl;
 use chrono::NaiveDateTime;
 use diesel::{Connection, PgConnection};
-use lemmy_utils::ApiError;
+use lemmy_utils::LemmyError;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -100,13 +100,13 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
 
 pub fn diesel_option_overwrite_to_url(
   opt: &Option<String>,
-) -> Result<Option<Option<DbUrl>>, ApiError> {
+) -> Result<Option<Option<DbUrl>>, LemmyError> {
   match opt.as_ref().map(|s| s.as_str()) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => match Url::parse(str_url) {
       Ok(url) => Ok(Some(Some(url.into()))),
-      Err(e) => Err(ApiError::err("invalid_url", e)),
+      Err(e) => Err(LemmyError::from(e).with_message("invalid_url")),
     },
     None => Ok(None),
   }

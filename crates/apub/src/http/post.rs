@@ -2,7 +2,7 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
   objects::post::ApubPost,
 };
-use actix_web::{body::Body, web, HttpResponse};
+use actix_web::{body::AnyBody, web, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::traits::ApubObject;
@@ -17,10 +17,11 @@ pub(crate) struct PostQuery {
 }
 
 /// Return the ActivityPub json representation of a local post over HTTP.
+#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_post(
   info: web::Path<PostQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse<AnyBody>, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
   let post: ApubPost = blocking(context.pool(), move |conn| Post::read(conn, id))
     .await??

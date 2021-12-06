@@ -19,7 +19,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   request::fetch_site_data,
   utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
-  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -31,6 +30,7 @@ use crate::PerformCrud;
 impl PerformCrud for EditPost {
   type Response = PostResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -46,7 +46,7 @@ impl PerformCrud for EditPost {
 
     if let Some(name) = &data.name {
       if !is_valid_post_title(name) {
-        return Err(ApiError::err_plain("invalid_post_title").into());
+        return Err(LemmyError::from_message("invalid_post_title"));
       }
     }
 
@@ -63,7 +63,7 @@ impl PerformCrud for EditPost {
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(ApiError::err_plain("no_post_edit_allowed").into());
+      return Err(LemmyError::from_message("no_post_edit_allowed"));
     }
 
     // Fetch post links and Pictrs cached image
@@ -103,7 +103,7 @@ impl PerformCrud for EditPost {
           "couldnt_update_post"
         };
 
-        return Err(ApiError::err(err_type, e).into());
+        return Err(LemmyError::from(e).with_message(err_type));
       }
     };
 

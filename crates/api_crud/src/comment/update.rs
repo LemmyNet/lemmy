@@ -16,7 +16,6 @@ use lemmy_db_schema::source::comment::Comment;
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
-  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -32,6 +31,7 @@ use crate::PerformCrud;
 impl PerformCrud for EditComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -59,7 +59,7 @@ impl PerformCrud for EditComment {
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
+      return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the update
@@ -70,7 +70,8 @@ impl PerformCrud for EditComment {
       Comment::update_content(conn, comment_id, &content_slurs_removed)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_comment"))?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();

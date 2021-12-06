@@ -15,7 +15,7 @@ use lemmy_db_views_actor::{
   person_block_view::PersonBlockView,
   person_view::PersonViewSafe,
 };
-use lemmy_utils::{version, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{version, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 use tracing::info;
 
@@ -23,6 +23,7 @@ use tracing::info;
 impl PerformCrud for GetSite {
   type Response = GetSiteResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -37,9 +38,9 @@ impl PerformCrud for GetSite {
         if let Some(setup) = context.settings().setup.as_ref() {
           let register = Register {
             username: setup.admin_username.to_owned(),
-            email: setup.admin_email.to_owned(),
-            password: setup.admin_password.to_owned(),
-            password_verify: setup.admin_password.to_owned(),
+            email: setup.admin_email.clone().map(|s| s.into()),
+            password: setup.admin_password.clone().into(),
+            password_verify: setup.admin_password.clone().into(),
             show_nsfw: true,
             captcha_uuid: None,
             captcha_answer: None,
@@ -91,36 +92,43 @@ impl PerformCrud for GetSite {
       .unwrap_or(1);
 
     // Build the local user
-    let my_user = if let Some(local_user_view) =
-      get_local_user_settings_view_from_jwt_opt(&data.auth, context.pool(), context.secret())
-        .await?
+    let my_user = if let Some(local_user_view) = get_local_user_settings_view_from_jwt_opt(
+      data.auth.as_ref(),
+      context.pool(),
+      context.secret(),
+    )
+    .await?
     {
       let person_id = local_user_view.person.id;
       let follows = blocking(context.pool(), move |conn| {
         CommunityFollowerView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login"))?;
 
       let person_id = local_user_view.person.id;
       let community_blocks = blocking(context.pool(), move |conn| {
         CommunityBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login"))?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = blocking(context.pool(), move |conn| {
         PersonBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login"))?;
 
       let moderates = blocking(context.pool(), move |conn| {
         CommunityModeratorView::for_person(conn, person_id)
       })
       .await?
-      .map_err(|e| ApiError::err("system_err_login", e))?;
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("system_err_login"))?;
 
       Some(MyUserInfo {
         local_user_view,
