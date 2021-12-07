@@ -45,6 +45,7 @@ where
   res
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &DbPool,
   person_id: PersonId,
@@ -67,6 +68,7 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   blocking(pool, move |conn| Post::read(conn, post_id))
     .await?
@@ -74,6 +76,7 @@ pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError
     .map_err(|e| e.with_message("couldnt_find_post"))
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
@@ -89,6 +92,7 @@ pub async fn mark_post_as_read(
   .map_err(|e| e.with_message("couldnt_mark_post_as_read"))
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn mark_post_as_unread(
   person_id: PersonId,
   post_id: PostId,
@@ -104,6 +108,7 @@ pub async fn mark_post_as_unread(
   .map_err(|e| e.with_message("couldnt_mark_post_as_read"))
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
@@ -144,6 +149,7 @@ pub fn check_validator_time(
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_local_user_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
@@ -155,6 +161,7 @@ pub async fn get_local_user_view_from_jwt_opt(
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_local_user_settings_view_from_jwt(
   jwt: &Sensitive<String>,
   pool: &DbPool,
@@ -179,6 +186,7 @@ pub async fn get_local_user_settings_view_from_jwt(
   Ok(local_user_view)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_local_user_settings_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
@@ -192,6 +200,7 @@ pub async fn get_local_user_settings_view_from_jwt_opt(
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_community_ban(
   person_id: PersonId,
   community_id: CommunityId,
@@ -206,6 +215,7 @@ pub async fn check_community_ban(
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
   pool: &DbPool,
@@ -229,6 +239,7 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
@@ -242,6 +253,7 @@ pub async fn check_person_block(
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
   if score == -1 {
     let site = blocking(pool, Site::read_simple).await??;
@@ -252,6 +264,7 @@ pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), Le
   Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   pool: &DbPool,
   federation_config: &FederationConfig,
