@@ -84,9 +84,7 @@ where
 
   *request_counter += 1;
   if *request_counter > context.settings().http_fetch_retry_limit {
-    return Err(LemmyError::from(anyhow::anyhow!(
-      "Request retry limit reached"
-    )));
+    return Err(LemmyError::from_message("Request retry limit reached"));
   }
 
   let response = retry(|| context.client().get(&fetch_url).send()).await?;
