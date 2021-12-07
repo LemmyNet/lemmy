@@ -10,6 +10,7 @@ use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
   cfg
@@ -50,16 +51,20 @@ fn adapt_request(
   // remove accept-encoding header so that pictrs doesnt compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
-  request.headers().iter().fold(
-    client.request(request.method().clone(), url),
-    |client_req, (key, value)| {
+  let client_request = client
+    .request(request.method().clone(), url)
+    .timeout(Duration::from_secs(30));
+
+  request
+    .headers()
+    .iter()
+    .fold(client_request, |client_req, (key, value)| {
       if INVALID_HEADERS.contains(key) {
         client_req
       } else {
         client_req.header(key, value)
       }
-    },
-  )
+    })
 }
 
 async fn upload(
