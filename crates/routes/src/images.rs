@@ -1,18 +1,17 @@
-use actix_http::http::header::ACCEPT_ENCODING;
+use actix_http::{
+  header::{HeaderName, HOST},
+  http::header::ACCEPT_ENCODING,
+};
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use anyhow::anyhow;
-use awc::Client;
+use futures::stream::{Stream, StreamExt};
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, LemmyError};
 use lemmy_websocket::LemmyContext;
+use reqwest::Body;
+use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
-pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
-  let client = Client::builder()
-    .header("User-Agent", "pict-rs-frontend, v0.1.0")
-    .timeout(Duration::from_secs(30))
-    .finish();
-
+pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
   cfg
     .app_data(Data::new(client))
     .service(
@@ -43,10 +42,30 @@ struct PictrsParams {
   thumbnail: Option<String>,
 }
 
+fn adapt_request(
+  request: &HttpRequest,
+  client: &ClientWithMiddleware,
+  url: String,
+) -> RequestBuilder {
+  // remove accept-encoding header so that pictrs doesnt compress the response
+  const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
+
+  request.headers().iter().fold(
+    client.request(request.method().clone(), url),
+    |client_req, (key, value)| {
+      if INVALID_HEADERS.contains(key) {
+        client_req
+      } else {
+        client_req.header(key, value)
+      }
+    },
+  )
+}
+
 async fn upload(
   req: HttpRequest,
   body: web::Payload,
-  client: web::Data<Client>,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
@@ -58,32 +77,31 @@ async fn upload(
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
-  let mut client_req = client.request_from(
-    format!("{}/image", pictrs_url(context.settings().pictrs_url)?),
-    req.head(),
-  );
-  // remove content-encoding header so that pictrs doesnt send gzipped response
-  client_req.headers_mut().remove(ACCEPT_ENCODING);
+  let image_url = format!("{}/image", pictrs_url(context.settings().pictrs_url)?);
+
+  let mut client_req = adapt_request(&req, &client, image_url);
 
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
+    client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
 
-  let mut res = client_req
-    .send_stream(body)
+  let res = client_req
+    .body(Body::wrap_stream(make_send(body)))
+    .send()
     .await
     .map_err(error::ErrorBadRequest)?;
 
+  let status = res.status();
   let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
 
-  Ok(HttpResponse::build(res.status()).json(images))
+  Ok(HttpResponse::build(status).json(images))
 }
 
 async fn full_res(
   filename: web::Path<String>,
   web::Query(params): web::Query<PictrsParams>,
   req: HttpRequest,
-  client: web::Data<Client>,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let name = &filename.into_inner();
@@ -119,20 +137,19 @@ async fn full_res(
 async fn image(
   url: String,
   req: HttpRequest,
-  client: web::Data<Client>,
+  client: web::Data<ClientWithMiddleware>,
 ) -> Result<HttpResponse, Error> {
-  let mut client_req = client.request_from(url, req.head());
-  client_req.headers_mut().remove(ACCEPT_ENCODING);
+  let mut client_req = adapt_request(&req, &client, url);
 
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
-  };
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
 
-  let res = client_req
-    .no_decompress()
-    .send()
-    .await
-    .map_err(error::ErrorBadRequest)?;
+  if let Some(addr) = req.head().peer_addr {
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
+
+  let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 
   if res.status() == StatusCode::NOT_FOUND {
     return Ok(HttpResponse::NotFound().finish());
@@ -144,13 +161,13 @@ async fn image(
     client_res.insert_header((name.clone(), value.clone()));
   }
 
-  Ok(client_res.body(BodyStream::new(res)))
+  Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
 async fn delete(
   components: web::Path<(String, String)>,
   req: HttpRequest,
-  client: web::Data<Client>,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
@@ -162,22 +179,59 @@ async fn delete(
     &file
   );
 
-  let mut client_req = client.request_from(url, req.head());
-  client_req.headers_mut().remove(ACCEPT_ENCODING);
+  let mut client_req = adapt_request(&req, &client, url);
 
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.insert_header(("X-Forwarded-For", addr.to_string()))
-  };
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
 
-  let res = client_req
-    .no_decompress()
-    .send()
-    .await
-    .map_err(error::ErrorBadRequest)?;
+  let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 
-  Ok(HttpResponse::build(res.status()).body(BodyStream::new(res)))
+  Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
 }
 
 fn pictrs_url(pictrs_url: Option<String>) -> Result<String, LemmyError> {
   pictrs_url.ok_or_else(|| anyhow!("images_disabled").into())
+}
+
+fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
+where
+  S: Stream + Unpin + 'static,
+  S::Item: Send,
+{
+  // NOTE: the 8 here is arbitrary
+  let (tx, rx) = tokio::sync::mpsc::channel(8);
+
+  // NOTE: spawning stream into a new task can potentially hit this bug:
+  // - https://github.com/actix/actix-web/issues/1679
+  //
+  // Since 4.0.0-beta.2 this issue is incredibly less frequent. I have not personally reproduced it.
+  // That said, it is still technically possible to encounter.
+  actix_web::rt::spawn(async move {
+    while let Some(res) = stream.next().await {
+      if tx.send(res).await.is_err() {
+        break;
+      }
+    }
+  });
+
+  SendStream { rx }
+}
+
+struct SendStream<T> {
+  rx: tokio::sync::mpsc::Receiver<T>,
+}
+
+impl<T> Stream for SendStream<T>
+where
+  T: Send,
+{
+  type Item = T;
+
+  fn poll_next(
+    mut self: std::pin::Pin<&mut Self>,
+    cx: &mut std::task::Context<'_>,
+  ) -> std::task::Poll<Option<Self::Item>> {
+    std::pin::Pin::new(&mut self.rx).poll_recv(cx)
+  }
 }

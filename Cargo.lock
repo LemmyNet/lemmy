@@ -181,7 +181,6 @@ dependencies = [
  "actix-utils",
  "derive_more",
  "futures-core",
- "http",
  "log",
  "pin-project-lite",
  "tokio-rustls",
@@ -387,39 +386,6 @@ name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
-
-[[package]]
-name = "awc"
-version = "3.0.0-beta.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9fef22345ed9fc111adf13c3b1e48473136a2669a73680b82d18d6e71e720fe"
-dependencies = [
- "actix-codec",
- "actix-http",
- "actix-rt",
- "actix-service",
- "actix-tls",
- "actix-utils",
- "ahash",
- "base64 0.13.0",
- "bytes",
- "cfg-if",
- "derive_more",
- "futures-core",
- "futures-util",
- "h2",
- "http",
- "itoa",
- "log",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "rand 0.8.4",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tokio",
-]
 
 [[package]]
 name = "background-jobs"
@@ -1965,9 +1931,9 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "anyhow",
- "awc",
  "chrono",
  "diesel",
+ "futures",
  "lemmy_api_common",
  "lemmy_apub",
  "lemmy_db_schema",
@@ -1976,10 +1942,13 @@ dependencies = [
  "lemmy_utils",
  "lemmy_websocket",
  "once_cell",
+ "reqwest",
+ "reqwest-middleware",
  "rss",
  "serde",
  "sha2",
  "strum",
+ "tokio",
  "tracing",
  "url",
 ]
@@ -3164,6 +3133,7 @@ dependencies = [
  "serde_urlencoded",
  "tokio",
  "tokio-native-tls",
+ "tokio-util",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",

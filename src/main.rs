@@ -135,7 +135,7 @@ async fn main() -> Result<(), LemmyError> {
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, &rate_limiter))
+      .configure(|cfg| images::config(cfg, client.clone(), &rate_limiter))
       .configure(nodeinfo::config)
       .configure(|cfg| webfinger::config(cfg, &settings))
   })
