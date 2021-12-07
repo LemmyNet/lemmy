@@ -62,27 +62,50 @@ impl Handler<Disconnect> for ChatServer {
   }
 }
 
+fn root_span() -> tracing::Span {
+  let span = tracing::info_span!(
+    parent: None,
+    "Websocket Request",
+    trace_id = tracing::field::Empty,
+  );
+  {
+    use opentelemetry::trace::TraceContextExt;
+    use tracing_opentelemetry::OpenTelemetrySpanExt;
+    let trace_id = span.context().span().span_context().trace_id().to_hex();
+    span.record("trace_id", &tracing::field::display(trace_id));
+  }
+
+  span
+}
+
 /// Handler for Message message.
 impl Handler<StandardMessage> for ChatServer {
   type Result = ResponseFuture<Result<String, std::convert::Infallible>>;
 
   fn handle(&mut self, msg: StandardMessage, ctx: &mut Context<Self>) -> Self::Result {
     let fut = self.parse_json_message(msg, ctx);
-    Box::pin(async move {
-      match fut.await {
-        Ok(m) => {
-          // info!("Message Sent: {}", m);
-          Ok(m)
-        }
-        Err(e) => {
-          error!("Error during message handling {}", e);
-          Ok(
-            e.to_json()
-              .unwrap_or_else(|_| String::from(r#"{"error":"failed to serialize json"}"#)),
-          )
+    let span = root_span();
+
+    use tracing::Instrument;
+
+    Box::pin(
+      async move {
+        match fut.await {
+          Ok(m) => {
+            // info!("Message Sent: {}", m);
+            Ok(m)
+          }
+          Err(e) => {
+            error!("Error during message handling {}", e);
+            Ok(
+              e.to_json()
+                .unwrap_or_else(|_| String::from(r#"{"error":"failed to serialize json"}"#)),
+            )
+          }
         }
       }
-    })
+      .instrument(span),
+    )
   }
 }
 

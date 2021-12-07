@@ -62,12 +62,15 @@ tokio = { version = "1.12.0", features = ["sync"] }
 anyhow = "1.0.44"
 reqwest = { version = "0.11.4", features = ["json"] }
 reqwest-middleware = "0.1.2"
-reqwest-tracing = "0.2.0"
+reqwest-tracing = { version = "0.2.0", features = ["opentelemetry_0_16"] }
 activitystreams = "0.7.0-alpha.11"
 actix-rt = { version = "2.2.0", default-features = false }
 serde_json = { version = "1.0.68", features = ["preserve_order"] }
 clokwerk = "0.3.5"
 doku = "0.10.1"
+opentelemetry = { version = "0.16", features = ["rt-tokio"] }
+opentelemetry-otlp = "0.9"
+tracing-opentelemetry = "0.16"
 
 [dev-dependencies.cargo-husky]
 version = "1.5.0"

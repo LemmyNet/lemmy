@@ -49,9 +49,9 @@ async fn main() -> Result<(), LemmyError> {
     return Ok(());
   }
 
-  init_tracing()?;
-
   let settings = Settings::init().expect("Couldn't initialize settings.");
+
+  init_tracing(settings.opentelemetry_url.as_deref())?;
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {
