@@ -39,6 +39,7 @@ pub(crate) mod tests {
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::Client;
+  use reqwest_middleware::ClientBuilder;
   use serde::de::DeserializeOwned;
   use std::{fs::File, io::BufReader, sync::Arc};
   use tokio::sync::Mutex;
@@ -57,6 +58,8 @@ pub(crate) mod tests {
       .user_agent(build_user_agent(&settings))
       .build()
       .unwrap();
+
+    let client = ClientBuilder::new(client).build();
     let secret = Secret {
       id: 0,
       jwt_secret: "".to_string(),

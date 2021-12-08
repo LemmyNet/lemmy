@@ -29,6 +29,8 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
+use reqwest_middleware::ClientBuilder;
+use reqwest_tracing::TracingMiddleware;
 use std::{env, sync::Arc, thread};
 use tokio::sync::Mutex;
 use tracing_actix_web::TracingLogger;
@@ -95,7 +97,9 @@ async fn main() -> Result<(), LemmyError> {
     .user_agent(build_user_agent(&settings))
     .build()?;
 
-  let queue_manager = create_activity_queue();
+  let client = ClientBuilder::new(client).with(TracingMiddleware).build();
+
+  let queue_manager = create_activity_queue(client.clone());
 
   let activity_queue = queue_manager.queue_handle().clone();
 
@@ -131,7 +135,7 @@ async fn main() -> Result<(), LemmyError> {
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, &rate_limiter))
+      .configure(|cfg| images::config(cfg, client.clone(), &rate_limiter))
       .configure(nodeinfo::config)
       .configure(|cfg| webfinger::config(cfg, &settings))
   })

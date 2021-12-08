@@ -86,7 +86,10 @@ impl ActivityHandler for RemoveMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
-    let remove_mod = self.object.dereference(context, request_counter).await?;
+    let remove_mod = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
 
     let form = CommunityModeratorForm {
       community_id: community.id,

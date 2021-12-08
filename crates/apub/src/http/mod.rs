@@ -95,7 +95,7 @@ where
   check_is_apub_id_valid(&activity_data.actor, false, &context.settings())?;
   let request_counter = &mut 0;
   let actor = ObjectId::<UserOrCommunity>::new(activity_data.actor)
-    .dereference(context, request_counter)
+    .dereference(context, context.client(), request_counter)
     .await?;
   verify_signature(&request, &actor.public_key())?;
 

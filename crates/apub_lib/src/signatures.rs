@@ -11,7 +11,8 @@ use openssl::{
   pkey::PKey,
   sign::{Signer, Verifier},
 };
-use reqwest::{Client, Response};
+use reqwest::Response;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
@@ -24,7 +25,7 @@ static HTTP_SIG_CONFIG: Lazy<Config> = Lazy::new(Config::new);
 /// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
 /// `activity` as request body. The request is signed with `private_key` and then sent.
 pub async fn sign_and_send(
-  client: &Client,
+  client: &ClientWithMiddleware,
   inbox_url: &Url,
   activity: String,
   actor_id: &Url,
@@ -43,7 +44,7 @@ pub async fn sign_and_send(
   );
   headers.insert(HeaderName::from_str("Host")?, HeaderValue::from_str(&host)?);
 
-  let response = client
+  let request = client
     .post(&inbox_url.to_string())
     .headers(headers)
     .signature_with_digest(
@@ -60,6 +61,8 @@ pub async fn sign_and_send(
       },
     )
     .await?;
+
+  let response = client.execute(request).await?;
 
   Ok(response)
 }

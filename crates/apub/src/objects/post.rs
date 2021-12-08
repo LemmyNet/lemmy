@@ -158,7 +158,7 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .attributed_to
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
@@ -216,7 +216,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_post() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let community = parse_lemmy_community(&context).await;
     let person = parse_lemmy_person(&context).await;

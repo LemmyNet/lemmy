@@ -121,6 +121,8 @@ impl GetCommunity for UpdateCommunity {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let cid = ObjectId::new(self.object.id.clone());
-    cid.dereference(context, request_counter).await
+    cid
+      .dereference(context, context.client(), request_counter)
+      .await
   }
 }

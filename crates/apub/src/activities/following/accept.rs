@@ -25,7 +25,7 @@ impl AcceptFollowCommunity {
     let person = follow
       .actor
       .clone()
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
@@ -65,11 +65,14 @@ impl ActivityHandler for AcceptFollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let person = self.actor.dereference(context, request_counter).await?;
+    let person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
     let community = self
       .object
       .actor
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {

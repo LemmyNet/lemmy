@@ -165,7 +165,9 @@ async fn receive_delete_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        let mod_ = actor.dereference(context, request_counter).await?;
+        let mod_ = actor
+          .dereference(context, context.client(), request_counter)
+          .await?;
         let object = DeletableObjects::Community(community.clone());
         send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
       }

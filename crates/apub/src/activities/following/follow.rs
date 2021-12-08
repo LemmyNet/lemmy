@@ -75,7 +75,10 @@ impl ActivityHandler for FollowCommunity {
   ) -> Result<(), LemmyError> {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
-    let community = self.object.dereference(context, request_counter).await?;
+    let community = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }
@@ -86,8 +89,14 @@ impl ActivityHandler for FollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let person = self.actor.dereference(context, request_counter).await?;
-    let community = self.object.dereference(context, request_counter).await?;
+    let person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let community = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: person.id,

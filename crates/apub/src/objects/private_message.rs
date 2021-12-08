@@ -113,7 +113,7 @@ impl ApubObject for ApubPrivateMessage {
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     let person = note
       .attributed_to
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
@@ -129,9 +129,11 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
-    let recipient = note.to[0].dereference(context, request_counter).await?;
+    let recipient = note.to[0]
+      .dereference(context, context.client(), request_counter)
+      .await?;
     let content = if let Some(source) = &note.source {
       source.content.clone()
     } else {
@@ -195,7 +197,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_pm() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
@@ -223,7 +226,8 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_pm() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;

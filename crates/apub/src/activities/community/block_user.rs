@@ -93,7 +93,10 @@ impl ActivityHandler for BlockUserFromCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
-    let blocked_user = self.object.dereference(context, request_counter).await?;
+    let blocked_user = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,
@@ -129,6 +132,9 @@ impl GetCommunity for BlockUserFromCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    self.target.dereference(context, request_counter).await
+    self
+      .target
+      .dereference(context, context.client(), request_counter)
+      .await
   }
 }

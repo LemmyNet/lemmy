@@ -109,7 +109,7 @@ where
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await;
     if object.is_ok() {
       return object.map(|o| o.actor_id().into());

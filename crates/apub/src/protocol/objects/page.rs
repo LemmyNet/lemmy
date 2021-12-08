@@ -70,7 +70,10 @@ impl Page {
     loop {
       if let Some(cid) = to_iter.next() {
         let cid = ObjectId::new(cid.clone());
-        if let Ok(c) = cid.dereference(context, request_counter).await {
+        if let Ok(c) = cid
+          .dereference(context, context.client(), request_counter)
+          .await
+        {
           break Ok(c);
         }
       } else {

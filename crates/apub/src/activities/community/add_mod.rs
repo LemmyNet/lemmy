@@ -86,7 +86,10 @@ impl ActivityHandler for AddMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
-    let new_mod = self.object.dereference(context, request_counter).await?;
+    let new_mod = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
     // been added. Skip it here as it would result in a duplicate key error.

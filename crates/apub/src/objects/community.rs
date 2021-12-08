@@ -147,14 +147,14 @@ impl ApubObject for ApubCommunity {
 
     group
       .outbox
-      .dereference(&outbox_data, request_counter)
+      .dereference(&outbox_data, context.client(), request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = &group.moderators {
       moderators
-        .dereference(&outbox_data, request_counter)
+        .dereference(&outbox_data, context.client(), request_counter)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();
@@ -247,7 +247,8 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_community() {
-    let manager = create_activity_queue();
+    let client = reqwest::Client::new().into();
+    let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
     let community = parse_lemmy_community(&context).await;
 

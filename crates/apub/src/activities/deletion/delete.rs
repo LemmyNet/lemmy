@@ -139,7 +139,9 @@ pub(in crate::activities) async fn receive_remove_action(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = actor.dereference(context, request_counter).await?;
+  let actor = actor
+    .dereference(context, context.client(), request_counter)
+    .await?;
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
