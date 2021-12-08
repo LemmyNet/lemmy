@@ -71,7 +71,9 @@ impl CreateOrUpdateComment {
       .collect();
     let mut inboxes = vec![];
     for t in tagged_users {
-      let person = t.dereference(context, request_counter).await?;
+      let person = t
+        .dereference(context, context.client(), request_counter)
+        .await?;
       inboxes.push(person.shared_inbox_or_inbox_url());
     }
 

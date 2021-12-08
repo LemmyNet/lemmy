@@ -87,7 +87,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     let blocked_user = self
       .object
       .object
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
 
     let community_user_ban_form = CommunityPersonBanForm {

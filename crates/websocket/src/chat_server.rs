@@ -27,7 +27,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use rand::rngs::ThreadRng;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -90,7 +90,7 @@ pub struct ChatServer {
   message_handler_crud: MessageHandlerCrudType,
 
   /// An HTTP Client
-  client: Client,
+  client: ClientWithMiddleware,
 
   activity_queue: QueueHandle,
 }
@@ -110,7 +110,7 @@ impl ChatServer {
     rate_limiter: RateLimit,
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
-    client: Client,
+    client: ClientWithMiddleware,
     activity_queue: QueueHandle,
     settings: Settings,
     secret: Secret,

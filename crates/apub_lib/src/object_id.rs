@@ -2,13 +2,9 @@ use crate::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
 use activitystreams::chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use anyhow::anyhow;
 use diesel::NotFound;
-use lemmy_utils::{
-  request::{build_user_agent, retry},
-  settings::structs::Settings,
-  LemmyError,
-};
-use once_cell::sync::Lazy;
-use reqwest::{Client, StatusCode};
+use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
+use reqwest::StatusCode;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt::{Debug, Display, Formatter},
@@ -17,13 +13,6 @@ use std::{
 };
 use tracing::info;
 use url::Url;
-
-static CLIENT: Lazy<Client> = Lazy::new(|| {
-  Client::builder()
-    .user_agent(build_user_agent(&Settings::get()))
-    .build()
-    .expect("Couldn't build client")
-});
 
 /// We store Url on the heap because it is quite large (88 bytes).
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
@@ -53,6 +42,7 @@ where
   pub async fn dereference(
     &self,
     data: &<Kind as ApubObject>::DataType,
+    client: &ClientWithMiddleware,
     request_counter: &mut i32,
   ) -> Result<Kind, LemmyError> {
     let db_object = self.dereference_from_db(data).await?;
@@ -71,7 +61,7 @@ where
       if let Some(last_refreshed_at) = object.last_refreshed_at() {
         if should_refetch_object(last_refreshed_at) {
           return self
-            .dereference_from_http(data, request_counter, Some(object))
+            .dereference_from_http(data, client, request_counter, Some(object))
             .await;
         }
       }
@@ -80,7 +70,7 @@ where
     // object not found, need to fetch over http
     else {
       self
-        .dereference_from_http(data, request_counter, None)
+        .dereference_from_http(data, client, request_counter, None)
         .await
     }
   }
@@ -107,6 +97,7 @@ where
   async fn dereference_from_http(
     &self,
     data: &<Kind as ApubObject>::DataType,
+    client: &ClientWithMiddleware,
     request_counter: &mut i32,
     db_object: Option<Kind>,
   ) -> Result<Kind, LemmyError> {
@@ -120,7 +111,7 @@ where
     }
 
     let res = retry(|| {
-      CLIENT
+      client
         .get(self.0.as_str())
         .header("Accept", APUB_JSON_CONTENT_TYPE)
         .timeout(Duration::from_secs(60))

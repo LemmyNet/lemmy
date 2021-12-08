@@ -90,8 +90,14 @@ impl ActivityHandler for Vote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let object = self.object.dereference(context, request_counter).await?;
+    let actor = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let object = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
@@ -107,7 +113,10 @@ impl GetCommunity for Vote {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let object = self.object.dereference(context, request_counter).await?;
+    let object = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,
       PostOrComment::Comment(c) => {

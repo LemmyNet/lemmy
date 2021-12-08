@@ -1,7 +1,7 @@
 use crate::{settings::structs::Settings, version::VERSION, LemmyError};
 use anyhow::anyhow;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use thiserror::Error;
@@ -17,30 +17,33 @@ struct SendError(pub String);
 #[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
-pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
+pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<T, reqwest::Error>>,
+  Fut: Future<Output = Result<T, reqwest_middleware::Error>>,
 {
   retry_custom(|| async { Ok((f)().await) }).await
 }
 
-async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
+async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<Result<T, reqwest::Error>, reqwest::Error>>,
+  Fut: Future<Output = Result<Result<T, reqwest_middleware::Error>, reqwest_middleware::Error>>,
 {
-  let mut response: Option<Result<T, reqwest::Error>> = None;
+  let mut response: Option<Result<T, reqwest_middleware::Error>> = None;
 
   for _ in 0u8..3 {
     match (f)().await? {
       Ok(t) => return Ok(t),
-      Err(e) => {
+      Err(reqwest_middleware::Error::Reqwest(e)) => {
         if e.is_timeout() {
-          response = Some(Err(e));
+          response = Some(Err(reqwest_middleware::Error::Reqwest(e)));
           continue;
         }
-        return Err(e);
+        return Err(reqwest_middleware::Error::Reqwest(e));
+      }
+      Err(otherwise) => {
+        return Err(otherwise);
       }
     }
   }
@@ -57,7 +60,10 @@ pub struct SiteMetadata {
 }
 
 /// Fetches the post link html tags (like title, description, image, etc)
-pub async fn fetch_site_metadata(client: &Client, url: &Url) -> Result<SiteMetadata, LemmyError> {
+pub async fn fetch_site_metadata(
+  client: &ClientWithMiddleware,
+  url: &Url,
+) -> Result<SiteMetadata, LemmyError> {
   let response = client.get(url.as_str()).send().await?;
 
   let html = response
@@ -119,7 +125,7 @@ pub(crate) struct PictrsFile {
 }
 
 pub(crate) async fn fetch_pictrs(
-  client: &Client,
+  client: &ClientWithMiddleware,
   settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
@@ -152,7 +158,7 @@ pub(crate) async fn fetch_pictrs(
 /// Both are options, since the URL might be either an html page, or an image
 /// Returns the SiteMetadata, and a Pictrs URL, if there is a picture associated
 pub async fn fetch_site_data(
-  client: &Client,
+  client: &ClientWithMiddleware,
   settings: &Settings,
   url: Option<&Url>,
 ) -> (Option<SiteMetadata>, Option<Url>) {
@@ -201,7 +207,7 @@ pub async fn fetch_site_data(
   }
 }
 
-async fn is_image_content_type(client: &Client, url: &Url) -> Result<(), LemmyError> {
+async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
@@ -239,7 +245,8 @@ mod tests {
     let client = reqwest::Client::builder()
       .user_agent(build_user_agent(&settings))
       .build()
-      .unwrap();
+      .unwrap()
+      .into();
     let sample_url = Url::parse("https://www.redspark.nu/en/peoples-war/district-leader-of-chand-led-cpn-arrested-in-bhojpur/").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(

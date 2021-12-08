@@ -52,7 +52,7 @@ impl PerformCrud for GetPersonDetails {
           webfinger_resolve::<ApubPerson>(&name, EndpointType::Person, context, &mut 0).await?;
 
         let person = ObjectId::<ApubPerson>::new(actor_id)
-          .dereference(context, &mut 0)
+          .dereference(context, context.client(), &mut 0)
           .await;
         person
           .map_err(LemmyError::from)

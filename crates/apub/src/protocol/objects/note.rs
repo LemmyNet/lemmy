@@ -67,7 +67,7 @@ impl Note {
     let parent = Box::pin(
       self
         .in_reply_to
-        .dereference(context, request_counter)
+        .dereference(context, context.client(), request_counter)
         .await?,
     );
     match parent.deref() {

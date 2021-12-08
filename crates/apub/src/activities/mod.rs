@@ -41,7 +41,9 @@ async fn verify_person(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let person = person_id.dereference(context, request_counter).await?;
+  let person = person_id
+    .dereference(context, context.client(), request_counter)
+    .await?;
   if person.banned {
     let error = LemmyError::from(anyhow::anyhow!("Person {} is banned", person_id));
     return Err(error.with_message("banned"));
@@ -58,7 +60,9 @@ pub(crate) async fn verify_person_in_community(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let person = person_id.dereference(context, request_counter).await?;
+  let person = person_id
+    .dereference(context, context.client(), request_counter)
+    .await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
   }
@@ -90,7 +94,9 @@ pub(crate) async fn verify_mod_action(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   if community.local {
-    let actor = actor_id.dereference(context, request_counter).await?;
+    let actor = actor_id
+      .dereference(context, context.client(), request_counter)
+      .await?;
 
     // Note: this will also return true for admins in addition to mods, but as we dont know about
     //       remote admins, it doesnt make any difference.

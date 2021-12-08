@@ -86,11 +86,14 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
+    let actor = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
     let object = self
       .object
       .object
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

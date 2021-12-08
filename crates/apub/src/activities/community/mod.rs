@@ -44,6 +44,6 @@ async fn get_community_from_moderators_url(
 ) -> Result<ApubCommunity, LemmyError> {
   let community_id = Url::parse(&moderators.to_string().replace("/moderators", ""))?;
   ObjectId::new(community_id)
-    .dereference(context, request_counter)
+    .dereference(context, context.client(), request_counter)
     .await
 }
