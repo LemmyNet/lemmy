@@ -6,6 +6,7 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
   blocking,
+  check_registration_application,
   get_local_user_view_from_jwt,
   is_admin,
   password_length_check,
@@ -97,9 +98,7 @@ impl Perform for Login {
       return Err(LemmyError::from_message("email_not_verified"));
     }
 
-    if site.require_application && !local_user_view.local_user.accepted_application {
-      return Err(LemmyError::from_message("registration_application_pending"));
-    }
+    check_registration_application(&site, &local_user_view, context.pool()).await?;
 
     // Return the jwt
     Ok(LoginResponse {
@@ -188,14 +187,21 @@ impl Perform for SaveUserSettings {
     let email = if let Some(email) = &email_deref {
       let site = blocking(context.pool(), Site::read_simple).await??;
       if site.require_email_verification {
-        send_verification_email(
-          local_user_view.local_user.id,
-          email,
-          &local_user_view.person.name,
-          context.pool(),
-          &context.settings(),
-        )
-        .await?;
+        if let Some(previous_email) = local_user_view.local_user.email {
+          // Only send the verification email if there was an email change
+          if previous_email.ne(email) {
+            send_verification_email(
+              local_user_view.local_user.id,
+              email,
+              &local_user_view.person.name,
+              context.pool(),
+              &context.settings(),
+            )
+            .await?;
+          }
+        }
+        // Fine to return None here, because the actual email is also in the email_verification
+        // table, and gets set in the function below.
         None
       } else {
         diesel_option_overwrite(&email_deref)
@@ -918,7 +924,7 @@ impl Perform for GetUnreadCount {
 
 #[async_trait::async_trait(?Send)]
 impl Perform for VerifyEmail {
-  type Response = VerifyEmailResponse;
+  type Response = LoginResponse;
 
   async fn perform(
     &self,
@@ -953,6 +959,26 @@ impl Perform for VerifyEmail {
 
     send_email_verification_success(&local_user_view, &context.settings())?;
 
-    Ok(VerifyEmailResponse {})
+    blocking(context.pool(), move |conn| {
+      EmailVerification::delete_old_tokens_for_local_user(conn, local_user_id)
+    })
+    .await??;
+
+    let site = blocking(context.pool(), Site::read_simple).await??;
+    check_registration_application(&site, &local_user_view, context.pool()).await?;
+
+    // Return the jwt
+    Ok(LoginResponse {
+      jwt: Some(
+        Claims::jwt(
+          local_user_view.local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      ),
+      verify_email_sent: false,
+      registration_created: false,
+    })
   }
 }

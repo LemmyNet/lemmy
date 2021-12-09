@@ -147,12 +147,6 @@ impl PerformCrud for GetSite {
         person_blocks,
       })
     } else {
-      // If the site is setup, private, and there is no auth, return an error
-      if let Some(site_view) = site_view.to_owned() {
-        if site_view.site.private_instance {
-          return Err(LemmyError::from_message("instance_is_private"));
-        }
-      }
       None
     };
 

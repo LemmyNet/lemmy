@@ -257,42 +257,40 @@ impl PerformCrud for Register {
         .map_err(|e| e.with_message("community_moderator_already_exists"))?;
     }
 
-    // Log the user in directly if email verification is not required
-    let login_response = if email_verification {
-      send_verification_email(
-        inserted_local_user.id,
-        // we check at the beginning of this method that email is set
-        &inserted_local_user.email.expect("email was provided"),
-        &inserted_person.name,
-        context.pool(),
-        &context.settings(),
-      )
-      .await?;
-      LoginResponse {
-        jwt: None,
-        verify_email_sent: true,
-        registration_created: false,
-      }
-    } else if require_application {
-      LoginResponse {
-        jwt: None,
-        verify_email_sent: false,
-        registration_created: true,
-      }
-    } else {
-      LoginResponse {
-        jwt: Some(
-          Claims::jwt(
-            inserted_local_user.id.0,
-            &context.secret().jwt_secret,
-            &context.settings().hostname,
-          )?
-          .into(),
-        ),
-        verify_email_sent: false,
-        registration_created: false,
-      }
+    let mut login_response = LoginResponse {
+      jwt: None,
+      registration_created: false,
+      verify_email_sent: false,
     };
+
+    // Log the user in directly if email verification and application aren't required
+    if !require_application && !email_verification {
+      login_response.jwt = Some(
+        Claims::jwt(
+          inserted_local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      );
+    } else {
+      if email_verification {
+        send_verification_email(
+          inserted_local_user.id,
+          // we check at the beginning of this method that email is set
+          &inserted_local_user.email.expect("email was provided"),
+          &inserted_person.name,
+          context.pool(),
+          &context.settings(),
+        )
+        .await?;
+        login_response.verify_email_sent = true;
+      }
+
+      if require_application {
+        login_response.registration_created = true;
+      }
+    }
 
     Ok(login_response)
   }

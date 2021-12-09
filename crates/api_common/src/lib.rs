@@ -14,6 +14,7 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
+    registration_application::RegistrationApplication,
     secret::Secret,
     site::Site,
   },
@@ -426,8 +427,8 @@ pub async fn send_verification_email(
   let body = format!(
     concat!(
       "Please click the link below to verify your email address ",
-      "for the account @{}@{}. Ignore this email if the account isn't yours.\n\n",
-      "<a href=\"{}\"></a>"
+      "for the account @{}@{}. Ignore this email if the account isn't yours.<br><br>",
+      "<a href=\"{}\">Verify your email</a>"
     ),
     username, settings.hostname, verify_link
   );
@@ -441,7 +442,7 @@ pub fn send_email_verification_success(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let email = &local_user_view.local_user.email.to_owned().expect("email");
-  let subject = &format!("Email verified for {}", local_user_view.person.name);
+  let subject = &format!("Email verified for {}", local_user_view.person.actor_id);
   let html = "Your email has been verified.";
   send_email(subject, email, &local_user_view.person.name, html, settings)
 }
@@ -452,12 +453,33 @@ pub fn send_application_approved_email(
 ) -> Result<(), LemmyError> {
   let email = &local_user_view.local_user.email.to_owned().expect("email");
   let subject = &format!(
-    "Registration to {} approved for {}",
-    settings.hostname, local_user_view.person.name
+    "Registration approved for {}",
+    local_user_view.person.actor_id
   );
   let html = &format!(
     "Your registration application has been approved. Welcome to {}!",
     settings.hostname
   );
   send_email(subject, email, &local_user_view.person.name, html, settings)
+}
+
+pub async fn check_registration_application(
+  site: &Site,
+  local_user_view: &LocalUserView,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  if site.require_application && !local_user_view.local_user.accepted_application {
+    // Fetch the registration, see if its denied
+    let local_user_id = local_user_view.local_user.id;
+    let registration = blocking(pool, move |conn| {
+      RegistrationApplication::find_by_local_user_id(conn, local_user_id)
+    })
+    .await??;
+    if registration.deny_reason.is_some() {
+      return Err(LemmyError::from_message("registration_denied"));
+    } else {
+      return Err(LemmyError::from_message("registration_application_pending"));
+    }
+  }
+  Ok(())
 }

@@ -29,6 +29,12 @@ pub fn send_email(
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
+    if email_and_port.len() == 1 {
+      return Err(LemmyError::from_message(
+        "email.smtp_server needs a port, IE smtp.xxx.com:465",
+      ));
+    }
+
     (
       email_and_port[0],
       email_and_port[1]

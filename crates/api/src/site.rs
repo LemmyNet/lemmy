@@ -38,6 +38,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
+  local_user_view::LocalUserView,
   post_view::{PostQueryBuilder, PostView},
   registration_application_view::{
     RegistrationApplicationQueryBuilder,
@@ -662,7 +663,11 @@ impl Perform for ApproveRegistrationApplication {
       .require_email_verification;
 
     if require_email_verification && data.approve {
-      send_application_approved_email(&local_user_view, &context.settings())?;
+      let approved_local_user_view = blocking(context.pool(), move |conn| {
+        LocalUserView::read(conn, approved_user_id)
+      })
+      .await??;
+      send_application_approved_email(&approved_local_user_view, &context.settings())?;
     }
 
     // Read the view

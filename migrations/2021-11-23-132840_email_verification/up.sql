@@ -11,5 +11,4 @@ create table email_verification (
     local_user_id int references local_user(id) on update cascade on delete cascade not null,
     email text not null,
     verification_token text not null
-
 );
