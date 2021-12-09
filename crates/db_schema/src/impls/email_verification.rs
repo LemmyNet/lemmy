@@ -1,5 +1,13 @@
 use crate::{newtypes::LocalUserId, source::email_verification::*, traits::Crud};
-use diesel::{insert_into, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use diesel::{
+  dsl::*,
+  insert_into,
+  result::Error,
+  ExpressionMethods,
+  PgConnection,
+  QueryDsl,
+  RunQueryDsl,
+};
 
 impl Crud for EmailVerification {
   type Form = EmailVerificationForm;
@@ -34,6 +42,7 @@ impl EmailVerification {
     use crate::schema::email_verification::dsl::*;
     email_verification
       .filter(verification_token.eq(token))
+      .filter(published.gt(now - 7.days()))
       .first::<Self>(conn)
   }
   pub fn delete_old_tokens_for_local_user(

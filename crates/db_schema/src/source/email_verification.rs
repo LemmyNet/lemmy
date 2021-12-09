@@ -7,6 +7,7 @@ pub struct EmailVerification {
   pub local_user_id: LocalUserId,
   pub email: String,
   pub verification_code: String,
+  pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset)]

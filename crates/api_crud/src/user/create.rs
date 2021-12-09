@@ -150,7 +150,7 @@ impl PerformCrud for Register {
       email: Some(data.email.as_deref().map(|s| s.to_owned())),
       password_encrypted: Some(data.password.to_string()),
       show_nsfw: Some(data.show_nsfw),
-      email_verified: Some(!email_verification),
+      email_verified: Some(false),
       ..LocalUserForm::default()
     };
 

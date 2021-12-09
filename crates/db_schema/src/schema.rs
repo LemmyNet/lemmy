@@ -570,6 +570,7 @@ table! {
     local_user_id -> Int4,
     email -> Text,
     verification_token -> Varchar,
+    published -> Timestamp,
   }
 }
 
