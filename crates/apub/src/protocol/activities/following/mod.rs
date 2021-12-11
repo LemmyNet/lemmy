@@ -4,13 +4,17 @@ pub mod undo_follow;
 
 #[cfg(test)]
 mod tests {
-  use crate::protocol::{
-    activities::following::{
-      accept::AcceptFollowCommunity,
-      follow::FollowCommunity,
-      undo_follow::UndoFollowCommunity,
+  use crate::{
+    context::WithContext,
+    objects::tests::file_to_json_object,
+    protocol::{
+      activities::following::{
+        accept::AcceptFollowCommunity,
+        follow::FollowCommunity,
+        undo_follow::UndoFollowCommunity,
+      },
+      tests::test_parse_lemmy_item,
     },
-    tests::test_parse_lemmy_item,
   };
   use serial_test::serial;
 
@@ -22,5 +26,7 @@ mod tests {
     test_parse_lemmy_item::<UndoFollowCommunity>(
       "assets/lemmy/activities/following/undo_follow.json",
     );
+
+    file_to_json_object::<WithContext<FollowCommunity>>("assets/pleroma/activities/follow.json");
   }
 }
