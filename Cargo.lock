@@ -4117,8 +4117,9 @@ dependencies = [
 
 [[package]]
 name = "webpage"
-version = "1.3.0"
-source = "git+https://github.com/dessalines/webpage-rs?branch=upgrade_html5ever#cf4b3ef2cd7a30ba9ad5ecb1a1cbd44926e99131"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d03ebca8fe2492fffdb5be0f681a942665c50488348d8abc00efb470e0ea890"
 dependencies = [
  "html5ever",
  "markup5ever_rcdom",
