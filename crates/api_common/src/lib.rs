@@ -468,7 +468,10 @@ pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  if site.require_application && !local_user_view.local_user.accepted_application {
+  if site.require_application
+    && !local_user_view.local_user.accepted_application
+    && !local_user_view.person.admin
+  {
     // Fetch the registration, see if its denied
     let local_user_id = local_user_view.local_user.id;
     let registration = blocking(pool, move |conn| {
@@ -479,6 +482,23 @@ pub async fn check_registration_application(
       return Err(LemmyError::from_message("registration_denied"));
     } else {
       return Err(LemmyError::from_message("registration_application_pending"));
+    }
+  }
+  Ok(())
+}
+
+/// TODO this check should be removed after https://github.com/LemmyNet/lemmy/issues/868 is done.
+pub async fn check_private_instance_and_federation_enabled(
+  pool: &DbPool,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  let site_opt = blocking(pool, Site::read_simple).await?;
+
+  if let Ok(site) = site_opt {
+    if site.private_instance && settings.federation.enabled {
+      return Err(LemmyError::from_message(
+        "Cannot have both private instance and federation enabled.",
+      ));
     }
   }
   Ok(())

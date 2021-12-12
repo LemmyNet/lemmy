@@ -183,32 +183,30 @@ impl Perform for SaveUserSettings {
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
     let bot_account = data.bot_account;
     let email_deref = data.email.as_deref().map(|e| e.to_owned());
+    let email = diesel_option_overwrite(&email_deref);
 
-    let email = if let Some(email) = &email_deref {
-      let site = blocking(context.pool(), Site::read_simple).await??;
-      if site.require_email_verification {
-        if let Some(previous_email) = local_user_view.local_user.email {
-          // Only send the verification email if there was an email change
-          if previous_email.ne(email) {
-            send_verification_email(
-              local_user_view.local_user.id,
-              email,
-              &local_user_view.person.name,
-              context.pool(),
-              &context.settings(),
-            )
-            .await?;
-          }
-        }
-        // Fine to return None here, because the actual email is also in the email_verification
-        // table, and gets set in the function below.
-        None
-      } else {
-        diesel_option_overwrite(&email_deref)
+    if let Some(Some(email)) = &email {
+      let previous_email = local_user_view.local_user.email.unwrap_or_default();
+      // Only send the verification email if there was an email change
+      if previous_email.ne(email) {
+        send_verification_email(
+          local_user_view.local_user.id,
+          email,
+          &local_user_view.person.name,
+          context.pool(),
+          &context.settings(),
+        )
+        .await?;
       }
-    } else {
-      None
-    };
+    }
+
+    // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
+    if let Some(email) = &email {
+      let site_fut = blocking(context.pool(), Site::read_simple);
+      if email.is_none() && site_fut.await??.require_email_verification {
+        return Err(LemmyError::from_message("email_required"));
+      }
+    }
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
@@ -924,7 +922,7 @@ impl Perform for GetUnreadCount {
 
 #[async_trait::async_trait(?Send)]
 impl Perform for VerifyEmail {
-  type Response = LoginResponse;
+  type Response = VerifyEmailResponse;
 
   async fn perform(
     &self,
@@ -964,21 +962,6 @@ impl Perform for VerifyEmail {
     })
     .await??;
 
-    let site = blocking(context.pool(), Site::read_simple).await??;
-    check_registration_application(&site, &local_user_view, context.pool()).await?;
-
-    // Return the jwt
-    Ok(LoginResponse {
-      jwt: Some(
-        Claims::jwt(
-          local_user_view.local_user.id.0,
-          &context.secret().jwt_secret,
-          &context.settings().hostname,
-        )?
-        .into(),
-      ),
-      verify_email_sent: false,
-      registration_created: false,
-    })
+    Ok(VerifyEmailResponse {})
   }
 }

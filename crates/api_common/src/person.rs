@@ -293,3 +293,6 @@ pub struct GetUnreadCountResponse {
 pub struct VerifyEmail {
   pub token: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VerifyEmailResponse {}

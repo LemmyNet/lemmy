@@ -89,6 +89,20 @@ impl LocalUser {
       ))
       .get_result::<Self>(conn)
   }
+
+  pub fn set_all_users_email_verified(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    diesel::update(local_user)
+      .set(email_verified.eq(true))
+      .get_results::<Self>(conn)
+  }
+
+  pub fn set_all_users_registration_applications_accepted(
+    conn: &PgConnection,
+  ) -> Result<Vec<Self>, Error> {
+    diesel::update(local_user)
+      .set(accepted_application.eq(true))
+      .get_results::<Self>(conn)
+  }
 }
 
 impl Crud for LocalUser {

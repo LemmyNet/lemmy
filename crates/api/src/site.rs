@@ -658,16 +658,15 @@ impl Perform for ApproveRegistrationApplication {
     })
     .await??;
 
-    let require_email_verification = blocking(context.pool(), Site::read_simple)
-      .await??
-      .require_email_verification;
-
-    if require_email_verification && data.approve {
+    if data.approve {
       let approved_local_user_view = blocking(context.pool(), move |conn| {
         LocalUserView::read(conn, approved_user_id)
       })
       .await??;
-      send_application_approved_email(&approved_local_user_view, &context.settings())?;
+
+      if approved_local_user_view.local_user.email.is_some() {
+        send_application_approved_email(&approved_local_user_view, &context.settings())?;
+      }
     }
 
     // Read the view
