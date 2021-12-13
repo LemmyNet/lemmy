@@ -18,19 +18,19 @@ lemmy_api_common = { version = "=0.14.4-rc.4", path = "../api_common" }
 lemmy_db_schema = { version = "=0.14.4-rc.4", path = "../db_schema" }
 lemmy_db_views = { version = "=0.14.4-rc.4", path = "../db_views" }
 lemmy_db_views_actor = { version = "=0.14.4-rc.4", path = "../db_views_actor" }
-reqwest = { version = "0.11.4", features = ["json"] }
-reqwest-middleware = "0.1.2"
+reqwest = { version = "0.11.7", features = ["json"] }
+reqwest-middleware = "0.1.3"
 tracing = "0.1.29"
 rand = "0.8.4"
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = { version = "1.0.68", features = ["preserve_order"] }
+serde = { version = "1.0.131", features = ["derive"] }
+serde_json = { version = "1.0.72", features = ["preserve_order"] }
 actix = "0.12.0"
-anyhow = "1.0.44"
+anyhow = "1.0.51"
 diesel = "1.4.8"
 background-jobs = "0.11.0"
-tokio = "1.12.0"
-strum = "0.21.0"
-strum_macros = "0.21.1"
+tokio = "1.14.0"
+strum = "0.23.0"
+strum_macros = "0.23.1"
 chrono = { version = "0.4.19", features = ["serde"] }
-actix-web = { version = "4.0.0-beta.9", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "4.0.0-beta.7", default-features = false }
+actix-web = { version = "4.0.0-beta.14", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "4.0.0-beta.8", default-features = false }

@@ -27,7 +27,7 @@ use rss::{
   ItemBuilder,
 };
 use serde::Deserialize;
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr};
 use strum::ParseError;
 
 #[derive(Deserialize)]
@@ -49,8 +49,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/local.xml", web::get().to(get_local_feed));
 }
 
-static RSS_NAMESPACE: Lazy<HashMap<String, String>> = Lazy::new(|| {
-  let mut h = HashMap::new();
+static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
+  let mut h = BTreeMap::new();
   h.insert(
     "dc".to_string(),
     rss::extension::dublincore::NAMESPACE.to_string(),
@@ -109,7 +109,7 @@ async fn get_feed_data(
     channel_builder.description(&site_desc);
   }
 
-  let rss = channel_builder.build().map_err(|e| anyhow!(e))?.to_string();
+  let rss = channel_builder.build().to_string();
   Ok(
     HttpResponse::Ok()
       .content_type("application/rss+xml")
@@ -154,7 +154,7 @@ async fn get_feed(
   .await?
   .map_err(ErrorBadRequest)?;
 
-  let rss = builder.build().map_err(ErrorBadRequest)?.to_string();
+  let rss = builder.build().to_string();
 
   Ok(
     HttpResponse::Ok()
@@ -373,17 +373,13 @@ fn build_item(
   let dt = DateTime::<Utc>::from_utc(*published, Utc);
   i.pub_date(dt.to_rfc2822());
   i.comments(url.to_owned());
-  let guid = GuidBuilder::default()
-    .permalink(true)
-    .value(url)
-    .build()
-    .map_err(|e| anyhow!(e))?;
+  let guid = GuidBuilder::default().permalink(true).value(url).build();
   i.guid(guid);
   i.link(url.to_owned());
   // TODO add images
   let html = markdown_to_html(&content.to_string());
   i.description(html);
-  Ok(i.build().map_err(|e| anyhow!(e))?)
+  Ok(i.build())
 }
 
 #[tracing::instrument(skip_all)]
@@ -410,8 +406,7 @@ fn create_post_items(
     let guid = GuidBuilder::default()
       .permalink(true)
       .value(&post_url)
-      .build()
-      .map_err(|e| anyhow!(e))?;
+      .build();
     i.guid(guid);
 
     let community_url = format!("{}/c/{}", protocol_and_hostname, p.community.name);
@@ -439,8 +434,8 @@ fn create_post_items(
 
     i.description(description);
 
-    i.dublin_core_ext(dc_extension.build().map_err(|e| anyhow!(e))?);
-    items.push(i.build().map_err(|e| anyhow!(e))?);
+    i.dublin_core_ext(dc_extension.build());
+    items.push(i.build());
   }
 
   Ok(items)

@@ -32,7 +32,7 @@ pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SortType {
   Active,
   Hot,
@@ -46,7 +46,7 @@ pub enum SortType {
   NewComments,
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum ListingType {
   All,
   Local,
@@ -54,7 +54,7 @@ pub enum ListingType {
   Community,
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SearchType {
   All,
   Comments,
