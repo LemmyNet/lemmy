@@ -77,6 +77,12 @@ impl Perform for GetModlog {
   ) -> Result<GetModlogResponse, LemmyError> {
     let data: &GetModlog = self;
 
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
+
     let community_id = data.community_id;
     let mod_person_id = data.mod_person_id;
     let page = data.page;

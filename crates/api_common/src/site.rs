@@ -72,6 +72,7 @@ pub struct GetModlog {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
