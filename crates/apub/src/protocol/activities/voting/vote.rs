@@ -7,7 +7,7 @@ use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
-use strum_macros::ToString;
+use strum_macros::Display;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -26,7 +26,7 @@ pub struct Vote {
   pub(crate) unparsed: Unparsed,
 }
 
-#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
+#[derive(Clone, Debug, Display, Deserialize, Serialize)]
 pub enum VoteType {
   Like,
   Dislike,

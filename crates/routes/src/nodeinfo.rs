@@ -1,4 +1,4 @@
-use actix_web::{body::AnyBody, error::ErrorBadRequest, *};
+use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_db_views::site_view::SiteView;
@@ -15,7 +15,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 async fn node_info_well_known(
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<AnyBody>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let node_info = NodeInfoWellKnown {
     links: vec![NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,

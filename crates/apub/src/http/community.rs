@@ -21,7 +21,7 @@ use crate::{
     collections::group_followers::GroupFollowers,
   },
 };
-use actix_web::{body::AnyBody, web, web::Payload, HttpRequest, HttpResponse};
+use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::source::community::Community;
@@ -40,7 +40,7 @@ pub(crate) struct CommunityQuery {
 pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<AnyBody>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
@@ -98,7 +98,7 @@ pub(in crate::http) async fn receive_group_inbox(
 pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<AnyBody>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
@@ -112,7 +112,7 @@ pub(crate) async fn get_apub_community_followers(
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<AnyBody>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
@@ -129,7 +129,7 @@ pub(crate) async fn get_apub_community_outbox(
 pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<AnyBody>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
