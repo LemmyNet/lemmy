@@ -3,7 +3,7 @@ use crate::{
   naive_now,
   newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
-  source::person::{Person, PersonForm},
+  source::person::{Person, PersonForm, PersonSafe},
   traits::Crud,
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
@@ -30,6 +30,7 @@ mod safe_type {
     matrix_user_id,
     admin,
     bot_account,
+    ban_expires,
   );
 
   impl ToSafe for Person {
@@ -53,6 +54,7 @@ mod safe_type {
         matrix_user_id,
         admin,
         bot_account,
+        ban_expires,
       )
     }
   }
@@ -79,6 +81,7 @@ mod safe_type_alias_1 {
     matrix_user_id,
     admin,
     bot_account,
+    ban_expires,
   );
 
   impl ToSafe for PersonAlias1 {
@@ -102,6 +105,7 @@ mod safe_type_alias_1 {
         matrix_user_id,
         admin,
         bot_account,
+        ban_expires,
       )
     }
   }
@@ -128,6 +132,7 @@ mod safe_type_alias_2 {
     matrix_user_id,
     admin,
     bot_account,
+    ban_expires,
   );
 
   impl ToSafe for PersonAlias2 {
@@ -151,6 +156,7 @@ mod safe_type_alias_2 {
         matrix_user_id,
         admin,
         bot_account,
+        ban_expires,
       )
     }
   }
@@ -179,9 +185,14 @@ impl Crud for Person {
 }
 
 impl Person {
-  pub fn ban_person(conn: &PgConnection, person_id: PersonId, ban: bool) -> Result<Self, Error> {
+  pub fn ban_person(
+    conn: &PgConnection,
+    person_id: PersonId,
+    ban: bool,
+    expires: Option<chrono::NaiveDateTime>,
+  ) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
-      .set(banned.eq(ban))
+      .set((banned.eq(ban), ban_expires.eq(expires)))
       .get_result::<Self>(conn)
   }
 
@@ -259,6 +270,24 @@ impl Person {
       .set(deleted.eq(new_deleted))
       .get_result::<Self>(conn)
   }
+
+  pub fn is_banned(&self) -> bool {
+    is_banned(self.banned, self.ban_expires)
+  }
+}
+
+impl PersonSafe {
+  pub fn is_banned(&self) -> bool {
+    is_banned(self.banned, self.ban_expires)
+  }
+}
+
+fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
+  if let Some(expires) = expires {
+    banned_ && expires.gt(&naive_now())
+  } else {
+    banned_
+  }
 }
 
 #[cfg(test)]
@@ -298,6 +327,7 @@ mod tests {
       inbox_url: inserted_person.inbox_url.to_owned(),
       shared_inbox_url: None,
       matrix_user_id: None,
+      ban_expires: None,
     };
 
     let read_person = Person::read(&conn, inserted_person.id).unwrap();

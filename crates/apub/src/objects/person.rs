@@ -168,6 +168,7 @@ impl ApubObject for ApubPerson {
       inbox_url: Some(person.inbox.into()),
       shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
       matrix_user_id: Some(person.matrix_user_id),
+      ban_expires: None,
     };
     let person = blocking(context.pool(), move |conn| {
       DbPerson::upsert(conn, &person_form)

@@ -95,6 +95,7 @@ pub struct CommunityPersonBan {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
+  pub expires: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -102,6 +103,7 @@ pub struct CommunityPersonBan {
 pub struct CommunityPersonBanForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  pub expires: Option<Option<chrono::NaiveDateTime>>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

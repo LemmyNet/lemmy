@@ -1,4 +1,4 @@
-use diesel::{result::Error, *};
+use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_person_ban, person},
@@ -31,6 +31,11 @@ impl CommunityPersonBanView {
       ))
       .filter(community_person_ban::community_id.eq(from_community_id))
       .filter(community_person_ban::person_id.eq(from_person_id))
+      .filter(
+        community_person_ban::expires
+          .is_null()
+          .or(community_person_ban::expires.gt(now)),
+      )
       .order_by(community_person_ban::published)
       .first::<(CommunitySafe, PersonSafe)>(conn)?;
 

@@ -101,6 +101,8 @@ impl ActivityHandler for BlockUserFromCommunity {
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,
       person_id: blocked_user.id,
+      // TODO how to carry across the ban expiration time?
+      expires: None,
     };
 
     blocking(context.pool(), move |conn: &'_ _| {

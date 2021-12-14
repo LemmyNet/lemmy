@@ -256,6 +256,7 @@ impl Perform for SaveUserSettings {
       shared_inbox_url: None,
       matrix_user_id,
       bot_account,
+      ban_expires: None,
     };
 
     blocking(context.pool(), move |conn| {
@@ -452,7 +453,9 @@ impl Perform for BanPerson {
 
     let ban = data.ban;
     let banned_person_id = data.person_id;
-    let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban);
+    let expires = data.expires.map(naive_from_unix);
+
+    let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban, expires);
     blocking(context.pool(), ban_person)
       .await?
       .map_err(LemmyError::from)
@@ -495,8 +498,6 @@ impl Perform for BanPerson {
     }
 
     // Mod tables
-    let expires = data.expires.map(naive_from_unix);
-
     let form = ModBanForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,

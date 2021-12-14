@@ -1,4 +1,4 @@
-use diesel::{pg::Pg, result::Error, *};
+use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::post_aggregates::PostAggregates,
   functions::hot_rank,
@@ -86,7 +86,12 @@ impl PostView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -284,7 +289,12 @@ impl<'a> PostQueryBuilder<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -653,6 +663,7 @@ mod tests {
         inbox_url: inserted_person.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       creator_banned_from_community: false,
       community: CommunitySafe {
