@@ -165,8 +165,8 @@ pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
   pub admin_username: String,
-  /// Password for the admin user
-  #[doku(example = "my_passwd")]
+  /// Password for the admin user. It must be at least 10 characters.
+  #[doku(example = "my_passwd_longer_than_ten_characters")]
   pub admin_password: String,
   /// Name of the site (can be changed later)
   #[doku(example = "My Lemmy Instance")]

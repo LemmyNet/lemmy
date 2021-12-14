@@ -18,6 +18,7 @@ pub struct Endpoints {
 #[cfg(test)]
 mod tests {
   use crate::{
+    context::WithContext,
     objects::tests::file_to_json_object,
     protocol::{
       objects::{chat_message::ChatMessage, group::Group, note::Note, page::Page, person::Person},
@@ -33,11 +34,11 @@ mod tests {
     test_parse_lemmy_item::<Note>("assets/lemmy/objects/note.json");
     test_parse_lemmy_item::<ChatMessage>("assets/lemmy/objects/chat_message.json");
 
-    file_to_json_object::<Person>("assets/pleroma/objects/person.json");
-    file_to_json_object::<Note>("assets/pleroma/objects/note.json");
-    file_to_json_object::<ChatMessage>("assets/pleroma/objects/chat_message.json");
+    file_to_json_object::<WithContext<Person>>("assets/pleroma/objects/person.json");
+    file_to_json_object::<WithContext<Note>>("assets/pleroma/objects/note.json");
+    file_to_json_object::<WithContext<ChatMessage>>("assets/pleroma/objects/chat_message.json");
 
-    file_to_json_object::<Person>("assets/smithereen/objects/person.json");
+    file_to_json_object::<WithContext<Person>>("assets/smithereen/objects/person.json");
     file_to_json_object::<Note>("assets/smithereen/objects/note.json");
 
     file_to_json_object::<Person>("assets/mastodon/objects/person.json");

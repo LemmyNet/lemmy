@@ -97,7 +97,7 @@ where
   Ok(serde_json::to_string(&response)?)
 }
 
-#[derive(EnumString, ToString, Debug, Clone)]
+#[derive(EnumString, Display, Debug, Clone)]
 pub enum UserOperation {
   Login,
   GetCaptcha,
@@ -151,7 +151,7 @@ pub enum UserOperation {
   BlockPerson,
 }
 
-#[derive(EnumString, ToString, Debug, Clone)]
+#[derive(EnumString, Display, Debug, Clone)]
 pub enum UserOperationCrud {
   // Site
   CreateSite,

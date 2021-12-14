@@ -1,7 +1,4 @@
-use actix_http::{
-  header::{HeaderName, HOST},
-  http::header::ACCEPT_ENCODING,
-};
+use actix_http::header::{HeaderName, ACCEPT_ENCODING, HOST};
 use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
 use anyhow::anyhow;
 use futures::stream::{Stream, StreamExt};

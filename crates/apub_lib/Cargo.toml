@@ -10,22 +10,22 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 [dependencies]
 lemmy_utils = { version = "=0.15.0-rc.4", path = "../utils" }
 lemmy_apub_lib_derive = { version = "=0.15.0-rc.4", path = "../apub_lib_derive" }
-activitystreams = "0.7.0-alpha.11"
-serde = { version = "1.0.130", features = ["derive"] }
-async-trait = "0.1.51"
+activitystreams = "0.7.0-alpha.14"
+serde = { version = "1.0.131", features = ["derive"] }
+async-trait = "0.1.52"
 url = { version = "2.2.2", features = ["serde"] }
-serde_json = { version = "1.0.68", features = ["preserve_order"] }
-anyhow = "1.0.44"
-reqwest = { version = "0.11.4", features = ["json"] }
-reqwest-middleware = "0.1.2"
+serde_json = { version = "1.0.72", features = ["preserve_order"] }
+anyhow = "1.0.51"
+reqwest = { version = "0.11.7", features = ["json"] }
+reqwest-middleware = "0.1.3"
 tracing = "0.1.29"
 base64 = "0.13.0"
-openssl = "0.10.36"
+openssl = "0.10.38"
 once_cell = "1.8.0"
 http = "0.2.5"
-sha2 = "0.9.8"
-actix-web = { version = "4.0.0-beta.9", default-features = false }
-http-signature-normalization-actix = { version = "0.5.0-beta.10", default-features = false, features = ["server", "sha-2"] }
-http-signature-normalization-reqwest = { version = "0.3.0", default-features = false, features = ["sha-2", "middleware"] }
+sha2 = "0.10.0"
+actix-web = { version = "4.0.0-beta.14", default-features = false }
+http-signature-normalization-actix = { version = "0.5.0-beta.14", default-features = false, features = ["server", "sha-2"] }
+http-signature-normalization-reqwest = { version = "0.4.0", default-features = false, features = ["sha-2", "middleware"] }
 background-jobs = "0.11.0"
 diesel = "1.4.8"

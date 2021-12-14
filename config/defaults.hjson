@@ -83,8 +83,8 @@
   setup: {
     # Username for the admin user
     admin_username: "admin"
-    # Password for the admin user
-    admin_password: "my_passwd"
+    # Password for the admin user. It must be at least 10 characters.
+    admin_password: "my_passwd_longer_than_ten_characters"
     # Name of the site (can be changed later)
     site_name: "My Lemmy Instance"
     # Email for the admin user (optional, can be omitted and set later through the website)
