@@ -25,9 +25,9 @@ fn test_mentions_regex() {
 #[test]
 fn test_valid_actor_name() {
   let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
-  assert!(is_valid_actor_name("Hello_98", actor_name_max_length));
+  assert!(is_valid_actor_name("hello_98", actor_name_max_length));
   assert!(is_valid_actor_name("ten", actor_name_max_length));
-  assert!(!is_valid_actor_name("Hello-98", actor_name_max_length));
+  assert!(!is_valid_actor_name("hello-98", actor_name_max_length));
   assert!(!is_valid_actor_name("a", actor_name_max_length));
   assert!(!is_valid_actor_name("", actor_name_max_length));
 }
