@@ -10,6 +10,7 @@ use lemmy_api_common::{
   community::CommunityResponse,
   person::PrivateMessageResponse,
   post::PostResponse,
+  send_email_to_user,
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
@@ -28,14 +29,7 @@ use lemmy_db_views::{
   private_message_view::PrivateMessageView,
 };
 use lemmy_db_views_actor::community_view::CommunityView;
-use lemmy_utils::{
-  email::send_email,
-  settings::structs::Settings,
-  utils::MentionData,
-  ConnectionId,
-  LemmyError,
-};
-use tracing::error;
+use lemmy_utils::{utils::MentionData, ConnectionId, LemmyError};
 
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(
   post_id: PostId,
@@ -295,40 +289,4 @@ pub async fn send_local_notifs(
     }
   };
   Ok(recipient_ids)
-}
-
-pub fn send_email_to_user(
-  local_user_view: &LocalUserView,
-  subject_text: &str,
-  body_text: &str,
-  comment_content: &str,
-  settings: &Settings,
-) {
-  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
-    return;
-  }
-
-  if let Some(user_email) = &local_user_view.local_user.email {
-    let subject = &format!(
-      "{} - {} {}",
-      subject_text, settings.hostname, local_user_view.person.name,
-    );
-    let html = &format!(
-      "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-      body_text,
-      local_user_view.person.name,
-      comment_content,
-      settings.get_protocol_and_hostname()
-    );
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      html,
-      settings,
-    ) {
-      Ok(_o) => _o,
-      Err(e) => error!("{}", e),
-    };
-  }
 }

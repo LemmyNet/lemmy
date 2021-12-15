@@ -5,9 +5,11 @@ use diesel::NotFound;
 use lemmy_api_common::{
   blocking,
   build_federated_instances,
+  check_private_instance,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
+  send_application_approved_email,
   site::*,
 };
 use lemmy_apub::{
@@ -19,9 +21,15 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  diesel_option_overwrite,
   from_opt_str_to_opt_enum,
   newtypes::PersonId,
-  source::{moderator::*, site::Site},
+  source::{
+    local_user::{LocalUser, LocalUserForm},
+    moderator::*,
+    registration_application::{RegistrationApplication, RegistrationApplicationForm},
+    site::Site,
+  },
   traits::{Crud, DeleteableOrRemoveable},
   DbPool,
   ListingType,
@@ -30,7 +38,12 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
+  local_user_view::LocalUserView,
   post_view::{PostQueryBuilder, PostView},
+  registration_application_view::{
+    RegistrationApplicationQueryBuilder,
+    RegistrationApplicationView,
+  },
   site_view::SiteView,
 };
 use lemmy_db_views_actor::{
@@ -63,6 +76,12 @@ impl Perform for GetModlog {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetModlogResponse, LemmyError> {
     let data: &GetModlog = self;
+
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let community_id = data.community_id;
     let mod_person_id = data.mod_person_id;
@@ -148,6 +167,8 @@ impl Perform for Search {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
@@ -388,6 +409,8 @@ impl Perform for ResolveObject {
     let local_user_view =
       get_local_user_view_from_jwt_opt(self.auth.as_ref(), context.pool(), context.secret())
         .await?;
+    check_private_instance(&local_user_view, context.pool()).await?;
+
     let res = search_by_apub_id(&self.q, context)
       .await
       .map_err(LemmyError::from)
@@ -553,5 +576,144 @@ impl Perform for SaveSiteConfig {
       .map_err(|e| e.with_message("couldnt_update_site"))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
+  }
+}
+
+/// Lists registration applications, filterable by undenied only.
+#[async_trait::async_trait(?Send)]
+impl Perform for ListRegistrationApplications {
+  type Response = ListRegistrationApplicationsResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Make sure user is an admin
+    is_admin(&local_user_view)?;
+
+    let unread_only = data.unread_only;
+    let verified_email_only = blocking(context.pool(), Site::read_simple)
+      .await??
+      .require_email_verification;
+
+    let page = data.page;
+    let limit = data.limit;
+    let registration_applications = blocking(context.pool(), move |conn| {
+      RegistrationApplicationQueryBuilder::create(conn)
+        .unread_only(unread_only)
+        .verified_email_only(verified_email_only)
+        .page(page)
+        .limit(limit)
+        .list()
+    })
+    .await??;
+
+    let res = Self::Response {
+      registration_applications,
+    };
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ApproveRegistrationApplication {
+  type Response = RegistrationApplicationResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    let app_id = data.id;
+
+    // Only let admins do this
+    is_admin(&local_user_view)?;
+
+    // Update the registration with reason, admin_id
+    let deny_reason = diesel_option_overwrite(&data.deny_reason);
+    let app_form = RegistrationApplicationForm {
+      admin_id: Some(local_user_view.person.id),
+      deny_reason,
+      ..RegistrationApplicationForm::default()
+    };
+
+    let registration_application = blocking(context.pool(), move |conn| {
+      RegistrationApplication::update(conn, app_id, &app_form)
+    })
+    .await??;
+
+    // Update the local_user row
+    let local_user_form = LocalUserForm {
+      accepted_application: Some(data.approve),
+      ..LocalUserForm::default()
+    };
+
+    let approved_user_id = registration_application.local_user_id;
+    blocking(context.pool(), move |conn| {
+      LocalUser::update(conn, approved_user_id, &local_user_form)
+    })
+    .await??;
+
+    if data.approve {
+      let approved_local_user_view = blocking(context.pool(), move |conn| {
+        LocalUserView::read(conn, approved_user_id)
+      })
+      .await??;
+
+      if approved_local_user_view.local_user.email.is_some() {
+        send_application_approved_email(&approved_local_user_view, &context.settings())?;
+      }
+    }
+
+    // Read the view
+    let registration_application = blocking(context.pool(), move |conn| {
+      RegistrationApplicationView::read(conn, app_id)
+    })
+    .await??;
+
+    Ok(Self::Response {
+      registration_application,
+    })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for GetUnreadRegistrationApplicationCount {
+  type Response = GetUnreadRegistrationApplicationCountResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Only let admins do this
+    is_admin(&local_user_view)?;
+
+    let verified_email_only = blocking(context.pool(), Site::read_simple)
+      .await??
+      .require_email_verification;
+
+    let registration_applications = blocking(context.pool(), move |conn| {
+      RegistrationApplicationView::get_unread_count(conn, verified_email_only)
+    })
+    .await??;
+
+    Ok(Self::Response {
+      registration_applications,
+    })
   }
 }
