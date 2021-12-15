@@ -30,5 +30,5 @@ update person set inbox_url = lower(inbox_url);
 
 alter table person add constraint person_name_lowercase_ck check (name = lower(name));
 alter table person add constraint person_actor_id_lowercase_ck check (actor_id = lower(actor_id));
-alter table person add constraint person_actor_id_lowercase_ck check (inbox_url = lower(inbox_url));
+alter table person add constraint person_inbox_url_lowercase_ck check (inbox_url = lower(inbox_url));
 
