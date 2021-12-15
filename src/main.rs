@@ -9,7 +9,7 @@ use diesel::{
 };
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
-use lemmy_api_common::blocking;
+use lemmy_api_common::{blocking, check_private_instance_and_federation_enabled};
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub_lib::activity_queue::create_activity_queue;
 use lemmy_db_schema::{get_database_url_from_env, source::secret::Secret};
@@ -102,6 +102,8 @@ async fn main() -> Result<(), LemmyError> {
   let queue_manager = create_activity_queue(client.clone());
 
   let activity_queue = queue_manager.queue_handle().clone();
+
+  check_private_instance_and_federation_enabled(&pool, &settings).await?;
 
   let chat_server = ChatServer::startup(
     pool.clone(),

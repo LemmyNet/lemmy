@@ -3,6 +3,7 @@ use lemmy_db_views::{
   comment_view::CommentView,
   local_user_view::LocalUserSettingsView,
   post_view::PostView,
+  registration_application_view::RegistrationApplicationView,
   site_view::SiteView,
 };
 use lemmy_db_views_actor::{
@@ -71,6 +72,7 @@ pub struct GetModlog {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,6 +100,10 @@ pub struct CreateSite {
   pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
+  pub require_email_verification: Option<bool>,
+  pub require_application: Option<bool>,
+  pub application_question: Option<String>,
+  pub private_instance: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
@@ -112,6 +118,10 @@ pub struct EditSite {
   pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
+  pub require_email_verification: Option<bool>,
+  pub require_application: Option<bool>,
+  pub application_question: Option<String>,
+  pub private_instance: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
@@ -172,4 +182,41 @@ pub struct FederatedInstances {
   pub linked: Vec<String>,
   pub allowed: Option<Vec<String>>,
   pub blocked: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ListRegistrationApplications {
+  /// Only shows the unread applications (IE those without an admin actor)
+  pub unread_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ListRegistrationApplicationsResponse {
+  pub registration_applications: Vec<RegistrationApplicationView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ApproveRegistrationApplication {
+  pub id: i32,
+  pub approve: bool,
+  pub deny_reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RegistrationApplicationResponse {
+  pub registration_application: RegistrationApplicationView,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetUnreadRegistrationApplicationCount {
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct GetUnreadRegistrationApplicationCountResponse {
+  pub registration_applications: i64,
 }

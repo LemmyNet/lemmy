@@ -1,6 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt_opt};
+use lemmy_api_common::{
+  blocking,
+  check_private_instance,
+  community::*,
+  get_local_user_view_from_jwt_opt,
+};
 use lemmy_apub::{
   fetcher::webfinger::webfinger_resolve,
   objects::community::ApubCommunity,
@@ -34,6 +39,9 @@ impl PerformCrud for GetCommunity {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
+
     let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = match data.id {
@@ -104,6 +112,8 @@ impl PerformCrud for ListCommunities {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);
 

@@ -11,7 +11,10 @@ use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
   naive_now,
-  source::site::{Site, SiteForm},
+  source::{
+    local_user::LocalUser,
+    site::{Site, SiteForm},
+  },
   traits::Crud,
 };
 use lemmy_db_views::site_view::SiteView;
@@ -42,6 +45,7 @@ impl PerformCrud for EditSite {
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
+    let application_question = diesel_option_overwrite(&data.application_question);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
@@ -61,13 +65,41 @@ impl PerformCrud for EditSite {
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
+      require_email_verification: data.require_email_verification,
+      require_application: data.require_application,
+      application_question,
+      private_instance: data.private_instance,
     };
 
-    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    blocking(context.pool(), update_site)
+    let update_site = blocking(context.pool(), move |conn| {
+      Site::update(conn, 1, &site_form)
+    })
+    .await?
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("couldnt_update_site"))?;
+
+    // TODO can't think of a better way to do this.
+    // If the server suddenly requires email verification, or required applications, no old users
+    // will be able to log in. It really only wants this to be a requirement for NEW signups.
+    // So if it was set from false, to true, you need to update all current users columns to be verified.
+
+    if !found_site.require_application && update_site.require_application {
+      blocking(context.pool(), move |conn| {
+        LocalUser::set_all_users_registration_applications_accepted(conn)
+      })
       .await?
       .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_site"))?;
+      .map_err(|e| e.with_message("couldnt_set_all_registrations_accepted"))?;
+    }
+
+    if !found_site.require_email_verification && update_site.require_email_verification {
+      blocking(context.pool(), move |conn| {
+        LocalUser::set_all_users_email_verified(conn)
+      })
+      .await?
+      .map_err(LemmyError::from)
+      .map_err(|e| e.with_message("couldnt_set_all_email_verified"))?;
+    }
 
     let site_view = blocking(context.pool(), SiteView::read).await??;
 

@@ -1,6 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, comment::*, get_local_user_view_from_jwt_opt};
+use lemmy_api_common::{
+  blocking,
+  check_private_instance,
+  comment::*,
+  get_local_user_view_from_jwt_opt,
+};
 use lemmy_apub::{
   fetcher::webfinger::webfinger_resolve,
   objects::community::ApubCommunity,
@@ -30,6 +35,8 @@ impl PerformCrud for GetComment {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let person_id = local_user_view.map(|u| u.person.id);
     let id = data.id;
@@ -62,6 +69,8 @@ impl PerformCrud for GetComments {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let show_bot_accounts = local_user_view
       .as_ref()
