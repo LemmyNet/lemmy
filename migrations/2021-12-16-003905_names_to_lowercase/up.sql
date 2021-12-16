@@ -13,13 +13,13 @@ where id not in (
 
 -- Store the old values so that down.sql can recover them
 alter table person add column old_name varchar(255);
-update table set old_name = name;
+update person set old_name = name;
 
 alter table person add column old_actor_id varchar(255);
-update table set old_actor_id = actor_id;
+update person set old_actor_id = actor_id;
 
 alter table person add column old_inbox_url varchar(255);
-update table set old_inbox_url = inbox_url;
+update person set old_inbox_url = inbox_url;
 
 
 -- Set person names, actor_id, and inbox_url to lowercase
