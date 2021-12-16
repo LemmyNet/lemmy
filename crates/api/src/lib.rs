@@ -224,7 +224,7 @@ mod tests {
     let settings = Settings::init().unwrap();
 
     let new_person = PersonForm {
-      name: "Gerry9812".into(),
+      name: "gerry9812".into(),
       ..PersonForm::default()
     };
 
