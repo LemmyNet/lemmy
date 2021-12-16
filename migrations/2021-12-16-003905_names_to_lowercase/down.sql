@@ -12,6 +12,6 @@ alter table person drop column old_actor_id;
 alter table person drop column old_inbox_url;
 
 -- Remove column constraints
-alter table person drop constraint person_inbox_url_lowercase_ck;
+alter table person drop constraint person_name_lowercase_ck;
 alter table person drop constraint person_actor_id_lowercase_ck;
 alter table person drop constraint person_inbox_url_lowercase_ck;
