@@ -7,6 +7,7 @@ WORKDIR /app
 
 # Cargo chef plan
 FROM chef as planner
+ENV RUSTFLAGS="--cfg tokio_unstable"
 
 # Copy dirs
 COPY . .
@@ -16,6 +17,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef as builder
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="debug"
+ENV RUSTFLAGS="--cfg tokio_unstable"
 
 COPY --from=planner /app/recipe.json ./recipe.json
 RUN cargo chef cook --recipe-path recipe.json --target ${CARGO_BUILD_TARGET}

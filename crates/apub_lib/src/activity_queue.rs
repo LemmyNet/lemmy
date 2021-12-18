@@ -82,9 +82,10 @@ async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Resul
       if !o.status().is_success() {
         let status = o.status();
         let text = o.text().await?;
+
         warn!(
           "Send {} to {} failed with status {}: {}",
-          task.activity_id, task.inbox, status, text
+          task.activity_id, task.inbox, status, text,
         );
       }
     }
