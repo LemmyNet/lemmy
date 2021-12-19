@@ -1,10 +1,10 @@
 use crate::{
+  functions::lower,
   naive_now,
   newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
   source::person::{Person, PersonForm},
   traits::Crud,
-  functions::lower,
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;

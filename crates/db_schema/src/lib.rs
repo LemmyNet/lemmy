@@ -145,7 +145,6 @@ pub mod functions {
   }
 
   sql_function!(fn lower(x: Text) -> Text);
-
 }
 
 #[cfg(test)]

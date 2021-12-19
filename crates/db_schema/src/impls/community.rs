@@ -1,4 +1,5 @@
 use crate::{
+  functions::lower,
   naive_now,
   newtypes::{CommunityId, DbUrl, PersonId},
   source::community::{
@@ -13,7 +14,6 @@ use crate::{
     CommunitySafe,
   },
   traits::{Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
-  functions::lower,
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;
