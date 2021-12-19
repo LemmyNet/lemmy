@@ -14,7 +14,7 @@ static SETTINGS: Lazy<RwLock<Settings>> =
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
-    Settings::get().hostname
+    Settings::get().hostname.to_lowercase()
   ))
   .expect("compile webfinger regex")
 });
