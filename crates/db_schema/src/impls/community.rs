@@ -13,6 +13,7 @@ use crate::{
     CommunitySafe,
   },
   traits::{Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  functions::lower,
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;
@@ -95,7 +96,7 @@ impl Community {
     use crate::schema::community::dsl::*;
     community
       .filter(local.eq(true))
-      .filter(name.eq(community_name))
+      .filter(lower(name).eq(lower(community_name)))
       .first::<Self>(conn)
   }
 

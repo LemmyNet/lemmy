@@ -13,7 +13,7 @@ static SETTINGS: Lazy<RwLock<Settings>> =
   Lazy::new(|| RwLock::new(Settings::init().expect("Failed to load settings file")));
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(&format!(
-    "^acct:([a-z0-9_]{{3,}})@{}$",
+    "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
     Settings::get().hostname
   ))
   .expect("compile webfinger regex")

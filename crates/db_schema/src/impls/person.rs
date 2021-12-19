@@ -4,6 +4,7 @@ use crate::{
   schema::person::dsl::*,
   source::person::{Person, PersonForm},
   traits::Crud,
+  functions::lower,
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;
@@ -194,7 +195,7 @@ impl Person {
     person
       .filter(deleted.eq(false))
       .filter(local.eq(true))
-      .filter(name.eq(from_name))
+      .filter(lower(name).eq(lower(from_name)))
       .first::<Person>(conn)
   }
 
