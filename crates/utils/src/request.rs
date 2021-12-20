@@ -5,7 +5,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use thiserror::Error;
-use tracing::error;
+use tracing::{error, info};
 use url::Url;
 use webpage::HTML;
 
@@ -64,12 +64,18 @@ pub async fn fetch_site_metadata(
   client: &ClientWithMiddleware,
   url: &Url,
 ) -> Result<SiteMetadata, LemmyError> {
+  info!("Fetching site metadata for url: {}", url);
   let response = client.get(url.as_str()).send().await?;
 
-  let html = response
-    .text()
+  // Can't use .text() here, because it only checks the content header, not the actual bytes
+  // https://github.com/LemmyNet/lemmy/issues/1964
+  let html_bytes = response
+    .bytes()
     .await
-    .map_err(|e| RecvError(e.to_string()))?;
+    .map_err(|e| RecvError(e.to_string()))?
+    .to_vec();
+
+  let html = String::from_utf8_lossy(&html_bytes);
 
   let tags = html_to_site_metadata(&html)?;
 
@@ -77,6 +83,20 @@ pub async fn fetch_site_metadata(
 }
 
 fn html_to_site_metadata(html: &str) -> Result<SiteMetadata, LemmyError> {
+  // Make sure the first line is doctype html
+  let first_line = html
+    .lines()
+    .into_iter()
+    .next()
+    .ok_or_else(|| LemmyError::from_message("No lines in html"))?
+    .to_lowercase();
+
+  if !first_line.starts_with("<!doctype html>") {
+    return Err(LemmyError::from_message(
+      "Site metadata page fetch is not DOCTYPE html",
+    ));
+  }
+
   let page = HTML::from_string(html.to_string(), None)?;
 
   let page_title = page.title;
