@@ -38,7 +38,7 @@ services:
       - lemmy
 
   pictrs:
-    image: asonix/pictrs:0.3.0-beta.12
+    image: asonix/pictrs:0.3.0-beta.12-r1
     ports: 
       - "127.0.0.1:8537:8080"
       - "127.0.0.1:6670:6669"

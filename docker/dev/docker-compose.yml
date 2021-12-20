@@ -51,7 +51,7 @@ services:
     restart: always
 
   pictrs:
-    image: asonix/pictrs:0.3.0-beta.12
+    image: asonix/pictrs:0.3.0-beta.12-r1
     user: 991:991
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137
