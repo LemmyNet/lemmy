@@ -1,7 +1,7 @@
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  functions::lower,
   aggregates::person_aggregates::PersonAggregates,
+  functions::lower,
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
   source::{
