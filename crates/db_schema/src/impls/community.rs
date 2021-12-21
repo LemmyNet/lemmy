@@ -1,4 +1,5 @@
 use crate::{
+  functions::lower,
   naive_now,
   newtypes::{CommunityId, DbUrl, PersonId},
   source::community::{
@@ -95,7 +96,7 @@ impl Community {
     use crate::schema::community::dsl::*;
     community
       .filter(local.eq(true))
-      .filter(name.eq(community_name))
+      .filter(lower(name).eq(lower(community_name)))
       .first::<Self>(conn)
   }
 

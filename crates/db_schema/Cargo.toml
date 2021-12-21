@@ -8,6 +8,8 @@ homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [lib]
+name = "lemmy_db_schema"
+path = "src/lib.rs"
 doctest = false
 
 [dependencies]

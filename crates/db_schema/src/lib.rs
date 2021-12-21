@@ -143,6 +143,8 @@ pub mod functions {
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
   }
+
+  sql_function!(fn lower(x: Text) -> Text);
 }
 
 #[cfg(test)]
