@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_server"
-version = "0.14.4-rc.4"
+version = "0.15.0-rc.6"
 edition = "2018"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -31,43 +31,43 @@ members = [
 ]
 
 [dependencies]
-lemmy_api = { version = "=0.14.4-rc.4", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.14.4-rc.4", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.14.4-rc.4", path = "./crates/apub" }
-lemmy_apub_lib = { version = "=0.14.4-rc.4", path = "./crates/apub_lib" }
-lemmy_utils = { version = "=0.14.4-rc.4", path = "./crates/utils" }
-lemmy_db_schema = { version = "=0.14.4-rc.4", path = "./crates/db_schema" }
-lemmy_db_views = { version = "=0.14.4-rc.4", path = "./crates/db_views" }
-lemmy_db_views_moderator = { version = "=0.14.4-rc.4", path = "./crates/db_views_moderator" }
-lemmy_db_views_actor = { version = "=0.14.4-rc.4", path = "./crates/db_views_actor" }
-lemmy_api_common = { version = "=0.14.4-rc.4", path = "crates/api_common" }
-lemmy_websocket = { version = "=0.14.4-rc.4", path = "./crates/websocket" }
-lemmy_routes = { version = "=0.14.4-rc.4", path = "./crates/routes" }
+lemmy_api = { version = "=0.15.0-rc.6", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.15.0-rc.6", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.15.0-rc.6", path = "./crates/apub" }
+lemmy_apub_lib = { version = "=0.15.0-rc.6", path = "./crates/apub_lib" }
+lemmy_utils = { version = "=0.15.0-rc.6", path = "./crates/utils" }
+lemmy_db_schema = { version = "=0.15.0-rc.6", path = "./crates/db_schema" }
+lemmy_db_views = { version = "=0.15.0-rc.6", path = "./crates/db_views" }
+lemmy_db_views_moderator = { version = "=0.15.0-rc.6", path = "./crates/db_views_moderator" }
+lemmy_db_views_actor = { version = "=0.15.0-rc.6", path = "./crates/db_views_actor" }
+lemmy_api_common = { version = "=0.15.0-rc.6", path = "crates/api_common" }
+lemmy_websocket = { version = "=0.15.0-rc.6", path = "./crates/websocket" }
+lemmy_routes = { version = "=0.15.0-rc.6", path = "./crates/routes" }
 diesel = "1.4.8"
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { version = "1.0.131", features = ["derive"] }
 actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.9", default-features = false, features = ["rustls"] }
+actix-web = { version = "4.0.0-beta.14", default-features = false, features = ["rustls"] }
 tracing = "0.1.29"
-tracing-actix-web = { version = "0.5.0-beta.3", default-features = false }
+tracing-actix-web = { version = "0.5.0-beta.5", default-features = false }
 tracing-error = "0.2.0"
 tracing-log = "0.1.2"
-tracing-subscriber = { version = "0.3.2", features = ["env-filter"] }
-strum = "0.21.0"
+tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
+strum = "0.23.0"
 url = { version = "2.2.2", features = ["serde"] }
-openssl = "0.10.36"
-http-signature-normalization-actix = { version = "0.5.0-beta.10", default-features = false, features = ["sha-2"] }
-tokio = { version = "1.12.0", features = ["sync"] }
-anyhow = "1.0.44"
-reqwest = { version = "0.11.4", features = ["json"] }
-reqwest-middleware = "0.1.2"
+openssl = "0.10.38"
+http-signature-normalization-actix = { version = "0.5.0-beta.14", default-features = false, features = ["sha-2"] }
+tokio = { version = "1.14.0", features = ["sync"] }
+anyhow = "1.0.51"
+reqwest = { version = "0.11.7", features = ["json"] }
+reqwest-middleware = "0.1.3"
 reqwest-tracing = { version = "0.2.0", features = ["opentelemetry_0_16"] }
-activitystreams = "0.7.0-alpha.11"
-actix-rt = { version = "2.2.0", default-features = false }
-serde_json = { version = "1.0.68", features = ["preserve_order"] }
+activitystreams = "0.7.0-alpha.14"
+actix-rt = { version = "2.5.0", default-features = false }
+serde_json = { version = "1.0.72", features = ["preserve_order"] }
 clokwerk = "0.3.5"
-doku = "0.10.1"
+doku = "0.10.2"
 opentelemetry = { version = "0.16", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.9"
 tracing-opentelemetry = "0.16"

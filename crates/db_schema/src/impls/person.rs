@@ -1,4 +1,5 @@
 use crate::{
+  functions::lower,
   naive_now,
   newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
@@ -194,7 +195,7 @@ impl Person {
     person
       .filter(deleted.eq(false))
       .filter(local.eq(true))
-      .filter(name.eq(from_name))
+      .filter(lower(name).eq(lower(from_name)))
       .first::<Person>(conn)
   }
 

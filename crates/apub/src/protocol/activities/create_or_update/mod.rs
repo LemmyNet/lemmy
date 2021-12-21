@@ -4,6 +4,7 @@ pub mod post;
 #[cfg(test)]
 mod tests {
   use crate::{
+    context::WithContext,
     objects::tests::file_to_json_object,
     protocol::{
       activities::create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
@@ -23,8 +24,12 @@ mod tests {
       "assets/lemmy/activities/create_or_update/create_note.json",
     );
 
-    file_to_json_object::<CreateOrUpdateComment>("assets/pleroma/activities/create_note.json");
-    file_to_json_object::<CreateOrUpdateComment>("assets/smithereen/activities/create_note.json");
+    file_to_json_object::<WithContext<CreateOrUpdateComment>>(
+      "assets/pleroma/activities/create_note.json",
+    );
+    file_to_json_object::<WithContext<CreateOrUpdateComment>>(
+      "assets/smithereen/activities/create_note.json",
+    );
     file_to_json_object::<CreateOrUpdateComment>("assets/mastodon/activities/create_note.json");
 
     file_to_json_object::<CreateOrUpdatePost>("assets/lotide/activities/create_page.json");

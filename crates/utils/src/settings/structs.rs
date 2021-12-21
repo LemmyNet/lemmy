@@ -169,8 +169,8 @@ pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
   pub admin_username: String,
-  /// Password for the admin user
-  #[doku(example = "my_passwd")]
+  /// Password for the admin user. It must be at least 10 characters.
+  #[doku(example = "my_passwd_longer_than_ten_characters")]
   pub admin_password: String,
   /// Name of the site (can be changed later)
   #[doku(example = "My Lemmy Instance")]
@@ -194,4 +194,12 @@ pub struct SetupConfig {
   pub enable_nsfw: Option<bool>,
   #[default(None)]
   pub community_creation_admin_only: Option<bool>,
+  #[default(None)]
+  pub require_email_verification: Option<bool>,
+  #[default(None)]
+  pub require_application: Option<bool>,
+  #[default(None)]
+  pub application_question: Option<String>,
+  #[default(None)]
+  pub private_instance: Option<bool>,
 }

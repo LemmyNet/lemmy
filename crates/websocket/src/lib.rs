@@ -97,7 +97,7 @@ where
   Ok(serde_json::to_string(&response)?)
 }
 
-#[derive(EnumString, ToString, Debug, Clone)]
+#[derive(EnumString, Display, Debug, Clone)]
 pub enum UserOperation {
   Login,
   GetCaptcha,
@@ -117,6 +117,7 @@ pub enum UserOperation {
   ListPostReports,
   GetReportCount,
   GetUnreadCount,
+  VerifyEmail,
   FollowCommunity,
   GetReplies,
   GetPersonMentions,
@@ -125,6 +126,9 @@ pub enum UserOperation {
   BanFromCommunity,
   AddModToCommunity,
   AddAdmin,
+  GetUnreadRegistrationApplicationCount,
+  ListRegistrationApplications,
+  ApproveRegistrationApplication,
   BanPerson,
   Search,
   ResolveObject,
@@ -147,7 +151,7 @@ pub enum UserOperation {
   BlockPerson,
 }
 
-#[derive(EnumString, ToString, Debug, Clone)]
+#[derive(EnumString, Display, Debug, Clone)]
 pub enum UserOperationCrud {
   // Site
   CreateSite,

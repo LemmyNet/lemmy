@@ -1,6 +1,12 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, honeypot_check, password_length_check, person::*};
+use lemmy_api_common::{
+  blocking,
+  honeypot_check,
+  password_length_check,
+  person::*,
+  send_verification_email,
+};
 use lemmy_apub::{
   generate_followers_url,
   generate_inbox_url,
@@ -21,11 +27,10 @@ use lemmy_db_schema::{
     },
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
+    registration_application::{RegistrationApplication, RegistrationApplicationForm},
     site::Site,
   },
   traits::{Crud, Followable, Joinable},
-  ListingType,
-  SortType,
 };
 use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
@@ -49,15 +54,30 @@ impl PerformCrud for Register {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
+    // no email verification, or applications if the site is not setup yet
+    let (mut email_verification, mut require_application) = (false, false);
+
     // Make sure site has open registration
     if let Ok(site) = blocking(context.pool(), Site::read_simple).await? {
       if !site.open_registration {
         return Err(LemmyError::from_message("registration_closed"));
       }
+      email_verification = site.require_email_verification;
+      require_application = site.require_application;
     }
 
     password_length_check(&data.password)?;
     honeypot_check(&data.honeypot)?;
+
+    if email_verification && data.email.is_none() {
+      return Err(LemmyError::from_message("email_required"));
+    }
+
+    if require_application && data.answer.is_none() {
+      return Err(LemmyError::from_message(
+        "registration_application_answer_required",
+      ));
+    }
 
     // Make sure passwords match
     if data.password != data.password_verify {
@@ -125,22 +145,13 @@ impl PerformCrud for Register {
     .map_err(|e| e.with_message("user_already_exists"))?;
 
     // Create the local user
-    // TODO some of these could probably use the DB defaults
     let local_user_form = LocalUserForm {
-      person_id: inserted_person.id,
+      person_id: Some(inserted_person.id),
       email: Some(data.email.as_deref().map(|s| s.to_owned())),
-      password_encrypted: data.password.to_string(),
+      password_encrypted: Some(data.password.to_string()),
       show_nsfw: Some(data.show_nsfw),
-      show_bot_accounts: Some(true),
-      theme: Some("browser".into()),
-      default_sort_type: Some(SortType::Active as i16),
-      default_listing_type: Some(ListingType::Subscribed as i16),
-      lang: Some("browser".into()),
-      show_avatars: Some(true),
-      show_scores: Some(true),
-      show_read_posts: Some(true),
-      show_new_post_notifs: Some(false),
-      send_notifications_to_email: Some(false),
+      email_verified: Some(false),
+      ..LocalUserForm::default()
     };
 
     let inserted_local_user = match blocking(context.pool(), move |conn| {
@@ -167,6 +178,21 @@ impl PerformCrud for Register {
         return Err(LemmyError::from(e).with_message(err_type));
       }
     };
+
+    if require_application {
+      // Create the registration application
+      let form = RegistrationApplicationForm {
+        local_user_id: Some(inserted_local_user.id),
+        // We already made sure answer was not null above
+        answer: data.answer.to_owned(),
+        ..RegistrationApplicationForm::default()
+      };
+
+      blocking(context.pool(), move |conn| {
+        RegistrationApplication::create(conn, &form)
+      })
+      .await??;
+    }
 
     let main_community_keypair = generate_actor_keypair()?;
 
@@ -231,14 +257,41 @@ impl PerformCrud for Register {
         .map_err(|e| e.with_message("community_moderator_already_exists"))?;
     }
 
-    // Return the jwt
-    Ok(LoginResponse {
-      jwt: Claims::jwt(
-        inserted_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    })
+    let mut login_response = LoginResponse {
+      jwt: None,
+      registration_created: false,
+      verify_email_sent: false,
+    };
+
+    // Log the user in directly if email verification and application aren't required
+    if !require_application && !email_verification {
+      login_response.jwt = Some(
+        Claims::jwt(
+          inserted_local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      );
+    } else {
+      if email_verification {
+        send_verification_email(
+          inserted_local_user.id,
+          // we check at the beginning of this method that email is set
+          &inserted_local_user.email.expect("email was provided"),
+          &inserted_person.name,
+          context.pool(),
+          &context.settings(),
+        )
+        .await?;
+        login_response.verify_email_sent = true;
+      }
+
+      if require_application {
+        login_response.registration_created = true;
+      }
+    }
+
+    Ok(login_response)
   }
 }

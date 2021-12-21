@@ -210,13 +210,26 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             web::put().to(route_post::<ChangePassword>),
           )
           .route("/report_count", web::get().to(route_get::<GetReportCount>))
-          .route("/unread_count", web::get().to(route_get::<GetUnreadCount>)),
+          .route("/unread_count", web::get().to(route_get::<GetUnreadCount>))
+          .route("/verify_email", web::post().to(route_post::<VerifyEmail>)),
       )
       // Admin Actions
       .service(
-        web::resource("/admin/add")
+        web::scope("/admin")
           .wrap(rate_limit.message())
-          .route(web::post().to(route_post::<AddAdmin>)),
+          .route("/add", web::post().to(route_post::<AddAdmin>))
+          .route(
+            "/registration_application/count",
+            web::get().to(route_get::<GetUnreadRegistrationApplicationCount>),
+          )
+          .route(
+            "/registration_application/list",
+            web::get().to(route_get::<ListRegistrationApplications>),
+          )
+          .route(
+            "/registration_application/approve",
+            web::put().to(route_post::<ApproveRegistrationApplication>),
+          ),
       ),
   );
 }

@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_utils"
-version = "0.14.4-rc.4"
+version = "0.15.0-rc.6"
 edition = "2018"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -15,33 +15,33 @@ doctest = false
 [dependencies]
 regex = "1.5.4"
 chrono = { version = "0.4.19", features = ["serde"] }
-lettre = "0.10.0-rc.3"
+lettre = "0.10.0-rc.4"
 tracing = "0.1.29"
 tracing-error = "0.2.0"
-itertools = "0.10.1"
+itertools = "0.10.3"
 rand = "0.8.4"
 percent-encoding = "2.1.0"
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = { version = "1.0.68", features = ["preserve_order"] }
-thiserror = "1.0.29"
+serde = { version = "1.0.131", features = ["derive"] }
+serde_json = { version = "1.0.72", features = ["preserve_order"] }
+thiserror = "1.0.30"
 comrak = { version = "0.12.1", default-features = false }
 once_cell = "1.8.0"
-openssl = "0.10.36"
+openssl = "0.10.38"
 url = { version = "2.2.2", features = ["serde"] }
-actix-web = { version = "4.0.0-beta.9", default-features = false, features = ["rustls"] }
-actix-rt = { version = "2.2.0", default-features = false }
-anyhow = "1.0.44"
-reqwest = { version = "0.11.4", features = ["json"] }
-reqwest-middleware = "0.1.2"
-tokio = { version = "1.12.0", features = ["sync"] }
-strum = "0.21.0"
-strum_macros = "0.21.1"
-futures = "0.3.17"
+actix-web = { version = "4.0.0-beta.14", default-features = false, features = ["rustls"] }
+actix-rt = { version = "2.5.0", default-features = false }
+anyhow = "1.0.51"
+reqwest = { version = "0.11.7", features = ["json"] }
+reqwest-middleware = "0.1.3"
+tokio = { version = "1.14.0", features = ["sync"] }
+strum = "0.23.0"
+strum_macros = "0.23.1"
+futures = "0.3.18"
 diesel = "1.4.8"
 http = "0.2.5"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
-webpage = { version = "1.3.0", default-features = false, features = ["serde"] }
+webpage = { version = "1.4.0", default-features = false, features = ["serde"] }
 jsonwebtoken = "7.2.0"
-doku = "0.10.1"
+doku = "0.10.2"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }

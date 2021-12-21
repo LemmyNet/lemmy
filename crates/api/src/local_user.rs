@@ -6,10 +6,14 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
   blocking,
+  check_registration_application,
   get_local_user_view_from_jwt,
   is_admin,
   password_length_check,
   person::*,
+  send_email_verification_success,
+  send_password_reset_email,
+  send_verification_email,
 };
 use lemmy_db_schema::{
   diesel_option_overwrite,
@@ -19,6 +23,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
+    email_verification::EmailVerification,
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
     password_reset_request::*,
@@ -46,12 +51,10 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{
   claims::Claims,
-  email::send_email,
   location_info,
-  utils::{generate_random_string, is_valid_display_name, is_valid_matrix_id, naive_from_unix},
+  utils::{is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ConnectionId,
   LemmyError,
-  Sensitive,
 };
 use lemmy_websocket::{
   messages::{CaptchaItem, SendAllMessage},
@@ -90,14 +93,25 @@ impl Perform for Login {
       return Err(LemmyError::from_message("password_incorrect"));
     }
 
+    let site = blocking(context.pool(), Site::read_simple).await??;
+    if site.require_email_verification && !local_user_view.local_user.email_verified {
+      return Err(LemmyError::from_message("email_not_verified"));
+    }
+
+    check_registration_application(&site, &local_user_view, context.pool()).await?;
+
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        local_user_view.local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
+      jwt: Some(
+        Claims::jwt(
+          local_user_view.local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      ),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -164,11 +178,35 @@ impl Perform for SaveUserSettings {
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
-    let email = diesel_option_overwrite(&data.email.clone().map(Sensitive::into_inner));
     let bio = diesel_option_overwrite(&data.bio);
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
     let bot_account = data.bot_account;
+    let email_deref = data.email.as_deref().map(|e| e.to_owned());
+    let email = diesel_option_overwrite(&email_deref);
+
+    if let Some(Some(email)) = &email {
+      let previous_email = local_user_view.local_user.email.unwrap_or_default();
+      // Only send the verification email if there was an email change
+      if previous_email.ne(email) {
+        send_verification_email(
+          local_user_view.local_user.id,
+          email,
+          &local_user_view.person.name,
+          context.pool(),
+          &context.settings(),
+        )
+        .await?;
+      }
+    }
+
+    // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
+    if let Some(email) = &email {
+      let site_fut = blocking(context.pool(), Site::read_simple);
+      if email.is_none() && site_fut.await??.require_email_verification {
+        return Err(LemmyError::from_message("email_required"));
+      }
+    }
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
@@ -228,9 +266,9 @@ impl Perform for SaveUserSettings {
     .map_err(|e| e.with_message("user_already_exists"))?;
 
     let local_user_form = LocalUserForm {
-      person_id,
+      person_id: Some(person_id),
       email,
-      password_encrypted,
+      password_encrypted: Some(password_encrypted),
       show_nsfw: data.show_nsfw,
       show_bot_accounts: data.show_bot_accounts,
       show_scores: data.show_scores,
@@ -242,6 +280,8 @@ impl Perform for SaveUserSettings {
       show_read_posts: data.show_read_posts,
       show_new_post_notifs: data.show_new_post_notifs,
       send_notifications_to_email: data.send_notifications_to_email,
+      email_verified: None,
+      accepted_application: None,
     };
 
     let local_user_res = blocking(context.pool(), move |conn| {
@@ -265,12 +305,16 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        updated_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
+      jwt: Some(
+        Claims::jwt(
+          updated_local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      ),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -315,12 +359,16 @@ impl Perform for ChangePassword {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        updated_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
+      jwt: Some(
+        Claims::jwt(
+          updated_local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      ),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -736,34 +784,8 @@ impl Perform for PasswordReset {
     .map_err(LemmyError::from)
     .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
 
-    // Generate a random token
-    let token = generate_random_string();
-
-    // Insert the row
-    let token2 = token.clone();
-    let local_user_id = local_user_view.local_user.id;
-    blocking(context.pool(), move |conn| {
-      PasswordResetRequest::create_token(conn, local_user_id, &token2)
-    })
-    .await??;
-
     // Email the pure token to the user.
-    // TODO no i18n support here.
-    let email = &local_user_view.local_user.email.expect("email");
-    let subject = &format!("Password reset for {}", local_user_view.person.name);
-    let protocol_and_hostname = &context.settings().get_protocol_and_hostname();
-    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, protocol_and_hostname, &token);
-    send_email(
-      subject,
-      email,
-      &local_user_view.person.name,
-      html,
-      &context.settings(),
-    )
-    .map_err(|e| anyhow::anyhow!("{}", e))
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("email_send_failed"))?;
-
+    send_password_reset_email(&local_user_view, context.pool(), &context.settings()).await?;
     Ok(PasswordResetResponse {})
   }
 }
@@ -805,12 +827,16 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(
-        updated_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
+      jwt: Some(
+        Claims::jwt(
+          updated_local_user.id.0,
+          &context.secret().jwt_secret,
+          &context.settings().hostname,
+        )?
+        .into(),
+      ),
+      verify_email_sent: false,
+      registration_created: false,
     })
   }
 }
@@ -891,5 +917,51 @@ impl Perform for GetUnreadCount {
     };
 
     Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for VerifyEmail {
+  type Response = VerifyEmailResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<usize>,
+  ) -> Result<Self::Response, LemmyError> {
+    let token = self.token.clone();
+    let verification = blocking(context.pool(), move |conn| {
+      EmailVerification::read_for_token(conn, &token)
+    })
+    .await?
+    .map_err(LemmyError::from)
+    .map_err(|e| e.with_message("token_not_found"))?;
+
+    let form = LocalUserForm {
+      // necessary in case this is a new signup
+      email_verified: Some(true),
+      // necessary in case email of an existing user was changed
+      email: Some(Some(verification.email)),
+      ..LocalUserForm::default()
+    };
+    let local_user_id = verification.local_user_id;
+    blocking(context.pool(), move |conn| {
+      LocalUser::update(conn, local_user_id, &form)
+    })
+    .await??;
+
+    let local_user_view = blocking(context.pool(), move |conn| {
+      LocalUserView::read(conn, local_user_id)
+    })
+    .await??;
+
+    send_email_verification_success(&local_user_view, &context.settings())?;
+
+    blocking(context.pool(), move |conn| {
+      EmailVerification::delete_old_tokens_for_local_user(conn, local_user_id)
+    })
+    .await??;
+
+    Ok(VerifyEmailResponse {})
   }
 }

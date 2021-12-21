@@ -5,6 +5,7 @@ use lemmy_api_common::{
   check_person_block,
   get_local_user_view_from_jwt,
   person::{CreatePrivateMessage, PrivateMessageResponse},
+  send_email_to_user,
 };
 use lemmy_apub::{
   generate_local_apub_endpoint,
@@ -20,11 +21,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_utils::{utils::remove_slurs, ConnectionId, LemmyError};
-use lemmy_websocket::{
-  send::{send_email_to_user, send_pm_ws_message},
-  LemmyContext,
-  UserOperationCrud,
-};
+use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {

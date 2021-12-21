@@ -31,6 +31,8 @@ mod safe_settings_type {
     show_scores,
     show_read_posts,
     show_new_post_notifs,
+    email_verified,
+    accepted_application,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -54,6 +56,8 @@ mod safe_settings_type {
         show_scores,
         show_read_posts,
         show_new_post_notifs,
+        email_verified,
+        accepted_application,
       )
     }
   }
@@ -62,8 +66,10 @@ mod safe_settings_type {
 impl LocalUser {
   pub fn register(conn: &PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+    let password_hash = form
+      .password_encrypted
+      .as_ref()
+      .map(|p| hash(p, DEFAULT_COST).expect("Couldn't hash password"));
     edited_user.password_encrypted = password_hash;
 
     Self::create(conn, &edited_user)
@@ -82,6 +88,20 @@ impl LocalUser {
         validator_time.eq(naive_now()),
       ))
       .get_result::<Self>(conn)
+  }
+
+  pub fn set_all_users_email_verified(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    diesel::update(local_user)
+      .set(email_verified.eq(true))
+      .get_results::<Self>(conn)
+  }
+
+  pub fn set_all_users_registration_applications_accepted(
+    conn: &PgConnection,
+  ) -> Result<Vec<Self>, Error> {
+    diesel::update(local_user)
+      .set(accepted_application.eq(true))
+      .get_results::<Self>(conn)
   }
 }
 
