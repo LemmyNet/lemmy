@@ -24,10 +24,13 @@ pub struct Register {
   pub password: Sensitive<String>,
   pub password_verify: Sensitive<String>,
   pub show_nsfw: bool,
+  /// email is mandatory if email verification is enabled on the server
   pub email: Option<Sensitive<String>>,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
   pub honeypot: Option<String>,
+  /// An answer is mandatory if require application is enabled on the server
+  pub answer: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,7 +81,10 @@ pub struct ChangePassword {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginResponse {
-  pub jwt: Sensitive<String>,
+  /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
+  pub jwt: Option<Sensitive<String>>,
+  pub registration_created: bool,
+  pub verify_email_sent: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -194,6 +200,9 @@ pub struct DeleteAccount {
   pub auth: Sensitive<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeleteAccountResponse {}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PasswordReset {
   pub email: Sensitive<String>,
@@ -279,3 +288,11 @@ pub struct GetUnreadCountResponse {
   pub mentions: i64,
   pub private_messages: i64,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct VerifyEmail {
+  pub token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VerifyEmailResponse {}

@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_db_schema"
-version = "0.14.4-rc.4"
+version = "0.15.0-rc.6"
 edition = "2018"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -8,23 +8,25 @@ homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [lib]
+name = "lemmy_db_schema"
+path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.14.4-rc.4", path = "../utils" }
-lemmy_apub_lib = { version = "=0.14.4-rc.4", path = "../apub_lib" }
+lemmy_utils = { version = "=0.15.0-rc.6", path = "../utils" }
+lemmy_apub_lib = { version = "=0.15.0-rc.6", path = "../apub_lib" }
 diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = { version = "1.0.68", features = ["preserve_order"] }
+serde = { version = "1.0.131", features = ["derive"] }
+serde_json = { version = "1.0.72", features = ["preserve_order"] }
 url = { version = "2.2.2", features = ["serde"] }
 diesel-derive-newtype = "0.1.2"
 regex = "1.5.4"
 once_cell = "1.8.0"
-strum = "0.21.0"
-strum_macros = "0.21.1"
-sha2 = "0.9.8"
+strum = "0.23.0"
+strum_macros = "0.23.1"
+sha2 = "0.10.0"
 bcrypt = "0.10.1"
 
 [dev-dependencies]
