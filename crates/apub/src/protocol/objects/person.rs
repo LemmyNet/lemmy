@@ -39,6 +39,7 @@ pub struct Person {
   pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) ban_expires: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }
