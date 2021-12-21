@@ -77,5 +77,6 @@ services:
     image: jaegertracing/all-in-one:1
     ports:
       - "14250:14250"
+      # To view traces, visit http://localhost:16686
       - "16686:16686"
     restart: always
