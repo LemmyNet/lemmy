@@ -3149,11 +3149,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89af431b8c46776b5071a9a739c2b5fadbed6be2c6158d1ac5f71c4da3d2261c"
 dependencies = [
  "async-trait",
+ "opentelemetry",
  "reqwest",
  "reqwest-middleware",
  "task-local-extensions",
  "tokio",
  "tracing",
+ "tracing-opentelemetry",
 ]
 
 [[package]]

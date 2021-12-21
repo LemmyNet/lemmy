@@ -62,7 +62,7 @@ tokio = { version = "1.14.0", features = ["sync"] }
 anyhow = "1.0.51"
 reqwest = { version = "0.11.7", features = ["json"] }
 reqwest-middleware = "0.1.3"
-reqwest-tracing = "0.2.0"
+reqwest-tracing = { version = "0.2.0", features = ["opentelemetry_0_16"] }
 activitystreams = "0.7.0-alpha.14"
 actix-rt = { version = "2.5.0", default-features = false }
 serde_json = { version = "1.0.72", features = ["preserve_order"] }
