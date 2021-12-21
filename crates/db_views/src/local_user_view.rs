@@ -1,5 +1,6 @@
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
+  functions::lower,
   aggregates::person_aggregates::PersonAggregates,
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
@@ -81,8 +82,8 @@ impl LocalUserView {
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .filter(
-        person::name
-          .eq(name_or_email)
+        lower(person::name)
+          .eq(lower(name_or_email))
           .or(local_user::email.eq(name_or_email)),
       )
       .select((
