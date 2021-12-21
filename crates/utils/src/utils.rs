@@ -11,7 +11,7 @@ static MENTIONS_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex")
 });
 static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
+  Lazy::new(|| Regex::new(r"^[a-z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r".*\S{3,}.*").expect("compile regex"));
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -132,7 +132,6 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> bool {
   name.chars().count() <= actor_name_max_length
     && VALID_ACTOR_NAME_REGEX.is_match(name)
     && !has_newline(name)
-    && !name.chars().any(char::is_uppercase)
 }
 
 // Can't do a regex here, reverse lookarounds not supported
