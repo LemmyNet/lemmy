@@ -1,5 +1,7 @@
 use crate::{settings::structs::Settings, version::VERSION, LemmyError};
 use anyhow::anyhow;
+use encoding::all::encodings;
+use encoding::DecoderTrap;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
@@ -75,16 +77,17 @@ pub async fn fetch_site_metadata(
     .map_err(|e| RecvError(e.to_string()))?
     .to_vec();
 
-  let html = String::from_utf8_lossy(&html_bytes);
-
-  let tags = html_to_site_metadata(&html)?;
+  let tags = html_to_site_metadata(&html_bytes)?;
 
   Ok(tags)
 }
 
-fn html_to_site_metadata(html: &str) -> Result<SiteMetadata, LemmyError> {
+fn html_to_site_metadata(html_bytes: &Vec<u8>) -> Result<SiteMetadata, LemmyError> {
+  let html = String::from_utf8_lossy(&html_bytes);
+
   // Make sure the first line is doctype html
   let first_line = html
+    .trim_start()
     .lines()
     .into_iter()
     .next()
@@ -97,7 +100,21 @@ fn html_to_site_metadata(html: &str) -> Result<SiteMetadata, LemmyError> {
     ));
   }
 
-  let page = HTML::from_string(html.to_string(), None)?;
+  let mut page = HTML::from_string(html.to_string(), None)?;
+
+  // If the web page specifies that it isn't actually UTF-8, re-decode the received bytes with the
+  // proper encoding. If the specified encoding cannot be found, fall back to the original UTF-8
+  // version.
+  if let Some(charset) = page.meta.get("charset") {
+    if charset.to_lowercase() != "utf-8" {
+      if let Some(encoding_ref) = encodings().iter().find(|e| e.name() == charset) {
+        let html_with_encoding = encoding_ref
+          .decode(&html_bytes, DecoderTrap::Replace)
+          .unwrap();
+        page = HTML::from_string(html_with_encoding, None)?;
+      }
+    }
+  }
 
   let page_title = page.title;
   let page_description = page.description;
