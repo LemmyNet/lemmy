@@ -1,7 +1,6 @@
 use crate::{settings::structs::Settings, version::VERSION, LemmyError};
 use anyhow::anyhow;
-use encoding::all::encodings;
-use encoding::DecoderTrap;
+use encoding::{all::encodings, DecoderTrap};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
@@ -82,8 +81,8 @@ pub async fn fetch_site_metadata(
   Ok(tags)
 }
 
-fn html_to_site_metadata(html_bytes: &Vec<u8>) -> Result<SiteMetadata, LemmyError> {
-  let html = String::from_utf8_lossy(&html_bytes);
+fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> {
+  let html = String::from_utf8_lossy(html_bytes);
 
   // Make sure the first line is doctype html
   let first_line = html
@@ -108,10 +107,9 @@ fn html_to_site_metadata(html_bytes: &Vec<u8>) -> Result<SiteMetadata, LemmyErro
   if let Some(charset) = page.meta.get("charset") {
     if charset.to_lowercase() != "utf-8" {
       if let Some(encoding_ref) = encodings().iter().find(|e| e.name() == charset) {
-        let html_with_encoding = encoding_ref
-          .decode(&html_bytes, DecoderTrap::Replace)
-          .unwrap();
-        page = HTML::from_string(html_with_encoding, None)?;
+        if let Ok(html_with_encoding) = encoding_ref.decode(html_bytes, DecoderTrap::Replace) {
+          page = HTML::from_string(html_with_encoding, None)?;
+        }
       }
     }
   }
