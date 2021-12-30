@@ -1,18 +1,19 @@
 use crate::http::{
   comment::get_apub_comment,
   community::{
-    community_inbox,
-    get_apub_community_followers,
-    get_apub_community_http,
-    get_apub_community_moderators,
-    get_apub_community_outbox,
+    community_inbox, get_apub_community_followers, get_apub_community_http,
+    get_apub_community_moderators, get_apub_community_outbox,
   },
   get_activity,
   person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
   post::get_apub_post,
   shared_inbox,
 };
-use actix_web::{dev::RequestHead, guard::Guard, http::Method, *};
+use actix_web::{
+  guard::{Guard, GuardContext},
+  http::Method,
+  web,
+};
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use lemmy_utils::settings::structs::Settings;
 use sha2::{Digest, Sha256};
@@ -64,11 +65,11 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
 struct InboxRequestGuard;
 
 impl Guard for InboxRequestGuard {
-  fn check(&self, request: &RequestHead) -> bool {
-    if request.method != Method::POST {
+  fn check(&self, request: &GuardContext) -> bool {
+    if request.head().method != Method::POST {
       return false;
     }
-    if let Some(val) = request.headers.get("Content-Type") {
+    if let Some(val) = request.head().headers.get("Content-Type") {
       return val
         .to_str()
         .expect("Content-Type header contains non-ascii chars.")

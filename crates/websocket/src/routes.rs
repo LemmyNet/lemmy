@@ -4,7 +4,7 @@ use crate::{
   LemmyContext,
 };
 use actix::prelude::*;
-use actix_web::*;
+use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use lemmy_utils::{utils::get_ip, ConnectionId, IpAddr};
 use std::time::{Duration, Instant};

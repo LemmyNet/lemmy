@@ -20,7 +20,7 @@ lemmy_api_common = { version = "=0.15.0-rc.6", path = "../api_common" }
 lemmy_apub = { version = "=0.15.0-rc.6", path = "../apub" }
 diesel = "1.4.8"
 actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.14", default-features = false, features = ["rustls"] }
+actix-web = { version = "4.0.0-beta.18", default-features = false, features = ["rustls"] }
 actix-web-actors = { version = "4.0.0-beta.8", default-features = false }
 actix-http = "3.0.0-beta.15"
 sha2 = "0.10.0"
