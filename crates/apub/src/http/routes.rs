@@ -1,8 +1,11 @@
 use crate::http::{
   comment::get_apub_comment,
   community::{
-    community_inbox, get_apub_community_followers, get_apub_community_http,
-    get_apub_community_moderators, get_apub_community_outbox,
+    community_inbox,
+    get_apub_community_followers,
+    get_apub_community_http,
+    get_apub_community_moderators,
+    get_apub_community_outbox,
   },
   get_activity,
   person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
@@ -11,7 +14,7 @@ use crate::http::{
 };
 use actix_web::{
   guard::{Guard, GuardContext},
-  http::Method,
+  http::{header, Method},
   web,
 };
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
@@ -65,15 +68,12 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
 struct InboxRequestGuard;
 
 impl Guard for InboxRequestGuard {
-  fn check(&self, request: &GuardContext) -> bool {
-    if request.head().method != Method::POST {
+  fn check(&self, ctx: &GuardContext) -> bool {
+    if ctx.head().method != Method::POST {
       return false;
     }
-    if let Some(val) = request.head().headers.get("Content-Type") {
-      return val
-        .to_str()
-        .expect("Content-Type header contains non-ascii chars.")
-        .starts_with("application/");
+    if let Some(val) = ctx.head().headers.get(header::CONTENT_TYPE) {
+      return val.as_bytes().starts_with(b"application/");
     }
     false
   }
