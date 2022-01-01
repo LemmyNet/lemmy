@@ -10,6 +10,7 @@ mod post;
 mod private_message;
 mod site;
 mod user;
+mod blacklist_community;
 
 #[async_trait::async_trait(?Send)]
 pub trait PerformCrud {

@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     post_like,
     post_read,
     post_saved,
+    blacklist_community,
   },
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
@@ -330,6 +331,12 @@ impl<'a> PostQueryBuilder<'a> {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        blacklist_community::table.on(
+          community::id
+            .eq(blacklist_community::community_id)
+        )
+      )
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -350,6 +357,16 @@ impl<'a> PostQueryBuilder<'a> {
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
+    }
+
+    // Unless on a community's page or if subscribed to a community, filter out blacklisted communities from post
+    if self.community_actor_id.is_none() {
+      if let Some(listing_type) = self.listing_type {
+        query = match listing_type {
+          ListingType::Subscribed => query,
+          _ => query.filter(blacklist_community::id.is_null().or(community_follower::person_id.is_not_null())),
+        };
+      }
     }
 
     if let Some(community_id) = self.community_id {

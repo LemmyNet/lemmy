@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   fuzzy_search,
   limit_and_offset,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower},
+  schema::{community, community_aggregates, community_block, community_follower,blacklist_community},
   source::{
     community::{Community, CommunityFollower, CommunitySafe},
     community_block::CommunityBlock,
@@ -181,6 +181,12 @@ impl<'a> CommunityQueryBuilder<'a> {
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        blacklist_community::table.on(
+          community::id
+            .eq(blacklist_community::community_id)
+        )
+      )
       .select((
         Community::safe_columns_tuple(),
         community_aggregates::all_columns,
@@ -218,6 +224,9 @@ impl<'a> CommunityQueryBuilder<'a> {
     if !self.show_nsfw.unwrap_or(false) {
       query = query.filter(community::nsfw.eq(false));
     };
+
+    // Hide if blacklisted unless subscribed
+    query =  query.filter(blacklist_community::id.is_null().or(community_follower::person_id.eq(person_id_join)));
 
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {

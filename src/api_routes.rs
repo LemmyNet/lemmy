@@ -1,6 +1,6 @@
 use actix_web::*;
 use lemmy_api::Perform;
-use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
+use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*,blacklist_community::*};
 use lemmy_api_crud::PerformCrud;
 use lemmy_utils::rate_limit::RateLimit;
 use lemmy_websocket::{routes::chat_route, LemmyContext};
@@ -22,6 +22,13 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/transfer", web::post().to(route_post::<TransferSite>))
           .route("/config", web::get().to(route_get::<GetSiteConfig>))
           .route("/config", web::put().to(route_post::<SaveSiteConfig>)),
+      )
+      .service(
+        web::scope("/blacklist")
+        .guard(guard::Post())
+        .wrap(rate_limit.register())
+        .route("",web::post().to(route_post_crud::<BlackListCommunity>))
+        .route("/delete",web::post().to(route_post_crud::<DeleteBlackListCommunity>)),
       )
       .service(
         web::resource("/modlog")
