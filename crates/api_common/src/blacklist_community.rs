@@ -18,5 +18,3 @@ pub struct DeleteBlackListCommunity {
   pub community_id: i32,
   pub auth: String,
 }
-
-

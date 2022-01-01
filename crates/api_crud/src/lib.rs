@@ -4,13 +4,13 @@ use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperationCrud};
 use serde::Deserialize;
 
+mod blacklist_community;
 mod comment;
 mod community;
 mod post;
 mod private_message;
 mod site;
 mod user;
-mod blacklist_community;
 
 #[async_trait::async_trait(?Send)]
 pub trait PerformCrud {

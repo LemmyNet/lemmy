@@ -1,10 +1,10 @@
+pub mod blacklist_community;
 pub mod comment;
 pub mod community;
 pub mod person;
 pub mod post;
 pub mod site;
 pub mod websocket;
-pub mod blacklist_community;
 
 use crate::site::FederatedInstances;
 use lemmy_db_schema::{

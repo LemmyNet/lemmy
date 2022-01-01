@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod blacklist;
 pub mod comment;
 pub mod comment_report;
 pub mod community;
@@ -16,4 +17,3 @@ pub mod private_message;
 pub mod registration_application;
 pub mod secret;
 pub mod site;
-pub mod blacklist;

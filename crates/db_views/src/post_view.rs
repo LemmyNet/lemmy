@@ -6,6 +6,7 @@ use lemmy_db_schema::{
   limit_and_offset,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{
+    blacklist_community,
     community,
     community_block,
     community_follower,
@@ -17,7 +18,6 @@ use lemmy_db_schema::{
     post_like,
     post_read,
     post_saved,
-    blacklist_community,
   },
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
@@ -331,12 +331,7 @@ impl<'a> PostQueryBuilder<'a> {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
-      .left_join(
-        blacklist_community::table.on(
-          community::id
-            .eq(blacklist_community::community_id)
-        )
-      )
+      .left_join(blacklist_community::table.on(community::id.eq(blacklist_community::community_id)))
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -364,7 +359,11 @@ impl<'a> PostQueryBuilder<'a> {
       if let Some(listing_type) = self.listing_type {
         query = match listing_type {
           ListingType::Subscribed => query,
-          _ => query.filter(blacklist_community::id.is_null().or(community_follower::person_id.is_not_null())),
+          _ => query.filter(
+            blacklist_community::id
+              .is_null()
+              .or(community_follower::person_id.is_not_null()),
+          ),
         };
       }
     }
