@@ -12,7 +12,11 @@ use crate::http::{
   post::get_apub_post,
   shared_inbox,
 };
-use actix_web::{dev::RequestHead, guard::Guard, http::Method, *};
+use actix_web::{
+  guard::{Guard, GuardContext},
+  http::{header, Method},
+  web,
+};
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use lemmy_utils::settings::structs::Settings;
 use sha2::{Digest, Sha256};
@@ -64,15 +68,12 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
 struct InboxRequestGuard;
 
 impl Guard for InboxRequestGuard {
-  fn check(&self, request: &RequestHead) -> bool {
-    if request.method != Method::POST {
+  fn check(&self, ctx: &GuardContext) -> bool {
+    if ctx.head().method != Method::POST {
       return false;
     }
-    if let Some(val) = request.headers.get("Content-Type") {
-      return val
-        .to_str()
-        .expect("Content-Type header contains non-ascii chars.")
-        .starts_with("application/");
+    if let Some(val) = ctx.head().headers.get(header::CONTENT_TYPE) {
+      return val.as_bytes().starts_with(b"application/");
     }
     false
   }

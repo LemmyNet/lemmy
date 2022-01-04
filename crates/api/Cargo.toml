@@ -28,7 +28,7 @@ chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.72", features = ["preserve_order"] }
 serde = { version = "1.0.131", features = ["derive"] }
 actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.14", default-features = false }
+actix-web = { version = "4.0.0-beta.18", default-features = false }
 actix-rt = { version = "2.5.0", default-features = false }
 rand = "0.8.4"
 strum = "0.23.0"
