@@ -130,6 +130,7 @@ pub enum UserOperation {
   ListRegistrationApplications,
   ApproveRegistrationApplication,
   BanPerson,
+  GetBannedPersons,
   Search,
   ResolveObject,
   MarkAllAsRead,

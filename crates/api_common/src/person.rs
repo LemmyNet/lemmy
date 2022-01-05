@@ -145,6 +145,16 @@ pub struct BanPerson {
   pub auth: Sensitive<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetBannedPersons {
+  pub auth: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BannedPersonsResponse {
+  pub banned: Vec<PersonViewSafe>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BanPersonResponse {
   pub person_view: PersonViewSafe,

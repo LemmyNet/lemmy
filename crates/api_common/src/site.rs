@@ -139,7 +139,6 @@ pub struct SiteResponse {
 pub struct GetSiteResponse {
   pub site_view: Option<SiteView>, // Because the site might not be set up yet
   pub admins: Vec<PersonViewSafe>,
-  pub banned: Vec<PersonViewSafe>,
   pub online: usize,
   pub version: String,
   pub my_user: Option<MyUserInfo>,
