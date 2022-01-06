@@ -31,7 +31,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-use tracing::warn;
+use tracing::{warn, Instrument};
 use url::Url;
 use webmention::{Webmention, WebmentionError};
 
@@ -132,7 +132,11 @@ impl PerformCrud for CreatePost {
       let mut webmention =
         Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
-      match webmention.send().await {
+      match webmention
+        .send()
+        .instrument(tracing::info_span!("Sending webmention"))
+        .await
+      {
         Ok(_) => {}
         Err(WebmentionError::NoEndpointDiscovered(_)) => {}
         Err(e) => warn!("Failed to send webmention: {}", e),

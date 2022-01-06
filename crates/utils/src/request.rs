@@ -18,6 +18,7 @@ struct SendError(pub String);
 #[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
+#[tracing::instrument(skip_all)]
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
@@ -26,6 +27,7 @@ where
   retry_custom(|| async { Ok((f)().await) }).await
 }
 
+#[tracing::instrument(skip_all)]
 async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
@@ -61,6 +63,7 @@ pub struct SiteMetadata {
 }
 
 /// Fetches the post link html tags (like title, description, image, etc)
+#[tracing::instrument(skip_all)]
 pub async fn fetch_site_metadata(
   client: &ClientWithMiddleware,
   url: &Url,
@@ -159,6 +162,7 @@ pub(crate) struct PictrsFile {
   delete_token: String,
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) async fn fetch_pictrs(
   client: &ClientWithMiddleware,
   settings: &Settings,
@@ -192,6 +196,7 @@ pub(crate) async fn fetch_pictrs(
 
 /// Both are options, since the URL might be either an html page, or an image
 /// Returns the SiteMetadata, and a Pictrs URL, if there is a picture associated
+#[tracing::instrument(skip_all)]
 pub async fn fetch_site_data(
   client: &ClientWithMiddleware,
   settings: &Settings,
@@ -242,6 +247,7 @@ pub async fn fetch_site_data(
   }
 }
 
+#[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client.get(url.as_str()).send().await?;
   if response

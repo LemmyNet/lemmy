@@ -11,6 +11,8 @@
     site_name: "lemmy-test"
   }
 
+  opentelemetry_url: "http://otel:4137"
+
   # the domain name of your instance (eg "lemmy.ml")
   hostname: "my_domain"
   # address where lemmy should listen for incoming requests

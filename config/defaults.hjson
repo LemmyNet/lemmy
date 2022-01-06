@@ -111,10 +111,11 @@
   # Whether the site is available over TLS. Needs to be true for federation to work.
   tls_enabled: true
   # Address where pictrs is available (for image hosting)
-  pictrs_url: "http:#localhost:8080"
+  pictrs_url: "http://localhost:8080"
   slur_filter: "(\bThis\b)|(\bis\b)|(\bsample\b)"
   # Maximum length of local community and user names
   actor_name_max_length: 20
   # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
   http_fetch_retry_limit: 25
+  opentelemetry_url: "http://localhost:4317"
 }

@@ -24,6 +24,7 @@ services:
     depends_on: 
       - pictrs
       - postgres
+      - otel
 
   lemmy-ui:
     image: dessalines/lemmy-ui:0.14.3
@@ -51,6 +52,31 @@ services:
   pictrs:
     image: asonix/pictrs:0.3.0-beta.11
     user: 991:991
+    environment:
+      - PICTRS_OPENTELEMETRY_URL=http://otel:4137
     volumes:
       - ./volumes/pictrs:/mnt
+    restart: always
+    depends_on:
+      - otel
+
+  otel:
+    image: otel/opentelemetry-collector:latest
+    command: --config otel-local-config.yaml
+    ports:
+      - "4317:4317"
+    volumes:
+      - type: bind
+        source: ./otel.yml
+        target: /otel-local-config.yaml
+    restart: always
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1
+    ports:
+      - "14250:14250"
+      # To view traces, visit http://localhost:16686
+      - "16686:16686"
     restart: always

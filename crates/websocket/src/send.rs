@@ -31,6 +31,7 @@ use lemmy_db_views::{
 use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{utils::MentionData, ConnectionId, LemmyError};
 
+#[tracing::instrument(skip_all)]
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(
   post_id: PostId,
   op: OP,
@@ -56,6 +57,7 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
 
 // TODO: in many call sites in apub crate, we are setting an empty vec for recipient_ids,
 //       we should get the actual recipient actors from somewhere
+#[tracing::instrument(skip_all)]
 pub async fn send_comment_ws_message_simple<OP: ToString + Send + OperationType + 'static>(
   comment_id: CommentId,
   op: OP,
@@ -64,6 +66,7 @@ pub async fn send_comment_ws_message_simple<OP: ToString + Send + OperationType 
   send_comment_ws_message(comment_id, op, None, None, None, vec![], context).await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'static>(
   comment_id: CommentId,
   op: OP,
@@ -102,6 +105,7 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
   Ok(res)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'static>(
   community_id: CommunityId,
   op: OP,
@@ -130,6 +134,7 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   Ok(res)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   private_message_id: PrivateMessageId,
   op: OP,
@@ -168,6 +173,7 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   Ok(res)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   comment: &Comment,

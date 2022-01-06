@@ -49,6 +49,10 @@ pub struct Settings {
   /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
   #[default(25)]
   pub http_fetch_retry_limit: i32,
+
+  #[default(None)]
+  #[doku(example = "http://localhost:4317")]
+  pub opentelemetry_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
