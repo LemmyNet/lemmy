@@ -113,7 +113,6 @@ impl ApubObject for ApubPerson {
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
       inbox: self.inbox_url.clone().into(),
-      ban_expires: self.ban_expires.map(convert_datetime),
     };
     Ok(person)
   }
@@ -150,6 +149,7 @@ impl ApubObject for ApubPerson {
       name: person.preferred_username,
       display_name: Some(person.name),
       banned: None,
+      ban_expires: None,
       deleted: None,
       avatar: Some(person.icon.map(|i| i.url.into())),
       banner: Some(person.image.map(|i| i.url.into())),
@@ -169,7 +169,6 @@ impl ApubObject for ApubPerson {
       inbox_url: Some(person.inbox.into()),
       shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
       matrix_user_id: Some(person.matrix_user_id),
-      ban_expires: Some(person.ban_expires.map(|u| u.naive_local())),
     };
     let person = blocking(context.pool(), move |conn| {
       DbPerson::upsert(conn, &person_form)
