@@ -259,6 +259,7 @@ impl Perform for BanFromCommunity {
         &community,
         &banned_person,
         &local_user_view.person.clone().into(),
+        expires,
         context,
       )
       .await?;

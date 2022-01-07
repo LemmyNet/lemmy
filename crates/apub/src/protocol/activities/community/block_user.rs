@@ -3,6 +3,7 @@ use crate::{
   protocol::Unparsed,
 };
 use activitystreams_kinds::activity::BlockType;
+use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -22,4 +23,5 @@ pub struct BlockUserFromCommunity {
   pub(crate) id: Url,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
+  pub(crate) expires: Option<DateTime<FixedOffset>>,
 }
