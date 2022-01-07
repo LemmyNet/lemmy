@@ -54,11 +54,12 @@ tracing-actix-web = { version = "0.5.0-beta.8", default-features = false }
 tracing-error = "0.2.0"
 tracing-log = "0.1.2"
 tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
+console-subscriber = "0.1.0"
 strum = "0.23.0"
 url = { version = "2.2.2", features = ["serde"] }
 openssl = "0.10.38"
 http-signature-normalization-actix = { version = "0.5.0-beta.14", default-features = false, features = ["sha-2"] }
-tokio = { version = "1.14.0", features = ["sync"] }
+tokio = { version = "1.14.0", features = ["sync", "tracing"] }
 anyhow = "1.0.51"
 reqwest = { version = "0.11.7", features = ["json"] }
 reqwest-middleware = "0.1.3"

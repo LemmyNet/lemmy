@@ -4,6 +4,7 @@ pub mod code_migrations;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
 
+use console_subscriber::ConsoleLayer;
 use lemmy_utils::LemmyError;
 use opentelemetry::{
   sdk::{propagation::TraceContextPropagator, Resource},
@@ -13,20 +14,32 @@ use opentelemetry_otlp::WithExportConfig;
 use tracing::subscriber::set_global_default;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 
 pub fn init_tracing(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
   LogTracer::init()?;
 
   opentelemetry::global::set_text_map_propagator(TraceContextPropagator::new());
 
-  let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-  let format_layer = tracing_subscriber::fmt::layer();
+  let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
+
+  let targets = log_description
+    .trim()
+    .trim_matches('"')
+    .parse::<Targets>()?;
+
+  let format_layer = tracing_subscriber::fmt::layer().with_filter(targets.clone());
+
+  let console_layer = ConsoleLayer::builder()
+    .with_default_env()
+    .server_addr(([0, 0, 0, 0], 6669))
+    .event_buffer_capacity(1024 * 1024)
+    .spawn();
 
   let subscriber = Registry::default()
-    .with(env_filter)
     .with(format_layer)
-    .with(ErrorLayer::default());
+    .with(ErrorLayer::default())
+    .with(console_layer);
 
   if let Some(url) = opentelemetry_url {
     let tracer = opentelemetry_otlp::new_pipeline()
@@ -42,7 +55,9 @@ pub fn init_tracing(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
       )
       .install_batch(opentelemetry::runtime::Tokio)?;
 
-    let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+    let otel_layer = tracing_opentelemetry::layer()
+      .with_tracer(tracer)
+      .with_filter(targets);
 
     let subscriber = subscriber.with(otel_layer);
 
