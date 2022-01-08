@@ -36,7 +36,7 @@ impl UndoBlockUserFromCommunity {
     actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUserFromCommunity::new(community, target, actor, context)?;
+    let block = BlockUserFromCommunity::new(community, target, actor, None, context)?;
 
     let id = generate_activity_id(
       UndoType::Undo,
@@ -93,6 +93,7 @@ impl ActivityHandler for UndoBlockUserFromCommunity {
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,
       person_id: blocked_user.id,
+      expires: None,
     };
 
     blocking(context.pool(), move |conn: &'_ _| {

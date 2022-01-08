@@ -214,6 +214,7 @@ impl Perform for BanFromCommunity {
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;
+    let expires = data.expires.map(naive_from_unix);
 
     // Verify that only mods or admins can ban
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
@@ -221,6 +222,7 @@ impl Perform for BanFromCommunity {
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,
       person_id: data.person_id,
+      expires: Some(expires),
     };
 
     let community: ApubCommunity = blocking(context.pool(), move |conn: &'_ _| {
@@ -257,6 +259,7 @@ impl Perform for BanFromCommunity {
         &community,
         &banned_person,
         &local_user_view.person.clone().into(),
+        expires,
         context,
       )
       .await?;
@@ -304,9 +307,6 @@ impl Perform for BanFromCommunity {
     }
 
     // Mod tables
-    // TODO eventually do correct expires
-    let expires = data.expires.map(naive_from_unix);
-
     let form = ModBanFromCommunityForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,

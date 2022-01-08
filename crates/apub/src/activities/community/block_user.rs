@@ -12,6 +12,7 @@ use crate::{
   protocol::activities::community::block_user::BlockUserFromCommunity,
 };
 use activitystreams_kinds::{activity::BlockType, public};
+use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -27,7 +28,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Followable},
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 impl BlockUserFromCommunity {
@@ -35,6 +36,7 @@ impl BlockUserFromCommunity {
     community: &ApubCommunity,
     target: &ApubPerson,
     actor: &ApubPerson,
+    expires: Option<NaiveDateTime>,
     context: &LemmyContext,
   ) -> Result<BlockUserFromCommunity, LemmyError> {
     Ok(BlockUserFromCommunity {
@@ -48,6 +50,7 @@ impl BlockUserFromCommunity {
         BlockType::Block,
         &context.settings().get_protocol_and_hostname(),
       )?,
+      expires: expires.map(convert_datetime),
       unparsed: Default::default(),
     })
   }
@@ -57,9 +60,10 @@ impl BlockUserFromCommunity {
     community: &ApubCommunity,
     target: &ApubPerson,
     actor: &ApubPerson,
+    expires: Option<NaiveDateTime>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUserFromCommunity::new(community, target, actor, context)?;
+    let block = BlockUserFromCommunity::new(community, target, actor, expires, context)?;
     let block_id = block.id.clone();
 
     let activity = AnnouncableActivities::BlockUserFromCommunity(block);
@@ -101,6 +105,7 @@ impl ActivityHandler for BlockUserFromCommunity {
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: community.id,
       person_id: blocked_user.id,
+      expires: Some(self.expires.map(|u| u.naive_local())),
     };
 
     blocking(context.pool(), move |conn: &'_ _| {

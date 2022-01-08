@@ -1,4 +1,4 @@
-use diesel::{result::Error, *};
+use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
@@ -98,7 +98,12 @@ impl CommentView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -345,7 +350,12 @@ impl<'a> CommentQueryBuilder<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -646,6 +656,7 @@ mod tests {
         inbox_url: inserted_person.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       recipient: None,
       post: Post {

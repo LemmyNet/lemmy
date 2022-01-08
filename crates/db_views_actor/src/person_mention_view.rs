@@ -1,4 +1,4 @@
-use diesel::{result::Error, *};
+use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
@@ -96,7 +96,12 @@ impl PersonMentionView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -241,7 +246,12 @@ impl<'a> PersonMentionQueryBuilder<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(

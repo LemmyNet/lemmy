@@ -44,7 +44,13 @@ impl PersonViewSafe {
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
-      .filter(person::banned.eq(true))
+      .filter(
+        person::banned.eq(true).and(
+          person::ban_expires
+            .is_null()
+            .or(person::ban_expires.gt(now)),
+        ),
+      )
       .load::<PersonViewSafeTuple>(conn)?;
 
     Ok(Self::from_tuple_to_vec(banned))

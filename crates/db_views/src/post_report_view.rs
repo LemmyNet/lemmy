@@ -1,4 +1,4 @@
-use diesel::{result::Error, *};
+use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   aggregates::post_aggregates::PostAggregates,
   limit_and_offset,
@@ -79,7 +79,12 @@ impl PostReportView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -209,7 +214,12 @@ impl<'a> PostReportQueryBuilder<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -422,6 +432,7 @@ mod tests {
         inbox_url: inserted_jessica.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       post_creator: PersonSafeAlias1 {
         id: inserted_timmy.id,
@@ -441,6 +452,7 @@ mod tests {
         inbox_url: inserted_timmy.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       creator_banned_from_community: false,
       my_vote: None,
@@ -482,6 +494,7 @@ mod tests {
       inbox_url: inserted_sara.inbox_url.to_owned(),
       shared_inbox_url: None,
       matrix_user_id: None,
+      ban_expires: None,
     };
 
     // Do a batch read of timmys reports
@@ -535,6 +548,7 @@ mod tests {
       inbox_url: inserted_timmy.inbox_url.to_owned(),
       shared_inbox_url: None,
       matrix_user_id: None,
+      ban_expires: None,
     });
 
     assert_eq!(

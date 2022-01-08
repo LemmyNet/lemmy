@@ -149,6 +149,7 @@ impl ApubObject for ApubPerson {
       name: person.preferred_username,
       display_name: Some(person.name),
       banned: None,
+      ban_expires: None,
       deleted: None,
       avatar: Some(person.icon.map(|i| i.url.into())),
       banner: Some(person.image.map(|i| i.url.into())),

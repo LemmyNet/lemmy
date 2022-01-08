@@ -27,6 +27,7 @@ pub struct Person {
   pub matrix_user_id: Option<String>,
   pub admin: bool,
   pub bot_account: bool,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
 /// A safe representation of person, without the sensitive info
@@ -50,6 +51,7 @@ pub struct PersonSafe {
   pub matrix_user_id: Option<String>,
   pub admin: bool,
   pub bot_account: bool,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -75,6 +77,7 @@ pub struct PersonAlias1 {
   pub matrix_user_id: Option<String>,
   pub admin: bool,
   pub bot_account: bool,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -97,6 +100,7 @@ pub struct PersonSafeAlias1 {
   pub matrix_user_id: Option<String>,
   pub admin: bool,
   pub bot_account: bool,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -122,6 +126,7 @@ pub struct PersonAlias2 {
   pub matrix_user_id: Option<String>,
   pub admin: bool,
   pub bot_account: bool,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -144,6 +149,7 @@ pub struct PersonSafeAlias2 {
   pub matrix_user_id: Option<String>,
   pub admin: bool,
   pub bot_account: bool,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Default)]
@@ -168,4 +174,5 @@ pub struct PersonForm {
   pub matrix_user_id: Option<Option<String>>,
   pub admin: Option<bool>,
   pub bot_account: Option<bool>,
+  pub ban_expires: Option<Option<chrono::NaiveDateTime>>,
 }

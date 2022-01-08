@@ -132,7 +132,7 @@ pub async fn get_local_user_view_from_jwt(
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
   // Check for a site ban
-  if local_user_view.person.banned {
+  if local_user_view.person.is_banned() {
     return Err(LemmyError::from_message("site_ban"));
   }
 
@@ -187,7 +187,7 @@ pub async fn get_local_user_settings_view_from_jwt(
   })
   .await??;
   // Check for a site ban
-  if local_user_view.person.banned {
+  if local_user_view.person.is_banned() {
     return Err(LemmyError::from_message("site_ban"));
   }
 
