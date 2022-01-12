@@ -402,6 +402,7 @@ mod tests {
         description: None,
         updated: None,
         banner: None,
+        hidden: false,
         published: inserted_community.published,
       },
       creator: PersonSafe {

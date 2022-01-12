@@ -5,6 +5,7 @@ use crate::{
     mod_add_community,
     mod_ban,
     mod_ban_from_community,
+    mod_hide_community,
     mod_lock_post,
     mod_remove_comment,
     mod_remove_community,
@@ -146,6 +147,23 @@ pub struct ModBan {
   pub reason: Option<String>,
   pub banned: Option<bool>,
   pub expires: Option<chrono::NaiveDateTime>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[table_name = "mod_hide_community"]
+pub struct ModHideCommunityForm {
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
+  pub reason: Option<String>,
+}
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[table_name = "mod_hide_community"]
+pub struct ModHideCommunity {
+  pub id: i32,
+  pub community_id: CommunityId,
+  pub person_id: PersonId,
+  pub reason: Option<String>,
   pub when_: chrono::NaiveDateTime,
 }
 
