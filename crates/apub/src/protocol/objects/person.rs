@@ -35,7 +35,7 @@ pub struct Person {
   pub(crate) inbox: Url,
   /// mandatory field in activitypub, currently empty in lemmy
   pub(crate) outbox: Url,
-  pub(crate) endpoints: Endpoints,
+  pub(crate) endpoints: Option<Endpoints>,
   pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,

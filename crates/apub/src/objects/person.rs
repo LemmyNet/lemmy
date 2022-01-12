@@ -106,9 +106,9 @@ impl ApubObject for ApubPerson {
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(convert_datetime(self.published)),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
-      endpoints: Endpoints {
-        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-      },
+      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
+        shared_inbox: s.into(),
+      }),
       public_key: self.get_public_key()?,
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
@@ -167,7 +167,7 @@ impl ApubObject for ApubPerson {
       public_key: person.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(person.inbox.into()),
-      shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
+      shared_inbox_url: Some(person.endpoints.map(|e| e.shared_inbox.into())),
       matrix_user_id: Some(person.matrix_user_id),
     };
     let person = blocking(context.pool(), move |conn| {
