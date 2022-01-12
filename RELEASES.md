@@ -1,4 +1,4 @@
-# Lemmy v0.15.0 Release (2022-01-12)
+# Lemmy v0.15.1 Release (2022-01-12)
 
 Lemmy now has private instances, optional registration applications, optional email verification, and temporary bans! These are described in detail below.
 
@@ -101,6 +101,7 @@ There is a new rate limit for creating new comments in the [config.hjson](https:
 
 ### Lemmy UI
 
+- Fixed an issue with post embeds not being pushed to a new line [#544](https://github.com/LemmyNet/lemmy-ui/issues/544)
 - Adding as and lt languages, Updating translations.
 - Temp bans ([#524](https://github.com/LemmyNet/lemmy-ui/issues/524))
 - Fix banner. Fixes [#466](https://github.com/LemmyNet/lemmy-ui/issues/466) ([#534](https://github.com/LemmyNet/lemmy-ui/issues/534))
