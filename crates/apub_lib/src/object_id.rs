@@ -1,6 +1,6 @@
 use crate::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
-use activitystreams::chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use anyhow::anyhow;
+use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use diesel::NotFound;
 use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
 use reqwest::StatusCode;
