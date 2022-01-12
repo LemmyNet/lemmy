@@ -93,6 +93,7 @@ table! {
         followers_url -> Varchar,
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
+        hidden -> Bool,
     }
 }
 
@@ -589,6 +590,16 @@ table! {
     }
 }
 
+table! {
+    mod_hide_community (id) {
+        id -> Int4,
+        community_id -> Int4,
+        person_id -> Int4,
+        reason -> Nullable<Text>,
+        when_ -> Timestamp,
+    }
+}
+
 joinable!(comment_alias_1 -> person_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(person_mention -> person_alias_1 (recipient_id));
@@ -678,6 +689,7 @@ allow_tables_to_appear_in_same_query!(
   mod_remove_community,
   mod_remove_post,
   mod_sticky_post,
+  mod_hide_community,
   password_reset_request,
   person,
   person_aggregates,
