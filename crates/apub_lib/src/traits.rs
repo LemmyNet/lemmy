@@ -1,5 +1,5 @@
 use crate::{data::Data, signatures::PublicKey};
-use activitystreams::chrono::NaiveDateTime;
+use chrono::NaiveDateTime;
 pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::LemmyError;
 use url::Url;

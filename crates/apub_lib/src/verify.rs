@@ -1,6 +1,16 @@
-use activitystreams::error::DomainError;
 use lemmy_utils::LemmyError;
 use url::Url;
+
+#[derive(Debug)]
+struct DomainError;
+
+impl std::fmt::Display for DomainError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Domain mismatch")
+  }
+}
+
+impl std::error::Error for DomainError {}
 
 pub fn verify_domains_match(a: &Url, b: &Url) -> Result<(), LemmyError> {
   if a.domain() != b.domain() {
