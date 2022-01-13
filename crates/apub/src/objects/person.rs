@@ -209,7 +209,7 @@ pub(crate) mod tests {
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
-    let json = file_to_json_object("assets/lemmy/objects/person.json");
+    let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
     ApubPerson::verify(&json, &url, context, &mut request_counter)
@@ -243,7 +243,7 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
-    let json = file_to_json_object("assets/pleroma/objects/person.json");
+    let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
     ApubPerson::verify(&json, &url, &context, &mut request_counter)

@@ -36,27 +36,29 @@ mod tests {
 
   #[actix_rt::test]
   async fn test_parse_object_pleroma() {
-    file_to_json_object::<WithContext<Person>>("assets/pleroma/objects/person.json");
-    file_to_json_object::<WithContext<Note>>("assets/pleroma/objects/note.json");
-    file_to_json_object::<WithContext<ChatMessage>>("assets/pleroma/objects/chat_message.json");
+    file_to_json_object::<WithContext<Person>>("assets/pleroma/objects/person.json").unwrap();
+    file_to_json_object::<WithContext<Note>>("assets/pleroma/objects/note.json").unwrap();
+    file_to_json_object::<WithContext<ChatMessage>>("assets/pleroma/objects/chat_message.json")
+      .unwrap();
   }
 
   #[actix_rt::test]
   async fn test_parse_object_smithereen() {
-    file_to_json_object::<WithContext<Person>>("assets/smithereen/objects/person.json");
-    file_to_json_object::<Note>("assets/smithereen/objects/note.json");
+    file_to_json_object::<WithContext<Person>>("assets/smithereen/objects/person.json").unwrap();
+    file_to_json_object::<Note>("assets/smithereen/objects/note.json").unwrap();
   }
 
   #[actix_rt::test]
   async fn test_parse_object_mastodon() {
-    file_to_json_object::<Person>("assets/mastodon/objects/person.json");
-    file_to_json_object::<Note>("assets/mastodon/objects/note.json");
+    file_to_json_object::<Person>("assets/mastodon/objects/person.json").unwrap();
+    file_to_json_object::<Note>("assets/mastodon/objects/note.json").unwrap();
   }
 
   #[actix_rt::test]
   async fn test_parse_object_lotide() {
-    file_to_json_object::<WithContext<Group>>("assets/lotide/objects/group.json");
-    file_to_json_object::<WithContext<Person>>("assets/lotide/objects/person.json");
-    file_to_json_object::<WithContext<Note>>("assets/lotide/objects/note.json");
+    file_to_json_object::<WithContext<Group>>("assets/lotide/objects/group.json").unwrap();
+    file_to_json_object::<WithContext<Person>>("assets/lotide/objects/person.json").unwrap();
+    file_to_json_object::<WithContext<Note>>("assets/lotide/objects/note.json").unwrap();
+    file_to_json_object::<WithContext<Page>>("assets/lotide/objects/page.json").unwrap();
   }
 }

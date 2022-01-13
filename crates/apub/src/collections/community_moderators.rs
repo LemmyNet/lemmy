@@ -177,7 +177,7 @@ mod tests {
     let new_mod = parse_lemmy_person(&context).await;
 
     let json: GroupModerators =
-      file_to_json_object("assets/lemmy/collections/group_moderators.json");
+      file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
     let community_context = CommunityContext {

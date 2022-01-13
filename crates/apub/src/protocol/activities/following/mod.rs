@@ -25,6 +25,7 @@ mod tests {
       "assets/lemmy/activities/following/undo_follow.json",
     );
 
-    file_to_json_object::<WithContext<FollowCommunity>>("assets/pleroma/activities/follow.json");
+    file_to_json_object::<WithContext<FollowCommunity>>("assets/pleroma/activities/follow.json")
+      .unwrap();
   }
 }

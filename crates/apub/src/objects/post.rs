@@ -2,12 +2,15 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
   protocol::{
-    objects::{page::Page, tombstone::Tombstone},
+    objects::{
+      page::{Page, PageType},
+      tombstone::Tombstone,
+    },
     ImageObject,
     Source,
   },
 };
-use activitystreams_kinds::{object::PageType, public};
+use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -222,7 +225,7 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let person = parse_lemmy_person(&context).await;
 
-    let json = file_to_json_object("assets/lemmy/objects/page.json");
+    let json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
     let mut request_counter = 0;
     ApubPost::verify(&json, &url, &context, &mut request_counter)

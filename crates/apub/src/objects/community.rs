@@ -225,7 +225,7 @@ pub(crate) mod tests {
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
-    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json");
+    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
     // change these links so they dont fetch over the network
     json.moderators = None;
     json.outbox =
