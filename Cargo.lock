@@ -3,21 +3,6 @@
 version = 3
 
 [[package]]
-name = "activitystreams"
-version = "0.7.0-alpha.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bcc3fbb392890a1942b1e5cca76cba93c8ed24b5ff50004cc3289afaab3f92c"
-dependencies = [
- "activitystreams-kinds",
- "chrono",
- "mime",
- "serde",
- "serde_json",
- "thiserror",
- "url",
-]
-
-[[package]]
 name = "activitystreams-kinds"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1966,12 +1951,12 @@ dependencies = [
 name = "lemmy_apub_lib"
 version = "0.15.1"
 dependencies = [
- "activitystreams",
  "actix-web",
  "anyhow",
  "async-trait",
  "background-jobs",
  "base64 0.13.0",
+ "chrono",
  "diesel",
  "http",
  "http-signature-normalization-actix",
@@ -2086,7 +2071,6 @@ dependencies = [
 name = "lemmy_server"
 version = "0.15.1"
 dependencies = [
- "activitystreams",
  "actix",
  "actix-rt",
  "actix-web",
