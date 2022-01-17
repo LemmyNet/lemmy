@@ -177,10 +177,11 @@ pub fn clean_url_params(mut url: Url) -> Url {
 
 pub fn clean_optional_text(text: &Option<String>) -> Option<String> {
   if let Some(text) = text {
-    if text.trim().is_empty() {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
       None
     } else {
-      Some(text.trim().to_owned())
+      Some(trimmed.to_owned())
     }
   } else {
     None
