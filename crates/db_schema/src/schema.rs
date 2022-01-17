@@ -660,6 +660,8 @@ joinable!(site_aggregates -> site (site_id));
 joinable!(email_verification -> local_user (local_user_id));
 joinable!(registration_application -> local_user (local_user_id));
 joinable!(registration_application -> person (admin_id));
+joinable!(mod_hide_community -> person (person_id));
+joinable!(mod_hide_community -> community (community_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
