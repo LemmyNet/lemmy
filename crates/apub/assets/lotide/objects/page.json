@@ -1,0 +1,12 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://narwhal.city/posts/9",
+  "type": "Page",
+  "name": "What's Dylan Grillin'? (reupload)",
+  "to": "https://narwhal.city/communities/4",
+  "attributedTo": "https://narwhal.city/users/1",
+  "published": "2020-12-30T07:29:19.460932+00:00",
+  "url": "https://www.youtube.com/watch?v=ZI4LGTXscR4",
+  "summary": "What's Dylan Grillin'? (reupload)",
+  "cc": "https://www.w3.org/ns/activitystreams#Public"
+}

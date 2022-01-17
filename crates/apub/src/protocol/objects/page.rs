@@ -2,7 +2,6 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source, Unparsed},
 };
-use activitystreams_kinds::object::PageType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{
   data::Data,
@@ -15,6 +14,12 @@ use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PageType {
+  Page,
+  Note,
+}
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]

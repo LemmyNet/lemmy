@@ -1,0 +1,28 @@
+{
+  "publicKey": {
+    "id": "https://narwhal.city//communities/12#main-key",
+    "owner": "https://narwhal.city/communities/12",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtktBbjovDSQmjZo1SIGK\n1TP1FKuIj8JlFgY6iGrAA5IBUN8PPKRzvo0U0FDvF+7SsUx+yiY0JrU1KzWcJxRr\nCfTrjNzaKeMS4E6ZU9czf8D157JUJQtkgikObxwU84eY5K+jic1ZgGv2eX77E6f/\nBZFO8StdS73g8a1vxPEsJVBn/VEVdsD9fg3uvhwFN7UrUKoKGf+1h2PajeX1aPZb\ntD3ql3Xff2IZFZu6Euj80OezozQ6/AqZx+qW6HfjvSf30C8ZGYU1PSF6MczY+Sg6\n6nyPMfmbKykYgWqfRMZ/NKaldsIjN8nMRDCfHASt6+pNmZgWh9HvSaFiSFKIn3Xj\nXwIDAQAB\n-----END PUBLIC KEY-----\n",
+    "signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+  },
+  "featured": "https://narwhal.city/communities/12/featured",
+  "inbox": "https://narwhal.city/communities/12/inbox",
+  "outbox": "https://narwhal.city/communities/12/outbox",
+  "followers": "https://narwhal.city/communities/12/followers",
+  "preferredUsername": "Iotide",
+  "summary": "This is for talking about lotide\r\n\r\n\r\nI accidentally called it iotide because I misread the text when I made it lol",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "toot": "http://joinmastodon.org/ns#"
+    }
+  ],
+  "id": "https://narwhal.city/communities/12",
+  "type": "Group",
+  "name": "Iotide"
+}

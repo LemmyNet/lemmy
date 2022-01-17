@@ -1,0 +1,19 @@
+{
+  "source": {
+    "mediaType": "text/markdown",
+    "content": "ed: now featuring Bob Dylan and RNG"
+  },
+  "attributedTo": "https://narwhal.city/users/3",
+  "content": "<p>ed: now featuring Bob Dylan and RNG</p>\n",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "inReplyTo": "https://narwhal.city/posts/9",
+  "to": "https://narwhal.city/users/1",
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://narwhal.city/communities/4"
+  ],
+  "id": "https://narwhal.city/comments/3",
+  "type": "Note",
+  "mediaType": "text/html",
+  "published": "2020-12-31T06:47:24.470801+00:00"
+}

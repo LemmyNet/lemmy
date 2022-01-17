@@ -26,13 +26,17 @@ mod tests {
 
     file_to_json_object::<WithContext<CreateOrUpdateComment>>(
       "assets/pleroma/activities/create_note.json",
-    );
+    )
+    .unwrap();
     file_to_json_object::<WithContext<CreateOrUpdateComment>>(
       "assets/smithereen/activities/create_note.json",
-    );
-    file_to_json_object::<CreateOrUpdateComment>("assets/mastodon/activities/create_note.json");
+    )
+    .unwrap();
+    file_to_json_object::<CreateOrUpdateComment>("assets/mastodon/activities/create_note.json")
+      .unwrap();
 
-    file_to_json_object::<CreateOrUpdatePost>("assets/lotide/activities/create_page.json");
-    file_to_json_object::<CreateOrUpdateComment>("assets/lotide/activities/create_note_reply.json");
+    file_to_json_object::<CreateOrUpdatePost>("assets/lotide/activities/create_page.json").unwrap();
+    file_to_json_object::<CreateOrUpdateComment>("assets/lotide/activities/create_note_reply.json")
+      .unwrap();
   }
 }
