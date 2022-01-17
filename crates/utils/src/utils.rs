@@ -175,6 +175,18 @@ pub fn clean_url_params(mut url: Url) -> Url {
   url
 }
 
+pub fn clean_optional_text(text: &Option<String>) -> Option<String> {
+  if let Some(text) = text {
+    if text.trim().is_empty() {
+      None
+    } else {
+      Some(text.trim().to_owned())
+    }
+  } else {
+    None
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::utils::{clean_url_params, is_valid_post_title};
