@@ -55,6 +55,7 @@ use lemmy_db_views_moderator::{
   mod_add_view::ModAddView,
   mod_ban_from_community_view::ModBanFromCommunityView,
   mod_ban_view::ModBanView,
+  mod_hide_community_view::ModHideCommunityView,
   mod_lock_post_view::ModLockPostView,
   mod_remove_comment_view::ModRemoveCommentView,
   mod_remove_community_view::ModRemoveCommunityView,
@@ -122,6 +123,11 @@ impl Perform for GetModlog {
     })
     .await??;
 
+    let hidden_communities = blocking(context.pool(), move |conn| {
+      ModHideCommunityView::list(conn, community_id, page, limit)
+    })
+    .await??;
+
     // These arrays are only for the full modlog, when a community isn't given
     let (removed_communities, banned, added) = if data.community_id.is_none() {
       blocking(context.pool(), move |conn| {
@@ -148,6 +154,7 @@ impl Perform for GetModlog {
       added_to_community,
       added,
       transferred_to_community,
+      hidden_communities,
     })
   }
 }
