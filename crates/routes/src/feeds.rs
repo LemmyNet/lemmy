@@ -97,11 +97,7 @@ async fn get_feed_data(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!(
-      "{} - {}",
-      site_view.site.name,
-      listing_type.to_string()
-    ))
+    .title(&format!("{} - {}", site_view.site.name, listing_type))
     .link(context.settings().get_protocol_and_hostname())
     .items(items);
 
