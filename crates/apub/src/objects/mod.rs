@@ -90,9 +90,11 @@ pub(crate) mod tests {
     LemmyContext::create(pool, chat_server, client, activity_queue, settings, secret)
   }
 
-  pub(crate) fn file_to_json_object<T: DeserializeOwned>(path: &str) -> T {
+  pub(crate) fn file_to_json_object<T: DeserializeOwned>(
+    path: &str,
+  ) -> serde_json::error::Result<T> {
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
-    serde_json::from_reader(reader).unwrap()
+    serde_json::from_reader(reader)
   }
 }

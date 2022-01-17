@@ -43,7 +43,7 @@ pub struct Group {
   pub(crate) inbox: Url,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   pub(crate) followers: Url,
-  pub(crate) endpoints: Endpoints,
+  pub(crate) endpoints: Option<Endpoints>,
   pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
@@ -87,7 +87,7 @@ impl Group {
       banner: Some(self.image.map(|i| i.url.into())),
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
-      shared_inbox_url: Some(self.endpoints.shared_inbox.map(|s| s.into())),
+      shared_inbox_url: Some(self.endpoints.map(|e| e.shared_inbox.into())),
     }
   }
 }

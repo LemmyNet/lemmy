@@ -103,9 +103,9 @@ impl ApubObject for ApubCommunity {
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
-      endpoints: Endpoints {
-        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-      },
+      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
+        shared_inbox: s.into(),
+      }),
       public_key: self.get_public_key()?,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -225,7 +225,7 @@ pub(crate) mod tests {
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
-    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json");
+    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
     // change these links so they dont fetch over the network
     json.moderators = None;
     json.outbox =

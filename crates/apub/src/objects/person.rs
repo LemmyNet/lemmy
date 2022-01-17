@@ -106,9 +106,9 @@ impl ApubObject for ApubPerson {
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(convert_datetime(self.published)),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
-      endpoints: Endpoints {
-        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-      },
+      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
+        shared_inbox: s.into(),
+      }),
       public_key: self.get_public_key()?,
       updated: self.updated.map(convert_datetime),
       unparsed: Default::default(),
@@ -167,7 +167,7 @@ impl ApubObject for ApubPerson {
       public_key: person.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(person.inbox.into()),
-      shared_inbox_url: Some(person.endpoints.shared_inbox.map(|s| s.into())),
+      shared_inbox_url: Some(person.endpoints.map(|e| e.shared_inbox.into())),
       matrix_user_id: Some(person.matrix_user_id),
     };
     let person = blocking(context.pool(), move |conn| {
@@ -209,7 +209,7 @@ pub(crate) mod tests {
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
-    let json = file_to_json_object("assets/lemmy/objects/person.json");
+    let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
     ApubPerson::verify(&json, &url, context, &mut request_counter)
@@ -243,7 +243,7 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
-    let json = file_to_json_object("assets/pleroma/objects/person.json");
+    let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
     ApubPerson::verify(&json, &url, &context, &mut request_counter)

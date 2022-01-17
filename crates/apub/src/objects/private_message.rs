@@ -171,14 +171,14 @@ mod tests {
   use serial_test::serial;
 
   async fn prepare_comment_test(url: &Url, context: &LemmyContext) -> (ApubPerson, ApubPerson) {
-    let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json");
+    let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     ApubPerson::verify(&lemmy_person, url, context, &mut 0)
       .await
       .unwrap();
     let person1 = ApubPerson::from_apub(lemmy_person, context, &mut 0)
       .await
       .unwrap();
-    let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json");
+    let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     ApubPerson::verify(&pleroma_person, &pleroma_url, context, &mut 0)
       .await
@@ -202,7 +202,7 @@ mod tests {
     let context = init_context(manager.queue_handle().clone());
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
-    let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json");
+    let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json").unwrap();
     let mut request_counter = 0;
     ApubPrivateMessage::verify(&json, &url, &context, &mut request_counter)
       .await
@@ -232,7 +232,7 @@ mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
-    let json = file_to_json_object("assets/pleroma/objects/chat_message.json");
+    let json = file_to_json_object("assets/pleroma/objects/chat_message.json").unwrap();
     let mut request_counter = 0;
     ApubPrivateMessage::verify(&json, &pleroma_url, &context, &mut request_counter)
       .await
