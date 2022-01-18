@@ -232,6 +232,13 @@ impl<'a> CommunityQueryBuilder<'a> {
       query = query.filter(community_block::person_id.is_null());
     }
 
+    //Hide if hidden and not subscribed
+    query = query.filter(
+      community::hidden
+        .eq(false)
+        .or(community_follower::person_id.eq(person_id_join)),
+    );
+
     let (limit, offset) = limit_and_offset(self.page, self.limit);
     let res = query
       .limit(limit)
