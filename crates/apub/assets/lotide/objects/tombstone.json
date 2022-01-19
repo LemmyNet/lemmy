@@ -1,0 +1,6 @@
+{
+  "former_type": "Note",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://narwhal.city/posts/12",
+  "type": "Tombstone"
+}

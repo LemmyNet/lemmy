@@ -20,18 +20,26 @@ mod tests {
     context::WithContext,
     objects::tests::file_to_json_object,
     protocol::{
-      objects::{chat_message::ChatMessage, group::Group, note::Note, page::Page, person::Person},
+      objects::{
+        chat_message::ChatMessage,
+        group::Group,
+        note::Note,
+        page::Page,
+        person::Person,
+        tombstone::Tombstone,
+      },
       tests::test_parse_lemmy_item,
     },
   };
 
   #[actix_rt::test]
   async fn test_parse_object_lemmy() {
-    test_parse_lemmy_item::<Person>("assets/lemmy/objects/person.json");
-    test_parse_lemmy_item::<Group>("assets/lemmy/objects/group.json");
-    test_parse_lemmy_item::<Page>("assets/lemmy/objects/page.json");
-    test_parse_lemmy_item::<Note>("assets/lemmy/objects/note.json");
-    test_parse_lemmy_item::<ChatMessage>("assets/lemmy/objects/chat_message.json");
+    test_parse_lemmy_item::<Person>("assets/lemmy/objects/person.json").unwrap();
+    test_parse_lemmy_item::<Group>("assets/lemmy/objects/group.json").unwrap();
+    test_parse_lemmy_item::<Page>("assets/lemmy/objects/page.json").unwrap();
+    test_parse_lemmy_item::<Note>("assets/lemmy/objects/note.json").unwrap();
+    test_parse_lemmy_item::<ChatMessage>("assets/lemmy/objects/chat_message.json").unwrap();
+    test_parse_lemmy_item::<Tombstone>("assets/lemmy/objects/tombstone.json").unwrap();
   }
 
   #[actix_rt::test]
@@ -50,8 +58,8 @@ mod tests {
 
   #[actix_rt::test]
   async fn test_parse_object_mastodon() {
-    file_to_json_object::<Person>("assets/mastodon/objects/person.json").unwrap();
-    file_to_json_object::<Note>("assets/mastodon/objects/note.json").unwrap();
+    file_to_json_object::<WithContext<Person>>("assets/mastodon/objects/person.json").unwrap();
+    file_to_json_object::<WithContext<Note>>("assets/mastodon/objects/note.json").unwrap();
   }
 
   #[actix_rt::test]
@@ -60,5 +68,6 @@ mod tests {
     file_to_json_object::<WithContext<Person>>("assets/lotide/objects/person.json").unwrap();
     file_to_json_object::<WithContext<Note>>("assets/lotide/objects/note.json").unwrap();
     file_to_json_object::<WithContext<Page>>("assets/lotide/objects/page.json").unwrap();
+    file_to_json_object::<WithContext<Tombstone>>("assets/lotide/objects/tombstone.json").unwrap();
   }
 }
