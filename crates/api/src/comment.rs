@@ -6,7 +6,6 @@ use lemmy_api_common::{
   blocking,
   check_community_ban,
   check_downvotes_enabled,
-  check_person_block,
   comment::*,
   get_local_user_view_from_jwt,
 };
@@ -163,13 +162,6 @@ impl Perform for CreateCommentLike {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
-    )
-    .await?;
-
-    check_person_block(
-      local_user_view.person.id,
-      orig_comment.get_recipient_id(),
       context.pool(),
     )
     .await?;
