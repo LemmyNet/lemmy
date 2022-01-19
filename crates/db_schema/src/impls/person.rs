@@ -4,9 +4,17 @@ use crate::{
   newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
   source::person::{Person, PersonForm, PersonSafe},
-  traits::Crud,
+  traits::{ApubActor, Crud},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use diesel::{
+  dsl::*,
+  result::Error,
+  ExpressionMethods,
+  PgConnection,
+  QueryDsl,
+  RunQueryDsl,
+  TextExpressionMethods,
+};
 use url::Url;
 
 mod safe_type {
@@ -202,14 +210,6 @@ impl Person {
       .get_result::<Self>(conn)
   }
 
-  pub fn find_by_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
-    person
-      .filter(deleted.eq(false))
-      .filter(local.eq(true))
-      .filter(lower(name).eq(lower(from_name)))
-      .first::<Person>(conn)
-  }
-
   pub fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
     diesel::update(person.find(person_id))
       .set((last_refreshed_at.eq(naive_now()),))
@@ -247,19 +247,6 @@ impl Person {
       .get_result::<Self>(conn)
   }
 
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
-    use crate::schema::person::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(
-      person
-        .filter(deleted.eq(false))
-        .filter(actor_id.eq(object_id))
-        .first::<Person>(conn)
-        .ok()
-        .map(Into::into),
-    )
-  }
-
   pub fn update_deleted(
     conn: &PgConnection,
     person_id: PersonId,
@@ -293,6 +280,41 @@ fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
     banned_ && expires.gt(&naive_now())
   } else {
     banned_
+  }
+}
+
+impl ApubActor for Person {
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::person::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      person
+        .filter(deleted.eq(false))
+        .filter(actor_id.eq(object_id))
+        .first::<Person>(conn)
+        .ok()
+        .map(Into::into),
+    )
+  }
+
+  fn read_from_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
+    person
+      .filter(deleted.eq(false))
+      .filter(local.eq(true))
+      .filter(lower(name).eq(lower(from_name)))
+      .first::<Person>(conn)
+  }
+
+  fn read_from_name_and_domain(
+    conn: &PgConnection,
+    person_name: &str,
+    protocol_domain: &str,
+  ) -> Result<Person, Error> {
+    use crate::schema::person::dsl::*;
+    person
+      .filter(lower(name).eq(lower(person_name)))
+      .filter(actor_id.like(format!("{}%", protocol_domain)))
+      .first::<Self>(conn)
   }
 }
 

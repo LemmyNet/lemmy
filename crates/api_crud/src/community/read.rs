@@ -5,15 +5,11 @@ use lemmy_api_common::{
   check_private_instance,
   community::*,
   get_local_user_view_from_jwt_opt,
+  resolve_actor_identifier,
 };
-use lemmy_apub::{
-  fetcher::webfinger::webfinger_resolve,
-  objects::community::ApubCommunity,
-  EndpointType,
-};
-use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
+  source::community::Community,
   traits::DeleteableOrRemoveable,
   ListingType,
   SortType,
@@ -48,12 +44,7 @@ impl PerformCrud for GetCommunity {
       Some(id) => id,
       None => {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
-        let community_actor_id =
-          webfinger_resolve::<ApubCommunity>(&name, EndpointType::Community, context, &mut 0)
-            .await?;
-
-        ObjectId::<ApubCommunity>::new(community_actor_id)
-          .dereference(context, context.client(), &mut 0)
+        resolve_actor_identifier::<Community>(&name, context.pool())
           .await
           .map_err(LemmyError::from)
           .map_err(|e| e.with_message("couldnt_find_community"))?

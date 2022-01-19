@@ -13,9 +13,17 @@ use crate::{
     CommunityPersonBanForm,
     CommunitySafe,
   },
-  traits::{Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use diesel::{
+  dsl::*,
+  result::Error,
+  ExpressionMethods,
+  PgConnection,
+  QueryDsl,
+  RunQueryDsl,
+  TextExpressionMethods,
+};
 use url::Url;
 
 mod safe_type {
@@ -92,14 +100,6 @@ impl Crud for Community {
 }
 
 impl Community {
-  pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    community
-      .filter(local.eq(true))
-      .filter(lower(name).eq(lower(community_name)))
-      .first::<Self>(conn)
-  }
-
   pub fn update_deleted(
     conn: &PgConnection,
     community_id: CommunityId,
@@ -135,17 +135,6 @@ impl Community {
       .do_update()
       .set(community_form)
       .get_result::<Self>(conn)
-  }
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
-    use crate::schema::community::dsl::*;
-    let object_id: DbUrl = object_id.into();
-    Ok(
-      community
-        .filter(actor_id.eq(object_id))
-        .first::<Community>(conn)
-        .ok()
-        .map(Into::into),
-    )
   }
 }
 
@@ -296,6 +285,40 @@ impl Followable for CommunityFollower {
       community_follower.filter(community_id.eq(community_id_)),
     ))
     .get_result(conn)
+  }
+}
+
+impl ApubActor for Community {
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::community::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      community
+        .filter(actor_id.eq(object_id))
+        .first::<Community>(conn)
+        .ok()
+        .map(Into::into),
+    )
+  }
+
+  fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error> {
+    use crate::schema::community::dsl::*;
+    community
+      .filter(local.eq(true))
+      .filter(lower(name).eq(lower(community_name)))
+      .first::<Self>(conn)
+  }
+
+  fn read_from_name_and_domain(
+    conn: &PgConnection,
+    community_name: &str,
+    protocol_domain: &str,
+  ) -> Result<Community, Error> {
+    use crate::schema::community::dsl::*;
+    community
+      .filter(lower(name).eq(lower(community_name)))
+      .filter(actor_id.like(format!("{}%", protocol_domain)))
+      .first::<Self>(conn)
   }
 }
 

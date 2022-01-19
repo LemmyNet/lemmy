@@ -6,14 +6,11 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt_opt,
   mark_post_as_read,
   post::*,
-};
-use lemmy_apub::{
-  fetcher::webfinger::webfinger_resolve,
-  objects::community::ApubCommunity,
-  EndpointType,
+  resolve_actor_identifier,
 };
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
+  source::community::Community,
   traits::DeleteableOrRemoveable,
   ListingType,
   SortType,
@@ -157,9 +154,10 @@ impl PerformCrud for GetPosts {
     let limit = data.limit;
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      webfinger_resolve::<ApubCommunity>(name, EndpointType::Community, context, &mut 0)
+      resolve_actor_identifier::<Community>(name, context.pool())
         .await
         .ok()
+        .map(|c| c.actor_id)
     } else {
       None
     };

@@ -24,7 +24,7 @@ use crate::{
 use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;

@@ -2,7 +2,10 @@ use actix_web::{web, web::Query, HttpResponse};
 use anyhow::Context;
 use lemmy_api_common::blocking;
 use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
-use lemmy_db_schema::source::{community::Community, person::Person};
+use lemmy_db_schema::{
+  source::{community::Community, person::Person},
+  traits::ApubActor,
+};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -44,7 +47,7 @@ async fn get_webfinger_response(
 
   let name_ = name.clone();
   let user_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &name_)
+    Person::read_from_name(conn, &name_)
   })
   .await?
   .ok()

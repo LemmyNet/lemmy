@@ -18,7 +18,7 @@ use lemmy_apub_lib::{
   traits::{ActorType, ApubObject},
   values::MediaTypeMarkdown,
 };
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{
   utils::{convert_datetime, markdown_to_html},

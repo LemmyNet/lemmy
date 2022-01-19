@@ -6,7 +6,7 @@ use lemmy_api_common::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
-  traits::Crud,
+  traits::{ApubActor, Crud},
   ListingType,
   SortType,
 };
@@ -175,7 +175,7 @@ fn get_feed_user(
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let person = Person::find_by_name(conn, user_name)?;
+  let person = Person::read_from_name(conn, user_name)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)
