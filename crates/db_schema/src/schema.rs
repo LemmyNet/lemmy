@@ -441,7 +441,6 @@ table! {
         id -> Int4,
         name -> Varchar,
         sidebar -> Nullable<Text>,
-        creator_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         enable_downvotes -> Bool,
@@ -648,7 +647,6 @@ joinable!(post_read -> post (post_id));
 joinable!(post_report -> post (post_id));
 joinable!(post_saved -> person (person_id));
 joinable!(post_saved -> post (post_id));
-joinable!(site -> person (creator_id));
 joinable!(site_aggregates -> site (site_id));
 joinable!(email_verification -> local_user (local_user_id));
 joinable!(registration_application -> local_user (local_user_id));

@@ -111,9 +111,7 @@ pub async fn match_websocket_operation(
     UserOperation::TransferCommunity => {
       do_websocket_operation::<TransferCommunity>(context, id, op, data).await
     }
-    UserOperation::TransferSite => {
-      do_websocket_operation::<TransferSite>(context, id, op, data).await
-    }
+    UserOperation::LeaveAdmin => do_websocket_operation::<LeaveAdmin>(context, id, op, data).await,
 
     // Community ops
     UserOperation::FollowCommunity => {

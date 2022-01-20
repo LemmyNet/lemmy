@@ -155,8 +155,7 @@ pub struct MyUserInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TransferSite {
-  pub person_id: PersonId,
+pub struct LeaveAdmin {
   pub auth: Sensitive<String>,
 }
 

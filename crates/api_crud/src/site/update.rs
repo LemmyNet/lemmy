@@ -54,7 +54,6 @@ impl PerformCrud for EditSite {
     }
 
     let site_form = SiteForm {
-      creator_id: found_site.creator_id,
       name: data.name.to_owned().unwrap_or(found_site.name),
       sidebar,
       description,

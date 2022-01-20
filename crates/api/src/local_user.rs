@@ -1,6 +1,5 @@
 use crate::{captcha_as_wav_base64, Perform};
 use actix_web::web::Data;
-use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
@@ -51,7 +50,6 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{
   claims::Claims,
-  location_info,
   utils::{is_valid_display_name, is_valid_matrix_id, naive_from_unix},
   ConnectionId,
   LemmyError,
@@ -409,18 +407,7 @@ impl Perform for AddAdmin {
 
     blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
 
-    let site_creator_id = blocking(context.pool(), move |conn| {
-      Site::read(conn, 1).map(|s| s.creator_id)
-    })
-    .await??;
-
-    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
-    let creator_index = admins
-      .iter()
-      .position(|r| r.person.id == site_creator_id)
-      .context(location_info!())?;
-    let creator_person = admins.remove(creator_index);
-    admins.insert(0, creator_person);
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
     let res = AddAdminResponse { admins };
 

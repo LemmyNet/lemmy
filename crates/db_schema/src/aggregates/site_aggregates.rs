@@ -55,7 +55,6 @@ mod tests {
 
     let site_form = SiteForm {
       name: "test_site".into(),
-      creator_id: inserted_person.id,
       sidebar: None,
       description: None,
       icon: None,

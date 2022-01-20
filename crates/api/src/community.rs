@@ -44,7 +44,6 @@ use lemmy_db_schema::{
     },
     person::Person,
     post::Post,
-    site::Site,
   },
   traits::{Bannable, Blockable, Crud, Followable, Joinable},
 };
@@ -457,20 +456,7 @@ impl Perform for TransferCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let site_creator_id = blocking(context.pool(), move |conn| {
-      Site::read(conn, 1).map(|s| s.creator_id)
-    })
-    .await??;
-
-    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
-
-    // Making sure the site creator, if an admin, is at the top
-    let creator_index = admins
-      .iter()
-      .position(|r| r.person.id == site_creator_id)
-      .context(location_info!())?;
-    let creator_person = admins.remove(creator_index);
-    admins.insert(0, creator_person);
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
     // Fetch the community mods
     let community_id = data.community_id;
