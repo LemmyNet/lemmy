@@ -11,6 +11,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UndoDeletePrivateMessage {
   pub(crate) actor: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one")]
   pub(crate) to: [ObjectId<ApubPerson>; 1],
   pub(crate) object: DeletePrivateMessage,
   #[serde(rename = "type")]
