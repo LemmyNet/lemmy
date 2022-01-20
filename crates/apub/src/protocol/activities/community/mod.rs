@@ -25,22 +25,27 @@ mod tests {
   async fn test_parse_lemmy_community() {
     test_parse_lemmy_item::<AnnounceActivity>(
       "assets/lemmy/activities/community/announce_create_page.json",
-    );
+    )
+    .unwrap();
 
-    test_parse_lemmy_item::<AddMod>("assets/lemmy/activities/community/add_mod.json");
-    test_parse_lemmy_item::<RemoveMod>("assets/lemmy/activities/community/remove_mod.json");
+    test_parse_lemmy_item::<AddMod>("assets/lemmy/activities/community/add_mod.json").unwrap();
+    test_parse_lemmy_item::<RemoveMod>("assets/lemmy/activities/community/remove_mod.json")
+      .unwrap();
 
     test_parse_lemmy_item::<BlockUserFromCommunity>(
       "assets/lemmy/activities/community/block_user.json",
-    );
+    )
+    .unwrap();
     test_parse_lemmy_item::<UndoBlockUserFromCommunity>(
       "assets/lemmy/activities/community/undo_block_user.json",
-    );
+    )
+    .unwrap();
 
     test_parse_lemmy_item::<UpdateCommunity>(
       "assets/lemmy/activities/community/update_community.json",
-    );
+    )
+    .unwrap();
 
-    test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json");
+    test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json").unwrap();
   }
 }
