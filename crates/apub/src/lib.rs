@@ -112,6 +112,25 @@ where
   })
 }
 
+pub(crate) fn deserialize_one<'de, T, D>(deserializer: D) -> Result<[T; 1], D::Error>
+where
+  T: Deserialize<'de>,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum MaybeArray<T> {
+    Simple(T),
+    Array([T; 1]),
+  }
+
+  let result: MaybeArray<T> = Deserialize::deserialize(deserializer)?;
+  Ok(match result {
+    MaybeArray::Simple(value) => [value],
+    MaybeArray::Array(value) => value,
+  })
+}
+
 pub enum EndpointType {
   Community,
   Person,
