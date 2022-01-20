@@ -15,6 +15,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  aggregates::person_aggregates::PersonAggregates,
   newtypes::CommunityId,
   source::{
     community::{
@@ -32,6 +33,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Followable, Joinable},
 };
+use lemmy_db_views::local_user_view::LocalUserView;
 use lemmy_db_views_actor::person_view::PersonViewSafe;
 use lemmy_utils::{
   apub::generate_actor_keypair,
@@ -272,11 +274,27 @@ impl PerformCrud for Register {
       );
     } else {
       if email_verification {
+        let local_user_view = LocalUserView {
+          local_user: inserted_local_user,
+          person: inserted_person,
+          counts: PersonAggregates {
+            id: 0,
+            person_id: Default::default(),
+            post_count: 0,
+            post_score: 0,
+            comment_count: 0,
+            comment_score: 0,
+          },
+        };
+        // we check at the beginning of this method that email is set
+        let email = local_user_view
+          .local_user
+          .email
+          .clone()
+          .expect("email was provided");
         send_verification_email(
-          inserted_local_user.id,
-          // we check at the beginning of this method that email is set
-          &inserted_local_user.email.expect("email was provided"),
-          &inserted_person.name,
+          &local_user_view,
+          &email,
           context.pool(),
           &context.settings(),
         )

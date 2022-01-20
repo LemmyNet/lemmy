@@ -1884,6 +1884,7 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "rosetta-i18n",
  "serde",
  "serde_json",
  "tracing",
@@ -2170,6 +2171,8 @@ dependencies = [
  "regex",
  "reqwest",
  "reqwest-middleware",
+ "rosetta-build",
+ "rosetta-i18n",
  "serde",
  "serde_json",
  "smart-default",
@@ -3369,6 +3372,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rosetta-build"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f697b8b3f19bee20f30dc87213d05ce091c43bc733ab1bfc98b0e5cdd9943f3"
+dependencies = [
+ "convert_case",
+ "lazy_static",
+ "proc-macro2 1.0.33",
+ "quote 1.0.10",
+ "regex",
+ "tinyjson",
+]
+
+[[package]]
+name = "rosetta-i18n"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5298de832602aecc9458398f435d9bff0be57da7aac11221b6ff3d4ef9503de"
+
+[[package]]
 name = "rss"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3901,6 +3924,12 @@ name = "time-macros"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25eb0ca3468fc0acc11828786797f6ef9aa1555e4a211a60d64cc8e4d1be47d6"
+
+[[package]]
+name = "tinyjson"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a8304da9f9370f6a6f9020b7903b044aa9ce3470f300a1fba5bc77c78145a16"
 
 [[package]]
 name = "tinyvec"

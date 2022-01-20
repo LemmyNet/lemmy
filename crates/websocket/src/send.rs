@@ -8,6 +8,7 @@ use lemmy_api_common::{
   check_person_block,
   comment::CommentResponse,
   community::CommunityResponse,
+  get_user_lang,
   person::PrivateMessageResponse,
   post::PostResponse,
   send_email_to_user,
@@ -183,6 +184,7 @@ pub async fn send_local_notifs(
   context: &LemmyContext,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let mut recipient_ids = Vec::new();
+  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
   // Send the local mentions
   for mention in mentions
@@ -217,11 +219,11 @@ pub async fn send_local_notifs(
 
       // Send an email to those local users that have notifications on
       if do_send_email {
+        let lang = get_user_lang(&mention_user_view);
         send_email_to_user(
           &mention_user_view,
-          "Mentioned by",
-          "Person Mention",
-          &comment.content,
+          &lang.notification_mentioned_by_subject(&person.name),
+          &lang.notification_mentioned_by_body(&person.name, &comment.content, &inbox_link),
           &context.settings(),
         )
       }
@@ -252,11 +254,11 @@ pub async fn send_local_notifs(
             recipient_ids.push(parent_user_view.local_user.id);
 
             if do_send_email {
+              let lang = get_user_lang(&parent_user_view);
               send_email_to_user(
                 &parent_user_view,
-                "Reply from",
-                "Comment Reply",
-                &comment.content,
+                &lang.notification_post_reply_subject(&person.name),
+                &lang.notification_post_reply_body(&person.name, &comment.content, &inbox_link),
                 &context.settings(),
               )
             }
@@ -282,11 +284,11 @@ pub async fn send_local_notifs(
           recipient_ids.push(parent_user_view.local_user.id);
 
           if do_send_email {
+            let lang = get_user_lang(&parent_user_view);
             send_email_to_user(
               &parent_user_view,
-              "Reply from",
-              "Post Reply",
-              &comment.content,
+              &lang.notification_post_reply_subject(&person.name),
+              &lang.notification_post_reply_body(&person.name, &comment.content, &inbox_link),
               &context.settings(),
             )
           }
