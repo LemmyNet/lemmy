@@ -26,7 +26,13 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   request::fetch_site_data,
-  utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
+  utils::{
+    check_slurs,
+    check_slurs_opt,
+    clean_optional_text,
+    clean_url_params,
+    is_valid_post_title,
+  },
   ConnectionId,
   LemmyError,
 };
@@ -72,7 +78,7 @@ impl PerformCrud for CreatePost {
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
       url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
-      body: data.body.to_owned(),
+      body: clean_optional_text(&data.body),
       community_id: data.community_id,
       creator_id: local_user_view.person.id,
       nsfw: data.nsfw,

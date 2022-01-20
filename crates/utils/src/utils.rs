@@ -175,6 +175,10 @@ pub fn clean_url_params(mut url: Url) -> Url {
   url
 }
 
+pub fn clean_optional_text(text: &Option<String>) -> Option<String> {
+  text.as_ref().map(|t| t.trim().to_string())
+}
+
 #[cfg(test)]
 mod tests {
   use crate::utils::{clean_url_params, is_valid_post_title};

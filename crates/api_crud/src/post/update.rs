@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   request::fetch_site_data,
-  utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
+  utils::{check_slurs_opt, clean_optional_text, clean_url_params, is_valid_post_title},
   ConnectionId,
   LemmyError,
 };
@@ -79,7 +79,7 @@ impl PerformCrud for EditPost {
       community_id: orig_post.community_id,
       name: data.name.to_owned().unwrap_or(orig_post.name),
       url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
-      body: data.body.to_owned(),
+      body: clean_optional_text(&data.body),
       nsfw: data.nsfw,
       updated: Some(naive_now()),
       embed_title,
