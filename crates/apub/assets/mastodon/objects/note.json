@@ -1,4 +1,16 @@
 {
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri",
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "conversation": "ostatus:conversation",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#",
+      "votersCount": "toot:votersCount"
+    }
+  ],
   "id": "https://mastodon.madrid/users/felix/statuses/107224289116410645",
   "type": "Note",
   "summary": null,
@@ -19,7 +31,7 @@
   "conversation": "tag:mamot.fr,2021-11-05:objectId=64635960:objectType=Conversation",
   "content": "<p><span class=\"h-card\"><a href=\"https://mamot.fr/@retiolus\" class=\"u-url mention\">@<span>retiolus</span></a></span> i have never been disappointed by a thinkpad. if you want to save money, get a model from a few years ago, there isnt a huge difference anyway.</p>",
   "contentMap": {
-    "en": "<p><span class=\"h-card\"><a href=\"https://mamot.fr/@retiolus\" class=\"u-url mention\">@<span>retiolus</span></a></span> i have neverbeendisappointed by a thinkpad. if you want to save money, get a model from a few years ago, there isnt a huge difference anyway.</p>"
+    "en": "<p><span class=\"h-card\"><a href=\"https://mamot.fr/@retiolus\" class=\"u-url mention\">@<span>retiolus</span></a></span> i have never been disappointed by a thinkpad. if you want to save money, get a model from a few years ago, there isnt a huge difference anyway.</p>"
   },
   "attachment": [],
   "tag": [

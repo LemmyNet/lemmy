@@ -17,10 +17,13 @@ mod tests {
 
   #[actix_rt::test]
   async fn test_parse_lemmy_collections() {
-    test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json");
-    let outbox = test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json");
+    test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json")
+      .unwrap();
+    let outbox =
+      test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json").unwrap();
     assert_eq!(outbox.ordered_items.len() as i32, outbox.total_items);
-    test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json");
-    test_parse_lemmy_item::<PersonOutbox>("assets/lemmy/collections/person_outbox.json");
+    test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")
+      .unwrap();
+    test_parse_lemmy_item::<PersonOutbox>("assets/lemmy/collections/person_outbox.json").unwrap();
   }
 }

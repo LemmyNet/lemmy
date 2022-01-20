@@ -5,7 +5,6 @@ use lemmy_api_common::{
   check_community_ban,
   check_community_deleted_or_removed,
   check_downvotes_enabled,
-  check_person_block,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
   mark_post_as_read,
@@ -58,8 +57,6 @@ impl Perform for CreatePostLike {
 
     check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
     check_community_deleted_or_removed(post.community_id, context.pool()).await?;
-
-    check_person_block(local_user_view.person.id, post.creator_id, context.pool()).await?;
 
     let like_form = PostLikeForm {
       post_id: data.post_id,

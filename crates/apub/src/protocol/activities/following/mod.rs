@@ -19,11 +19,14 @@ mod tests {
 
   #[actix_rt::test]
   async fn test_parse_lemmy_accept_follow() {
-    test_parse_lemmy_item::<FollowCommunity>("assets/lemmy/activities/following/follow.json");
-    test_parse_lemmy_item::<AcceptFollowCommunity>("assets/lemmy/activities/following/accept.json");
+    test_parse_lemmy_item::<FollowCommunity>("assets/lemmy/activities/following/follow.json")
+      .unwrap();
+    test_parse_lemmy_item::<AcceptFollowCommunity>("assets/lemmy/activities/following/accept.json")
+      .unwrap();
     test_parse_lemmy_item::<UndoFollowCommunity>(
       "assets/lemmy/activities/following/undo_follow.json",
-    );
+    )
+    .unwrap();
 
     file_to_json_object::<WithContext<FollowCommunity>>("assets/pleroma/activities/follow.json")
       .unwrap();
