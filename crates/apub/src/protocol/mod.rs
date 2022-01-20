@@ -42,6 +42,7 @@ pub struct Unparsed(HashMap<String, serde_json::Value>);
 pub(crate) mod tests {
   use crate::objects::tests::file_to_json_object;
   use assert_json_diff::assert_json_include;
+  use lemmy_utils::LemmyError;
   use serde::{de::DeserializeOwned, Serialize};
   use std::collections::HashMap;
 
@@ -49,14 +50,14 @@ pub(crate) mod tests {
   /// Ensures that there are no breaking changes in sent data.
   pub(crate) fn test_parse_lemmy_item<T: Serialize + DeserializeOwned + std::fmt::Debug>(
     path: &str,
-  ) -> T {
+  ) -> Result<T, LemmyError> {
     // parse file as T
-    let parsed = file_to_json_object::<T>(path).unwrap();
+    let parsed = file_to_json_object::<T>(path)?;
 
     // parse file into hashmap, which ensures that every field is included
-    let raw = file_to_json_object::<HashMap<String, serde_json::Value>>(path).unwrap();
+    let raw = file_to_json_object::<HashMap<String, serde_json::Value>>(path)?;
     // assert that all fields are identical, otherwise print diff
     assert_json_include!(actual: &parsed, expected: raw);
-    parsed
+    Ok(parsed)
   }
 }
