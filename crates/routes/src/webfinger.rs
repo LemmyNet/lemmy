@@ -43,21 +43,24 @@ async fn get_webfinger_response(
     .to_string();
 
   let name_ = name.clone();
-  let community_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &name_)
-  })
-  .await?
-  .ok()
-  .map(|c| c.actor_id.into());
   let user_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &name)
+    Person::find_by_name(conn, &name_)
   })
   .await?
   .ok()
   .map(|c| c.actor_id.into());
+  let community_id: Option<Url> = blocking(context.pool(), move |conn| {
+    Community::read_from_name(conn, &name)
+  })
+  .await?
+  .ok()
+  .map(|c| c.actor_id.into());
+
+  // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
+  // community last so that it gets prioritized. For Lemmy the order doesnt matter.
   let links = vec![
-    webfinger_link_for_actor(community_id),
     webfinger_link_for_actor(user_id),
+    webfinger_link_for_actor(community_id),
   ]
   .into_iter()
   .flatten()
