@@ -47,13 +47,6 @@ impl Perform for MarkCommentAsRead {
     })
     .await??;
 
-    check_community_ban(
-      local_user_view.person.id,
-      orig_comment.community.id,
-      context.pool(),
-    )
-    .await?;
-
     // Verify that only the recipient can mark as read
     if local_user_view.person.id != orig_comment.get_recipient_id() {
       return Err(LemmyError::from_message("no_comment_edit_allowed"));
