@@ -201,7 +201,24 @@ impl<'a> CommunityQueryBuilder<'a> {
       SortType::New => query = query.order_by(community::published.desc()),
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      // Covers all other sorts, including hot
+      SortType::Hot => {
+        query = query
+          .order_by(
+            hot_rank(
+              community_aggregates::subscribers,
+              community_aggregates::published,
+            )
+            .desc(),
+          )
+          .then_order_by(community_aggregates::published.desc());
+        // Don't show hidden communities in Hot (trending)
+        query = query.filter(
+          community::hidden
+            .eq(false)
+            .or(community_follower::person_id.eq(person_id_join)),
+        );
+      }
+      // Covers all other sorts
       _ => {
         query = query
           .order_by(
@@ -231,13 +248,6 @@ impl<'a> CommunityQueryBuilder<'a> {
     if self.my_person_id.is_some() {
       query = query.filter(community_block::person_id.is_null());
     }
-
-    //Hide if hidden and not subscribed
-    query = query.filter(
-      community::hidden
-        .eq(false)
-        .or(community_follower::person_id.eq(person_id_join)),
-    );
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
     let res = query

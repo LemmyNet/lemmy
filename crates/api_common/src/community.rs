@@ -96,9 +96,9 @@ pub struct EditCommunity {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HideCommunity {
   pub community_id: CommunityId,
-  pub auth: String,
   pub hidden: bool,
   pub reason: Option<String>,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
