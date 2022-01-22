@@ -596,6 +596,7 @@ table! {
         community_id -> Int4,
         person_id -> Int4,
         reason -> Nullable<Text>,
+        hidden ->Bool,
         when_ -> Timestamp,
     }
 }

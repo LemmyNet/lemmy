@@ -70,7 +70,7 @@ pub struct CommunityForm {
   pub followers_url: Option<DbUrl>,
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
-  pub hidden: bool,
+  pub hidden: Option<bool>,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

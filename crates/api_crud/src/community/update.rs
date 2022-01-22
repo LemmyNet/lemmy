@@ -66,7 +66,7 @@ impl PerformCrud for EditCommunity {
       icon,
       banner,
       nsfw: data.nsfw,
-      hidden: read_community.hidden,
+      hidden: Some(read_community.hidden),
       updated: Some(naive_now()),
       ..CommunityForm::default()
     };
@@ -123,7 +123,7 @@ impl PerformCrud for HideCommunity {
       banner: Some(read_community.banner),
       nsfw: Some(read_community.nsfw),
       updated: Some(naive_now()),
-      hidden: data.hidden,
+      hidden: Some(data.hidden),
       ..CommunityForm::default()
     };
 
@@ -131,6 +131,7 @@ impl PerformCrud for HideCommunity {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
       reason: data.reason.clone(),
+      hidden: data.hidden,
     };
 
     let community_id = data.community_id;

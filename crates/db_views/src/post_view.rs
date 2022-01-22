@@ -368,16 +368,21 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(post_aggregates::stickied.desc());
     }
 
-    // Unless on a community's page or if subscribed to a community, filter out blacklisted communities from post
+    // Unless on a community's page or if subscribed to a community, filter out hidden communities from post view
     if self.community_actor_id.is_none() {
       if let Some(listing_type) = self.listing_type {
         query = match listing_type {
-          ListingType::Subscribed => query,
-          _ => query.filter(
+          ListingType::All => query.filter(
             community::hidden
               .eq(false)
               .or(community_follower::person_id.eq(person_id_join)),
           ),
+          ListingType::Local => query.filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          ),
+          _ => query,
         };
       }
     }

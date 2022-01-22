@@ -107,7 +107,7 @@ fn community_updates_2020_04_02(
       deleted: None,
       nsfw: None,
       updated: None,
-      hidden: false,
+      hidden: Some(false),
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),
       private_key: Some(Some(keypair.private_key)),
