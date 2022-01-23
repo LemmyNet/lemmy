@@ -1,4 +1,4 @@
-alter table community add column hidden BOOLEAN DEFAULT FALSE;
+alter table community add column hidden boolean default false;
 
 
 create table mod_hide_community
