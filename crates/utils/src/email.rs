@@ -77,16 +77,10 @@ pub fn send_email(
   // Set the TLS
   let builder_dangerous = SmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
 
-  let mut builder = if let Some(tls_type) = email_config.use_tls {
-    if tls_type == "starttls" {
-      SmtpTransport::starttls_relay(smtp_server)?
-    } else if tls_type == "tls" {
-      SmtpTransport::relay(smtp_server)?
-    } else {
-      builder_dangerous
-    }
-  } else {
-    builder_dangerous
+  let mut builder = match email_config.tls_type.as_str() {
+    "starttls" => SmtpTransport::starttls_relay(smtp_server)?,
+    "tls" => SmtpTransport::relay(smtp_server)?,
+    _ => builder_dangerous,
   };
 
   // Set the creds if they exist

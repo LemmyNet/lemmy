@@ -101,9 +101,10 @@ pub struct EmailConfig {
   #[doku(example = "noreply@example.com")]
   /// Address to send emails from, eg "noreply@your-instance.com"
   pub smtp_from_address: String,
-  /// Whether or not smtp connections should use tls. Can be missing (IE None), tls, or starttls
-  #[default(None)]
-  pub use_tls: Option<String>,
+  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
+  #[default("none")]
+  #[doku(example = "none")]
+  pub tls_type: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
