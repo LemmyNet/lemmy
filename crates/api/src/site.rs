@@ -477,6 +477,12 @@ impl Perform for LeaveAdmin {
 
     is_admin(&local_user_view)?;
 
+    // Make sure there isn't just one admin (so if one leaves, there will still be one left)
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    if admins.len() == 1 {
+      return Err(LemmyError::from_message("cannot_leave_admin"));
+    }
+
     let person_id = local_user_view.person.id;
     blocking(context.pool(), move |conn| {
       Person::leave_admin(conn, person_id)
