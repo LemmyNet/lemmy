@@ -55,7 +55,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       local_posts: site_view.counts.posts,
       local_comments: site_view.counts.comments,
     },
-    open_registrations: site_view.site.open_registration,
+    open_registrations: site_view.site.open_registration && !site_view.site.require_application,
   };
 
   Ok(HttpResponse::Ok().json(json))
