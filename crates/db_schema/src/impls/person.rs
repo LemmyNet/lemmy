@@ -274,6 +274,12 @@ impl Person {
   pub fn is_banned(&self) -> bool {
     is_banned(self.banned, self.ban_expires)
   }
+
+  pub fn leave_admin(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+    diesel::update(person.find(person_id))
+      .set(admin.eq(false))
+      .get_result::<Self>(conn)
+  }
 }
 
 impl PersonSafe {

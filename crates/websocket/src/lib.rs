@@ -136,7 +136,7 @@ pub enum UserOperation {
   MarkAllAsRead,
   SaveUserSettings,
   TransferCommunity,
-  TransferSite,
+  LeaveAdmin,
   PasswordReset,
   PasswordChange,
   MarkPrivateMessageAsRead,

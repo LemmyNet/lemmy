@@ -1,6 +1,5 @@
 use crate::Perform;
 use actix_web::web::Data;
-use anyhow::Context;
 use diesel::NotFound;
 use lemmy_api_common::{
   blocking,
@@ -27,6 +26,7 @@ use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
+    person::Person,
     registration_application::{RegistrationApplication, RegistrationApplicationForm},
     site::Site,
   },
@@ -62,7 +62,7 @@ use lemmy_db_views_moderator::{
   mod_sticky_post_view::ModStickyPostView,
   mod_transfer_community_view::ModTransferCommunityView,
 };
-use lemmy_utils::{location_info, settings::structs::Settings, version, ConnectionId, LemmyError};
+use lemmy_utils::{settings::structs::Settings, version, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -462,7 +462,7 @@ async fn convert_response(
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for TransferSite {
+impl Perform for LeaveAdmin {
   type Response = GetSiteResponse;
 
   #[tracing::instrument(skip(context, _websocket_id))]
@@ -471,44 +471,36 @@ impl Perform for TransferSite {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &TransferSite = self;
+    let data: &LeaveAdmin = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     is_admin(&local_user_view)?;
 
-    let read_site = blocking(context.pool(), Site::read_simple).await??;
-
-    // Make sure user is the creator
-    if read_site.creator_id != local_user_view.person.id {
-      return Err(LemmyError::from_message("not_an_admin"));
+    // Make sure there isn't just one admin (so if one leaves, there will still be one left)
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    if admins.len() == 1 {
+      return Err(LemmyError::from_message("cannot_leave_admin"));
     }
 
-    let new_creator_id = data.person_id;
-    let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
-    blocking(context.pool(), transfer_site)
-      .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_site"))?;
+    let person_id = local_user_view.person.id;
+    blocking(context.pool(), move |conn| {
+      Person::leave_admin(conn, person_id)
+    })
+    .await??;
 
     // Mod tables
     let form = ModAddForm {
-      mod_person_id: local_user_view.person.id,
-      other_person_id: data.person_id,
-      removed: Some(false),
+      mod_person_id: person_id,
+      other_person_id: person_id,
+      removed: Some(true),
     };
 
     blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
 
+    // Reread site and admins
     let site_view = blocking(context.pool(), SiteView::read).await??;
-
-    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
-    let creator_index = admins
-      .iter()
-      .position(|r| r.person.id == site_view.creator.id)
-      .context(location_info!())?;
-    let creator_person = admins.remove(creator_index);
-    admins.insert(0, creator_person);
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
     let federated_instances = build_federated_instances(
       context.pool(),

@@ -62,7 +62,6 @@ impl PerformCrud for CreateSite {
       description,
       icon,
       banner,
-      creator_id: local_user_view.person.id,
       enable_downvotes: data.enable_downvotes,
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
