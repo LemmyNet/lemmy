@@ -25,3 +25,4 @@ chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.72", features = ["preserve_order"] }
 tracing = "0.1.29"
 url = "2.2.2"
+itertools = "0.10.3"

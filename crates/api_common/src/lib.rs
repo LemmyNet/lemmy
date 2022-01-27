@@ -6,6 +6,7 @@ pub mod site;
 pub mod websocket;
 
 use crate::site::FederatedInstances;
+use itertools::Itertools;
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
@@ -18,7 +19,7 @@ use lemmy_db_schema::{
     secret::Secret,
     site::Site,
   },
-  traits::{Crud, Readable},
+  traits::{ApubActor, Crud, Readable},
   DbPool,
 };
 use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
@@ -520,4 +521,37 @@ pub async fn check_private_instance_and_federation_enabled(
     }
   }
   Ok(())
+}
+
+/// Resolve actor identifier (eg `!news@example.com`) from local database to avoid network requests.
+/// This only works for local actors, and remote actors which were previously fetched (so it doesnt
+/// trigger any new fetch).
+#[tracing::instrument(skip_all)]
+pub async fn resolve_actor_identifier<Actor>(
+  identifier: &str,
+  pool: &DbPool,
+) -> Result<Actor, LemmyError>
+where
+  Actor: ApubActor + Send + 'static,
+{
+  // remote actor
+  if identifier.contains('@') {
+    let (name, domain) = identifier
+      .splitn(2, '@')
+      .collect_tuple()
+      .expect("invalid query");
+    let name = name.to_string();
+    let domain = format!("{}://{}", Settings::get().get_protocol_string(), domain);
+    Ok(
+      blocking(pool, move |conn| {
+        Actor::read_from_name_and_domain(conn, &name, &domain)
+      })
+      .await??,
+    )
+  }
+  // local actor
+  else {
+    let identifier = identifier.to_string();
+    Ok(blocking(pool, move |conn| Actor::read_from_name(conn, &identifier)).await??)
+  }
 }

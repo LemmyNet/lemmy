@@ -8,22 +8,17 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
+  resolve_actor_identifier,
   send_application_approved_email,
   site::*,
 };
-use lemmy_apub::{
-  fetcher::{
-    search::{search_by_apub_id, SearchableObjects},
-    webfinger::webfinger_resolve,
-  },
-  objects::community::ApubCommunity,
-  EndpointType,
-};
+use lemmy_apub::fetcher::search::{search_by_apub_id, SearchableObjects};
 use lemmy_db_schema::{
   diesel_option_overwrite,
   from_opt_str_to_opt_enum,
   newtypes::PersonId,
   source::{
+    community::Community,
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
     person::Person,
@@ -195,9 +190,10 @@ impl Perform for Search {
     let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      webfinger_resolve::<ApubCommunity>(name, EndpointType::Community, context, &mut 0)
+      resolve_actor_identifier::<Community>(name, context.pool())
         .await
         .ok()
+        .map(|c| c.actor_id)
     } else {
       None
     };
