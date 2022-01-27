@@ -1,5 +1,6 @@
 use crate::newtypes::{CommunityId, PersonId};
 use diesel::{result::Error, PgConnection};
+use url::Url;
 
 pub trait Crud {
   type Form;
@@ -159,6 +160,23 @@ pub trait ToSafeSettings {
 pub trait ViewToVec {
   type DbTuple;
   fn from_tuple_to_vec(tuple: Vec<Self::DbTuple>) -> Vec<Self>
+  where
+    Self: Sized;
+}
+
+pub trait ApubActor {
+  // TODO: this should be in a trait ApubObject (and implemented for Post, Comment, PrivateMessage as well)
+  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error>
+  where
+    Self: Sized;
+  fn read_from_name(conn: &PgConnection, actor_name: &str) -> Result<Self, Error>
+  where
+    Self: Sized;
+  fn read_from_name_and_domain(
+    conn: &PgConnection,
+    actor_name: &str,
+    protocol_domain: &str,
+  ) -> Result<Self, Error>
   where
     Self: Sized;
 }

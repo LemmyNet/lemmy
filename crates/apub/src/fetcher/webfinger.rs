@@ -1,4 +1,3 @@
-use crate::{generate_local_apub_endpoint, EndpointType};
 use itertools::Itertools;
 use lemmy_apub_lib::{
   object_id::ObjectId,
@@ -26,37 +25,6 @@ pub struct WebfingerLink {
 pub struct WebfingerResponse {
   pub subject: String,
   pub links: Vec<WebfingerLink>,
-}
-
-/// Takes in a shortname of the type dessalines@xyz.tld or dessalines (assumed to be local), and
-/// outputs the actor id. Used in the API for communities and users.
-///
-/// TODO: later provide a method in ApubObject to generate the endpoint, so that we dont have to
-///       pass in EndpointType
-#[tracing::instrument(skip_all)]
-pub async fn webfinger_resolve<Kind>(
-  identifier: &str,
-  endpoint_type: EndpointType,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<DbUrl, LemmyError>
-where
-  Kind: ApubObject<DataType = LemmyContext> + ActorType + Send + 'static,
-  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
-{
-  // remote actor
-  if identifier.contains('@') {
-    webfinger_resolve_actor::<Kind>(identifier, context, request_counter).await
-  }
-  // local actor
-  else {
-    let domain = context.settings().get_protocol_and_hostname();
-    Ok(generate_local_apub_endpoint(
-      endpoint_type,
-      identifier,
-      &domain,
-    )?)
-  }
 }
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,

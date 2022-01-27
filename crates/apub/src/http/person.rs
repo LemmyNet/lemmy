@@ -14,7 +14,7 @@ use crate::{
 use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::traits::ApubObject;
-use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -34,7 +34,7 @@ pub(crate) async fn get_apub_person_http(
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &user_name)
+    Person::read_from_name(conn, &user_name)
   })
   .await??
   .into();
@@ -77,7 +77,7 @@ pub(crate) async fn get_apub_person_outbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let person = blocking(context.pool(), move |conn| {
-    Person::find_by_name(conn, &info.user_name)
+    Person::read_from_name(conn, &info.user_name)
   })
   .await??;
   let outbox = PersonOutbox::new(person).await?;
