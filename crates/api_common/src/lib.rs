@@ -280,9 +280,13 @@ pub async fn check_private_instance(
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() {
-    let site = blocking(pool, Site::read_simple).await??;
-    if site.private_instance {
-      return Err(LemmyError::from_message("instance_is_private"));
+    let site = blocking(pool, Site::read_simple).await?;
+
+    // The site might not be set up yet
+    if let Ok(site) = site {
+      if site.private_instance {
+        return Err(LemmyError::from_message("instance_is_private"));
+      }
     }
   }
   Ok(())
