@@ -1,5 +1,6 @@
 pub mod comment;
 pub mod post;
+pub mod private_message;
 
 #[cfg(test)]
 mod tests {
@@ -7,7 +8,11 @@ mod tests {
     context::WithContext,
     objects::tests::file_to_json_object,
     protocol::{
-      activities::create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
+      activities::create_or_update::{
+        comment::CreateOrUpdateComment,
+        post::CreateOrUpdatePost,
+        private_message::CreateOrUpdatePrivateMessage,
+      },
       tests::test_parse_lemmy_item,
     },
   };
@@ -24,6 +29,10 @@ mod tests {
     .unwrap();
     test_parse_lemmy_item::<CreateOrUpdateComment>(
       "assets/lemmy/activities/create_or_update/create_note.json",
+    )
+    .unwrap();
+    test_parse_lemmy_item::<CreateOrUpdatePrivateMessage>(
+      "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();
 
