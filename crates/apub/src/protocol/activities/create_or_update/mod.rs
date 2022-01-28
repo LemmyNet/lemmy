@@ -41,5 +41,8 @@ mod tests {
     file_to_json_object::<CreateOrUpdatePost>("assets/lotide/activities/create_page.json").unwrap();
     file_to_json_object::<CreateOrUpdateComment>("assets/lotide/activities/create_note_reply.json")
       .unwrap();
+
+    file_to_json_object::<CreateOrUpdateComment>("assets/friendica/activities/create_note.json")
+      .unwrap();
   }
 }
