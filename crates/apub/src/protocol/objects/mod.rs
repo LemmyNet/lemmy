@@ -70,4 +70,10 @@ mod tests {
     file_to_json_object::<WithContext<Page>>("assets/lotide/objects/page.json").unwrap();
     file_to_json_object::<WithContext<Tombstone>>("assets/lotide/objects/tombstone.json").unwrap();
   }
+
+  #[actix_rt::test]
+  async fn test_parse_object_friendica() {
+    file_to_json_object::<WithContext<Person>>("assets/friendica/objects/person.json").unwrap();
+    file_to_json_object::<WithContext<Note>>("assets/friendica/objects/note.json").unwrap();
+  }
 }

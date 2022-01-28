@@ -12,6 +12,7 @@ use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
@@ -46,9 +47,9 @@ pub struct Note {
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 pub(crate) enum SourceCompat {
-  None,
   Lemmy(Source),
-  Pleroma(String),
+  Other(Value),
+  None,
 }
 
 impl Default for SourceCompat {

@@ -1,0 +1,94 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://soc.schuerz.at/profile/jakob",
+  "diaspora:guid": "4edd2508-1661-30f6-ebcc-2da966353356",
+  "type": "Person",
+  "following": "https://soc.schuerz.at/following/jakob",
+  "followers": "https://soc.schuerz.at/followers/jakob",
+  "inbox": "https://soc.schuerz.at/inbox/jakob",
+  "outbox": "https://soc.schuerz.at/outbox/jakob",
+  "preferredUsername": "jakob",
+  "name": "Jakob :friendica:",
+  "vcard:hasAddress": {
+    "@type": "vcard:Home",
+    "vcard:country-name": "Austria",
+    "vcard:region": "Niederoesterreich",
+    "vcard:locality": ""
+  },
+  "summary": "Linux, FOSS, Öffentlicher Verkehr, Eisenbahn, Radfahren, Fußgehen, Verkehrsplanung, Städtebau, Will das Schöne wieder in die Welt bringen,Nachhaltigkeit, Modellbahn, Java Entwickler (jun), Bash,<br><br>#FediverseOnlyAccount",
+  "vcard:hasInstantMessage": [
+    "xmpp:jakob@schuerz.at",
+    "matrix:@jakob:schuerz.at"
+  ],
+  "url": "https://soc.schuerz.at/profile/jakob",
+  "manuallyApprovesFollowers": true,
+  "discoverable": true,
+  "publicKey": {
+    "id": "https://soc.schuerz.at/profile/jakob#main-key",
+    "owner": "https://soc.schuerz.at/profile/jakob",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1RRoj3DpUmTiRBshv+kz\njO5tgfHs99aBJjvaoW8nbPcOs+HZm9Nj4ncJh99kwd+yONwac6ObMMIisYpVU4C1\neKpnlRrRu/8vQFwhHQT4RxpkibB+l+LvG1HJoMNIuYxvVCIaQZugdJclAdMJjDTF\nbDQNwG6xlcazKd4IbMbmgfoxTxSnQSomJQew1NUbdD3vDiCdJEtjCmeWm6eTCfyZ\njT0mjrAm8ccJ7+opN5SWJ0je0Rav5dohyaVFEtv1Dlv1UlqU4hKefvv71eoROHCA\nWQ3+kYGFGY4ApnbWxwLZyke7khzxr2BjDrfwUAeEsLJT4YOxa5fKJJ59+q5Iddaq\nPNT3QqP0Qzum5w6qDOWm3cNNw7ByqoqxKckZS5U2vm0sx83UEmBqysAkAS/8M9Qr\nBKkb9DQ9jgUa7GPpL+Oknr8hV+Vpk49Jjx+A1WJ/MlNja7fi4w4rBM+v3B8nRayM\nzX8XaKbbOib21mCawJiJIOAm0EP2rNqNM1GpUWPstHKG00o3Czz3P5Hm/q6RcNJE\nKRlSIPQZnUVsoC0bFsqWzipsgb3uDHnz3Ni2OjLNLWBVYkWD7RNfB3WV/XKl2QL3\nnnhmUDahGN7UCOrcBuLfWsTa+GZDFeHot1HXa9tNcxq+QxAUg3qv7oiAH1H+hoJg\nn/Ydg1IR5sLovKi3g7DRS7MCAwEAAQ==\n-----END PUBLIC KEY-----\n"
+  },
+  "endpoints": {
+    "sharedInbox": "https://soc.schuerz.at/inbox"
+  },
+  "icon": {
+    "type": "Image",
+    "url": "https://soc.schuerz.at/photo/profile/jakob.png?ts=1630598950",
+    "mediaType": "image/png"
+  },
+  "attachment": [
+    {
+      "type": "PropertyValue",
+      "name": "Mobilizon",
+      "value": "@jakob@events.schuerz.at<br>@jakob@events.tulln.social"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Lemmy",
+      "value": "<a href=\"https://lemmy.schuerz.at/u/jakob\" target=\"_blank\" rel=\"noopener noreferrer\">https://lemmy.schuerz.at/u/jakob</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Funkwhale",
+      "value": "<a href=\"https://radio.schuerz.at/@jakob/\" target=\"_blank\" rel=\"noopener noreferrer\">https://radio.schuerz.at/@jakob/</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Peertube",
+      "value": "<a href=\"https://kino.schuerz.at/a/jakob\" target=\"_blank\" rel=\"noopener noreferrer\">https://kino.schuerz.at/a/jakob</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Pixelfed",
+      "value": "<a href=\"https://japix.schuerz.at/jakob\" target=\"_blank\" rel=\"noopener noreferrer\">https://japix.schuerz.at/jakob</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "about:",
+      "value": "This is an OpenPGP proof that connects my OpenPGP key to this Peertube account. For details check out <a href=\"https://keyoxide.org/guides/openpgp-proofs\" target=\"_blank\" rel=\"noopener noreferrer\">https://keyoxide.org/guides/openpgp-proofs</a><br><br>[Verifying my OpenPGP key: openpgp4fpr:FED82F1C73FF53FB1EE9926336615E0FD12833CF]"
+    }
+  ],
+  "generator": {
+    "type": "Service",
+    "name": "Friendica 'Siberian Iris' 2021.12-rc-1448",
+    "url": "https://soc.schuerz.at"
+  }
+}
