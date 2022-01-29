@@ -199,6 +199,7 @@ pub struct EditSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
+  pub taglines: Option<Vec<String>>,
   pub auth: Sensitive<String>,
 }
 

@@ -4,7 +4,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::SiteAggregates,
   schema::{local_site, local_site_rate_limit, site, site_aggregates},
-  source::{local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, site::Site},
+  source::{
+    local_site::LocalSite,
+    local_site_rate_limit::LocalSiteRateLimit,
+    site::Site,
+    tagline::Tagline,
+  },
   utils::{get_conn, DbPool},
 };
 
@@ -25,12 +30,14 @@ impl SiteView {
       ))
       .first::<(Site, LocalSite, LocalSiteRateLimit, SiteAggregates)>(conn)
       .await?;
+    let taglines = Tagline::get_all(pool, local_site.id).await?;
 
     site.private_key = None;
     Ok(SiteView {
       site,
       local_site,
       local_site_rate_limit,
+      taglines,
       counts,
     })
   }
