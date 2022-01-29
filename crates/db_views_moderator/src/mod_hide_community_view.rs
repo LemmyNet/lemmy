@@ -1,7 +1,7 @@
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   limit_and_offset,
-  newtypes::CommunityId,
+  newtypes::{CommunityId, PersonId},
   schema::{community, mod_hide_community, person},
   source::{
     community::{Community, CommunitySafe},
@@ -21,10 +21,11 @@ pub struct ModHideCommunityView {
 
 type ModHideCommunityViewTuple = (ModHideCommunity, PersonSafe, CommunitySafe);
 
-impl ModHideCommunityView {
+impl ModHideCommunityView {// Pass in mod_id as admin_id because only admins can do this action
   pub fn list(
     conn: &PgConnection,
     community_id: Option<CommunityId>,
+    admin_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
@@ -40,6 +41,10 @@ impl ModHideCommunityView {
 
     if let Some(community_id) = community_id {
       query = query.filter(mod_hide_community::community_id.eq(community_id));
+    };
+
+    if let Some(admin_id) = admin_id {
+      query = query.filter(mod_hide_community::person_id.eq(admin_id));
     };
 
     let (limit, offset) = limit_and_offset(page, limit);

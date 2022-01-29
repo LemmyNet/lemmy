@@ -7,7 +7,7 @@ create table mod_hide_community
     community_id int references community on update cascade on delete cascade not null,
     person_id int references person on update cascade on delete cascade not null,
     when_ timestamp not null default now(),
-    reason text not null,
+    reason text,
     hidden boolean default false
 );
 
