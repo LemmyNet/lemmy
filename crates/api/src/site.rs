@@ -124,7 +124,7 @@ impl Perform for GetModlog {
     .await??;
 
     let hidden_communities = blocking(context.pool(), move |conn| {
-      ModHideCommunityView::list(conn, community_id,mod_person_id, page, limit)
+      ModHideCommunityView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 

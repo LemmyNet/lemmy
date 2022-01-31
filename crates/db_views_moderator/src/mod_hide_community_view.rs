@@ -21,7 +21,8 @@ pub struct ModHideCommunityView {
 
 type ModHideCommunityViewTuple = (ModHideCommunity, PersonSafe, CommunitySafe);
 
-impl ModHideCommunityView {// Pass in mod_id as admin_id because only admins can do this action
+impl ModHideCommunityView {
+  // Pass in mod_id as admin_id because only admins can do this action
   pub fn list(
     conn: &PgConnection,
     community_id: Option<CommunityId>,

@@ -453,8 +453,7 @@ impl<'a> CommentQueryBuilder<'a> {
           query = query.filter(community_follower::person_id.is_not_null())
         } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => {
-          query = query.filter(community::local.eq(true));
-          query = query.filter(
+          query = query.filter(community::local.eq(true)).filter(
             community::hidden
               .eq(false)
               .or(community_follower::person_id.eq(person_id_join)),
@@ -467,7 +466,7 @@ impl<'a> CommentQueryBuilder<'a> {
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
-        _ => {}
+        ListingType::Community => {}
       };
     }
 

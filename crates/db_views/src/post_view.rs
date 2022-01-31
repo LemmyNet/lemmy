@@ -360,9 +360,7 @@ impl<'a> PostQueryBuilder<'a> {
           query = query.filter(community_follower::person_id.is_not_null())
         }
         ListingType::Local => {
-          query = query.filter(community::local.eq(true));
-
-          query = query.filter(
+          query = query.filter(community::local.eq(true)).filter(
             community::hidden
               .eq(false)
               .or(community_follower::person_id.eq(person_id_join)),
@@ -375,14 +373,14 @@ impl<'a> PostQueryBuilder<'a> {
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
-        ListingType::Community => {}
+        ListingType::Community => {
+          if let Some(community_id) = self.community_id {
+            query = query
+              .filter(post::community_id.eq(community_id))
+              .then_order_by(post_aggregates::stickied.desc());
+          }
+        }
       }
-    }
-
-    if let Some(community_id) = self.community_id {
-      query = query
-        .filter(post::community_id.eq(community_id))
-        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(community_actor_id) = self.community_actor_id {
