@@ -71,11 +71,3 @@ doku = "0.10.2"
 opentelemetry = { version = "0.16", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.9"
 tracing-opentelemetry = "0.16"
-
-[dev-dependencies.cargo-husky]
-version = "1.5.0"
-default-features = false # Disable features which are enabled by default
-features = ["user-hooks"]
-
-[package.metadata.cargo-udeps.ignore]
-development = ["cargo-husky"]
