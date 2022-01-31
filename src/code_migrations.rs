@@ -8,6 +8,7 @@ use lemmy_apub::{
   generate_inbox_url,
   generate_local_apub_endpoint,
   generate_shared_inbox_url,
+  generate_site_inbox_url,
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -304,7 +305,7 @@ fn instance_actor_2022_01_28(
       name: site.name,
       actor_id: Some(actor_id.clone().into()),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(generate_inbox_url(&actor_id.into())?),
+      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
       private_key: Some(Some(key_pair.private_key)),
       public_key: Some(key_pair.public_key),
       ..Default::default()

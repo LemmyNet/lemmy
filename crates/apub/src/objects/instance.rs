@@ -1,6 +1,5 @@
 use crate::{
   check_is_apub_id_valid,
-  generate_outbox_url,
   objects::get_summary_from_string_or_source,
   protocol::{objects::instance::Instance, ImageObject, Source, Unparsed},
 };
@@ -23,6 +22,7 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
+use tracing::debug;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -82,7 +82,7 @@ impl ApubObject for ApubSite {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
-      outbox: generate_outbox_url(&self.actor_id)?.into(),
+      outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
       public_key: self.get_public_key()?,
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
@@ -165,6 +165,22 @@ pub fn instance_actor_id_from_url(mut url: Url) -> Url {
   url.set_path("");
   url.set_query(None);
   url
+}
+
+/// try to fetch the instance actor (to make things like instance rules available)
+pub(in crate::objects) async fn fetch_instance_actor_for_object(
+  object_id: Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) {
+  // try to fetch the instance actor (to make things like instance rules available)
+  let instance_id = instance_actor_id_from_url(object_id);
+  let site = ObjectId::<ApubSite>::new(instance_id.clone())
+    .dereference(context, context.client(), request_counter)
+    .await;
+  if let Err(e) = site {
+    debug!("Failed to dereference site for {}: {}", instance_id, e);
+  }
 }
 
 #[cfg(test)]

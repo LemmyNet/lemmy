@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
-  objects::get_summary_from_string_or_source,
+  objects::{get_summary_from_string_or_source, instance::fetch_instance_actor_for_object},
   protocol::{
     objects::{
       person::{Person, UserTypes},
@@ -137,7 +137,7 @@ impl ApubObject for ApubPerson {
   async fn from_apub(
     person: Person,
     context: &LemmyContext,
-    _request_counter: &mut i32,
+    request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
     let person_form = PersonForm {
       name: person.preferred_username,
@@ -168,6 +168,10 @@ impl ApubObject for ApubPerson {
       DbPerson::upsert(conn, &person_form)
     })
     .await??;
+
+    let actor_id = person.actor_id.clone().into();
+    fetch_instance_actor_for_object(actor_id, context, request_counter).await;
+
     Ok(person.into())
   }
 }

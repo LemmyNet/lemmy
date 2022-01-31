@@ -14,6 +14,10 @@ use lemmy_api_common::{
   send_password_reset_email,
   send_verification_email,
 };
+use lemmy_apub::{
+  activities::block::SiteOrCommunity,
+  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+};
 use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
@@ -443,13 +447,14 @@ impl Perform for BanPerson {
     let expires = data.expires.map(naive_from_unix);
 
     let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban, expires);
-    blocking(context.pool(), ban_person)
+    let person = blocking(context.pool(), ban_person)
       .await?
       .map_err(LemmyError::from)
       .map_err(|e| e.with_message("couldnt_update_user"))?;
 
     // Remove their data if that's desired
-    if data.remove_data.unwrap_or(false) {
+    let remove_data = data.remove_data.unwrap_or(false);
+    if remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
         Post::update_removed_for_creator(conn, banned_person_id, None, true)
@@ -500,6 +505,31 @@ impl Perform for BanPerson {
       PersonViewSafe::read(conn, person_id)
     })
     .await??;
+
+    let site = SiteOrCommunity::Site(
+      blocking(context.pool(), Site::read_local_site)
+        .await??
+        .into(),
+    );
+    if ban {
+      BlockUser::send(
+        &site,
+        &person.into(),
+        &local_user_view.person.into(),
+        remove_data,
+        expires,
+        context,
+      )
+      .await?;
+    } else {
+      UndoBlockUser::send(
+        &site,
+        &person.into(),
+        &local_user_view.person.into(),
+        context,
+      )
+      .await?;
+    }
 
     let res = BanPersonResponse {
       person_view,

@@ -122,9 +122,9 @@ impl Community {
       .get_result::<Self>(conn)
   }
 
-  pub fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error> {
+  pub fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<DbUrl>, Error> {
     use crate::schema::community::dsl::*;
-    community.select(actor_id).distinct().load::<String>(conn)
+    community.select(actor_id).distinct().load::<DbUrl>(conn)
   }
 
   pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {

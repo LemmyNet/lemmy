@@ -10,14 +10,11 @@ use lemmy_api_common::{
   is_mod_or_admin,
 };
 use lemmy_apub::{
+  activities::block::SiteOrCommunity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
-    community::{
-      add_mod::AddMod,
-      block_user::BlockUserFromCommunity,
-      remove_mod::RemoveMod,
-      undo_block_user::UndoBlockUserFromCommunity,
-    },
+    block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+    community::{add_mod::AddMod, remove_mod::RemoveMod},
     following::{follow::FollowCommunity as FollowCommunityApub, undo_follow::UndoFollowCommunity},
   },
 };
@@ -213,6 +210,7 @@ impl Perform for BanFromCommunity {
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;
+    let remove_data = data.remove_data.unwrap_or(false);
     let expires = data.expires.map(naive_from_unix);
 
     // Verify that only mods or admins can ban
@@ -254,10 +252,11 @@ impl Perform for BanFromCommunity {
       .await?
       .ok();
 
-      BlockUserFromCommunity::send(
-        &community,
+      BlockUser::send(
+        &SiteOrCommunity::Community(community),
         &banned_person,
         &local_user_view.person.clone().into(),
+        remove_data,
         expires,
         context,
       )
@@ -268,8 +267,8 @@ impl Perform for BanFromCommunity {
         .await?
         .map_err(LemmyError::from)
         .map_err(|e| e.with_message("community_user_already_banned"))?;
-      UndoBlockUserFromCommunity::send(
-        &community,
+      UndoBlockUser::send(
+        &SiteOrCommunity::Community(community),
         &banned_person,
         &local_user_view.person.clone().into(),
         context,
@@ -278,7 +277,7 @@ impl Perform for BanFromCommunity {
     }
 
     // Remove/Restore their data if that's desired
-    if data.remove_data.unwrap_or(false) {
+    if remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
         Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)

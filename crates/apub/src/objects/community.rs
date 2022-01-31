@@ -3,7 +3,7 @@ use crate::{
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   generate_moderators_url,
   generate_outbox_url,
-  objects::instance::{instance_actor_id_from_url, ApubSite},
+  objects::instance::fetch_instance_actor_for_object,
   protocol::{
     objects::{group::Group, tombstone::Tombstone, Endpoints},
     ImageObject,
@@ -26,7 +26,7 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
-use tracing::{debug, info};
+use tracing::debug;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -153,14 +153,7 @@ impl ApubObject for ApubCommunity {
         .ok();
     }
 
-    // try to fetch the instance actor (to make things like instance rules available)
-    let instance_id = instance_actor_id_from_url(community.actor_id.clone().into());
-    let site = ObjectId::<ApubSite>::new(instance_id.clone())
-      .dereference(context, context.client(), request_counter)
-      .await;
-    if let Err(e) = site {
-      info!("Failed to dereference site for {}: {}", instance_id, e);
-    }
+    fetch_instance_actor_for_object(community.actor_id(), context, request_counter).await;
 
     Ok(community)
   }

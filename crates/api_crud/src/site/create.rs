@@ -7,7 +7,7 @@ use lemmy_api_common::{
   site::*,
   site_description_length_check,
 };
-use lemmy_apub::generate_inbox_url;
+use lemmy_apub::generate_site_inbox_url;
 use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
@@ -75,7 +75,7 @@ impl PerformCrud for CreateSite {
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(generate_inbox_url(&actor_id)?),
+      inbox_url: Some(generate_site_inbox_url(&actor_id)?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       ..SiteForm::default()

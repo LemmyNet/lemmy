@@ -1,22 +1,21 @@
 pub mod add_mod;
 pub mod announce;
-pub mod block_user;
 pub mod remove_mod;
 pub mod report;
-pub mod undo_block_user;
 pub mod update;
 
 #[cfg(test)]
 mod tests {
   use crate::protocol::{
-    activities::community::{
-      add_mod::AddMod,
-      announce::AnnounceActivity,
-      block_user::BlockUserFromCommunity,
-      remove_mod::RemoveMod,
-      report::Report,
-      undo_block_user::UndoBlockUserFromCommunity,
-      update::UpdateCommunity,
+    activities::{
+      block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+      community::{
+        add_mod::AddMod,
+        announce::AnnounceActivity,
+        remove_mod::RemoveMod,
+        report::Report,
+        update::UpdateCommunity,
+      },
     },
     tests::test_parse_lemmy_item,
   };
@@ -32,11 +31,9 @@ mod tests {
     test_parse_lemmy_item::<RemoveMod>("assets/lemmy/activities/community/remove_mod.json")
       .unwrap();
 
-    test_parse_lemmy_item::<BlockUserFromCommunity>(
-      "assets/lemmy/activities/community/block_user.json",
-    )
-    .unwrap();
-    test_parse_lemmy_item::<UndoBlockUserFromCommunity>(
+    test_parse_lemmy_item::<BlockUser>("assets/lemmy/activities/community/block_user.json")
+      .unwrap();
+    test_parse_lemmy_item::<UndoBlockUser>(
       "assets/lemmy/activities/community/undo_block_user.json",
     )
     .unwrap();

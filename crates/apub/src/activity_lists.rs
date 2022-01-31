@@ -3,13 +3,12 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{
     activities::{
+      block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
       community::{
         add_mod::AddMod,
         announce::AnnounceActivity,
-        block_user::BlockUserFromCommunity,
         remove_mod::RemoveMod,
         report::Report,
-        undo_block_user::UndoBlockUserFromCommunity,
         update::UpdateCommunity,
       },
       create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
@@ -78,12 +77,20 @@ pub enum AnnouncableActivities {
   Delete(Delete),
   UndoDelete(UndoDelete),
   UpdateCommunity(UpdateCommunity),
-  BlockUserFromCommunity(BlockUserFromCommunity),
-  UndoBlockUserFromCommunity(UndoBlockUserFromCommunity),
+  BlockUser(BlockUser),
+  UndoBlockUser(UndoBlockUser),
   AddMod(AddMod),
   RemoveMod(RemoveMod),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[serde(untagged)]
+#[activity_handler(LemmyContext)]
+pub enum SiteInboxActivities {
+  BlockUser(BlockUser),
+  UndoBlockUser(UndoBlockUser),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -103,8 +110,8 @@ impl GetCommunity for AnnouncableActivities {
       Delete(a) => a.get_community(context, request_counter).await?,
       UndoDelete(a) => a.get_community(context, request_counter).await?,
       UpdateCommunity(a) => a.get_community(context, request_counter).await?,
-      BlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
-      UndoBlockUserFromCommunity(a) => a.get_community(context, request_counter).await?,
+      BlockUser(a) => a.get_community(context, request_counter).await?,
+      UndoBlockUser(a) => a.get_community(context, request_counter).await?,
       AddMod(a) => a.get_community(context, request_counter).await?,
       RemoveMod(a) => a.get_community(context, request_counter).await?,
       Page(_) => unimplemented!(),

@@ -1,7 +1,9 @@
 use crate::{
   activities::{
+    block::{generate_cc, generate_instance_inboxes, SiteOrCommunity},
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
+    send_lemmy_activity,
     verify_activity,
     verify_is_public,
     verify_mod_action,
@@ -9,9 +11,10 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::block_user::BlockUserFromCommunity,
+  protocol::activities::block::block_user::BlockUser,
 };
 use activitystreams_kinds::{activity::BlockType, public};
+use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
@@ -31,21 +34,23 @@ use lemmy_db_schema::{
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 
-impl BlockUserFromCommunity {
-  pub(in crate::activities::community) fn new(
-    community: &ApubCommunity,
-    target: &ApubPerson,
-    actor: &ApubPerson,
+impl BlockUser {
+  pub(in crate::activities::block) async fn new(
+    target: &SiteOrCommunity,
+    user: &ApubPerson,
+    mod_: &ApubPerson,
+    remove_data: Option<bool>,
     expires: Option<NaiveDateTime>,
     context: &LemmyContext,
-  ) -> Result<BlockUserFromCommunity, LemmyError> {
-    Ok(BlockUserFromCommunity {
-      actor: ObjectId::new(actor.actor_id()),
+  ) -> Result<BlockUser, LemmyError> {
+    Ok(BlockUser {
+      actor: ObjectId::new(mod_.actor_id()),
       to: vec![public()],
-      object: ObjectId::new(target.actor_id()),
-      cc: vec![community.actor_id()],
-      target: ObjectId::new(community.actor_id()),
+      object: ObjectId::new(user.actor_id()),
+      cc: generate_cc(target, context.pool()).await?,
+      target: target.id(),
       kind: BlockType::Block,
+      remove_data,
       id: generate_activity_id(
         BlockType::Block,
         &context.settings().get_protocol_and_hostname(),
@@ -57,23 +62,32 @@ impl BlockUserFromCommunity {
 
   #[tracing::instrument(skip_all)]
   pub async fn send(
-    community: &ApubCommunity,
-    target: &ApubPerson,
-    actor: &ApubPerson,
+    target: &SiteOrCommunity,
+    user: &ApubPerson,
+    mod_: &ApubPerson,
+    remove_data: bool,
     expires: Option<NaiveDateTime>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUserFromCommunity::new(community, target, actor, expires, context)?;
+    let block = BlockUser::new(target, user, mod_, Some(remove_data), expires, context).await?;
     let block_id = block.id.clone();
 
-    let activity = AnnouncableActivities::BlockUserFromCommunity(block);
-    let inboxes = vec![target.shared_inbox_or_inbox_url()];
-    send_activity_in_community(activity, &block_id, actor, community, inboxes, context).await
+    match target {
+      SiteOrCommunity::Site(_) => {
+        let inboxes = generate_instance_inboxes(user, context.pool()).await?;
+        send_lemmy_activity(context, &block, &block_id, mod_, inboxes, false).await
+      }
+      SiteOrCommunity::Community(c) => {
+        let activity = AnnouncableActivities::BlockUser(block);
+        let inboxes = vec![user.shared_inbox_or_inbox_url()];
+        send_activity_in_community(activity, &block_id, mod_, c, inboxes, context).await
+      }
+    }
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for BlockUserFromCommunity {
+impl ActivityHandler for BlockUser {
   type DataType = LemmyContext;
 
   #[tracing::instrument(skip_all)]
@@ -130,16 +144,20 @@ impl ActivityHandler for BlockUserFromCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl GetCommunity for BlockUserFromCommunity {
+impl GetCommunity for BlockUser {
   #[tracing::instrument(skip_all)]
   async fn get_community(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    self
+    let target = self
       .target
       .dereference(context, context.client(), request_counter)
-      .await
+      .await?;
+    match target {
+      SiteOrCommunity::Community(c) => Ok(c),
+      SiteOrCommunity::Site(_) => Err(anyhow!("Calling get_community() on site activity").into()),
+    }
   }
 }

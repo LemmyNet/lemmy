@@ -10,6 +10,7 @@ use std::{
   fmt,
   fmt::{Display, Formatter},
   io::Write,
+  ops::Deref,
 };
 use url::Url;
 
@@ -123,5 +124,13 @@ where
 {
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(id.into())
+  }
+}
+
+impl Deref for DbUrl {
+  type Target = Url;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }

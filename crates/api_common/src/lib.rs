@@ -35,7 +35,6 @@ use lemmy_utils::{
   LemmyError,
   Sensitive,
 };
-use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where
@@ -311,7 +310,7 @@ pub async fn build_federated_instances(
 
     let mut linked = distinct_communities
       .iter()
-      .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
+      .map(|actor_id| Ok(actor_id.host_str().unwrap_or("").to_string()))
       .collect::<Result<Vec<String>, LemmyError>>()?;
 
     if let Some(allowed) = allowed.as_ref() {
