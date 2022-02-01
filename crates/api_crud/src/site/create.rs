@@ -63,6 +63,7 @@ impl PerformCrud for CreateSite {
     }
 
     let actor_id: DbUrl = Url::parse(&Settings::get().get_protocol_and_hostname())?.into();
+    let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
     let keypair = generate_actor_keypair()?;
     let site_form = SiteForm {
       name: data.name.to_owned(),
@@ -74,8 +75,9 @@ impl PerformCrud for CreateSite {
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
+      actor_id: Some(actor_id),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(generate_site_inbox_url(&actor_id)?),
+      inbox_url,
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       ..SiteForm::default()

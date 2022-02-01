@@ -8,6 +8,7 @@ use lemmy_api_common::{
   community::*,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
+  remove_user_data_in_community,
 };
 use lemmy_apub::{
   activities::block::SiteOrCommunity,
@@ -20,7 +21,6 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
     community::{
       Community,
       CommunityFollower,
@@ -40,11 +40,9 @@ use lemmy_db_schema::{
       ModTransferCommunityForm,
     },
     person::Person,
-    post::Post,
   },
   traits::{Bannable, Blockable, Crud, Followable, Joinable},
 };
-use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
@@ -280,30 +278,7 @@ impl Perform for BanFromCommunity {
 
     // Remove/Restore their data if that's desired
     if remove_data {
-      // Posts
-      blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)
-      })
-      .await??;
-
-      // Comments
-      // TODO Diesel doesn't allow updates with joins, so this has to be a loop
-      let comments = blocking(context.pool(), move |conn| {
-        CommentQueryBuilder::create(conn)
-          .creator_id(banned_person_id)
-          .community_id(community_id)
-          .limit(std::i64::MAX)
-          .list()
-      })
-      .await??;
-
-      for comment_view in &comments {
-        let comment_id = comment_view.comment.id;
-        blocking(context.pool(), move |conn: &'_ _| {
-          Comment::update_removed(conn, comment_id, true)
-        })
-        .await??;
-      }
+      remove_user_data_in_community(community_id, banned_person_id, context.pool()).await?;
     }
 
     // Mod tables

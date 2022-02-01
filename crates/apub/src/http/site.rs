@@ -39,7 +39,6 @@ pub(crate) async fn get_apub_site_outbox() -> Result<HttpResponse, LemmyError> {
 pub async fn get_apub_site_inbox(
   request: HttpRequest,
   payload: Payload,
-  _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;

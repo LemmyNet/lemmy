@@ -298,28 +298,43 @@ test('A and G subscribe to B (center) A posts, it gets announced to G', async ()
 
 test('Enforce site ban for federated user', async () => {
   let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
-  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
+  let alphaPerson = (await resolvePerson(alpha, alphaShortname)).person;
   expect(alphaPerson).toBeDefined();
 
-  // ban alpha from beta site
-  let banAlpha = await banPersonFromSite(beta, alphaPerson.person.id, true);
+  let postRes1 = await createPost(alpha, betaCommunity.community.id);
+  let searchBeta1 = await searchPostLocal(beta, postRes1.post_view.post);
+  expect(searchBeta1.posts[0]).toBeDefined();
+
+  // ban alpha from site
+  let banAlpha = await banPersonFromSite(alpha, alphaPerson.person.id, true, true);
   expect(banAlpha.banned).toBe(true);
 
-  // Alpha makes post on beta
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes.post_view.post).toBeDefined();
-  expect(postRes.post_view.community.local).toBe(false);
-  expect(postRes.post_view.creator.local).toBe(true);
-  expect(postRes.post_view.counts.score).toBe(1);
+  // alpha ban should be federated to beta
+  let alphaUserOnBeta1 = await resolvePerson(beta, alphaPerson.person.actor_id);
+  console.debug(alphaUserOnBeta1);
+  expect(alphaUserOnBeta1.person.person.banned).toBe(true);
+
+  // post should be removed
+  let searchBeta2 = await searchPostLocal(beta, postRes1.post_view.post);
+  expect(searchBeta2.posts[0]).toBeUndefined();
+
+  // Alpha makes new post on beta
+  let postRes2 = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes2.post_view.post).toBeDefined();
+  expect(postRes2.post_view.community.local).toBe(false);
+  expect(postRes2.post_view.creator.local).toBe(true);
+  expect(postRes2.post_view.counts.score).toBe(1);
 
   // Make sure that post doesn't make it to beta
-  let searchBeta = await searchPostLocal(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
-  expect(betaPost).toBeUndefined();
+  let searchBeta = await searchPostLocal(beta, postRes2.post_view.post);
+  expect(searchBeta.posts[0]).toBeUndefined();
 
   // Unban alpha
-  let unBanAlpha = await banPersonFromSite(beta, alphaPerson.person.id, false);
+  let unBanAlpha = await banPersonFromSite(alpha, alphaPerson.person.id, false, false);
   expect(unBanAlpha.banned).toBe(false);
+
+  let alphaUserOnBeta2 = await resolvePerson(beta, alphaPerson.person.actor_id)
+  expect(alphaUserOnBeta2.person.person.banned).toBe(false);
 });
 
 test('Enforce community ban for federated user', async () => {
@@ -327,33 +342,41 @@ test('Enforce community ban for federated user', async () => {
   let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
   expect(alphaPerson).toBeDefined();
 
-  // ban alpha from beta site
-  await banPersonFromCommunity(beta, alphaPerson.person.id, 2, false);
-  let banAlpha = await banPersonFromCommunity(beta, alphaPerson.person.id, 2, true);
+  // make a post in beta, it goes through
+  let postRes1 = await createPost(alpha, betaCommunity.community.id);
+  let searchBeta1 = await searchPostLocal(beta, postRes1.post_view.post);
+  expect(searchBeta1.posts[0]).toBeDefined();
+
+  // ban alpha from beta community
+  let banAlpha = await banPersonFromCommunity(beta, alphaPerson.person.id, 2, true, true);
   expect(banAlpha.banned).toBe(true);
 
+  // ensure that the post by alpha got removed
+  let searchAlpha1 = await searchPostLocal(alpha, postRes1.post_view.post);
+  expect(searchAlpha1.posts[0]).toBeUndefined();
+
   // Alpha tries to make post on beta, but it fails because of ban
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes.post_view).toBeUndefined();
+  let postRes2 = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes2.post_view).toBeUndefined();
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(
     beta,
     alphaPerson.person.id,
     2,
+    false,
     false
   );
   expect(unBanAlpha.banned).toBe(false);
-  let postRes2 = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes2.post_view.post).toBeDefined();
-  expect(postRes2.post_view.community.local).toBe(false);
-  expect(postRes2.post_view.creator.local).toBe(true);
-  expect(postRes2.post_view.counts.score).toBe(1);
+  let postRes3 = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes3.post_view.post).toBeDefined();
+  expect(postRes3.post_view.community.local).toBe(false);
+  expect(postRes3.post_view.creator.local).toBe(true);
+  expect(postRes3.post_view.counts.score).toBe(1);
 
   // Make sure that post makes it to beta community
-  let searchBeta = await searchPostLocal(beta, postRes2.post_view.post);
-  let betaPost = searchBeta.posts[0];
-  expect(betaPost).toBeDefined();
+  let searchBeta2 = await searchPostLocal(beta, postRes3.post_view.post);
+  expect(searchBeta2.posts[0]).toBeDefined();
 });
 
 test('Report a post', async () => {

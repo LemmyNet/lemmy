@@ -16,7 +16,7 @@ use crate::{
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
-use lemmy_api_common::{blocking, remove_user_data};
+use lemmy_api_common::{blocking, remove_user_data, remove_user_data_in_community};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -148,11 +148,11 @@ impl ActivityHandler for BlockUser {
       .object
       .dereference(context, context.client(), request_counter)
       .await?;
-    match self
+    let target = self
       .target
       .dereference(context, context.client(), request_counter)
-      .await?
-    {
+      .await?;
+    match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = blocking(context.pool(), move |conn| {
           Person::ban_person(conn, blocked_person.id, true, expires)
@@ -196,7 +196,7 @@ impl ActivityHandler for BlockUser {
         .ok();
 
         if self.remove_data.unwrap_or(false) {
-          todo!()
+          remove_user_data_in_community(community.id, blocked_person.id, context.pool()).await?;
         }
 
         // write to mod log

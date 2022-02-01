@@ -29,7 +29,6 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
     cfg
       .route("/", web::get().to(get_apub_site_http))
       .route("/site_outbox", web::get().to(get_apub_site_outbox))
-      .route("/site_inbox", web::get().to(get_apub_site_inbox))
       .route(
         "/c/{community_name}",
         web::get().to(get_apub_community_http),
@@ -61,7 +60,8 @@ pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
         .guard(InboxRequestGuard)
         .route("/c/{community_name}/inbox", web::post().to(community_inbox))
         .route("/u/{user_name}/inbox", web::post().to(person_inbox))
-        .route("/inbox", web::post().to(shared_inbox)),
+        .route("/inbox", web::post().to(shared_inbox))
+        .route("/site_inbox", web::post().to(get_apub_site_inbox)),
     );
   }
 }

@@ -23,7 +23,10 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Readable},
   DbPool,
 };
-use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
+use lemmy_db_views::{
+  comment_view::CommentQueryBuilder,
+  local_user_view::{LocalUserSettingsView, LocalUserView},
+};
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_person_ban_view::CommunityPersonBanView,
@@ -590,6 +593,39 @@ pub async fn remove_user_data(banned_person_id: PersonId, pool: &DbPool) -> Resu
     Comment::update_removed_for_creator(conn, banned_person_id, true)
   })
   .await??;
+
+  Ok(())
+}
+
+pub async fn remove_user_data_in_community(
+  community_id: CommunityId,
+  banned_person_id: PersonId,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  // Posts
+  blocking(pool, move |conn| {
+    Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)
+  })
+  .await??;
+
+  // Comments
+  // TODO Diesel doesn't allow updates with joins, so this has to be a loop
+  let comments = blocking(pool, move |conn| {
+    CommentQueryBuilder::create(conn)
+      .creator_id(banned_person_id)
+      .community_id(community_id)
+      .limit(std::i64::MAX)
+      .list()
+  })
+  .await??;
+
+  for comment_view in &comments {
+    let comment_id = comment_view.comment.id;
+    blocking(pool, move |conn| {
+      Comment::update_removed(conn, comment_id, true)
+    })
+    .await??;
+  }
 
   Ok(())
 }
