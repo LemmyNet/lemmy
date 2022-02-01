@@ -73,6 +73,7 @@ async fn main() -> Result<(), LemmyError> {
   })
   .await??;
 
+  // Schedules various cleanup tasks for the DB
   let pool2 = pool.clone();
   thread::spawn(move || {
     scheduled_tasks::setup(pool2).expect("Couldn't set up scheduled_tasks");
