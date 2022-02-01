@@ -10,11 +10,8 @@ mod tests {
 
   #[actix_rt::test]
   async fn test_parse_lemmy_block() {
-    test_parse_lemmy_item::<BlockUser>("assets/lemmy/activities/community/block_user.json")
+    test_parse_lemmy_item::<BlockUser>("assets/lemmy/activities/block/block_user.json").unwrap();
+    test_parse_lemmy_item::<UndoBlockUser>("assets/lemmy/activities/block/undo_block_user.json")
       .unwrap();
-    test_parse_lemmy_item::<UndoBlockUser>(
-      "assets/lemmy/activities/community/undo_block_user.json",
-    )
-    .unwrap();
   }
 }

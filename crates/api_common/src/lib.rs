@@ -10,6 +10,7 @@ use itertools::Itertools;
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
+    comment::Comment,
     community::Community,
     email_verification::{EmailVerification, EmailVerificationForm},
     password_reset_request::PasswordResetRequest,
@@ -24,6 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
 use lemmy_db_views_actor::{
+  community_moderator_view::CommunityModeratorView,
   community_person_ban_view::CommunityPersonBanView,
   community_view::CommunityView,
 };
@@ -553,4 +555,41 @@ where
     let identifier = identifier.to_string();
     Ok(blocking(pool, move |conn| Actor::read_from_name(conn, &identifier)).await??)
   }
+}
+
+pub async fn remove_user_data(banned_person_id: PersonId, pool: &DbPool) -> Result<(), LemmyError> {
+  // Posts
+  blocking(pool, move |conn: &'_ _| {
+    Post::update_removed_for_creator(conn, banned_person_id, None, true)
+  })
+  .await??;
+
+  // Communities
+  // Remove all communities where they're the top mod
+  // for now, remove the communities manually
+  let first_mod_communities = blocking(pool, move |conn: &'_ _| {
+    CommunityModeratorView::get_community_first_mods(conn)
+  })
+  .await??;
+
+  // Filter to only this banned users top communities
+  let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
+    .into_iter()
+    .filter(|fmc| fmc.moderator.id == banned_person_id)
+    .collect();
+
+  for first_mod_community in banned_user_first_communities {
+    blocking(pool, move |conn: &'_ _| {
+      Community::update_removed(conn, first_mod_community.community.id, true)
+    })
+    .await??;
+  }
+
+  // Comments
+  blocking(pool, move |conn: &'_ _| {
+    Comment::update_removed_for_creator(conn, banned_person_id, true)
+  })
+  .await??;
+
+  Ok(())
 }

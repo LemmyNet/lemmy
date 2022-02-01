@@ -209,7 +209,6 @@ mod tests {
   use super::*;
   use crate::objects::{
     community::tests::parse_lemmy_community,
-    instance::tests::parse_lemmy_instance,
     person::tests::parse_lemmy_person,
     post::ApubPost,
     tests::{file_to_json_object, init_context},
@@ -224,9 +223,8 @@ mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
-    let site = parse_lemmy_instance(&context).await;
+    let (person, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
-    let person = parse_lemmy_person(&context).await;
 
     let json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();

@@ -16,20 +16,25 @@ use crate::{
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::{blocking, remove_user_data};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  source::community::{
-    CommunityFollower,
-    CommunityFollowerForm,
-    CommunityPersonBan,
-    CommunityPersonBanForm,
+  source::{
+    community::{
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+    },
+    moderator::{ModBan, ModBanForm},
+    person::Person,
   },
-  traits::{Bannable, Followable},
+  traits::{Bannable, Crud, Followable},
 };
 use lemmy_utils::{utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -40,6 +45,7 @@ impl BlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     remove_data: Option<bool>,
+    reason: Option<String>,
     expires: Option<NaiveDateTime>,
     context: &LemmyContext,
   ) -> Result<BlockUser, LemmyError> {
@@ -51,6 +57,7 @@ impl BlockUser {
       target: target.id(),
       kind: BlockType::Block,
       remove_data,
+      summary: reason,
       id: generate_activity_id(
         BlockType::Block,
         &context.settings().get_protocol_and_hostname(),
@@ -66,10 +73,20 @@ impl BlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     remove_data: bool,
+    reason: Option<String>,
     expires: Option<NaiveDateTime>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUser::new(target, user, mod_, Some(remove_data), expires, context).await?;
+    let block = BlockUser::new(
+      target,
+      user,
+      mod_,
+      Some(remove_data),
+      reason,
+      expires,
+      context,
+    )
+    .await?;
     let block_id = block.id.clone();
 
     match target {
@@ -98,9 +115,21 @@ impl ActivityHandler for BlockUser {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
-    let community = self.get_community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    match self
+      .target
+      .dereference(context, context.client(), request_counter)
+      .await?
+    {
+      SiteOrCommunity::Site(site) => {
+        // site ban can only target a user who is on the same instance as the actor (admin)
+        verify_domains_match(&site.actor_id(), self.actor.inner())?;
+        verify_domains_match(&site.actor_id(), self.object.inner())?;
+      }
+      SiteOrCommunity::Community(community) => {
+        verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+        verify_mod_action(&self.actor, &community, context, request_counter).await?;
+      }
+    }
     Ok(())
   }
 
@@ -110,34 +139,77 @@ impl ActivityHandler for BlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
-    let blocked_user = self
+    let expires = self.expires.map(|u| u.naive_local());
+    let mod_person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let blocked_person = self
       .object
       .dereference(context, context.client(), request_counter)
       .await?;
+    match self
+      .target
+      .dereference(context, context.client(), request_counter)
+      .await?
+    {
+      SiteOrCommunity::Site(_site) => {
+        let blocked_person = blocking(context.pool(), move |conn| {
+          Person::ban_person(conn, blocked_person.id, true, expires)
+        })
+        .await??;
+        if self.remove_data.unwrap_or(false) {
+          remove_user_data(blocked_person.id, context.pool()).await?;
+        }
 
-    let community_user_ban_form = CommunityPersonBanForm {
-      community_id: community.id,
-      person_id: blocked_user.id,
-      expires: Some(self.expires.map(|u| u.naive_local())),
-    };
+        // write mod log
+        let form = ModBanForm {
+          mod_person_id: mod_person.id,
+          other_person_id: blocked_person.id,
+          reason: self.summary,
+          banned: Some(true),
+          expires,
+        };
+        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+      }
+      SiteOrCommunity::Community(community) => {
+        let community_user_ban_form = CommunityPersonBanForm {
+          community_id: community.id,
+          person_id: blocked_person.id,
+          expires: Some(expires),
+        };
+        blocking(context.pool(), move |conn| {
+          CommunityPersonBan::ban(conn, &community_user_ban_form)
+        })
+        .await??;
 
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityPersonBan::ban(conn, &community_user_ban_form)
-    })
-    .await??;
+        // Also unsubscribe them from the community, if they are subscribed
+        let community_follower_form = CommunityFollowerForm {
+          community_id: community.id,
+          person_id: blocked_person.id,
+          pending: false,
+        };
+        blocking(context.pool(), move |conn: &'_ _| {
+          CommunityFollower::unfollow(conn, &community_follower_form)
+        })
+        .await?
+        .ok();
 
-    // Also unsubscribe them from the community, if they are subscribed
-    let community_follower_form = CommunityFollowerForm {
-      community_id: community.id,
-      person_id: blocked_user.id,
-      pending: false,
-    };
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityFollower::unfollow(conn, &community_follower_form)
-    })
-    .await?
-    .ok();
+        if self.remove_data.unwrap_or(false) {
+          todo!()
+        }
+
+        // write to mod log
+        let form = ModBanForm {
+          mod_person_id: mod_person.id,
+          other_person_id: blocked_person.id,
+          reason: self.summary,
+          banned: Some(true),
+          expires,
+        };
+        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+      }
+    }
 
     Ok(())
   }

@@ -6,8 +6,6 @@ use crate::{
     send_lemmy_activity,
     verify_activity,
     verify_is_public,
-    verify_mod_action,
-    verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -19,10 +17,15 @@ use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  source::community::{CommunityPersonBan, CommunityPersonBanForm},
-  traits::Bannable,
+  source::{
+    community::{CommunityPersonBan, CommunityPersonBanForm},
+    moderator::{ModBan, ModBanForm},
+    person::Person,
+  },
+  traits::{Bannable, Crud},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -33,9 +36,10 @@ impl UndoBlockUser {
     target: &SiteOrCommunity,
     user: &ApubPerson,
     mod_: &ApubPerson,
+    reason: Option<String>,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let block = BlockUser::new(target, user, mod_, None, None, context).await?;
+    let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
 
     let id = generate_activity_id(
       UndoType::Undo,
@@ -77,9 +81,7 @@ impl ActivityHandler for UndoBlockUser {
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
-    let community = self.get_community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
@@ -90,23 +92,60 @@ impl ActivityHandler for UndoBlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
-    let blocked_user = self
+    let expires = self.object.expires.map(|u| u.naive_local());
+    let mod_person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let blocked_person = self
       .object
       .object
       .dereference(context, context.client(), request_counter)
       .await?;
+    match self
+      .object
+      .target
+      .dereference(context, context.client(), request_counter)
+      .await?
+    {
+      SiteOrCommunity::Site(_site) => {
+        let blocked_person = blocking(context.pool(), move |conn| {
+          Person::ban_person(conn, blocked_person.id, false, expires)
+        })
+        .await??;
 
-    let community_user_ban_form = CommunityPersonBanForm {
-      community_id: community.id,
-      person_id: blocked_user.id,
-      expires: None,
-    };
+        // write mod log
+        let form = ModBanForm {
+          mod_person_id: mod_person.id,
+          other_person_id: blocked_person.id,
+          reason: self.object.summary,
+          banned: Some(false),
+          expires,
+        };
+        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+      }
+      SiteOrCommunity::Community(community) => {
+        let community_user_ban_form = CommunityPersonBanForm {
+          community_id: community.id,
+          person_id: blocked_person.id,
+          expires: None,
+        };
+        blocking(context.pool(), move |conn: &'_ _| {
+          CommunityPersonBan::unban(conn, &community_user_ban_form)
+        })
+        .await??;
 
-    blocking(context.pool(), move |conn: &'_ _| {
-      CommunityPersonBan::unban(conn, &community_user_ban_form)
-    })
-    .await??;
+        // write to mod log
+        let form = ModBanForm {
+          mod_person_id: mod_person.id,
+          other_person_id: blocked_person.id,
+          reason: self.object.summary,
+          banned: Some(false),
+          expires,
+        };
+        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+      }
+    }
 
     Ok(())
   }

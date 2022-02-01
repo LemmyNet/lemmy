@@ -210,7 +210,7 @@ pub(crate) mod tests {
   use super::*;
   use crate::objects::{
     community::{tests::parse_lemmy_community, ApubCommunity},
-    instance::{tests::parse_lemmy_instance, ApubSite},
+    instance::ApubSite,
     person::{tests::parse_lemmy_person, ApubPerson},
     post::ApubPost,
     tests::{file_to_json_object, init_context},
@@ -224,8 +224,7 @@ pub(crate) mod tests {
     url: &Url,
     context: &LemmyContext,
   ) -> (ApubPerson, ApubCommunity, ApubPost, ApubSite) {
-    let person = parse_lemmy_person(context).await;
-    let site = parse_lemmy_instance(context).await;
+    let (person, site) = parse_lemmy_person(context).await;
     let community = parse_lemmy_community(context).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     ApubPost::verify(&post_json, url, context, &mut 0)

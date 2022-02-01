@@ -20,6 +20,8 @@ pub struct BlockUser {
   /// Quick and dirty solution.
   /// TODO: send a separate Delete activity instead
   pub(crate) remove_data: Option<bool>,
+  /// block reason, written to mod log
+  pub(crate) summary: Option<String>,
   pub(crate) id: Url,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,

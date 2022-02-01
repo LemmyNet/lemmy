@@ -257,6 +257,7 @@ impl Perform for BanFromCommunity {
         &banned_person,
         &local_user_view.person.clone().into(),
         remove_data,
+        data.reason.clone(),
         expires,
         context,
       )
@@ -271,6 +272,7 @@ impl Perform for BanFromCommunity {
         &SiteOrCommunity::Community(community),
         &banned_person,
         &local_user_view.person.clone().into(),
+        data.reason.clone(),
         context,
       )
       .await?;

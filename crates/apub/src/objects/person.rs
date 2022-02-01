@@ -201,12 +201,19 @@ impl ActorType for ApubPerson {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::objects::tests::{file_to_json_object, init_context};
+  use crate::{
+    objects::{
+      instance::{tests::parse_lemmy_instance, ApubSite},
+      tests::{file_to_json_object, init_context},
+    },
+    protocol::objects::instance::Instance,
+  };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
-  use lemmy_db_schema::traits::Crud;
+  use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
+  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> (ApubPerson, ApubSite) {
+    let site = parse_lemmy_instance(context).await;
     let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
@@ -217,7 +224,7 @@ pub(crate) mod tests {
       .await
       .unwrap();
     assert_eq!(request_counter, 0);
-    person
+    (person, site)
   }
 
   #[actix_rt::test]
@@ -226,13 +233,14 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
-    let person = parse_lemmy_person(&context).await;
+    let (person, site) = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 
   #[actix_rt::test]
@@ -241,6 +249,16 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
+
+    // create and parse a fake pleroma instance actor, to avoid network request during test
+    let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
+    let id = Url::parse("https://queer.hacktivis.me/").unwrap();
+    json.id = ObjectId::new(id);
+    let mut request_counter = 0;
+    let site = ApubSite::from_apub(json, &context, &mut request_counter)
+      .await
+      .unwrap();
+
     let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
@@ -258,5 +276,6 @@ pub(crate) mod tests {
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 }

@@ -10,6 +10,7 @@ use lemmy_api_common::{
   is_admin,
   password_length_check,
   person::*,
+  remove_user_data,
   send_email_verification_success,
   send_password_reset_email,
   send_verification_email,
@@ -25,7 +26,6 @@ use lemmy_db_schema::{
   naive_now,
   source::{
     comment::Comment,
-    community::Community,
     email_verification::EmailVerification,
     local_user::{LocalUser, LocalUserForm},
     moderator::*,
@@ -33,7 +33,6 @@ use lemmy_db_schema::{
     person::*,
     person_block::{PersonBlock, PersonBlockForm},
     person_mention::*,
-    post::Post,
     private_message::PrivateMessage,
     site::*,
   },
@@ -48,7 +47,6 @@ use lemmy_db_views::{
   private_message_view::PrivateMessageView,
 };
 use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
   person_mention_view::{PersonMentionQueryBuilder, PersonMentionView},
   person_view::PersonViewSafe,
 };
@@ -455,38 +453,7 @@ impl Perform for BanPerson {
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
     if remove_data {
-      // Posts
-      blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_person_id, None, true)
-      })
-      .await??;
-
-      // Communities
-      // Remove all communities where they're the top mod
-      // for now, remove the communities manually
-      let first_mod_communities = blocking(context.pool(), move |conn: &'_ _| {
-        CommunityModeratorView::get_community_first_mods(conn)
-      })
-      .await??;
-
-      // Filter to only this banned users top communities
-      let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
-        .into_iter()
-        .filter(|fmc| fmc.moderator.id == banned_person_id)
-        .collect();
-
-      for first_mod_community in banned_user_first_communities {
-        blocking(context.pool(), move |conn: &'_ _| {
-          Community::update_removed(conn, first_mod_community.community.id, true)
-        })
-        .await??;
-      }
-
-      // Comments
-      blocking(context.pool(), move |conn: &'_ _| {
-        Comment::update_removed_for_creator(conn, banned_person_id, true)
-      })
-      .await??;
+      remove_user_data(person.id, context.pool()).await?;
     }
 
     // Mod tables
@@ -517,6 +484,7 @@ impl Perform for BanPerson {
         &person.into(),
         &local_user_view.person.into(),
         remove_data,
+        data.reason.clone(),
         expires,
         context,
       )
@@ -526,6 +494,7 @@ impl Perform for BanPerson {
         &site,
         &person.into(),
         &local_user_view.person.into(),
+        data.reason.clone(),
         context,
       )
       .await?;
