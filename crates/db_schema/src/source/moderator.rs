@@ -154,7 +154,7 @@ pub struct ModBan {
 #[table_name = "mod_hide_community"]
 pub struct ModHideCommunityForm {
   pub community_id: CommunityId,
-  pub person_id: PersonId,
+  pub mod_person_id: PersonId,
   pub hidden: bool,
   pub reason: Option<String>,
 }
@@ -163,7 +163,7 @@ pub struct ModHideCommunityForm {
 pub struct ModHideCommunity {
   pub id: i32,
   pub community_id: CommunityId,
-  pub person_id: PersonId,
+  pub mod_person_id: PersonId,
   pub reason: Option<String>,
   pub hidden: bool,
   pub when_: chrono::NaiveDateTime,

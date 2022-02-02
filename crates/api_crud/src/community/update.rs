@@ -129,7 +129,7 @@ impl PerformCrud for HideCommunity {
 
     let mod_hide_community_form = ModHideCommunityForm {
       community_id: data.community_id,
-      person_id: local_user_view.person.id,
+      mod_person_id: local_user_view.person.id,
       reason: data.reason.clone(),
       hidden: data.hidden,
     };

@@ -45,7 +45,7 @@ impl ModHideCommunityView {
     };
 
     if let Some(admin_id) = admin_id {
-      query = query.filter(mod_hide_community::person_id.eq(admin_id));
+      query = query.filter(mod_hide_community::mod_person_id.eq(admin_id));
     };
 
     let (limit, offset) = limit_and_offset(page, limit);
