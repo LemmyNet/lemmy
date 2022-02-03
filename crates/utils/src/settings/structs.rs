@@ -50,6 +50,7 @@ pub struct Settings {
   #[default(25)]
   pub http_fetch_retry_limit: i32,
 
+  /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
   #[doku(example = "http://localhost:4317")]
   pub opentelemetry_url: Option<String>,
