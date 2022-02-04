@@ -288,15 +288,22 @@ mod tests {
       .build()
       .unwrap()
       .into();
-    let sample_url = Url::parse("https://www.redspark.nu/en/peoples-war/district-leader-of-chand-led-cpn-arrested-in-bhojpur/").unwrap();
+    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(
       SiteMetadata {
-        title: Some("District Leader Of Chand Led CPN Arrested In Bhojpur - Redspark".to_string()),
-        description: Some("BHOJPUR: A district leader of the outlawed Netra Bikram Chand alias Biplav-led outfit has been arrested. According to District Police".to_string()),
-        image: Some(Url::parse("https://www.redspark.nu/wp-content/uploads/2020/03/netra-bikram-chand-attends-program-1272019033653-1000x0-845x653-1.jpg").unwrap()),
+        title: Some("FAQ · Wiki · IzzyOnDroid / repo".to_string()),
+        description: Some(
+          "The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()
+        ),
+        image: Some(
+          Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
+            .unwrap()
+        ),
         html: None,
-      }, sample_res);
+      },
+      sample_res
+    );
 
     let youtube_url = Url::parse("https://www.youtube.com/watch?v=IquO_TcMZIQ").unwrap();
     let youtube_res = fetch_site_metadata(&client, &youtube_url).await.unwrap();
