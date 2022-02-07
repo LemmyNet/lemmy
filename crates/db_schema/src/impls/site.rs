@@ -1,4 +1,4 @@
-use crate::{source::site::*, traits::Crud, DbUrl};
+use crate::{naive_now, newtypes::PersonId, source::site::*, traits::Crud, DbUrl};
 use diesel::{dsl::*, result::Error, *};
 use url::Url;
 
@@ -28,6 +28,13 @@ impl Crud for Site {
 }
 
 impl Site {
+  pub fn transfer(conn: &PgConnection, new_creator_id: PersonId) -> Result<Site, Error> {
+    use crate::schema::site::dsl::*;
+    diesel::update(site.find(1))
+      .set((creator_id.eq(new_creator_id), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
   pub fn read_local_site(conn: &PgConnection) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
     site.order_by(id).first::<Self>(conn)

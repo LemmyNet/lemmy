@@ -40,6 +40,7 @@ use lemmy_db_schema::{
       ModTransferCommunityForm,
     },
     person::Person,
+    site::Site,
   },
   traits::{Bannable, Blockable, Crud, Followable, Joinable},
 };

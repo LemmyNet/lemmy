@@ -473,7 +473,7 @@ impl Perform for TransferSite {
 
     is_admin(&local_user_view)?;
 
-    let read_site = blocking(context.pool(), Site::read_simple).await??;
+    let read_site = blocking(context.pool(), Site::read_local_site).await??;
 
     // Make sure user is the creator
     if read_site.creator_id != local_user_view.person.id {
