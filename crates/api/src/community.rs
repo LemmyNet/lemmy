@@ -516,7 +516,6 @@ impl Perform for TransferCommunity {
       community_view,
       moderators,
       online: 0,
-      site: None,
     })
   }
 }

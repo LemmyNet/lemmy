@@ -1,7 +1,4 @@
-use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
-  source::site::Site,
-};
+use lemmy_db_schema::newtypes::{CommunityId, PersonId};
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
@@ -23,12 +20,6 @@ pub struct GetCommunityResponse {
   pub community_view: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
-  /// Metadata of the instance where the community is located. Only fields name, sidebar,
-  /// description, icon, banner, actor_id, last_refreshed_at get federated, everything else uses
-  /// default values. May be null if the community is hosted on an older Lemmy version, or on
-  /// another software.
-  /// TODO: this should probably be SiteView
-  pub site: Option<Site>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

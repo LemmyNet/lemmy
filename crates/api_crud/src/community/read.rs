@@ -7,10 +7,9 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt_opt,
   resolve_actor_identifier,
 };
-use lemmy_apub::objects::instance::instance_actor_id_from_url;
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
-  source::{community::Community, site::Site},
+  source::community::Community,
   traits::DeleteableOrRemoveable,
   ListingType,
   SortType,
@@ -79,21 +78,10 @@ impl PerformCrud for GetCommunity {
       .await
       .unwrap_or(1);
 
-    let site_id = instance_actor_id_from_url(community_view.community.actor_id.clone().into());
-    let site = blocking(context.pool(), move |conn| {
-      Site::read_from_apub_id(conn, site_id)
-    })
-    .await
-    .map(|s| s.ok())
-    .ok()
-    .flatten()
-    .flatten();
-
     let res = GetCommunityResponse {
       community_view,
       moderators,
       online,
-      site,
     };
 
     // Return the jwt
