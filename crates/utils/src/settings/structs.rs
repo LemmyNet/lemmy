@@ -52,7 +52,7 @@ pub struct Settings {
 
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
-  #[doku(example = "http://localhost:4317")]
+  #[doku(skip)]
   pub opentelemetry_url: Option<String>,
 }
 
