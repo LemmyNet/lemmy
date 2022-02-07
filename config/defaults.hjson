@@ -117,6 +117,4 @@
   actor_name_max_length: 20
   # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
   http_fetch_retry_limit: 25
-  # Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
-  opentelemetry_url: "http://localhost:4317"
 }
