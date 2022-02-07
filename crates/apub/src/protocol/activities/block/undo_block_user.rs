@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{activities::community::block_user::BlockUserFromCommunity, Unparsed},
+  protocol::{activities::block::block_user::BlockUser, Unparsed},
 };
 use activitystreams_kinds::activity::UndoType;
 use lemmy_apub_lib::object_id::ObjectId;
@@ -9,11 +9,11 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UndoBlockUserFromCommunity {
+pub struct UndoBlockUser {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: BlockUserFromCommunity,
+  pub(crate) object: BlockUser,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]

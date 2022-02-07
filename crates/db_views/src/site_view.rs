@@ -14,11 +14,12 @@ pub struct SiteView {
 
 impl SiteView {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
-    let (site, counts) = site::table
+    let (mut site, counts) = site::table
       .inner_join(site_aggregates::table)
       .select((site::all_columns, site_aggregates::all_columns))
       .first::<(Site, SiteAggregates)>(conn)?;
 
+    site.private_key = None;
     Ok(SiteView { site, counts })
   }
 }

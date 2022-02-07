@@ -25,6 +25,7 @@ use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
 
+pub mod block;
 pub mod comment;
 pub mod community;
 pub mod deletion;

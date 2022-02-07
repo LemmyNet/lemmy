@@ -1,5 +1,6 @@
-use crate::{source::site::*, traits::Crud};
+use crate::{source::site::*, traits::Crud, DbUrl};
 use diesel::{dsl::*, result::Error, *};
+use url::Url;
 
 impl Crud for Site {
   type Form = SiteForm;
@@ -27,8 +28,35 @@ impl Crud for Site {
 }
 
 impl Site {
-  pub fn read_simple(conn: &PgConnection) -> Result<Self, Error> {
+  pub fn read_local_site(conn: &PgConnection) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
-    site.first::<Self>(conn)
+    site.order_by(id).first::<Self>(conn)
+  }
+
+  pub fn upsert(conn: &PgConnection, site_form: &SiteForm) -> Result<Site, Error> {
+    use crate::schema::site::dsl::*;
+    insert_into(site)
+      .values(site_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(site_form)
+      .get_result::<Self>(conn)
+  }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+    use crate::schema::site::dsl::*;
+    let object_id: DbUrl = object_id.into();
+    Ok(
+      site
+        .filter(actor_id.eq(object_id))
+        .first::<Site>(conn)
+        .ok()
+        .map(Into::into),
+    )
+  }
+
+  pub fn read_remote_sites(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    use crate::schema::site::dsl::*;
+    site.order_by(id).offset(1).get_results::<Self>(conn)
   }
 }

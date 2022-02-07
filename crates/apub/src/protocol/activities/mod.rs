@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
+pub mod block;
 pub mod community;
 pub mod create_or_update;
 pub mod deletion;

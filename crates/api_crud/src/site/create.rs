@@ -7,19 +7,25 @@ use lemmy_api_common::{
   site::*,
   site_description_length_check,
 };
+use lemmy_apub::generate_site_inbox_url;
 use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
+  naive_now,
+  newtypes::DbUrl,
   source::site::{Site, SiteForm},
   traits::Crud,
 };
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{
+  apub::generate_actor_keypair,
+  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   ConnectionId,
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateSite {
@@ -33,7 +39,7 @@ impl PerformCrud for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let read_site = Site::read_simple;
+    let read_site = Site::read_local_site;
     if blocking(context.pool(), read_site).await?.is_ok() {
       return Err(LemmyError::from_message("site_already_exists"));
     };
@@ -56,6 +62,9 @@ impl PerformCrud for CreateSite {
       site_description_length_check(desc)?;
     }
 
+    let actor_id: DbUrl = Url::parse(&Settings::get().get_protocol_and_hostname())?.into();
+    let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
+    let keypair = generate_actor_keypair()?;
     let site_form = SiteForm {
       name: data.name.to_owned(),
       sidebar,
@@ -66,6 +75,11 @@ impl PerformCrud for CreateSite {
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
+      actor_id: Some(actor_id),
+      last_refreshed_at: Some(naive_now()),
+      inbox_url,
+      private_key: Some(Some(keypair.private_key)),
+      public_key: Some(keypair.public_key),
       ..SiteForm::default()
     };
 
