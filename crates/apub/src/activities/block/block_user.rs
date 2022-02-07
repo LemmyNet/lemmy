@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{utils::convert_datetime, LemmyError};
+use lemmy_utils::{settings::structs::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 impl BlockUser {
@@ -121,6 +121,12 @@ impl ActivityHandler for BlockUser {
       .await?
     {
       SiteOrCommunity::Site(site) => {
+        let domain = self.object.inner().domain().expect("url needs domain");
+        if Settings::get().hostname == domain {
+          return Err(
+            anyhow!("Site bans from remote instance can't affect user's home instance").into(),
+          );
+        }
         // site ban can only target a user who is on the same instance as the actor (admin)
         verify_domains_match(&site.actor_id(), self.actor.inner())?;
         verify_domains_match(&site.actor_id(), self.object.inner())?;

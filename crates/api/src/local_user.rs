@@ -478,26 +478,29 @@ impl Perform for BanPerson {
         .await??
         .into(),
     );
-    if ban {
-      BlockUser::send(
-        &site,
-        &person.into(),
-        &local_user_view.person.into(),
-        remove_data,
-        data.reason.clone(),
-        expires,
-        context,
-      )
-      .await?;
-    } else {
-      UndoBlockUser::send(
-        &site,
-        &person.into(),
-        &local_user_view.person.into(),
-        data.reason.clone(),
-        context,
-      )
-      .await?;
+    // if the action affects a local user, federate to other instances
+    if person.local {
+      if ban {
+        BlockUser::send(
+          &site,
+          &person.into(),
+          &local_user_view.person.into(),
+          remove_data,
+          data.reason.clone(),
+          expires,
+          context,
+        )
+        .await?;
+      } else {
+        UndoBlockUser::send(
+          &site,
+          &person.into(),
+          &local_user_view.person.into(),
+          data.reason.clone(),
+          context,
+        )
+        .await?;
+      }
     }
 
     let res = BanPersonResponse {
