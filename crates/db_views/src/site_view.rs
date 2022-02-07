@@ -19,8 +19,7 @@ pub struct SiteView {
 
 impl SiteView {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
-    let (site, creator, counts) = site::table
-      .inner_join(person::table)
+    let (mut site, counts) = site::table
       .inner_join(site_aggregates::table)
       .select((
         site::all_columns,
@@ -29,10 +28,7 @@ impl SiteView {
       ))
       .first::<(Site, PersonSafe, SiteAggregates)>(conn)?;
 
-    Ok(SiteView {
-      site,
-      creator,
-      counts,
-    })
+    site.private_key = None;
+    Ok(SiteView { site, counts })
   }
 }

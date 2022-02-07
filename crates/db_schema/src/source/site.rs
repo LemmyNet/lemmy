@@ -24,6 +24,11 @@ pub struct Site {
   pub require_application: bool,
   pub application_question: Option<String>,
   pub private_instance: bool,
+  pub actor_id: DbUrl,
+  pub last_refreshed_at: chrono::NaiveDateTime,
+  pub inbox_url: DbUrl,
+  pub private_key: Option<String>,
+  pub public_key: String,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
@@ -45,4 +50,9 @@ pub struct SiteForm {
   pub require_application: Option<bool>,
   pub application_question: Option<Option<String>>,
   pub private_instance: Option<bool>,
+  pub actor_id: Option<DbUrl>,
+  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
+  pub inbox_url: Option<DbUrl>,
+  pub private_key: Option<Option<String>>,
+  pub public_key: Option<String>,
 }

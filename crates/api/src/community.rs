@@ -8,22 +8,19 @@ use lemmy_api_common::{
   community::*,
   get_local_user_view_from_jwt,
   is_mod_or_admin,
+  remove_user_data_in_community,
 };
 use lemmy_apub::{
+  activities::block::SiteOrCommunity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
-    community::{
-      add_mod::AddMod,
-      block_user::BlockUserFromCommunity,
-      remove_mod::RemoveMod,
-      undo_block_user::UndoBlockUserFromCommunity,
-    },
+    block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+    community::{add_mod::AddMod, remove_mod::RemoveMod},
     following::{follow::FollowCommunity as FollowCommunityApub, undo_follow::UndoFollowCommunity},
   },
 };
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
     community::{
       Community,
       CommunityFollower,
@@ -43,12 +40,9 @@ use lemmy_db_schema::{
       ModTransferCommunityForm,
     },
     person::Person,
-    post::Post,
-    site::Site,
   },
   traits::{Bannable, Blockable, Crud, Followable, Joinable},
 };
-use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
@@ -214,6 +208,7 @@ impl Perform for BanFromCommunity {
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;
+    let remove_data = data.remove_data.unwrap_or(false);
     let expires = data.expires.map(naive_from_unix);
 
     // Verify that only mods or admins can ban
@@ -255,10 +250,12 @@ impl Perform for BanFromCommunity {
       .await?
       .ok();
 
-      BlockUserFromCommunity::send(
-        &community,
+      BlockUser::send(
+        &SiteOrCommunity::Community(community),
         &banned_person,
         &local_user_view.person.clone().into(),
+        remove_data,
+        data.reason.clone(),
         expires,
         context,
       )
@@ -269,41 +266,19 @@ impl Perform for BanFromCommunity {
         .await?
         .map_err(LemmyError::from)
         .map_err(|e| e.with_message("community_user_already_banned"))?;
-      UndoBlockUserFromCommunity::send(
-        &community,
+      UndoBlockUser::send(
+        &SiteOrCommunity::Community(community),
         &banned_person,
         &local_user_view.person.clone().into(),
+        data.reason.clone(),
         context,
       )
       .await?;
     }
 
     // Remove/Restore their data if that's desired
-    if data.remove_data.unwrap_or(false) {
-      // Posts
-      blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)
-      })
-      .await??;
-
-      // Comments
-      // TODO Diesel doesn't allow updates with joins, so this has to be a loop
-      let comments = blocking(context.pool(), move |conn| {
-        CommentQueryBuilder::create(conn)
-          .creator_id(banned_person_id)
-          .community_id(community_id)
-          .limit(std::i64::MAX)
-          .list()
-      })
-      .await??;
-
-      for comment_view in &comments {
-        let comment_id = comment_view.comment.id;
-        blocking(context.pool(), move |conn: &'_ _| {
-          Comment::update_removed(conn, comment_id, true)
-        })
-        .await??;
-      }
+    if remove_data {
+      remove_user_data_in_community(community_id, banned_person_id, context.pool()).await?;
     }
 
     // Mod tables

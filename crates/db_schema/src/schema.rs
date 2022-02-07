@@ -455,6 +455,11 @@ table! {
         require_application -> Bool,
         application_question -> Nullable<Text>,
         private_instance -> Bool,
+        actor_id -> Text,
+        last_refreshed_at -> Timestamp,
+        inbox_url -> Text,
+        private_key -> Nullable<Text>,
+        public_key -> Text,
     }
 }
 

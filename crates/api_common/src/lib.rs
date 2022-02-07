@@ -10,6 +10,7 @@ use itertools::Itertools;
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
+    comment::Comment,
     community::Community,
     email_verification::{EmailVerification, EmailVerificationForm},
     password_reset_request::PasswordResetRequest,
@@ -22,8 +23,12 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Readable},
   DbPool,
 };
-use lemmy_db_views::local_user_view::{LocalUserSettingsView, LocalUserView};
+use lemmy_db_views::{
+  comment_view::CommentQueryBuilder,
+  local_user_view::{LocalUserSettingsView, LocalUserView},
+};
 use lemmy_db_views_actor::{
+  community_moderator_view::CommunityModeratorView,
   community_person_ban_view::CommunityPersonBanView,
   community_view::CommunityView,
 };
@@ -35,7 +40,6 @@ use lemmy_utils::{
   LemmyError,
   Sensitive,
 };
-use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where
@@ -267,7 +271,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
   if score == -1 {
-    let site = blocking(pool, Site::read_simple).await??;
+    let site = blocking(pool, Site::read_local_site).await??;
     if !site.enable_downvotes {
       return Err(LemmyError::from_message("downvotes_disabled"));
     }
@@ -281,7 +285,7 @@ pub async fn check_private_instance(
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() {
-    let site = blocking(pool, Site::read_simple).await?;
+    let site = blocking(pool, Site::read_local_site).await?;
 
     // The site might not be set up yet
     if let Ok(site) = site {
@@ -311,7 +315,7 @@ pub async fn build_federated_instances(
 
     let mut linked = distinct_communities
       .iter()
-      .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
+      .map(|actor_id| Ok(actor_id.host_str().unwrap_or("").to_string()))
       .collect::<Result<Vec<String>, LemmyError>>()?;
 
     if let Some(allowed) = allowed.as_ref() {
@@ -511,7 +515,7 @@ pub async fn check_private_instance_and_federation_enabled(
   pool: &DbPool,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let site_opt = blocking(pool, Site::read_simple).await?;
+  let site_opt = blocking(pool, Site::read_local_site).await?;
 
   if let Ok(site) = site_opt {
     if site.private_instance && settings.federation.enabled {
@@ -554,4 +558,74 @@ where
     let identifier = identifier.to_string();
     Ok(blocking(pool, move |conn| Actor::read_from_name(conn, &identifier)).await??)
   }
+}
+
+pub async fn remove_user_data(banned_person_id: PersonId, pool: &DbPool) -> Result<(), LemmyError> {
+  // Posts
+  blocking(pool, move |conn: &'_ _| {
+    Post::update_removed_for_creator(conn, banned_person_id, None, true)
+  })
+  .await??;
+
+  // Communities
+  // Remove all communities where they're the top mod
+  // for now, remove the communities manually
+  let first_mod_communities = blocking(pool, move |conn: &'_ _| {
+    CommunityModeratorView::get_community_first_mods(conn)
+  })
+  .await??;
+
+  // Filter to only this banned users top communities
+  let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
+    .into_iter()
+    .filter(|fmc| fmc.moderator.id == banned_person_id)
+    .collect();
+
+  for first_mod_community in banned_user_first_communities {
+    blocking(pool, move |conn: &'_ _| {
+      Community::update_removed(conn, first_mod_community.community.id, true)
+    })
+    .await??;
+  }
+
+  // Comments
+  blocking(pool, move |conn: &'_ _| {
+    Comment::update_removed_for_creator(conn, banned_person_id, true)
+  })
+  .await??;
+
+  Ok(())
+}
+
+pub async fn remove_user_data_in_community(
+  community_id: CommunityId,
+  banned_person_id: PersonId,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  // Posts
+  blocking(pool, move |conn| {
+    Post::update_removed_for_creator(conn, banned_person_id, Some(community_id), true)
+  })
+  .await??;
+
+  // Comments
+  // TODO Diesel doesn't allow updates with joins, so this has to be a loop
+  let comments = blocking(pool, move |conn| {
+    CommentQueryBuilder::create(conn)
+      .creator_id(banned_person_id)
+      .community_id(community_id)
+      .limit(std::i64::MAX)
+      .list()
+  })
+  .await??;
+
+  for comment_view in &comments {
+    let comment_id = comment_view.comment.id;
+    blocking(pool, move |conn| {
+      Comment::update_removed(conn, comment_id, true)
+    })
+    .await??;
+  }
+
+  Ok(())
 }

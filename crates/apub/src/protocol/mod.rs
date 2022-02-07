@@ -17,6 +17,15 @@ pub struct Source {
   pub(crate) media_type: MediaTypeMarkdown,
 }
 
+impl Source {
+  pub(crate) fn new(content: String) -> Self {
+    Source {
+      content,
+      media_type: MediaTypeMarkdown::Markdown,
+    }
+  }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageObject {

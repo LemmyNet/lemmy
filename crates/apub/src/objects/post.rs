@@ -214,6 +214,7 @@ mod tests {
     tests::{file_to_json_object, init_context},
   };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
+  use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 
   #[actix_rt::test]
@@ -222,8 +223,8 @@ mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
+    let (person, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
-    let person = parse_lemmy_person(&context).await;
 
     let json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
@@ -246,5 +247,6 @@ mod tests {
     Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
     Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();
     Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 }

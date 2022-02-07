@@ -148,6 +148,7 @@ mod tests {
     source::{
       community::Community,
       person::{Person, PersonForm},
+      site::Site,
     },
     traits::Crud,
   };
@@ -159,6 +160,7 @@ mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
+    let (new_mod, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
@@ -174,7 +176,7 @@ mod tests {
 
     CommunityModerator::join(&context.pool().get().unwrap(), &community_moderator_form).unwrap();
 
-    let new_mod = parse_lemmy_person(&context).await;
+    assert_eq!(site.actor_id.to_string(), "https://enterprise.lemmy.ml/");
 
     let json: GroupModerators =
       file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
@@ -209,5 +211,6 @@ mod tests {
       community_context.0.id,
     )
     .unwrap();
+    Site::delete(&*community_context.1.pool().get().unwrap(), site.id).unwrap();
   }
 }

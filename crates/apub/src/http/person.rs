@@ -1,6 +1,7 @@
 use crate::{
   activity_lists::PersonInboxActivities,
   context::WithContext,
+  generate_outbox_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
@@ -9,7 +10,7 @@ use crate::{
     ActivityCommonFields,
   },
   objects::person::ApubPerson,
-  protocol::collections::person_outbox::PersonOutbox,
+  protocol::collections::empty_outbox::EmptyOutbox,
 };
 use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
@@ -80,6 +81,7 @@ pub(crate) async fn get_apub_person_outbox(
     Person::read_from_name(conn, &info.user_name)
   })
   .await??;
-  let outbox = PersonOutbox::new(person).await?;
+  let outbox_id = generate_outbox_url(&person.actor_id)?.into();
+  let outbox = EmptyOutbox::new(outbox_id).await?;
   Ok(create_apub_response(&outbox))
 }

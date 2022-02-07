@@ -1,16 +1,16 @@
+pub(crate) mod empty_outbox;
 pub(crate) mod group_followers;
 pub(crate) mod group_moderators;
 pub(crate) mod group_outbox;
-pub(crate) mod person_outbox;
 
 #[cfg(test)]
 mod tests {
   use crate::protocol::{
     collections::{
+      empty_outbox::EmptyOutbox,
       group_followers::GroupFollowers,
       group_moderators::GroupModerators,
       group_outbox::GroupOutbox,
-      person_outbox::PersonOutbox,
     },
     tests::test_parse_lemmy_item,
   };
@@ -24,6 +24,6 @@ mod tests {
     assert_eq!(outbox.ordered_items.len() as i32, outbox.total_items);
     test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")
       .unwrap();
-    test_parse_lemmy_item::<PersonOutbox>("assets/lemmy/collections/person_outbox.json").unwrap();
+    test_parse_lemmy_item::<EmptyOutbox>("assets/lemmy/collections/person_outbox.json").unwrap();
   }
 }
