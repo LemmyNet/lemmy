@@ -17,8 +17,8 @@ mod tests {
     tests::test_parse_lemmy_item,
   };
 
-  #[actix_rt::test]
-  async fn test_parse_lemmy_community() {
+  #[test]
+  fn test_parse_lemmy_community_activities() {
     test_parse_lemmy_item::<AnnounceActivity>(
       "assets/lemmy/activities/community/announce_create_page.json",
     )

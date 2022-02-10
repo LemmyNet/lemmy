@@ -207,11 +207,14 @@ impl ApubObject for ApubPost {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::objects::{
-    community::tests::parse_lemmy_community,
-    person::tests::parse_lemmy_person,
-    post::ApubPost,
-    tests::{file_to_json_object, init_context},
+  use crate::{
+    objects::{
+      community::tests::parse_lemmy_community,
+      person::tests::parse_lemmy_person,
+      post::ApubPost,
+      tests::init_context,
+    },
+    protocol::tests::file_to_json_object,
   };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::source::site::Site;

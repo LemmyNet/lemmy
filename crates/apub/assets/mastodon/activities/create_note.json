@@ -1,4 +1,11 @@
 {
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri"
+    }
+  ],
   "id": "https://mastodon.madrid/users/felix/statuses/107224289116410645/activity",
   "type": "Create",
   "actor": "https://mastodon.madrid/users/felix",

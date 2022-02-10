@@ -1,0 +1,7 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://masto.asonix.dog/1ea87517-63c5-4118-8831-460ee641b2cf",
+  "type": "Follow",
+  "actor": "https://masto.asonix.dog/users/asonix",
+  "object": "https://ds9.lemmy.ml/c/testcom"
+}

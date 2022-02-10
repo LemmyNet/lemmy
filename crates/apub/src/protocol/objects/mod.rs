@@ -17,25 +17,21 @@ pub struct Endpoints {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    context::WithContext,
-    objects::tests::file_to_json_object,
-    protocol::{
-      objects::{
-        chat_message::ChatMessage,
-        group::Group,
-        instance::Instance,
-        note::Note,
-        page::Page,
-        person::Person,
-        tombstone::Tombstone,
-      },
-      tests::test_parse_lemmy_item,
+  use crate::protocol::{
+    objects::{
+      chat_message::ChatMessage,
+      group::Group,
+      instance::Instance,
+      note::Note,
+      page::Page,
+      person::Person,
+      tombstone::Tombstone,
     },
+    tests::{test_json, test_parse_lemmy_item},
   };
 
-  #[actix_rt::test]
-  async fn test_parse_objects_lemmy() {
+  #[test]
+  fn test_parse_objects_lemmy() {
     test_parse_lemmy_item::<Instance>("assets/lemmy/objects/instance.json").unwrap();
     test_parse_lemmy_item::<Group>("assets/lemmy/objects/group.json").unwrap();
     test_parse_lemmy_item::<Person>("assets/lemmy/objects/person.json").unwrap();
@@ -45,38 +41,37 @@ mod tests {
     test_parse_lemmy_item::<Tombstone>("assets/lemmy/objects/tombstone.json").unwrap();
   }
 
-  #[actix_rt::test]
-  async fn test_parse_objects_pleroma() {
-    file_to_json_object::<WithContext<Person>>("assets/pleroma/objects/person.json").unwrap();
-    file_to_json_object::<WithContext<Note>>("assets/pleroma/objects/note.json").unwrap();
-    file_to_json_object::<WithContext<ChatMessage>>("assets/pleroma/objects/chat_message.json")
-      .unwrap();
+  #[test]
+  fn test_parse_objects_pleroma() {
+    test_json::<Person>("assets/pleroma/objects/person.json").unwrap();
+    test_json::<Note>("assets/pleroma/objects/note.json").unwrap();
+    test_json::<ChatMessage>("assets/pleroma/objects/chat_message.json").unwrap();
   }
 
-  #[actix_rt::test]
-  async fn test_parse_objects_smithereen() {
-    file_to_json_object::<WithContext<Person>>("assets/smithereen/objects/person.json").unwrap();
-    file_to_json_object::<Note>("assets/smithereen/objects/note.json").unwrap();
+  #[test]
+  fn test_parse_objects_smithereen() {
+    test_json::<Person>("assets/smithereen/objects/person.json").unwrap();
+    test_json::<Note>("assets/smithereen/objects/note.json").unwrap();
   }
 
-  #[actix_rt::test]
-  async fn test_parse_objects_mastodon() {
-    file_to_json_object::<WithContext<Person>>("assets/mastodon/objects/person.json").unwrap();
-    file_to_json_object::<WithContext<Note>>("assets/mastodon/objects/note.json").unwrap();
+  #[test]
+  fn test_parse_objects_mastodon() {
+    test_json::<Person>("assets/mastodon/objects/person.json").unwrap();
+    test_json::<Note>("assets/mastodon/objects/note.json").unwrap();
   }
 
-  #[actix_rt::test]
-  async fn test_parse_objects_lotide() {
-    file_to_json_object::<WithContext<Group>>("assets/lotide/objects/group.json").unwrap();
-    file_to_json_object::<WithContext<Person>>("assets/lotide/objects/person.json").unwrap();
-    file_to_json_object::<WithContext<Note>>("assets/lotide/objects/note.json").unwrap();
-    file_to_json_object::<WithContext<Page>>("assets/lotide/objects/page.json").unwrap();
-    file_to_json_object::<WithContext<Tombstone>>("assets/lotide/objects/tombstone.json").unwrap();
+  #[test]
+  fn test_parse_objects_lotide() {
+    test_json::<Group>("assets/lotide/objects/group.json").unwrap();
+    test_json::<Person>("assets/lotide/objects/person.json").unwrap();
+    test_json::<Note>("assets/lotide/objects/note.json").unwrap();
+    test_json::<Page>("assets/lotide/objects/page.json").unwrap();
+    test_json::<Tombstone>("assets/lotide/objects/tombstone.json").unwrap();
   }
 
-  #[actix_rt::test]
-  async fn test_parse_object_friendica() {
-    file_to_json_object::<WithContext<Person>>("assets/friendica/objects/person.json").unwrap();
-    file_to_json_object::<WithContext<Note>>("assets/friendica/objects/note.json").unwrap();
+  #[test]
+  fn test_parse_object_friendica() {
+    test_json::<Person>("assets/friendica/objects/person.json").unwrap();
+    test_json::<Note>("assets/friendica/objects/note.json").unwrap();
   }
 }

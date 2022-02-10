@@ -8,8 +8,8 @@ mod tests {
     tests::test_parse_lemmy_item,
   };
 
-  #[actix_rt::test]
-  async fn test_parse_lemmy_block() {
+  #[test]
+  fn test_parse_lemmy_block() {
     test_parse_lemmy_item::<BlockUser>("assets/lemmy/activities/block/block_user.json").unwrap();
     test_parse_lemmy_item::<UndoBlockUser>("assets/lemmy/activities/block/undo_block_user.json")
       .unwrap();
