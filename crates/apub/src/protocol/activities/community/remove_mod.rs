@@ -17,6 +17,7 @@ pub struct RemoveMod {
   pub(crate) kind: RemoveType,
   pub(crate) target: Url,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

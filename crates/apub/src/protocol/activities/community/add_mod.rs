@@ -17,6 +17,7 @@ pub struct AddMod {
   #[serde(rename = "type")]
   pub(crate) kind: AddType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

@@ -105,7 +105,6 @@ impl ApubObject for ApubPerson {
       }),
       public_key: self.get_public_key()?,
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
       inbox: self.inbox_url.clone().into(),
     };
     Ok(person)

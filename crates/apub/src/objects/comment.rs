@@ -125,7 +125,6 @@ impl ApubObject for ApubComment {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       tag: maa.tags,
-      unparsed: Default::default(),
     };
 
     Ok(note)

@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   objects::get_summary_from_string_or_source,
-  protocol::{objects::instance::Instance, ImageObject, Source, Unparsed},
+  protocol::{objects::instance::Instance, ImageObject, Source},
 };
 use activitystreams_kinds::actor::ServiceType;
 use chrono::NaiveDateTime;
@@ -86,7 +86,6 @@ impl ApubObject for ApubSite {
       public_key: self.get_public_key()?,
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
-      unparsed: Unparsed::default(),
     };
     Ok(instance)
   }

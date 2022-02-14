@@ -122,7 +122,6 @@ impl ApubObject for ApubPost {
       stickied: Some(self.stickied),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
     };
     Ok(page)
   }

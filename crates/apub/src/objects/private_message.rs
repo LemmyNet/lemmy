@@ -90,7 +90,6 @@ impl ApubObject for ApubPrivateMessage {
       source: Some(Source::new(self.content.clone())),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
     };
     Ok(note)
   }

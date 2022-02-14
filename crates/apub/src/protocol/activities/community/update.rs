@@ -22,6 +22,7 @@ pub struct UpdateCommunity {
   #[serde(rename = "type")]
   pub(crate) kind: UpdateType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }
