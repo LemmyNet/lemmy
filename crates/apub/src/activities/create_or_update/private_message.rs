@@ -2,7 +2,7 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
-    private_message::create_or_update::CreateOrUpdatePrivateMessage,
+    create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
   },
 };

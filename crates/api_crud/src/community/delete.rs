@@ -1,7 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{blocking, community::*, get_local_user_view_from_jwt, is_admin};
-use lemmy_apub::activities::deletion::{send_apub_delete, send_apub_remove, DeletableObjects};
+use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -49,24 +49,28 @@ impl PerformCrud for DeleteCommunity {
     .map_err(LemmyError::from)
     .map_err(|e| e.with_message("couldnt_update_community"))?;
 
-    // Send apub messages
-    send_apub_delete(
-      &local_user_view.person.clone().into(),
-      &updated_community.clone().into(),
-      DeletableObjects::Community(Box::new(updated_community.into())),
-      deleted,
-      context,
-    )
-    .await?;
-
-    send_community_ws_message(
+    let res = send_community_ws_message(
       data.community_id,
       UserOperationCrud::DeleteCommunity,
       websocket_id,
       Some(local_user_view.person.id),
       context,
     )
-    .await
+    .await?;
+
+    // Send apub messages
+    let deletable = DeletableObjects::Community(Box::new(updated_community.clone().into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      updated_community,
+      deletable,
+      None,
+      deleted,
+      context,
+    )
+    .await?;
+
+    Ok(res)
   }
 }
 
@@ -111,24 +115,26 @@ impl PerformCrud for RemoveCommunity {
     })
     .await??;
 
-    // Apub messages
-    send_apub_remove(
-      &local_user_view.person.clone().into(),
-      &updated_community.clone().into(),
-      DeletableObjects::Community(Box::new(updated_community.into())),
-      data.reason.clone().unwrap_or_else(|| "".to_string()),
-      removed,
-      context,
-    )
-    .await?;
-
-    send_community_ws_message(
+    let res = send_community_ws_message(
       data.community_id,
       UserOperationCrud::RemoveCommunity,
       websocket_id,
       Some(local_user_view.person.id),
       context,
     )
-    .await
+    .await?;
+
+    // Apub messages
+    let deletable = DeletableObjects::Community(Box::new(updated_community.clone().into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      updated_community,
+      deletable,
+      data.reason.clone().or_else(|| Some("".to_string())),
+      removed,
+      context,
+    )
+    .await?;
+    Ok(res)
   }
 }

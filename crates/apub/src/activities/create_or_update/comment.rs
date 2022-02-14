@@ -1,8 +1,8 @@
 use crate::{
   activities::{
     check_community_deleted_or_removed,
-    comment::get_notif_recipients,
     community::{announce::GetCommunity, send_activity_in_community},
+    create_or_update::get_comment_notif_recipients,
     generate_activity_id,
     verify_activity,
     verify_is_public,
@@ -114,7 +114,7 @@ impl ActivityHandler for CreateOrUpdateComment {
   ) -> Result<(), LemmyError> {
     let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
     let do_send_email = self.kind == CreateOrUpdateType::Create;
-    let recipients = get_notif_recipients(
+    let recipients = get_comment_notif_recipients(
       &self.actor,
       &comment,
       do_send_email,

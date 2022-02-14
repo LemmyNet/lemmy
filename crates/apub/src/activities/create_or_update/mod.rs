@@ -9,10 +9,12 @@ use lemmy_db_schema::{
 use lemmy_utils::{utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{send::send_local_notifs, LemmyContext};
 
-pub mod create_or_update;
+pub mod comment;
+pub mod post;
+pub mod private_message;
 
 #[tracing::instrument(skip_all)]
-async fn get_notif_recipients(
+async fn get_comment_notif_recipients(
   actor: &ObjectId<ApubPerson>,
   comment: &Comment,
   do_send_email: bool,
