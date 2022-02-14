@@ -6,7 +6,7 @@ use lemmy_api_common::{
   person::{EditPrivateMessage, PrivateMessageResponse},
 };
 use lemmy_apub::protocol::activities::{
-  private_message::create_or_update::CreateOrUpdatePrivateMessage,
+  create_or_update::private_message::CreateOrUpdatePrivateMessage,
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};

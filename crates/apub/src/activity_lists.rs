@@ -11,17 +11,16 @@ use crate::{
         report::Report,
         update::UpdateCommunity,
       },
-      create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
+      create_or_update::{
+        comment::CreateOrUpdateComment,
+        post::CreateOrUpdatePost,
+        private_message::CreateOrUpdatePrivateMessage,
+      },
       deletion::{delete::Delete, undo_delete::UndoDelete},
       following::{
         accept::AcceptFollowCommunity,
         follow::FollowCommunity,
         undo_follow::UndoFollowCommunity,
-      },
-      private_message::{
-        create_or_update::CreateOrUpdatePrivateMessage,
-        delete::DeletePrivateMessage,
-        undo_delete::UndoDeletePrivateMessage,
       },
       voting::{undo_vote::UndoVote, vote::Vote},
     },
@@ -61,8 +60,8 @@ pub enum PersonInboxActivities {
   /// Some activities can also be sent from user to user, eg a comment with mentions
   AnnouncableActivities(AnnouncableActivities),
   CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
-  DeletePrivateMessage(DeletePrivateMessage),
-  UndoDeletePrivateMessage(UndoDeletePrivateMessage),
+  Delete(Delete),
+  UndoDelete(UndoDelete),
   AnnounceActivity(AnnounceActivity),
 }
 

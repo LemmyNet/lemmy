@@ -10,7 +10,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   generate_local_apub_endpoint,
   protocol::activities::{
-    private_message::create_or_update::CreateOrUpdatePrivateMessage,
+    create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
   },
   EndpointType,

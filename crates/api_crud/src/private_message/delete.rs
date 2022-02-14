@@ -5,14 +5,8 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{DeletePrivateMessage, PrivateMessageResponse},
 };
-use lemmy_apub::protocol::activities::private_message::{
-  delete::DeletePrivateMessage as DeletePrivateMessageApub,
-  undo_delete::UndoDeletePrivateMessage,
-};
-use lemmy_db_schema::{
-  source::private_message::PrivateMessage,
-  traits::{Crud, DeleteableOrRemoveable},
-};
+use lemmy_apub::activities::deletion::send_apub_delete_private_message;
+use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
@@ -51,23 +45,13 @@ impl PerformCrud for DeletePrivateMessage {
     .map_err(|e| e.with_message("couldnt_update_private_message"))?;
 
     // Send the apub update
-    if data.deleted {
-      DeletePrivateMessageApub::send(
-        &local_user_view.person.into(),
-        &updated_private_message
-          .blank_out_deleted_or_removed_info()
-          .into(),
-        context,
-      )
-      .await?;
-    } else {
-      UndoDeletePrivateMessage::send(
-        &local_user_view.person.into(),
-        &updated_private_message.into(),
-        context,
-      )
-      .await?;
-    }
+    send_apub_delete_private_message(
+      &local_user_view.person.into(),
+      updated_private_message,
+      data.deleted,
+      context,
+    )
+    .await?;
 
     let op = UserOperationCrud::DeletePrivateMessage;
     send_pm_ws_message(data.private_message_id, op, websocket_id, context).await

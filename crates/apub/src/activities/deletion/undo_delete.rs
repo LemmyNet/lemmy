@@ -1,23 +1,17 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
     verify_activity,
-    verify_is_public,
   },
-  activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::community::ApubCommunity,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitystreams_kinds::{activity::UndoType, public};
+use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-};
-use lemmy_db_schema::source::{comment::Comment, community::Community, post::Post};
+use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
@@ -36,14 +30,10 @@ impl ActivityHandler for UndoDelete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &self.cc)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     self.object.verify(context, request_counter).await?;
-    let community = self.get_community(context, request_counter).await?;
     verify_delete_activity(
-      &self.object.object.id,
-      &self.actor,
-      &community,
+      &self.object,
       self.object.summary.is_some(),
       context,
       request_counter,
@@ -59,10 +49,10 @@ impl ActivityHandler for UndoDelete {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     if self.object.summary.is_some() {
-      UndoDelete::receive_undo_remove_action(&self.object.object.id, context).await
+      UndoDelete::receive_undo_remove_action(self.object.object.id(), context).await
     } else {
       receive_delete_action(
-        &self.object.object.id,
+        self.object.object.id(),
         &self.actor,
         false,
         context,
@@ -75,31 +65,30 @@ impl ActivityHandler for UndoDelete {
 
 impl UndoDelete {
   #[tracing::instrument(skip_all)]
-  pub(in crate::activities::deletion) async fn send(
-    actor: &ApubPerson,
-    community: &ApubCommunity,
+  pub(in crate::activities::deletion) fn new(
+    actor: &Person,
     object: DeletableObjects,
+    to: Url,
+    community: Option<&Community>,
     summary: Option<String>,
     context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    let object = Delete::new(actor, object, summary, context)?;
+  ) -> Result<UndoDelete, LemmyError> {
+    let object = Delete::new(actor, object, to.clone(), community, summary, context)?;
 
     let id = generate_activity_id(
       UndoType::Undo,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let undo = UndoDelete {
-      actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+    let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
+    Ok(UndoDelete {
+      actor: ObjectId::new(actor.actor_id.clone()),
+      to: vec![to],
       object,
-      cc: vec![community.actor_id()],
+      cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
-      id: id.clone(),
+      id,
       unparsed: Default::default(),
-    };
-
-    let activity = AnnouncableActivities::UndoDelete(undo);
-    send_activity_in_community(activity, &id, actor, community, vec![], context).await
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -135,6 +124,7 @@ impl UndoDelete {
         .await??;
         send_comment_ws_message_simple(removed_comment.id, EditComment, context).await?;
       }
+      DeletableObjects::PrivateMessage(_) => unimplemented!(),
     }
     Ok(())
   }
