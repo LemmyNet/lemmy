@@ -131,7 +131,7 @@ impl PerformCrud for HideCommunity {
       community_id: data.community_id,
       mod_person_id: local_user_view.person.id,
       reason: data.reason.clone(),
-      hidden: data.hidden,
+      hidden: Some(data.hidden),
     };
 
     let community_id = data.community_id;

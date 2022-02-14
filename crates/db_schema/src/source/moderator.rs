@@ -155,7 +155,7 @@ pub struct ModBan {
 pub struct ModHideCommunityForm {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
-  pub hidden: bool,
+  pub hidden: Option<bool>,
   pub reason: Option<String>,
 }
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -165,7 +165,7 @@ pub struct ModHideCommunity {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub reason: Option<String>,
-  pub hidden: bool,
+  pub hidden: Option<bool>,
   pub when_: chrono::NaiveDateTime,
 }
 

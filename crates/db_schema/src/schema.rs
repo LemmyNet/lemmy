@@ -600,7 +600,7 @@ table! {
         community_id -> Int4,
         mod_person_id -> Int4,
         reason -> Nullable<Text>,
-        hidden ->Bool,
+        hidden -> Nullable<Bool>,
         when_ -> Timestamp,
     }
 }
