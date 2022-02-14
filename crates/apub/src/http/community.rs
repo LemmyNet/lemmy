@@ -24,7 +24,7 @@ use crate::{
 use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -84,10 +84,14 @@ pub(in crate::http) async fn receive_group_inbox(
   let res = receive_activity(request, activity.clone(), activity_data, context).await?;
 
   if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
-    let community = announcable.get_community(context, &mut 0).await?;
-    verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
-    if community.local {
-      AnnounceActivity::send(*announcable, &community, context).await?;
+    // Ignore failures in get_community(). those happen because Delete/PrivateMessage is not in a
+    // community, but looks identical to Delete/Post or Delete/Comment which are in a community.
+    let community = announcable.get_community(context, &mut 0).await;
+    if let Ok(community) = community {
+      if community.local {
+        verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
+        AnnounceActivity::send(*announcable, &community, context).await?;
+      }
     }
   }
 

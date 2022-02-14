@@ -20,6 +20,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
+use std::default::Default;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -41,7 +42,7 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let found_site = blocking(context.pool(), Site::read_simple).await??;
+    let found_site = blocking(context.pool(), Site::read_local_site).await??;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
@@ -54,7 +55,6 @@ impl PerformCrud for EditSite {
     }
 
     let site_form = SiteForm {
-      creator_id: found_site.creator_id,
       name: data.name.to_owned().unwrap_or(found_site.name),
       sidebar,
       description,
@@ -69,6 +69,7 @@ impl PerformCrud for EditSite {
       require_application: data.require_application,
       application_question,
       private_instance: data.private_instance,
+      ..SiteForm::default()
     };
 
     let update_site = blocking(context.pool(), move |conn| {

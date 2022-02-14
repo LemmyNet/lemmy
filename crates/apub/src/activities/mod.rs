@@ -25,12 +25,11 @@ use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
 
-pub mod comment;
+pub mod block;
 pub mod community;
+pub mod create_or_update;
 pub mod deletion;
 pub mod following;
-pub mod post;
-pub mod private_message;
 pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person

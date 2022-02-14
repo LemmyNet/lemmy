@@ -1,0 +1,35 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://greenish.red/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "https://greenish.red/users/vpzom",
+  "attachment": [],
+  "attributedTo": "https://greenish.red/users/vpzom",
+  "cc": [],
+  "conversation": null,
+  "id": "https://greenish.red/activities/52f0b259-596e-429f-8a1b-c0b455f8932b",
+  "object": "https://greenish.red/objects/38e2b983-ebf5-4387-9bc2-3b80305469c9",
+  "tag": [
+    {
+      "href": "https://voyager.lemmy.ml/c/main",
+      "name": "@main@voyager.lemmy.ml",
+      "type": "Mention"
+    },
+    {
+      "href": "https://voyager.lemmy.ml/u/dess_voy_41u2",
+      "name": "@dess_voy_41u2@voyager.lemmy.ml",
+      "type": "Mention"
+    }
+  ],
+  "to": [
+    "https://greenish.red/users/vpzom/followers",
+    "https://voyager.lemmy.ml/c/main",
+    "https://voyager.lemmy.ml/u/dess_voy_41u2",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Delete"
+}

@@ -8,6 +8,7 @@ use lemmy_apub::{
   generate_inbox_url,
   generate_local_apub_endpoint,
   generate_shared_inbox_url,
+  generate_site_inbox_url,
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -18,11 +19,13 @@ use lemmy_db_schema::{
     person::{Person, PersonForm},
     post::Post,
     private_message::PrivateMessage,
+    site::{Site, SiteForm},
   },
   traits::Crud,
 };
 use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
 use tracing::info;
+use url::Url;
 
 pub fn run_advanced_migrations(
   conn: &PgConnection,
@@ -35,6 +38,7 @@ pub fn run_advanced_migrations(
   private_message_updates_2020_05_05(conn, protocol_and_hostname)?;
   post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
   apub_columns_2021_02_02(conn)?;
+  instance_actor_2022_01_28(conn, protocol_and_hostname)?;
 
   Ok(())
 }
@@ -283,5 +287,31 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
     }
   }
 
+  Ok(())
+}
+
+/// Site object turns into an actor, so that things like instance description can be federated. This
+/// means we need to add actor columns to the site table, and initialize them with correct values.
+/// Before this point, there is only a single value in the site table which refers to the local
+/// Lemmy instance, so thats all we need to update.
+fn instance_actor_2022_01_28(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
+  info!("Running instance_actor_2021_09_29");
+  if let Ok(site) = Site::read_local_site(conn) {
+    let key_pair = generate_actor_keypair()?;
+    let actor_id = Url::parse(protocol_and_hostname)?;
+    let site_form = SiteForm {
+      name: site.name,
+      actor_id: Some(actor_id.clone().into()),
+      last_refreshed_at: Some(naive_now()),
+      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
+      private_key: Some(Some(key_pair.private_key)),
+      public_key: Some(key_pair.public_key),
+      ..Default::default()
+    };
+    Site::update(conn, site.id, &site_form)?;
+  }
   Ok(())
 }

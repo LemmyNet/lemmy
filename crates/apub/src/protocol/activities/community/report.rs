@@ -12,6 +12,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Report {
   pub(crate) actor: ObjectId<ApubPerson>,
+  #[serde(deserialize_with = "crate::deserialize_one")]
   pub(crate) to: [ObjectId<ApubCommunity>; 1],
   pub(crate) object: ObjectId<PostOrComment>,
   pub(crate) summary: String,

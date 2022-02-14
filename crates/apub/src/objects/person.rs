@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
-  objects::get_summary_from_string_or_source,
+  objects::{get_summary_from_string_or_source, instance::fetch_instance_actor_for_object},
   protocol::{
     objects::{
       person::{Person, UserTypes},
@@ -16,12 +16,12 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
-  values::MediaTypeMarkdown,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   naive_now,
   source::person::{Person as DbPerson, PersonForm},
+  traits::ApubActor,
 };
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
@@ -87,12 +87,6 @@ impl ApubObject for ApubPerson {
     } else {
       UserTypes::Person
     };
-    let source = self.bio.clone().map(|bio| Source {
-      content: bio,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let icon = self.avatar.clone().map(ImageObject::new);
-    let image = self.banner.clone().map(ImageObject::new);
 
     let person = Person {
       kind,
@@ -100,9 +94,9 @@ impl ApubObject for ApubPerson {
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      source,
-      icon,
-      image,
+      source: self.bio.clone().map(Source::new),
+      icon: self.avatar.clone().map(ImageObject::new),
+      image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(convert_datetime(self.published)),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
@@ -143,7 +137,7 @@ impl ApubObject for ApubPerson {
   async fn from_apub(
     person: Person,
     context: &LemmyContext,
-    _request_counter: &mut i32,
+    request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
     let person_form = PersonForm {
       name: person.preferred_username,
@@ -174,6 +168,10 @@ impl ApubObject for ApubPerson {
       DbPerson::upsert(conn, &person_form)
     })
     .await??;
+
+    let actor_id = person.actor_id.clone().into();
+    fetch_instance_actor_for_object(actor_id, context, request_counter).await;
+
     Ok(person.into())
   }
 }
@@ -203,12 +201,19 @@ impl ActorType for ApubPerson {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::objects::tests::{file_to_json_object, init_context};
+  use crate::{
+    objects::{
+      instance::{tests::parse_lemmy_instance, ApubSite},
+      tests::{file_to_json_object, init_context},
+    },
+    protocol::objects::instance::Instance,
+  };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
-  use lemmy_db_schema::traits::Crud;
+  use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> ApubPerson {
+  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> (ApubPerson, ApubSite) {
+    let site = parse_lemmy_instance(context).await;
     let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     let mut request_counter = 0;
@@ -219,7 +224,7 @@ pub(crate) mod tests {
       .await
       .unwrap();
     assert_eq!(request_counter, 0);
-    person
+    (person, site)
   }
 
   #[actix_rt::test]
@@ -228,13 +233,14 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
-    let person = parse_lemmy_person(&context).await;
+    let (person, site) = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 
   #[actix_rt::test]
@@ -243,6 +249,16 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
+
+    // create and parse a fake pleroma instance actor, to avoid network request during test
+    let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
+    let id = Url::parse("https://queer.hacktivis.me/").unwrap();
+    json.id = ObjectId::new(id);
+    let mut request_counter = 0;
+    let site = ApubSite::from_apub(json, &context, &mut request_counter)
+      .await
+      .unwrap();
+
     let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     let mut request_counter = 0;
@@ -260,5 +276,6 @@ pub(crate) mod tests {
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 }

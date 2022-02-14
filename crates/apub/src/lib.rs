@@ -112,6 +112,25 @@ where
   })
 }
 
+pub(crate) fn deserialize_one<'de, T, D>(deserializer: D) -> Result<[T; 1], D::Error>
+where
+  T: Deserialize<'de>,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum MaybeArray<T> {
+    Simple(T),
+    Array([T; 1]),
+  }
+
+  let result: MaybeArray<T> = Deserialize::deserialize(deserializer)?;
+  Ok(match result {
+    MaybeArray::Simple(value) => [value],
+    MaybeArray::Array(value) => value,
+  })
+}
+
 pub enum EndpointType {
   Community,
   Person,
@@ -143,6 +162,12 @@ pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/inbox", actor_id))?.into())
+}
+
+pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  let mut actor_id: Url = actor_id.clone().into();
+  actor_id.set_path("site_inbox");
+  Ok(actor_id.into())
 }
 
 pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {

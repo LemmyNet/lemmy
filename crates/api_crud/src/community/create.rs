@@ -53,7 +53,7 @@ impl PerformCrud for CreateCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let site = blocking(context.pool(), move |conn| Site::read(conn, 0)).await??;
+    let site = blocking(context.pool(), Site::read_local_site).await??;
     if site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(LemmyError::from_message(
         "only_admins_can_create_communities",

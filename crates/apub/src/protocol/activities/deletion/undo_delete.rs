@@ -15,6 +15,8 @@ pub struct UndoDelete {
   pub(crate) to: Vec<Url>,
   pub(crate) object: Delete,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(default)]
+  #[serde(skip_serializing_if = "Vec::is_empty")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,

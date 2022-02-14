@@ -4,6 +4,7 @@ pub mod code_migrations;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
 
+#[cfg(feature = "console")]
 use console_subscriber::ConsoleLayer;
 use lemmy_utils::LemmyError;
 use opentelemetry::{
@@ -30,6 +31,7 @@ pub fn init_tracing(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
 
   let format_layer = tracing_subscriber::fmt::layer().with_filter(targets.clone());
 
+  #[cfg(feature = "console")]
   let console_layer = ConsoleLayer::builder()
     .with_default_env()
     .server_addr(([0, 0, 0, 0], 6669))
@@ -38,8 +40,10 @@ pub fn init_tracing(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
 
   let subscriber = Registry::default()
     .with(format_layer)
-    .with(ErrorLayer::default())
-    .with(console_layer);
+    .with(ErrorLayer::default());
+
+  #[cfg(feature = "console")]
+  let subscriber = subscriber.with(console_layer);
 
   if let Some(url) = opentelemetry_url {
     let tracer = opentelemetry_otlp::new_pipeline()

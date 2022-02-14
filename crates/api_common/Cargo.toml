@@ -1,7 +1,7 @@
 [package]
 name = "lemmy_api_common"
 version = "0.15.1"
-edition = "2018"
+edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
@@ -25,3 +25,4 @@ chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.72", features = ["preserve_order"] }
 tracing = "0.1.29"
 url = "2.2.2"
+itertools = "0.10.3"

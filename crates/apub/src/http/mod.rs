@@ -36,6 +36,7 @@ mod community;
 mod person;
 mod post;
 pub mod routes;
+pub mod site;
 
 #[tracing::instrument(skip_all)]
 pub async fn shared_inbox(

@@ -50,8 +50,9 @@ pub struct Settings {
   #[default(25)]
   pub http_fetch_retry_limit: i32,
 
+  /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
-  #[doku(example = "http://localhost:4317")]
+  #[doku(skip)]
   pub opentelemetry_url: Option<String>,
 }
 
@@ -89,7 +90,7 @@ pub struct DatabaseConfig {
   pub pool_size: u32,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Document)]
+#[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
 pub struct EmailConfig {
   /// Hostname and port of the smtp server
   #[doku(example = "localhost:25")]
@@ -101,8 +102,10 @@ pub struct EmailConfig {
   #[doku(example = "noreply@example.com")]
   /// Address to send emails from, eg "noreply@your-instance.com"
   pub smtp_from_address: String,
-  /// Whether or not smtp connections should use tls
-  pub use_tls: bool,
+  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
+  #[default("none")]
+  #[doku(example = "none")]
+  pub tls_type: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

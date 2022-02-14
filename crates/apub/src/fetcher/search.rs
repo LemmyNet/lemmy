@@ -1,8 +1,7 @@
 use crate::{
-  fetcher::webfinger::webfinger_resolve,
+  fetcher::webfinger::webfinger_resolve_actor,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::objects::{group::Group, note::Note, page::Page, person::Person},
-  EndpointType,
 };
 use chrono::NaiveDateTime;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
@@ -34,13 +33,8 @@ pub async fn search_by_apub_id(
       let (kind, identifier) = query.split_at(1);
       match kind {
         "@" => {
-          let id = webfinger_resolve::<ApubPerson>(
-            identifier,
-            EndpointType::Person,
-            context,
-            request_counter,
-          )
-          .await?;
+          let id =
+            webfinger_resolve_actor::<ApubPerson>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Person(
             ObjectId::new(id)
               .dereference(context, context.client(), request_counter)
@@ -48,13 +42,8 @@ pub async fn search_by_apub_id(
           ))
         }
         "!" => {
-          let id = webfinger_resolve::<ApubCommunity>(
-            identifier,
-            EndpointType::Community,
-            context,
-            request_counter,
-          )
-          .await?;
+          let id =
+            webfinger_resolve_actor::<ApubCommunity>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Community(
             ObjectId::new(id)
               .dereference(context, context.client(), request_counter)

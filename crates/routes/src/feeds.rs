@@ -6,7 +6,7 @@ use lemmy_api_common::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
-  traits::Crud,
+  traits::{ApubActor, Crud},
   ListingType,
   SortType,
 };
@@ -97,11 +97,7 @@ async fn get_feed_data(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!(
-      "{} - {}",
-      site_view.site.name,
-      listing_type.to_string()
-    ))
+    .title(&format!("{} - {}", site_view.site.name, listing_type))
     .link(context.settings().get_protocol_and_hostname())
     .items(items);
 
@@ -179,7 +175,7 @@ fn get_feed_user(
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(conn)?;
-  let person = Person::find_by_name(conn, user_name)?;
+  let person = Person::read_from_name(conn, user_name)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)

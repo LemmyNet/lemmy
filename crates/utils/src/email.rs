@@ -1,11 +1,7 @@
 use crate::{settings::structs::Settings, LemmyError};
 use lettre::{
   message::{header, Mailbox, MultiPart, SinglePart},
-  transport::smtp::{
-    authentication::Credentials,
-    client::{Tls, TlsParameters},
-    extension::ClientId,
-  },
+  transport::smtp::{authentication::Credentials, extension::ClientId},
   Address,
   Message,
   SmtpTransport,
@@ -77,13 +73,15 @@ pub fn send_email(
 
   // don't worry about 'dangeous'. it's just that leaving it at the default configuration
   // is bad.
-  let mut builder = SmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
 
   // Set the TLS
-  if email_config.use_tls {
-    let tls_config = TlsParameters::new(smtp_server.to_string()).expect("the TLS backend is happy");
-    builder = builder.tls(Tls::Wrapper(tls_config));
-  }
+  let builder_dangerous = SmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
+
+  let mut builder = match email_config.tls_type.as_str() {
+    "starttls" => SmtpTransport::starttls_relay(smtp_server)?,
+    "tls" => SmtpTransport::relay(smtp_server)?,
+    _ => builder_dangerous,
+  };
 
   // Set the creds if they exist
   if let (Some(username), Some(password)) = (email_config.smtp_login, email_config.smtp_password) {

@@ -19,7 +19,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           // Admin Actions
           .route("", web::post().to(route_post_crud::<CreateSite>))
           .route("", web::put().to(route_post_crud::<EditSite>))
-          .route("/transfer", web::post().to(route_post::<TransferSite>))
           .route("/config", web::get().to(route_get::<GetSiteConfig>))
           .route("/config", web::put().to(route_post::<SaveSiteConfig>)),
       )
@@ -213,7 +212,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/report_count", web::get().to(route_get::<GetReportCount>))
           .route("/unread_count", web::get().to(route_get::<GetUnreadCount>))
-          .route("/verify_email", web::post().to(route_post::<VerifyEmail>)),
+          .route("/verify_email", web::post().to(route_post::<VerifyEmail>))
+          .route("/leave_admin", web::post().to(route_post::<LeaveAdmin>)),
       )
       // Admin Actions
       .service(

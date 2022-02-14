@@ -1,7 +1,4 @@
-use crate::{
-  newtypes::{DbUrl, PersonId},
-  schema::site,
-};
+use crate::{newtypes::DbUrl, schema::site};
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -10,7 +7,6 @@ pub struct Site {
   pub id: i32,
   pub name: String,
   pub sidebar: Option<String>,
-  pub creator_id: PersonId,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub enable_downvotes: bool,
@@ -24,13 +20,17 @@ pub struct Site {
   pub require_application: bool,
   pub application_question: Option<String>,
   pub private_instance: bool,
+  pub actor_id: DbUrl,
+  pub last_refreshed_at: chrono::NaiveDateTime,
+  pub inbox_url: DbUrl,
+  pub private_key: Option<String>,
+  pub public_key: String,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
 #[table_name = "site"]
 pub struct SiteForm {
   pub name: String,
-  pub creator_id: PersonId,
   pub sidebar: Option<Option<String>>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub enable_downvotes: Option<bool>,
@@ -45,4 +45,9 @@ pub struct SiteForm {
   pub require_application: Option<bool>,
   pub application_question: Option<Option<String>>,
   pub private_instance: Option<bool>,
+  pub actor_id: Option<DbUrl>,
+  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
+  pub inbox_url: Option<DbUrl>,
+  pub private_key: Option<Option<String>>,
+  pub public_key: Option<String>,
 }

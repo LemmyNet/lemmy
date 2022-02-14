@@ -1,3 +1,20 @@
+# Lemmy v0.15.2 Release (2022-01-27)
+
+A few bug fixes:
+
+- Dont make webfinger request when viewing community/user profile (fixes [#1896](https://github.com/LemmyNet/lemmy/issues/1896)) ([#2049](https://github.com/LemmyNet/lemmy/issues/2049))
+- Case-insensitive username at login ([#2010](https://github.com/LemmyNet/lemmy/issues/2010))
+- Put community last in webfinger response (fixes [#2037](https://github.com/LemmyNet/lemmy/issues/2037)) ([#2047](https://github.com/LemmyNet/lemmy/issues/2047))
+- Dont check for ban in MarkCommentAsRead (fixes [#2045](https://github.com/LemmyNet/lemmy/issues/2045)) ([#2054](https://github.com/LemmyNet/lemmy/issues/2054))
+- Empty post bodies ([#2050](https://github.com/LemmyNet/lemmy/issues/2050))
+- Add tombstone tests, better test errors ([#2046](https://github.com/LemmyNet/lemmy/issues/2046))
+- Accept single object as to for arrays too ([#2048](https://github.com/LemmyNet/lemmy/issues/2048))
+- Cleaning optional post bodies. Fixes [#2039](https://github.com/LemmyNet/lemmy/issues/2039) ([#2043](https://github.com/LemmyNet/lemmy/issues/2043))
+- Fixing liking comment on blocked person. Fixes [#2033](https://github.com/LemmyNet/lemmy/issues/2033) ([#2042](https://github.com/LemmyNet/lemmy/issues/2042))
+- Add tests for lotide federation, make lotide groups fetchable ([#2035](https://github.com/LemmyNet/lemmy/issues/2035))
+- Remove unneeded dependency on activitystreams ([#2034](https://github.com/LemmyNet/lemmy/issues/2034))
+- Fixing private instance check. Fixes [#2064](https://github.com/LemmyNet/lemmy/issues/2064) ([#2065](https://github.com/LemmyNet/lemmy/issues/2065))
+
 # Lemmy v0.15.1 Release (2022-01-12)
 
 Lemmy now has private instances, optional registration applications, optional email verification, and temporary bans! These are described in detail below.

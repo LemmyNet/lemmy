@@ -3,6 +3,7 @@ use crate::{
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   generate_moderators_url,
   generate_outbox_url,
+  objects::instance::fetch_instance_actor_for_object,
   protocol::{
     objects::{group::Group, tombstone::Tombstone, Endpoints},
     ImageObject,
@@ -16,9 +17,8 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
-  values::MediaTypeMarkdown,
 };
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{
   utils::{convert_datetime, markdown_to_html},
@@ -80,22 +80,15 @@ impl ApubObject for ApubCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn into_apub(self, _context: &LemmyContext) -> Result<Group, LemmyError> {
-    let source = self.description.clone().map(|bio| Source {
-      content: bio,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let icon = self.icon.clone().map(ImageObject::new);
-    let image = self.banner.clone().map(ImageObject::new);
-
     let group = Group {
       kind: GroupType::Group,
       id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
       name: self.title.clone(),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
-      source,
-      icon,
-      image,
+      source: self.description.clone().map(Source::new),
+      icon: self.icon.clone().map(ImageObject::new),
+      image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
       moderators: Some(ObjectId::<ApubCommunityModerators>::new(
         generate_moderators_url(&self.actor_id)?,
@@ -160,6 +153,8 @@ impl ApubObject for ApubCommunity {
         .ok();
     }
 
+    fetch_instance_actor_for_object(community.actor_id(), context, request_counter).await;
+
     Ok(community)
   }
 }
@@ -219,9 +214,12 @@ impl ApubCommunity {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::objects::tests::{file_to_json_object, init_context};
+  use crate::objects::{
+    instance::tests::parse_lemmy_instance,
+    tests::{file_to_json_object, init_context},
+  };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
-  use lemmy_db_schema::traits::Crud;
+  use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
@@ -239,7 +237,7 @@ pub(crate) mod tests {
     let community = ApubCommunity::from_apub(json, context, &mut request_counter)
       .await
       .unwrap();
-    // this makes two requests to the (intentionally) broken outbox/moderators collections
+    // this makes one requests to the (intentionally broken) outbox collection
     assert_eq!(request_counter, 1);
     community
   }
@@ -250,6 +248,7 @@ pub(crate) mod tests {
     let client = reqwest::Client::new().into();
     let manager = create_activity_queue(client);
     let context = init_context(manager.queue_handle().clone());
+    let site = parse_lemmy_instance(&context).await;
     let community = parse_lemmy_community(&context).await;
 
     assert_eq!(community.title, "Ten Forward");
@@ -257,5 +256,6 @@ pub(crate) mod tests {
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
     Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 }

@@ -1,5 +1,6 @@
 pub mod comment;
 pub mod post;
+pub mod private_message;
 
 #[cfg(test)]
 mod tests {
@@ -7,7 +8,11 @@ mod tests {
     context::WithContext,
     objects::tests::file_to_json_object,
     protocol::{
-      activities::create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
+      activities::create_or_update::{
+        comment::CreateOrUpdateComment,
+        post::CreateOrUpdatePost,
+        private_message::CreateOrUpdatePrivateMessage,
+      },
       tests::test_parse_lemmy_item,
     },
   };
@@ -16,13 +21,20 @@ mod tests {
   async fn test_parse_create_or_update() {
     test_parse_lemmy_item::<CreateOrUpdatePost>(
       "assets/lemmy/activities/create_or_update/create_page.json",
-    );
+    )
+    .unwrap();
     test_parse_lemmy_item::<CreateOrUpdatePost>(
       "assets/lemmy/activities/create_or_update/update_page.json",
-    );
+    )
+    .unwrap();
     test_parse_lemmy_item::<CreateOrUpdateComment>(
       "assets/lemmy/activities/create_or_update/create_note.json",
-    );
+    )
+    .unwrap();
+    test_parse_lemmy_item::<CreateOrUpdatePrivateMessage>(
+      "assets/lemmy/activities/create_or_update/create_private_message.json",
+    )
+    .unwrap();
 
     file_to_json_object::<WithContext<CreateOrUpdateComment>>(
       "assets/pleroma/activities/create_note.json",
@@ -37,6 +49,9 @@ mod tests {
 
     file_to_json_object::<CreateOrUpdatePost>("assets/lotide/activities/create_page.json").unwrap();
     file_to_json_object::<CreateOrUpdateComment>("assets/lotide/activities/create_note_reply.json")
+      .unwrap();
+
+    file_to_json_object::<CreateOrUpdateComment>("assets/friendica/activities/create_note.json")
       .unwrap();
   }
 }

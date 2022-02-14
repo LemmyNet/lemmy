@@ -3,6 +3,7 @@ use html2md::parse_html;
 
 pub mod comment;
 pub mod community;
+pub mod instance;
 pub mod person;
 pub mod post;
 pub mod private_message;
@@ -90,11 +91,9 @@ pub(crate) mod tests {
     LemmyContext::create(pool, chat_server, client, activity_queue, settings, secret)
   }
 
-  pub(crate) fn file_to_json_object<T: DeserializeOwned>(
-    path: &str,
-  ) -> serde_json::error::Result<T> {
-    let file = File::open(path).unwrap();
+  pub(crate) fn file_to_json_object<T: DeserializeOwned>(path: &str) -> Result<T, LemmyError> {
+    let file = File::open(path)?;
     let reader = BufReader::new(file);
-    serde_json::from_reader(reader)
+    Ok(serde_json::from_reader(reader)?)
   }
 }
