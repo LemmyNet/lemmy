@@ -6,6 +6,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams_kinds::public;
+use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
@@ -170,8 +171,6 @@ async fn send_lemmy_activity<T: Serialize>(
   }
   let activity = WithContext::new(activity);
 
-  info!("Sending activity {}", activity_id.to_string());
-
   // Don't send anything to ourselves
   // TODO: this should be a debug assert
   let hostname = context.settings().get_hostname_without_port()?;
@@ -179,6 +178,12 @@ async fn send_lemmy_activity<T: Serialize>(
     .iter()
     .filter(|i| i.domain().expect("valid inbox url") != hostname)
     .collect();
+
+  info!(
+    "Sending activity {} to [{}]",
+    activity_id.to_string(),
+    inboxes.iter().join(",")
+  );
 
   let serialised_activity = serde_json::to_string(&activity)?;
 
