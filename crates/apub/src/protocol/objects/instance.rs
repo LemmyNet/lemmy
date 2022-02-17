@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::ApubSite,
-  protocol::{ImageObject, Source, Unparsed},
+  protocol::{ImageObject, Source},
 };
 use activitystreams_kinds::actor::ServiceType;
 use chrono::{DateTime, FixedOffset};
@@ -18,6 +18,11 @@ pub struct Instance {
   pub(crate) id: ObjectId<ApubSite>,
   // site name
   pub(crate) name: String,
+  pub(crate) inbox: Url,
+  /// mandatory field in activitypub, lemmy currently serves an empty outbox
+  pub(crate) outbox: Url,
+  pub(crate) public_key: PublicKey,
+
   // sidebar
   pub(crate) content: Option<String>,
   pub(crate) source: Option<Source>,
@@ -28,12 +33,6 @@ pub struct Instance {
   pub(crate) icon: Option<ImageObject>,
   /// instance banner
   pub(crate) image: Option<ImageObject>,
-  pub(crate) inbox: Url,
-  /// mandatory field in activitypub, currently empty in lemmy
-  pub(crate) outbox: Url,
-  pub(crate) public_key: PublicKey,
   pub(crate) published: DateTime<FixedOffset>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

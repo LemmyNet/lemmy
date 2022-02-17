@@ -2,7 +2,7 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   mentions::Mention,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::{Source, Unparsed},
+  protocol::Source,
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
@@ -30,16 +30,15 @@ pub struct Note {
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
+  pub(crate) in_reply_to: ObjectId<PostOrComment>,
+
   pub(crate) media_type: Option<MediaTypeHtml>,
   #[serde(default)]
   pub(crate) source: SourceCompat,
-  pub(crate) in_reply_to: ObjectId<PostOrComment>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
   pub(crate) tag: Vec<Mention>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }
 
 /// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work

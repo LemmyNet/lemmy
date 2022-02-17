@@ -13,16 +13,17 @@ pub struct Delete {
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: IdOrNestedObject,
+  #[serde(rename = "type")]
+  pub(crate) kind: DeleteType,
+  pub(crate) id: Url,
+
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   #[serde(default)]
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub(crate) cc: Vec<Url>,
-  #[serde(rename = "type")]
-  pub(crate) kind: DeleteType,
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
   /// deleting their own content.
   pub(crate) summary: Option<String>,
-  pub(crate) id: Url,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

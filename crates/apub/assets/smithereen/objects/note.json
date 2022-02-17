@@ -28,5 +28,11 @@
     }
   },
   "sensitive": false,
-  "likes": "https://friends.grishka.me/posts/66561/likes"
+  "likes": "https://friends.grishka.me/posts/66561/likes",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "sensitive": "as:sensitive"
+    }
+  ]
 }

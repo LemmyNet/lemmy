@@ -90,7 +90,6 @@ impl ApubObject for ApubPrivateMessage {
       source: Some(Source::new(self.content.clone())),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
     };
     Ok(note)
   }
@@ -159,9 +158,9 @@ impl ApubObject for ApubPrivateMessage {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::objects::{
-    person::ApubPerson,
-    tests::{file_to_json_object, init_context},
+  use crate::{
+    objects::{person::ApubPerson, tests::init_context},
+    protocol::tests::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
   use lemmy_apub_lib::activity_queue::create_activity_queue;

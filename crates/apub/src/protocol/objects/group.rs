@@ -5,7 +5,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   objects::{community::ApubCommunity, get_summary_from_string_or_source},
-  protocol::{objects::Endpoints, ImageObject, Source, Unparsed},
+  protocol::{objects::Endpoints, ImageObject, Source},
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
@@ -27,10 +27,14 @@ pub struct Group {
   #[serde(rename = "type")]
   pub(crate) kind: GroupType,
   pub(crate) id: ObjectId<ApubCommunity>,
-  /// username, set at account creation and can never be changed
+  /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
-  /// title (can be changed at any time)
+  /// displayname
   pub(crate) name: String,
+  pub(crate) inbox: Url,
+  pub(crate) followers: Url,
+  pub(crate) public_key: PublicKey,
+
   pub(crate) summary: Option<String>,
   pub(crate) source: Option<Source>,
   pub(crate) icon: Option<ImageObject>,
@@ -40,15 +44,10 @@ pub struct Group {
   pub(crate) sensitive: Option<bool>,
   // lemmy extension
   pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
-  pub(crate) inbox: Url,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
-  pub(crate) followers: Url,
   pub(crate) endpoints: Option<Endpoints>,
-  pub(crate) public_key: PublicKey,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }
 
 impl Group {

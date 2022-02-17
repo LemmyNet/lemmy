@@ -15,8 +15,8 @@ mod tests {
     tests::test_parse_lemmy_item,
   };
 
-  #[actix_rt::test]
-  async fn test_parse_lemmy_collections() {
+  #[test]
+  fn test_parse_lemmy_collections() {
     test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json")
       .unwrap();
     let outbox =

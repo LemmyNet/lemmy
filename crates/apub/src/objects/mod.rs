@@ -41,8 +41,7 @@ pub(crate) mod tests {
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
-  use serde::de::DeserializeOwned;
-  use std::{fs::File, io::BufReader, sync::Arc};
+  use std::sync::Arc;
   use tokio::sync::Mutex;
 
   // TODO: would be nice if we didnt have to use a full context for tests.
@@ -89,11 +88,5 @@ pub(crate) mod tests {
     )
     .start();
     LemmyContext::create(pool, chat_server, client, activity_queue, settings, secret)
-  }
-
-  pub(crate) fn file_to_json_object<T: DeserializeOwned>(path: &str) -> Result<T, LemmyError> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    Ok(serde_json::from_reader(reader)?)
   }
 }

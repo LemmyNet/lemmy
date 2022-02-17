@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   objects::get_summary_from_string_or_source,
-  protocol::{objects::instance::Instance, ImageObject, Source, Unparsed},
+  protocol::{objects::instance::Instance, ImageObject, Source},
 };
 use activitystreams_kinds::actor::ServiceType;
 use chrono::NaiveDateTime;
@@ -86,7 +86,6 @@ impl ApubObject for ApubSite {
       public_key: self.get_public_key()?,
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
-      unparsed: Unparsed::default(),
     };
     Ok(instance)
   }
@@ -186,7 +185,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::objects::tests::{file_to_json_object, init_context};
+  use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;

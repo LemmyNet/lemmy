@@ -125,7 +125,6 @@ impl ApubObject for ApubComment {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       tag: maa.tags,
-      unparsed: Default::default(),
     };
 
     Ok(note)
@@ -208,12 +207,15 @@ impl ApubObject for ApubComment {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::objects::{
-    community::{tests::parse_lemmy_community, ApubCommunity},
-    instance::ApubSite,
-    person::{tests::parse_lemmy_person, ApubPerson},
-    post::ApubPost,
-    tests::{file_to_json_object, init_context},
+  use crate::{
+    objects::{
+      community::{tests::parse_lemmy_community, ApubCommunity},
+      instance::ApubSite,
+      person::{tests::parse_lemmy_person, ApubPerson},
+      post::ApubPost,
+      tests::init_context,
+    },
+    protocol::tests::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
   use lemmy_apub_lib::activity_queue::create_activity_queue;

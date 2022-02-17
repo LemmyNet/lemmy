@@ -8,8 +8,8 @@ mod tests {
     tests::test_parse_lemmy_item,
   };
 
-  #[actix_rt::test]
-  async fn test_parse_lemmy_voting() {
+  #[test]
+  fn test_parse_lemmy_voting() {
     test_parse_lemmy_item::<Vote>("assets/lemmy/activities/voting/like_note.json").unwrap();
     test_parse_lemmy_item::<Vote>("assets/lemmy/activities/voting/dislike_page.json").unwrap();
 
