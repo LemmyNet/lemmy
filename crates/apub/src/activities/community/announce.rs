@@ -14,6 +14,7 @@ use lemmy_apub_lib::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use tracing::info;
 
 #[async_trait::async_trait(?Send)]
 pub(crate) trait GetCommunity {
@@ -51,6 +52,14 @@ impl AnnounceActivity {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
+    // temporary hack to get activity id of object
+    let object_fields: ActivityCommonFields =
+      serde_json::from_value(serde_json::to_value(&object)?)?;
+    info!(
+      "Announcing activity {} as {}",
+      object_fields.id, announce.id
+    );
+
     let inboxes = community.get_follower_inboxes(context).await?;
     send_lemmy_activity(
       context,
