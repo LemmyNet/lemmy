@@ -1,5 +1,5 @@
 use crate::{signatures::sign_and_send, traits::ActorType};
-use anyhow::{anyhow, Context, Error};
+use anyhow::{Context, Error};
 use background_jobs::{
   memory_storage::Storage,
   ActixJob,
@@ -90,12 +90,10 @@ async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Resul
       }
     }
     Err(e) => {
-      return Err(anyhow!(
+      warn!(
         "Failed to send activity {} to {}: {}",
-        &task.activity_id,
-        task.inbox,
-        e
-      ));
+        &task.activity_id, task.inbox, e
+      );
     }
   }
   Ok(())
