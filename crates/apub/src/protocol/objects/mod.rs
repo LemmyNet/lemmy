@@ -74,4 +74,11 @@ mod tests {
     test_json::<Person>("assets/friendica/objects/person.json").unwrap();
     test_json::<Note>("assets/friendica/objects/note.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_object_gnusocial() {
+    test_json::<Person>("assets/gnusocial/objects/person.json").unwrap();
+    test_json::<Group>("assets/gnusocial/objects/group.json").unwrap();
+    test_json::<Page>("assets/gnusocial/objects/page.json").unwrap();
+  }
 }

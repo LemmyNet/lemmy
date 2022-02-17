@@ -1,0 +1,25 @@
+{
+  "type": "Page",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://social.hsal.es/object/note/10",
+  "published": "2022-02-17T18:47:12+00:00",
+  "attributedTo": "https://social.hsal.es/actor/1",
+  "name": "Haoy from GNU social! :)",
+  "content": "<p>happy hacking!</p>",
+  "mediaType": "text/html",
+  "source": {
+    "content": "happy hacking!",
+    "mediaType": "text/plain"
+  },
+  "attachment": [],
+  "tag": [],
+  "inConversation": "https://social.hsal.es/conversation/9",
+  "directMessage": false,
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": [
+    "https://social.hsal.es/actor/1/subscribers",
+    "https://ds9.lemmy.ml/c/incredible"
+  ]
+}

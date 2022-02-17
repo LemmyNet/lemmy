@@ -1,0 +1,24 @@
+{
+  "type": "Group",
+  "streams": [],
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://social.hsal.es/actor/2",
+  "inbox": "https://social.hsal.es/actor/2/inbox.json",
+  "outbox": "https://social.hsal.es/actor/2/outbox.json",
+  "following": "https://social.hsal.es/actor/2/subscriptions",
+  "followers": "https://social.hsal.es/actor/2/subscribers",
+  "liked": "https://social.hsal.es/actor/2/favourites",
+  "preferredUsername": "hackers",
+  "publicKey": {
+    "id": "https://social.hsal.es/actor/2#public-key",
+    "owner": "https://social.hsal.es/actor/2",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvwd33xvZy4WWcGl7k6e+\ngl5I4O9sGRGOpfiCEYckHYorJ1NJjEHXWNY06NGBTZ7vI4kmD2GIxuYFij2XdetU\nZnFJG7JmiiibtZvwmqeVRoQmFUI6SsOslvwx0gXXlhSnGEWgzEvwUVhqvmDirP7L\nWMfmuci+QH+y+p7LnN0VFg3QmTQeafqW6bv/zmdUtG0Boe0Ux7sw7yp4gViEojvy\npsyrHeKAxG0i60GQ3aeEvYCJVuBdd6c2gsSE3EyzT/7gZtvydimhdpbbm42RepG7\npxFUKW3Op4Lq5LePDJ5OmxODF990wWw/F/zMIN+gdRf6BlYlA2BTOz+nI7E9HOn7\nywIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "name": "Hackers!",
+  "published": "2022-02-14T04:42:10+00:00",
+  "updated": "2022-02-17T18:55:08+00:00",
+  "url": "https://social.hsal.es/!hackers",
+  "endpoints": {
+    "sharedInbox": "https://social.hsal.es/inbox.json"
+  }
+}

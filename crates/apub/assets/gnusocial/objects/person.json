@@ -1,0 +1,24 @@
+{
+  "type": "Person",
+  "streams": [],
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://social.hsal.es/actor/1",
+  "inbox": "https://social.hsal.es/actor/1/inbox.json",
+  "outbox": "https://social.hsal.es/actor/1/outbox.json",
+  "following": "https://social.hsal.es/actor/1/subscriptions",
+  "followers": "https://social.hsal.es/actor/1/subscribers",
+  "liked": "https://social.hsal.es/actor/1/favourites",
+  "preferredUsername": "diogo",
+  "publicKey": {
+    "id": "https://social.hsal.es/actor/1#public-key",
+    "owner": "https://social.hsal.es/actor/1",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7QbDU7Y3+5n0EdU9e6RC\naOydiA4mMAGfa5DKCBqDLN1tMsQ0sA9tMs7ZnxElG8YTxb+xhcnSv+vAxYGUJ+R3\nNPOnGn969ERRXLG4t+TV7h3TIIInAH0xJT65yqk6hus0qr/gz5NixMJcZ+14ny7V\n2h2hmSp/aF9Di2W4X/cVw01WzzguKgZ0IxxjNyE5RXW5Czo58AQCcPdriWKlk47z\ny5Up1aO/yzoOfqEF9iwuq/Kyf7Ir82LueUp2LlmhqnuNYsCtV4EiWqtVJpzt9eyr\ntsazBNKosxxf0rSeMbkZIUQWh3OBTBUqitl5QCSU1GlWYOjsCymHGJQoByPNG59U\n5wIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "published": "2022-02-14T04:41:59+00:00",
+  "updated": "2022-02-14T04:41:59+00:00",
+  "url": "https://social.hsal.es/@diogo",
+  "endpoints": {
+    "sharedInbox": "https://social.hsal.es/inbox.json"
+  },
+  "featured": "https://social.hsal.es/actor/1/pinned_notes"
+}

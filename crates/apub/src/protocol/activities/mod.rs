@@ -55,4 +55,9 @@ mod tests {
   fn test_parse_friendica_activities() {
     test_json::<CreateOrUpdateComment>("assets/friendica/activities/create_note.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_gnusocial_activities() {
+    test_json::<CreateOrUpdatePost>("assets/gnusocial/activities/create_page.json").unwrap();
+  }
 }
