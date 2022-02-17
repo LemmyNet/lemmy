@@ -33,12 +33,12 @@ pub struct Group {
   pub(crate) id: ObjectId<ApubCommunity>,
   /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
-  /// displayname
-  pub(crate) name: String,
   pub(crate) inbox: Url,
   pub(crate) followers: Url,
   pub(crate) public_key: PublicKey,
 
+  /// title
+  pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
   #[serde(default)]
   pub(crate) source: SourceCompat,
@@ -68,7 +68,7 @@ impl Group {
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&self.preferred_username, slur_regex)?;
-    check_slurs(&self.name, slur_regex)?;
+    check_slurs_opt(&self.name, slur_regex)?;
     let description = read_from_string_or_source_opt(&self.summary, &self.source);
     check_slurs_opt(&description, slur_regex)?;
     Ok(())
@@ -76,8 +76,8 @@ impl Group {
 
   pub(crate) fn into_form(self) -> CommunityForm {
     CommunityForm {
-      name: self.preferred_username,
-      title: self.name,
+      name: self.preferred_username.clone(),
+      title: self.name.unwrap_or(self.preferred_username),
       description: read_from_string_or_source_opt(&self.summary, &self.source),
       removed: None,
       published: self.published.map(|u| u.naive_local()),

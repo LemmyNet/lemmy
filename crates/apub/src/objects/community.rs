@@ -85,7 +85,7 @@ impl ApubObject for ApubCommunity {
       kind: GroupType::Group,
       id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
-      name: self.title.clone(),
+      name: Some(self.title.clone()),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
       source: SourceCompat::new(self.description.clone()),
       icon: self.icon.clone().map(ImageObject::new),
