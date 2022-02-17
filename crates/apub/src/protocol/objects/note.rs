@@ -2,7 +2,7 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   mentions::Mention,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::Source,
+  protocol::SourceCompat,
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
@@ -12,7 +12,6 @@ use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
@@ -39,22 +38,6 @@ pub struct Note {
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
   pub(crate) tag: Vec<Mention>,
-}
-
-/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
-pub(crate) enum SourceCompat {
-  Lemmy(Source),
-  Other(Value),
-  None,
-}
-
-impl Default for SourceCompat {
-  fn default() -> Self {
-    SourceCompat::None
-  }
 }
 
 impl Note {

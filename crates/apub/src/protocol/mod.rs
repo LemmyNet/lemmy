@@ -4,6 +4,7 @@ use url::Url;
 
 use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_db_schema::newtypes::DbUrl;
+use serde_json::Value;
 use std::collections::HashMap;
 
 pub mod activities;
@@ -17,12 +18,31 @@ pub struct Source {
   pub(crate) media_type: MediaTypeMarkdown,
 }
 
-impl Source {
-  pub(crate) fn new(content: String) -> Self {
-    Source {
-      content,
-      media_type: MediaTypeMarkdown::Markdown,
+/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+pub(crate) enum SourceCompat {
+  Lemmy(Source),
+  Other(Value),
+  None,
+}
+
+impl SourceCompat {
+  pub(crate) fn new(content: Option<String>) -> Self {
+    match content {
+      Some(c) => SourceCompat::Lemmy(Source {
+        content: c,
+        media_type: MediaTypeMarkdown::Markdown,
+      }),
+      None => SourceCompat::None,
     }
+  }
+}
+
+impl Default for SourceCompat {
+  fn default() -> Self {
+    SourceCompat::None
   }
 }
 

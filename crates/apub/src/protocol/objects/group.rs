@@ -6,10 +6,10 @@ use crate::{
   },
   objects::{
     community::ApubCommunity,
-    get_summary_from_string_or_source,
+    read_from_string_or_source_opt,
     verify_image_domain_matches,
   },
-  protocol::{objects::Endpoints, ImageObject, Source},
+  protocol::{objects::Endpoints, ImageObject, SourceCompat},
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
@@ -40,7 +40,8 @@ pub struct Group {
   pub(crate) public_key: PublicKey,
 
   pub(crate) summary: Option<String>,
-  pub(crate) source: Option<Source>,
+  #[serde(default)]
+  pub(crate) source: SourceCompat,
   pub(crate) icon: Option<ImageObject>,
   /// banner
   pub(crate) image: Option<ImageObject>,
@@ -68,7 +69,7 @@ impl Group {
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&self.preferred_username, slur_regex)?;
     check_slurs(&self.name, slur_regex)?;
-    let description = get_summary_from_string_or_source(&self.summary, &self.source);
+    let description = read_from_string_or_source_opt(&self.summary, &self.source);
     check_slurs_opt(&description, slur_regex)?;
     Ok(())
   }
@@ -77,7 +78,7 @@ impl Group {
     CommunityForm {
       name: self.preferred_username,
       title: self.name,
-      description: get_summary_from_string_or_source(&self.summary, &self.source),
+      description: read_from_string_or_source_opt(&self.summary, &self.source),
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),

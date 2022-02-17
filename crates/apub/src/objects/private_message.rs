@@ -1,9 +1,11 @@
-use crate::protocol::{
-  objects::chat_message::{ChatMessage, ChatMessageType},
-  Source,
+use crate::{
+  objects::read_from_string_or_source,
+  protocol::{
+    objects::chat_message::{ChatMessage, ChatMessageType},
+    SourceCompat,
+  },
 };
 use chrono::NaiveDateTime;
-use html2md::parse_html;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
@@ -88,7 +90,7 @@ impl ApubObject for ApubPrivateMessage {
       to: [ObjectId::new(recipient.actor_id)],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
-      source: Some(Source::new(self.content.clone())),
+      source: SourceCompat::new(Some(self.content.clone())),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
     };
@@ -131,16 +133,11 @@ impl ApubObject for ApubPrivateMessage {
     let recipient = note.to[0]
       .dereference(context, context.client(), request_counter)
       .await?;
-    let content = if let Some(source) = &note.source {
-      source.content.clone()
-    } else {
-      parse_html(&note.content)
-    };
 
     let form = PrivateMessageForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content,
+      content: read_from_string_or_source(&note.content, &note.source),
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,

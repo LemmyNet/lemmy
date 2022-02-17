@@ -1,6 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{ImageObject, Source},
+  protocol::{ImageObject, SourceCompat},
 };
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{
@@ -37,7 +37,8 @@ pub struct Page {
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
-  pub(crate) source: Option<Source>,
+  #[serde(default)]
+  pub(crate) source: SourceCompat,
   pub(crate) url: Option<Url>,
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,

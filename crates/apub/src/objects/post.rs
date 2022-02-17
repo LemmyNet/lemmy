@@ -1,13 +1,14 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
+  objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
       page::{Page, PageType},
       tombstone::Tombstone,
     },
     ImageObject,
-    Source,
+    SourceCompat,
   },
 };
 use activitystreams_kinds::public;
@@ -16,7 +17,7 @@ use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
-  values::{MediaTypeHtml, MediaTypeMarkdown},
+  values::MediaTypeHtml,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -100,12 +101,6 @@ impl ApubObject for ApubPost {
     })
     .await??;
 
-    let source = self.body.clone().map(|body| Source {
-      content: body,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let image = self.thumbnail_url.clone().map(ImageObject::new);
-
     let page = Page {
       r#type: PageType::Page,
       id: ObjectId::new(self.ap_id.clone()),
@@ -115,9 +110,9 @@ impl ApubObject for ApubPost {
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeHtml::Html),
-      source,
+      source: SourceCompat::new(self.body.clone()),
       url: self.url.clone().map(|u| u.into()),
-      image,
+      image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
@@ -175,10 +170,8 @@ impl ApubObject for ApubPost {
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
 
-    let body_slurs_removed = page
-      .source
-      .as_ref()
-      .map(|s| remove_slurs(&s.content, &context.settings().slur_regex()));
+    let body_slurs_removed = read_from_string_or_source_opt(&page.content, &page.source)
+      .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
     let form = PostForm {
       name: page.name,
       url: page.url.map(|u| u.into()),
