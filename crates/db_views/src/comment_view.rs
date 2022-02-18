@@ -448,10 +448,25 @@ impl<'a> CommentQueryBuilder<'a> {
     };
 
     if let Some(listing_type) = self.listing_type {
-      query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
-        ListingType::Local => query.filter(community::local.eq(true)),
-        _ => query,
+      match listing_type {
+        ListingType::Subscribed => {
+          query = query.filter(community_follower::person_id.is_not_null())
+        } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Local => {
+          query = query.filter(community::local.eq(true)).filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          )
+        }
+        ListingType::All => {
+          query = query.filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          )
+        }
+        ListingType::Community => {}
       };
     }
 
@@ -693,6 +708,7 @@ mod tests {
         description: None,
         updated: None,
         banner: None,
+        hidden: false,
         published: inserted_community.published,
       },
       counts: CommentAggregates {

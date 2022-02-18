@@ -19,6 +19,7 @@ use lemmy_db_views_moderator::{
   mod_add_view::ModAddView,
   mod_ban_from_community_view::ModBanFromCommunityView,
   mod_ban_view::ModBanView,
+  mod_hide_community_view::ModHideCommunityView,
   mod_lock_post_view::ModLockPostView,
   mod_remove_comment_view::ModRemoveCommentView,
   mod_remove_community_view::ModRemoveCommunityView,
@@ -87,6 +88,7 @@ pub struct GetModlogResponse {
   pub added_to_community: Vec<ModAddCommunityView>,
   pub transferred_to_community: Vec<ModTransferCommunityView>,
   pub added: Vec<ModAddView>,
+  pub hidden_communities: Vec<ModHideCommunityView>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

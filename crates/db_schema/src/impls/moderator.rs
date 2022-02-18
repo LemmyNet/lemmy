@@ -168,6 +168,30 @@ impl Crud for ModBan {
   }
 }
 
+impl Crud for ModHideCommunity {
+  type Form = ModHideCommunityForm;
+  type IdType = i32;
+
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::mod_hide_community::dsl::*;
+    mod_hide_community.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &ModHideCommunityForm) -> Result<Self, Error> {
+    use crate::schema::mod_hide_community::dsl::*;
+    insert_into(mod_hide_community)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &ModHideCommunityForm) -> Result<Self, Error> {
+    use crate::schema::mod_hide_community::dsl::*;
+    diesel::update(mod_hide_community.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
 impl Crud for ModAddCommunity {
   type Form = ModAddCommunityForm;
   type IdType = i32;
