@@ -106,6 +106,7 @@ pub struct CreateSite {
   pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
+  pub default_theme: Option<String>,
   pub auth: Sensitive<String>,
 }
 
@@ -124,6 +125,7 @@ pub struct EditSite {
   pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
+  pub default_theme: Option<String>,
   pub auth: Sensitive<String>,
 }
 

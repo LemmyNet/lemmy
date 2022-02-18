@@ -460,6 +460,7 @@ table! {
         inbox_url -> Text,
         private_key -> Nullable<Text>,
         public_key -> Text,
+        default_theme -> Text,
     }
 }
 

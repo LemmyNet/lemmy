@@ -80,6 +80,7 @@ impl PerformCrud for CreateSite {
       inbox_url,
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
+      default_theme: data.default_theme.clone(),
       ..SiteForm::default()
     };
 

@@ -68,6 +68,7 @@ impl PerformCrud for GetSite {
             require_application: setup.require_application,
             application_question: setup.application_question.to_owned(),
             private_instance: setup.private_instance,
+            default_theme: setup.default_theme.to_owned(),
             auth: admin_jwt,
           };
           create_site.perform(context, websocket_id).await?;
