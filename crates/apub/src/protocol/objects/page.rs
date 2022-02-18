@@ -1,6 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{ImageObject, Source, Unparsed},
+  protocol::{ImageObject, Source},
 };
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{
@@ -30,10 +30,11 @@ pub struct Page {
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
+  pub(crate) name: String,
+
   #[serde(default)]
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
-  pub(crate) name: String,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
   pub(crate) source: Option<Source>,
@@ -44,8 +45,6 @@ pub struct Page {
   pub(crate) stickied: Option<bool>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }
 
 impl Page {

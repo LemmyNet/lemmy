@@ -19,6 +19,7 @@ pub struct Report {
   #[serde(rename = "type")]
   pub(crate) kind: FlagType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

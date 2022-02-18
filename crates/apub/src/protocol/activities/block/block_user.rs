@@ -17,13 +17,14 @@ pub struct BlockUser {
   pub(crate) target: ObjectId<SiteOrCommunity>,
   #[serde(rename = "type")]
   pub(crate) kind: BlockType,
+  pub(crate) id: Url,
+
   /// Quick and dirty solution.
   /// TODO: send a separate Delete activity instead
   pub(crate) remove_data: Option<bool>,
   /// block reason, written to mod log
   pub(crate) summary: Option<String>,
-  pub(crate) id: Url,
+  pub(crate) expires: Option<DateTime<FixedOffset>>,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
-  pub(crate) expires: Option<DateTime<FixedOffset>>,
 }

@@ -105,7 +105,6 @@ impl ApubObject for ApubPerson {
       }),
       public_key: self.get_public_key()?,
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
       inbox: self.inbox_url.clone().into(),
     };
     Ok(person)
@@ -204,9 +203,9 @@ pub(crate) mod tests {
   use crate::{
     objects::{
       instance::{tests::parse_lemmy_instance, ApubSite},
-      tests::{file_to_json_object, init_context},
+      tests::init_context,
     },
-    protocol::objects::instance::Instance,
+    protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{source::site::Site, traits::Crud};

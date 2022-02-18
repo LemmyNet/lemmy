@@ -20,6 +20,7 @@ pub struct AnnounceActivity {
   #[serde(rename = "type")]
   pub(crate) kind: AnnounceType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

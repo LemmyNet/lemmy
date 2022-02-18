@@ -15,6 +15,7 @@ pub struct AcceptFollowCommunity {
   #[serde(rename = "type")]
   pub(crate) kind: AcceptType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

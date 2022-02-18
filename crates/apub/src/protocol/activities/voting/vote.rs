@@ -22,6 +22,7 @@ pub struct Vote {
   #[serde(rename = "type")]
   pub(crate) kind: VoteType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

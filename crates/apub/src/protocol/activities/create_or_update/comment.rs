@@ -21,6 +21,7 @@ pub struct CreateOrUpdateComment {
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

@@ -16,6 +16,7 @@ pub struct CreateOrUpdatePrivateMessage {
   pub(crate) object: ChatMessage,
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
+
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
 }

@@ -1,6 +1,6 @@
 use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  protocol::{Source, Unparsed},
+  protocol::Source,
 };
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
@@ -17,12 +17,11 @@ pub struct ChatMessage {
   #[serde(deserialize_with = "crate::deserialize_one")]
   pub(crate) to: [ObjectId<ApubPerson>; 1],
   pub(crate) content: String,
+
   pub(crate) media_type: Option<MediaTypeHtml>,
   pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }
 
 /// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages

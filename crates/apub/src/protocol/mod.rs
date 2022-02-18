@@ -49,11 +49,21 @@ pub struct Unparsed(HashMap<String, serde_json::Value>);
 
 #[cfg(test)]
 pub(crate) mod tests {
-  use crate::objects::tests::file_to_json_object;
+  use crate::context::WithContext;
   use assert_json_diff::assert_json_include;
   use lemmy_utils::LemmyError;
   use serde::{de::DeserializeOwned, Serialize};
-  use std::collections::HashMap;
+  use std::{collections::HashMap, fs::File, io::BufReader};
+
+  pub(crate) fn file_to_json_object<T: DeserializeOwned>(path: &str) -> Result<T, LemmyError> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    Ok(serde_json::from_reader(reader)?)
+  }
+
+  pub(crate) fn test_json<T: DeserializeOwned>(path: &str) -> Result<WithContext<T>, LemmyError> {
+    file_to_json_object::<WithContext<T>>(path)
+  }
 
   /// Check that json deserialize -> serialize -> deserialize gives identical file as initial one.
   /// Ensures that there are no breaking changes in sent data.

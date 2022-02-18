@@ -102,7 +102,6 @@ impl ApubObject for ApubCommunity {
       public_key: self.get_public_key()?,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
     };
     Ok(group)
   }
@@ -214,9 +213,9 @@ impl ApubCommunity {
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::objects::{
-    instance::tests::parse_lemmy_instance,
-    tests::{file_to_json_object, init_context},
+  use crate::{
+    objects::{instance::tests::parse_lemmy_instance, tests::init_context},
+    protocol::tests::file_to_json_object,
   };
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
