@@ -38,8 +38,7 @@ pub struct Page {
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
-  #[serde(default)]
-  pub(crate) source: SourceCompat,
+  pub(crate) source: Option<SourceCompat>,
   pub(crate) url: Option<Url>,
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,

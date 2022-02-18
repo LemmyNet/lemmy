@@ -31,8 +31,7 @@ pub struct Person {
   /// displayname
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  #[serde(default)]
-  pub(crate) source: SourceCompat,
+  pub(crate) source: Option<SourceCompat>,
   /// user avatar
   pub(crate) icon: Option<ImageObject>,
   /// user banner

@@ -110,7 +110,7 @@ impl ApubObject for ApubPost {
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeHtml::Html),
-      source: SourceCompat::new(self.body.clone()),
+      source: self.body.clone().map(SourceCompat::new),
       url: self.url.clone().map(|u| u.into()),
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),

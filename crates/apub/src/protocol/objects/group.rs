@@ -40,8 +40,7 @@ pub struct Group {
   /// title
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  #[serde(default)]
-  pub(crate) source: SourceCompat,
+  pub(crate) source: Option<SourceCompat>,
   pub(crate) icon: Option<ImageObject>,
   /// banner
   pub(crate) image: Option<ImageObject>,

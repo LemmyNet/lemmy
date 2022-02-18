@@ -99,7 +99,7 @@ impl ApubObject for ApubPerson {
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      source: SourceCompat::new(self.bio.clone()),
+      source: self.bio.clone().map(SourceCompat::new),
       icon: self.avatar.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),

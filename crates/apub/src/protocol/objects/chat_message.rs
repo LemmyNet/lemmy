@@ -19,8 +19,7 @@ pub struct ChatMessage {
   pub(crate) content: String,
 
   pub(crate) media_type: Option<MediaTypeHtml>,
-  #[serde(default)]
-  pub(crate) source: SourceCompat,
+  pub(crate) source: Option<SourceCompat>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
 }

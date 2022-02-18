@@ -77,7 +77,7 @@ impl ApubObject for ApubSite {
       id: ObjectId::new(self.actor_id()),
       name: self.name.clone(),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
-      source: SourceCompat::new(self.sidebar.clone()),
+      source: self.sidebar.clone().map(SourceCompat::new),
       summary: self.description.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),

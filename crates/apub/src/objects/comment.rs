@@ -118,7 +118,7 @@ impl ApubObject for ApubComment {
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
-      source: SourceCompat::new(Some(self.content.clone())),
+      source: Some(SourceCompat::new(self.content.clone())),
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -213,7 +213,6 @@ pub(crate) mod tests {
   };
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 

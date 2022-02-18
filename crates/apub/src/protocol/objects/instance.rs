@@ -25,8 +25,7 @@ pub struct Instance {
 
   // sidebar
   pub(crate) content: Option<String>,
-  #[serde(default)]
-  pub(crate) source: SourceCompat,
+  pub(crate) source: Option<SourceCompat>,
   // short instance description
   pub(crate) summary: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,

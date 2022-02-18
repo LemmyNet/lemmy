@@ -25,24 +25,14 @@ pub struct Source {
 pub(crate) enum SourceCompat {
   Lemmy(Source),
   Other(Value),
-  None,
 }
 
 impl SourceCompat {
-  pub(crate) fn new(content: Option<String>) -> Self {
-    match content {
-      Some(c) => SourceCompat::Lemmy(Source {
-        content: c,
-        media_type: MediaTypeMarkdown::Markdown,
-      }),
-      None => SourceCompat::None,
-    }
-  }
-}
-
-impl Default for SourceCompat {
-  fn default() -> Self {
-    SourceCompat::None
+  pub(crate) fn new(content: String) -> Self {
+    SourceCompat::Lemmy(Source {
+      content,
+      media_type: MediaTypeMarkdown::Markdown,
+    })
   }
 }
 

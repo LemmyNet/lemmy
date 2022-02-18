@@ -90,7 +90,7 @@ impl ApubObject for ApubPrivateMessage {
       to: [ObjectId::new(recipient.actor_id)],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
-      source: SourceCompat::new(Some(self.content.clone())),
+      source: Some(SourceCompat::new(self.content.clone())),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
     };
