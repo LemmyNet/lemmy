@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   fuzzy_search,
   limit_and_offset,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower},
+  schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
     community::{Community, CommunityFollower, CommunitySafe},
     community_block::CommunityBlock,
@@ -167,6 +167,7 @@ impl<'a> CommunityQueryBuilder<'a> {
 
     let mut query = community::table
       .inner_join(community_aggregates::table)
+      .left_join(local_user::table.on(local_user::person_id.eq(person_id_join)))
       .left_join(
         community_follower::table.on(
           community::id
@@ -231,10 +232,15 @@ impl<'a> CommunityQueryBuilder<'a> {
           .then_order_by(community_aggregates::published.desc())
       }
     };
-
-    if !self.show_nsfw.unwrap_or(false) {
+    if !self.show_nsfw.unwrap_or(false) && person_id_join == PersonId(-1) {
       query = query.filter(community::nsfw.eq(false));
     };
+
+    // Show nsfw communities if show_nsfw is selected in a user's profile
+    if person_id_join != PersonId(-1) {
+      // Passed in person object
+      query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
+    }
 
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {
