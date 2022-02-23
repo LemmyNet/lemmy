@@ -69,6 +69,7 @@ impl PerformCrud for EditSite {
       require_application: data.require_application,
       application_question,
       private_instance: data.private_instance,
+      default_theme: data.default_theme.clone(),
       ..SiteForm::default()
     };
 

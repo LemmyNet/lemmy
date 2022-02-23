@@ -101,6 +101,7 @@
     require_application: true
     application_question: "string"
     private_instance: true
+    default_theme: "string"
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"

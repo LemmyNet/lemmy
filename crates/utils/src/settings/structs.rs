@@ -205,4 +205,6 @@ pub struct SetupConfig {
   pub application_question: Option<String>,
   #[default(None)]
   pub private_instance: Option<bool>,
+  #[default(None)]
+  pub default_theme: Option<String>,
 }
