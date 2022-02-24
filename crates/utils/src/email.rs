@@ -9,6 +9,7 @@ use lettre::{
 };
 use std::str::FromStr;
 use uuid::Uuid;
+use html2text;
 
 pub fn send_email(
   subject: &str,
@@ -39,6 +40,9 @@ pub fn send_email(
     )
   };
 
+  // the message length before wrap, 78, is somewhat arbritary but looks good to me
+  let plain_text = html2text::from_read(html.as_bytes(), 78);
+
   let email = Message::builder()
     .from(
       email_config
@@ -58,7 +62,7 @@ pub fn send_email(
           .singlepart(
             SinglePart::builder()
               .header(header::ContentType::TEXT_PLAIN)
-              .body(html.to_string()),
+              .body(plain_text),
           )
           .multipart(
             MultiPart::related().singlepart(

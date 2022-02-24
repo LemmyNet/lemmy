@@ -46,3 +46,4 @@ jsonwebtoken = "7.2.0"
 doku = "0.10.2"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 encoding = "0.2.33"
+html2text = "0.2.1"
