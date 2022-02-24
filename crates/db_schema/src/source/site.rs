@@ -25,6 +25,7 @@ pub struct Site {
   pub inbox_url: DbUrl,
   pub private_key: Option<String>,
   pub public_key: String,
+  pub default_theme: String,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
@@ -50,4 +51,5 @@ pub struct SiteForm {
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,
+  pub default_theme: Option<String>,
 }
