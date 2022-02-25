@@ -1,4 +1,5 @@
 use crate::{settings::structs::Settings, LemmyError};
+use html2text;
 use lettre::{
   message::{header, Mailbox, MultiPart, SinglePart},
   transport::smtp::{authentication::Credentials, extension::ClientId},
@@ -9,7 +10,6 @@ use lettre::{
 };
 use std::str::FromStr;
 use uuid::Uuid;
-use html2text;
 
 pub fn send_email(
   subject: &str,
