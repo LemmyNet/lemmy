@@ -33,7 +33,13 @@ pub async fn send_activity(
       private_key: actor.private_key().context(location_info!())?,
     };
     if env::var("APUB_TESTING_SEND_SYNC").is_ok() {
-      do_send(message, client).await?;
+      let res = do_send(message, client).await;
+      // Don't fail on error, as we intentionally do some invalid actions in tests, to verify that
+      // they are rejected on the receiving side. These errors shouldn't bubble up to make the API
+      // call fail. This matches the behaviour in production.
+      if let Err(e) = res {
+        warn!("{}", e);
+      }
     } else {
       activity_queue.queue::<SendActivityTask>(message).await?;
     }
@@ -77,28 +83,31 @@ async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Resul
   )
   .await;
 
-  match result {
+  let r: Result<(), Error> = match result {
     Ok(o) => {
       if !o.status().is_success() {
         let status = o.status();
         let text = o.text().await?;
 
-        warn!(
+        Err(anyhow!(
           "Send {} to {} failed with status {}: {}",
-          task.activity_id, task.inbox, status, text,
-        );
+          task.activity_id,
+          task.inbox,
+          status,
+          text,
+        ))
+      } else {
+        Ok(())
       }
     }
-    Err(e) => {
-      return Err(anyhow!(
-        "Failed to send activity {} to {}: {}",
-        &task.activity_id,
-        task.inbox,
-        e
-      ));
-    }
-  }
-  Ok(())
+    Err(e) => Err(anyhow!(
+      "Failed to send activity {} to {}: {}",
+      &task.activity_id,
+      task.inbox,
+      e
+    )),
+  };
+  r
 }
 
 pub fn create_activity_queue(client: ClientWithMiddleware) -> Manager {
