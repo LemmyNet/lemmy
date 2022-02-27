@@ -232,15 +232,6 @@ impl<'a> CommunityQueryBuilder<'a> {
           .then_order_by(community_aggregates::published.desc())
       }
     };
-    if !self.show_nsfw.unwrap_or(false) && person_id_join == PersonId(-1) {
-      query = query.filter(community::nsfw.eq(false));
-    };
-
-    // Show nsfw communities if show_nsfw is selected in a user's profile
-    if person_id_join != PersonId(-1) {
-      // Passed in person object
-      query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
-    }
 
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {
@@ -250,9 +241,15 @@ impl<'a> CommunityQueryBuilder<'a> {
       };
     }
 
-    // Don't show blocked communities
+    // Don't show blocked communities or nsfw communities if not enabled in profile
     if self.my_person_id.is_some() {
       query = query.filter(community_block::person_id.is_null());
+      query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
+    } else {
+      // No person in request, only show nsfw communities if show_nsfw passed into request
+      if !self.show_nsfw.unwrap_or(false) {
+        query = query.filter(community::nsfw.eq(false));
+      }
     }
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
