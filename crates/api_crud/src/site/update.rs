@@ -42,7 +42,7 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let found_site = blocking(context.pool(), Site::read_local_site).await??;
+    let local_site = blocking(context.pool(), Site::read_local_site).await??;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
@@ -55,7 +55,7 @@ impl PerformCrud for EditSite {
     }
 
     let site_form = SiteForm {
-      name: data.name.to_owned().unwrap_or(found_site.name),
+      name: data.name.to_owned().unwrap_or(local_site.name),
       sidebar,
       description,
       icon,
@@ -74,7 +74,7 @@ impl PerformCrud for EditSite {
     };
 
     let update_site = blocking(context.pool(), move |conn| {
-      Site::update(conn, 1, &site_form)
+      Site::update(conn, local_site.id, &site_form)
     })
     .await?
     .map_err(LemmyError::from)
@@ -85,7 +85,7 @@ impl PerformCrud for EditSite {
     // will be able to log in. It really only wants this to be a requirement for NEW signups.
     // So if it was set from false, to true, you need to update all current users columns to be verified.
 
-    if !found_site.require_application && update_site.require_application {
+    if !local_site.require_application && update_site.require_application {
       blocking(context.pool(), move |conn| {
         LocalUser::set_all_users_registration_applications_accepted(conn)
       })
@@ -94,7 +94,7 @@ impl PerformCrud for EditSite {
       .map_err(|e| e.with_message("couldnt_set_all_registrations_accepted"))?;
     }
 
-    if !found_site.require_email_verification && update_site.require_email_verification {
+    if !local_site.require_email_verification && update_site.require_email_verification {
       blocking(context.pool(), move |conn| {
         LocalUser::set_all_users_email_verified(conn)
       })
