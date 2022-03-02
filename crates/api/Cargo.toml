@@ -27,8 +27,8 @@ bcrypt = "0.10.1"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.72", features = ["preserve_order"] }
 serde = { version = "1.0.131", features = ["derive"] }
-actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.18", default-features = false }
+actix = "0.13.0"
+actix-web = { version = "4.0.0", default-features = false }
 actix-rt = { version = "2.5.0", default-features = false }
 rand = "0.8.4"
 strum = "0.23.0"
@@ -36,7 +36,7 @@ strum_macros = "0.23.1"
 url = { version = "2.2.2", features = ["serde"] }
 openssl = "0.10.38"
 http = "0.2.5"
-http-signature-normalization-actix = { version = "0.5.0-beta.14", default-features = false, features = ["sha-2"] }
+http-signature-normalization-actix = { version = "0.6.0-beta.6", default-features = false, features = ["sha-2"] }
 base64 = "0.13.0"
 tokio = "1.14.0"
 futures = "0.3.17"
