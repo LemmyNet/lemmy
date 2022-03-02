@@ -24,7 +24,7 @@ tracing = "0.1.29"
 rand = "0.8.4"
 serde = { version = "1.0.131", features = ["derive"] }
 serde_json = { version = "1.0.72", features = ["preserve_order"] }
-actix = "0.12.0"
+actix = "0.13.0"
 anyhow = "1.0.51"
 diesel = "1.4.8"
 background-jobs = "0.11.0"
@@ -32,7 +32,7 @@ tokio = "1.14.0"
 strum = "0.23.0"
 strum_macros = "0.23.1"
 chrono = { version = "0.4.19", features = ["serde"] }
-actix-web = { version = "4.0.0-beta.18", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "4.0.0-beta.8", default-features = false }
+actix-web = { version = "4.0.0", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "4.1.0", default-features = false }
 opentelemetry = "0.16"
 tracing-opentelemetry = "0.16"
