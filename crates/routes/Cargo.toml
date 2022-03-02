@@ -21,8 +21,7 @@ lemmy_apub = { version = "=0.16.0-rc.1", path = "../apub" }
 diesel = "1.4.8"
 actix = "0.13.0"
 actix-web = { version = "4.0.0", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "4.0.0", default-features = false }
-actix-http = "3.0.0"
+actix-web-actors = { version = "4.1.0", default-features = false }
 sha2 = "0.10.0"
 anyhow = "1.0.51"
 chrono = { version = "0.4.19", features = ["serde"] }

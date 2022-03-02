@@ -1,5 +1,15 @@
-use actix_http::header::{HeaderName, ACCEPT_ENCODING, HOST};
-use actix_web::{body::BodyStream, http::StatusCode, web::Data, *};
+use actix_web::{
+  body::BodyStream,
+  error,
+  http::{
+    header::{HeaderName, ACCEPT_ENCODING, HOST},
+    StatusCode,
+  },
+  web,
+  Error,
+  HttpRequest,
+  HttpResponse,
+};
 use anyhow::anyhow;
 use futures::stream::{Stream, StreamExt};
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, LemmyError};
@@ -11,7 +21,7 @@ use std::time::Duration;
 
 pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
   cfg
-    .app_data(Data::new(client))
+    .app_data(web::Data::new(client))
     .service(
       web::resource("/pictrs/image")
         .wrap(rate_limit.image())

@@ -2073,7 +2073,6 @@ name = "lemmy_routes"
 version = "0.16.0-rc.1"
 dependencies = [
  "actix",
- "actix-http",
  "actix-web",
  "actix-web-actors",
  "anyhow",
