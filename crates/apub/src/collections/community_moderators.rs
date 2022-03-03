@@ -146,7 +146,6 @@ mod tests {
     },
     protocol::tests::file_to_json_object,
   };
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{
     source::{
       community::Community,
@@ -160,9 +159,7 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_community_moderators() {
-    let client = reqwest::Client::new().into();
-    let manager = create_activity_queue(client);
-    let context = init_context(manager.queue_handle().clone());
+    let context = init_context();
     let (new_mod, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;

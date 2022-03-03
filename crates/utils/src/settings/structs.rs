@@ -130,6 +130,9 @@ pub struct FederationConfig {
   /// (meaning remote communities will show content from arbitrary instances).
   #[default(true)]
   pub strict_allowlist: bool,
+  /// Number of workers for sending outgoing activities.
+  #[default(16)]
+  pub worker_count: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

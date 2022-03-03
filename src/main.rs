@@ -101,7 +101,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let client = ClientBuilder::new(client).with(TracingMiddleware).build();
 
-  let queue_manager = create_activity_queue(client.clone());
+  let queue_manager = create_activity_queue(client.clone(), settings.federation.worker_count);
 
   let activity_queue = queue_manager.queue_handle().clone();
 

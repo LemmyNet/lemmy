@@ -42,6 +42,14 @@ pub async fn send_activity(
       }
     } else {
       activity_queue.queue::<SendActivityTask>(message).await?;
+      let stats = activity_queue.get_stats().await?;
+      info!(
+        "Activity queue stats: pending: {}, running: {}, dead (this hour): {}, complete (this hour): {}",
+        stats.pending,
+        stats.running,
+        stats.dead.this_hour(),
+        stats.complete.this_hour()
+      );
     }
   }
 
@@ -110,12 +118,13 @@ async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Resul
   r
 }
 
-pub fn create_activity_queue(client: ClientWithMiddleware) -> Manager {
+pub fn create_activity_queue(client: ClientWithMiddleware, worker_count: u64) -> Manager {
   // Configure and start our workers
   WorkerConfig::new_managed(Storage::new(), move |_| MyState {
     client: client.clone(),
   })
   .register::<SendActivityTask>()
+  .set_worker_count("default", worker_count)
   .start()
 }
 

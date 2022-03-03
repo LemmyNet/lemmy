@@ -207,7 +207,6 @@ pub(crate) mod tests {
     },
     protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
@@ -229,9 +228,7 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_person() {
-    let client = reqwest::Client::new().into();
-    let manager = create_activity_queue(client);
-    let context = init_context(manager.queue_handle().clone());
+    let context = init_context();
     let (person, site) = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
@@ -245,9 +242,7 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_person() {
-    let client = reqwest::Client::new().into();
-    let manager = create_activity_queue(client);
-    let context = init_context(manager.queue_handle().clone());
+    let context = init_context();
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
