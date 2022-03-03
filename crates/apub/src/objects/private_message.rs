@@ -159,15 +159,24 @@ impl ApubObject for ApubPrivateMessage {
 mod tests {
   use super::*;
   use crate::{
-    objects::{person::ApubPerson, tests::init_context},
+    objects::{
+      instance::{tests::parse_lemmy_instance, ApubSite},
+      person::ApubPerson,
+      tests::init_context,
+    },
     protocol::tests::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
   use lemmy_apub_lib::activity_queue::create_activity_queue;
+  use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 
-  async fn prepare_comment_test(url: &Url, context: &LemmyContext) -> (ApubPerson, ApubPerson) {
+  async fn prepare_comment_test(
+    url: &Url,
+    context: &LemmyContext,
+  ) -> (ApubPerson, ApubPerson, ApubSite) {
     let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
+    let site = parse_lemmy_instance(context).await;
     ApubPerson::verify(&lemmy_person, url, context, &mut 0)
       .await
       .unwrap();
@@ -182,12 +191,13 @@ mod tests {
     let person2 = ApubPerson::from_apub(pleroma_person, context, &mut 0)
       .await
       .unwrap();
-    (person1, person2)
+    (person1, person2, site)
   }
 
-  fn cleanup(data: (ApubPerson, ApubPerson), context: &LemmyContext) {
+  fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &LemmyContext) {
     Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
     Person::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), data.2.id).unwrap();
   }
 
   #[actix_rt::test]

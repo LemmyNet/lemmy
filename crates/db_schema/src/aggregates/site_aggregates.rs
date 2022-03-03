@@ -58,7 +58,7 @@ mod tests {
       ..Default::default()
     };
 
-    Site::create(&conn, &site_form).unwrap();
+    let inserted_site = Site::create(&conn, &site_form).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL_site_agg".into(),
@@ -124,8 +124,7 @@ mod tests {
     let after_delete_creator = SiteAggregates::read(&conn);
     assert!(after_delete_creator.is_ok());
 
-    let site_id = after_delete_creator.unwrap().id;
-    Site::delete(&conn, site_id).unwrap();
+    Site::delete(&conn, inserted_site.id).unwrap();
     let after_delete_site = SiteAggregates::read(&conn);
     assert!(after_delete_site.is_err());
   }
