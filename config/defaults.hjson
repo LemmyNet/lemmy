@@ -59,6 +59,8 @@
     # use allowlist only for remote communities, and posts/comments in local communities
     # (meaning remote communities will show content from arbitrary instances).
     strict_allowlist: true
+    # Number of workers for sending outgoing activities.
+    worker_count: 16
   }
   captcha: {
     # Whether captcha is required for signup

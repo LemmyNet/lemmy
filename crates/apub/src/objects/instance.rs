@@ -186,7 +186,6 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
 pub(crate) mod tests {
   use super::*;
   use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
 
@@ -207,9 +206,7 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_instance() {
-    let client = reqwest::Client::new().into();
-    let manager = create_activity_queue(client);
-    let context = init_context(manager.queue_handle().clone());
+    let context = init_context();
     let site = parse_lemmy_instance(&context).await;
 
     assert_eq!(site.name, "Enterprise");

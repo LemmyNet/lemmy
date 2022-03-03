@@ -218,7 +218,6 @@ pub(crate) mod tests {
     protocol::tests::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 
@@ -248,9 +247,7 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() {
-    let client = reqwest::Client::new().into();
-    let manager = create_activity_queue(client);
-    let context = init_context(manager.queue_handle().clone());
+    let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
@@ -279,9 +276,7 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_comment() {
-    let client = reqwest::Client::new().into();
-    let manager = create_activity_queue(client);
-    let context = init_context(manager.queue_handle().clone());
+    let context = init_context();
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
