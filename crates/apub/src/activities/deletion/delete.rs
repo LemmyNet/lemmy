@@ -6,7 +6,7 @@ use crate::{
     verify_activity,
   },
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::deletion::delete::{Delete, IdOrNestedObject},
+  protocol::activities::deletion::delete::{Delete, IdOrNestedObject, NestedObject},
 };
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
@@ -104,7 +104,10 @@ impl Delete {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id.clone()),
       to: vec![to],
-      object: IdOrNestedObject::Id(object.id()),
+      object: IdOrNestedObject::NestedObject(NestedObject {
+        id: object.id(),
+        kind: Default::default(),
+      }),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
       summary,
