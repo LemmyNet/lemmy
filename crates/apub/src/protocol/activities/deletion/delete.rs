@@ -1,5 +1,5 @@
 use crate::{objects::person::ApubPerson, protocol::Unparsed};
-use activitystreams_kinds::activity::DeleteType;
+use activitystreams_kinds::{activity::DeleteType, object::TombstoneType};
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -39,7 +39,10 @@ pub(crate) enum IdOrNestedObject {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(crate) struct NestedObject {
-  id: Url,
+  pub(crate) id: Url,
+  // Backwards compatibility with Lemmy 0.15
+  #[serde(rename = "type")]
+  pub(crate) kind: TombstoneType,
 }
 
 impl IdOrNestedObject {
