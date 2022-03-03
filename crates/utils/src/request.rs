@@ -4,7 +4,7 @@ use encoding::{all::encodings, DecoderTrap};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::future::Future;
+use std::{future::Future, time::Duration};
 use thiserror::Error;
 use tracing::{error, info};
 use url::Url;
@@ -69,7 +69,11 @@ pub async fn fetch_site_metadata(
   url: &Url,
 ) -> Result<SiteMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
-  let response = client.get(url.as_str()).send().await?;
+  let response = client
+    .get(url.as_str())
+    .timeout(Duration::from_secs(30))
+    .send()
+    .await?;
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
@@ -177,7 +181,11 @@ pub(crate) async fn fetch_pictrs(
       utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
     );
 
-    let response = client.get(&fetch_url).send().await?;
+    let response = client
+      .get(&fetch_url)
+      .timeout(Duration::from_secs(30))
+      .send()
+      .await?;
 
     let response: PictrsResponse = response
       .json()
@@ -249,7 +257,11 @@ pub async fn fetch_site_data(
 
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
-  let response = client.get(url.as_str()).send().await?;
+  let response = client
+    .get(url.as_str())
+    .timeout(Duration::from_secs(30))
+    .send()
+    .await?;
   if response
     .headers()
     .get("Content-Type")
