@@ -15,7 +15,7 @@ use reqwest::Response;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 use tracing::debug;
 use url::Url;
 
@@ -46,6 +46,8 @@ pub async fn sign_and_send(
 
   let request = client
     .post(&inbox_url.to_string())
+    // signature is only valid for 10 seconds, so no reason to wait any longer
+    .timeout(Duration::from_secs(10))
     .headers(headers)
     .signature_with_digest(
       HTTP_SIG_CONFIG.clone(),
