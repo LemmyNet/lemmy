@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_utils"
-version = "0.16.0-rc.2"
+version = "0.16.0-rc.3"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
