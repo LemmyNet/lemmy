@@ -134,7 +134,7 @@ where
 }
 
 static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
-static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;
+static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 20;
 
 /// Determines when a remote actor should be refetched from its instance. In release builds, this is
 /// `ACTOR_REFETCH_INTERVAL_SECONDS` after the last refetch, in debug builds
