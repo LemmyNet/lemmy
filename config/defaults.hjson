@@ -60,7 +60,7 @@
     # (meaning remote communities will show content from arbitrary instances).
     strict_allowlist: true
     # Number of workers for sending outgoing activities.
-    worker_count: 16
+    worker_count: 64
   }
   captcha: {
     # Whether captcha is required for signup
