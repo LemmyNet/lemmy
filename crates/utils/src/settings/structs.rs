@@ -130,8 +130,10 @@ pub struct FederationConfig {
   /// (meaning remote communities will show content from arbitrary instances).
   #[default(true)]
   pub strict_allowlist: bool,
-  /// Number of workers for sending outgoing activities.
-  #[default(16)]
+  /// Number of workers for sending outgoing activities. Search logs for "Activity queue stats" to
+  /// see information. If "running" number is consistently close to the worker_count, you should
+  /// increase it.
+  #[default(64)]
   pub worker_count: u64,
 }
 

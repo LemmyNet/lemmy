@@ -59,8 +59,10 @@
     # use allowlist only for remote communities, and posts/comments in local communities
     # (meaning remote communities will show content from arbitrary instances).
     strict_allowlist: true
-    # Number of workers for sending outgoing activities.
-    worker_count: 16
+    # Number of workers for sending outgoing activities. Search logs for Activity queue stats to
+    # see information. If running number is consistently close to the worker_count, you should
+    # increase it.
+    worker_count: 64
   }
   captcha: {
     # Whether captcha is required for signup
