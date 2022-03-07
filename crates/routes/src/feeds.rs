@@ -206,7 +206,7 @@ fn get_feed_community(
   let community = Community::read_from_name(conn, community_name)?;
 
   let posts = PostQueryBuilder::create(conn)
-    .listing_type(ListingType::All)
+    .listing_type(ListingType::Community)
     .sort(*sort_type)
     .community_id(community.id)
     .list()?;
