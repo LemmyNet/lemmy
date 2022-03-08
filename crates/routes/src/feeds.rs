@@ -82,7 +82,7 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = blocking(context.pool(), SiteView::read).await??;
+  let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
   let posts = blocking(context.pool(), move |conn| {
     PostQueryBuilder::create(conn)
@@ -174,7 +174,7 @@ fn get_feed_user(
   user_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let person = Person::read_from_name(conn, user_name)?;
 
   let posts = PostQueryBuilder::create(conn)
@@ -202,7 +202,7 @@ fn get_feed_community(
   community_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let community = Community::read_from_name(conn, community_name)?;
 
   let posts = PostQueryBuilder::create(conn)
@@ -235,7 +235,7 @@ fn get_feed_front(
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
 
@@ -270,7 +270,7 @@ fn get_feed_inbox(
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
   let person_id = local_user.person_id;

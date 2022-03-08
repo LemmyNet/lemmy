@@ -89,7 +89,7 @@ impl PerformCrud for CreateSite {
       return Err(LemmyError::from_message("site_already_exists"));
     }
 
-    let site_view = blocking(context.pool(), SiteView::read).await??;
+    let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
     Ok(SiteResponse { site_view })
   }

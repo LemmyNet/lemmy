@@ -502,7 +502,7 @@ impl Perform for LeaveAdmin {
     blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
 
     // Reread site and admins
-    let site_view = blocking(context.pool(), SiteView::read).await??;
+    let site_view = blocking(context.pool(), SiteView::read_local).await??;
     let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
     let federated_instances = build_federated_instances(
