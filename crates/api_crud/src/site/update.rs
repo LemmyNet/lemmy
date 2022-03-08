@@ -103,7 +103,7 @@ impl PerformCrud for EditSite {
       .map_err(|e| e.with_message("couldnt_set_all_email_verified"))?;
     }
 
-    let site_view = blocking(context.pool(), SiteView::read).await??;
+    let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
     let res = SiteResponse { site_view };
 

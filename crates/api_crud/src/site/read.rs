@@ -31,7 +31,7 @@ impl PerformCrud for GetSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
-    let site_view = match blocking(context.pool(), SiteView::read).await? {
+    let site_view = match blocking(context.pool(), SiteView::read_local).await? {
       Ok(site_view) => Some(site_view),
       // If the site isn't created yet, check the setup
       Err(_) => {
@@ -73,7 +73,7 @@ impl PerformCrud for GetSite {
           };
           create_site.perform(context, websocket_id).await?;
           info!("Site {} created", setup.site_name);
-          Some(blocking(context.pool(), SiteView::read).await??)
+          Some(blocking(context.pool(), SiteView::read_local).await??)
         } else {
           None
         }
