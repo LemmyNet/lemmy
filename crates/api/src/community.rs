@@ -335,6 +335,13 @@ impl Perform for AddModToCommunity {
 
     // Verify that only mods or admins can add mod
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    if local_user_view.person.admin && !community.local {
+      return Err(LemmyError::from_message("not_a_moderator"));
+    }
 
     // Update in local database
     let community_moderator_form = CommunityModeratorForm {
@@ -374,11 +381,7 @@ impl Perform for AddModToCommunity {
     })
     .await??
     .into();
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = community.into();
     if data.added {
       AddMod::send(
         &community,
