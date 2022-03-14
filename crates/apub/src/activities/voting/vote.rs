@@ -13,6 +13,7 @@ use crate::{
   PostOrComment,
 };
 use activitystreams_kinds::public;
+use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
@@ -21,7 +22,7 @@ use lemmy_apub_lib::{
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{community::Community, post::Post},
+  source::{community::Community, post::Post, site::Site},
   traits::Crud,
 };
 use lemmy_utils::LemmyError;
@@ -81,6 +82,10 @@ impl ActivityHandler for Vote {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    let site = blocking(context.pool(), Site::read_local_site).await??;
+    if self.kind == VoteType::Dislike && !site.enable_downvotes {
+      return Err(anyhow!("Downvotes disabled").into());
+    }
     Ok(())
   }
 
