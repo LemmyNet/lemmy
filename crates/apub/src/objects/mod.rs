@@ -1,5 +1,8 @@
-use crate::protocol::Source;
+use crate::protocol::{ImageObject, Source};
 use html2md::parse_html;
+use lemmy_apub_lib::verify::verify_domains_match;
+use lemmy_utils::LemmyError;
+use url::Url;
 
 pub mod comment;
 pub mod community;
@@ -16,6 +19,14 @@ pub(crate) fn get_summary_from_string_or_source(
     Some(source.content.clone())
   } else {
     raw.as_ref().map(|s| parse_html(s))
+  }
+}
+
+pub fn verify_image_domain_matches(a: &Url, b: &Option<ImageObject>) -> Result<(), LemmyError> {
+  if let Some(b) = b {
+    verify_domains_match(a, &b.url)
+  } else {
+    Ok(())
   }
 }
 

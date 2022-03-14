@@ -427,14 +427,10 @@ export async function createCommunity(
   name_: string = randomString(5)
 ): Promise<CommunityResponse> {
   let description = 'a sample description';
-  let icon = 'https://image.flaticon.com/icons/png/512/35/35896.png';
-  let banner = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
-    icon,
-    banner,
     nsfw: false,
     auth: api.auth,
   };

@@ -40,6 +40,7 @@ use lemmy_utils::{
   LemmyError,
   Sensitive,
 };
+use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where
@@ -621,5 +622,17 @@ pub async fn remove_user_data_in_community(
     .await??;
   }
 
+  Ok(())
+}
+
+pub fn check_image_has_local_domain(url: &Option<String>) -> Result<(), LemmyError> {
+  if let Some(url) = url {
+    let settings = Settings::get();
+    let url = Url::parse(url)?;
+    let domain = url.domain().expect("url has domain");
+    if domain != settings.hostname {
+      return Err(LemmyError::from_message("image_not_local"));
+    }
+  }
   Ok(())
 }

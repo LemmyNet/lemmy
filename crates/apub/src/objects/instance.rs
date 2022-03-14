@@ -1,6 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
-  objects::get_summary_from_string_or_source,
+  objects::{get_summary_from_string_or_source, verify_image_domain_matches},
   protocol::{objects::instance::Instance, ImageObject, Source},
 };
 use activitystreams_kinds::actor::ServiceType;
@@ -103,6 +103,8 @@ impl ApubObject for ApubSite {
   ) -> Result<(), LemmyError> {
     check_is_apub_id_valid(apub.id.inner(), true, &data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
+    verify_image_domain_matches(expected_domain, &apub.icon)?;
+    verify_image_domain_matches(expected_domain, &apub.image)?;
 
     let slur_regex = &data.settings().slur_regex();
     check_slurs(&apub.name, slur_regex)?;

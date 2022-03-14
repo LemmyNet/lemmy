@@ -5,6 +5,7 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
   blocking,
+  check_image_has_local_domain,
   check_registration_application,
   get_local_user_view_from_jwt,
   is_admin,
@@ -174,6 +175,9 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    check_image_has_local_domain(&data.avatar)?;
+    check_image_has_local_domain(&data.banner)?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;

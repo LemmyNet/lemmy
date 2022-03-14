@@ -2,6 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
+  check_image_has_local_domain,
   community::{CommunityResponse, EditCommunity, HideCommunity},
   get_local_user_view_from_jwt,
   is_admin,
@@ -37,6 +38,8 @@ impl PerformCrud for EditCommunity {
 
     check_slurs_opt(&data.title, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
+    check_image_has_local_domain(&data.icon)?;
+    check_image_has_local_domain(&data.banner)?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
