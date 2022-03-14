@@ -26,7 +26,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
-use tracing::info;
 
 impl CreateOrUpdateComment {
   #[tracing::instrument(skip(comment, actor, kind, context))]
@@ -51,7 +50,6 @@ impl CreateOrUpdateComment {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    info!("Sending Create/Comment for {} as {}", comment.ap_id, id);
     let note = comment.into_apub(context).await?;
 
     let create_or_update = CreateOrUpdateComment {
