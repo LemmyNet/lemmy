@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_apub_lib::{
   object_id::ObjectId,
@@ -83,9 +84,6 @@ where
       return object.map(|o| o.actor_id().into());
     }
   }
-  let error = LemmyError::from(anyhow::anyhow!(
-    "Failed to resolve actor for {}",
-    identifier
-  ));
-  Err(error.with_message("failed_to_resolve"))
+  let err = anyhow!("Failed to resolve actor for {}", identifier);
+  Err(LemmyError::from_error_message(err, "failed_to_resolve"))
 }

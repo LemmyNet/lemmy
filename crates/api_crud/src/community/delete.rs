@@ -46,8 +46,7 @@ impl PerformCrud for DeleteCommunity {
       Community::update_deleted(conn, community_id, deleted)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
     let res = send_community_ws_message(
       data.community_id,
@@ -98,8 +97,7 @@ impl PerformCrud for RemoveCommunity {
       Community::update_removed(conn, community_id, removed)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

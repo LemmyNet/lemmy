@@ -80,8 +80,7 @@ impl Perform for Login {
       LocalUserView::find_by_email_or_name(conn, &username_or_email)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
 
     // Verify the password
     let valid: bool = verify(
@@ -263,8 +262,7 @@ impl Perform for SaveUserSettings {
       Person::update(conn, person_id, &person_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("user_already_exists"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     let local_user_form = LocalUserForm {
       person_id: Some(person_id),
@@ -300,7 +298,7 @@ impl Perform for SaveUserSettings {
           "user_already_exists"
         };
 
-        return Err(LemmyError::from(e).with_message(err_type));
+        return Err(LemmyError::from_error_message(e, err_type));
       }
     };
 
@@ -397,8 +395,7 @@ impl Perform for AddAdmin {
       Person::add_admin(conn, added_person_id, added)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_user"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Mod tables
     let form = ModAddForm {
@@ -447,8 +444,7 @@ impl Perform for BanPerson {
     let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban, expires);
     let person = blocking(context.pool(), ban_person)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_user"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
@@ -573,14 +569,12 @@ impl Perform for BlockPerson {
       let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
       blocking(context.pool(), block)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("person_block_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     } else {
       let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
       blocking(context.pool(), unblock)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("person_block_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }
 
     // TODO does any federated stuff need to be done here?
@@ -704,8 +698,7 @@ impl Perform for MarkPersonMentionAsRead {
       move |conn: &'_ _| PersonMention::update_read(conn, person_mention_id, read);
     blocking(context.pool(), update_mention)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
@@ -754,8 +747,7 @@ impl Perform for MarkAllAsRead {
       let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
       blocking(context.pool(), mark_as_read)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_update_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
     }
 
     // Mark all user mentions as read
@@ -763,15 +755,13 @@ impl Perform for MarkAllAsRead {
       move |conn: &'_ _| PersonMention::mark_all_as_read(conn, person_id);
     blocking(context.pool(), update_person_mentions)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Mark all private_messages as read
     let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, person_id);
     blocking(context.pool(), update_pm)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_private_message"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     Ok(GetRepliesResponse { replies: vec![] })
   }
@@ -795,8 +785,7 @@ impl Perform for PasswordReset {
       LocalUserView::find_by_email(conn, &email)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
 
     // Email the pure token to the user.
     send_password_reset_email(&local_user_view, context.pool(), &context.settings()).await?;
@@ -836,8 +825,7 @@ impl Perform for PasswordChange {
       LocalUser::update_password(conn, local_user_id, &password)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_user"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Return the jwt
     Ok(LoginResponse {
@@ -948,8 +936,7 @@ impl Perform for VerifyEmail {
       EmailVerification::read_for_token(conn, &token)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("token_not_found"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "token_not_found"))?;
 
     let form = LocalUserForm {
       // necessary in case this is a new signup

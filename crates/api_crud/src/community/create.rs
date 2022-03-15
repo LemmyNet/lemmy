@@ -107,8 +107,7 @@ impl PerformCrud for CreateCommunity {
       Community::create(conn, &community_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("community_already_exists"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -117,11 +116,9 @@ impl PerformCrud for CreateCommunity {
     };
 
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-    if blocking(context.pool(), join).await?.is_err() {
-      return Err(LemmyError::from_message(
-        "community_moderator_already_exists",
-      ));
-    }
+    blocking(context.pool(), join)
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
 
     // Follow your own community
     let community_follower_form = CommunityFollowerForm {
@@ -131,11 +128,9 @@ impl PerformCrud for CreateCommunity {
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-    if blocking(context.pool(), follow).await?.is_err() {
-      return Err(LemmyError::from_message(
-        "community_follower_already_exists",
-      ));
-    }
+    blocking(context.pool(), follow)
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
 
     let person_id = local_user_view.person.id;
     let community_view = blocking(context.pool(), move |conn| {

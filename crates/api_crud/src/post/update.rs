@@ -103,7 +103,7 @@ impl PerformCrud for EditPost {
           "couldnt_update_post"
         };
 
-        return Err(LemmyError::from(e).with_message(err_type));
+        return Err(LemmyError::from_error_message(e, err_type));
       }
     };
 

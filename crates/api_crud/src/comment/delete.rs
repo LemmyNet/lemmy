@@ -68,8 +68,7 @@ impl PerformCrud for DeleteComment {
       Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let post_id = updated_comment.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
@@ -155,8 +154,7 @@ impl PerformCrud for RemoveComment {
       Comment::update_removed(conn, comment_id, removed)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {

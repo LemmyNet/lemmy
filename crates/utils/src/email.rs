@@ -98,6 +98,6 @@ pub fn send_email(
 
   match result {
     Ok(_) => Ok(()),
-    Err(e) => Err(LemmyError::from(e).with_message("email_send_failed")),
+    Err(e) => Err(LemmyError::from_error_message(e, "email_send_failed")),
   }
 }

@@ -81,8 +81,7 @@ impl Perform for CreatePostLike {
       let like = move |conn: &'_ _| PostLike::like(conn, &like_form2);
       blocking(context.pool(), like)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_like_post"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
       Vote::send(
         &object,
@@ -321,14 +320,12 @@ impl Perform for SavePost {
       let save = move |conn: &'_ _| PostSaved::save(conn, &post_saved_form);
       blocking(context.pool(), save)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_save_post"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     } else {
       let unsave = move |conn: &'_ _| PostSaved::unsave(conn, &post_saved_form);
       blocking(context.pool(), unsave)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_save_post"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     }
 
     let post_id = data.post_id;

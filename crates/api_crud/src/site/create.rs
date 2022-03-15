@@ -85,9 +85,9 @@ impl PerformCrud for CreateSite {
     };
 
     let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
-    if blocking(context.pool(), create_site).await?.is_err() {
-      return Err(LemmyError::from_message("site_already_exists"));
-    }
+    blocking(context.pool(), create_site)
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "site_already_exists"))?;
 
     let site_view = blocking(context.pool(), SiteView::read_local).await??;
 

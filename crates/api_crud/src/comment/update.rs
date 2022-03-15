@@ -70,8 +70,7 @@ impl PerformCrud for EditComment {
       Comment::update_content(conn, comment_id, &content_slurs_removed)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();

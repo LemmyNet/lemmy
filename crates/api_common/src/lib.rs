@@ -87,8 +87,7 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   blocking(pool, move |conn| Post::read(conn, post_id))
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_post"))
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))
 }
 
 #[tracing::instrument(skip_all)]
@@ -103,8 +102,7 @@ pub async fn mark_post_as_read(
     PostRead::mark_as_read(conn, &post_read_form)
   })
   .await?
-  .map_err(LemmyError::from)
-  .map_err(|e| e.with_message("couldnt_mark_post_as_read"))
+  .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
 
 #[tracing::instrument(skip_all)]
@@ -119,8 +117,7 @@ pub async fn mark_post_as_unread(
     PostRead::mark_as_unread(conn, &post_read_form)
   })
   .await?
-  .map_err(LemmyError::from)
-  .map_err(|e| e.with_message("couldnt_mark_post_as_read"))
+  .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
 
 #[tracing::instrument(skip_all)]
@@ -130,7 +127,6 @@ pub async fn get_local_user_view_from_jwt(
   secret: &Secret,
 ) -> Result<LocalUserView, LemmyError> {
   let claims = Claims::decode(jwt, &secret.jwt_secret)
-    .map_err(LemmyError::from)
     .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -183,7 +179,6 @@ pub async fn get_local_user_settings_view_from_jwt(
   secret: &Secret,
 ) -> Result<LocalUserSettingsView, LemmyError> {
   let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
-    .map_err(LemmyError::from)
     .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
@@ -237,8 +232,7 @@ pub async fn check_community_deleted_or_removed(
 ) -> Result<(), LemmyError> {
   let community = blocking(pool, move |conn| Community::read(conn, community_id))
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
   if community.deleted || community.removed {
     Err(LemmyError::from_message("deleted"))
   } else {

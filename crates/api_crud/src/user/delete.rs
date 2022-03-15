@@ -35,15 +35,13 @@ impl PerformCrud for DeleteAccount {
     let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
     blocking(context.pool(), permadelete)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Posts
     let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
     blocking(context.pool(), permadelete)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_post"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
 
     blocking(context.pool(), move |conn| {
       Person::delete_account(conn, person_id)

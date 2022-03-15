@@ -75,8 +75,7 @@ impl PerformCrud for CreateComment {
       // Make sure the parent comment exists
       let parent = blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_create_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
       // Strange issue where sometimes the post ID is incorrect
       if parent.post_id != post_id {
@@ -98,8 +97,7 @@ impl PerformCrud for CreateComment {
       Comment::create(conn, &comment_form2)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_create_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -115,7 +113,6 @@ impl PerformCrud for CreateComment {
         Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
       })
       .await?
-      .map_err(LemmyError::from)
       .map_err(|e| e.with_message("couldnt_create_comment"))?;
 
     // Scan the comment for user mentions, add those rows
@@ -142,8 +139,7 @@ impl PerformCrud for CreateComment {
     let like = move |conn: &'_ _| CommentLike::like(conn, &like_form);
     blocking(context.pool(), like)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_like_comment"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
     let apub_comment: ApubComment = updated_comment.into();
     CreateOrUpdateComment::send(
@@ -178,8 +174,7 @@ impl PerformCrud for CreateComment {
         Comment::update_read(conn, comment_id, true)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_update_comment"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
     }
     // If its a reply, mark the parent as read
     if let Some(parent_id) = data.parent_id {
@@ -192,8 +187,7 @@ impl PerformCrud for CreateComment {
           Comment::update_read(conn, parent_id, true)
         })
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_update_parent_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_parent_comment"))?;
       }
       // If the parent has PersonMentions mark them as read too
       let person_id = local_user_view.person.id;
@@ -206,8 +200,7 @@ impl PerformCrud for CreateComment {
           PersonMention::update_read(conn, mention.id, true)
         })
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_update_person_mentions"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_person_mentions"))?;
       }
     }
 

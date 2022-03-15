@@ -76,8 +76,7 @@ impl PerformCrud for EditCommunity {
       Community::update(conn, community_id, &community_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
     UpdateCommunity::send(
       updated_community.into(),
@@ -139,8 +138,7 @@ impl PerformCrud for HideCommunity {
       Community::update(conn, community_id, &community_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_community_hidden_status"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
 
     blocking(context.pool(), move |conn| {
       ModHideCommunity::create(conn, &mod_hide_community_form)

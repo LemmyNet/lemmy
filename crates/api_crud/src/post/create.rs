@@ -99,7 +99,7 @@ impl PerformCrud for CreatePost {
             "couldnt_create_post"
           };
 
-          return Err(LemmyError::from(e).with_message(err_type));
+          return Err(LemmyError::from_error_message(e, err_type));
         }
       };
 
@@ -114,7 +114,6 @@ impl PerformCrud for CreatePost {
       Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
     })
     .await?
-    .map_err(LemmyError::from)
     .map_err(|e| e.with_message("couldnt_create_post"))?;
 
     // They like their own post by default
@@ -127,9 +126,9 @@ impl PerformCrud for CreatePost {
     };
 
     let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
-    if blocking(context.pool(), like).await?.is_err() {
-      return Err(LemmyError::from_message("couldnt_like_post"));
-    }
+    blocking(context.pool(), like)
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;

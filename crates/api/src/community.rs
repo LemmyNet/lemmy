@@ -85,15 +85,13 @@ impl Perform for FollowCommunity {
         let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
         blocking(context.pool(), follow)
           .await?
-          .map_err(LemmyError::from)
-          .map_err(|e| e.with_message("community_follower_already_exists"))?;
+          .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
       } else {
         let unfollow =
           move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
         blocking(context.pool(), unfollow)
           .await?
-          .map_err(LemmyError::from)
-          .map_err(|e| e.with_message("community_follower_already_exists"))?;
+          .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
       }
     } else if data.follow {
       // Dont actually add to the community followers here, because you need
@@ -106,8 +104,7 @@ impl Perform for FollowCommunity {
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       blocking(context.pool(), unfollow)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_follower_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
     }
 
     let community_id = data.community_id;
@@ -153,8 +150,7 @@ impl Perform for BlockCommunity {
       let block = move |conn: &'_ _| CommunityBlock::block(conn, &community_block_form);
       blocking(context.pool(), block)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_block_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
 
       // Also, unfollow the community, and send a federated unfollow
       let community_follower_form = CommunityFollowerForm {
@@ -176,8 +172,7 @@ impl Perform for BlockCommunity {
       let unblock = move |conn: &'_ _| CommunityBlock::unblock(conn, &community_block_form);
       blocking(context.pool(), unblock)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_block_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
     }
 
     let community_view = blocking(context.pool(), move |conn| {
@@ -235,8 +230,7 @@ impl Perform for BanFromCommunity {
       let ban = move |conn: &'_ _| CommunityPersonBan::ban(conn, &community_user_ban_form);
       blocking(context.pool(), ban)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_user_already_banned"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
 
       // Also unsubscribe them from the community, if they are subscribed
       let community_follower_form = CommunityFollowerForm {
@@ -264,8 +258,7 @@ impl Perform for BanFromCommunity {
       let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
       blocking(context.pool(), unban)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_user_already_banned"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
       UndoBlockUser::send(
         &SiteOrCommunity::Community(community),
         &banned_person,
@@ -352,14 +345,12 @@ impl Perform for AddModToCommunity {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       blocking(context.pool(), join)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_moderator_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     } else {
       let leave = move |conn: &'_ _| CommunityModerator::leave(conn, &community_moderator_form);
       blocking(context.pool(), leave)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_moderator_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }
 
     // Mod tables
@@ -481,8 +472,7 @@ impl Perform for TransferCommunity {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       blocking(context.pool(), join)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_moderator_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }
 
     // Mod tables
@@ -503,16 +493,14 @@ impl Perform for TransferCommunity {
       CommunityView::read(conn, community_id, Some(person_id))
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     let community_id = data.community_id;
     let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     // Return the jwt
     Ok(GetCommunityResponse {
