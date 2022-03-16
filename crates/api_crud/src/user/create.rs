@@ -141,8 +141,7 @@ impl PerformCrud for Register {
       Person::create(conn, &person_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("user_already_exists"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     // Create the local user
     let local_user_form = LocalUserForm {
@@ -175,7 +174,7 @@ impl PerformCrud for Register {
         })
         .await??;
 
-        return Err(LemmyError::from(e).with_message(err_type));
+        return Err(LemmyError::from_error_message(e, err_type));
       }
     };
 
@@ -240,8 +239,7 @@ impl PerformCrud for Register {
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
     blocking(context.pool(), follow)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("community_follower_already_exists"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
 
     // If its an admin, add them as a mod and follower to main
     if no_admins {
@@ -253,8 +251,7 @@ impl PerformCrud for Register {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       blocking(context.pool(), join)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("community_moderator_already_exists"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }
 
     let mut login_response = LoginResponse {

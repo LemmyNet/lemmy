@@ -58,8 +58,7 @@ impl Perform for MarkCommentAsRead {
       Comment::update_read(conn, comment_id, read)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;
@@ -102,14 +101,12 @@ impl Perform for SaveComment {
       let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
       blocking(context.pool(), save_comment)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_save_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
       let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
       blocking(context.pool(), unsave_comment)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_save_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     }
 
     let comment_id = data.comment_id;
@@ -192,8 +189,7 @@ impl Perform for CreateCommentLike {
       let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
       blocking(context.pool(), like)
         .await?
-        .map_err(LemmyError::from)
-        .map_err(|e| e.with_message("couldnt_like_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
       Vote::send(
         &object,

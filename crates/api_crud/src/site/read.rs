@@ -101,31 +101,27 @@ impl PerformCrud for GetSite {
         CommunityFollowerView::for_person(conn, person_id)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("system_err_login"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let person_id = local_user_view.person.id;
       let community_blocks = blocking(context.pool(), move |conn| {
         CommunityBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("system_err_login"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = blocking(context.pool(), move |conn| {
         PersonBlockView::for_person(conn, person_id)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("system_err_login"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let moderates = blocking(context.pool(), move |conn| {
         CommunityModeratorView::for_person(conn, person_id)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("system_err_login"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       Some(MyUserInfo {
         local_user_view,

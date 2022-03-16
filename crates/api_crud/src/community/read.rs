@@ -46,7 +46,6 @@ impl PerformCrud for GetCommunity {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
         resolve_actor_identifier::<Community>(&name, context.pool())
           .await
-          .map_err(LemmyError::from)
           .map_err(|e| e.with_message("couldnt_find_community"))?
           .id
       }
@@ -56,8 +55,7 @@ impl PerformCrud for GetCommunity {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
@@ -69,8 +67,7 @@ impl PerformCrud for GetCommunity {
       CommunityModeratorView::for_community(conn, community_id)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     let online = context
       .chat_server()

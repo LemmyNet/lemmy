@@ -40,8 +40,7 @@ impl Perform for MarkPrivateMessageAsRead {
       PrivateMessage::update_read(conn, private_message_id, read)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_private_message"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     // No need to send an apub update
     let op = UserOperation::MarkPrivateMessageAsRead;

@@ -6,6 +6,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams_kinds::public;
+use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
@@ -44,8 +45,8 @@ async fn verify_person(
     .dereference(context, context.client(), request_counter)
     .await?;
   if person.banned {
-    let error = LemmyError::from(anyhow::anyhow!("Person {} is banned", person_id));
-    return Err(error.with_message("banned"));
+    let err = anyhow!("Person {} is banned", person_id);
+    return Err(LemmyError::from_error_message(err, "banned"));
   }
   Ok(())
 }

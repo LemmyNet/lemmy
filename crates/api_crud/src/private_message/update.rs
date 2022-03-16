@@ -44,8 +44,7 @@ impl PerformCrud for EditPrivateMessage {
       PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_private_message"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     // Send the apub update
     CreateOrUpdatePrivateMessage::send(

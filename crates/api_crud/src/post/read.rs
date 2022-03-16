@@ -53,8 +53,7 @@ impl PerformCrud for GetPost {
       PostView::read(conn, id, person_id)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_post"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
 
     // Mark the post as read
     if let Some(person_id) = person_id {
@@ -78,8 +77,7 @@ impl PerformCrud for GetPost {
       CommunityView::read(conn, community_id, person_id)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {
@@ -179,8 +177,7 @@ impl PerformCrud for GetPosts {
         .list()
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_get_posts"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {

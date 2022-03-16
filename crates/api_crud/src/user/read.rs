@@ -53,7 +53,6 @@ impl PerformCrud for GetPersonDetails {
 
         resolve_actor_identifier::<Person>(&name, context.pool())
           .await
-          .map_err(LemmyError::from)
           .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
           .id
       }

@@ -72,8 +72,7 @@ impl Perform for CreatePostReport {
       PostReport::report(conn, &report_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_create_report"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report.id, person_id)
@@ -138,8 +137,7 @@ impl Perform for ResolvePostReport {
 
     blocking(context.pool(), resolve_fun)
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_resolve_report"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report_id, person_id)

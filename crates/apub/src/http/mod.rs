@@ -12,7 +12,7 @@ use actix_web::{
   HttpRequest,
   HttpResponse,
 };
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
 use lemmy_api_common::blocking;
@@ -181,11 +181,14 @@ fn assert_activity_not_local(id: &Url, hostname: &str) -> Result<(), LemmyError>
   let activity_domain = id.domain().context(location_info!())?;
 
   if activity_domain == hostname {
-    let error = LemmyError::from(anyhow::anyhow!(
+    let err = anyhow!(
       "Error: received activity which was sent by local instance: {:?}",
       id
+    );
+    return Err(LemmyError::from_error_message(
+      err,
+      "received_local_activity",
     ));
-    return Err(error.with_message("received_local_activity"));
   }
   Ok(())
 }

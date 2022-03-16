@@ -77,8 +77,7 @@ impl PerformCrud for EditSite {
       Site::update(conn, local_site.id, &site_form)
     })
     .await?
-    .map_err(LemmyError::from)
-    .map_err(|e| e.with_message("couldnt_update_site"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_site"))?;
 
     // TODO can't think of a better way to do this.
     // If the server suddenly requires email verification, or required applications, no old users
@@ -90,8 +89,7 @@ impl PerformCrud for EditSite {
         LocalUser::set_all_users_registration_applications_accepted(conn)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_set_all_registrations_accepted"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
     }
 
     if !local_site.require_email_verification && update_site.require_email_verification {
@@ -99,8 +97,7 @@ impl PerformCrud for EditSite {
         LocalUser::set_all_users_email_verified(conn)
       })
       .await?
-      .map_err(LemmyError::from)
-      .map_err(|e| e.with_message("couldnt_set_all_email_verified"))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
     }
 
     let site_view = blocking(context.pool(), SiteView::read_local).await??;

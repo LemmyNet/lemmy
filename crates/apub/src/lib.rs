@@ -1,5 +1,5 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
@@ -41,28 +41,24 @@ pub(crate) fn check_is_apub_id_valid(
     return if domain == local_instance {
       Ok(())
     } else {
-      let error = LemmyError::from(anyhow::anyhow!(
+      let err = anyhow!(
         "Trying to connect with {}, but federation is disabled",
         domain
-      ));
-      Err(error.with_message("federation_disabled"))
+      );
+      Err(LemmyError::from_error_message(err, "federation_disabled"))
     };
   }
 
   let host = apub_id.host_str().context(location_info!())?;
   let host_as_ip = host.parse::<IpAddr>();
   if host == "localhost" || host_as_ip.is_ok() {
-    let error = LemmyError::from(anyhow::anyhow!("invalid hostname {}: {}", host, apub_id));
-    return Err(error.with_message("invalid_hostname"));
+    let err = anyhow!("invalid hostname {}: {}", host, apub_id);
+    return Err(LemmyError::from_error_message(err, "invalid_hostname"));
   }
 
   if apub_id.scheme() != settings.get_protocol_string() {
-    let error = LemmyError::from(anyhow::anyhow!(
-      "invalid apub id scheme {}: {}",
-      apub_id.scheme(),
-      apub_id
-    ));
-    return Err(error.with_message("invalid_scheme"));
+    let err = anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id);
+    return Err(LemmyError::from_error_message(err, "invalid_scheme"));
   }
 
   // TODO: might be good to put the part above in one method, and below in another
@@ -70,8 +66,8 @@ pub(crate) fn check_is_apub_id_valid(
   //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
   if let Some(blocked) = settings.to_owned().federation.blocked_instances {
     if blocked.contains(&domain) {
-      let error = LemmyError::from(anyhow::anyhow!("{} is in federation blocklist", domain));
-      return Err(error.with_message("federation_blocked"));
+      let err = anyhow!("{} is in federation blocklist", domain);
+      return Err(LemmyError::from_error_message(err, "federation_blocked"));
     }
   }
 
@@ -84,8 +80,11 @@ pub(crate) fn check_is_apub_id_valid(
       allowed.push(local_instance);
 
       if !allowed.contains(&domain) {
-        let error = LemmyError::from(anyhow::anyhow!("{} not in federation allowlist", domain));
-        return Err(error.with_message("federation_not_allowed"));
+        let err = anyhow!("{} not in federation allowlist", domain);
+        return Err(LemmyError::from_error_message(
+          err,
+          "federation_not_allowed",
+        ));
       }
     }
   }

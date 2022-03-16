@@ -59,6 +59,7 @@ pub struct LemmyError {
 }
 
 impl LemmyError {
+  /// Create LemmyError from a message, including stack trace
   pub fn from_message(message: &'static str) -> Self {
     let inner = anyhow::anyhow!("{}", message);
     LemmyError {
@@ -67,12 +68,27 @@ impl LemmyError {
       context: SpanTrace::capture(),
     }
   }
+
+  /// Create a LemmyError from error and message, including stack trace
+  pub fn from_error_message<E>(error: E, message: &'static str) -> Self
+  where
+    E: Into<anyhow::Error>,
+  {
+    LemmyError {
+      message: Some(message),
+      inner: error.into(),
+      context: SpanTrace::capture(),
+    }
+  }
+
+  /// Add message to existing LemmyError (or overwrite existing error)
   pub fn with_message(self, message: &'static str) -> Self {
     LemmyError {
       message: Some(message),
       ..self
     }
   }
+
   pub fn to_json(&self) -> Result<String, Self> {
     let api_error = match self.message {
       Some(error) => ApiError { error },
