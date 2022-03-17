@@ -66,23 +66,23 @@ export interface API {
 }
 
 export let alpha: API = {
-  client: new LemmyHttp('http://localhost:8541'),
+  client: new LemmyHttp('http://127.0.0.1:8541'),
 };
 
 export let beta: API = {
-  client: new LemmyHttp('http://localhost:8551'),
+  client: new LemmyHttp('http://127.0.0.1:8551'),
 };
 
 export let gamma: API = {
-  client: new LemmyHttp('http://localhost:8561'),
+  client: new LemmyHttp('http://127.0.0.1:8561'),
 };
 
 export let delta: API = {
-  client: new LemmyHttp('http://localhost:8571'),
+  client: new LemmyHttp('http://127.0.0.1:8571'),
 };
 
 export let epsilon: API = {
-  client: new LemmyHttp('http://localhost:8581'),
+  client: new LemmyHttp('http://127.0.0.1:8581'),
 };
 
 const password = 'lemmylemmy'
@@ -289,13 +289,14 @@ export async function resolvePerson(
 export async function banPersonFromSite(
   api: API,
   person_id: number,
-  ban: boolean
+  ban: boolean,
+  remove_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data: false,
+    remove_data,
     auth: api.auth,
   };
   return api.client.banPerson(form);
@@ -305,13 +306,13 @@ export async function banPersonFromCommunity(
   api: API,
   person_id: number,
   community_id: number,
+  remove_data: boolean,
   ban: boolean
 ): Promise<BanFromCommunityResponse> {
-  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: false,
+    remove_data,
     ban,
     auth: api.auth,
   };
@@ -649,7 +650,7 @@ export function wrapper(form: any): string {
 
 export function randomString(length: number): string {
   var result = '';
-  var characters = 'abcdefghijklmnopqrstuvwxyz0123456789_';
+  var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
   var charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));

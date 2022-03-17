@@ -1,0 +1,24 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": {
+    "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "object": "http://ds9.lemmy.ml/comment/1",
+    "cc": [
+      "http://enterprise.lemmy.ml/c/main"
+    ],
+    "type": "Delete",
+    "summary": "bad comment",
+    "id": "http://enterprise.lemmy.ml/activities/delete/2598435c-87a3-49cd-81f3-a44b03b7af9d"
+  },
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Undo",
+  "id": "http://enterprise.lemmy.ml/activities/undo/a850cf21-3866-4b3a-b80b-56aa00997fee"
+}

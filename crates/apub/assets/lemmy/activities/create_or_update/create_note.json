@@ -1,0 +1,35 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": {
+    "type": "Note",
+    "id": "http://ds9.lemmy.ml/comment/1",
+    "attributedTo": "http://ds9.lemmy.ml/u/lemmy_alpha",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "content": "hello",
+    "mediaType": "text/html",
+    "source": {
+      "content": "hello",
+      "mediaType": "text/markdown"
+    },
+    "inReplyTo": "http://ds9.lemmy.ml/post/1",
+    "published": "2021-11-01T11:45:49.794920+00:00"
+  },
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main",
+    "http://ds9.lemmy.ml/u/lemmy_alpha"
+  ],
+  "tag": [
+    {
+      "href": "http://ds9.lemmy.ml/u/lemmy_alpha",
+      "type": "Mention",
+      "name": "@lemmy_alpha@ds9.lemmy.ml"
+    }
+  ],
+  "type": "Create",
+  "id": "http://ds9.lemmy.ml/activities/create/1e77d67c-44ac-45ed-bf2a-460e21f60236"
+}

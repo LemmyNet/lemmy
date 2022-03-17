@@ -5,15 +5,15 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{MarkPrivateMessageAsRead, PrivateMessageResponse},
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::private_message::PrivateMessage;
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPrivateMessageAsRead {
   type Response = PrivateMessageResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -30,7 +30,7 @@ impl Perform for MarkPrivateMessageAsRead {
     })
     .await??;
     if local_user_view.person.id != orig_private_message.recipient_id {
-      return Err(ApiError::err_plain("couldnt_update_private_message").into());
+      return Err(LemmyError::from_message("couldnt_update_private_message"));
     }
 
     // Doing the update
@@ -40,7 +40,7 @@ impl Perform for MarkPrivateMessageAsRead {
       PrivateMessage::update_read(conn, private_message_id, read)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_update_private_message", e))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     // No need to send an apub update
     let op = UserOperation::MarkPrivateMessageAsRead;

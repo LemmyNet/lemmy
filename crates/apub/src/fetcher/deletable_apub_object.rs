@@ -11,7 +11,7 @@ use lemmy_db_schema::source::{
   community::Community,
   person::Person,
   post::Post,
-  private_message::PrivateMessage,
+  site::Site,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -91,9 +91,9 @@ impl DeletableApubObject for PostOrComment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl DeletableApubObject for PrivateMessage {
+impl DeletableApubObject for Site {
   async fn delete(self, _context: &LemmyContext) -> Result<(), LemmyError> {
-    // do nothing, because pm can't be fetched over http
-    unimplemented!()
+    // not implemented, ignore
+    Ok(())
   }
 }

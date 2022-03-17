@@ -1,7 +1,10 @@
-use crate::{schema::local_user, LocalUserId, PersonId};
-use serde::Serialize;
+use crate::{
+  newtypes::{LocalUserId, PersonId},
+  schema::local_user,
+};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "local_user"]
 pub struct LocalUser {
   pub id: LocalUserId,
@@ -20,14 +23,16 @@ pub struct LocalUser {
   pub show_scores: bool,
   pub show_read_posts: bool,
   pub show_new_post_notifs: bool,
+  pub email_verified: bool,
+  pub accepted_application: bool,
 }
 
 // TODO redo these, check table defaults
 #[derive(Insertable, AsChangeset, Clone, Default)]
 #[table_name = "local_user"]
 pub struct LocalUserForm {
-  pub person_id: PersonId,
-  pub password_encrypted: String,
+  pub person_id: Option<PersonId>,
+  pub password_encrypted: Option<String>,
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
@@ -40,10 +45,12 @@ pub struct LocalUserForm {
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
+  pub email_verified: Option<bool>,
+  pub accepted_application: Option<bool>,
 }
 
 /// A local user view that removes password encrypted
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "local_user"]
 pub struct LocalUserSettings {
   pub id: LocalUserId,
@@ -61,4 +68,6 @@ pub struct LocalUserSettings {
   pub show_scores: bool,
   pub show_read_posts: bool,
   pub show_new_post_notifs: bool,
+  pub email_verified: bool,
+  pub accepted_application: bool,
 }

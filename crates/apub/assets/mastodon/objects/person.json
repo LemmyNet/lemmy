@@ -1,0 +1,93 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "toot": "http://joinmastodon.org/ns#",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "alsoKnownAs": {
+        "@id": "as:alsoKnownAs",
+        "@type": "@id"
+      },
+      "movedTo": {
+        "@id": "as:movedTo",
+        "@type": "@id"
+      },
+      "schema": "http://schema.org#",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value",
+      "IdentityProof": "toot:IdentityProof",
+      "discoverable": "toot:discoverable",
+      "Device": "toot:Device",
+      "Ed25519Signature": "toot:Ed25519Signature",
+      "Ed25519Key": "toot:Ed25519Key",
+      "Curve25519Key": "toot:Curve25519Key",
+      "EncryptedMessage": "toot:EncryptedMessage",
+      "publicKeyBase64": "toot:publicKeyBase64",
+      "deviceId": "toot:deviceId",
+      "claim": {
+        "@type": "@id",
+        "@id": "toot:claim"
+      },
+      "fingerprintKey": {
+        "@type": "@id",
+        "@id": "toot:fingerprintKey"
+      },
+      "identityKey": {
+        "@type": "@id",
+        "@id": "toot:identityKey"
+      },
+      "devices": {
+        "@type": "@id",
+        "@id": "toot:devices"
+      },
+      "messageFranking": "toot:messageFranking",
+      "messageType": "toot:messageType",
+      "cipherText": "toot:cipherText",
+      "Hashtag": "as:Hashtag",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      }
+    }
+  ],
+  "id": "https://mastodon.madrid/users/felix",
+  "type": "Person",
+  "following": "https://mastodon.madrid/users/felix/following",
+  "followers": "https://mastodon.madrid/users/felix/followers",
+  "inbox": "https://mastodon.madrid/users/felix/inbox",
+  "outbox": "https://mastodon.madrid/users/felix/outbox",
+  "featured": "https://mastodon.madrid/users/felix/collections/featured",
+  "preferredUsername": "felix",
+  "name": "",
+  "summary": "<p><a href=\"https://mastodon.madrid/tags/Lemmy\" class=\"mention hashtag\" rel=\"tag\">#<span>Lemmy</span></a> Maintainer</p>",
+  "url": "https://mastodon.madrid/@felix",
+  "manuallyApprovesFollowers": false,
+  "discoverable": false,
+  "devices": "https://mastodon.madrid/users/felix/collections/devices",
+  "publicKey": {
+    "id": "https://mastodon.madrid/users/felix#main-key",
+    "owner": "https://mastodon.madrid/users/felix",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzc+evQS6XHTUdniPmFfH\n0U6aa4NaGSTQY4fmJna9w9Sr/8nNN4XWbGJLD4kawPxAXMbK63RMkkxvaHI9w+Oe\nd6oIJH2Z5qH4s2eX8f610SGDvyEZltLAY8TkMhNEp+3bOCKf1zG/uCsE7uC6Mjal\nd6KYyqoom5TwO2UWH5r6l3vyLFvnXWX2zOgSWJwLNLxMWkkd9AqM7k9+pgmeaNWD\n6JvG7Na5ywsR4CZrE5PjgtiC9LWP/H3Elgb2nIzye5HUEJuK2h1+eNFP3HSK5CF3\ncrg4DsZ1n5X3fQVm5YmFUYtEMLZL5S18dFsp6uwE0TmVOODJdnJ6+cgu0/8t2ROR\nJQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "tag": [
+    {
+      "type": "Hashtag",
+      "href": "https://mastodon.madrid/explore/lemmy",
+      "name": "#lemmy"
+    }
+  ],
+  "attachment": [],
+  "endpoints": {
+    "sharedInbox": "https://mastodon.madrid/inbox"
+  },
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/jpeg",
+    "url": "https://mastodon.madrid/system/accounts/avatars/000/087/969/original/ffdd1c832b453bc9.jpg?1598972149"
+  }
+}

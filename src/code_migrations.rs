@@ -4,15 +4,12 @@ use diesel::{
   *,
 };
 use lemmy_apub::{
-  generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
+  generate_local_apub_endpoint,
   generate_shared_inbox_url,
+  generate_site_inbox_url,
   EndpointType,
-};
-use lemmy_db_queries::{
-  source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
-  Crud,
 };
 use lemmy_db_schema::{
   naive_now,
@@ -22,10 +19,13 @@ use lemmy_db_schema::{
     person::{Person, PersonForm},
     post::Post,
     private_message::PrivateMessage,
+    site::{Site, SiteForm},
   },
+  traits::Crud,
 };
 use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
-use log::info;
+use tracing::info;
+use url::Url;
 
 pub fn run_advanced_migrations(
   conn: &PgConnection,
@@ -38,6 +38,7 @@ pub fn run_advanced_migrations(
   private_message_updates_2020_05_05(conn, protocol_and_hostname)?;
   post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
   apub_columns_2021_02_02(conn)?;
+  instance_actor_2022_01_28(conn, protocol_and_hostname)?;
 
   Ok(())
 }
@@ -61,13 +62,13 @@ fn user_updates_2020_04_02(
 
     let form = PersonForm {
       name: cperson.name.to_owned(),
-      actor_id: Some(generate_apub_endpoint(
+      actor_id: Some(generate_local_apub_endpoint(
         EndpointType::Person,
         &cperson.name,
         protocol_and_hostname,
       )?),
       private_key: Some(Some(keypair.private_key)),
-      public_key: Some(Some(keypair.public_key)),
+      public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
       ..PersonForm::default()
     };
@@ -96,7 +97,7 @@ fn community_updates_2020_04_02(
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_actor_id = generate_apub_endpoint(
+    let community_actor_id = generate_local_apub_endpoint(
       EndpointType::Community,
       &ccommunity.name,
       protocol_and_hostname,
@@ -110,10 +111,11 @@ fn community_updates_2020_04_02(
       deleted: None,
       nsfw: None,
       updated: None,
+      hidden: Some(false),
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),
-      private_key: Some(keypair.private_key),
-      public_key: Some(keypair.public_key),
+      private_key: Some(Some(keypair.private_key)),
+      public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
       published: None,
       icon: Some(ccommunity.icon.to_owned()),
@@ -146,7 +148,7 @@ fn post_updates_2020_04_03(
     .load::<Post>(conn)?;
 
   for cpost in &incorrect_posts {
-    let apub_id = generate_apub_endpoint(
+    let apub_id = generate_local_apub_endpoint(
       EndpointType::Post,
       &cpost.id.to_string(),
       protocol_and_hostname,
@@ -174,7 +176,7 @@ fn comment_updates_2020_04_03(
     .load::<Comment>(conn)?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = generate_apub_endpoint(
+    let apub_id = generate_local_apub_endpoint(
       EndpointType::Comment,
       &ccomment.id.to_string(),
       protocol_and_hostname,
@@ -202,7 +204,7 @@ fn private_message_updates_2020_05_05(
     .load::<PrivateMessage>(conn)?;
 
   for cpm in &incorrect_pms {
-    let apub_id = generate_apub_endpoint(
+    let apub_id = generate_local_apub_endpoint(
       EndpointType::PrivateMessage,
       &cpm.id.to_string(),
       protocol_and_hostname,
@@ -285,5 +287,31 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
     }
   }
 
+  Ok(())
+}
+
+/// Site object turns into an actor, so that things like instance description can be federated. This
+/// means we need to add actor columns to the site table, and initialize them with correct values.
+/// Before this point, there is only a single value in the site table which refers to the local
+/// Lemmy instance, so thats all we need to update.
+fn instance_actor_2022_01_28(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
+  info!("Running instance_actor_2021_09_29");
+  if let Ok(site) = Site::read_local_site(conn) {
+    let key_pair = generate_actor_keypair()?;
+    let actor_id = Url::parse(protocol_and_hostname)?;
+    let site_form = SiteForm {
+      name: site.name,
+      actor_id: Some(actor_id.clone().into()),
+      last_refreshed_at: Some(naive_now()),
+      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
+      private_key: Some(Some(key_pair.private_key)),
+      public_key: Some(key_pair.public_key),
+      ..Default::default()
+    };
+    Site::update(conn, site.id, &site_form)?;
+  }
   Ok(())
 }

@@ -1,3 +1,390 @@
+# Lemmy v0.16.1 Release
+
+A few bug fixes:
+
+## Lemmy
+
+- Revert "Add logging to debug federation issues (ref [#2096](https://github.com/LemmyNet/lemmy/issues/2096)) ([#2099](https://github.com/LemmyNet/lemmy/issues/2099))" ([#2130](https://github.com/LemmyNet/lemmy/issues/2130))
+- Dont allow admin to add mod to remote community ([#2129](https://github.com/LemmyNet/lemmy/issues/2129))
+- Reject federated downvotes if downvotes are disabled (fixes [#2124](https://github.com/LemmyNet/lemmy/issues/2124)) ([#2128](https://github.com/LemmyNet/lemmy/issues/2128))
+
+## Lemmy-ui
+
+- Fix error during new site setup ([#596](https://github.com/LemmyNet/lemmy-ui/issues/596))
+- Differentiate between mods and admins in mod log ([#597](https://github.com/LemmyNet/lemmy-ui/issues/597))
+- Fix comment fedilink (fixes [#594](https://github.com/LemmyNet/lemmy-ui/issues/594)) ([#595](https://github.com/LemmyNet/lemmy-ui/issues/595))
+
+# Lemmy v0.16.0 Release: Theming and Federation improvements (2022-03-08)
+
+## What is Lemmy?
+
+Lemmy is a self-hosted social link aggregation and discussion platform. It is completely free and open, and not controlled by any company. This means that there is no advertising, tracking, or secret algorithms. Content is organized into communities, so it is easy to subscribe to topics that you are interested in, and ignore others. Voting is used to bring the most interesting items to the top.
+
+## Major Changes
+
+### Theming
+
+Customizing Lemmy is now much easier than before. Instance admins can select a default instance theme under `/admin` which applies to all users who are not logged in, and those who haven't explicitly picked a theme.
+
+It is also possible now to add custom themes to an instance, without having to recompile lemmy-ui. When running with Docker, make sure that [these lines](https://github.com/LemmyNet/lemmy-ansible/pull/24/files) are present in docker-compose.yml (Ansible will add them automatically if you updated the repo). Then put your .css file into `./volumes/lemmy-ui/extra_themes`. The new theme can then be selected by users, or set as instance default.
+
+For native installation (without Docker), themes are loaded by lemmy-ui from `./extra_themes` folder. A different path can be specified with `LEMMY_UI_EXTRA_THEMES_FOLDER` environment variable.
+
+For instructions how to create a new theme, have a look at the [documentation](https://join-lemmy.org/docs/en/client_development/theming.html).
+
+### Federation
+
+@nutomic made many changes to federation to increase compatibility with other software. Lemmy can now receive deletions from [Pleroma], comments from [Friendica] and communities from [lotide](https://sr.ht/~vpzom/lotide/). Other actions were already compatible before. Mastodon can now display communities even when a user with identical name exists (but the user can't be viewed in that case). There were no breaking changes necessary, so federation is fully compatible with 0.15. If you notice something in another project that doesn't federate but should, please open an issue.
+
+Multiple users have pointed out that posts, comments and votes don't federate reliably. We first attempted to fix this in [Lemmy 0.15.4](https://lemmy.ml/post/184152) a few days ago, but that didn't help much. Later @nutomic noticed that Lemmy was only sending out activities with 4 worker threads, which is not enough for a big instance like lemmy.ml. At the same time, many of those workers were taken up by sending to broken instances, trying to connect for a minute or more. This version adds a timeout and increases the number of workers.
+
+### Federated bans
+
+Until now, only community bans were federated, and the "Remove content" option didn't work over federation. The new version fixes this behaviour, so that both site bans and community bans federate, including "Remove content" option and expiry. Note that this change only affects new bans, those which were issued before upgrading to 0.16 will not be federated.
+
+### Hide communities
+
+@dayinjing implemented a funcionality for instance admins to hide controversial communities. A hidden community is only visible to those users who subscribe to it. This represents a milder alternative to removing a community. This functionality is not implemented in lemmy-ui yet, but admins can hide a community like this via command line:
+```
+curl -X PUT https://example.com/api/v3/community/hide \   
+    -H "Content-Type: application/json" \
+    -d \
+    '{"community_id":3,"hidden":true,"reason":"*reason for mod log*","auth":"*admin jwt token*"}'
+```
+
+### Jerboa: a new android app
+
+To help adoption, and since most people use social media through their smartphones nowadays, @dessalines has been working on a native android app for Lemmy called [Jerboa](https://github.com/dessalines/jerboa), which is now on [F-Droid](https://f-droid.org/packages/com.jerboa) and [Google Play](https://play.google.com/store/apps/details?id=com.jerboa). 
+
+It is still at an alpha level, but is very usable. We'd love to have experienced android developers contribute to it.
+
+This now makes three smartphone apps for Lemmy: [Lemmur and Jerboa for Android, and Remmel for iOS](https://join-lemmy.org/apps). 
+
+
+## Upgrade notes
+
+Follow the [Docker or Ansible upgrade instructions here.](https://join-lemmy.org/docs/en/administration/administration.html)
+
+There are three lemmy.hjson config changes. See [defaults.hjson](https://github.com/LemmyNet/lemmy/blob/main/config/defaults.hjson) for comments and default values.
+
+- changed boolean `email.use_tls` to `email.tls_type`
+- added `setup.default_theme`
+- added `federation.worker_count`
+
+## Support development
+
+We (@dessalines and @nutomic) have been working full-time on Lemmy for almost two years. This is largely thanks to support from [NLnet foundation](https://nlnet.nl/). If you would like to support our efforts, please consider [donating](https://join-lemmy.org/donate).
+
+If you'd like to support development, and make sure that we will always be available to work full time on Lemmy, consider [donating to support its development](https://join-lemmy.org/donate). We've spent hundreds of hours on Lemmy, and would like to be able to add more developers to our little open-source co-op as time goes on.
+
+## Changes
+
+### API
+
+- A full list of the API changes can be seen on this diff of [lemmy-js-client: 0.15.0 -> 0.16.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.15.0-rc.34...0.16.0-rc.1) .
+
+### Config
+
+- The config changes are [here.](https://github.com/LemmyNet/lemmy/compare/0.15.2...main#diff-bcc84ad7bb4d0687c679cb6b3711052d8eba74a8188578c7516a8fdb5584d01a)
+
+### Lemmy Server
+
+- Make delete activities backwards compatible with 0.15 ([#2114](https://github.com/LemmyNet/lemmy/issues/2114))
+- Make activity queue worker count configurable, log stats ([#2113](https://github.com/LemmyNet/lemmy/issues/2113))
+- Add timeout for sending activities ([#2112](https://github.com/LemmyNet/lemmy/issues/2112))
+- Update `actix-*` dependencies to stable v4.
+- Show nsfw communities if you are logged in and searching communities ([#2105](https://github.com/LemmyNet/lemmy/issues/2105))
+- Fix resending activities (fixes [#1282](https://github.com/LemmyNet/lemmy/issues/1282)) ([#2109](https://github.com/LemmyNet/lemmy/issues/2109))
+- Dont hardcode site id in Site::update ([#2110](https://github.com/LemmyNet/lemmy/issues/2110))
+- send plain-text in email along with html ([#2107](https://github.com/LemmyNet/lemmy/issues/2107))
+- Add site option for default theme ([#2104](https://github.com/LemmyNet/lemmy/issues/2104))
+- Hide community v2 ([#2055](https://github.com/LemmyNet/lemmy/issues/2055))
+- Reorganize federation tests ([#2092](https://github.com/LemmyNet/lemmy/issues/2092))
+- Add logging to debug federation issues (ref [#2096](https://github.com/LemmyNet/lemmy/issues/2096)) ([#2099](https://github.com/LemmyNet/lemmy/issues/2099))
+- Adding a reqwest timeout. Fixes [#2089](https://github.com/LemmyNet/lemmy/issues/2089) ([#2097](https://github.com/LemmyNet/lemmy/issues/2097))
+- Upgrade to Rust 2021 edition ([#2093](https://github.com/LemmyNet/lemmy/issues/2093))
+- Merge different delete activities for better compatibility (fixes [#2066](https://github.com/LemmyNet/lemmy/issues/2066)) ([#2073](https://github.com/LemmyNet/lemmy/issues/2073))
+- Implement instance actor ([#1798](https://github.com/LemmyNet/lemmy/issues/1798))
+- Use doku(skip) for opentelemetry_url config value (ref [#2085](https://github.com/LemmyNet/lemmy/issues/2085)) ([#2091](https://github.com/LemmyNet/lemmy/issues/2091))
+- Alpha-ordering community follows. Fixes [#2062](https://github.com/LemmyNet/lemmy/issues/2062) ([#2079](https://github.com/LemmyNet/lemmy/issues/2079))
+- Add federation tests for Friendica, improve parsing of source field (fixes [#2057](https://github.com/LemmyNet/lemmy/issues/2057)) ([#2070](https://github.com/LemmyNet/lemmy/issues/2070))
+
+### Lemmy UI
+
+- Rename theme files from *.min.css to *.css ([#590](https://github.com/LemmyNet/lemmy-ui/issues/590))
+- Custom themes ([#584](https://github.com/LemmyNet/lemmy-ui/issues/584))
+- Add option to set site default theme (fixes [#559](https://github.com/LemmyNet/lemmy-ui/issues/559))
+- Adding nofollow to links. Fixes [#542](https://github.com/LemmyNet/lemmy-ui/issues/542) ([#543](https://github.com/LemmyNet/lemmy-ui/issues/543))
+- Fix language names ([#580](https://github.com/LemmyNet/lemmy-ui/issues/580))
+- Move fedi link in post listing location. Fixes [#569](https://github.com/LemmyNet/lemmy-ui/issues/569) ([#583](https://github.com/LemmyNet/lemmy-ui/issues/583))
+- Don't redirect on server error. Fixes [#570](https://github.com/LemmyNet/lemmy-ui/issues/570) ([#582](https://github.com/LemmyNet/lemmy-ui/issues/582))
+- Smart select inner content after bold or italics. Fixes [#497](https://github.com/LemmyNet/lemmy-ui/issues/497) ([#577](https://github.com/LemmyNet/lemmy-ui/issues/577))
+- Fix comment jumping. Fixes [#529](https://github.com/LemmyNet/lemmy-ui/issues/529) ([#576](https://github.com/LemmyNet/lemmy-ui/issues/576))
+- Add federated post and comment links. Fixes [#569](https://github.com/LemmyNet/lemmy-ui/issues/569) ([#575](https://github.com/LemmyNet/lemmy-ui/issues/575))
+- Fix community comments iso fetch. Fixes [#572](https://github.com/LemmyNet/lemmy-ui/issues/572) ([#574](https://github.com/LemmyNet/lemmy-ui/issues/574))
+- Don't allow transfer site. ([#551](https://github.com/LemmyNet/lemmy-ui/issues/551))
+- Fix report page bugs. Fixes [#558](https://github.com/LemmyNet/lemmy-ui/issues/558) ([#568](https://github.com/LemmyNet/lemmy-ui/issues/568))
+- Fix post title link bug. Fixes [#547](https://github.com/LemmyNet/lemmy-ui/issues/547) ([#563](https://github.com/LemmyNet/lemmy-ui/issues/563))
+- Add markdown footnotes. Fixes [#561](https://github.com/LemmyNet/lemmy-ui/issues/561) ([#562](https://github.com/LemmyNet/lemmy-ui/issues/562))
+
+# Lemmy v0.15.2 Release (2022-01-27)
+
+A few bug fixes:
+
+- Dont make webfinger request when viewing community/user profile (fixes [#1896](https://github.com/LemmyNet/lemmy/issues/1896)) ([#2049](https://github.com/LemmyNet/lemmy/issues/2049))
+- Case-insensitive username at login ([#2010](https://github.com/LemmyNet/lemmy/issues/2010))
+- Put community last in webfinger response (fixes [#2037](https://github.com/LemmyNet/lemmy/issues/2037)) ([#2047](https://github.com/LemmyNet/lemmy/issues/2047))
+- Dont check for ban in MarkCommentAsRead (fixes [#2045](https://github.com/LemmyNet/lemmy/issues/2045)) ([#2054](https://github.com/LemmyNet/lemmy/issues/2054))
+- Empty post bodies ([#2050](https://github.com/LemmyNet/lemmy/issues/2050))
+- Add tombstone tests, better test errors ([#2046](https://github.com/LemmyNet/lemmy/issues/2046))
+- Accept single object as to for arrays too ([#2048](https://github.com/LemmyNet/lemmy/issues/2048))
+- Cleaning optional post bodies. Fixes [#2039](https://github.com/LemmyNet/lemmy/issues/2039) ([#2043](https://github.com/LemmyNet/lemmy/issues/2043))
+- Fixing liking comment on blocked person. Fixes [#2033](https://github.com/LemmyNet/lemmy/issues/2033) ([#2042](https://github.com/LemmyNet/lemmy/issues/2042))
+- Add tests for lotide federation, make lotide groups fetchable ([#2035](https://github.com/LemmyNet/lemmy/issues/2035))
+- Remove unneeded dependency on activitystreams ([#2034](https://github.com/LemmyNet/lemmy/issues/2034))
+- Fixing private instance check. Fixes [#2064](https://github.com/LemmyNet/lemmy/issues/2064) ([#2065](https://github.com/LemmyNet/lemmy/issues/2065))
+
+# Lemmy v0.15.1 Release (2022-01-12)
+
+Lemmy now has private instances, optional registration applications, optional email verification, and temporary bans! These are described in detail below.
+
+Special thanks to @asonix for adding [tokio-console](https://github.com/LemmyNet/Lemmy/issues/2003) and [Jaeger + opentelemetry](https://github.com/LemmyNet/Lemmy/issues/1992) to our dev setups, so we can better identify performance bottlenecks.
+
+
+## What is Lemmy?
+
+[Lemmy](https://join-lemmy.org/) is similar to sites like Reddit, Lobste.rs, or Hacker News: you subscribe to communities you're interested in, post links and discussions, then vote and comment on them. Lemmy isn't just a reddit alternative; its a network of interconnected communities ran by different people and organizations, all combining to create a single, personalized front page of your favorite news, articles, and memes.
+
+## Major Changes
+
+### Required email verification
+
+Admins can turn this on, and new users will need to verify their emails. Current users will not have to do this.
+
+### Registration applications
+
+Admins can now optionally make new users fill out an application to join your server. There is a new panel in their top bar where they can approve or deny pending applications.
+
+This works in conjunction with the *require_email* field. If that is also turned on, the application will only be shown after their email has been verified. The user will receive an email when they have been accepted.
+
+### Closed / Private instances
+
+The instance settings now includes a *private instance* option, which if turned on, will only let logged in users view your site. Private instances was one of our first issues, and it was a large effort, so its great to finally have this completed.
+
+### Temporary Bans
+
+When banning users from your site or community, moderators can now optionally give a number of days for the ban to last.
+
+### Allow comment replies from blocked users
+
+It used to be that if a user blocked you, you couldn't respond to their public posts and comments. This is now fixed. They won't see your content, but others can.
+
+## Upgrade notes
+
+Follow the [Docker or Ansible upgrade instructions here.](https://join-lemmy.org/docs/en/administration/administration.html)
+
+## Support development
+
+If you'd like to support development, and make sure that we will always be available to work full time on Lemmy, consider [donating to support its development](https://join-lemmy.org/donate). We've spent hundreds of hours on Lemmy, and would like to be able to add more developers to our little open-source co-op as time goes on.
+
+## Changes
+
+### API
+
+We've removed a list of banned users from `GetSite`, added a few endpoints related to registration applications, made a few changes allowing temporary bans, site settings, made a few changes to the login response. These are non-destructive and current clients should work with this release. 
+
+- A full list of the API changes can be seen on this diff of [lemmy-js-client: 0.14.0 -> 0.15.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.14.0-rc.1...0.15.0-rc.34) .
+
+### Config
+
+There is a new rate limit for creating new comments in the [config.hjson](https://github.com/LemmyNet/lemmy/blob/main/config/defaults.hjson#L36).
+
+### Lemmy Server
+
+- Adding temporary bans. Fixes [#1423](https://github.com/LemmyNet/Lemmy/issues/1423) ([#1999](https://github.com/LemmyNet/Lemmy/issues/1999))
+- Add console-subscriber ([#2003](https://github.com/LemmyNet/Lemmy/issues/2003))
+- Opentelemetry ([#1992](https://github.com/LemmyNet/Lemmy/issues/1992))
+- Use correct encoding when fetching non-UTF-8 site metadata ([#2015](https://github.com/LemmyNet/Lemmy/issues/2015))
+- Adding a banned endpoint for admins. Removing it from GetSite. Fixes [#1806](https://github.com/LemmyNet/Lemmy/issues/1806)
+- Prevent panic on InboxRequestGuard
+- Case-insensitive webfinger response. Fixes [#1955](https://github.com/LemmyNet/Lemmy/issues/1955) & [#1986](https://github.com/LemmyNet/Lemmy/issues/1986) ([#2005](https://github.com/LemmyNet/Lemmy/issues/2005))
+- First pass at invite-only migration. ([#1949](https://github.com/LemmyNet/Lemmy/issues/1949))
+- Upgrading pictrs. ([#1996](https://github.com/LemmyNet/Lemmy/issues/1996))
+- Trying out an upgraded version of html5ever. [#1964](https://github.com/LemmyNet/Lemmy/issues/1964) ([#1991](https://github.com/LemmyNet/Lemmy/issues/1991))
+- Adding min setup password length to the docs. Fixes [#1989](https://github.com/LemmyNet/Lemmy/issues/1989) ([#1990](https://github.com/LemmyNet/Lemmy/issues/1990))
+- Test pleroma follow ([#1988](https://github.com/LemmyNet/Lemmy/issues/1988))
+- Remove awc ([#1979](https://github.com/LemmyNet/Lemmy/issues/1979))
+- Consolidate reqwest clients, use reqwest-middleware for tracing
+- Don't drop error context when adding a message to errors ([#1958](https://github.com/LemmyNet/Lemmy/issues/1958))
+- Change lemmur repo links ([#1977](https://github.com/LemmyNet/Lemmy/issues/1977))
+- added deps - git and ca-certificates (for federation to work) and changed adduser to useradd so that user can be added non-interactively ([#1976](https://github.com/LemmyNet/Lemmy/issues/1976))
+- Allow comment replies from blocked users. Fixes [#1793](https://github.com/LemmyNet/Lemmy/issues/1793) ([#1969](https://github.com/LemmyNet/Lemmy/issues/1969))
+- Fix retry infinite loops. Fixes [#1964](https://github.com/LemmyNet/Lemmy/issues/1964) ([#1967](https://github.com/LemmyNet/Lemmy/issues/1967))
+- Add lotide activities to tests
+- Allow single item for to, cc, and @context
+- Adding a captcha rate limit. Fixes [#1755](https://github.com/LemmyNet/Lemmy/issues/1755) ([#1941](https://github.com/LemmyNet/Lemmy/issues/1941))
+- Dont send email notifications for edited comments (fixes [#1925](https://github.com/LemmyNet/Lemmy/issues/1925))
+- Fix API dupes query. [#1878](https://github.com/LemmyNet/Lemmy/issues/1878)
+- Fixing duped report view for admins. Fixes [#1933](https://github.com/LemmyNet/Lemmy/issues/1933) ([#1945](https://github.com/LemmyNet/Lemmy/issues/1945))
+- Adding a GetComment endpoint. Fixes [#1919](https://github.com/LemmyNet/Lemmy/issues/1919) ([#1944](https://github.com/LemmyNet/Lemmy/issues/1944))
+- Fix min title char count for post titles. Fixes [#1854](https://github.com/LemmyNet/Lemmy/issues/1854) ([#1940](https://github.com/LemmyNet/Lemmy/issues/1940))
+- Adding MarkPostAsRead to API. Fixes [#1784](https://github.com/LemmyNet/Lemmy/issues/1784) ([#1946](https://github.com/LemmyNet/Lemmy/issues/1946))
+- background-jobs 0.11 ([#1943](https://github.com/LemmyNet/Lemmy/issues/1943))
+- Add tracing ([#1942](https://github.com/LemmyNet/Lemmy/issues/1942))
+- Remove pointless community follower sort. ([#1939](https://github.com/LemmyNet/Lemmy/issues/1939))
+- Use once_cell instead of lazy_static
+- Adding unique constraint for activity ap_id. Fixes [#1878](https://github.com/LemmyNet/Lemmy/issues/1878) ([#1935](https://github.com/LemmyNet/Lemmy/issues/1935))
+- Making public key required. Fixes [#1934](https://github.com/LemmyNet/Lemmy/issues/1934)
+- Change NodeInfo `links` to an array
+- Fixing fuzzy_search to escape like chars.
+- Fix build error in [#1914](https://github.com/LemmyNet/Lemmy/issues/1914)
+- Fix login ilike bug. Fixes [#1920](https://github.com/LemmyNet/Lemmy/issues/1920)
+- Fix Smithereen webfinger, remove duplicate webfinger impl (fixes [#1916](https://github.com/LemmyNet/Lemmy/issues/1916))
+- Dont announce comments, edited posts to Pleroma/Mastodon followers
+- Community outbox should only contain activities sent by community (fixes [#1916](https://github.com/LemmyNet/Lemmy/issues/1916))
+- Remove HTTP signature compatibility mode (its not necessary)
+- Implement rate limits on comments
+
+### Lemmy UI
+
+- Fixed an issue with post embeds not being pushed to a new line [#544](https://github.com/LemmyNet/lemmy-ui/issues/544)
+- Adding as and lt languages, Updating translations.
+- Temp bans ([#524](https://github.com/LemmyNet/lemmy-ui/issues/524))
+- Fix banner. Fixes [#466](https://github.com/LemmyNet/lemmy-ui/issues/466) ([#534](https://github.com/LemmyNet/lemmy-ui/issues/534))
+- Making the modlog badge stand out more. Fixes [#531](https://github.com/LemmyNet/lemmy-ui/issues/531) ([#539](https://github.com/LemmyNet/lemmy-ui/issues/539))
+- Add some fallback properties for display in older browsers ([#535](https://github.com/LemmyNet/lemmy-ui/issues/535))
+- Private instances ([#523](https://github.com/LemmyNet/lemmy-ui/issues/523))
+- Add nord theme. Fixes [#520](https://github.com/LemmyNet/lemmy-ui/issues/520) ([#527](https://github.com/LemmyNet/lemmy-ui/issues/527))
+- Dont receive post room comments from blocked users. ([#516](https://github.com/LemmyNet/lemmy-ui/issues/516))
+- Using console.error for error logs. ([#517](https://github.com/LemmyNet/lemmy-ui/issues/517))
+- Fix issue with websocket buffer.
+- Switching to websocket-ts. [#247](https://github.com/LemmyNet/lemmy-ui/issues/247) ([#515](https://github.com/LemmyNet/lemmy-ui/issues/515))
+- Fix native language issue. (zh_Hant) ([#513](https://github.com/LemmyNet/lemmy-ui/issues/513))
+- Fix tippy on component mount. Fixes [#509](https://github.com/LemmyNet/lemmy-ui/issues/509) ([#511](https://github.com/LemmyNet/lemmy-ui/issues/511))
+- Fix docker latest ([#510](https://github.com/LemmyNet/lemmy-ui/issues/510))
+- Enabling html tags in markdown. Fixes [#498](https://github.com/LemmyNet/lemmy-ui/issues/498)
+- Fix comment scroll bug. Fixes [#492](https://github.com/LemmyNet/lemmy-ui/issues/492)
+- Fixing error for null person_block. Fixes [#491](https://github.com/LemmyNet/lemmy-ui/issues/491)
+- Trying to catch promise and json parse errors. [#489](https://github.com/LemmyNet/lemmy-ui/issues/489) ([#490](https://github.com/LemmyNet/lemmy-ui/issues/490))
+
+# Lemmy Release v0.14.0: Federation with Mastodon and Pleroma (2021-11-17)
+
+Today is an exciting day for the Lemmy project.
+
+Almost one year after [first enabling federation](https://lemmy.ml/post/42833), we now federate with other projects for the first time! According to some people's definition, this finally makes us part of the Fediverse.
+
+It took a lot of work to make this possible, so big thanks to [NLnet](https://nlnet.nl/) for funding our full time work on Lemmy, and to [@lanodan](https://queer.hacktivis.me/users/lanodan) and [@asonix](https://masto.asonix.dog/@asonix) for helping to figure out how Pleroma and Mastodon federation works (it's difficult because they have almost no documentation).
+
+
+## Major Changes
+
+### Federation code rewrite
+
+The rewrite of the federation code started by @nutomic in August is now mostly complete. As a result, the code is much cleaner, and has tests to guarantee no breaking changes between Lemmy versions. As a side effect of this rewrite, it was now relatively easy to enable federation with other projects. 
+
+Mastodon and Pleroma users can:
+
+- View Lemmy communities, user profiles, posts and comments
+- Follow Lemmy communities to receive new posts and comments
+- Replies (mentions) work in both directions, including notifications
+
+In addition, Pleroma users can exchange private messages with Lemmy users.
+
+Note that Pleroma and Mastodon rely on a compatibility mode in Lemmy, which means that they won't receive events like Deletes or Votes. Other projects whose federation works similar to Pleroma/Mastodon  will likely also federate.
+
+### Hardcoded slur filter removed
+
+Lemmy finally has essential moderation tools (reporting, user/community blocking), so the hardcoded filter isn't necessary anymore. If you want to keep using the slur filter, copy [these lines](https://github.com/LemmyNet/lemmy/blob/b18ea3e0cc620c3f97f9804c09b92f193809b846/config/config.hjson#L8-L12) to your config file when upgrading, and adjust to your liking.
+
+## Upgrade notes
+
+Federation with Pleroma/Mastodon works automatically, you don't need to change anything, assuming that your allowlist/blocklist configuration permits it.
+
+Note that Mastodon and Pleroma are much, much bigger than Lemmy at this point, with a combined 3 milion users and 4500 instances, compared to 20.000 users and 35 instances for Lemmy ([source](https://the-federation.info/)). The existing mod tools in Lemmy might not be adequate to handle that at the moment.
+
+Be aware that if you have federation enabled in the Lemmy config, Mastodon and Pleroma users can now fetch all posts and comments, to view them and share with their followers. The Lemmy blocklist/allowlist can not prevent this, it only prevents posts/comments from blocked instances to be shown on your own instance. The only solution to this problem is disabling federation, or waiting for [signed fetch](https://github.com/LemmyNet/lemmy/issues/868) to be implemented.
+
+If you want to use federation, but review new instances before federating with them, use the allowlist. You can switch from open federation to allowlist federation by pasting the output of the command below into `federation.allowed_instances` in the Lemmy config.
+
+```
+curl https://your-instance.com/api/v3/site | jq -c .federated_instances.linked
+```
+
+The [`lemmy.hjson` `additional_slurs` field has changed its name to `slur_filter`. ](https://github.com/LemmyNet/lemmy/blob/b18ea3e0cc620c3f97f9804c09b92f193809b846/config/config.hjson#L8-L12)
+
+Follow the [Docker or Ansible upgrade instructions here.](https://join-lemmy.org/docs/en/administration/administration.html)
+
+## Lemmy-Ansible
+
+We've now separated our ansible install method (the preferred way to deploy Lemmy) into its own repo, [lemmy-ansible](https://github.com/LemmyNet/lemmy-ansible). Let us know if you need help migrating existing installations over to it.
+
+## Changes
+
+### API
+
+- There is now a `GetUnreadCount` in the API to check the count of your unread messages, replies, and mentions.
+- A full list of the API changes can be seen on this diff of [lemmy-js-client: 0.13.0 -> 0.14.0-rc.1](https://github.com/LemmyNet/lemmy-js-client/compare/0.13.0...0.14.0-rc.1) .
+
+### Lemmy Server
+
+- More federation compat ([#1894](https://github.com/LemmyNet/Lemmy/issues/1894))
+- Adding clippy:unwrap to husky. Fixes [#1892](https://github.com/LemmyNet/Lemmy/issues/1892) ([#1893](https://github.com/LemmyNet/Lemmy/issues/1893))
+- Remove header guard for activitypub routes
+- Add federation test cases for Smithereen and Mastodon
+- Reduce stack memory usage in apub code
+- Remove ActivityFields trait, deserialize into another struct instead
+- Check if post or comment are deleted first. Fixes [#1864](https://github.com/LemmyNet/Lemmy/issues/1864) ([#1867](https://github.com/LemmyNet/Lemmy/issues/1867))
+- Correctly use and document check_is_apub_id_valid() param use_strict_allowlist
+- Convert note.content and chat_message.content to html (fixes [#1871](https://github.com/LemmyNet/Lemmy/issues/1871))
+- Upgrade background_jobs to 0.9.1 [#1820](https://github.com/LemmyNet/Lemmy/issues/1820) ([#1875](https://github.com/LemmyNet/Lemmy/issues/1875))
+- Fix husky fmt hook. ([#1868](https://github.com/LemmyNet/Lemmy/issues/1868))
+- Renaming to slur_filter. Fixes [#1773](https://github.com/LemmyNet/Lemmy/issues/1773) ([#1801](https://github.com/LemmyNet/Lemmy/issues/1801))
+- Three instance inbox bug ([#1866](https://github.com/LemmyNet/Lemmy/issues/1866))
+- Remove ansible from this repo. ([#1829](https://github.com/LemmyNet/Lemmy/issues/1829))
+- Rewrite collections to use new fetcher ([#1861](https://github.com/LemmyNet/Lemmy/issues/1861))
+- Dont blank out post or community info. Fixes [#1813](https://github.com/LemmyNet/Lemmy/issues/1813) ([#1841](https://github.com/LemmyNet/Lemmy/issues/1841))
+- Format config/defaults.hjson before committing ([#1860](https://github.com/LemmyNet/Lemmy/issues/1860))
+- Breaking apub changes ([#1859](https://github.com/LemmyNet/Lemmy/issues/1859))
+- Pleroma federation2 ([#1855](https://github.com/LemmyNet/Lemmy/issues/1855))
+- Create a custom pre-commit hook, generates config/defaults.hjson  ([#1857](https://github.com/LemmyNet/Lemmy/issues/1857))
+- Add cargo metadata to all crates ([#1853](https://github.com/LemmyNet/Lemmy/issues/1853))
+- Add both (De)Serialize to all models ([#1851](https://github.com/LemmyNet/Lemmy/issues/1851))
+- Adding GetUnreadCount to the API. Fixes [#1794](https://github.com/LemmyNet/Lemmy/issues/1794) ([#1842](https://github.com/LemmyNet/Lemmy/issues/1842))
+- Federate reports ([#1830](https://github.com/LemmyNet/Lemmy/issues/1830))
+- Fix saved posts and hide read posts issue. Fixes [#1839](https://github.com/LemmyNet/Lemmy/issues/1839) ([#1840](https://github.com/LemmyNet/Lemmy/issues/1840))
+- Dont allow posts to deleted / removed communities. Fixes [#1827](https://github.com/LemmyNet/Lemmy/issues/1827) ([#1828](https://github.com/LemmyNet/Lemmy/issues/1828))
+- Dont swallow API errors (fixes [#1834](https://github.com/LemmyNet/Lemmy/issues/1834)) ([#1837](https://github.com/LemmyNet/Lemmy/issues/1837))
+- Fix federation of initial post/comment vote (fixes [#1824](https://github.com/LemmyNet/Lemmy/issues/1824)) ([#1835](https://github.com/LemmyNet/Lemmy/issues/1835))
+- Fix clippy warnings added in nightly ([#1833](https://github.com/LemmyNet/Lemmy/issues/1833))
+- Admins can view all reports. Fixes [#1810](https://github.com/LemmyNet/Lemmy/issues/1810) ([#1825](https://github.com/LemmyNet/Lemmy/issues/1825))
+- Adding a message_id to emails. Fixes [#1807](https://github.com/LemmyNet/Lemmy/issues/1807) ([#1826](https://github.com/LemmyNet/Lemmy/issues/1826))
+- Generate config docs from code ([#1786](https://github.com/LemmyNet/Lemmy/issues/1786))
+- Trying a background_jobs fix. [#1820](https://github.com/LemmyNet/Lemmy/issues/1820) ([#1822](https://github.com/LemmyNet/Lemmy/issues/1822))
+- mark parent as read on reply ([#1819](https://github.com/LemmyNet/Lemmy/issues/1819))
+- Move code to apub library ([#1795](https://github.com/LemmyNet/Lemmy/issues/1795))
+- Adding honeypot to user and post creation. Fixes [#1802](https://github.com/LemmyNet/Lemmy/issues/1802) ([#1803](https://github.com/LemmyNet/Lemmy/issues/1803))
+- Add database host back into config file ([#1805](https://github.com/LemmyNet/Lemmy/issues/1805))
+
+### Lemmy UI
+
+- Updating translations.
+- Fixing unload ([#487](https://github.com/LemmyNet/lemmy-ui/issues/487))
+- Fix setup password. Fixes [#478](https://github.com/LemmyNet/lemmy-ui/issues/478) ([#484](https://github.com/LemmyNet/lemmy-ui/issues/484))
+- Adding post comment scrolling hack. Fixes [#480](https://github.com/LemmyNet/lemmy-ui/issues/480) [#486](https://github.com/LemmyNet/lemmy-ui/issues/486)
+- Navbar links ([#476](https://github.com/LemmyNet/lemmy-ui/issues/476))
+- Try fixing crypto node bug. Fixes [#473](https://github.com/LemmyNet/lemmy-ui/issues/473) ([#474](https://github.com/LemmyNet/lemmy-ui/issues/474))
+- Use community title and user display name for dropdown.
+- Mahanstreamer userpage ([#471](https://github.com/LemmyNet/lemmy-ui/issues/471))
+- Using i18next compatibility v3 ([#465](https://github.com/LemmyNet/lemmy-ui/issues/465))
+- Show original created time tooltip ([#462](https://github.com/LemmyNet/lemmy-ui/issues/462))
+- Revert version of i18next to fix plurals. Fixes [#451](https://github.com/LemmyNet/lemmy-ui/issues/451) ([#460](https://github.com/LemmyNet/lemmy-ui/issues/460))
+- Fixing cross-posts showing on initial load. Fixes [#457](https://github.com/LemmyNet/lemmy-ui/issues/457) ([#464](https://github.com/LemmyNet/lemmy-ui/issues/464))
+- Show bot account info. Fixes [#458](https://github.com/LemmyNet/lemmy-ui/issues/458) ([#463](https://github.com/LemmyNet/lemmy-ui/issues/463))
+- Very weak password check ([#461](https://github.com/LemmyNet/lemmy-ui/issues/461))
+- Simplifying getunreadcount. ([#455](https://github.com/LemmyNet/lemmy-ui/issues/455))
+- ui changes for marking comment as read on reply ([#454](https://github.com/LemmyNet/lemmy-ui/issues/454))
+- hide mod actions appropriately fix [#441](https://github.com/LemmyNet/lemmy-ui/issues/441) ([#447](https://github.com/LemmyNet/lemmy-ui/issues/447))
+- Add honeypot for user and form creation. Fixes [#433](https://github.com/LemmyNet/lemmy-ui/issues/433) ([#435](https://github.com/LemmyNet/lemmy-ui/issues/435))
 # Lemmy v0.13.3 Release (2021-10-13)
 
 - Dont swallow API errors (fixes [#1834](https://github.com/LemmyNet/lemmy/issues/1834)) ([#1837](https://github.com/LemmyNet/lemmy/issues/1837))
@@ -507,7 +894,7 @@ Since our last release in October of last year, and we've had [~450](https://git
 
 The biggest changes, as we'll outline below, are a re-work of Lemmy's database structure, a `v2` of Lemmy's API, and activitypub compliance fixes. The new re-worked DB is much faster, easier to maintain, and [now supports hierarchical rather than flat objects in the new API](https://github.com/LemmyNet/lemmy/issues/1275).
 
-We've also seen the first release of [Lemmur](https://github.com/krawieck/lemmur/releases/tag/v0.1.1), an android / iOS (soon) / windows / linux client, as well as [Lemmer](https://github.com/uuttff8/Lemmy-iOS), a native iOS client. Much thanks to @krawieck, @shilangyu, and @uuttff8 for making these great clients. If you can, please contribute to their [patreon](https://www.patreon.com/lemmur) to help fund lemmur development.
+We've also seen the first release of [Lemmur](https://github.com/LemmurOrg/lemmur/releases/tag/v0.1.1), an android / iOS (soon) / windows / linux client, as well as [Lemmer](https://github.com/uuttff8/Lemmy-iOS), a native iOS client. Much thanks to @krawieck, @shilangyu, and @uuttff8 for making these great clients. If you can, please contribute to their [patreon](https://www.patreon.com/lemmur) to help fund lemmur development.
 
 ## LemmyNet projects
 

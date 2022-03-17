@@ -1,4 +1,4 @@
-use actix_web::{body::Body, error::ErrorBadRequest, *};
+use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
 use lemmy_db_views::site_view::SiteView;
@@ -15,21 +15,21 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 async fn node_info_well_known(
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let node_info = NodeInfoWellKnown {
-    links: NodeInfoWellKnownLinks {
+    links: vec![NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
       href: Url::parse(&format!(
         "{}/nodeinfo/2.0.json",
         &context.settings().get_protocol_and_hostname(),
       ))?,
-    },
+    }],
   };
   Ok(HttpResponse::Ok().json(node_info))
 }
 
 async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Error> {
-  let site_view = blocking(context.pool(), SiteView::read)
+  let site_view = blocking(context.pool(), SiteView::read_local)
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
@@ -63,7 +63,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NodeInfoWellKnown {
-  pub links: NodeInfoWellKnownLinks,
+  pub links: Vec<NodeInfoWellKnownLinks>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

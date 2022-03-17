@@ -1,17 +1,18 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{aggregates::person_aggregates::PersonAggregates, ToSafe, ToSafeSettings};
 use lemmy_db_schema::{
+  aggregates::person_aggregates::PersonAggregates,
+  functions::lower,
+  newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
   source::{
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe},
   },
-  LocalUserId,
-  PersonId,
+  traits::{ToSafe, ToSafeSettings},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LocalUserView {
   pub local_user: LocalUser,
   pub person: Person,
@@ -81,9 +82,9 @@ impl LocalUserView {
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .filter(
-        person::name
-          .ilike(name_or_email)
-          .or(local_user::email.ilike(name_or_email)),
+        lower(person::name)
+          .eq(lower(name_or_email))
+          .or(local_user::email.eq(name_or_email)),
       )
       .select((
         local_user::all_columns,
@@ -117,7 +118,7 @@ impl LocalUserView {
   }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LocalUserSettingsView {
   pub local_user: LocalUserSettings,
   pub person: PersonSafe,

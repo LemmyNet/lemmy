@@ -1,52 +1,21 @@
 use crate::{
-  activities::{
-    following::follow::FollowCommunity,
-    generate_activity_id,
-    verify_activity,
-    verify_community,
-  },
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  send_lemmy_activity,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity},
+  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
-use activitystreams::{
-  activity::kind::AcceptType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
   verify::verify_urls_match,
 };
-use lemmy_db_queries::Followable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower},
-  person::Person,
-};
+use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct AcceptFollowCommunity {
-  actor: ObjectId<Community>,
-  to: ObjectId<Person>,
-  object: FollowCommunity,
-  #[serde(rename = "type")]
-  kind: AcceptType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl AcceptFollowCommunity {
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     follow: FollowCommunity,
     context: &LemmyContext,
@@ -56,21 +25,19 @@ impl AcceptFollowCommunity {
     let person = follow
       .actor
       .clone()
-      .dereference(context, request_counter)
+      .dereference(context, context.client(), request_counter)
       .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
-      to: ObjectId::new(person.actor_id()),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
         AcceptType::Accept,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
-    let inbox = vec![person.inbox_url.into()];
+    let inbox = vec![person.inbox_url()];
     send_lemmy_activity(context, &accept, &accept.id, &community, inbox, true).await
   }
 }
@@ -79,29 +46,37 @@ impl AcceptFollowCommunity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AcceptFollowCommunity {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, &context.settings())?;
-    verify_urls_match(self.to.inner(), self.object.actor())?;
-    verify_urls_match(self.actor(), self.object.to.inner())?;
-    verify_community(&self.actor, context, request_counter).await?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
+    verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = self.actor.dereference(context, request_counter).await?;
-    let to = self.to.dereference(context, request_counter).await?;
+    let person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let community = self
+      .object
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {
-      CommunityFollower::follow_accepted(conn, actor.id, to.id)
+      CommunityFollower::follow_accepted(conn, person.id, community.id)
     })
     .await??;
 

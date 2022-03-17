@@ -1,62 +1,42 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
-    deletion::{delete::receive_remove_action, verify_delete_activity},
+    community::{
+      announce::GetCommunity,
+      get_community_from_moderators_url,
+      send_activity_in_community,
+    },
     generate_activity_id,
     verify_activity,
     verify_add_remove_moderator_target,
+    verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
+  activity_lists::AnnouncableActivities,
   generate_moderators_url,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::remove_mod::RemoveMod,
 };
-use activitystreams::{
-  activity::kind::RemoveType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams_kinds::{activity::RemoveType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
 };
-use lemmy_db_queries::Joinable;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityModerator, CommunityModeratorForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{CommunityModerator, CommunityModeratorForm},
+  traits::Joinable,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct RemoveMod {
-  actor: ObjectId<Person>,
-  to: [PublicUrl; 1],
-  pub(in crate::activities) object: ObjectId<Person>,
-  cc: [ObjectId<Community>; 1],
-  #[serde(rename = "type")]
-  kind: RemoveType,
-  // if target is set, this is means remove mod from community
-  pub(in crate::activities) target: Option<Url>,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl RemoveMod {
+  #[tracing::instrument(skip_all)]
   pub async fn send(
-    community: &Community,
-    removed_mod: &Person,
-    actor: &Person,
+    community: &ApubCommunity,
+    removed_mod: &ApubPerson,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
@@ -65,77 +45,73 @@ impl RemoveMod {
     )?;
     let remove = RemoveMod {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
+      to: vec![public()],
       object: ObjectId::new(removed_mod.actor_id()),
-      target: Some(generate_moderators_url(&community.actor_id)?.into()),
+      target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
-      context: lemmy_context(),
-      cc: [ObjectId::new(community.actor_id())],
+      cc: vec![community.actor_id()],
       kind: RemoveType::Remove,
       unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::RemoveMod(remove);
     let inboxes = vec![removed_mod.shared_inbox_or_inbox_url()];
-    send_to_community(activity, &id, actor, community, inboxes, context).await
+    send_activity_in_community(activity, &id, actor, community, inboxes, context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for RemoveMod {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, &context.settings())?;
-    if let Some(target) = &self.target {
-      verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-      verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
-      verify_add_remove_moderator_target(target, &self.cc[0])?;
-    } else {
-      verify_delete_activity(
-        self.object.inner(),
-        self,
-        &self.cc[0],
-        true,
-        context,
-        request_counter,
-      )
-      .await?;
-    }
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    verify_add_remove_moderator_target(&self.target, &community)?;
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    if self.target.is_some() {
-      let community = self.cc[0].dereference(context, request_counter).await?;
-      let remove_mod = self.object.dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
+    let remove_mod = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
 
-      let form = CommunityModeratorForm {
-        community_id: community.id,
-        person_id: remove_mod.id,
-      };
-      blocking(context.pool(), move |conn| {
-        CommunityModerator::leave(conn, &form)
-      })
-      .await??;
-      // TODO: send websocket notification about removed mod
-      Ok(())
-    } else {
-      receive_remove_action(
-        &self.actor,
-        self.object.inner(),
-        None,
-        context,
-        request_counter,
-      )
-      .await
-    }
+    let form = CommunityModeratorForm {
+      community_id: community.id,
+      person_id: remove_mod.id,
+    };
+    blocking(context.pool(), move |conn| {
+      CommunityModerator::leave(conn, &form)
+    })
+    .await??;
+    // TODO: send websocket notification about removed mod
+    Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for RemoveMod {
+  #[tracing::instrument(skip_all)]
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    get_community_from_moderators_url(&self.target, context, request_counter).await
   }
 }

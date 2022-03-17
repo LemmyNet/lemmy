@@ -1,0 +1,18 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://mycrowd.ca/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "https://mycrowd.ca/users/kinetix",
+  "cc": [],
+  "id": "https://mycrowd.ca/activities/dab6a4d3-0db0-41ee-8aab-7bfa4929b4fd",
+  "object": "https://lemmy.ca/u/kinetix",
+  "state": "pending",
+  "to": [
+    "https://lemmy.ca/u/kinetix"
+  ],
+  "type": "Follow"
+}

@@ -6,9 +6,11 @@ use crate::{
 use actix::{Actor, Context, Handler, ResponseFuture};
 use lemmy_db_schema::naive_now;
 use lemmy_utils::ConnectionId;
-use log::{error, info};
+use opentelemetry::trace::TraceContextExt;
 use rand::Rng;
 use serde::Serialize;
+use tracing::{error, info};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Make actor from `ChatServer`
 impl Actor for ChatServer {
@@ -62,24 +64,48 @@ impl Handler<Disconnect> for ChatServer {
   }
 }
 
+fn root_span() -> tracing::Span {
+  let span = tracing::info_span!(
+    parent: None,
+    "Websocket Request",
+    trace_id = tracing::field::Empty,
+  );
+  {
+    let trace_id = span.context().span().span_context().trace_id().to_hex();
+    span.record("trace_id", &tracing::field::display(trace_id));
+  }
+
+  span
+}
+
 /// Handler for Message message.
 impl Handler<StandardMessage> for ChatServer {
   type Result = ResponseFuture<Result<String, std::convert::Infallible>>;
 
   fn handle(&mut self, msg: StandardMessage, ctx: &mut Context<Self>) -> Self::Result {
     let fut = self.parse_json_message(msg, ctx);
-    Box::pin(async move {
-      match fut.await {
-        Ok(m) => {
-          // info!("Message Sent: {}", m);
-          Ok(m)
-        }
-        Err(e) => {
-          error!("Error during message handling {}", e);
-          Ok(e.to_string())
+    let span = root_span();
+
+    use tracing::Instrument;
+
+    Box::pin(
+      async move {
+        match fut.await {
+          Ok(m) => {
+            // info!("Message Sent: {}", m);
+            Ok(m)
+          }
+          Err(e) => {
+            error!("Error during message handling {}", e);
+            Ok(
+              e.to_json()
+                .unwrap_or_else(|_| String::from(r#"{"error":"failed to serialize json"}"#)),
+            )
+          }
         }
       }
-    })
+      .instrument(span),
+    )
   }
 }
 

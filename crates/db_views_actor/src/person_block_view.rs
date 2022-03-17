@@ -1,13 +1,13 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{ToSafe, ViewToVec};
 use lemmy_db_schema::{
+  newtypes::PersonId,
   schema::{person, person_alias_1, person_block},
   source::person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
-  PersonId,
+  traits::{ToSafe, ViewToVec},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonBlockView {
   pub person: PersonSafe,
   pub target: PersonSafeAlias1,

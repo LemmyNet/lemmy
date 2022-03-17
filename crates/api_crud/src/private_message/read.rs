@@ -5,7 +5,7 @@ use lemmy_api_common::{
   get_local_user_view_from_jwt,
   person::{GetPrivateMessages, PrivateMessagesResponse},
 };
-use lemmy_db_queries::DeleteableOrRemoveable;
+use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -14,6 +14,7 @@ use lemmy_websocket::LemmyContext;
 impl PerformCrud for GetPrivateMessages {
   type Response = PrivateMessagesResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -21,7 +22,7 @@ impl PerformCrud for GetPrivateMessages {
   ) -> Result<PrivateMessagesResponse, LemmyError> {
     let data: &GetPrivateMessages = self;
     let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
     let person_id = local_user_view.person.id;
 
     let page = data.page;

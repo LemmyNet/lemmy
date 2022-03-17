@@ -14,18 +14,20 @@ use diesel::{
   PgConnection,
 };
 use lemmy_api_common::{comment::*, post::*};
-use lemmy_db_schema::{source::secret::Secret, CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, LocalUserId, PostId},
+  source::secret::Secret,
+};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,
   settings::structs::Settings,
-  ApiError,
   ConnectionId,
   IpAddr,
   LemmyError,
 };
 use rand::rngs::ThreadRng;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -88,7 +90,7 @@ pub struct ChatServer {
   message_handler_crud: MessageHandlerCrudType,
 
   /// An HTTP Client
-  client: Client,
+  client: ClientWithMiddleware,
 
   activity_queue: QueueHandle,
 }
@@ -108,7 +110,7 @@ impl ChatServer {
     rate_limiter: RateLimit,
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
-    client: Client,
+    client: ClientWithMiddleware,
     activity_queue: QueueHandle,
     settings: Settings,
     secret: Secret,
@@ -474,7 +476,7 @@ impl ChatServer {
       let data = &json["data"].to_string();
       let op = &json["op"]
         .as_str()
-        .ok_or_else(|| ApiError::err_plain("missing op"))?;
+        .ok_or_else(|| LemmyError::from_message("missing op"))?;
 
       if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);
@@ -482,12 +484,16 @@ impl ChatServer {
           UserOperationCrud::Register => rate_limiter.register().wrap(ip, fut).await,
           UserOperationCrud::CreatePost => rate_limiter.post().wrap(ip, fut).await,
           UserOperationCrud::CreateCommunity => rate_limiter.register().wrap(ip, fut).await,
+          UserOperationCrud::CreateComment => rate_limiter.comment().wrap(ip, fut).await,
           _ => rate_limiter.message().wrap(ip, fut).await,
         }
       } else {
         let user_operation = UserOperation::from_str(op)?;
         let fut = (message_handler)(context, msg.id, user_operation.clone(), data);
-        rate_limiter.message().wrap(ip, fut).await
+        match user_operation {
+          UserOperation::GetCaptcha => rate_limiter.post().wrap(ip, fut).await,
+          _ => rate_limiter.message().wrap(ip, fut).await,
+        }
       }
     }
   }

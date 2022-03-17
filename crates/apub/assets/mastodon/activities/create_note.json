@@ -1,0 +1,62 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri"
+    }
+  ],
+  "id": "https://mastodon.madrid/users/felix/statuses/107224289116410645/activity",
+  "type": "Create",
+  "actor": "https://mastodon.madrid/users/felix",
+  "published": "2021-11-05T11:46:50Z",
+  "to": [
+    "https://mastodon.madrid/users/felix/followers"
+  ],
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://mamot.fr/users/retiolus"
+  ],
+  "object": {
+    "id": "https://mastodon.madrid/users/felix/statuses/107224289116410645",
+    "type": "Note",
+    "summary": null,
+    "inReplyTo": "https://mamot.fr/users/retiolus/statuses/107224244380204526",
+    "published": "2021-11-05T11:46:50Z",
+    "url": "https://mastodon.madrid/@felix/107224289116410645",
+    "attributedTo": "https://mastodon.madrid/users/felix",
+    "to": [
+      "https://mastodon.madrid/users/felix/followers"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://mamot.fr/users/retiolus"
+    ],
+    "sensitive": false,
+    "atomUri": "https://mastodon.madrid/users/felix/statuses/107224289116410645",
+    "inReplyToAtomUri": "https://mamot.fr/users/retiolus/statuses/107224244380204526",
+    "conversation": "tag:mamot.fr,2021-11-05:objectId=64635960:objectType=Conversation",
+    "content": "<p><span class=\"h-card\"><a href=\"https://mamot.fr/@retiolus\" class=\"u-url mention\">@<span>retiolus</span></a></span> i have never been disappointed by a thinkpad. if you want to save money, get a model from a few years ago, there isnt a huge difference anyway.</p>",
+    "contentMap": {
+      "en": "<p><span class=\"h-card\"><a href=\"https://mamot.fr/@retiolus\" class=\"u-url mention\">@<span>retiolus</span></a></span> i have neverbeendisappointed by a thinkpad. if you want to save money, get a model from a few years ago, there isnt a huge difference anyway.</p>"
+    },
+    "attachment": [],
+    "tag": [
+      {
+        "type": "Mention",
+        "href": "https://mamot.fr/users/retiolus",
+        "name": "@retiolus@mamot.fr"
+      }
+    ],
+    "replies": {
+      "id": "https://mastodon.madrid/users/felix/statuses/107224289116410645/replies",
+      "type": "Collection",
+      "first": {
+        "type": "CollectionPage",
+        "next": "https://mastodon.madrid/users/felix/statuses/107224289116410645/replies?only_other_accounts=true&page=true",
+        "partOf": "https://mastodon.madrid/users/felix/statuses/107224289116410645/replies",
+        "items": []
+      }
+    }
+  }
+}

@@ -2,16 +2,16 @@
 use clokwerk::{Scheduler, TimeUnits};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
-use lemmy_db_queries::{source::activity::Activity_, DbPool};
-use lemmy_db_schema::source::activity::Activity;
-use log::info;
+use lemmy_db_schema::{source::activity::Activity, DbPool};
+use lemmy_utils::LemmyError;
 use std::{thread, time::Duration};
+use tracing::info;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(pool: DbPool) {
+pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
   let mut scheduler = Scheduler::new();
 
-  let conn = pool.get().unwrap();
+  let conn = pool.get()?;
   active_counts(&conn);
 
   // On startup, reindex the tables non-concurrently
@@ -22,7 +22,7 @@ pub fn setup(pool: DbPool) {
     reindex_aggregates_tables(&conn, true);
   });
 
-  let conn = pool.get().unwrap();
+  let conn = pool.get()?;
   clear_old_activities(&conn);
   scheduler.every(1.weeks()).run(move || {
     clear_old_activities(&conn);

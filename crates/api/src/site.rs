@@ -1,44 +1,57 @@
 use crate::Perform;
 use actix_web::web::Data;
-use anyhow::Context;
 use diesel::NotFound;
 use lemmy_api_common::{
   blocking,
   build_federated_instances,
+  check_private_instance,
   get_local_user_view_from_jwt,
   get_local_user_view_from_jwt_opt,
   is_admin,
+  resolve_actor_identifier,
+  send_application_approved_email,
   site::*,
 };
-use lemmy_apub::{
-  build_actor_id_from_shortname,
-  fetcher::search::{search_by_apub_id, SearchableObjects},
-  EndpointType,
-};
-use lemmy_db_queries::{
+use lemmy_apub::fetcher::search::{search_by_apub_id, SearchableObjects};
+use lemmy_db_schema::{
+  diesel_option_overwrite,
   from_opt_str_to_opt_enum,
-  source::site::Site_,
-  Crud,
+  newtypes::PersonId,
+  source::{
+    comment::Comment,
+    community::Community,
+    local_user::{LocalUser, LocalUserForm},
+    moderator::{
+      AdminPurgeComment,
+      AdminPurgeCommentForm,
+      AdminPurgeCommunity,
+      AdminPurgeCommunityForm,
+      AdminPurgePerson,
+      AdminPurgePersonForm,
+      AdminPurgePost,
+      AdminPurgePostForm,
+      ModAdd,
+      ModAddForm,
+    },
+    person::Person,
+    post::Post,
+    registration_application::{RegistrationApplication, RegistrationApplicationForm},
+    site::Site,
+  },
+  traits::{Crud, DeleteableOrRemoveable},
   DbPool,
-  DeleteableOrRemoveable,
   ListingType,
   SearchType,
   SortType,
 };
-use lemmy_db_schema::{
-  source::{
-    comment::Comment,
-    community::Community,
-    moderator::*,
-    person::Person,
-    post::Post,
-    site::Site,
-  },
-  PersonId,
-};
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
+  local_user_view::LocalUserView,
   post_view::{PostQueryBuilder, PostView},
+  registration_application_view::{
+    RegistrationApplicationQueryBuilder,
+    RegistrationApplicationView,
+  },
   site_view::SiteView,
 };
 use lemmy_db_views_actor::{
@@ -54,6 +67,7 @@ use lemmy_db_views_moderator::{
   mod_add_view::ModAddView,
   mod_ban_from_community_view::ModBanFromCommunityView,
   mod_ban_view::ModBanView,
+  mod_hide_community_view::ModHideCommunityView,
   mod_lock_post_view::ModLockPostView,
   mod_remove_comment_view::ModRemoveCommentView,
   mod_remove_community_view::ModRemoveCommunityView,
@@ -62,11 +76,9 @@ use lemmy_db_views_moderator::{
   mod_transfer_community_view::ModTransferCommunityView,
 };
 use lemmy_utils::{
-  location_info,
   request::purge_image_from_pictrs,
   settings::structs::Settings,
   version,
-  ApiError,
   ConnectionId,
   LemmyError,
 };
@@ -76,12 +88,19 @@ use lemmy_websocket::LemmyContext;
 impl Perform for GetModlog {
   type Response = GetModlogResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetModlogResponse, LemmyError> {
     let data: &GetModlog = self;
+
+    let local_user_view =
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let community_id = data.community_id;
     let mod_person_id = data.mod_person_id;
@@ -119,6 +138,11 @@ impl Perform for GetModlog {
 
     let transferred_to_community = blocking(context.pool(), move |conn| {
       ModTransferCommunityView::list(conn, community_id, mod_person_id, page, limit)
+    })
+    .await??;
+
+    let hidden_communities = blocking(context.pool(), move |conn| {
+      ModHideCommunityView::list(conn, community_id, mod_person_id, page, limit)
     })
     .await??;
 
@@ -172,6 +196,7 @@ impl Perform for GetModlog {
       admin_purged_communities,
       admin_purged_posts,
       admin_purged_comments,
+      hidden_communities,
     })
   }
 }
@@ -180,6 +205,7 @@ impl Perform for GetModlog {
 impl Perform for Search {
   type Response = SearchResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -188,7 +214,10 @@ impl Perform for Search {
     let data: &Search = self;
 
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
+        .await?;
+
+    check_private_instance(&local_user_view, context.pool()).await?;
 
     let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
@@ -214,11 +243,14 @@ impl Perform for Search {
     let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.listing_type);
     let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
     let community_id = data.community_id;
-    let community_actor_id = data
-      .community_name
-      .as_ref()
-      .map(|t| build_actor_id_from_shortname(EndpointType::Community, t, &context.settings()).ok())
-      .unwrap_or(None);
+    let community_actor_id = if let Some(name) = &data.community_name {
+      resolve_actor_identifier::<Community>(name, context.pool())
+        .await
+        .ok()
+        .map(|c| c.actor_id)
+    } else {
+      None
+    };
     let creator_id = data.creator_id;
     match search_type {
       SearchType::Posts => {
@@ -379,26 +411,28 @@ impl Perform for Search {
       }
     };
 
-    // Blank out deleted or removed info
-    for cv in comments
-      .iter_mut()
-      .filter(|cv| cv.comment.deleted || cv.comment.removed)
-    {
-      cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
-    }
+    // Blank out deleted or removed info for non logged in users
+    if person_id.is_none() {
+      for cv in communities
+        .iter_mut()
+        .filter(|cv| cv.community.deleted || cv.community.removed)
+      {
+        cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
+      }
 
-    for cv in communities
-      .iter_mut()
-      .filter(|cv| cv.community.deleted || cv.community.removed)
-    {
-      cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
-    }
+      for pv in posts
+        .iter_mut()
+        .filter(|p| p.post.deleted || p.post.removed)
+      {
+        pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+      }
 
-    for pv in posts
-      .iter_mut()
-      .filter(|p| p.post.deleted || p.post.removed)
-    {
-      pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+      for cv in comments
+        .iter_mut()
+        .filter(|cv| cv.comment.deleted || cv.comment.removed)
+      {
+        cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+      }
     }
 
     // Return the jwt
@@ -416,19 +450,23 @@ impl Perform for Search {
 impl Perform for ResolveObject {
   type Response = ResolveObjectResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view =
-      get_local_user_view_from_jwt_opt(&self.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt_opt(self.auth.as_ref(), context.pool(), context.secret())
+        .await?;
+    check_private_instance(&local_user_view, context.pool()).await?;
+
     let res = search_by_apub_id(&self.q, context)
       .await
-      .map_err(|e| ApiError::err("couldnt_find_object", e))?;
+      .map_err(|e| e.with_message("couldnt_find_object"))?;
     convert_response(res, local_user_view.map(|l| l.person.id), context.pool())
       .await
-      .map_err(|e| ApiError::err("couldnt_find_object", e).into())
+      .map_err(|e| e.with_message("couldnt_find_object"))
   }
 }
 
@@ -472,53 +510,46 @@ async fn convert_response(
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for TransferSite {
+impl Perform for LeaveAdmin {
   type Response = GetSiteResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &TransferSite = self;
+    let data: &LeaveAdmin = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     is_admin(&local_user_view)?;
 
-    let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
-
-    // Make sure user is the creator
-    if read_site.creator_id != local_user_view.person.id {
-      return Err(ApiError::err_plain("not_an_admin").into());
+    // Make sure there isn't just one admin (so if one leaves, there will still be one left)
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    if admins.len() == 1 {
+      return Err(LemmyError::from_message("cannot_leave_admin"));
     }
 
-    let new_creator_id = data.person_id;
-    let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
-    blocking(context.pool(), transfer_site)
-      .await?
-      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
+    let person_id = local_user_view.person.id;
+    blocking(context.pool(), move |conn| {
+      Person::leave_admin(conn, person_id)
+    })
+    .await??;
 
     // Mod tables
     let form = ModAddForm {
-      mod_person_id: local_user_view.person.id,
-      other_person_id: data.person_id,
-      removed: Some(false),
+      mod_person_id: person_id,
+      other_person_id: person_id,
+      removed: Some(true),
     };
 
     blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
 
-    let site_view = blocking(context.pool(), SiteView::read).await??;
+    // Reread site and admins
+    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
-    let mut admins = blocking(context.pool(), PersonViewSafe::admins).await??;
-    let creator_index = admins
-      .iter()
-      .position(|r| r.person.id == site_view.creator.id)
-      .context(location_info!())?;
-    let creator_person = admins.remove(creator_index);
-    admins.insert(0, creator_person);
-
-    let banned = blocking(context.pool(), PersonViewSafe::banned).await??;
     let federated_instances = build_federated_instances(
       context.pool(),
       &context.settings().federation,
@@ -529,7 +560,6 @@ impl Perform for TransferSite {
     Ok(GetSiteResponse {
       site_view: Some(site_view),
       admins,
-      banned,
       online: 0,
       version: version::VERSION.to_string(),
       my_user: None,
@@ -542,6 +572,7 @@ impl Perform for TransferSite {
 impl Perform for GetSiteConfig {
   type Response = GetSiteConfigResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -564,6 +595,7 @@ impl Perform for GetSiteConfig {
 impl Perform for SaveSiteConfig {
   type Response = GetSiteConfigResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -578,7 +610,7 @@ impl Perform for SaveSiteConfig {
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = Settings::save_config_file(&data.config_hjson)
-      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
+      .map_err(|e| e.with_message("couldnt_update_site"))?;
 
     Ok(GetSiteConfigResponse { config_hjson })
   }
@@ -588,6 +620,7 @@ impl Perform for SaveSiteConfig {
 impl Perform for PurgePerson {
   type Response = PurgeItemResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -606,13 +639,11 @@ impl Perform for PurgePerson {
       let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
 
       if let Some(banner) = person.banner {
-        purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
-          .await?;
+        purge_image_from_pictrs(context.client(), &context.settings(), &banner).await?;
       }
 
       if let Some(avatar) = person.avatar {
-        purge_image_from_pictrs(context.client(), &context.settings(), &avatar.into_inner())
-          .await?;
+        purge_image_from_pictrs(context.client(), &context.settings(), &avatar).await?;
       }
     }
 
@@ -634,10 +665,54 @@ impl Perform for PurgePerson {
   }
 }
 
+/// Lists registration applications, filterable by undenied only.
+#[async_trait::async_trait(?Send)]
+impl Perform for ListRegistrationApplications {
+  type Response = ListRegistrationApplicationsResponse;
+
+  #[tracing::instrument(skip(context, _websocket_id))]
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Make sure user is an admin
+    is_admin(&local_user_view)?;
+
+    let unread_only = data.unread_only;
+    let verified_email_only = blocking(context.pool(), Site::read_local_site)
+      .await??
+      .require_email_verification;
+
+    let page = data.page;
+    let limit = data.limit;
+    let registration_applications = blocking(context.pool(), move |conn| {
+      RegistrationApplicationQueryBuilder::create(conn)
+        .unread_only(unread_only)
+        .verified_email_only(verified_email_only)
+        .page(page)
+        .limit(limit)
+        .list()
+    })
+    .await??;
+
+    let res = Self::Response {
+      registration_applications,
+    };
+
+    Ok(res)
+  }
+}
+
 #[async_trait::async_trait(?Send)]
 impl Perform for PurgeCommunity {
   type Response = PurgeItemResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -659,12 +734,11 @@ impl Perform for PurgeCommunity {
       .await??;
 
       if let Some(banner) = community.banner {
-        purge_image_from_pictrs(context.client(), &context.settings(), &banner.into_inner())
-          .await?;
+        purge_image_from_pictrs(context.client(), &context.settings(), &banner).await?;
       }
 
       if let Some(icon) = community.icon {
-        purge_image_from_pictrs(context.client(), &context.settings(), &icon.into_inner()).await?;
+        purge_image_from_pictrs(context.client(), &context.settings(), &icon).await?;
       }
     }
     blocking(context.pool(), move |conn| {
@@ -689,9 +763,77 @@ impl Perform for PurgeCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
+impl Perform for ApproveRegistrationApplication {
+  type Response = RegistrationApplicationResponse;
+
+  #[tracing::instrument(skip(context, _websocket_id))]
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    let app_id = data.id;
+
+    // Only let admins do this
+    is_admin(&local_user_view)?;
+
+    // Update the registration with reason, admin_id
+    let deny_reason = diesel_option_overwrite(&data.deny_reason);
+    let app_form = RegistrationApplicationForm {
+      admin_id: Some(local_user_view.person.id),
+      deny_reason,
+      ..RegistrationApplicationForm::default()
+    };
+
+    let registration_application = blocking(context.pool(), move |conn| {
+      RegistrationApplication::update(conn, app_id, &app_form)
+    })
+    .await??;
+
+    // Update the local_user row
+    let local_user_form = LocalUserForm {
+      accepted_application: Some(data.approve),
+      ..LocalUserForm::default()
+    };
+
+    let approved_user_id = registration_application.local_user_id;
+    blocking(context.pool(), move |conn| {
+      LocalUser::update(conn, approved_user_id, &local_user_form)
+    })
+    .await??;
+
+    if data.approve {
+      let approved_local_user_view = blocking(context.pool(), move |conn| {
+        LocalUserView::read(conn, approved_user_id)
+      })
+      .await??;
+
+      if approved_local_user_view.local_user.email.is_some() {
+        send_application_approved_email(&approved_local_user_view, &context.settings())?;
+      }
+    }
+
+    // Read the view
+    let registration_application = blocking(context.pool(), move |conn| {
+      RegistrationApplicationView::read(conn, app_id)
+    })
+    .await??;
+
+    Ok(Self::Response {
+      registration_application,
+    })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
 impl Perform for PurgePost {
   type Response = PurgeItemResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -734,6 +876,7 @@ impl Perform for PurgePost {
 impl Perform for PurgeComment {
   type Response = PurgeItemResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -772,5 +915,37 @@ impl Perform for PurgeComment {
     .await??;
 
     Ok(PurgeItemResponse { success: true })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for GetUnreadRegistrationApplicationCount {
+  type Response = GetUnreadRegistrationApplicationCountResponse;
+
+  #[tracing::instrument(skip(context, _websocket_id))]
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    // Only let admins do this
+    is_admin(&local_user_view)?;
+
+    let verified_email_only = blocking(context.pool(), Site::read_local_site)
+      .await??
+      .require_email_verification;
+
+    let registration_applications = blocking(context.pool(), move |conn| {
+      RegistrationApplicationView::get_unread_count(conn, verified_email_only)
+    })
+    .await??;
+
+    Ok(Self::Response {
+      registration_applications,
+    })
   }
 }

@@ -9,13 +9,18 @@ use diesel::{
 };
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
-use lemmy_api_common::blocking;
+use lemmy_api_common::{blocking, check_private_instance_and_federation_enabled};
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub_lib::activity_queue::create_activity_queue;
-use lemmy_db_queries::{get_database_url_from_env, source::secret::Secret_};
-use lemmy_db_schema::source::secret::Secret;
+use lemmy_db_schema::{get_database_url_from_env, source::secret::Secret};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_server::{api_routes, code_migrations::run_advanced_migrations, scheduled_tasks};
+use lemmy_server::{
+  api_routes,
+  code_migrations::run_advanced_migrations,
+  init_tracing,
+  root_span_builder::QuieterRootSpanBuilder,
+  scheduled_tasks,
+};
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   request::build_user_agent,
@@ -24,8 +29,11 @@ use lemmy_utils::{
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
-use std::{env, sync::Arc, thread};
+use reqwest_middleware::ClientBuilder;
+use reqwest_tracing::TracingMiddleware;
+use std::{env, sync::Arc, thread, time::Duration};
 use tokio::sync::Mutex;
+use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
 
@@ -41,8 +49,9 @@ async fn main() -> Result<(), LemmyError> {
     return Ok(());
   }
 
-  env_logger::init();
   let settings = Settings::init().expect("Couldn't initialize settings.");
+
+  init_tracing(settings.opentelemetry_url.as_deref())?;
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {
@@ -64,9 +73,10 @@ async fn main() -> Result<(), LemmyError> {
   })
   .await??;
 
+  // Schedules various cleanup tasks for the DB
   let pool2 = pool.clone();
   thread::spawn(move || {
-    scheduled_tasks::setup(pool2);
+    scheduled_tasks::setup(pool2).expect("Couldn't set up scheduled_tasks");
   });
 
   // Set up the rate limiter
@@ -86,9 +96,16 @@ async fn main() -> Result<(), LemmyError> {
 
   let client = Client::builder()
     .user_agent(build_user_agent(&settings))
+    .timeout(Duration::from_secs(10))
     .build()?;
 
-  let activity_queue = create_activity_queue();
+  let client = ClientBuilder::new(client).with(TracingMiddleware).build();
+
+  let queue_manager = create_activity_queue(client.clone(), settings.federation.worker_count);
+
+  let activity_queue = queue_manager.queue_handle().clone();
+
+  check_private_instance_and_federation_enabled(&pool, &settings).await?;
 
   let chat_server = ChatServer::startup(
     pool.clone(),
@@ -115,19 +132,22 @@ async fn main() -> Result<(), LemmyError> {
     );
     let rate_limiter = rate_limiter.clone();
     App::new()
-      .wrap(middleware::Logger::default())
+      .wrap(actix_web::middleware::Logger::default())
+      .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, &rate_limiter))
+      .configure(|cfg| images::config(cfg, client.clone(), &rate_limiter))
       .configure(nodeinfo::config)
       .configure(|cfg| webfinger::config(cfg, &settings))
   })
   .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
+
+  drop(queue_manager);
 
   Ok(())
 }

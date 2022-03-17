@@ -1,0 +1,23 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": {
+    "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "object": "http://ds9.lemmy.ml/post/1",
+    "cc": [
+      "http://enterprise.lemmy.ml/c/main"
+    ],
+    "type": "Like",
+    "id": "http://enterprise.lemmy.ml/activities/like/2227ab2c-79e2-4fca-a1d2-1d67dacf2457"
+  },
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Undo",
+  "id": "http://enterprise.lemmy.ml/activities/undo/6cc6fb71-39fe-49ea-9506-f0423b101e98"
+}

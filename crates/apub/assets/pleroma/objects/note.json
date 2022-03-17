@@ -1,0 +1,36 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://queer.hacktivis.me/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "https://queer.hacktivis.me/users/lanodan",
+  "attachment": [],
+  "attributedTo": "https://queer.hacktivis.me/users/lanodan",
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "content": "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"9zkUX4o3WxGM8vGPfU\" href=\"https://pleroma.popolon.org/users/popolon\" rel=\"ugc\">@<span>popolon</span></a></span> Have what?",
+  "context": "https://queer.hacktivis.me/contexts/34cba3d2-2f35-4169-aeff-56af9bfeb753",
+  "conversation": "https://queer.hacktivis.me/contexts/34cba3d2-2f35-4169-aeff-56af9bfeb753",
+  "id": "https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2",
+  "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
+  "published": "2021-10-07T18:06:52.555500Z",
+  "sensitive": null,
+  "source": "@popolon@pleroma.popolon.org Have what?",
+  "summary": "",
+  "tag": [
+    {
+      "href": "https://pleroma.popolon.org/users/popolon",
+      "name": "@popolon@pleroma.popolon.org",
+      "type": "Mention"
+    }
+  ],
+  "to": [
+    "https://pleroma.popolon.org/users/popolon",
+    "https://queer.hacktivis.me/users/lanodan/followers"
+  ],
+  "type": "Note"
+}

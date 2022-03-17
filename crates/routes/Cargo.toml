@@ -1,34 +1,37 @@
 [package]
 name = "lemmy_routes"
-version = "0.13.0"
-edition = "2018"
+version = "0.16.1"
+edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
+homepage = "https://join-lemmy.org/"
+documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [lib]
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.13.0", path = "../utils" }
-lemmy_websocket = { version = "=0.13.0", path = "../websocket" }
-lemmy_db_queries = { version = "=0.13.0", path = "../db_queries" }
-lemmy_db_views = { version = "=0.13.0", path = "../db_views" }
-lemmy_db_views_actor = { version = "=0.13.0", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.13.0", path = "../db_schema" }
-lemmy_api_common = { version = "=0.13.0", path = "../api_common" }
-lemmy_apub_lib = { version = "=0.13.0", path = "../apub_lib" }
+lemmy_utils = { version = "=0.16.1", path = "../utils" }
+lemmy_websocket = { version = "=0.16.1", path = "../websocket" }
+lemmy_db_views = { version = "=0.16.1", path = "../db_views" }
+lemmy_db_views_actor = { version = "=0.16.1", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.16.1", path = "../db_schema" }
+lemmy_api_common = { version = "=0.16.1", path = "../api_common" }
+lemmy_apub = { version = "=0.16.1", path = "../apub" }
 diesel = "1.4.8"
-actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.9", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "4.0.0-beta.7", default-features = false }
-actix-http = "3.0.0-beta.10"
-sha2 = "0.9.8"
-log = "0.4.14"
-anyhow = "1.0.44"
+actix = "0.13.0"
+actix-web = { version = "4.0.0", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "4.1.0", default-features = false }
+sha2 = "0.10.0"
+anyhow = "1.0.51"
 chrono = { version = "0.4.19", features = ["serde"] }
-rss = "1.10.0"
-serde = { version = "1.0.130", features = ["derive"] }
-awc = { version = "3.0.0-beta.8", default-features = false }
+futures = "0.3.17"
+reqwest = { version = "0.11.7", features = ["stream"] }
+reqwest-middleware = "0.1.3"
+rss = "2.0.0"
+serde = { version = "1.0.131", features = ["derive"] }
 url = { version = "2.2.2", features = ["serde"] }
-strum = "0.21.0"
-lazy_static = "1.4.0"
+strum = "0.23.0"
+once_cell = "1.8.0"
+tracing = "0.1.29"
+tokio = { version = "1.14.0", features = ["sync"] }

@@ -1,13 +1,13 @@
 use crate::{
+  newtypes::{CommentId, PersonId, PersonMentionId},
   schema::person_mention,
   source::comment::Comment,
-  CommentId,
-  PersonId,
-  PersonMentionId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[belongs_to(Comment)]
 #[table_name = "person_mention"]
 pub struct PersonMention {

@@ -3,15 +3,12 @@ use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api_common::blocking;
-use lemmy_db_queries::{
-  source::{community::Community_, person::Person_},
-  Crud,
+use lemmy_db_schema::{
+  newtypes::LocalUserId,
+  source::{community::Community, local_user::LocalUser, person::Person},
+  traits::{ApubActor, Crud},
   ListingType,
   SortType,
-};
-use lemmy_db_schema::{
-  source::{community::Community, local_user::LocalUser, person::Person},
-  LocalUserId,
 };
 use lemmy_db_views::{
   comment_view::{CommentQueryBuilder, CommentView},
@@ -21,6 +18,7 @@ use lemmy_db_views::{
 use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
 use lemmy_utils::{claims::Claims, utils::markdown_to_html, LemmyError};
 use lemmy_websocket::LemmyContext;
+use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
   ChannelBuilder,
@@ -29,7 +27,7 @@ use rss::{
   ItemBuilder,
 };
 use serde::Deserialize;
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr};
 use strum::ParseError;
 
 #[derive(Deserialize)]
@@ -51,17 +49,16 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/local.xml", web::get().to(get_local_feed));
 }
 
-lazy_static! {
-  static ref RSS_NAMESPACE: HashMap<String, String> = {
-    let mut h = HashMap::new();
-    h.insert(
-      "dc".to_string(),
-      rss::extension::dublincore::NAMESPACE.to_string(),
-    );
-    h
-  };
-}
+static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
+  let mut h = BTreeMap::new();
+  h.insert(
+    "dc".to_string(),
+    rss::extension::dublincore::NAMESPACE.to_string(),
+  );
+  h
+});
 
+#[tracing::instrument(skip_all)]
 async fn get_all_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -70,6 +67,7 @@ async fn get_all_feed(
   Ok(get_feed_data(&context, ListingType::All, sort_type).await?)
 }
 
+#[tracing::instrument(skip_all)]
 async fn get_local_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -78,12 +76,13 @@ async fn get_local_feed(
   Ok(get_feed_data(&context, ListingType::Local, sort_type).await?)
 }
 
+#[tracing::instrument(skip_all)]
 async fn get_feed_data(
   context: &LemmyContext,
   listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = blocking(context.pool(), SiteView::read).await??;
+  let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
   let posts = blocking(context.pool(), move |conn| {
     PostQueryBuilder::create(conn)
@@ -98,11 +97,7 @@ async fn get_feed_data(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!(
-      "{} - {}",
-      site_view.site.name,
-      listing_type.to_string()
-    ))
+    .title(&format!("{} - {}", site_view.site.name, listing_type))
     .link(context.settings().get_protocol_and_hostname())
     .items(items);
 
@@ -110,7 +105,7 @@ async fn get_feed_data(
     channel_builder.description(&site_desc);
   }
 
-  let rss = channel_builder.build().map_err(|e| anyhow!(e))?.to_string();
+  let rss = channel_builder.build().to_string();
   Ok(
     HttpResponse::Ok()
       .content_type("application/rss+xml")
@@ -118,6 +113,7 @@ async fn get_feed_data(
   )
 }
 
+#[tracing::instrument(skip_all)]
 async fn get_feed(
   req: HttpRequest,
   info: web::Query<Params>,
@@ -154,7 +150,7 @@ async fn get_feed(
   .await?
   .map_err(ErrorBadRequest)?;
 
-  let rss = builder.build().map_err(ErrorBadRequest)?.to_string();
+  let rss = builder.build().to_string();
 
   Ok(
     HttpResponse::Ok()
@@ -171,14 +167,15 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   SortType::from_str(&sort_query)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
   user_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
-  let person = Person::find_by_name(conn, user_name)?;
+  let site_view = SiteView::read_local(conn)?;
+  let person = Person::read_from_name(conn, user_name)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)
@@ -198,17 +195,18 @@ fn get_feed_user(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
   community_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let community = Community::read_from_name(conn, community_name)?;
 
   let posts = PostQueryBuilder::create(conn)
-    .listing_type(ListingType::All)
+    .listing_type(ListingType::Community)
     .sort(*sort_type)
     .community_id(community.id)
     .list()?;
@@ -229,6 +227,7 @@ fn get_feed_community(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_front(
   conn: &PgConnection,
   jwt_secret: &str,
@@ -236,7 +235,7 @@ fn get_feed_front(
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
 
@@ -264,13 +263,14 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_feed_inbox(
   conn: &PgConnection,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read(conn)?;
+  let site_view = SiteView::read_local(conn)?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
   let person_id = local_user.person_id;
@@ -307,6 +307,7 @@ fn get_feed_inbox(
   Ok(channel_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
   replies: Vec<CommentView>,
   mentions: Vec<PersonMentionView>,
@@ -350,6 +351,7 @@ fn create_reply_and_mention_items(
   Ok(reply_items)
 }
 
+#[tracing::instrument(skip_all)]
 fn build_item(
   creator_name: &str,
   published: &NaiveDateTime,
@@ -367,19 +369,16 @@ fn build_item(
   let dt = DateTime::<Utc>::from_utc(*published, Utc);
   i.pub_date(dt.to_rfc2822());
   i.comments(url.to_owned());
-  let guid = GuidBuilder::default()
-    .permalink(true)
-    .value(url)
-    .build()
-    .map_err(|e| anyhow!(e))?;
+  let guid = GuidBuilder::default().permalink(true).value(url).build();
   i.guid(guid);
   i.link(url.to_owned());
   // TODO add images
   let html = markdown_to_html(&content.to_string());
   i.description(html);
-  Ok(i.build().map_err(|e| anyhow!(e))?)
+  Ok(i.build())
 }
 
+#[tracing::instrument(skip_all)]
 fn create_post_items(
   posts: Vec<PostView>,
   protocol_and_hostname: &str,
@@ -403,8 +402,7 @@ fn create_post_items(
     let guid = GuidBuilder::default()
       .permalink(true)
       .value(&post_url)
-      .build()
-      .map_err(|e| anyhow!(e))?;
+      .build();
     i.guid(guid);
 
     let community_url = format!("{}/c/{}", protocol_and_hostname, p.community.name);
@@ -432,8 +430,8 @@ fn create_post_items(
 
     i.description(description);
 
-    i.dublin_core_ext(dc_extension.build().map_err(|e| anyhow!(e))?);
-    items.push(i.build().map_err(|e| anyhow!(e))?);
+    i.dublin_core_ext(dc_extension.build());
+    items.push(i.build());
   }
 
   Ok(items)

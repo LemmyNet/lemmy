@@ -1,0 +1,56 @@
+{
+  "type": "Create",
+  "id": "https://friends.grishka.me/posts/66561/activityCreate",
+  "published": "2021-11-09T11:42:35Z",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": [
+    "https://ds9.lemmy.ml/u/nutomic"
+  ],
+  "actor": "https://friends.grishka.me/users/1",
+  "object": {
+    "type": "Note",
+    "id": "https://friends.grishka.me/posts/66561",
+    "attributedTo": "https://friends.grishka.me/users/1",
+    "content": "<p>So does this federate now?</p>",
+    "inReplyTo": "https://ds9.lemmy.ml/post/1723",
+    "published": "2021-11-09T11:42:35Z",
+    "tag": [
+      {
+        "type": "Mention",
+        "href": "https://ds9.lemmy.ml/u/nutomic"
+      }
+    ],
+    "url": "https://friends.grishka.me/posts/66561",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "https://ds9.lemmy.ml/u/nutomic"
+    ],
+    "replies": {
+      "type": "Collection",
+      "id": "https://friends.grishka.me/posts/66561/replies",
+      "first": {
+        "type": "CollectionPage",
+        "partOf": "https://friends.grishka.me/posts/66561/replies",
+        "next": "https://friends.grishka.me/posts/66561/replies?page=1"
+      }
+    },
+    "sensitive": false,
+    "likes": "https://friends.grishka.me/posts/66561/likes"
+  },
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "sensitive": "as:sensitive"
+    }
+  ],
+  "signature": {
+    "creator": "https://friends.grishka.me/users/1#main-key",
+    "created": "2021-11-09T11:42:35Z",
+    "type": "RsaSignature2017",
+    "signatureValue": "MmEf4hjfwfQbm/W8qfONwf0uEXO4dhKApX8PlodSNi9x6E4kEgBvx7BrKg3gtqnXfU/cbGdVIN/yCz8+v7Tp2T2kj1yRpD7WjbgwzkrOlhxLi3zPXd4En/cVVdZYSfc7R6DGflXOSeOZPnKbrmY6i+1kYkM80Yc+LFtoj0Ftdgc/YbwMynt1OwPvDbB5bJo1NVyRnpNqlqia2VNmdAh1+2vREXZmINsCOFMC5c0RVzEENYMw+ZPsbVdXfoz4wfqK2u2i7SlcDKVErVNPrKn71wfGWRRiLUNupokY1x3jsWeZlPqGvAP3WGS9ChU+FxhnVHbtxIf0QmeOas3okLDSjw=="
+  }
+}

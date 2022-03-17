@@ -40,12 +40,20 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "http://localhost:8080")]
   pub pictrs_url: Option<String>,
-  /// Regex for slurs which are prohibited. Example: `(\bThis\b)|(\bis\b)|(\bsample\b)`
   #[default(None)]
-  pub additional_slurs: Option<String>,
+  #[doku(example = "(\\bThis\\b)|(\\bis\\b)|(\\bsample\\b)")]
+  pub slur_filter: Option<String>,
   /// Maximum length of local community and user names
   #[default(20)]
   pub actor_name_max_length: usize,
+  /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
+  #[default(25)]
+  pub http_fetch_retry_limit: i32,
+
+  /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
+  #[default(None)]
+  #[doku(skip)]
+  pub opentelemetry_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -82,7 +90,7 @@ pub struct DatabaseConfig {
   pub pool_size: u32,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Document)]
+#[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
 pub struct EmailConfig {
   /// Hostname and port of the smtp server
   #[doku(example = "localhost:25")]
@@ -94,8 +102,10 @@ pub struct EmailConfig {
   #[doku(example = "noreply@example.com")]
   /// Address to send emails from, eg "noreply@your-instance.com"
   pub smtp_from_address: String,
-  /// Whether or not smtp connections should use tls
-  pub use_tls: bool,
+  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
+  #[default("none")]
+  #[doku(example = "none")]
+  pub tls_type: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -120,6 +130,11 @@ pub struct FederationConfig {
   /// (meaning remote communities will show content from arbitrary instances).
   #[default(true)]
   pub strict_allowlist: bool,
+  /// Number of workers for sending outgoing activities. Search logs for "Activity queue stats" to
+  /// see information. If "running" number is consistently close to the worker_count, you should
+  /// increase it.
+  #[default(64)]
+  pub worker_count: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -149,6 +164,12 @@ pub struct RateLimitConfig {
   /// Interval length for image uploads, in seconds
   #[default(3600)]
   pub image_per_second: i32,
+  /// Maximum number of comments created in interval
+  #[default(6)]
+  pub comment: i32,
+  /// Interval length for comment limit, in seconds
+  #[default(600)]
+  pub comment_per_second: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -156,8 +177,8 @@ pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
   pub admin_username: String,
-  /// Password for the admin user
-  #[doku(example = "my_passwd")]
+  /// Password for the admin user. It must be at least 10 characters.
+  #[doku(example = "my_passwd_longer_than_ten_characters")]
   pub admin_password: String,
   /// Name of the site (can be changed later)
   #[doku(example = "My Lemmy Instance")]
@@ -181,4 +202,14 @@ pub struct SetupConfig {
   pub enable_nsfw: Option<bool>,
   #[default(None)]
   pub community_creation_admin_only: Option<bool>,
+  #[default(None)]
+  pub require_email_verification: Option<bool>,
+  #[default(None)]
+  pub require_application: Option<bool>,
+  #[default(None)]
+  pub application_question: Option<String>,
+  #[default(None)]
+  pub private_instance: Option<bool>,
+  #[default(None)]
+  pub default_theme: Option<String>,
 }

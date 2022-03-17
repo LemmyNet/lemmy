@@ -1,12 +1,8 @@
-use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   limit_and_offset,
-  MaybeOptional,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
     comment_aggregates,
@@ -27,13 +23,11 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
   },
-  CommentReportId,
-  CommunityId,
-  PersonId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct CommentReportView {
   pub comment_report: CommentReport,
   pub comment: Comment,
@@ -86,7 +80,7 @@ impl CommentReportView {
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -94,7 +88,12 @@ impl CommentReportView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -153,22 +152,28 @@ impl CommentReportView {
     let mut query = comment_report::table
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(
-        community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
-      )
       .filter(comment_report::resolved.eq(false))
       .into_boxed();
-
-    // If its not an admin, get only the ones you mod
-    if !admin {
-      query = query.filter(community_moderator::person_id.eq(my_person_id));
-    }
 
     if let Some(community_id) = community_id {
       query = query.filter(post::community_id.eq(community_id))
     }
 
-    query.select(count(comment_report::id)).first::<i64>(conn)
+    // If its not an admin, get only the ones you mod
+    if !admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person_id)),
+          ),
+        )
+        .select(count(comment_report::id))
+        .first::<i64>(conn)
+    } else {
+      query.select(count(comment_report::id)).first::<i64>(conn)
+    }
   }
 }
 
@@ -221,11 +226,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
-      // Test this join
-      .inner_join(
-        community_moderator::table.on(community_moderator::community_id.eq(post::community_id)),
-      )
+      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -233,7 +234,12 @@ impl<'a> CommentReportQueryBuilder<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -260,11 +266,6 @@ impl<'a> CommentReportQueryBuilder<'a> {
       ))
       .into_boxed();
 
-    // If its not an admin, get only the ones you mod
-    if !self.admin {
-      query = query.filter(community_moderator::person_id.eq(self.my_person_id));
-    }
-
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
@@ -275,11 +276,25 @@ impl<'a> CommentReportQueryBuilder<'a> {
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
-    let res = query
-      .order_by(comment_report::published.asc())
+    query = query
+      .order_by(comment_report::published.desc())
       .limit(limit)
-      .offset(offset)
-      .load::<CommentReportViewTuple>(self.conn)?;
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    let res = if !self.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(self.my_person_id)),
+          ),
+        )
+        .load::<CommentReportViewTuple>(self.conn)?
+    } else {
+      query.load::<CommentReportViewTuple>(self.conn)?
+    };
 
     Ok(CommentReportView::from_tuple_to_vec(res))
   }
@@ -309,14 +324,12 @@ impl ViewToVec for CommentReportView {
 #[cfg(test)]
 mod tests {
   use crate::comment_report_view::{CommentReportQueryBuilder, CommentReportView};
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     aggregates::comment_aggregates::CommentAggregates,
     establish_unpooled_connection,
-    Crud,
-    Joinable,
-    Reportable,
+    source::{comment::*, comment_report::*, community::*, person::*, post::*},
+    traits::{Crud, Joinable, Reportable},
   };
-  use lemmy_db_schema::source::{comment::*, comment_report::*, community::*, person::*, post::*};
   use serial_test::serial;
 
   #[test]
@@ -421,6 +434,7 @@ mod tests {
         description: None,
         updated: None,
         banner: None,
+        hidden: false,
         published: inserted_community.published,
       },
       creator: PersonSafe {
@@ -441,6 +455,7 @@ mod tests {
         inbox_url: inserted_jessica.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       comment_creator: PersonSafeAlias1 {
         id: inserted_timmy.id,
@@ -460,6 +475,7 @@ mod tests {
         inbox_url: inserted_timmy.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
@@ -496,6 +512,7 @@ mod tests {
       inbox_url: inserted_sara.inbox_url.to_owned(),
       shared_inbox_url: None,
       matrix_user_id: None,
+      ban_expires: None,
     };
 
     // Do a batch read of timmys reports
@@ -506,8 +523,8 @@ mod tests {
     assert_eq!(
       reports,
       [
-        expected_sara_report_view.to_owned(),
-        expected_jessica_report_view.to_owned()
+        expected_jessica_report_view.to_owned(),
+        expected_sara_report_view.to_owned()
       ]
     );
 
@@ -551,6 +568,7 @@ mod tests {
       inbox_url: inserted_timmy.inbox_url.to_owned(),
       shared_inbox_url: None,
       matrix_user_id: None,
+      ban_expires: None,
     });
 
     assert_eq!(

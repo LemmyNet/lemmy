@@ -2,23 +2,23 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use bcrypt::verify;
 use lemmy_api_common::{blocking, get_local_user_view_from_jwt, person::*};
-use lemmy_db_queries::source::{comment::Comment_, person::Person_, post::Post_};
-use lemmy_db_schema::source::{comment::Comment, person::*, post::Post};
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_db_schema::source::{comment::Comment, person::Person, post::Post};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteAccount {
-  type Response = LoginResponse;
+  type Response = DeleteAccountResponse;
 
+  #[tracing::instrument(skip(self, context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
-    let data: &DeleteAccount = self;
+  ) -> Result<Self::Response, LemmyError> {
+    let data = self;
     let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
 
     // Verify the password
     let valid: bool = verify(
@@ -27,7 +27,7 @@ impl PerformCrud for DeleteAccount {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(ApiError::err_plain("password_incorrect").into());
+      return Err(LemmyError::from_message("password_incorrect"));
     }
 
     // Comments
@@ -35,21 +35,19 @@ impl PerformCrud for DeleteAccount {
     let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
     blocking(context.pool(), permadelete)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Posts
     let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
     blocking(context.pool(), permadelete)
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_post", e))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
 
     blocking(context.pool(), move |conn| {
       Person::delete_account(conn, person_id)
     })
     .await??;
 
-    Ok(LoginResponse {
-      jwt: data.auth.to_owned(),
-    })
+    Ok(DeleteAccountResponse {})
   }
 }

@@ -7,23 +7,26 @@ use lemmy_api_common::{
   site::{EditSite, SiteResponse},
   site_description_length_check,
 };
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   diesel_option_overwrite,
   diesel_option_overwrite_to_url,
-  source::site::Site_,
-  Crud,
-};
-use lemmy_db_schema::{
   naive_now,
-  source::site::{Site, SiteForm},
+  source::{
+    local_user::LocalUser,
+    site::{Site, SiteForm},
+  },
+  traits::Crud,
 };
 use lemmy_db_views::site_view::SiteView;
-use lemmy_utils::{utils::check_slurs_opt, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
+use std::default::Default;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
   type Response = SiteResponse;
+
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -39,10 +42,11 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
+    let local_site = blocking(context.pool(), Site::read_local_site).await??;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
+    let application_question = diesel_option_overwrite(&data.application_question);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
@@ -51,8 +55,7 @@ impl PerformCrud for EditSite {
     }
 
     let site_form = SiteForm {
-      creator_id: found_site.creator_id,
-      name: data.name.to_owned().unwrap_or(found_site.name),
+      name: data.name.to_owned().unwrap_or(local_site.name),
       sidebar,
       description,
       icon,
@@ -62,14 +65,42 @@ impl PerformCrud for EditSite {
       open_registration: data.open_registration,
       enable_nsfw: data.enable_nsfw,
       community_creation_admin_only: data.community_creation_admin_only,
+      require_email_verification: data.require_email_verification,
+      require_application: data.require_application,
+      application_question,
+      private_instance: data.private_instance,
+      default_theme: data.default_theme.clone(),
+      ..SiteForm::default()
     };
 
-    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    blocking(context.pool(), update_site)
-      .await?
-      .map_err(|e| ApiError::err("couldnt_update_site", e))?;
+    let update_site = blocking(context.pool(), move |conn| {
+      Site::update(conn, local_site.id, &site_form)
+    })
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_site"))?;
 
-    let site_view = blocking(context.pool(), SiteView::read).await??;
+    // TODO can't think of a better way to do this.
+    // If the server suddenly requires email verification, or required applications, no old users
+    // will be able to log in. It really only wants this to be a requirement for NEW signups.
+    // So if it was set from false, to true, you need to update all current users columns to be verified.
+
+    if !local_site.require_application && update_site.require_application {
+      blocking(context.pool(), move |conn| {
+        LocalUser::set_all_users_registration_applications_accepted(conn)
+      })
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
+    }
+
+    if !local_site.require_email_verification && update_site.require_email_verification {
+      blocking(context.pool(), move |conn| {
+        LocalUser::set_all_users_email_verified(conn)
+      })
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
+    }
+
+    let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
     let res = SiteResponse { site_view };
 

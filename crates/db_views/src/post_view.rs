@@ -1,16 +1,10 @@
-use diesel::{pg::Pg, result::Error, *};
-use lemmy_db_queries::{
+use diesel::{dsl::*, pg::Pg, result::Error, *};
+use lemmy_db_schema::{
   aggregates::post_aggregates::PostAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  ListingType,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -30,15 +24,14 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
   },
-  CommunityId,
-  DbUrl,
-  PersonId,
-  PostId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  ListingType,
+  SortType,
 };
-use log::debug;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use tracing::debug;
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PostView {
   pub post: Post,
   pub creator: PersonSafe,
@@ -93,7 +86,12 @@ impl PostView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -291,7 +289,12 @@ impl<'a> PostQueryBuilder<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -352,17 +355,32 @@ impl<'a> PostQueryBuilder<'a> {
       .into_boxed();
 
     if let Some(listing_type) = self.listing_type {
-      query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()),
-        ListingType::Local => query.filter(community::local.eq(true)),
-        _ => query,
-      };
-    }
-
-    if let Some(community_id) = self.community_id {
-      query = query
-        .filter(post::community_id.eq(community_id))
-        .then_order_by(post_aggregates::stickied.desc());
+      match listing_type {
+        ListingType::Subscribed => {
+          query = query.filter(community_follower::person_id.is_not_null())
+        }
+        ListingType::Local => {
+          query = query.filter(community::local.eq(true)).filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          );
+        }
+        ListingType::All => {
+          query = query.filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          )
+        }
+        ListingType::Community => {
+          if let Some(community_id) = self.community_id {
+            query = query
+              .filter(post::community_id.eq(community_id))
+              .then_order_by(post_aggregates::stickied.desc());
+          }
+        }
+      }
     }
 
     if let Some(community_actor_id) = self.community_actor_id {
@@ -487,21 +505,19 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     aggregates::post_aggregates::PostAggregates,
     establish_unpooled_connection,
-    Blockable,
-    Crud,
-    Likeable,
+    source::{
+      community::*,
+      community_block::{CommunityBlock, CommunityBlockForm},
+      person::*,
+      person_block::{PersonBlock, PersonBlockForm},
+      post::*,
+    },
+    traits::{Blockable, Crud, Likeable},
     ListingType,
     SortType,
-  };
-  use lemmy_db_schema::source::{
-    community::*,
-    community_block::{CommunityBlock, CommunityBlockForm},
-    person::*,
-    person_block::{PersonBlock, PersonBlockForm},
-    post::*,
   };
   use serial_test::serial;
 
@@ -662,6 +678,7 @@ mod tests {
         inbox_url: inserted_person.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        ban_expires: None,
       },
       creator_banned_from_community: false,
       community: CommunitySafe {
@@ -677,6 +694,7 @@ mod tests {
         description: None,
         updated: None,
         banner: None,
+        hidden: false,
         published: inserted_community.published,
       },
       counts: PostAggregates {

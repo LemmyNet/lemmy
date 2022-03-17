@@ -1,31 +1,37 @@
-use crate::Perform;
+use std::convert::TryInto;
+
 use actix_web::web::Data;
+
 use lemmy_api_common::{
   blocking,
   check_community_ban,
   check_downvotes_enabled,
-  check_person_block,
   comment::*,
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::{
-  activities::voting::{
+  fetcher::post_or_comment::PostOrComment,
+  protocol::activities::voting::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
-  fetcher::post_or_comment::PostOrComment,
 };
-use lemmy_db_queries::{source::comment::Comment_, Likeable, Saveable};
-use lemmy_db_schema::{source::comment::*, LocalUserId};
+use lemmy_db_schema::{
+  newtypes::LocalUserId,
+  source::comment::*,
+  traits::{Likeable, Saveable},
+};
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
-use std::convert::TryInto;
+
+use crate::Perform;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkCommentAsRead {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -41,16 +47,9 @@ impl Perform for MarkCommentAsRead {
     })
     .await??;
 
-    check_community_ban(
-      local_user_view.person.id,
-      orig_comment.community.id,
-      context.pool(),
-    )
-    .await?;
-
     // Verify that only the recipient can mark as read
     if local_user_view.person.id != orig_comment.get_recipient_id() {
-      return Err(ApiError::err_plain("no_comment_edit_allowed").into());
+      return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the mark as read
@@ -59,7 +58,7 @@ impl Perform for MarkCommentAsRead {
       Comment::update_read(conn, comment_id, read)
     })
     .await?
-    .map_err(|_| ApiError::err_plain("couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Refetch it
     let comment_id = data.comment_id;
@@ -83,6 +82,7 @@ impl Perform for MarkCommentAsRead {
 impl Perform for SaveComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -101,12 +101,12 @@ impl Perform for SaveComment {
       let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
       blocking(context.pool(), save_comment)
         .await?
-        .map_err(|e| ApiError::err("couldnt_save_comment", e))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
       let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
       blocking(context.pool(), unsave_comment)
         .await?
-        .map_err(|e| ApiError::err("couldnt_save_comment", e))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     }
 
     let comment_id = data.comment_id;
@@ -128,6 +128,7 @@ impl Perform for SaveComment {
 impl Perform for CreateCommentLike {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -151,13 +152,6 @@ impl Perform for CreateCommentLike {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
-    )
-    .await?;
-
-    check_person_block(
-      local_user_view.person.id,
-      orig_comment.get_recipient_id(),
       context.pool(),
     )
     .await?;
@@ -188,18 +182,18 @@ impl Perform for CreateCommentLike {
 
     // Only add the like if the score isnt 0
     let comment = orig_comment.comment;
-    let object = PostOrComment::Comment(comment);
+    let object = PostOrComment::Comment(Box::new(comment.into()));
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
       let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
       blocking(context.pool(), like)
         .await?
-        .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
       Vote::send(
         &object,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         orig_comment.community.id,
         like_form.score.try_into()?,
         context,
@@ -209,7 +203,7 @@ impl Perform for CreateCommentLike {
       // API doesn't distinguish between Undo/Like and Undo/Dislike
       UndoVote::send(
         &object,
-        &local_user_view.person,
+        &local_user_view.person.clone().into(),
         orig_comment.community.id,
         VoteType::Like,
         context,

@@ -1,6 +1,7 @@
 use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
+use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use std::{env, fs, io::Error, sync::RwLock};
 
@@ -8,26 +9,21 @@ pub mod structs;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-lazy_static! {
-  static ref SETTINGS: RwLock<Settings> =
-    RwLock::new(Settings::init().expect("Failed to load settings file"));
-  static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
-    "^group:([a-z0-9_]{{3,}})@{}$",
+static SETTINGS: Lazy<RwLock<Settings>> =
+  Lazy::new(|| RwLock::new(Settings::init().expect("Failed to load settings file")));
+static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(&format!(
+    "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
     Settings::get().hostname
   ))
-  .expect("compile webfinger regex");
-  static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
-    "^acct:([a-z0-9_]{{3,}})@{}$",
-    Settings::get().hostname
-  ))
-  .expect("compile webfinger regex");
-}
+  .expect("compile webfinger regex")
+});
 
 impl Settings {
   /// Reads config from configuration file.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
-  /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
+  /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
   /// Warning: Only call this once.
   pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
@@ -105,23 +101,16 @@ impl Settings {
     Ok(Self::read_config_file()?)
   }
 
-  pub fn webfinger_community_regex(&self) -> Regex {
-    WEBFINGER_COMMUNITY_REGEX.to_owned()
+  pub fn webfinger_regex(&self) -> Regex {
+    WEBFINGER_REGEX.to_owned()
   }
 
-  pub fn webfinger_username_regex(&self) -> Regex {
-    WEBFINGER_USER_REGEX.to_owned()
-  }
-
-  pub fn slur_regex(&self) -> Regex {
-    let mut slurs = r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)".to_string();
-    if let Some(additional_slurs) = &self.additional_slurs {
-      slurs.push('|');
-      slurs.push_str(additional_slurs);
-    };
-    RegexBuilder::new(&slurs)
-      .case_insensitive(true)
-      .build()
-      .expect("compile regex")
+  pub fn slur_regex(&self) -> Option<Regex> {
+    self.slur_filter.as_ref().map(|slurs| {
+      RegexBuilder::new(slurs)
+        .case_insensitive(true)
+        .build()
+        .expect("compile regex")
+    })
   }
 }

@@ -16,17 +16,19 @@ services:
     image: lemmy-dev:latest
     ports:
       - "8536:8536"
+      - "6669:6669"
     restart: always
     environment:
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_queries=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
+      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     volumes:
       - ../lemmy.hjson:/config/config.hjson
     depends_on: 
       - pictrs
       - postgres
+      - otel
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:dev
+    image: dessalines/lemmy-ui:0.16.1
     restart: always
     environment:
       - LEMMY_INTERNAL_HOST=lemmy:8536
@@ -49,8 +51,35 @@ services:
     restart: always
 
   pictrs:
-    image: asonix/pictrs:v0.2.6-r2
+    image: asonix/pictrs:0.3.0-beta.12-r1
     user: 991:991
+    environment:
+      - PICTRS_OPENTELEMETRY_URL=http://otel:4137
+    ports:
+      - "6670:6669"
     volumes:
       - ./volumes/pictrs:/mnt
+    restart: always
+    depends_on:
+      - otel
+
+  otel:
+    image: otel/opentelemetry-collector:latest
+    command: --config otel-local-config.yaml
+    ports:
+      - "4317:4317"
+    volumes:
+      - type: bind
+        source: ./otel.yml
+        target: /otel-local-config.yaml
+    restart: always
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1
+    ports:
+      - "14250:14250"
+      # To view traces, visit http://localhost:16686
+      - "16686:16686"
     restart: always

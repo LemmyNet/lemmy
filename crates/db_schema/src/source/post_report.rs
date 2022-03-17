@@ -1,4 +1,8 @@
-use crate::{schema::post_report, source::post::Post, DbUrl, PersonId, PostId, PostReportId};
+use crate::{
+  newtypes::{DbUrl, PersonId, PostId, PostReportId},
+  schema::post_report,
+  source::post::Post,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(

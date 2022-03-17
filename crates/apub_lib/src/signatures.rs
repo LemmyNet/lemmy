@@ -1,31 +1,31 @@
+use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::HttpRequest;
 use anyhow::anyhow;
 use http::{header::HeaderName, HeaderMap, HeaderValue};
 use http_signature_normalization_actix::Config as ConfigActix;
 use http_signature_normalization_reqwest::prelude::{Config, SignExt};
 use lemmy_utils::LemmyError;
-use log::debug;
+use once_cell::sync::Lazy;
 use openssl::{
   hash::MessageDigest,
   pkey::PKey,
   sign::{Signer, Verifier},
 };
-use reqwest::{Client, Response};
+use reqwest::Response;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, str::FromStr};
+use std::{str::FromStr, time::Duration};
+use tracing::debug;
 use url::Url;
 
-lazy_static! {
-  static ref CONFIG2: ConfigActix = ConfigActix::new();
-  static ref HTTP_SIG_CONFIG: Config = Config::new();
-}
+static CONFIG2: Lazy<ConfigActix> = Lazy::new(ConfigActix::new);
+static HTTP_SIG_CONFIG: Lazy<Config> = Lazy::new(Config::new);
 
 /// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
 /// `activity` as request body. The request is signed with `private_key` and then sent.
 pub async fn sign_and_send(
-  client: &Client,
-  headers: BTreeMap<String, String>,
+  client: &ClientWithMiddleware,
   inbox_url: &Url,
   activity: String,
   actor_id: &Url,
@@ -33,16 +33,22 @@ pub async fn sign_and_send(
 ) -> Result<Response, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor_id);
 
-  let mut header_map = HeaderMap::new();
-  for h in headers {
-    header_map.insert(
-      HeaderName::from_str(h.0.as_str())?,
-      HeaderValue::from_str(h.1.as_str())?,
-    );
+  let mut headers = HeaderMap::new();
+  let mut host = inbox_url.domain().expect("read inbox domain").to_string();
+  if let Some(port) = inbox_url.port() {
+    host = format!("{}:{}", host, port);
   }
-  let response = client
+  headers.insert(
+    HeaderName::from_str("Content-Type")?,
+    HeaderValue::from_str(APUB_JSON_CONTENT_TYPE)?,
+  );
+  headers.insert(HeaderName::from_str("Host")?, HeaderValue::from_str(&host)?);
+
+  let request = client
     .post(&inbox_url.to_string())
-    .headers(header_map)
+    // signature is only valid for 10 seconds, so no reason to wait any longer
+    .timeout(Duration::from_secs(10))
+    .headers(headers)
     .signature_with_digest(
       HTTP_SIG_CONFIG.clone(),
       signing_key_id,
@@ -57,6 +63,8 @@ pub async fn sign_and_send(
       },
     )
     .await?;
+
+  let response = client.execute(request).await?;
 
   Ok(response)
 }
@@ -91,7 +99,7 @@ pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), L
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
-  pub id: String,
-  pub owner: Url,
+  pub(crate) id: String,
+  pub(crate) owner: Box<Url>,
   pub public_key_pem: String,
 }

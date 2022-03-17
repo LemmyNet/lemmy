@@ -1,60 +1,35 @@
 use crate::{
   activities::{
-    community::{announce::AnnouncableActivities, send_to_community},
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
-  context::lemmy_context,
-  fetcher::object_id::ObjectId,
-  objects::{community::Group, ToApub},
+  activity_lists::AnnouncableActivities,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::update::UpdateCommunity,
 };
-use activitystreams::{
-  activity::kind::UpdateType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
   data::Data,
-  traits::{ActivityFields, ActivityHandler, ActorType},
-  values::PublicUrl,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType, ApubObject},
 };
-use lemmy_db_queries::Crud;
-use lemmy_db_schema::source::{
-  community::{Community, CommunityForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::community::{Community, CommunityForm},
+  traits::Crud,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-/// This activity is received from a remote community mod, and updates the description or other
-/// fields of a local community.
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateCommunity {
-  actor: ObjectId<Person>,
-  to: [PublicUrl; 1],
-  // TODO: would be nice to use a separate struct here, which only contains the fields updated here
-  object: Group,
-  cc: [ObjectId<Community>; 1],
-  #[serde(rename = "type")]
-  kind: UpdateType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl UpdateCommunity {
+  #[tracing::instrument(skip_all)]
   pub async fn send(
-    community: &Community,
-    actor: &Person,
+    community: ApubCommunity,
+    actor: &ApubPerson,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
@@ -63,48 +38,53 @@ impl UpdateCommunity {
     )?;
     let update = UpdateCommunity {
       actor: ObjectId::new(actor.actor_id()),
-      to: [PublicUrl::Public],
-      object: community.to_apub(context.pool()).await?,
-      cc: [ObjectId::new(community.actor_id())],
+      to: vec![public()],
+      object: Box::new(community.clone().into_apub(context).await?),
+      cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
-      context: lemmy_context(),
       unparsed: Default::default(),
     };
 
-    let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
-    send_to_community(activity, &id, actor, community, vec![], context).await
+    let activity = AnnouncableActivities::UpdateCommunity(update);
+    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UpdateCommunity {
   type DataType = LemmyContext;
+
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self, &context.settings())?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
-    verify_mod_action(&self.actor, self.cc[0].clone(), context, request_counter).await?;
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    ApubCommunity::verify(
+      &self.object,
+      &community.actor_id.clone().into(),
+      context,
+      request_counter,
+    )
+    .await?;
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let cc = self.cc[0].clone();
-    let community = cc.dereference(context, request_counter).await?;
+    let community = self.get_community(context, request_counter).await?;
 
-    let updated_community = Group::from_apub_to_form(
-      &self.object,
-      &community.actor_id.clone().into(),
-      &context.settings(),
-    )
-    .await?;
+    let updated_community = self.object.into_form();
     let cf = CommunityForm {
       name: updated_community.name,
       title: updated_community.title,
@@ -129,5 +109,20 @@ impl ActivityHandler for UpdateCommunity {
     )
     .await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for UpdateCommunity {
+  #[tracing::instrument(skip_all)]
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let cid = ObjectId::new(self.object.id.clone());
+    cid
+      .dereference(context, context.client(), request_counter)
+      .await
   }
 }

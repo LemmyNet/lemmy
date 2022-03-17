@@ -1,16 +1,17 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
+  limit_and_offset,
+  newtypes::PersonId,
   schema::{admin_purge_person, person},
   source::{
     moderator::AdminPurgePerson,
     person::{Person, PersonSafe},
   },
-  PersonId,
+  traits::{ToSafe, ViewToVec},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AdminPurgePersonView {
   pub admin_purge_person: AdminPurgePerson,
   pub admin: PersonSafe,

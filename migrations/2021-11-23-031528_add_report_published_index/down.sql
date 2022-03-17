@@ -1,0 +1,2 @@
+drop index idx_comment_report_published;
+drop index idx_post_report_published;

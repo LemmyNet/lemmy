@@ -1,39 +1,55 @@
-use crate::{signatures::sign_and_send, traits::ActorType, APUB_JSON_CONTENT_TYPE};
+use crate::{signatures::sign_and_send, traits::ActorType};
 use anyhow::{anyhow, Context, Error};
 use background_jobs::{
-  create_server,
   memory_storage::Storage,
   ActixJob,
   Backoff,
+  Manager,
   MaxRetries,
   QueueHandle,
   WorkerConfig,
 };
 use lemmy_utils::{location_info, LemmyError};
-use log::warn;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, env, fmt::Debug, future::Future, pin::Pin};
+use std::{env, fmt::Debug, future::Future, pin::Pin};
+use tracing::{info, warn};
 use url::Url;
 
 pub async fn send_activity(
-  activity: String,
+  activity_id: &Url,
   actor: &dyn ActorType,
   inboxes: Vec<&Url>,
-  client: &Client,
+  activity: String,
+  client: &ClientWithMiddleware,
   activity_queue: &QueueHandle,
 ) -> Result<(), LemmyError> {
   for i in inboxes {
     let message = SendActivityTask {
-      activity: activity.clone(),
+      activity_id: activity_id.clone(),
       inbox: i.to_owned(),
       actor_id: actor.actor_id(),
+      activity: activity.clone(),
       private_key: actor.private_key().context(location_info!())?,
     };
     if env::var("APUB_TESTING_SEND_SYNC").is_ok() {
-      do_send(message, client).await?;
+      let res = do_send(message, client).await;
+      // Don't fail on error, as we intentionally do some invalid actions in tests, to verify that
+      // they are rejected on the receiving side. These errors shouldn't bubble up to make the API
+      // call fail. This matches the behaviour in production.
+      if let Err(e) = res {
+        warn!("{}", e);
+      }
     } else {
-      activity_queue.queue::<SendActivityTask>(message)?;
+      activity_queue.queue::<SendActivityTask>(message).await?;
+      let stats = activity_queue.get_stats().await?;
+      info!(
+        "Activity queue stats: pending: {}, running: {}, dead (this hour): {}, complete (this hour): {}",
+        stats.pending,
+        stats.running,
+        stats.dead.this_hour(),
+        stats.complete.this_hour()
+      );
     }
   }
 
@@ -42,9 +58,10 @@ pub async fn send_activity(
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct SendActivityTask {
-  activity: String,
+  activity_id: Url,
   inbox: Url,
   actor_id: Url,
+  activity: String,
   private_key: String,
 }
 
@@ -63,12 +80,10 @@ impl ActixJob for SendActivityTask {
   }
 }
 
-async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
-  let mut headers = BTreeMap::<String, String>::new();
-  headers.insert("Content-Type".into(), APUB_JSON_CONTENT_TYPE.to_string());
+async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Result<(), Error> {
+  info!("Sending {} to {}", task.activity_id, task.inbox);
   let result = sign_and_send(
     client,
-    headers,
     &task.inbox,
     task.activity.clone(),
     &task.actor_id,
@@ -76,33 +91,44 @@ async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
   )
   .await;
 
-  if let Err(e) = result {
-    warn!("{}", e);
-    return Err(anyhow!(
-      "Failed to send activity {} to {}",
-      &task.activity,
-      task.inbox
-    ));
-  }
-  Ok(())
+  let r: Result<(), Error> = match result {
+    Ok(o) => {
+      if !o.status().is_success() {
+        let status = o.status();
+        let text = o.text().await?;
+
+        Err(anyhow!(
+          "Send {} to {} failed with status {}: {}",
+          task.activity_id,
+          task.inbox,
+          status,
+          text,
+        ))
+      } else {
+        Ok(())
+      }
+    }
+    Err(e) => Err(anyhow!(
+      "Failed to send activity {} to {}: {}",
+      &task.activity_id,
+      task.inbox,
+      e
+    )),
+  };
+  r
 }
 
-pub fn create_activity_queue() -> QueueHandle {
-  // Start the application server. This guards access to to the jobs store
-  let queue_handle = create_server(Storage::new());
-  let arbiter = actix_web::rt::Arbiter::new();
-
+pub fn create_activity_queue(client: ClientWithMiddleware, worker_count: u64) -> Manager {
   // Configure and start our workers
-  WorkerConfig::new(|| MyState {
-    client: Client::default(),
+  WorkerConfig::new_managed(Storage::new(), move |_| MyState {
+    client: client.clone(),
   })
   .register::<SendActivityTask>()
-  .start_in_arbiter(&arbiter, queue_handle.clone());
-
-  queue_handle
+  .set_worker_count("default", worker_count)
+  .start()
 }
 
 #[derive(Clone)]
 struct MyState {
-  pub client: Client,
+  pub client: ClientWithMiddleware,
 }

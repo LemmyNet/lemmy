@@ -1,18 +1,18 @@
 use diesel::{result::Error, *};
-use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
+  limit_and_offset,
+  newtypes::{CommunityId, PersonId},
   schema::{community, mod_transfer_community, person, person_alias_1},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModTransferCommunity,
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
-  CommunityId,
-  PersonId,
+  traits::{ToSafe, ViewToVec},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModTransferCommunityView {
   pub mod_transfer_community: ModTransferCommunity,
   pub moderator: PersonSafe,

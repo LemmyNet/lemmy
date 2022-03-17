@@ -1,0 +1,79 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://queer.hacktivis.me/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "alsoKnownAs": [],
+  "attachment": [],
+  "capabilities": {
+    "acceptsChatMessages": true
+  },
+  "discoverable": false,
+  "endpoints": {
+    "oauthAuthorizationEndpoint": "https://queer.hacktivis.me/oauth/authorize",
+    "oauthRegistrationEndpoint": "https://queer.hacktivis.me/api/v1/apps",
+    "oauthTokenEndpoint": "https://queer.hacktivis.me/oauth/token",
+    "sharedInbox": "https://queer.hacktivis.me/inbox",
+    "uploadMedia": "https://queer.hacktivis.me/api/ap/upload_media"
+  },
+  "featured": "https://queer.hacktivis.me/users/lanodan/collections/featured",
+  "followers": "https://queer.hacktivis.me/users/lanodan/followers",
+  "following": "https://queer.hacktivis.me/users/lanodan/following",
+  "icon": {
+    "type": "Image",
+    "url": "https://queer.hacktivis.me/media/d23cf9b0-5586-4592-aca5-9a52777a6042/avatar_HD.png"
+  },
+  "id": "https://queer.hacktivis.me/users/lanodan",
+  "image": {
+    "type": "Image",
+    "url": "https://queer.hacktivis.me/media/37b6ce56-8c24-4e64-bd70-a76e84ab0c69/53a48a3a49ed5e5637a84e4f3663df17f8d764244bbc1027ba03cfc446e8b7bd.jpg"
+  },
+  "inbox": "https://queer.hacktivis.me/users/lanodan/inbox",
+  "manuallyApprovesFollowers": false,
+  "name": "Haelwenn /элвэн/ :bzh: ",
+  "outbox": "https://queer.hacktivis.me/users/lanodan/outbox",
+  "preferredUsername": "lanodan",
+  "publicKey": {
+    "id": "https://queer.hacktivis.me/users/lanodan#main-key",
+    "owner": "https://queer.hacktivis.me/users/lanodan",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsWOgdjSMc010qvxC3njI\nXJlFWMJ5gJ8QXCW/PajYdsHPM6d+jxBNJ6zp9/tIRa2m7bWHTSkuHQ7QthOpt6vu\n+dAWpKRLS607SPLItn/qUcyXvgN+H8shfyhMxvkVs9jXdtlBsLUVE7UNpN0dxzqe\nI79QWbf7o4amgaIWGRYB+OYMnIxKt+GzIkivZdSVSYjfxNnBYkMCeUxm5EpPIxKS\nP5bBHAVRRambD5NUmyKILuC60/rYuc/C+vmgpY2HCWFS2q6o34dPr9enwL6t4b3m\nS1t/EJHk9rGaaDqSGkDEfyQI83/7SDebWKuETMKKFLZi1vMgQIFuOYCIhN6bIiZm\npQIDAQAB\n-----END PUBLIC KEY-----\n\n"
+  },
+  "summary": "---<br/>Website: <a href=\"https://hacktivis.me/\">https://hacktivis.me/</a><br/>Lang: Français(natif), English(fluent), LSF(🤏~👌), русский (еле-еле), <br/>Politics: Anarchist as in DIY/DIWO, freedom of association, anti-authoritarian, anti-identitarianism<br/><br/>Pronouns: meh, pick any, have fun<br/>Timezone: Let&#39;s say Mars, I have a non-24h cycle<br/>```<br/>🦊🦄⚧🂡ⓥ :anarchy: 👿🐧 :gentoo:<br/>Pleroma maintainer (mostly backend)<br/>BadWolf developer<br/>Gentoo contributor<br/><br/>Dayjob: yogoko.fr<br/><br/>That person which uses HJKL in games<br/><br/>Just because computer bad: X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*<br/><br/>banner from: <a href=\"https://soc.flyingcube.tech/objects/56f79be2-9013-4559-9826-f7dc392417db\">https://soc.flyingcube.tech/objects/56f79be2-9013-4559-9826-f7dc392417db</a><br/>Federation-bots: <a class=\"hashtag\" data-tag=\"nobot\" href=\"https://queer.hacktivis.me/tag/nobot\">#nobot</a>",
+  "tag": [
+    {
+      "icon": {
+        "type": "Image",
+        "url": "https://queer.hacktivis.me/emoji/custom/symbols/anarchy.png"
+      },
+      "id": "https://queer.hacktivis.me/emoji/custom/symbols/anarchy.png",
+      "name": ":anarchy:",
+      "type": "Emoji",
+      "updated": "1970-01-01T00:00:00Z"
+    },
+    {
+      "icon": {
+        "type": "Image",
+        "url": "https://queer.hacktivis.me/emoji/custom/mastodon.xyz/bzh.png"
+      },
+      "id": "https://queer.hacktivis.me/emoji/custom/mastodon.xyz/bzh.png",
+      "name": ":bzh:",
+      "type": "Emoji",
+      "updated": "1970-01-01T00:00:00Z"
+    },
+    {
+      "icon": {
+        "type": "Image",
+        "url": "https://queer.hacktivis.me/emoji/custom/gentoo.png"
+      },
+      "id": "https://queer.hacktivis.me/emoji/custom/gentoo.png",
+      "name": ":gentoo:",
+      "type": "Emoji",
+      "updated": "1970-01-01T00:00:00Z"
+    }
+  ],
+  "type": "Person",
+  "url": "https://queer.hacktivis.me/users/lanodan"
+}

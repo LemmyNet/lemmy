@@ -32,5 +32,7 @@
     register_per_second: 3600
     image: 6
     image_per_second: 3600
+    comment: 99999
+    comment_per_second: 600
   }
 }

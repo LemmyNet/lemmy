@@ -8,23 +8,26 @@ use lemmy_api_common::{
   send_email_to_user,
 };
 use lemmy_apub::{
-  activities::{
-    private_message::create_or_update::CreateOrUpdatePrivateMessage,
+  generate_local_apub_endpoint,
+  protocol::activities::{
+    create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
   },
-  generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{source::private_message::PrivateMessage_, Crud};
-use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageForm};
+use lemmy_db_schema::{
+  source::private_message::{PrivateMessage, PrivateMessageForm},
+  traits::Crud,
+};
 use lemmy_db_views::local_user_view::LocalUserView;
-use lemmy_utils::{utils::remove_slurs, ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{utils::remove_slurs, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {
   type Response = PrivateMessageResponse;
 
+  #[tracing::instrument(skip(self, context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -53,7 +56,10 @@ impl PerformCrud for CreatePrivateMessage {
     {
       Ok(private_message) => private_message,
       Err(e) => {
-        return Err(ApiError::err("couldnt_create_private_message", e).into());
+        return Err(LemmyError::from_error_message(
+          e,
+          "couldnt_create_private_message",
+        ));
       }
     };
 
@@ -62,7 +68,7 @@ impl PerformCrud for CreatePrivateMessage {
     let updated_private_message = blocking(
       context.pool(),
       move |conn| -> Result<PrivateMessage, LemmyError> {
-        let apub_id = generate_apub_endpoint(
+        let apub_id = generate_local_apub_endpoint(
           EndpointType::PrivateMessage,
           &inserted_private_message_id.to_string(),
           &protocol_and_hostname,
@@ -75,11 +81,11 @@ impl PerformCrud for CreatePrivateMessage {
       },
     )
     .await?
-    .map_err(|e| ApiError::err("couldnt_create_private_message", e))?;
+    .map_err(|e| e.with_message("couldnt_create_private_message"))?;
 
     CreateOrUpdatePrivateMessage::send(
-      &updated_private_message,
-      &local_user_view.person,
+      updated_private_message.into(),
+      &local_user_view.person.into(),
       CreateOrUpdateType::Create,
       context,
     )

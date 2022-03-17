@@ -13,14 +13,17 @@ use lemmy_api_common::{
     ResolvePostReport,
   },
 };
-use lemmy_apub::{activities::report::Report, fetcher::object_id::ObjectId};
-use lemmy_db_queries::Reportable;
-use lemmy_db_schema::source::post_report::{PostReport, PostReportForm};
+use lemmy_apub::protocol::activities::community::report::Report;
+use lemmy_apub_lib::object_id::ObjectId;
+use lemmy_db_schema::{
+  source::post_report::{PostReport, PostReportForm},
+  traits::Reportable,
+};
 use lemmy_db_views::{
   post_report_view::{PostReportQueryBuilder, PostReportView},
   post_view::PostView,
 };
-use lemmy_utils::{ApiError, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a post report and notifies the moderators of the community
@@ -28,6 +31,7 @@ use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation}
 impl Perform for CreatePostReport {
   type Response = PostReportResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -40,10 +44,10 @@ impl Perform for CreatePostReport {
     // check size of report and check for whitespace
     let reason = data.reason.trim();
     if reason.is_empty() {
-      return Err(ApiError::err_plain("report_reason_required").into());
+      return Err(LemmyError::from_message("report_reason_required"));
     }
     if reason.chars().count() > 1000 {
-      return Err(ApiError::err_plain("report_too_long").into());
+      return Err(LemmyError::from_message("report_too_long"));
     }
 
     let person_id = local_user_view.person.id;
@@ -68,7 +72,7 @@ impl Perform for CreatePostReport {
       PostReport::report(conn, &report_form)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_create_report", e))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report.id, person_id)
@@ -86,8 +90,8 @@ impl Perform for CreatePostReport {
 
     Report::send(
       ObjectId::new(post_view.post.ap_id),
-      &local_user_view.person,
-      post_view.community.id,
+      &local_user_view.person.into(),
+      ObjectId::new(post_view.community.actor_id),
       reason.to_string(),
       context,
     )
@@ -102,6 +106,7 @@ impl Perform for CreatePostReport {
 impl Perform for ResolvePostReport {
   type Response = PostReportResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -132,7 +137,7 @@ impl Perform for ResolvePostReport {
 
     blocking(context.pool(), resolve_fun)
       .await?
-      .map_err(|e| ApiError::err("couldnt_resolve_report", e))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
 
     let post_report_view = blocking(context.pool(), move |conn| {
       PostReportView::read(conn, report_id, person_id)
@@ -158,6 +163,7 @@ impl Perform for ResolvePostReport {
 impl Perform for ListPostReports {
   type Response = ListPostReportsResponse;
 
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,

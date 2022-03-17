@@ -1,43 +1,33 @@
-ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:1.51.0
+ARG RUST_BUILDER_IMAGE=clux/muslrust:1.56.0
+
+FROM $RUST_BUILDER_IMAGE as chef
+USER root
+RUN cargo install cargo-chef
+WORKDIR /app
 
 # Cargo chef plan
-FROM $RUST_BUILDER_IMAGE as planner
-WORKDIR /app
-RUN cargo install cargo-chef
+FROM chef as planner
+ENV RUSTFLAGS="--cfg tokio_unstable"
 
 # Copy dirs
-COPY ./ ./
+COPY . .
 
-RUN sudo chown -R rust:rust .
 RUN cargo chef prepare --recipe-path recipe.json
 
-# Cargo chef cache dependencies
-FROM $RUST_BUILDER_IMAGE as cacher
-ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
-WORKDIR /app
-RUN cargo install cargo-chef
-COPY --from=planner /app/recipe.json ./recipe.json
-RUN sudo chown -R rust:rust .
-RUN cargo chef cook --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json
-
-# Build the project
-FROM $RUST_BUILDER_IMAGE as builder
-
+FROM chef as builder
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="debug"
+ENV RUSTFLAGS="--cfg tokio_unstable"
 
-WORKDIR /app
-
-# Copy over the cached dependencies
-COPY --from=cacher /app/target target
-COPY --from=cacher /home/rust/.cargo /home/rust/.cargo
+COPY --from=planner /app/recipe.json ./recipe.json
+RUN cargo chef cook --recipe-path recipe.json --target ${CARGO_BUILD_TARGET}
 
 # Copy the rest of the dirs
-COPY ./ ./
+COPY . .
 
-RUN sudo chown -R rust:rust .
+# Build the project
 RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
-RUN cargo build
+RUN cargo build --target ${CARGO_BUILD_TARGET}
 
 # reduce binary size
 RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
@@ -50,13 +40,8 @@ FROM alpine:3 as lemmy
 # Install libpq for postgres
 RUN apk add libpq
 
-RUN addgroup -g 1000 lemmy
-RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
-
 # Copy resources
-COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
+COPY --from=builder /app/lemmy_server /app/lemmy
 
-RUN chown lemmy:lemmy /app/lemmy
-USER lemmy
 EXPOSE 8536
 CMD ["/app/lemmy"]

@@ -4,42 +4,46 @@ use lemmy_api_common::{
   blocking,
   check_community_ban,
   check_community_deleted_or_removed,
-  check_person_block,
   check_post_deleted_or_removed,
   comment::*,
   get_local_user_view_from_jwt,
   get_post,
-  send_local_notifs,
 };
 use lemmy_apub::{
-  activities::{
-    comment::create_or_update::CreateOrUpdateComment,
+  fetcher::post_or_comment::PostOrComment,
+  generate_local_apub_endpoint,
+  objects::comment::ApubComment,
+  protocol::activities::{
+    create_or_update::comment::CreateOrUpdateComment,
     voting::vote::{Vote, VoteType},
     CreateOrUpdateType,
   },
-  fetcher::post_or_comment::PostOrComment,
-  generate_apub_endpoint,
   EndpointType,
 };
-use lemmy_db_queries::{
-  source::{comment::Comment_, person_mention::PersonMention_},
-  Crud,
-  Likeable,
+use lemmy_db_schema::{
+  source::{
+    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+    person_mention::PersonMention,
+  },
+  traits::{Crud, Likeable},
 };
-use lemmy_db_schema::source::{comment::*, person_mention::PersonMention};
 use lemmy_db_views::comment_view::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
-  ApiError,
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+use lemmy_websocket::{
+  send::{send_comment_ws_message, send_local_notifs},
+  LemmyContext,
+  UserOperationCrud,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
   type Response = CommentResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -61,11 +65,9 @@ impl PerformCrud for CreateComment {
     check_community_deleted_or_removed(community_id, context.pool()).await?;
     check_post_deleted_or_removed(&post)?;
 
-    check_person_block(local_user_view.person.id, post.creator_id, context.pool()).await?;
-
     // Check if post is locked, no new comments
     if post.locked {
-      return Err(ApiError::err_plain("locked").into());
+      return Err(LemmyError::from_message("locked"));
     }
 
     // If there's a parent_id, check to make sure that comment is in that post
@@ -73,13 +75,11 @@ impl PerformCrud for CreateComment {
       // Make sure the parent comment exists
       let parent = blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
         .await?
-        .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
-
-      check_person_block(local_user_view.person.id, parent.creator_id, context.pool()).await?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
       // Strange issue where sometimes the post ID is incorrect
       if parent.post_id != post_id {
-        return Err(ApiError::err_plain("couldnt_create_comment").into());
+        return Err(LemmyError::from_message("couldnt_create_comment"));
       }
     }
 
@@ -97,7 +97,7 @@ impl PerformCrud for CreateComment {
       Comment::create(conn, &comment_form2)
     })
     .await?
-    .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -105,7 +105,7 @@ impl PerformCrud for CreateComment {
 
     let updated_comment: Comment =
       blocking(context.pool(), move |conn| -> Result<Comment, LemmyError> {
-        let apub_id = generate_apub_endpoint(
+        let apub_id = generate_local_apub_endpoint(
           EndpointType::Comment,
           &inserted_comment_id.to_string(),
           &protocol_and_hostname,
@@ -113,27 +113,18 @@ impl PerformCrud for CreateComment {
         Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
       })
       .await?
-      .map_err(|e| ApiError::err("couldnt_create_comment", e))?;
-
-    CreateOrUpdateComment::send(
-      &updated_comment,
-      &local_user_view.person,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
+      .map_err(|e| e.with_message("couldnt_create_comment"))?;
 
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
     let mentions = scrape_text_for_mentions(&comment_form.content);
     let recipient_ids = send_local_notifs(
       mentions,
-      updated_comment.clone(),
-      local_user_view.person.clone(),
-      post,
-      context.pool(),
+      &updated_comment,
+      &local_user_view.person,
+      &post,
       true,
-      &context.settings(),
+      context,
     )
     .await?;
 
@@ -148,12 +139,21 @@ impl PerformCrud for CreateComment {
     let like = move |conn: &'_ _| CommentLike::like(conn, &like_form);
     blocking(context.pool(), like)
       .await?
-      .map_err(|e| ApiError::err("couldnt_like_comment", e))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
-    let object = PostOrComment::Comment(updated_comment);
+    let apub_comment: ApubComment = updated_comment.into();
+    CreateOrUpdateComment::send(
+      apub_comment.clone(),
+      &local_user_view.person.clone().into(),
+      CreateOrUpdateType::Create,
+      context,
+      &mut 0,
+    )
+    .await?;
+    let object = PostOrComment::Comment(Box::new(apub_comment));
     Vote::send(
       &object,
-      &local_user_view.person,
+      &local_user_view.person.clone().into(),
       community_id,
       VoteType::Like,
       context,
@@ -174,7 +174,7 @@ impl PerformCrud for CreateComment {
         Comment::update_read(conn, comment_id, true)
       })
       .await?
-      .map_err(|e| ApiError::err("couldnt_update_comment", e))?;
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
     }
     // If its a reply, mark the parent as read
     if let Some(parent_id) = data.parent_id {
@@ -187,7 +187,7 @@ impl PerformCrud for CreateComment {
           Comment::update_read(conn, parent_id, true)
         })
         .await?
-        .map_err(|e| ApiError::err("couldnt_update_parent_comment", e))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_parent_comment"))?;
       }
       // If the parent has PersonMentions mark them as read too
       let person_id = local_user_view.person.id;
@@ -200,7 +200,7 @@ impl PerformCrud for CreateComment {
           PersonMention::update_read(conn, mention.id, true)
         })
         .await?
-        .map_err(|e| ApiError::err("couldnt_update_person_mentions", e))?;
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_person_mentions"))?;
       }
     }
 

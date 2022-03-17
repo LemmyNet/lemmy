@@ -1,4 +1,4 @@
-use crate::{schema::activity, DbUrl};
+use crate::{newtypes::DbUrl, schema::activity};
 use serde_json::Value;
 use std::fmt::Debug;
 
@@ -10,7 +10,7 @@ pub struct Activity {
   pub local: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: Option<DbUrl>,
+  pub ap_id: DbUrl,
   pub sensitive: Option<bool>,
 }
 

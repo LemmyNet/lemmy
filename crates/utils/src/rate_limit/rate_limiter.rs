@@ -1,7 +1,7 @@
-use crate::{ApiError, IpAddr, LemmyError};
-use log::debug;
+use crate::{IpAddr, LemmyError};
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 struct RateLimitBucket {
@@ -15,6 +15,7 @@ pub(crate) enum RateLimitType {
   Register,
   Post,
   Image,
+  Comment,
 }
 
 /// Rate limiting based on rate type and IP addr
@@ -78,18 +79,16 @@ impl RateLimiter {
             time_passed,
             rate_limit.allowance
           );
-          Err(
-            ApiError {
-              message: format!(
-                "Too many requests. type: {}, IP: {}, {} per {} seconds",
-                type_.as_ref(),
-                ip,
-                rate,
-                per
-              ),
-            }
-            .into(),
-          )
+          Err(LemmyError::from_error_message(
+            anyhow::anyhow!(
+              "Too many requests. type: {}, IP: {}, {} per {} seconds",
+              type_.as_ref(),
+              ip,
+              rate,
+              per
+            ),
+            "too_many_requests",
+          ))
         } else {
           if !check_only {
             rate_limit.allowance -= 1.0;

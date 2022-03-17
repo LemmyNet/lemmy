@@ -38,7 +38,19 @@ pub async fn match_websocket_operation(
     UserOperation::GetCaptcha => do_websocket_operation::<GetCaptcha>(context, id, op, data).await,
     UserOperation::GetReplies => do_websocket_operation::<GetReplies>(context, id, op, data).await,
     UserOperation::AddAdmin => do_websocket_operation::<AddAdmin>(context, id, op, data).await,
+    UserOperation::GetUnreadRegistrationApplicationCount => {
+      do_websocket_operation::<GetUnreadRegistrationApplicationCount>(context, id, op, data).await
+    }
+    UserOperation::ListRegistrationApplications => {
+      do_websocket_operation::<ListRegistrationApplications>(context, id, op, data).await
+    }
+    UserOperation::ApproveRegistrationApplication => {
+      do_websocket_operation::<ApproveRegistrationApplication>(context, id, op, data).await
+    }
     UserOperation::BanPerson => do_websocket_operation::<BanPerson>(context, id, op, data).await,
+    UserOperation::GetBannedPersons => {
+      do_websocket_operation::<GetBannedPersons>(context, id, op, data).await
+    }
     UserOperation::BlockPerson => {
       do_websocket_operation::<BlockPerson>(context, id, op, data).await
     }
@@ -72,6 +84,12 @@ pub async fn match_websocket_operation(
     UserOperation::GetReportCount => {
       do_websocket_operation::<GetReportCount>(context, id, op, data).await
     }
+    UserOperation::GetUnreadCount => {
+      do_websocket_operation::<GetUnreadCount>(context, id, op, data).await
+    }
+    UserOperation::VerifyEmail => {
+      do_websocket_operation::<VerifyEmail>(context, id, op, data).await
+    }
 
     // Private Message ops
     UserOperation::MarkPrivateMessageAsRead => {
@@ -103,9 +121,7 @@ pub async fn match_websocket_operation(
     UserOperation::TransferCommunity => {
       do_websocket_operation::<TransferCommunity>(context, id, op, data).await
     }
-    UserOperation::TransferSite => {
-      do_websocket_operation::<TransferSite>(context, id, op, data).await
-    }
+    UserOperation::LeaveAdmin => do_websocket_operation::<LeaveAdmin>(context, id, op, data).await,
 
     // Community ops
     UserOperation::FollowCommunity => {
@@ -126,6 +142,9 @@ pub async fn match_websocket_operation(
     UserOperation::StickyPost => do_websocket_operation::<StickyPost>(context, id, op, data).await,
     UserOperation::CreatePostLike => {
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
+    }
+    UserOperation::MarkPostAsRead => {
+      do_websocket_operation::<MarkPostAsRead>(context, id, op, data).await
     }
     UserOperation::SavePost => do_websocket_operation::<SavePost>(context, id, op, data).await,
     UserOperation::CreatePostReport => {
@@ -198,15 +217,14 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 #[cfg(test)]
 mod tests {
   use lemmy_api_common::check_validator_time;
-  use lemmy_db_queries::{
+  use lemmy_db_schema::{
     establish_unpooled_connection,
-    source::{local_user::LocalUser_, secret::Secret_},
-    Crud,
-  };
-  use lemmy_db_schema::source::{
-    local_user::{LocalUser, LocalUserForm},
-    person::{Person, PersonForm},
-    secret::Secret,
+    source::{
+      local_user::{LocalUser, LocalUserForm},
+      person::{Person, PersonForm},
+      secret::Secret,
+    },
+    traits::Crud,
   };
   use lemmy_utils::{claims::Claims, settings::structs::Settings};
 
@@ -224,8 +242,8 @@ mod tests {
     let inserted_person = Person::create(&conn, &new_person).unwrap();
 
     let local_user_form = LocalUserForm {
-      person_id: inserted_person.id,
-      password_encrypted: "123456".to_string(),
+      person_id: Some(inserted_person.id),
+      password_encrypted: Some("123456".to_string()),
       ..LocalUserForm::default()
     };
 

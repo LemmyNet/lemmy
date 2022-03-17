@@ -1,27 +1,22 @@
-pub mod activities;
-mod context;
-pub mod fetcher;
-pub mod http;
-pub mod migrations;
-pub mod objects;
-
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{activity_queue::send_activity, traits::ActorType};
-use lemmy_db_queries::{source::activity::Activity_, DbPool};
-use lemmy_db_schema::{
-  source::{activity::Activity, person::Person},
-  CommunityId,
-  DbUrl,
-};
-use lemmy_db_views_actor::community_person_ban_view::CommunityPersonBanView;
+use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
-use lemmy_websocket::LemmyContext;
-use log::info;
-use serde::Serialize;
+use serde::{Deserialize, Deserializer};
 use std::net::IpAddr;
 use url::{ParseError, Url};
+
+pub mod activities;
+pub(crate) mod activity_lists;
+pub(crate) mod collections;
+mod context;
+pub mod fetcher;
+pub mod http;
+pub(crate) mod mentions;
+pub mod migrations;
+pub mod objects;
+pub mod protocol;
 
 /// Checks if the ID is allowed for sending or receiving.
 ///
@@ -31,6 +26,9 @@ use url::{ParseError, Url};
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 ///
+/// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
+/// post/comment in a local community.
+#[tracing::instrument(skip(settings))]
 pub(crate) fn check_is_apub_id_valid(
   apub_id: &Url,
   use_strict_allowlist: bool,
@@ -43,24 +41,24 @@ pub(crate) fn check_is_apub_id_valid(
     return if domain == local_instance {
       Ok(())
     } else {
-      Err(
-        anyhow!(
-          "Trying to connect with {}, but federation is disabled",
-          domain
-        )
-        .into(),
-      )
+      let err = anyhow!(
+        "Trying to connect with {}, but federation is disabled",
+        domain
+      );
+      Err(LemmyError::from_error_message(err, "federation_disabled"))
     };
   }
 
   let host = apub_id.host_str().context(location_info!())?;
   let host_as_ip = host.parse::<IpAddr>();
   if host == "localhost" || host_as_ip.is_ok() {
-    return Err(anyhow!("invalid hostname {}: {}", host, apub_id).into());
+    let err = anyhow!("invalid hostname {}: {}", host, apub_id);
+    return Err(LemmyError::from_error_message(err, "invalid_hostname"));
   }
 
   if apub_id.scheme() != settings.get_protocol_string() {
-    return Err(anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id).into());
+    let err = anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id);
+    return Err(LemmyError::from_error_message(err, "invalid_scheme"));
   }
 
   // TODO: might be good to put the part above in one method, and below in another
@@ -68,7 +66,8 @@ pub(crate) fn check_is_apub_id_valid(
   //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
   if let Some(blocked) = settings.to_owned().federation.blocked_instances {
     if blocked.contains(&domain) {
-      return Err(anyhow!("{} is in federation blocklist", domain).into());
+      let err = anyhow!("{} is in federation blocklist", domain);
+      return Err(LemmyError::from_error_message(err, "federation_blocked"));
     }
   }
 
@@ -81,7 +80,11 @@ pub(crate) fn check_is_apub_id_valid(
       allowed.push(local_instance);
 
       if !allowed.contains(&domain) {
-        return Err(anyhow!("{} not in federation allowlist", domain).into());
+        let err = anyhow!("{} not in federation allowlist", domain);
+        return Err(LemmyError::from_error_message(
+          err,
+          "federation_not_allowed",
+        ));
       }
     }
   }
@@ -89,14 +92,42 @@ pub(crate) fn check_is_apub_id_valid(
   Ok(())
 }
 
-#[async_trait::async_trait(?Send)]
-pub trait CommunityType {
-  fn followers_url(&self) -> Url;
-  async fn get_follower_inboxes(
-    &self,
-    pool: &DbPool,
-    settings: &Settings,
-  ) -> Result<Vec<Url>, LemmyError>;
+pub(crate) fn deserialize_one_or_many<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+  T: Deserialize<'de>,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum OneOrMany<T> {
+    One(T),
+    Many(Vec<T>),
+  }
+
+  let result: OneOrMany<T> = Deserialize::deserialize(deserializer)?;
+  Ok(match result {
+    OneOrMany::Many(list) => list,
+    OneOrMany::One(value) => vec![value],
+  })
+}
+
+pub(crate) fn deserialize_one<'de, T, D>(deserializer: D) -> Result<[T; 1], D::Error>
+where
+  T: Deserialize<'de>,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum MaybeArray<T> {
+    Simple(T),
+    Array([T; 1]),
+  }
+
+  let result: MaybeArray<T> = Deserialize::deserialize(deserializer)?;
+  Ok(match result {
+    MaybeArray::Simple(value) => [value],
+    MaybeArray::Array(value) => value,
+  })
 }
 
 pub enum EndpointType {
@@ -108,7 +139,7 @@ pub enum EndpointType {
 }
 
 /// Generates an apub endpoint for a given domain, IE xyz.tld
-fn generate_apub_endpoint_for_domain(
+pub fn generate_local_apub_endpoint(
   endpoint_type: EndpointType,
   name: &str,
   domain: &str,
@@ -124,21 +155,18 @@ fn generate_apub_endpoint_for_domain(
   Ok(Url::parse(&format!("{}/{}/{}", domain, point, name))?.into())
 }
 
-/// Generates the ActivityPub ID for a given object type and ID.
-pub fn generate_apub_endpoint(
-  endpoint_type: EndpointType,
-  name: &str,
-  protocol_and_hostname: &str,
-) -> Result<DbUrl, ParseError> {
-  generate_apub_endpoint_for_domain(endpoint_type, name, protocol_and_hostname)
-}
-
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/followers", actor_id))?.into())
 }
 
 pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/inbox", actor_id))?.into())
+}
+
+pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  let mut actor_id: Url = actor_id.clone().into();
+  actor_id.set_path("site_inbox");
+  Ok(actor_id.into())
 }
 
 pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
@@ -164,104 +192,20 @@ fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
 }
 
-/// Takes in a shortname of the type dessalines@xyz.tld or dessalines (assumed to be local), and outputs the actor id.
-/// Used in the API for communities and users.
-pub fn build_actor_id_from_shortname(
-  endpoint_type: EndpointType,
-  short_name: &str,
-  settings: &Settings,
-) -> Result<DbUrl, ParseError> {
-  let split = short_name.split('@').collect::<Vec<&str>>();
-
-  let name = split[0];
-
-  // If there's no @, its local
-  let domain = if split.len() == 1 {
-    settings.get_protocol_and_hostname()
-  } else {
-    format!("{}://{}", settings.get_protocol_string(), split[1])
-  };
-
-  generate_apub_endpoint_for_domain(endpoint_type, name, &domain)
-}
-
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-async fn insert_activity<T>(
+#[tracing::instrument(skip(pool))]
+async fn insert_activity(
   ap_id: &Url,
-  activity: T,
+  activity: serde_json::Value,
   local: bool,
   sensitive: bool,
   pool: &DbPool,
-) -> Result<(), LemmyError>
-where
-  T: Serialize + std::fmt::Debug + Send + 'static,
-{
+) -> Result<(), LemmyError> {
   let ap_id = ap_id.to_owned().into();
   blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, &activity, local, sensitive)
+    Activity::insert(conn, ap_id, activity, local, sensitive)
   })
   .await??;
   Ok(())
-}
-
-async fn check_community_or_site_ban(
-  person: &Person,
-  community_id: CommunityId,
-  pool: &DbPool,
-) -> Result<(), LemmyError> {
-  if person.banned {
-    return Err(anyhow!("Person is banned from site").into());
-  }
-  let person_id = person.id;
-  let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(pool, is_banned).await? {
-    return Err(anyhow!("Person is banned from community").into());
-  }
-
-  Ok(())
-}
-
-pub(crate) async fn send_lemmy_activity<T: Serialize>(
-  context: &LemmyContext,
-  activity: &T,
-  activity_id: &Url,
-  actor: &dyn ActorType,
-  inboxes: Vec<Url>,
-  sensitive: bool,
-) -> Result<(), LemmyError> {
-  if !context.settings().federation.enabled || inboxes.is_empty() {
-    return Ok(());
-  }
-
-  info!("Sending activity {}", activity_id.to_string());
-
-  // Don't send anything to ourselves
-  // TODO: this should be a debug assert
-  let hostname = context.settings().get_hostname_without_port()?;
-  let inboxes: Vec<&Url> = inboxes
-    .iter()
-    .filter(|i| i.domain().expect("valid inbox url") != hostname)
-    .collect();
-
-  let serialised_activity = serde_json::to_string(&activity)?;
-
-  insert_activity(
-    activity_id,
-    serialised_activity.clone(),
-    true,
-    sensitive,
-    context.pool(),
-  )
-  .await?;
-
-  send_activity(
-    serialised_activity,
-    actor,
-    inboxes,
-    context.client(),
-    context.activity_queue(),
-  )
-  .await
 }
