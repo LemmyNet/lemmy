@@ -2,6 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
+  check_image_has_local_domain,
   get_local_user_view_from_jwt,
   is_admin,
   site::*,
@@ -49,6 +50,8 @@ impl PerformCrud for CreateSite {
 
     check_slurs(&data.name, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
+    check_image_has_local_domain(&data.icon)?;
+    check_image_has_local_domain(&data.banner)?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
