@@ -23,6 +23,19 @@ impl PersonAggregates {
   }
 }
 
+impl Default for PersonAggregates {
+  fn default() -> Self {
+    PersonAggregates {
+      id: 0,
+      person_id: Default::default(),
+      post_count: 0,
+      post_score: 0,
+      comment_count: 0,
+      comment_score: 0
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{

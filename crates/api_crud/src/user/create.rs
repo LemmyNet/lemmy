@@ -277,14 +277,7 @@ impl PerformCrud for Register {
         let local_user_view = LocalUserView {
           local_user: inserted_local_user,
           person: inserted_person,
-          counts: PersonAggregates {
-            id: 0,
-            person_id: Default::default(),
-            post_count: 0,
-            post_score: 0,
-            comment_count: 0,
-            comment_score: 0,
-          },
+          counts: PersonAggregates::default(),
         };
         // we check at the beginning of this method that email is set
         let email = local_user_view
