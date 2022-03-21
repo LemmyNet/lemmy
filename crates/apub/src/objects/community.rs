@@ -49,6 +49,7 @@ impl From<Community> for ApubCommunity {
 impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
   type ApubType = Group;
+  type DbType = Community;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -62,7 +63,7 @@ impl ApubObject for ApubCommunity {
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       blocking(context.pool(), move |conn| {
-        Community::read_from_apub_id(conn, object_id)
+        Community::read_from_apub_id(conn, &object_id.into())
       })
       .await??
       .map(Into::into),

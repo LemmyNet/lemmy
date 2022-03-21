@@ -5,8 +5,8 @@ use lemmy_api_common::{
   check_private_instance,
   get_local_user_view_from_jwt_opt,
   person::*,
-  resolve_actor_identifier,
 };
+use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
 use lemmy_db_schema::{from_opt_str_to_opt_enum, source::person::Person, SortType};
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::{
@@ -51,7 +51,7 @@ impl PerformCrud for GetPersonDetails {
           .to_owned()
           .unwrap_or_else(|| "admin".to_string());
 
-        resolve_actor_identifier::<Person>(&name, context.pool())
+        resolve_actor_identifier::<ApubPerson, Person>(&name, context)
           .await
           .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
           .id

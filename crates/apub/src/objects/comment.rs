@@ -58,6 +58,7 @@ impl From<Comment> for ApubComment {
 impl ApubObject for ApubComment {
   type DataType = LemmyContext;
   type ApubType = Note;
+  type DbType = Comment;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

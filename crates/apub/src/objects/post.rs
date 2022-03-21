@@ -57,6 +57,7 @@ impl From<Post> for ApubPost {
 impl ApubObject for ApubPost {
   type DataType = LemmyContext;
   type ApubType = Page;
+  type DbType = Post;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

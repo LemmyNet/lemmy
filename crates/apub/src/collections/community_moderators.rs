@@ -133,6 +133,8 @@ impl ApubObject for ApubCommunityModerators {
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityModerators { 0: vec![] })
   }
+
+  type DbType = ();
 }
 
 #[cfg(test)]
