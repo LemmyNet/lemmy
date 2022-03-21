@@ -3,7 +3,7 @@ use diesel::{result::Error, *};
 use serde::{Deserialize, Serialize};
 
 #[derive(
-  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
+  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone, Default,
 )]
 #[table_name = "person_aggregates"]
 pub struct PersonAggregates {
@@ -20,19 +20,6 @@ impl PersonAggregates {
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
       .first::<Self>(conn)
-  }
-}
-
-impl Default for PersonAggregates {
-  fn default() -> Self {
-    PersonAggregates {
-      id: 0,
-      person_id: Default::default(),
-      post_count: 0,
-      post_score: 0,
-      comment_count: 0,
-      comment_score: 0
-    }
   }
 }
 
