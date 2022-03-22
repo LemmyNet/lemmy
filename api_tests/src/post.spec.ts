@@ -29,7 +29,8 @@ import {
   randomString,
   registerUser,
   API,
-  getSite
+  getSite,
+  unfollows
 } from './shared';
 import { PostView, CommunityView } from 'lemmy-js-client';
 
@@ -45,13 +46,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await unfollows();
 });
-
-async function unfollows() {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
-  await unfollowRemotes(delta);
-  await unfollowRemotes(epsilon);
-}
 
 function assertPostFederation(postOne: PostView, postTwo: PostView) {
   expect(postOne.post.ap_id).toBe(postTwo.post.ap_id);
