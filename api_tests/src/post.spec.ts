@@ -285,14 +285,6 @@ test('Search for a post', async () => {
   expect(betaPost.post.name).toBeDefined();
 });
 
-test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes.post_view.post).toBeDefined();
-
-  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
-  expect(betaPost.post.name).toBeDefined();
-});
-
 test('Enforce site ban for federated user', async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
@@ -376,6 +368,15 @@ test('Enforce community ban for federated user', async () => {
   // Make sure that post makes it to beta community
   let searchBeta2 = await searchPostLocal(beta, postRes3.post_view.post);
   expect(searchBeta2.posts[0]).toBeDefined();
+});
+
+
+test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
+  let postRes = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes.post_view.post).toBeDefined();
+
+  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  expect(betaPost.post.name).toBeDefined();
 });
 
 test('Report a post', async () => {
