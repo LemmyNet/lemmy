@@ -28,7 +28,7 @@ use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, io::Read};
-use tracing::info;
+use tracing::{debug, info};
 use url::Url;
 
 mod comment;
@@ -108,7 +108,15 @@ where
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
   let object_value = serde_json::to_value(&activity)?;
-  insert_activity(&activity_data.id, object_value, false, true, context.pool()).await?;
+  let insert =
+    insert_activity(&activity_data.id, object_value, false, true, context.pool()).await?;
+  if !insert {
+    debug!(
+      "Received duplicate activity {}",
+      activity_data.id.to_string()
+    );
+    return Ok(HttpResponse::BadRequest().finish());
+  }
 
   info!("Receiving activity {}", activity_data.id.to_string());
   activity
