@@ -18,7 +18,6 @@ pub struct Source {
   pub(crate) media_type: MediaTypeMarkdown,
 }
 
-/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]

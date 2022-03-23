@@ -80,5 +80,6 @@ mod tests {
     test_json::<Person>("assets/gnusocial/objects/person.json").unwrap();
     test_json::<Group>("assets/gnusocial/objects/group.json").unwrap();
     test_json::<Page>("assets/gnusocial/objects/page.json").unwrap();
+    test_json::<Note>("assets/gnusocial/objects/note.json").unwrap();
   }
 }
