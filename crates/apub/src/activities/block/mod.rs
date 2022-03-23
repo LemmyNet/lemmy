@@ -34,6 +34,7 @@ pub enum InstanceOrGroup {
 impl ApubObject for SiteOrCommunity {
   type DataType = LemmyContext;
   type ApubType = InstanceOrGroup;
+  type DbType = ();
   type TombstoneType = ();
 
   #[tracing::instrument(skip_all)]

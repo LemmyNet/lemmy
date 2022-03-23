@@ -5,8 +5,8 @@ use lemmy_api_common::{
   check_private_instance,
   community::*,
   get_local_user_view_from_jwt_opt,
-  resolve_actor_identifier,
 };
+use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   source::community::Community,
@@ -44,7 +44,7 @@ impl PerformCrud for GetCommunity {
       Some(id) => id,
       None => {
         let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
-        resolve_actor_identifier::<Community>(&name, context.pool())
+        resolve_actor_identifier::<ApubCommunity, Community>(&name, context)
           .await
           .map_err(|e| e.with_message("couldnt_find_community"))?
           .id

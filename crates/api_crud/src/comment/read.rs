@@ -5,8 +5,8 @@ use lemmy_api_common::{
   check_private_instance,
   comment::*,
   get_local_user_view_from_jwt_opt,
-  resolve_actor_identifier,
 };
+use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
   source::community::Community,
@@ -78,7 +78,7 @@ impl PerformCrud for GetComments {
 
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<Community>(name, context.pool())
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context)
         .await
         .ok()
         .map(|c| c.actor_id)

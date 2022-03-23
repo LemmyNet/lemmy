@@ -46,6 +46,7 @@ impl From<PrivateMessage> for ApubPrivateMessage {
 impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
   type ApubType = ChatMessage;
+  type DbType = PrivateMessage;
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

@@ -78,6 +78,7 @@ pub enum SearchableApubTypes {
 impl ApubObject for SearchableObjects {
   type DataType = LemmyContext;
   type ApubType = SearchableApubTypes;
+  type DbType = ();
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

@@ -55,6 +55,7 @@ impl From<DbPerson> for ApubPerson {
 impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
+  type DbType = DbPerson;
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -68,7 +69,7 @@ impl ApubObject for ApubPerson {
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       blocking(context.pool(), move |conn| {
-        DbPerson::read_from_apub_id(conn, object_id)
+        DbPerson::read_from_apub_id(conn, &object_id.into())
       })
       .await??
       .map(Into::into),

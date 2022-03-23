@@ -118,4 +118,6 @@ impl ApubObject for ApubCommunityOutbox {
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityOutbox { 0: vec![] })
   }
+
+  type DbType = ();
 }

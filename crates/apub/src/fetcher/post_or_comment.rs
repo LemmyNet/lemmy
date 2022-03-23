@@ -26,6 +26,7 @@ pub enum PageOrNote {
 impl ApubObject for PostOrComment {
   type DataType = LemmyContext;
   type ApubType = PageOrNote;
+  type DbType = ();
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

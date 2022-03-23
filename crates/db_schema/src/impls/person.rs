@@ -15,7 +15,6 @@ use diesel::{
   RunQueryDsl,
   TextExpressionMethods,
 };
-use url::Url;
 
 mod safe_type {
   use crate::{schema::person::columns::*, source::person::Person, traits::ToSafe};
@@ -284,9 +283,8 @@ fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
 }
 
 impl ApubActor for Person {
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     use crate::schema::person::dsl::*;
-    let object_id: DbUrl = object_id.into();
     Ok(
       person
         .filter(deleted.eq(false))

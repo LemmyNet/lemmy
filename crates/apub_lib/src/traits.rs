@@ -24,6 +24,7 @@ pub trait ActivityHandler {
 pub trait ApubObject {
   type DataType;
   type ApubType;
+  type DbType;
   type TombstoneType;
 
   /// If this object should be refetched after a certain interval, it should return the last refresh
