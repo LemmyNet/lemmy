@@ -72,8 +72,19 @@ impl ActixJob for SendActivityTask {
   type Future = Pin<Box<dyn Future<Output = Result<(), Error>>>>;
   const NAME: &'static str = "SendActivityTask";
 
+  /// With these params, retries are made at the following intervals:
+  ///          3s
+  ///          9s
+  ///         27s
+  ///      1m 21s
+  ///      4m  3s
+  ///     12m  9s
+  ///     36m 27s
+  ///  1h 49m 21s
+  ///  5h 28m  3s
+  /// 16h 24m  9s
   const MAX_RETRIES: MaxRetries = MaxRetries::Count(10);
-  const BACKOFF: Backoff = Backoff::Exponential(2);
+  const BACKOFF: Backoff = Backoff::Exponential(3);
 
   fn run(self, state: Self::State) -> Self::Future {
     Box::pin(async move { do_send(self, &state.client).await })
