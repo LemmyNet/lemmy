@@ -26,6 +26,7 @@ pub enum PersonOrGroup {
 impl ApubObject for UserOrCommunity {
   type DataType = LemmyContext;
   type ApubType = PersonOrGroup;
+  type DbType = ();
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

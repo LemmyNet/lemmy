@@ -24,7 +24,6 @@ use diesel::{
   RunQueryDsl,
   TextExpressionMethods,
 };
-use url::Url;
 
 mod safe_type {
   use crate::{schema::community::*, source::community::Community, traits::ToSafe};
@@ -291,9 +290,8 @@ impl Followable for CommunityFollower {
 }
 
 impl ApubActor for Community {
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     use crate::schema::community::dsl::*;
-    let object_id: DbUrl = object_id.into();
     Ok(
       community
         .filter(actor_id.eq(object_id))

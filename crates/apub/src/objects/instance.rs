@@ -45,6 +45,7 @@ impl From<Site> for ApubSite {
 impl ApubObject for ApubSite {
   type DataType = LemmyContext;
   type ApubType = Instance;
+  type DbType = Site;
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
