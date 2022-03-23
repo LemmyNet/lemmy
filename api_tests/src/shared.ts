@@ -653,3 +653,10 @@ export function randomString(length: number): string {
   }
   return result;
 }
+
+export async function unfollows() {
+  await unfollowRemotes(alpha);
+  await unfollowRemotes(gamma);
+  await unfollowRemotes(delta);
+  await unfollowRemotes(epsilon);
+}
