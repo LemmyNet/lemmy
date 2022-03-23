@@ -21,10 +21,12 @@ pub use sensitive::Sensitive;
 
 use actix_web::HttpResponse;
 use http::StatusCode;
-use std::{fmt, fmt::Display};
+use std::{fmt, fmt::Display, time::Duration};
 use tracing_error::SpanTrace;
 
 pub type ConnectionId = usize;
+
+pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct IpAddr(pub String);

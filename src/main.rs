@@ -26,12 +26,13 @@ use lemmy_utils::{
   request::build_user_agent,
   settings::structs::Settings,
   LemmyError,
+  REQWEST_TIMEOUT,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
+use std::{env, sync::Arc, thread};
 use tokio::sync::Mutex;
 use tracing_actix_web::TracingLogger;
 
@@ -96,7 +97,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let client = Client::builder()
     .user_agent(build_user_agent(&settings))
-    .timeout(Duration::from_secs(10))
+    .timeout(REQWEST_TIMEOUT)
     .build()?;
 
   let client = ClientBuilder::new(client).with(TracingMiddleware).build();

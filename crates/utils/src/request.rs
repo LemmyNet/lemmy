@@ -1,10 +1,10 @@
-use crate::{settings::structs::Settings, version::VERSION, LemmyError};
+use crate::{settings::structs::Settings, version::VERSION, LemmyError, REQWEST_TIMEOUT};
 use anyhow::anyhow;
 use encoding::{all::encodings, DecoderTrap};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, time::Duration};
+use std::future::Future;
 use thiserror::Error;
 use tracing::{error, info};
 use url::Url;
@@ -71,7 +71,7 @@ pub async fn fetch_site_metadata(
   info!("Fetching site metadata for url: {}", url);
   let response = client
     .get(url.as_str())
-    .timeout(Duration::from_secs(30))
+    .timeout(REQWEST_TIMEOUT)
     .send()
     .await?;
 
@@ -183,7 +183,7 @@ pub(crate) async fn fetch_pictrs(
 
     let response = client
       .get(&fetch_url)
-      .timeout(Duration::from_secs(30))
+      .timeout(REQWEST_TIMEOUT)
       .send()
       .await?;
 
@@ -259,7 +259,7 @@ pub async fn fetch_site_data(
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client
     .get(url.as_str())
-    .timeout(Duration::from_secs(30))
+    .timeout(REQWEST_TIMEOUT)
     .send()
     .await?;
   if response

@@ -2,14 +2,13 @@ use crate::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
 use anyhow::anyhow;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use diesel::NotFound;
-use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
+use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError, REQWEST_TIMEOUT};
 use reqwest::StatusCode;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt::{Debug, Display, Formatter},
   marker::PhantomData,
-  time::Duration,
 };
 use tracing::info;
 use url::Url;
@@ -114,7 +113,7 @@ where
       client
         .get(self.0.as_str())
         .header("Accept", APUB_JSON_CONTENT_TYPE)
-        .timeout(Duration::from_secs(60))
+        .timeout(REQWEST_TIMEOUT)
         .send()
     })
     .await?;
