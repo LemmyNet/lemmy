@@ -45,6 +45,7 @@ impl RateLimiter {
     }
   }
 
+  /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
   #[allow(clippy::float_cmp)]
   pub(super) fn check_rate_limit_full(
     &mut self,

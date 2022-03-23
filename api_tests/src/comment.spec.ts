@@ -23,6 +23,7 @@ import {
   listCommentReports,
   randomString,
   API,
+  unfollows,
 } from './shared';
 import { CommentView } from 'lemmy-js-client';
 
@@ -32,6 +33,7 @@ let postRes: PostResponse;
 
 beforeAll(async () => {
   await setupLogins();
+  await unfollows();
   await followBeta(alpha);
   await followBeta(gamma);
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
@@ -42,8 +44,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
+  await unfollows();
 });
 
 function assertCommentFederation(
