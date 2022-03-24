@@ -86,7 +86,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.message,
             rate_limit.message_per_second,
-            false,
           )?;
 
           drop(limiter);
@@ -98,7 +97,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.post,
             rate_limit.post_per_second,
-            false,
           )?;
         }
         RateLimitType::Register => {
@@ -107,7 +105,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.register,
             rate_limit.register_per_second,
-            false,
           )?;
         }
         RateLimitType::Image => {
@@ -116,7 +113,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.image,
             rate_limit.image_per_second,
-            false,
           )?;
         }
         RateLimitType::Comment => {
@@ -125,7 +121,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.comment,
             rate_limit.comment_per_second,
-            false,
           )?;
         }
       };

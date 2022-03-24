@@ -53,7 +53,6 @@ impl RateLimiter {
     ip: &IpAddr,
     rate: i32,
     per: i32,
-    check_only: bool,
   ) -> Result<(), LemmyError> {
     self.insert_ip(ip);
     if let Some(bucket) = self.buckets.get_mut(&type_) {
@@ -68,7 +67,7 @@ impl RateLimiter {
 
         rate_limit.last_checked = current;
         rate_limit.allowance += time_passed * (rate as f64 / per as f64);
-        if !check_only && rate_limit.allowance > rate as f64 {
+        if rate_limit.allowance > rate as f64 {
           rate_limit.allowance = rate as f64;
         }
 
@@ -91,9 +90,7 @@ impl RateLimiter {
             "too_many_requests",
           ))
         } else {
-          if !check_only {
-            rate_limit.allowance -= 1.0;
-          }
+          rate_limit.allowance -= 1.0;
           Ok(())
         }
       } else {
