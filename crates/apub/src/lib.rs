@@ -201,11 +201,12 @@ async fn insert_activity(
   local: bool,
   sensitive: bool,
   pool: &DbPool,
-) -> Result<(), LemmyError> {
+) -> Result<bool, LemmyError> {
   let ap_id = ap_id.to_owned().into();
-  blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, activity, local, sensitive)
-  })
-  .await??;
-  Ok(())
+  Ok(
+    blocking(pool, move |conn| {
+      Activity::insert(conn, ap_id, activity, local, sensitive)
+    })
+    .await??,
+  )
 }

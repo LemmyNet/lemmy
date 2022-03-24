@@ -14,6 +14,7 @@ use lemmy_apub_lib::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use tracing::debug;
 
 #[async_trait::async_trait(?Send)]
 pub(crate) trait GetCommunity {
@@ -113,7 +114,15 @@ impl ActivityHandler for AnnounceActivity {
         let object_value = serde_json::to_value(&self.object)?;
         let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
 
-        insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
+        let insert =
+          insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
+        if !insert {
+          debug!(
+            "Received duplicate activity in announce {}",
+            object_data.id.to_string()
+          );
+          return Ok(());
+        }
       }
     }
     self.object.receive(context, request_counter).await

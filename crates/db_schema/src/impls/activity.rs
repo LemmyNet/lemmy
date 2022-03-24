@@ -1,7 +1,10 @@
 use crate::{newtypes::DbUrl, source::activity::*, traits::Crud};
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::*,
+  result::{DatabaseErrorKind, Error},
+  *,
+};
 use serde_json::Value;
-use std::io::{Error as IoError, ErrorKind};
 
 impl Crud for Activity {
   type Form = ActivityForm;
@@ -35,13 +38,14 @@ impl Crud for Activity {
 }
 
 impl Activity {
+  /// Returns true if the insert was successful
   pub fn insert(
     conn: &PgConnection,
     ap_id: DbUrl,
     data: Value,
     local: bool,
     sensitive: bool,
-  ) -> Result<Activity, IoError> {
+  ) -> Result<bool, Error> {
     let activity_form = ActivityForm {
       ap_id,
       data,
@@ -49,13 +53,14 @@ impl Activity {
       sensitive,
       updated: None,
     };
-    let result = Activity::create(conn, &activity_form);
-    match result {
-      Ok(s) => Ok(s),
-      Err(e) => Err(IoError::new(
-        ErrorKind::Other,
-        format!("Failed to insert activity into database: {}", e),
-      )),
+    match Activity::create(conn, &activity_form) {
+      Ok(_) => Ok(true),
+      Err(e) => {
+        if let Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _) = e {
+          return Ok(false);
+        }
+        Err(e)
+      }
     }
   }
 
