@@ -86,7 +86,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.message,
             rate_limit.message_per_second,
-            false,
           )?;
 
           drop(limiter);
@@ -98,7 +97,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.post,
             rate_limit.post_per_second,
-            true,
           )?;
         }
         RateLimitType::Register => {
@@ -107,7 +105,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.register,
             rate_limit.register_per_second,
-            true,
           )?;
         }
         RateLimitType::Image => {
@@ -116,7 +113,6 @@ impl RateLimited {
             &ip_addr,
             rate_limit.image,
             rate_limit.image_per_second,
-            false,
           )?;
         }
         RateLimitType::Comment => {
@@ -125,41 +121,12 @@ impl RateLimited {
             &ip_addr,
             rate_limit.comment,
             rate_limit.comment_per_second,
-            false,
           )?;
         }
       };
     }
 
     let res = fut.await;
-
-    // after
-    {
-      let mut limiter = self.rate_limiter.lock().await;
-      if res.is_ok() {
-        match self.type_ {
-          RateLimitType::Post => {
-            limiter.check_rate_limit_full(
-              self.type_,
-              &ip_addr,
-              rate_limit.post,
-              rate_limit.post_per_second,
-              false,
-            )?;
-          }
-          RateLimitType::Register => {
-            limiter.check_rate_limit_full(
-              self.type_,
-              &ip_addr,
-              rate_limit.register,
-              rate_limit.register_per_second,
-              false,
-            )?;
-          }
-          _ => (),
-        };
-      }
-    }
 
     res
   }
