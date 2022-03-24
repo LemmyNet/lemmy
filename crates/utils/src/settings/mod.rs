@@ -88,6 +88,9 @@ impl Settings {
   }
 
   pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
+    // check that the config is valid
+    from_str::<Settings>(data)?;
+
     fs::write(Settings::get_config_location(), data)?;
 
     // Reload the new settings
