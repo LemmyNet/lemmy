@@ -1,0 +1,42 @@
+{
+  "type": "Group",
+  "streams": [],
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "gs": "https://www.gnu.org/software/social/ns#"
+    },
+    {
+      "litepub": "http://litepub.social/ns#"
+    },
+    {
+      "chatMessage": "litepub:chatMessage"
+    },
+    {
+      "inConversation": {
+        "@id": "gs:inConversation",
+        "@type": "@id"
+      }
+    }
+  ],
+  "id": "https://instance.gnusocial.test/actor/21",
+  "inbox": "https://instance.gnusocial.test/actor/21/inbox.json",
+  "outbox": "https://instance.gnusocial.test/actor/21/outbox.json",
+  "following": "https://instance.gnusocial.test/actor/21/subscriptions",
+  "followers": "https://instance.gnusocial.test/actor/21/subscribers",
+  "liked": "https://instance.gnusocial.test/actor/21/favourites",
+  "preferredUsername": "hackers",
+  "publicKey": {
+    "id": "https://instance.gnusocial.test/actor/2#public-key",
+    "owner": "https://instance.gnusocial.test/actor/2",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoZyKL+GyJbTV/ilVBlzz\n8OL/UwNi3KpfV5kQwXU0pPcBbw6y2JOfWnKUT1CfiHG3ntiOFnc+wQfHZk4hRSE8\n9Xe/G5Y215xW+gqx/kjt2GOENqzSzYXdEZ5Qsx6yumZD/yb6VZK9Og0HjX2mpRs9\nbactY76w4BQVntjZ17gSkMhYcyPFZTAIe7QDkeSPk5lkXfTwtaB3YcJSbQ3+s7La\npeEgukQDkrLUIP6cxayKrgUl4fhHdpx1Yk4Bzd/1XkZCjeBca94lP1p2M12amI+Z\nOLSTuLyEiCcku8aN+Ms9plwATmIDaGvKFVk0YVtBHdIJlYXV0yIscab3bqyhsLBK\njwIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "name": "Hackers!",
+  "published": "2022-02-23T21:54:52+00:00",
+  "updated": "2022-02-23T21:55:16+00:00",
+  "url": "https://instance.gnusocial.test/!hackers",
+  "endpoints": {
+    "sharedInbox": "https://instance.gnusocial.test/inbox.json"
+  }
+}

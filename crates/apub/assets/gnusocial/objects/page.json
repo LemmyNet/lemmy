@@ -1,0 +1,41 @@
+{
+  "type": "Page",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "gs": "https://www.gnu.org/software/social/ns#"
+    },
+    {
+      "litepub": "http://litepub.social/ns#"
+    },
+    {
+      "chatMessage": "litepub:chatMessage"
+    },
+    {
+      "inConversation": {
+        "@id": "gs:inConversation",
+        "@type": "@id"
+      }
+    }
+  ],
+  "id": "https://instance.gnusocial.test/object/note/1338",
+  "published": "2022-03-17T23:30:26+00:00",
+  "attributedTo": "https://instance.gnusocial.test/actor/42",
+  "name": "hello, world.",
+  "content": "<p>This is an interesting page.</p>",
+  "mediaType": "text/html",
+  "source": {
+    "content": "This is an interesting page.",
+    "mediaType": "text/markdown"
+  },
+  "attachment": [],
+  "tag": [],
+  "inConversation": "https://instance.gnusocial.test/conversation/1338",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": [
+    "https://instance.gnusocial.test/actor/21"
+  ]
+}

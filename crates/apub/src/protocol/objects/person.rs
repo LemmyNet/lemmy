@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{objects::Endpoints, ImageObject, Source},
+  protocol::{objects::Endpoints, ImageObject, SourceCompat},
 };
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey};
@@ -31,7 +31,7 @@ pub struct Person {
   /// displayname
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  pub(crate) source: Option<Source>,
+  pub(crate) source: Option<SourceCompat>,
   /// user avatar
   pub(crate) icon: Option<ImageObject>,
   /// user banner

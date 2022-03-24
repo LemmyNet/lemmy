@@ -7,7 +7,7 @@ use crate::{
   protocol::{
     objects::{group::Group, tombstone::Tombstone, Endpoints},
     ImageObject,
-    Source,
+    SourceCompat,
   },
 };
 use activitystreams_kinds::actor::GroupType;
@@ -85,9 +85,9 @@ impl ApubObject for ApubCommunity {
       kind: GroupType::Group,
       id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
-      name: self.title.clone(),
+      name: Some(self.title.clone()),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
-      source: self.description.clone().map(Source::new),
+      source: self.description.clone().map(SourceCompat::new),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),

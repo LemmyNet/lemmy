@@ -1,6 +1,6 @@
 use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
-  protocol::Source,
+  protocol::SourceCompat,
 };
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
@@ -19,7 +19,7 @@ pub struct ChatMessage {
   pub(crate) content: String,
 
   pub(crate) media_type: Option<MediaTypeHtml>,
-  pub(crate) source: Option<Source>,
+  pub(crate) source: Option<SourceCompat>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
 }

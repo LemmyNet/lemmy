@@ -4,6 +4,7 @@ use url::Url;
 
 use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_db_schema::newtypes::DbUrl;
+use serde_json::Value;
 use std::collections::HashMap;
 
 pub mod activities;
@@ -17,12 +18,20 @@ pub struct Source {
   pub(crate) media_type: MediaTypeMarkdown,
 }
 
-impl Source {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+pub(crate) enum SourceCompat {
+  Lemmy(Source),
+  Other(Value),
+}
+
+impl SourceCompat {
   pub(crate) fn new(content: String) -> Self {
-    Source {
+    SourceCompat::Lemmy(Source {
       content,
       media_type: MediaTypeMarkdown::Markdown,
-    }
+    })
   }
 }
 

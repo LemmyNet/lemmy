@@ -1,8 +1,9 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{ImageObject, Source},
+  protocol::{ImageObject, SourceCompat},
 };
 use chrono::{DateTime, FixedOffset};
+use itertools::Itertools;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -37,7 +38,7 @@ pub struct Page {
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
-  pub(crate) source: Option<Source>,
+  pub(crate) source: Option<SourceCompat>,
   pub(crate) url: Option<Url>,
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,
@@ -70,9 +71,9 @@ impl Page {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let mut to_iter = self.to.iter();
+    let mut iter = self.to.iter().merge(self.cc.iter());
     loop {
-      if let Some(cid) = to_iter.next() {
+      if let Some(cid) = iter.next() {
         let cid = ObjectId::new(cid.clone());
         if let Ok(c) = cid
           .dereference(context, context.client(), request_counter)

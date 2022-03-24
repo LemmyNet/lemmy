@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
-  objects::{get_summary_from_string_or_source, verify_image_domain_matches},
-  protocol::{objects::instance::Instance, ImageObject, Source},
+  objects::{read_from_string_or_source_opt, verify_image_domain_matches},
+  protocol::{objects::instance::Instance, ImageObject, SourceCompat},
 };
 use activitystreams_kinds::actor::ServiceType;
 use chrono::NaiveDateTime;
@@ -77,7 +77,7 @@ impl ApubObject for ApubSite {
       id: ObjectId::new(self.actor_id()),
       name: self.name.clone(),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
-      source: self.sidebar.clone().map(Source::new),
+      source: self.sidebar.clone().map(SourceCompat::new),
       summary: self.description.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
@@ -121,10 +121,7 @@ impl ApubObject for ApubSite {
   ) -> Result<Self, LemmyError> {
     let site_form = SiteForm {
       name: apub.name.clone(),
-      sidebar: Some(get_summary_from_string_or_source(
-        &apub.content,
-        &apub.source,
-      )),
+      sidebar: Some(read_from_string_or_source_opt(&apub.content, &apub.source)),
       updated: apub.updated.map(|u| u.clone().naive_local()),
       icon: Some(apub.icon.clone().map(|i| i.url.into())),
       banner: Some(apub.image.clone().map(|i| i.url.into())),

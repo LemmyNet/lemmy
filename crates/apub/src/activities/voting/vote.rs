@@ -28,6 +28,8 @@ use lemmy_db_schema::{
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
+/// Vote has as:Public value in cc field, unlike other activities. This indicates to other software
+/// (like GNU social, or presumably Mastodon), that the like actor should not be disclosed.
 impl Vote {
   pub(in crate::activities::voting) fn new(
     object: &PostOrComment,
@@ -38,9 +40,9 @@ impl Vote {
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: vec![community.actor_id()],
       object: ObjectId::new(object.ap_id()),
-      cc: vec![community.actor_id()],
+      cc: vec![public()],
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
       unparsed: Default::default(),

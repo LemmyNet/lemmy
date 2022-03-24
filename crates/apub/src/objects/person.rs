@@ -2,8 +2,8 @@ use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
   objects::{
-    get_summary_from_string_or_source,
     instance::fetch_instance_actor_for_object,
+    read_from_string_or_source_opt,
     verify_image_domain_matches,
   },
   protocol::{
@@ -12,7 +12,7 @@ use crate::{
       Endpoints,
     },
     ImageObject,
-    Source,
+    SourceCompat,
   },
 };
 use chrono::NaiveDateTime;
@@ -99,7 +99,7 @@ impl ApubObject for ApubPerson {
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
-      source: self.bio.clone().map(Source::new),
+      source: self.bio.clone().map(SourceCompat::new),
       icon: self.avatar.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
@@ -134,7 +134,7 @@ impl ApubObject for ApubPerson {
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
-    let bio = get_summary_from_string_or_source(&person.summary, &person.source);
+    let bio = read_from_string_or_source_opt(&person.summary, &person.source);
     check_slurs_opt(&bio, slur_regex)?;
     Ok(())
   }
@@ -156,7 +156,7 @@ impl ApubObject for ApubPerson {
       published: person.published.map(|u| u.naive_local()),
       updated: person.updated.map(|u| u.naive_local()),
       actor_id: Some(person.id.into()),
-      bio: Some(get_summary_from_string_or_source(
+      bio: Some(read_from_string_or_source_opt(
         &person.summary,
         &person.source,
       )),
