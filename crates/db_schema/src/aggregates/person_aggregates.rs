@@ -3,7 +3,7 @@ use diesel::{result::Error, *};
 use serde::{Deserialize, Serialize};
 
 #[derive(
-  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
+  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone, Default,
 )]
 #[table_name = "person_aggregates"]
 pub struct PersonAggregates {

@@ -189,17 +189,11 @@ impl Perform for SaveUserSettings {
     let email = diesel_option_overwrite(&email_deref);
 
     if let Some(Some(email)) = &email {
-      let previous_email = local_user_view.local_user.email.unwrap_or_default();
+      let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
       // Only send the verification email if there was an email change
       if previous_email.ne(email) {
-        send_verification_email(
-          local_user_view.local_user.id,
-          email,
-          &local_user_view.person.name,
-          context.pool(),
-          &context.settings(),
-        )
-        .await?;
+        send_verification_email(&local_user_view, email, context.pool(), &context.settings())
+          .await?;
       }
     }
 

@@ -33,12 +33,14 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{
   claims::Claims,
-  email::send_email,
+  email::{send_email, translations::Lang},
   settings::structs::{FederationConfig, Settings},
   utils::generate_random_string,
   LemmyError,
   Sensitive,
 };
+use rosetta_i18n::{Language, LanguageId};
+use tracing::warn;
 use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
@@ -363,9 +365,8 @@ pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
 
 pub fn send_email_to_user(
   local_user_view: &LocalUserView,
-  subject_text: &str,
-  body_text: &str,
-  comment_content: &str,
+  subject: &str,
+  body: &str,
   settings: &Settings,
 ) {
   if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
@@ -373,32 +374,21 @@ pub fn send_email_to_user(
   }
 
   if let Some(user_email) = &local_user_view.local_user.email {
-    let subject = &format!(
-      "{} - {} {}",
-      subject_text, settings.hostname, local_user_view.person.name,
-    );
-    let html = &format!(
-      "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-      body_text,
-      local_user_view.person.name,
-      comment_content,
-      settings.get_protocol_and_hostname()
-    );
     match send_email(
       subject,
       user_email,
       &local_user_view.person.name,
-      html,
+      body,
       settings,
     ) {
       Ok(_o) => _o,
-      Err(e) => tracing::error!("{}", e),
+      Err(e) => warn!("{}", e),
     };
   }
 }
 
 pub async fn send_password_reset_email(
-  local_user_view: &LocalUserView,
+  user: &LocalUserView,
   pool: &DbPool,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
@@ -407,29 +397,30 @@ pub async fn send_password_reset_email(
 
   // Insert the row
   let token2 = token.clone();
-  let local_user_id = local_user_view.local_user.id;
+  let local_user_id = user.local_user.id;
   blocking(pool, move |conn| {
     PasswordResetRequest::create_token(conn, local_user_id, &token2)
   })
   .await??;
 
-  let email = &local_user_view.local_user.email.to_owned().expect("email");
-  let subject = &format!("Password reset for {}", local_user_view.person.name);
+  let email = &user.local_user.email.to_owned().expect("email");
+  let lang = get_user_lang(user);
+  let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
-  let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", local_user_view.person.name, protocol_and_hostname, &token);
-  send_email(subject, email, &local_user_view.person.name, html, settings)
+  let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
+  let body = &lang.password_reset_body(&user.person.name, reset_link);
+  send_email(subject, email, &user.person.name, body, settings)
 }
 
 /// Send a verification email
 pub async fn send_verification_email(
-  local_user_id: LocalUserId,
+  user: &LocalUserView,
   new_email: &str,
-  username: &str,
   pool: &DbPool,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
-    local_user_id,
+    local_user_id: user.local_user.id,
     email: new_email.to_string(),
     verification_token: generate_random_string(),
   };
@@ -440,44 +431,42 @@ pub async fn send_verification_email(
   );
   blocking(pool, move |conn| EmailVerification::create(conn, &form)).await??;
 
-  let subject = format!("Verify your email address for {}", settings.hostname);
-  let body = format!(
-    concat!(
-      "Please click the link below to verify your email address ",
-      "for the account @{}@{}. Ignore this email if the account isn't yours.<br><br>",
-      "<a href=\"{}\">Verify your email</a>"
-    ),
-    username, settings.hostname, verify_link
-  );
-  send_email(&subject, new_email, username, &body, settings)?;
+  let lang = get_user_lang(user);
+  let subject = lang.verify_email_subject(&settings.hostname);
+  let body = lang.verify_email_body(&user.person.name, &settings.hostname, verify_link);
+  send_email(&subject, new_email, &user.person.name, &body, settings)?;
 
   Ok(())
 }
 
 pub fn send_email_verification_success(
-  local_user_view: &LocalUserView,
+  user: &LocalUserView,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let email = &local_user_view.local_user.email.to_owned().expect("email");
-  let subject = &format!("Email verified for {}", local_user_view.person.actor_id);
-  let html = "Your email has been verified.";
-  send_email(subject, email, &local_user_view.person.name, html, settings)
+  let email = &user.local_user.email.to_owned().expect("email");
+  let lang = get_user_lang(user);
+  let subject = &lang.email_verified_subject(&user.person.actor_id);
+  let body = &lang.email_verified_body();
+  send_email(subject, email, &user.person.name, body, settings)
+}
+
+pub fn get_user_lang(user: &LocalUserView) -> Lang {
+  let user_lang = LanguageId::new(user.local_user.lang.clone());
+  Lang::from_language_id(&user_lang).unwrap_or_else(|| {
+    let en = LanguageId::new("en");
+    Lang::from_language_id(&en).expect("default language")
+  })
 }
 
 pub fn send_application_approved_email(
-  local_user_view: &LocalUserView,
+  user: &LocalUserView,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let email = &local_user_view.local_user.email.to_owned().expect("email");
-  let subject = &format!(
-    "Registration approved for {}",
-    local_user_view.person.actor_id
-  );
-  let html = &format!(
-    "Your registration application has been approved. Welcome to {}!",
-    settings.hostname
-  );
-  send_email(subject, email, &local_user_view.person.name, html, settings)
+  let email = &user.local_user.email.to_owned().expect("email");
+  let lang = get_user_lang(user);
+  let subject = lang.registration_approved_subject(&user.person.actor_id);
+  let body = lang.registration_approved_body(&settings.hostname);
+  send_email(&subject, email, &user.person.name, &body, settings)
 }
 
 pub async fn check_registration_application(
