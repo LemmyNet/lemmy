@@ -29,7 +29,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       )
       .service(
         web::resource("/search")
-          .wrap(rate_limit.comment())
+          .wrap(rate_limit.search())
           .route(web::get().to(route_get::<Search>)),
       )
       .service(
