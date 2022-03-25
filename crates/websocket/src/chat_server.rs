@@ -485,6 +485,7 @@ impl ChatServer {
           UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
           UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
           UserOperationCrud::CreateComment => rate_limiter.comment().check(ip),
+          UserOperationCrud::Search => rate_limiter.search().check(ip),
           _ => true,
         };
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
