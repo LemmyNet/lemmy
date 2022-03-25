@@ -1,4 +1,4 @@
-use crate::{settings::structs::RateLimitConfig, utils::get_ip, IpAddr, LemmyError};
+use crate::{settings::structs::RateLimitConfig, utils::get_ip, IpAddr};
 use actix_web::{
   dev::{Service, ServiceRequest, ServiceResponse, Transform},
   HttpResponse,
@@ -67,15 +67,8 @@ impl RateLimit {
 }
 
 impl RateLimited {
-  /// Returns None if the request was rejected due to hitting rate limit.
-  pub async fn wrap<T, E>(
-    self,
-    ip_addr: IpAddr,
-    fut: impl Future<Output = Result<T, E>>,
-  ) -> Result<Option<T>, E>
-  where
-    E: From<LemmyError>,
-  {
+  /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
+  pub async fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
     let rate_limit = self.rate_limit_config;
@@ -89,14 +82,7 @@ impl RateLimited {
       RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
     };
-    let passed = limiter.check_rate_limit_full(self.type_, &ip_addr, kind, interval)?;
-
-    drop(limiter);
-    if passed {
-      fut.await.map(|f| Some(f))
-    } else {
-      Ok(None)
-    }
+    limiter.check_rate_limit_full(self.type_, &ip_addr, kind, interval)
   }
 }
 
@@ -141,10 +127,7 @@ where
     let service = self.service.clone();
 
     Box::pin(async move {
-      let opt = rate_limited
-        .wrap(ip_addr, async move { Ok(()) as Result<(), LemmyError> })
-        .await?;
-      if let Some(()) = opt {
+      if rate_limited.check(ip_addr).await {
         service.call(req).await
       } else {
         let (http_req, _) = req.into_parts();

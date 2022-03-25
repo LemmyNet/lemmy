@@ -1,11 +1,11 @@
-use crate::{IpAddr, LemmyError};
-use std::{collections::HashMap, time::SystemTime};
+use crate::IpAddr;
+use std::{collections::HashMap, time::Instant};
 use strum::IntoEnumIterator;
 use tracing::debug;
 
 #[derive(Debug, Clone)]
 struct RateLimitBucket {
-  last_checked: SystemTime,
+  last_checked: Instant,
   allowance: f64,
 }
 
@@ -36,7 +36,7 @@ impl RateLimiter {
           bucket.insert(
             ip.clone(),
             RateLimitBucket {
-              last_checked: SystemTime::now(),
+              last_checked: Instant::now(),
               allowance: -2f64,
             },
           );
@@ -55,12 +55,12 @@ impl RateLimiter {
     ip: &IpAddr,
     rate: i32,
     per: i32,
-  ) -> Result<bool, LemmyError> {
+  ) -> bool {
     self.insert_ip(ip);
     if let Some(bucket) = self.buckets.get_mut(&type_) {
       if let Some(rate_limit) = bucket.get_mut(ip) {
-        let current = SystemTime::now();
-        let time_passed = current.duration_since(rate_limit.last_checked)?.as_secs() as f64;
+        let current = Instant::now();
+        let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f64;
 
         // The initial value
         if rate_limit.allowance == -2f64 {
@@ -81,16 +81,16 @@ impl RateLimiter {
             time_passed,
             rate_limit.allowance
           );
-          Ok(false)
+          false
         } else {
           rate_limit.allowance -= 1.0;
-          Ok(true)
+          true
         }
       } else {
-        Ok(true)
+        true
       }
     } else {
-      Ok(true)
+      true
     }
   }
 }
