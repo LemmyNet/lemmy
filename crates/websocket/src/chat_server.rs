@@ -478,22 +478,33 @@ impl ChatServer {
         .as_str()
         .ok_or_else(|| LemmyError::from_message("missing op"))?;
 
-      if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
-        let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);
-        match user_operation_crud {
-          UserOperationCrud::Register => rate_limiter.register().wrap(ip, fut).await,
-          UserOperationCrud::CreatePost => rate_limiter.post().wrap(ip, fut).await,
-          UserOperationCrud::CreateCommunity => rate_limiter.register().wrap(ip, fut).await,
-          UserOperationCrud::CreateComment => rate_limiter.comment().wrap(ip, fut).await,
-          _ => rate_limiter.message().wrap(ip, fut).await,
-        }
+      // check if api call passes the rate limit, and generate future for later execution
+      let (passed, fut) = if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
+        let passed = match user_operation_crud {
+          UserOperationCrud::Register => rate_limiter.register().check(ip).await,
+          UserOperationCrud::CreatePost => rate_limiter.post().check(ip).await,
+          UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip).await,
+          UserOperationCrud::CreateComment => rate_limiter.comment().check(ip).await,
+          _ => rate_limiter.message().check(ip).await,
+        };
+        let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
+        (passed, fut)
       } else {
         let user_operation = UserOperation::from_str(op)?;
-        let fut = (message_handler)(context, msg.id, user_operation.clone(), data);
-        match user_operation {
-          UserOperation::GetCaptcha => rate_limiter.post().wrap(ip, fut).await,
-          _ => rate_limiter.message().wrap(ip, fut).await,
-        }
+        let passed = match user_operation {
+          UserOperation::GetCaptcha => rate_limiter.post().check(ip).await,
+          _ => rate_limiter.message().check(ip).await,
+        };
+        let fut = (message_handler)(context, msg.id, user_operation, data);
+        (passed, fut)
+      };
+
+      // if rate limit passed, execute api call future
+      if passed {
+        fut.await
+      } else {
+        // if rate limit was hit, respond with empty message
+        Ok("".to_string())
       }
     }
   }
