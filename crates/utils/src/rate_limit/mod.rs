@@ -8,6 +8,7 @@ use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
   future::Future,
   pin::Pin,
+  rc::Rc,
   sync::Arc,
   task::{Context, Poll},
 };
@@ -32,7 +33,7 @@ pub struct RateLimited {
 
 pub struct RateLimitedMiddleware<S> {
   rate_limited: RateLimited,
-  service: S,
+  service: Rc<S>,
 }
 
 impl RateLimit {
@@ -101,7 +102,7 @@ impl RateLimited {
 
 impl<S> Transform<S, ServiceRequest> for RateLimited
 where
-  S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
+  S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error> + 'static,
   S::Future: 'static,
 {
   type Response = S::Response;
@@ -113,7 +114,7 @@ where
   fn new_transform(&self, service: S) -> Self::Future {
     ok(RateLimitedMiddleware {
       rate_limited: self.clone(),
-      service,
+      service: Rc::new(service),
     })
   }
 }
@@ -122,7 +123,7 @@ type FutResult<T, E> = dyn Future<Output = Result<T, E>>;
 
 impl<S> Service<ServiceRequest> for RateLimitedMiddleware<S>
 where
-  S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
+  S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error> + 'static,
   S::Future: 'static,
 {
   type Response = S::Response;
@@ -133,20 +134,20 @@ where
     self.service.poll_ready(cx)
   }
 
-  fn call(&self, mut req: ServiceRequest) -> Self::Future {
+  fn call(&self, req: ServiceRequest) -> Self::Future {
     let ip_addr = get_ip(&req.connection_info());
 
-    let http_req = req.parts_mut().0.clone();
-    let fut = self
-      .rate_limited
-      .clone()
-      .wrap(ip_addr, self.service.call(req));
+    let rate_limited = self.rate_limited.clone();
+    let service = self.service.clone();
 
     Box::pin(async move {
-      let res = fut.await.map_err(actix_web::Error::from);
-      if let Some(r) = res? {
-        Ok(r)
+      let opt = rate_limited
+        .wrap(ip_addr, async move { Ok(()) as Result<(), LemmyError> })
+        .await?;
+      if let Some(()) = opt {
+        service.call(req).await
       } else {
+        let (http_req, _) = req.into_parts();
         // if rate limit was hit, respond with http 400
         Ok(ServiceResponse::new(
           http_req,
