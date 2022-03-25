@@ -46,6 +46,8 @@ impl RateLimiter {
   }
 
   /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
+  ///
+  /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
   #[allow(clippy::float_cmp)]
   pub(super) fn check_rate_limit_full(
     &mut self,
@@ -53,7 +55,7 @@ impl RateLimiter {
     ip: &IpAddr,
     rate: i32,
     per: i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<bool, LemmyError> {
     self.insert_ip(ip);
     if let Some(bucket) = self.buckets.get_mut(&type_) {
       if let Some(rate_limit) = bucket.get_mut(ip) {
@@ -79,25 +81,16 @@ impl RateLimiter {
             time_passed,
             rate_limit.allowance
           );
-          Err(LemmyError::from_error_message(
-            anyhow::anyhow!(
-              "Too many requests. type: {}, IP: {}, {} per {} seconds",
-              type_.as_ref(),
-              ip,
-              rate,
-              per
-            ),
-            "too_many_requests",
-          ))
+          Ok(false)
         } else {
           rate_limit.allowance -= 1.0;
-          Ok(())
+          Ok(true)
         }
       } else {
-        Ok(())
+        Ok(true)
       }
     } else {
-      Ok(())
+      Ok(true)
     }
   }
 }

@@ -1,5 +1,8 @@
 use crate::{settings::structs::RateLimitConfig, utils::get_ip, IpAddr, LemmyError};
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::{
+  dev::{Service, ServiceRequest, ServiceResponse, Transform},
+  HttpResponse,
+};
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
@@ -63,11 +66,12 @@ impl RateLimit {
 }
 
 impl RateLimited {
+  /// Returns None if the request was rejected due to hitting rate limit.
   pub async fn wrap<T, E>(
     self,
     ip_addr: IpAddr,
     fut: impl Future<Output = Result<T, E>>,
-  ) -> Result<T, E>
+  ) -> Result<Option<T>, E>
   where
     E: From<LemmyError>,
   {
@@ -75,60 +79,23 @@ impl RateLimited {
     // and the operation here locks only long enough to clone
     let rate_limit = self.rate_limit_config;
 
-    // before
-    {
-      let mut limiter = self.rate_limiter.lock().await;
+    let mut limiter = self.rate_limiter.lock().await;
 
-      match self.type_ {
-        RateLimitType::Message => {
-          limiter.check_rate_limit_full(
-            self.type_,
-            &ip_addr,
-            rate_limit.message,
-            rate_limit.message_per_second,
-          )?;
+    let (kind, interval) = match self.type_ {
+      RateLimitType::Message => (rate_limit.message, rate_limit.message_per_second),
+      RateLimitType::Post => (rate_limit.post, rate_limit.post_per_second),
+      RateLimitType::Register => (rate_limit.register, rate_limit.register_per_second),
+      RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
+      RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
+    };
+    let passed = limiter.check_rate_limit_full(self.type_, &ip_addr, kind, interval)?;
 
-          drop(limiter);
-          return fut.await;
-        }
-        RateLimitType::Post => {
-          limiter.check_rate_limit_full(
-            self.type_,
-            &ip_addr,
-            rate_limit.post,
-            rate_limit.post_per_second,
-          )?;
-        }
-        RateLimitType::Register => {
-          limiter.check_rate_limit_full(
-            self.type_,
-            &ip_addr,
-            rate_limit.register,
-            rate_limit.register_per_second,
-          )?;
-        }
-        RateLimitType::Image => {
-          limiter.check_rate_limit_full(
-            self.type_,
-            &ip_addr,
-            rate_limit.image,
-            rate_limit.image_per_second,
-          )?;
-        }
-        RateLimitType::Comment => {
-          limiter.check_rate_limit_full(
-            self.type_,
-            &ip_addr,
-            rate_limit.comment,
-            rate_limit.comment_per_second,
-          )?;
-        }
-      };
+    drop(limiter);
+    if passed {
+      fut.await.map(|f| Some(f))
+    } else {
+      Ok(None)
     }
-
-    let res = fut.await;
-
-    res
   }
 }
 
@@ -166,14 +133,26 @@ where
     self.service.poll_ready(cx)
   }
 
-  fn call(&self, req: ServiceRequest) -> Self::Future {
+  fn call(&self, mut req: ServiceRequest) -> Self::Future {
     let ip_addr = get_ip(&req.connection_info());
 
+    let http_req = req.parts_mut().0.clone();
     let fut = self
       .rate_limited
       .clone()
       .wrap(ip_addr, self.service.call(req));
 
-    Box::pin(async move { fut.await.map_err(actix_web::Error::from) })
+    Box::pin(async move {
+      let res = fut.await.map_err(actix_web::Error::from);
+      if let Some(r) = res? {
+        Ok(r)
+      } else {
+        // if rate limit was hit, respond with http 400
+        Ok(ServiceResponse::new(
+          http_req,
+          HttpResponse::BadRequest().finish(),
+        ))
+      }
+    })
   }
 }

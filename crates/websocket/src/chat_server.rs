@@ -478,7 +478,7 @@ impl ChatServer {
         .as_str()
         .ok_or_else(|| LemmyError::from_message("missing op"))?;
 
-      if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
+      let res = if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);
         match user_operation_crud {
           UserOperationCrud::Register => rate_limiter.register().wrap(ip, fut).await,
@@ -494,6 +494,13 @@ impl ChatServer {
           UserOperation::GetCaptcha => rate_limiter.post().wrap(ip, fut).await,
           _ => rate_limiter.message().wrap(ip, fut).await,
         }
+      }?;
+
+      if let Some(r) = res {
+        Ok(r)
+      } else {
+        // if rate limit was hit, respond with empty message
+        Ok("".to_string())
       }
     }
   }
