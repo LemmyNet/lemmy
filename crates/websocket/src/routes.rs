@@ -62,20 +62,7 @@ impl Actor for WsSession {
     // across all routes within application
     let addr = ctx.address();
 
-    // Rate limit check a joining IP first, before doing any parsing
-    self
-      .rate_limiter
-      .message()
-      .check(self.ip.to_owned())
-      .into_actor(self)
-      .then(|res, act, ctx| {
-        if !res {
-          debug!("Websocket join with IP: {} has been rate limited.", act.ip);
-          ctx.stop()
-        }
-        actix::fut::ready(())
-      })
-      .wait(ctx);
+    self.rate_limit_check(ctx);
 
     self
       .cs_addr
@@ -118,6 +105,8 @@ impl Handler<WsMessage> for WsSession {
 /// WebSocket message handler
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
   fn handle(&mut self, result: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+    self.rate_limit_check(ctx);
+
     let message = match result {
       Ok(m) => m,
       Err(e) => {
@@ -188,5 +177,15 @@ impl WsSession {
 
       ctx.ping(b"");
     });
+  }
+
+  /// Check the rate limit, and stop the ctx if it fails
+  fn rate_limit_check(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
+    let ip = self.ip.to_owned();
+
+    if !self.rate_limiter.message().check(ip) {
+      debug!("Websocket join with IP: {} has been rate limited.", self.ip);
+      ctx.stop()
+    }
   }
 }

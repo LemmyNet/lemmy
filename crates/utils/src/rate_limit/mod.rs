@@ -68,7 +68,7 @@ impl RateLimit {
 
 impl RateLimited {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  pub async fn check(self, ip_addr: IpAddr) -> bool {
+  pub fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
     let rate_limit = self.rate_limit_config;
@@ -127,7 +127,7 @@ where
     let service = self.service.clone();
 
     Box::pin(async move {
-      if rate_limited.check(ip_addr).await {
+      if rate_limited.check(ip_addr) {
         service.call(req).await
       } else {
         let (http_req, _) = req.into_parts();
