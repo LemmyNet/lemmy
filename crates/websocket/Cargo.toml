@@ -36,3 +36,4 @@ actix-web = { version = "4.0.0", default-features = false, features = ["rustls"]
 actix-web-actors = { version = "4.1.0", default-features = false }
 opentelemetry = "0.16"
 tracing-opentelemetry = "0.16"
+parking_lot = "0.12"

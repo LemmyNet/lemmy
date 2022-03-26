@@ -58,10 +58,10 @@ pub(crate) mod tests {
     LemmyError,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
+  use parking_lot::Mutex;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use std::sync::Arc;
-  use tokio::sync::Mutex;
 
   // TODO: would be nice if we didnt have to use a full context for tests.
   //       or at least write a helper function so this code is shared with main.rs

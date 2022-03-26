@@ -6,7 +6,7 @@ use crate::{
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use lemmy_utils::{utils::get_ip, ConnectionId, IpAddr};
+use lemmy_utils::{rate_limit::RateLimit, utils::get_ip, ConnectionId, IpAddr};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
 
@@ -20,6 +20,7 @@ pub async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   context: web::Data<LemmyContext>,
+  rate_limiter: web::Data<RateLimit>,
 ) -> Result<HttpResponse, Error> {
   ws::start(
     WsSession {
@@ -27,6 +28,7 @@ pub async fn chat_route(
       id: 0,
       hb: Instant::now(),
       ip: get_ip(&req.connection_info()),
+      rate_limiter: rate_limiter.as_ref().to_owned(),
     },
     &req,
     stream,
@@ -41,6 +43,8 @@ struct WsSession {
   /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
   /// otherwise we drop connection.
   hb: Instant,
+  /// A rate limiter for websocket joins
+  rate_limiter: RateLimit,
 }
 
 impl Actor for WsSession {
@@ -57,6 +61,22 @@ impl Actor for WsSession {
     // before processing any other events.
     // across all routes within application
     let addr = ctx.address();
+
+    // Rate limit check a joining IP first, before doing any parsing
+    self
+      .rate_limiter
+      .message()
+      .check(self.ip.to_owned())
+      .into_actor(self)
+      .then(|res, act, ctx| {
+        if !res {
+          debug!("Websocket join with IP: {} has been rate limited.", act.ip);
+          ctx.stop()
+        }
+        actix::fut::ready(())
+      })
+      .wait(ctx);
+
     self
       .cs_addr
       .send(Connect {

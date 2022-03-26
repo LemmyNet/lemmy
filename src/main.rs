@@ -29,11 +29,11 @@ use lemmy_utils::{
   REQWEST_TIMEOUT,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
+use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use std::{env, sync::Arc, thread};
-use tokio::sync::Mutex;
 use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
@@ -136,6 +136,7 @@ async fn main() -> Result<(), LemmyError> {
       .wrap(actix_web::middleware::Logger::default())
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
+      .app_data(Data::new(rate_limiter.clone()))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
