@@ -481,19 +481,19 @@ impl ChatServer {
       // check if api call passes the rate limit, and generate future for later execution
       let (passed, fut) = if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let passed = match user_operation_crud {
-          UserOperationCrud::Register => rate_limiter.register().check(ip).await,
-          UserOperationCrud::CreatePost => rate_limiter.post().check(ip).await,
-          UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip).await,
-          UserOperationCrud::CreateComment => rate_limiter.comment().check(ip).await,
-          _ => rate_limiter.message().check(ip).await,
+          UserOperationCrud::Register => rate_limiter.register().check(ip),
+          UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
+          UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
+          UserOperationCrud::CreateComment => rate_limiter.comment().check(ip),
+          _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
         (passed, fut)
       } else {
         let user_operation = UserOperation::from_str(op)?;
         let passed = match user_operation {
-          UserOperation::GetCaptcha => rate_limiter.post().check(ip).await,
-          _ => rate_limiter.message().check(ip).await,
+          UserOperation::GetCaptcha => rate_limiter.post().check(ip),
+          _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler)(context, msg.id, user_operation, data);
         (passed, fut)

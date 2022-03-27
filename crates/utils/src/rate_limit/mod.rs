@@ -4,6 +4,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::future::{ok, Ready};
+use parking_lot::Mutex;
 use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
   future::Future,
@@ -12,7 +13,6 @@ use std::{
   sync::Arc,
   task::{Context, Poll},
 };
-use tokio::sync::Mutex;
 
 pub mod rate_limiter;
 
@@ -68,12 +68,10 @@ impl RateLimit {
 
 impl RateLimited {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  pub async fn check(self, ip_addr: IpAddr) -> bool {
+  pub fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
     let rate_limit = self.rate_limit_config;
-
-    let mut limiter = self.rate_limiter.lock().await;
 
     let (kind, interval) = match self.type_ {
       RateLimitType::Message => (rate_limit.message, rate_limit.message_per_second),
@@ -82,6 +80,8 @@ impl RateLimited {
       RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
     };
+    let mut limiter = self.rate_limiter.lock();
+
     limiter.check_rate_limit_full(self.type_, &ip_addr, kind, interval)
   }
 }
@@ -127,7 +127,7 @@ where
     let service = self.service.clone();
 
     Box::pin(async move {
-      if rate_limited.check(ip_addr).await {
+      if rate_limited.check(ip_addr) {
         service.call(req).await
       } else {
         let (http_req, _) = req.into_parts();

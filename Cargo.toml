@@ -75,3 +75,4 @@ doku = "0.10.2"
 opentelemetry = { version = "0.16", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.9"
 tracing-opentelemetry = "0.16"
+parking_lot = "0.12"

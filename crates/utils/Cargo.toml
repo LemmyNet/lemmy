@@ -48,6 +48,7 @@ uuid = { version = "0.8.2", features = ["serde", "v4"] }
 encoding = "0.2.33"
 html2text = "0.2.1"
 rosetta-i18n = "0.1"
+parking_lot = "0.12"
 
 [build-dependencies]
 rosetta-build = "0.1"
