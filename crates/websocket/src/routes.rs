@@ -181,9 +181,7 @@ impl WsSession {
 
   /// Check the rate limit, and stop the ctx if it fails
   fn rate_limit_check(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
-    let ip = self.ip.to_owned();
-
-    if !self.rate_limiter.message().check(ip) {
+    if !self.rate_limiter.message().check(self.ip.to_owned()) {
       debug!("Websocket join with IP: {} has been rate limited.", self.ip);
       ctx.stop()
     }
