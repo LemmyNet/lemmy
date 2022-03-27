@@ -62,13 +62,9 @@ impl Actor for WsSession {
     // across all routes within application
     let addr = ctx.address();
 
-<<<<<<< HEAD
     if !self.rate_limit_check(ctx) {
       return;
     }
-=======
-    self.rate_limit_check(ctx);
->>>>>>> 2566ac49 (Removing async on mutex lock fn.)
 
     self
       .cs_addr
