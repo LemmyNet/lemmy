@@ -485,7 +485,7 @@ impl ChatServer {
           UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
           UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
           UserOperationCrud::CreateComment => rate_limiter.comment().check(ip),
-          _ => rate_limiter.message().check(ip),
+          _ => true,
         };
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
         (passed, fut)
@@ -493,7 +493,7 @@ impl ChatServer {
         let user_operation = UserOperation::from_str(op)?;
         let passed = match user_operation {
           UserOperation::GetCaptcha => rate_limiter.post().check(ip),
-          _ => rate_limiter.message().check(ip),
+          _ => true,
         };
         let fut = (message_handler)(context, msg.id, user_operation, data);
         (passed, fut)
