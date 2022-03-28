@@ -1,0 +1,80 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://pirati.ca/objects/ec054ce7-5162-3bf2-504c-16d024994850/Create",
+  "type": "Create",
+  "actor": "https://pirati.ca/profile/heluecht",
+  "published": "2022-03-24T04:23:44Z",
+  "instrument": {
+    "type": "Service",
+    "name": "Friendica 'Siberian Iris' 2022.05-dev-1452",
+    "url": "https://pirati.ca"
+  },
+  "to": [
+    "https://ds9.lemmy.ml/c/testcom"
+  ],
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://ds9.lemmy.ml/c/testcom/followers"
+  ],
+  "object": {
+    "id": "https://pirati.ca/objects/ec054ce7-5162-3bf2-504c-16d024994850",
+    "type": "Article",
+    "summary": "",
+    "inReplyTo": null,
+    "diaspora:guid": "ec054ce7-5162-3bf2-504c-16d024994850",
+    "published": "2022-03-24T04:23:44Z",
+    "url": "https://pirati.ca/display/ec054ce7-5162-3bf2-504c-16d024994850",
+    "attributedTo": "https://pirati.ca/profile/heluecht",
+    "sensitive": false,
+    "context": "https://pirati.ca/objects/ec054ce7-5162-3bf2-504c-16d024994850#context",
+    "name": "From Friendica to Lemmy",
+    "content": "Hello Lemmy!",
+    "contentMap": {
+      "de": "<bdi>!<a href=\"https://ds9.lemmy.ml/c/testcom\" class=\"userinfo mention\" title=\"testcom\">testcom</a></bdi> Hello Lemmy!"
+    },
+    "source": {
+      "content": "![url=https://ds9.lemmy.ml/c/testcom]testcom[/url] Hello Lemmy!",
+      "mediaType": "text/bbcode"
+    },
+    "attachment": [],
+    "tag": [
+      {
+        "type": "Mention",
+        "href": "https://ds9.lemmy.ml/c/testcom",
+        "name": "@testcom@ds9.lemmy.ml"
+      }
+    ],
+    "to": [
+      "https://ds9.lemmy.ml/c/testcom"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://ds9.lemmy.ml/c/testcom/followers"
+    ]
+  },
+  "signature": {
+    "type": "RsaSignature2017",
+    "nonce": "d1b75df08009e59510606604758732d499c3c385b4ce6ee374e6d8c2ee86230b",
+    "creator": "https://pirati.ca/profile/heluecht#main-key",
+    "created": "2022-03-24T04:26:55Z",
+    "signatureValue": "nmAyEh/6Zq5Ki0AYtTFDxGom67HOTuWDzToGuEorm0cOzsNv7OIUgGjkOtKOVJA91J7NaS1hCCSMrhM7HCurIQyE3wDa3NAzhDQORVbbRF6+NxpB70nlJaOaInAS4bmVsed0rBg2aYQfrai0QB4F8zhN8JIa6zu0EAtLMh0vkzDFOCeGbvahLkSJO+sZKEqAWsr3VfMmJ8TCd+JWUKyy2/Hd87czj58oMk8yKzKKHlL0z+rbP2LbpaZspHCT+kfkZy0IOjrdcvgENCwCsPA9Y5kJmH08NXkKG6D6CGIti2zhnkNMxBuZ5sPU6PcE535J/UjfrGN3ikGoxjO3bRqFI42TbhTxBRk/yMv0BVIPLzAbPAJdJ6VAwq5UAjI6G4ejjQ9LKRqjxlG96PNo+YVKFhKTmmSMWLmdWckC8PRL2nZvq4UtIf4cd+p1pQ+TnfjD8ZHadb10tHJEXrUIz9Q/pWmfLvTSodbdYRSurWFNYaJ3gCEjSoCoHxA7GeEoivSA0IuuDRKo0tFEv09/BA9m8m04kjQ8q/ZxAb2P4TICcPZrhGKoDkRTc1P5vSNeuw8GFV/5Dy7NWKarJUlzCA1OoHo/cKWhY3fVc/lANssTyxsMakp4ofN0zRoToQAx6hDLgESJcn04tUO4JvluYkGggBEhPfhLNSyc6yUWahjh9Gc="
+  }
+}

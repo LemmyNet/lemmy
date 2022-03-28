@@ -19,6 +19,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PageType {
   Page,
+  Article,
   Note,
 }
 

@@ -1,0 +1,80 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://pirati.ca/objects/ec054ce7-8062-3c1b-016c-910426317080/Create",
+  "type": "Create",
+  "actor": "https://pirati.ca/profile/heluecht",
+  "published": "2022-03-24T07:17:21Z",
+  "instrument": {
+    "type": "Service",
+    "name": "Friendica 'Siberian Iris' 2022.05-dev-1452",
+    "url": "https://pirati.ca"
+  },
+  "to": [
+    "https://ds9.lemmy.ml/c/testcom"
+  ],
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://ds9.lemmy.ml/c/testcom/followers"
+  ],
+  "object": {
+    "id": "https://pirati.ca/objects/ec054ce7-8062-3c1b-016c-910426317080",
+    "type": "Page",
+    "summary": "",
+    "inReplyTo": null,
+    "diaspora:guid": "ec054ce7-8062-3c1b-016c-910426317080",
+    "published": "2022-03-24T07:17:21Z",
+    "url": "https://www.nasaspaceflight.com/2022/03/us-eva-80/",
+    "attributedTo": "https://pirati.ca/profile/heluecht",
+    "sensitive": false,
+    "context": "https://pirati.ca/objects/ec054ce7-8062-3c1b-016c-910426317080#context",
+    "name": "ISS astronauts perform final spacewalk of Expedition 66",
+    "content": "Expedition 66 astronauts Raja Chari and Matthias Maurer ventured outside the International Space Station on Wednesday, performing a spacewalk to carry out repairs and upgrades on the space station.",
+    "contentMap": {
+      "de": "<bdi>!<a href=\"https://ds9.lemmy.ml/c/testcom\" class=\"userinfo mention\" title=\"testcom\">testcom</a></bdi> Expedition 66 astronauts Raja Chari and Matthias Maurer ventured outside the International Space Station on Wednesday, performing a spacewalk to carry out repairs and upgrades on the space station.<br><a href=\"https://www.nasaspaceflight.com/2022/03/us-eva-80/\" target=\"_blank\" rel=\"noopener noreferrer\">ISS astronauts perform final spacewalk of Expedition 66</a>"
+    },
+    "source": {
+      "content": "![url=https://ds9.lemmy.ml/c/testcom]testcom[/url] Expedition 66 astronauts Raja Chari and Matthias Maurer ventured outside the International Space Station on Wednesday, performing a spacewalk to carry out repairs and upgrades on the space station.\n[attachment type='link' url='https://www.nasaspaceflight.com/2022/03/us-eva-80/' title='ISS astronauts perform final spacewalk of Expedition 66' publisher_name='NASASpaceFlight.com' publisher_url='https://www.nasaspaceflight.com/' publisher_img='https://www.nasaspaceflight.com/wp-content/uploads/2017/12/logo.svg' author_name='Justin Davenport' author_url='https://www.nasaspaceflight.com/author/justin/' author_img='https://secure.gravatar.com/avatar/5dc0dc04b38dbb016bf6f15552555883?s=96&amp;d=mm&amp;r=g' image='https://www.nasaspaceflight.com/wp-content/uploads/2022/03/51941297402_fa7a00c1ee_o-scaled.jpg']Expedition 66 astronauts Raja Chari and Matthias Maurer ventured outside the International Space Station on…[/attachment]",
+      "mediaType": "text/bbcode"
+    },
+    "attachment": [],
+    "tag": [
+      {
+        "type": "Mention",
+        "href": "https://ds9.lemmy.ml/c/testcom",
+        "name": "@testcom@ds9.lemmy.ml"
+      }
+    ],
+    "to": [
+      "https://ds9.lemmy.ml/c/testcom"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://ds9.lemmy.ml/c/testcom/followers"
+    ]
+  },
+  "signature": {
+    "type": "RsaSignature2017",
+    "nonce": "e68dbf66bac13fd0811863c32bbc59ab56dc0ced4a7f0df06a49b015dd142e29",
+    "creator": "https://pirati.ca/profile/heluecht#main-key",
+    "created": "2022-03-24T07:18:24Z",
+    "signatureValue": "T+TZbRA0DhaCG3bRRPXQmxE2bsdIk8j/cueqsXTKCOSbrWvels2B9cg3twAYIfEmtyZ/f6iKz67MnMzAc4wDS5Gm5lJ/bVoweG3+OVtgfpzYUwR85az6qEX7NS0yLNdciqpZnh5J46F8lk+SKuLGEvlGuHVAd5yYXJoSJc0slM3rVvPv1s8toLHsJzM9H9aITLfZdEo99DmGgcAcSm1lrpFlXXMc+nWGAABpvK4eTrhj1auWOs6qb4q9GUyjfg2OdYrEq+vj4tir8uP/2azJHUea2JwIYbu0Cqt13OAPWC4Znz9MZdI6NQcQvipwFRq1tvfjsonzWIkBotDK9seBxTyj1kJfDd9hcPFXQdaNI549U4JJMxenKH5Yj5tj5Df0lg2hiFOCZ5fka5qmVpqDdPni4fnkCICzKpdJwUpwDaJlwbK8tnMlS5stQv+5+fX3O7sTy2z5PiFFYR/DdHHrMAz4eEoYe9AfrUGB5XzSyHRq0YThDMW4expIGm9KZxhfYgnKPVSqmmZLDKMYD69zwV7IMGfj+W9KqbnhrW+v1JQmWSziYmz4g+ESmo+F72kaVqu1UxIi0qToOA/QDp/HOZSM+YJUCQoCL41faO5+7MNrISL8TIjAa8Y5lXrx5oAKEXEx0biqBaxinOdzuqDl8dvyVtPa/DMez8enTbcGzdQ="
+  }
+}
