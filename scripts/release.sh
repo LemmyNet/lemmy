@@ -1,6 +1,8 @@
 #!/bin/sh
 #git checkout main
 
+pushd ../docker/prod/
+
 # Creating the new tag
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
