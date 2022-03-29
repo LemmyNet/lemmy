@@ -493,6 +493,7 @@ impl ChatServer {
         let user_operation = UserOperation::from_str(op)?;
         let passed = match user_operation {
           UserOperation::GetCaptcha => rate_limiter.post().check(ip),
+          UserOperation::Search => rate_limiter.search().check(ip),
           _ => true,
         };
         let fut = (message_handler)(context, msg.id, user_operation, data);

@@ -57,6 +57,10 @@ impl RateLimit {
     self.kind(RateLimitType::Comment)
   }
 
+  pub fn search(&self) -> RateLimited {
+    self.kind(RateLimitType::Search)
+  }
+
   fn kind(&self, type_: RateLimitType) -> RateLimited {
     RateLimited {
       rate_limiter: self.rate_limiter.clone(),
@@ -79,6 +83,7 @@ impl RateLimited {
       RateLimitType::Register => (rate_limit.register, rate_limit.register_per_second),
       RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
+      RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
     };
     let mut limiter = self.rate_limiter.lock();
 

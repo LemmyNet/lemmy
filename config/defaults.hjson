@@ -36,6 +36,9 @@
     comment: 6
     # Interval length for comment limit, in seconds
     comment_per_second: 600
+    search: 6
+    # Interval length for search limit, in seconds
+    search_per_second: 600
   }
   # Settings related to activitypub federation
   federation: {
