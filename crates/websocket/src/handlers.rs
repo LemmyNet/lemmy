@@ -71,7 +71,7 @@ fn root_span() -> tracing::Span {
     trace_id = tracing::field::Empty,
   );
   {
-    let trace_id = span.context().span().span_context().trace_id().to_hex();
+    let trace_id = span.context().span().span_context().trace_id().to_string();
     span.record("trace_id", &tracing::field::display(trace_id));
   }
 
