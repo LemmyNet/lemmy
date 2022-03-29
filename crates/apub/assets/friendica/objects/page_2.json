@@ -1,0 +1,55 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://pirati.ca/objects/ec054ce7-5162-3bf2-504c-16d024994850",
+  "type": "Article",
+  "summary": "",
+  "inReplyTo": null,
+  "diaspora:guid": "ec054ce7-5162-3bf2-504c-16d024994850",
+  "published": "2022-03-24T04:23:44Z",
+  "url": "https://pirati.ca/display/ec054ce7-5162-3bf2-504c-16d024994850",
+  "attributedTo": "https://pirati.ca/profile/heluecht",
+  "sensitive": false,
+  "context": "https://pirati.ca/objects/ec054ce7-5162-3bf2-504c-16d024994850#context",
+  "name": "From Friendica to Lemmy",
+  "content": "Hello Lemmy!",
+  "contentMap": {
+    "de": "<bdi>!<a href=\"https://ds9.lemmy.ml/c/testcom\" class=\"userinfo mention\" title=\"testcom\">testcom</a></bdi> Hello Lemmy!"
+  },
+  "source": {
+    "content": "![url=https://ds9.lemmy.ml/c/testcom]testcom[/url] Hello Lemmy!",
+    "mediaType": "text/bbcode"
+  },
+  "attachment": [],
+  "tag": [
+    {
+      "type": "Mention",
+      "href": "https://ds9.lemmy.ml/c/testcom",
+      "name": "@testcom@ds9.lemmy.ml"
+    }
+  ],
+  "to": [
+    "https://ds9.lemmy.ml/c/testcom"
+  ],
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://ds9.lemmy.ml/c/testcom/followers"
+  ]
+}
