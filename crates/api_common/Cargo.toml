@@ -18,12 +18,12 @@ lemmy_db_views_moderator = { version = "=0.16.2", path = "../db_views_moderator"
 lemmy_db_views_actor = { version = "=0.16.2", path = "../db_views_actor" }
 lemmy_db_schema = { version = "=0.16.2", path = "../db_schema" }
 lemmy_utils = { version = "=0.16.2", path = "../utils" }
-serde = { version = "1.0.131", features = ["derive"] }
+serde = { version = "1.0.136", features = ["derive"] }
 diesel = "1.4.8"
-actix-web = { version = "4.0.0", default-features = false, features = ["cookies"] }
+actix-web = { version = "4.0.1", default-features = false, features = ["cookies"] }
 chrono = { version = "0.4.19", features = ["serde"] }
-serde_json = { version = "1.0.72", features = ["preserve_order"] }
-tracing = "0.1.29"
+serde_json = { version = "1.0.79", features = ["preserve_order"] }
+tracing = "0.1.32"
 url = "2.2.2"
 itertools = "0.10.3"
-rosetta-i18n = "0.1"
+rosetta-i18n = "0.1.2"
