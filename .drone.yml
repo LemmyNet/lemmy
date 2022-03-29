@@ -154,6 +154,8 @@ steps:
       - apt update
       - apt install --no-install-recommends --yes git
       - git fetch --tags
+      - git submodule init
+      - git submodule update --recursive --remote
 
   # TODO temporarily disable arm tests
   # - name: cargo test
