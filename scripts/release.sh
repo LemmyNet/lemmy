@@ -23,6 +23,8 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   echo $new_tag > "VERSION"
   git add "VERSION"
   git commit -m"Updating VERSION"
+  git tag $new_tag
+  git push origin $new_tag
   git push
   popd
 fi
