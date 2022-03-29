@@ -28,7 +28,7 @@ services:
       - otel
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.16.1
+    image: dessalines/lemmy-ui:0.16.2
     restart: always
     environment:
       - LEMMY_INTERNAL_HOST=lemmy:8536
