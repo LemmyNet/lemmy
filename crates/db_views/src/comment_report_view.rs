@@ -120,11 +120,7 @@ impl CommentReportView {
       ))
       .first::<CommentReportViewTuple>(conn)?;
 
-    let my_vote = if comment_like.is_none() {
-      None
-    } else {
-      comment_like
-    };
+    let my_vote = comment_like;
 
     Ok(Self {
       comment_report,

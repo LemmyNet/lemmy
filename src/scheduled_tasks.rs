@@ -98,7 +98,7 @@ fn active_counts(conn: &PgConnection) {
 fn update_banned_when_expired(conn: &PgConnection) {
   info!("Updating banned column if it expires ...");
   let update_ban_expires_stmt =
-    format!("update person set banned = false where banned = true and ban_expires < now()");
+    "update person set banned = false where banned = true and ban_expires < now()";
   sql_query(update_ban_expires_stmt)
     .execute(conn)
     .expect("update banned when expires");

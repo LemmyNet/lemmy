@@ -50,7 +50,7 @@ impl Deref for ApubPost {
 
 impl From<Post> for ApubPost {
   fn from(p: Post) -> Self {
-    ApubPost { 0: p }
+    ApubPost(p)
   }
 }
 

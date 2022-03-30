@@ -138,8 +138,7 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
     .opengraph
     .images
     .get(0)
-    .map(|ogo| Url::parse(&ogo.url).ok())
-    .flatten();
+    .and_then(|ogo| Url::parse(&ogo.url).ok());
 
   let title = og_title.or(page_title);
   let description = og_description.or(page_description);

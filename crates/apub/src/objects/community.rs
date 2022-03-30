@@ -41,7 +41,7 @@ impl Deref for ApubCommunity {
 
 impl From<Community> for ApubCommunity {
   fn from(c: Community) -> Self {
-    ApubCommunity { 0: c }
+    ApubCommunity(c)
   }
 }
 

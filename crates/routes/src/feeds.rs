@@ -373,7 +373,7 @@ fn build_item(
   i.guid(guid);
   i.link(url.to_owned());
   // TODO add images
-  let html = markdown_to_html(&content.to_string());
+  let html = markdown_to_html(content);
   i.description(html);
   Ok(i.build())
 }

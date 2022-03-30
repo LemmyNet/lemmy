@@ -116,7 +116,7 @@ impl ApubObject for ApubCommunityOutbox {
     }
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityOutbox { 0: vec![] })
+    Ok(ApubCommunityOutbox(Vec::new()))
   }
 
   type DbType = ();
