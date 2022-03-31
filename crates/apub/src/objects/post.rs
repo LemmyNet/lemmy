@@ -112,7 +112,6 @@ impl ApubObject for ApubPost {
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
-      url: self.url.clone().map(Into::into),
       attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
@@ -179,8 +178,7 @@ impl ApubObject for ApubPost {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())
       } else {
-        // url sent by lemmy (old)
-        page.url
+        None
       };
       let (metadata_res, thumbnail_url) = if let Some(url) = &url {
         fetch_site_data(context.client(), context.settings(), Some(url)).await
@@ -231,7 +229,6 @@ impl ApubObject for ApubPost {
         .updated(page.updated.map(|u| u.naive_local()))
         .build()
     };
-
     // read existing, local post if any (for generating mod log)
     let old_post = ObjectId::<ApubPost>::new(page.id.clone())
       .dereference_local(context)
