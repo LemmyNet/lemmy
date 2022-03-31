@@ -4,11 +4,11 @@ use crate::{
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
-      page::{Page, PageType},
+      page::{Attachment, Page, PageType},
       tombstone::Tombstone,
     },
     ImageObject,
-    SourceCompat,
+    Source,
   },
 };
 use activitystreams_kinds::public;
@@ -110,8 +110,9 @@ impl ApubObject for ApubPost {
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeHtml::Html),
-      source: self.body.clone().map(SourceCompat::new),
+      source: self.body.clone().map(Source::new),
       url: self.url.clone().map(|u| u.into()),
+      attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
@@ -160,8 +161,13 @@ impl ApubObject for ApubPost {
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
+    let url = if let Some(attachment) = page.attachment.first() {
+      Some(attachment.href.clone())
+    } else {
+      page.url
+    };
     let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
-    let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
+    let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
       fetch_site_data(context.client(), &context.settings(), Some(url)).await
     } else {
       (None, thumbnail_url)
@@ -173,8 +179,8 @@ impl ApubObject for ApubPost {
     let body_slurs_removed = read_from_string_or_source_opt(&page.content, &page.source)
       .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
     let form = PostForm {
-      name: page.name,
-      url: page.url.map(|u| u.into()),
+      name: page.name.clone(),
+      url: url.map(Into::into),
       body: body_slurs_removed,
       creator_id: creator.id,
       community_id: community.id,

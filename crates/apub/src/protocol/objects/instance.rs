@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::ApubSite,
-  protocol::{ImageObject, SourceCompat},
+  protocol::{ImageObject, Source},
 };
 use activitystreams_kinds::actor::ServiceType;
 use chrono::{DateTime, FixedOffset};
@@ -25,7 +25,9 @@ pub struct Instance {
 
   // sidebar
   pub(crate) content: Option<String>,
-  pub(crate) source: Option<SourceCompat>,
+  #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  pub(crate) source: Option<Source>,
   // short instance description
   pub(crate) summary: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,

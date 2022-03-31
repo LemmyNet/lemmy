@@ -1,11 +1,9 @@
 use activitystreams_kinds::object::ImageType;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
 use lemmy_apub_lib::values::MediaTypeMarkdown;
 use lemmy_db_schema::newtypes::DbUrl;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use url::Url;
 
 pub mod activities;
 pub(crate) mod collections;
@@ -18,20 +16,12 @@ pub struct Source {
   pub(crate) media_type: MediaTypeMarkdown,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
-pub(crate) enum SourceCompat {
-  Lemmy(Source),
-  Other(Value),
-}
-
-impl SourceCompat {
+impl Source {
   pub(crate) fn new(content: String) -> Self {
-    SourceCompat::Lemmy(Source {
+    Source {
       content,
       media_type: MediaTypeMarkdown::Markdown,
-    })
+    }
   }
 }
 

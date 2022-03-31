@@ -9,7 +9,7 @@ use crate::{
     read_from_string_or_source_opt,
     verify_image_domain_matches,
   },
-  protocol::{objects::Endpoints, ImageObject, SourceCompat},
+  protocol::{objects::Endpoints, ImageObject, Source},
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
@@ -40,7 +40,9 @@ pub struct Group {
   /// title
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  pub(crate) source: Option<SourceCompat>,
+  #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  pub(crate) source: Option<Source>,
   pub(crate) icon: Option<ImageObject>,
   /// banner
   pub(crate) image: Option<ImageObject>,
