@@ -18,6 +18,7 @@ impl Claims {
   pub fn decode(jwt: &str, jwt_secret: &str) -> Result<TokenData<Claims>, LemmyError> {
     let mut validation = Validation::default();
     validation.validate_exp = false;
+    validation.required_spec_claims.remove("exp");
     let key = DecodingKey::from_secret(jwt_secret.as_ref());
     Ok(decode::<Claims>(jwt, &key, &validation)?)
   }
