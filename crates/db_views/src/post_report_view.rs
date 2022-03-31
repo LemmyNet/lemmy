@@ -111,7 +111,7 @@ impl PostReportView {
       ))
       .first::<PostReportViewTuple>(conn)?;
 
-    let my_vote = if post_like.is_none() { None } else { post_like };
+    let my_vote = post_like;
 
     Ok(Self {
       post_report,

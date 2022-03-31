@@ -40,7 +40,7 @@ impl Deref for ApubPrivateMessage {
 
 impl From<PrivateMessage> for ApubPrivateMessage {
   fn from(pm: PrivateMessage) -> Self {
-    ApubPrivateMessage { 0: pm }
+    ApubPrivateMessage(pm)
   }
 }
 

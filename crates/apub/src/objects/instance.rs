@@ -37,7 +37,7 @@ impl Deref for ApubSite {
 
 impl From<Site> for ApubSite {
   fn from(s: Site) -> Self {
-    ApubSite { 0: s }
+    ApubSite(s)
   }
 }
 

@@ -47,7 +47,7 @@ impl Deref for ApubPerson {
 
 impl From<DbPerson> for ApubPerson {
   fn from(p: DbPerson) -> Self {
-    ApubPerson { 0: p }
+    ApubPerson(p)
   }
 }
 

@@ -39,8 +39,7 @@ async fn get_webfinger_response(
     .settings()
     .webfinger_regex()
     .captures(&info.resource)
-    .map(|c| c.get(1))
-    .flatten()
+    .and_then(|c| c.get(1))
     .context(location_info!())?
     .as_str()
     .to_string();

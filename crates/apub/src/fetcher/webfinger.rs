@@ -73,8 +73,7 @@ where
         false
       }
     })
-    .map(|l| l.href.clone())
-    .flatten()
+    .filter_map(|l| l.href.clone())
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)

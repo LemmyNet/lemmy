@@ -47,7 +47,7 @@ impl Deref for ApubComment {
 
 impl From<Comment> for ApubComment {
   fn from(c: Comment) -> Self {
-    ApubComment { 0: c }
+    ApubComment(c)
   }
 }
 

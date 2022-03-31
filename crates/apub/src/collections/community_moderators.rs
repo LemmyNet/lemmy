@@ -41,7 +41,7 @@ impl ApubObject for ApubCommunityModerators {
         CommunityModeratorView::for_community(conn, cid)
       })
       .await??;
-      Ok(Some(ApubCommunityModerators { 0: moderators }))
+      Ok(Some(ApubCommunityModerators(moderators)))
     } else {
       Ok(None)
     }
@@ -131,7 +131,7 @@ impl ApubObject for ApubCommunityModerators {
     }
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityModerators { 0: vec![] })
+    Ok(ApubCommunityModerators(Vec::new()))
   }
 
   type DbType = ();
