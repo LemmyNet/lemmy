@@ -5,7 +5,7 @@ use crate::{
   objects::read_from_string_or_source,
   protocol::{
     objects::{note::Note, tombstone::Tombstone},
-    SourceCompat,
+    Source,
   },
   PostOrComment,
 };
@@ -118,7 +118,7 @@ impl ApubObject for ApubComment {
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
-      source: Some(SourceCompat::new(self.content.clone())),
+      source: Some(Source::new(self.content.clone())),
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),

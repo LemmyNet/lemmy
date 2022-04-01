@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "activitystreams-kinds"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a762e3441050b51cd0695c1413735cd04195950f50dba8f5da5d7201628fcfc"
+checksum = "6d014a4fb8828870b7b46bee6257b9a89d06188ae8d435381ba94f14c8c697d8"
 dependencies = [
  "serde",
  "url",

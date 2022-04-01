@@ -2,7 +2,7 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   mentions::Mention,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::SourceCompat,
+  protocol::Source,
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
@@ -32,7 +32,9 @@ pub struct Note {
   pub(crate) in_reply_to: ObjectId<PostOrComment>,
 
   pub(crate) media_type: Option<MediaTypeHtml>,
-  pub(crate) source: Option<SourceCompat>,
+  #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]

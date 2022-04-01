@@ -2,7 +2,7 @@ use crate::{
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
-    SourceCompat,
+    Source,
   },
 };
 use chrono::NaiveDateTime;
@@ -90,7 +90,7 @@ impl ApubObject for ApubPrivateMessage {
       to: [ObjectId::new(recipient.actor_id)],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
-      source: Some(SourceCompat::new(self.content.clone())),
+      source: Some(Source::new(self.content.clone())),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
     };

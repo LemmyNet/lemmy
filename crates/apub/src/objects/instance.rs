@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   objects::{read_from_string_or_source_opt, verify_image_domain_matches},
-  protocol::{objects::instance::Instance, ImageObject, SourceCompat},
+  protocol::{objects::instance::Instance, ImageObject, Source},
 };
 use activitystreams_kinds::actor::ServiceType;
 use chrono::NaiveDateTime;
@@ -77,7 +77,7 @@ impl ApubObject for ApubSite {
       id: ObjectId::new(self.actor_id()),
       name: self.name.clone(),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
-      source: self.sidebar.clone().map(SourceCompat::new),
+      source: self.sidebar.clone().map(Source::new),
       summary: self.description.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),

@@ -19,6 +19,12 @@
       "mediaType": "text/markdown"
     },
     "url": "https://lemmy.ml/pictrs/image/xl8W7FZfk9.jpg",
+    "attachment": [
+      {
+        "type": "Link",
+        "href": "https://lemmy.ml/pictrs/image/xl8W7FZfk9.jpg"
+      }
+    ],
     "commentsEnabled": true,
     "sensitive": false,
     "stickied": false,

@@ -21,7 +21,7 @@ lemmy_db_views_actor = { version = "=0.16.2", path = "../db_views_actor" }
 lemmy_api_common = { version = "=0.16.2", path = "../api_common" }
 lemmy_websocket = { version = "=0.16.2", path = "../websocket" }
 diesel = "1.4.8"
-activitystreams-kinds = "0.2.0"
+activitystreams-kinds = "0.2.1"
 bcrypt = "0.12.1"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.79", features = ["preserve_order"] }
