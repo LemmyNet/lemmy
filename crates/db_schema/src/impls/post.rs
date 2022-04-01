@@ -50,6 +50,8 @@ impl Post {
     use crate::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
+      .filter(deleted.eq(false))
+      .filter(removed.eq(false))
       .then_order_by(published.desc())
       .then_order_by(stickied.desc())
       .limit(20)
