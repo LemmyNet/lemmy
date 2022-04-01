@@ -130,6 +130,18 @@ where
   })
 }
 
+pub(crate) fn deserialize_skip_error<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+  T: Deserialize<'de> + Default,
+  D: Deserializer<'de>,
+{
+  let result = Deserialize::deserialize(deserializer);
+  Ok(match result {
+    Ok(o) => o,
+    Err(_) => Default::default(),
+  })
+}
+
 pub enum EndpointType {
   Community,
   Person,

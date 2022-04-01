@@ -1,7 +1,8 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{ImageObject, SourceCompat},
+  protocol::{ImageObject, Source},
 };
+use activitystreams_kinds::link::LinkType;
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use lemmy_apub_lib::{
@@ -10,6 +11,7 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ApubObject},
   values::MediaTypeHtml,
 };
+use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -39,14 +41,28 @@ pub struct Page {
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeHtml>,
-  pub(crate) source: Option<SourceCompat>,
+  #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  pub(crate) source: Option<Source>,
+  /// deprecated, use attachment field
   pub(crate) url: Option<Url>,
+  /// most software uses array type for attachment field, so we do the same. nevertheless, we only
+  /// use the first item
+  #[serde(default)]
+  pub(crate) attachment: Vec<Attachment>,
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
   pub(crate) stickied: Option<bool>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Attachment {
+  pub(crate) href: Url,
+  pub(crate) r#type: LinkType,
 }
 
 impl Page {
@@ -85,6 +101,15 @@ impl Page {
       } else {
         return Err(LemmyError::from_message("No community found in cc"));
       }
+    }
+  }
+}
+
+impl Attachment {
+  pub(crate) fn new(url: DbUrl) -> Attachment {
+    Attachment {
+      href: url.into(),
+      r#type: Default::default(),
     }
   }
 }

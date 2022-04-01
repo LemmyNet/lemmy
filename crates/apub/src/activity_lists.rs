@@ -70,7 +70,7 @@ pub enum PersonInboxActivities {
 #[activity_handler(LemmyContext)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(CreateOrUpdatePost),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   Vote(Vote),
   UndoVote(UndoVote),
   Delete(Delete),

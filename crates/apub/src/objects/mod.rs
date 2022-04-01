@@ -1,4 +1,4 @@
-use crate::protocol::{ImageObject, SourceCompat};
+use crate::protocol::{ImageObject, Source};
 use html2md::parse_html;
 use lemmy_apub_lib::verify::verify_domains_match;
 use lemmy_utils::LemmyError;
@@ -11,8 +11,8 @@ pub mod person;
 pub mod post;
 pub mod private_message;
 
-pub(crate) fn read_from_string_or_source(raw: &str, source: &Option<SourceCompat>) -> String {
-  if let Some(SourceCompat::Lemmy(s)) = source {
+pub(crate) fn read_from_string_or_source(raw: &str, source: &Option<Source>) -> String {
+  if let Some(s) = source {
     s.content.clone()
   } else {
     parse_html(raw)
@@ -21,9 +21,9 @@ pub(crate) fn read_from_string_or_source(raw: &str, source: &Option<SourceCompat
 
 pub(crate) fn read_from_string_or_source_opt(
   raw: &Option<String>,
-  source: &Option<SourceCompat>,
+  source: &Option<Source>,
 ) -> Option<String> {
-  if let Some(SourceCompat::Lemmy(s2)) = source {
+  if let Some(s2) = source {
     Some(s2.content.clone())
   } else {
     raw.as_ref().map(|s| parse_html(s))
