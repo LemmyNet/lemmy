@@ -133,7 +133,14 @@ impl ActivityHandler for BlockUser {
       }
       SiteOrCommunity::Community(community) => {
         verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-        verify_mod_action(&self.actor, &community, context, request_counter).await?;
+        verify_mod_action(
+          &self.actor,
+          self.object.inner(),
+          &community,
+          context,
+          request_counter,
+        )
+        .await?;
       }
     }
     Ok(())
