@@ -61,11 +61,15 @@ impl PerformCrud for CreateCommunity {
       ));
     }
 
+    // Check to make sure the icon and banners are urls
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
+
     check_slurs(&data.name, &context.settings().slur_regex())?;
     check_slurs(&data.title, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(&data.icon)?;
-    check_image_has_local_domain(&data.banner)?;
+    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
+    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
 
     if !is_valid_actor_name(&data.name, context.settings().actor_name_max_length) {
       return Err(LemmyError::from_message("invalid_community_name"));
@@ -82,10 +86,6 @@ impl PerformCrud for CreateCommunity {
     if community_dupe.is_ok() {
       return Err(LemmyError::from_message("community_already_exists"));
     }
-
-    // Check to make sure the icon and banners are urls
-    let icon = diesel_option_overwrite_to_url(&data.icon)?;
-    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;

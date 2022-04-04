@@ -7,7 +7,7 @@ pub mod websocket;
 
 use crate::site::FederatedInstances;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   source::{
     comment::Comment,
     community::Community,
@@ -41,7 +41,6 @@ use lemmy_utils::{
 };
 use rosetta_i18n::{Language, LanguageId};
 use tracing::warn;
-use url::Url;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where
@@ -580,10 +579,9 @@ pub async fn remove_user_data_in_community(
   Ok(())
 }
 
-pub fn check_image_has_local_domain(url: &Option<String>) -> Result<(), LemmyError> {
+pub fn check_image_has_local_domain(url: &Option<DbUrl>) -> Result<(), LemmyError> {
   if let Some(url) = url {
     let settings = Settings::get();
-    let url = Url::parse(url)?;
     let domain = url.domain().expect("url has domain");
     if domain != settings.hostname {
       return Err(LemmyError::from_message("image_not_local"));
