@@ -225,9 +225,10 @@ test('Delete a post', async () => {
 });
 
 test('Remove a post from admin and community on different instance', async () => {
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  let postRes = await createPost(gamma, betaCommunity.community.id);
 
-  let removedPost = await removePost(alpha, true, postRes.post_view.post);
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let removedPost = await removePost(alpha, true, alphaPost.post);
   expect(removedPost.post_view.post.removed).toBe(true);
   expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
@@ -236,7 +237,7 @@ test('Remove a post from admin and community on different instance', async () =>
   expect(betaPost.post.removed).toBe(false);
 
   // Undelete
-  let undeletedPost = await removePost(alpha, false, postRes.post_view.post);
+  let undeletedPost = await removePost(alpha, false, alphaPost.post);
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
