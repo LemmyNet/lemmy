@@ -74,7 +74,14 @@ impl ActivityHandler for AddMod {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    verify_mod_action(
+      &self.actor,
+      self.object.inner(),
+      &community,
+      context,
+      request_counter,
+    )
+    .await?;
     verify_add_remove_moderator_target(&self.target, &community)?;
     Ok(())
   }
