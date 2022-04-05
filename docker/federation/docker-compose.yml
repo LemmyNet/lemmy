@@ -22,7 +22,7 @@ services:
 
   pictrs:
     restart: always
-    image: asonix/pictrs:0.3.0-rc.7
+    image: asonix/pictrs:0.3.1
     user: 991:991
     volumes:
       - ./volumes/pictrs_alpha:/mnt
