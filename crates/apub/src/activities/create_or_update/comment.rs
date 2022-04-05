@@ -21,8 +21,12 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
+  source::{
+    comment::{CommentLike, CommentLikeForm},
+    community::Community,
+    post::Post,
+  },
+  traits::{Crud, Likeable},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
@@ -113,6 +117,19 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
+
+    // author likes their own comment by default
+    let like_form = CommentLikeForm {
+      comment_id: comment.id,
+      post_id: comment.post_id,
+      person_id: comment.creator_id,
+      score: 1,
+    };
+    blocking(context.pool(), move |conn: &'_ _| {
+      CommentLike::like(conn, &like_form)
+    })
+    .await??;
+
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let recipients = get_comment_notif_recipients(
       &self.actor,

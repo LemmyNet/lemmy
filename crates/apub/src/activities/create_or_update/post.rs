@@ -20,7 +20,13 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ActorType, ApubObject},
   verify::{verify_domains_match, verify_urls_match},
 };
-use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    post::{PostLike, PostLikeForm},
+  },
+  traits::{Crud, Likeable},
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
@@ -128,6 +134,17 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let post = ApubPost::from_apub(self.object, context, request_counter).await?;
+
+    // author likes their own post by default
+    let like_form = PostLikeForm {
+      post_id: post.id,
+      person_id: post.creator_id,
+      score: 1,
+    };
+    blocking(context.pool(), move |conn: &'_ _| {
+      PostLike::like(conn, &like_form)
+    })
+    .await??;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,
