@@ -48,18 +48,18 @@ impl PerformCrud for CreateSite {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs(&data.name, &context.settings().slur_regex())?;
-    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(&data.icon)?;
-    check_image_has_local_domain(&data.banner)?;
-
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
-
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
+
+    check_slurs(&data.name, &context.settings().slur_regex())?;
+    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
+    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
+    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
+
+    // Make sure user is an admin
+    is_admin(&local_user_view)?;
 
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;

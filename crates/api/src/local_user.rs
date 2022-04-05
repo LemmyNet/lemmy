@@ -176,9 +176,6 @@ impl Perform for SaveUserSettings {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_image_has_local_domain(&data.avatar)?;
-    check_image_has_local_domain(&data.banner)?;
-
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
     let bio = diesel_option_overwrite(&data.bio);
@@ -187,6 +184,9 @@ impl Perform for SaveUserSettings {
     let bot_account = data.bot_account;
     let email_deref = data.email.as_deref().map(|e| e.to_owned());
     let email = diesel_option_overwrite(&email_deref);
+
+    check_image_has_local_domain(avatar.as_ref().unwrap_or(&None))?;
+    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
 
     if let Some(Some(email)) = &email {
       let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();

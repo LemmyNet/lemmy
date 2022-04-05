@@ -36,10 +36,13 @@ impl PerformCrud for EditCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
+
     check_slurs_opt(&data.title, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(&data.icon)?;
-    check_image_has_local_domain(&data.banner)?;
+    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
+    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
@@ -57,9 +60,6 @@ impl PerformCrud for EditCommunity {
       Community::read(conn, community_id)
     })
     .await??;
-
-    let icon = diesel_option_overwrite_to_url(&data.icon)?;
-    let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
     let community_form = CommunityForm {
       name: read_community.name,

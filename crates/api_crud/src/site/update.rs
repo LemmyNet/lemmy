@@ -37,11 +37,6 @@ impl PerformCrud for EditSite {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs_opt(&data.name, &context.settings().slur_regex())?;
-    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(&data.icon)?;
-    check_image_has_local_domain(&data.banner)?;
-
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
@@ -53,8 +48,20 @@ impl PerformCrud for EditSite {
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
+    check_slurs_opt(&data.name, &context.settings().slur_regex())?;
+    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
+    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
+    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
+
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;
+    }
+
+    // Make sure if applications are required, that there is an application questionnaire
+    if data.require_application.unwrap_or(false)
+      && application_question.as_ref().unwrap_or(&None).is_none()
+    {
+      return Err(LemmyError::from_message("application_question_required"));
     }
 
     let site_form = SiteForm {
