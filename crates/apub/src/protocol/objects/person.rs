@@ -12,6 +12,7 @@ use url::Url;
 pub enum UserTypes {
   Person,
   Service,
+  Organization,
 }
 
 #[skip_serializing_none]

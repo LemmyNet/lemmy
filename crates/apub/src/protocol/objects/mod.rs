@@ -71,7 +71,8 @@ mod tests {
 
   #[test]
   fn test_parse_object_friendica() {
-    test_json::<Person>("assets/friendica/objects/person.json").unwrap();
+    test_json::<Person>("assets/friendica/objects/person_1.json").unwrap();
+    test_json::<Person>("assets/friendica/objects/person_2.json").unwrap();
     test_json::<Page>("assets/friendica/objects/page_1.json").unwrap();
     test_json::<Page>("assets/friendica/objects/page_2.json").unwrap();
     test_json::<Note>("assets/friendica/objects/note.json").unwrap();
