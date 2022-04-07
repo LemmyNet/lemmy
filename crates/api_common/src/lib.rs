@@ -13,6 +13,7 @@ use lemmy_db_schema::{
     community::Community,
     email_verification::{EmailVerification, EmailVerificationForm},
     password_reset_request::PasswordResetRequest,
+    person::Person,
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
     registration_application::RegistrationApplication,
@@ -34,7 +35,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{
   claims::Claims,
   email::{send_email, translations::Lang},
-  settings::structs::{FederationConfig, Settings},
+  settings::structs::Settings,
   utils::generate_random_string,
   LemmyError,
   Sensitive,
@@ -295,9 +296,10 @@ pub async fn check_private_instance(
 #[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   pool: &DbPool,
-  federation_config: &FederationConfig,
-  hostname: &str,
+  settings: &Settings,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
+  let federation_config = &settings.federation;
+  let hostname = &settings.hostname;
   let federation = federation_config.to_owned();
   if federation.enabled {
     let distinct_communities = blocking(pool, move |conn| {
@@ -575,6 +577,24 @@ pub async fn remove_user_data_in_community(
     })
     .await??;
   }
+
+  Ok(())
+}
+
+pub async fn delete_user_account(person_id: PersonId, pool: &DbPool) -> Result<(), LemmyError> {
+  // Comments
+  let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
+  blocking(pool, permadelete)
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+
+  // Posts
+  let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
+  blocking(pool, permadelete)
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
+
+  blocking(pool, move |conn| Person::delete_account(conn, person_id)).await??;
 
   Ok(())
 }
