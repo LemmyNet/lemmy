@@ -67,11 +67,13 @@ impl ActivityHandler for Delete {
         Some(reason)
       };
       receive_remove_action(
-        &self.actor,
+        &self
+          .actor
+          .dereference(context, context.client(), request_counter)
+          .await?,
         self.object.id(),
         reason,
         context,
-        request_counter,
       )
       .await
     } else {
@@ -119,15 +121,11 @@ impl Delete {
 
 #[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn receive_remove_action(
-  actor: &ObjectId<ApubPerson>,
+  actor: &ApubPerson,
   object: &Url,
   reason: Option<String>,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = actor
-    .dereference(context, context.client(), request_counter)
-    .await?;
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
