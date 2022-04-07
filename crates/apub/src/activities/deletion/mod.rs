@@ -49,6 +49,7 @@ use std::ops::Deref;
 use url::Url;
 
 pub mod delete;
+pub mod delete_user;
 pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this

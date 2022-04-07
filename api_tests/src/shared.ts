@@ -58,6 +58,7 @@ import {
   CommentReportResponse,
   ListCommentReports,
   ListCommentReportsResponse,
+  DeleteAccount,
 } from 'lemmy-js-client';
 
 export interface API {
@@ -547,6 +548,16 @@ export async function saveUserSettings(
   form: SaveUserSettings
 ): Promise<LoginResponse> {
   return api.client.saveUserSettings(form);
+}
+
+export async function deleteUser(
+  api: API,
+): Promise<LoginResponse> {
+  let form: DeleteAccount = {
+    auth: api.auth,
+    password
+  };
+  return api.client.deleteAccount(form);
 }
 
 export async function getSite(

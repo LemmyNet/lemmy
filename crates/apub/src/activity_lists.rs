@@ -16,7 +16,7 @@ use crate::{
         post::CreateOrUpdatePost,
         private_message::CreateOrUpdatePrivateMessage,
       },
-      deletion::{delete::Delete, undo_delete::UndoDelete},
+      deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
       following::{
         accept::AcceptFollowCommunity,
         follow::FollowCommunity,
@@ -87,9 +87,11 @@ pub enum AnnouncableActivities {
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
+#[allow(clippy::enum_variant_names)]
 pub enum SiteInboxActivities {
   BlockUser(BlockUser),
   UndoBlockUser(UndoBlockUser),
+  DeleteUser(DeleteUser),
 }
 
 #[async_trait::async_trait(?Send)]
