@@ -161,6 +161,8 @@ impl ApubObject for ApubPost {
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
+    // TODO: write mod log if stickied or locked changed
+
     let url = if let Some(attachment) = page.attachment.first() {
       Some(attachment.href.clone())
     } else {

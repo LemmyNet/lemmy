@@ -31,7 +31,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
-    moderator::{ModBan, ModBanForm},
+    moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
   traits::{Bannable, Crud, Followable},
@@ -213,14 +213,18 @@ impl ActivityHandler for BlockUser {
         }
 
         // write to mod log
-        let form = ModBanForm {
+        let form = ModBanFromCommunityForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
+          community_id: community.id,
           reason: self.summary,
           banned: Some(true),
           expires,
         };
-        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+        blocking(context.pool(), move |conn| {
+          ModBanFromCommunity::create(conn, &form)
+        })
+        .await??;
       }
     }
 

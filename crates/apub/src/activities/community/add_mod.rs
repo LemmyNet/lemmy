@@ -25,8 +25,11 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
-  source::community::{CommunityModerator, CommunityModeratorForm},
-  traits::Joinable,
+  source::{
+    community::{CommunityModerator, CommunityModeratorForm},
+    moderator::{ModAddCommunity, ModAddCommunityForm},
+  },
+  traits::{Crud, Joinable},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -112,6 +115,22 @@ impl ActivityHandler for AddMod {
       };
       blocking(context.pool(), move |conn| {
         CommunityModerator::join(conn, &form)
+      })
+      .await??;
+
+      // write mod log
+      let actor = self
+        .actor
+        .dereference(context, context.client(), request_counter)
+        .await?;
+      let form = ModAddCommunityForm {
+        mod_person_id: actor.id,
+        other_person_id: new_mod.id,
+        community_id: community.id,
+        removed: Some(false),
+      };
+      blocking(context.pool(), move |conn| {
+        ModAddCommunity::create(conn, &form)
       })
       .await??;
     }
