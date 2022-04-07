@@ -10,14 +10,9 @@ use lemmy_api_common::{
   get_post,
 };
 use lemmy_apub::{
-  fetcher::post_or_comment::PostOrComment,
   generate_local_apub_endpoint,
   objects::comment::ApubComment,
-  protocol::activities::{
-    create_or_update::comment::CreateOrUpdateComment,
-    voting::vote::{Vote, VoteType},
-    CreateOrUpdateType,
-  },
+  protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -148,15 +143,6 @@ impl PerformCrud for CreateComment {
       CreateOrUpdateType::Create,
       context,
       &mut 0,
-    )
-    .await?;
-    let object = PostOrComment::Comment(Box::new(apub_comment));
-    Vote::send(
-      &object,
-      &local_user_view.person.clone().into(),
-      community_id,
-      VoteType::Like,
-      context,
     )
     .await?;
 
