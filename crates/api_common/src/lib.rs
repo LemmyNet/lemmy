@@ -485,8 +485,8 @@ pub async fn check_registration_application(
       RegistrationApplication::find_by_local_user_id(conn, local_user_id)
     })
     .await??;
-    if registration.deny_reason.is_some() {
-      return Err(LemmyError::from_message("registration_denied"));
+    if let Some(deny_reason) = registration.deny_reason {
+      return Err(LemmyError::from_message(&deny_reason));
     } else {
       return Err(LemmyError::from_message("registration_application_pending"));
     }
