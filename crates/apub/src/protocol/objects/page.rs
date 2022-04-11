@@ -75,12 +75,35 @@ impl Page {
       .dereference_local(context)
       .await;
 
-    let is_mod_action = if let Ok(old_post) = old_post {
-      self.stickied != Some(old_post.stickied) || self.comments_enabled != Some(!old_post.locked)
-    } else {
-      false
-    };
+    let is_mod_action = Page::is_stickied_changed(&old_post, &self.stickied)
+      || Page::is_locked_changed(&old_post, &self.comments_enabled);
     Ok(is_mod_action)
+  }
+
+  pub(crate) fn is_stickied_changed<E>(
+    old_post: &Result<ApubPost, E>,
+    new_stickied: &Option<bool>,
+  ) -> bool {
+    if let Some(new_stickied) = new_stickied {
+      if let Ok(old_post) = old_post {
+        return new_stickied != &old_post.stickied;
+      }
+    }
+
+    false
+  }
+
+  pub(crate) fn is_locked_changed<E>(
+    old_post: &Result<ApubPost, E>,
+    new_comments_enabled: &Option<bool>,
+  ) -> bool {
+    if let Some(new_comments_enabled) = new_comments_enabled {
+      if let Ok(old_post) = old_post {
+        return new_comments_enabled != &!old_post.locked;
+      }
+    }
+
+    false
   }
 
   pub(crate) async fn extract_community(
