@@ -53,7 +53,7 @@ fn user_updates_2020_04_02(
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_persons = person
-    .filter(actor_id.like("http://changeme_%"))
+    .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Person>(conn)?;
 
@@ -91,7 +91,7 @@ fn community_updates_2020_04_02(
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
-    .filter(actor_id.like("http://changeme_%"))
+    .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
 
@@ -143,7 +143,7 @@ fn post_updates_2020_04_03(
 
   // Update the ap_id
   let incorrect_posts = post
-    .filter(ap_id.like("http://changeme_%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Post>(conn)?;
 
@@ -171,7 +171,7 @@ fn comment_updates_2020_04_03(
 
   // Update the ap_id
   let incorrect_comments = comment
-    .filter(ap_id.like("http://changeme_%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
 
@@ -199,7 +199,7 @@ fn private_message_updates_2020_05_05(
 
   // Update the ap_id
   let incorrect_pms = private_message
-    .filter(ap_id.like("http://changeme_%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<PrivateMessage>(conn)?;
 
@@ -252,7 +252,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   {
     use lemmy_db_schema::schema::person::dsl::*;
     let persons = person
-      .filter(inbox_url.like("http://changeme_%"))
+      .filter(inbox_url.like("http://changeme%"))
       .load::<Person>(conn)?;
 
     for p in &persons {
@@ -270,7 +270,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   {
     use lemmy_db_schema::schema::community::dsl::*;
     let communities = community
-      .filter(inbox_url.like("http://changeme_%"))
+      .filter(inbox_url.like("http://changeme%"))
       .load::<Community>(conn)?;
 
     for c in &communities {
