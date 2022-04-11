@@ -446,21 +446,29 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
-      SortType::MostComments => query.then_order_by(post_aggregates::comments.desc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
-      SortType::TopAll => query.then_order_by(post_aggregates::score.desc()),
+      SortType::MostComments => query
+        .then_order_by(post_aggregates::comments.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopAll => query
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopYear => query
-        .filter(post::published.gt(now - 1.years()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.years()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopMonth => query
-        .filter(post::published.gt(now - 1.months()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.months()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopWeek => query
-        .filter(post::published.gt(now - 1.weeks()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.weeks()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopDay => query
-        .filter(post::published.gt(now - 1.days()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.days()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
