@@ -9,7 +9,7 @@ use lemmy_api_common::{
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
-  source::community::Community,
+  source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
   ListingType,
   SortType,
@@ -20,6 +20,7 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetCommunity {
@@ -75,8 +76,23 @@ impl PerformCrud for GetCommunity {
       .await
       .unwrap_or(1);
 
+    let mut site_id: Url = community_view.community.actor_id.clone().into();
+    site_id.set_path("");
+    let mut site: Option<Site> = blocking(context.pool(), move |conn| {
+      Site::read_from_apub_id(conn, site_id)
+    })
+    .await??;
+    // no need to include metadata for local site (its already available through other endpoints).
+    // this also prevents us from leaking the federation private key.
+    if let Some(s) = &site {
+      if s.actor_id.domain() == Some(context.settings().hostname.as_ref()) {
+        site = None;
+      }
+    }
+
     let res = GetCommunityResponse {
       community_view,
+      site,
       moderators,
       online,
     };

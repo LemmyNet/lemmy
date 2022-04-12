@@ -1,4 +1,7 @@
-use lemmy_db_schema::newtypes::{CommunityId, PersonId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId},
+  source::site::Site,
+};
 use lemmy_db_views_actor::{
   community_moderator_view::CommunityModeratorView,
   community_view::CommunityView,
@@ -18,6 +21,7 @@ pub struct GetCommunity {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetCommunityResponse {
   pub community_view: CommunityView,
+  pub site: Option<Site>,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
 }
