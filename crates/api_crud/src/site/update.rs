@@ -17,11 +17,12 @@ use lemmy_db_schema::{
     site::{Site, SiteForm},
   },
   traits::Crud,
+  ListingType,
 };
 use lemmy_db_views::site_view::SiteView;
 use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
-use std::default::Default;
+use std::{default::Default, str::FromStr};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -64,6 +65,19 @@ impl PerformCrud for EditSite {
       return Err(LemmyError::from_message("application_question_required"));
     }
 
+    if let Some(default_post_listing_type) = &data.default_post_listing_type {
+      // only allow all or local as default listing types
+      let ok = match ListingType::from_str(default_post_listing_type) {
+        Ok(l) => l == ListingType::All || l == ListingType::Local,
+        Err(_) => false,
+      };
+      if !ok {
+        return Err(LemmyError::from_message(
+          "invalid_default_post_listing_type",
+        ));
+      }
+    }
+
     let site_form = SiteForm {
       name: data.name.to_owned().unwrap_or(local_site.name),
       sidebar,
@@ -80,6 +94,7 @@ impl PerformCrud for EditSite {
       application_question,
       private_instance: data.private_instance,
       default_theme: data.default_theme.clone(),
+      default_post_listing_type: data.default_post_listing_type.clone(),
       ..SiteForm::default()
     };
 

@@ -109,6 +109,7 @@
     application_question: "string"
     private_instance: true
     default_theme: "string"
+    default_post_listing_type: "string"
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"

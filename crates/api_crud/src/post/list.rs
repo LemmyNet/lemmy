@@ -4,12 +4,12 @@ use lemmy_api_common::{
   blocking,
   check_private_instance,
   get_local_user_view_from_jwt_opt,
-  post::*,
+  post::{GetPosts, GetPostsResponse},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
-  source::community::Community,
+  source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
   ListingType,
   SortType,
@@ -17,6 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::post_view::PostQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
+use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPosts {
@@ -46,7 +47,13 @@ impl PerformCrud for GetPosts {
       .map(|t| t.local_user.show_read_posts);
 
     let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.type_);
+    let listing_type: ListingType = match from_opt_str_to_opt_enum(&data.type_) {
+      Some(l) => l,
+      None => {
+        let site = blocking(context.pool(), Site::read_local_site).await??;
+        ListingType::from_str(&site.default_post_listing_type)?
+      }
+    };
 
     let page = data.page;
     let limit = data.limit;

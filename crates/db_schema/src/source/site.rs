@@ -26,6 +26,7 @@ pub struct Site {
   pub private_key: Option<String>,
   pub public_key: String,
   pub default_theme: String,
+  pub default_post_listing_type: String,
 }
 
 #[derive(Insertable, AsChangeset, Default)]
@@ -52,4 +53,5 @@ pub struct SiteForm {
   pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,
   pub default_theme: Option<String>,
+  pub default_post_listing_type: Option<String>,
 }

@@ -84,6 +84,7 @@ impl PerformCrud for CreateSite {
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       default_theme: data.default_theme.clone(),
+      default_post_listing_type: data.default_post_listing_type.clone(),
       ..SiteForm::default()
     };
 
