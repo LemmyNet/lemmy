@@ -24,6 +24,7 @@ use lemmy_db_schema::{
   self,
   source::{
     community::Community,
+    moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
     person::Person,
     post::{Post, PostForm},
   },
@@ -161,8 +162,6 @@ impl ApubObject for ApubPost {
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
-    // TODO: write mod log if stickied or locked changed
-
     let url = if let Some(attachment) = page.attachment.first() {
       Some(attachment.href.clone())
     } else {
@@ -177,9 +176,9 @@ impl ApubObject for ApubPost {
     let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
-
     let body_slurs_removed = read_from_string_or_source_opt(&page.content, &page.source)
       .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
+
     let form = PostForm {
       name: page.name.clone(),
       url: url.map(Into::into),
@@ -197,10 +196,38 @@ impl ApubObject for ApubPost {
       embed_description,
       embed_html,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(page.id.into()),
+      ap_id: Some(page.id.clone().into()),
       local: Some(false),
     };
+
+    // read existing, local post if any (for generating mod log)
+    let old_post = ObjectId::<ApubPost>::new(page.id.clone())
+      .dereference_local(context)
+      .await;
+
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
+
+    // write mod log entries for sticky/lock
+    if Page::is_stickied_changed(&old_post, &page.stickied) {
+      let form = ModStickyPostForm {
+        mod_person_id: creator.id,
+        post_id: post.id,
+        stickied: Some(post.stickied),
+      };
+      blocking(context.pool(), move |conn| {
+        ModStickyPost::create(conn, &form)
+      })
+      .await??;
+    }
+    if Page::is_locked_changed(&old_post, &page.comments_enabled) {
+      let form = ModLockPostForm {
+        mod_person_id: creator.id,
+        post_id: post.id,
+        locked: Some(post.locked),
+      };
+      blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
+    }
+
     Ok(post.into())
   }
 }
