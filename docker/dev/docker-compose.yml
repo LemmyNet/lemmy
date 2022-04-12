@@ -34,6 +34,7 @@ services:
       - LEMMY_INTERNAL_HOST=lemmy:8536
       - LEMMY_EXTERNAL_HOST=localhost:1234
       - LEMMY_HTTPS=false
+      - LEMMY_UI_DEBUG=true
     depends_on: 
       - lemmy
 
