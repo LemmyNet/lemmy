@@ -67,11 +67,8 @@ impl PerformCrud for EditSite {
 
     if let Some(default_post_listing_type) = &data.default_post_listing_type {
       // only allow all or local as default listing types
-      let ok = match ListingType::from_str(default_post_listing_type) {
-        Ok(l) => l == ListingType::All || l == ListingType::Local,
-        Err(_) => false,
-      };
-      if !ok {
+      let val = ListingType::from_str(default_post_listing_type);
+      if val != Ok(ListingType::All) && val != Ok(ListingType::Local) {
         return Err(LemmyError::from_message(
           "invalid_default_post_listing_type",
         ));
