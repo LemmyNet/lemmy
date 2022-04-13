@@ -1,0 +1,70 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://poliverso.org/profile/informapirata",
+  "diaspora:guid": "0477a01e-8161-2935-9a73-393807834700",
+  "type": "Organization",
+  "following": "https://poliverso.org/following/informapirata",
+  "followers": "https://poliverso.org/followers/informapirata",
+  "inbox": "https://poliverso.org/inbox/informapirata",
+  "outbox": "https://poliverso.org/outbox/informapirata",
+  "preferredUsername": "informapirata",
+  "name": "Informa Pirata",
+  "vcard:hasAddress": {
+    "@type": "vcard:Home",
+    "vcard:country-name": "Italy",
+    "vcard:region": "Lazio",
+    "vcard:locality": ""
+  },
+  "summary": "Politica Pirata: informazione su #whistleblowing #dirittidigitali #sovranitàdigitale #copyright #privacy #cyberwarfare #pirati #Europa #opensource #opendata <br>➡️➡️ http://T.ME/PPINFORMA",
+  "url": "https://poliverso.org/profile/informapirata",
+  "manuallyApprovesFollowers": false,
+  "discoverable": true,
+  "publicKey": {
+    "id": "https://poliverso.org/profile/informapirata#main-key",
+    "owner": "https://poliverso.org/profile/informapirata",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA09bPyftct7KNf4hm+rmG\n1aX4HmJbAdiXkmxo3g7iJG21Vvd3+OQeKnjpLc0n9s9rKMrpy8FQj+E7FaVYIGcP\n/f8McmSb4ezFeNkVNKGm+Y7swpeAAmh0MBWfDD+j3WHznD+OLABhWZlnfhIxW1aD\nD6mN9mkITvLAut8vJVTaciGzjfv6AndHVerVPV8lw5gXCmvX/+NZUOjjLQVND3fL\n8fZiJjJ3NSQ1tAx0m38PVMHZGw2492gkbKxzkW6c/QyMRAOrKP2+kJQ/6O2sn/ZK\n7MtHzMQ4eUjGc0ZLWQlCqQ4oVbVTcPgwHW1+no3928fzhU95zi5oAI08wfJ5wo86\nAnPv4fnUL/gyGff/ytZ/kGhNv+jVlSbMYxiDslRoD2Zp+L1P5Ypw6iemR1rMivL4\nJMxx2FoYGD1xzKBqNcJ2cDRQ5VQGwhBs/U6XyRMrRTzhDoe5dHr49MjHGuYkUzhq\naYPgku+zA7hfjvZA982kK2jAMXPoTLoUrY7T6beanYwfFIxd++fNHxTSexrhwx7P\nqn7v+pi0WTA8Cxor4N+ICCXxVvpO7s5VERVugiJofKZhFXiE2S02S2jVoGCRtEKw\n9/iignMld/IQSojz8N+77KMYGuVT9eG9Io/mF4MjCLluNNRXklt55dz55vOHPBxg\nll83LwyA3eELfylUNV75DcsCAwEAAQ==\n-----END PUBLIC KEY-----\n"
+  },
+  "endpoints": {
+    "sharedInbox": "https://poliverso.org/inbox"
+  },
+  "icon": {
+    "type": "Image",
+    "url": "https://poliverso.org/photo/profile/informapirata.png?ts=1630486460",
+    "mediaType": "image/png"
+  },
+  "attachment": [
+    {
+      "type": "PropertyValue",
+      "name": "Telegram",
+      "value": "http://T.ME/PPINFORMA"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Mastodon",
+      "value": "<a href=\"https://mastodon.uno/@informapirata\" target=\"_blank\" rel=\"noopener noreferrer\">https://mastodon.uno/@informapirata</a>"
+    }
+  ],
+  "generator": {
+    "type": "Service",
+    "name": "Friendica 'Siberian Iris' 2022.03-1452",
+    "url": "https://poliverso.org"
+  }
+}
