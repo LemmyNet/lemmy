@@ -222,7 +222,7 @@ pub struct PasswordReset {
 pub struct PasswordResetResponse {}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PasswordChange {
+pub struct PasswordChangeAfterReset {
   pub token: Sensitive<String>,
   pub password: Sensitive<String>,
   pub password_verify: Sensitive<String>,

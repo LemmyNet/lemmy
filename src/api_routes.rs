@@ -195,7 +195,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           )
           .route(
             "/password_change",
-            web::post().to(route_post::<PasswordChange>),
+            web::post().to(route_post::<PasswordChangeAfterReset>),
           )
           // mark_all_as_read feels off being in this section as well
           .route(

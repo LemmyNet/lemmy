@@ -1,12 +1,10 @@
-use std::convert::TryInto;
-
+use crate::Perform;
 use actix_web::web::Data;
-
 use lemmy_api_common::{
   blocking,
   check_community_ban,
   check_downvotes_enabled,
-  comment::*,
+  comment::{CommentResponse, CreateCommentLike},
   get_local_user_view_from_jwt,
 };
 use lemmy_apub::{
@@ -18,111 +16,13 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  source::comment::*,
-  traits::{Likeable, Saveable},
+  source::comment::{CommentLike, CommentLikeForm},
+  traits::Likeable,
 };
 use lemmy_db_views::{comment_view::CommentView, local_user_view::LocalUserView};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
-
-use crate::Perform;
-
-#[async_trait::async_trait(?Send)]
-impl Perform for MarkCommentAsRead {
-  type Response = CommentResponse;
-
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
-    let data: &MarkCommentAsRead = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-
-    let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
-
-    // Verify that only the recipient can mark as read
-    if local_user_view.person.id != orig_comment.get_recipient_id() {
-      return Err(LemmyError::from_message("no_comment_edit_allowed"));
-    }
-
-    // Do the mark as read
-    let read = data.read;
-    blocking(context.pool(), move |conn| {
-      Comment::update_read(conn, comment_id, read)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
-
-    // Refetch it
-    let comment_id = data.comment_id;
-    let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
-
-    let res = CommentResponse {
-      comment_view,
-      recipient_ids: Vec::new(),
-      form_id: None,
-    };
-
-    Ok(res)
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for SaveComment {
-  type Response = CommentResponse;
-
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
-    let data: &SaveComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-
-    let comment_saved_form = CommentSavedForm {
-      comment_id: data.comment_id,
-      person_id: local_user_view.person.id,
-    };
-
-    if data.save {
-      let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
-      blocking(context.pool(), save_comment)
-        .await?
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
-    } else {
-      let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
-      blocking(context.pool(), unsave_comment)
-        .await?
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
-    }
-
-    let comment_id = data.comment_id;
-    let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
-
-    Ok(CommentResponse {
-      comment_view,
-      recipient_ids: Vec::new(),
-      form_id: None,
-    })
-  }
-}
+use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateCommentLike {

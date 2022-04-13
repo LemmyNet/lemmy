@@ -67,7 +67,7 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<PasswordReset>(context, id, op, data).await
     }
     UserOperation::PasswordChange => {
-      do_websocket_operation::<PasswordChange>(context, id, op, data).await
+      do_websocket_operation::<PasswordChangeAfterReset>(context, id, op, data).await
     }
     UserOperation::UserJoin => do_websocket_operation::<UserJoin>(context, id, op, data).await,
     UserOperation::PostJoin => do_websocket_operation::<PostJoin>(context, id, op, data).await,
