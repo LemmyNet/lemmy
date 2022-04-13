@@ -505,6 +505,7 @@ impl Perform for TransferCommunity {
     // Return the jwt
     Ok(GetCommunityResponse {
       community_view,
+      site: None,
       moderators,
       online: 0,
     })

@@ -6,10 +6,13 @@ use lemmy_api_common::{
   community::*,
   get_local_user_view_from_jwt_opt,
 };
-use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
+use lemmy_apub::{
+  fetcher::resolve_actor_identifier,
+  objects::{community::ApubCommunity, instance::instance_actor_id_from_url},
+};
 use lemmy_db_schema::{
   from_opt_str_to_opt_enum,
-  source::community::Community,
+  source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
   ListingType,
   SortType,
@@ -75,8 +78,22 @@ impl PerformCrud for GetCommunity {
       .await
       .unwrap_or(1);
 
+    let site_id = instance_actor_id_from_url(community_view.community.actor_id.clone().into());
+    let mut site: Option<Site> = blocking(context.pool(), move |conn| {
+      Site::read_from_apub_id(conn, site_id)
+    })
+    .await??;
+    // no need to include metadata for local site (its already available through other endpoints).
+    // this also prevents us from leaking the federation private key.
+    if let Some(s) = &site {
+      if s.actor_id.domain() == Some(context.settings().hostname.as_ref()) {
+        site = None;
+      }
+    }
+
     let res = GetCommunityResponse {
       community_view,
+      site,
       moderators,
       online,
     };
