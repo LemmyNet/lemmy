@@ -115,7 +115,7 @@ pub struct FederationConfig {
   #[default(false)]
   pub enabled: bool,
   /// Allows and blocks are described here:
-  /// https://join-lemmy.org/docs/en/federation/administration.html///instance-allowlist-and-blocklist
+  /// https://join-lemmy.org/docs/en/administration/federation_getting_started.html
   ///
   /// list of instances with which federation is allowed
   #[default(None)]
