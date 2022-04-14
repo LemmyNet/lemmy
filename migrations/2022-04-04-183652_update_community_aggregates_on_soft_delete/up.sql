@@ -56,6 +56,26 @@ begin
   IF (was_restored_or_created(TG_OP, OLD, NEW)) THEN
 update community_aggregates
 set posts = posts + 1 where community_id = NEW.community_id;
+
+IF (TG_OP = 'UPDATE') THEN
+    -- Post was restored, so restore comment counts as well
+    update community_aggregates ca
+    set posts = coalesce(cd.posts, 0),
+        comments = coalesce(cd.comments, 0)
+    from (
+             select
+                 c.id,
+                 count(distinct p.id) as posts,
+                 count(distinct ct.id) as comments
+             from community c
+                      left join post p on c.id = p.community_id and p.deleted = 'f' and p.removed = 'f'
+                      left join comment ct on p.id = ct.post_id and ct.deleted = 'f' and ct.removed = 'f'
+             where c.id = NEW.community_id
+             group by c.id
+         ) cd
+    where ca.community_id = NEW.community_id;
+END IF;
+
 ELSIF (was_removed_or_deleted(TG_OP, OLD, NEW)) THEN
 update community_aggregates
 set posts = posts - 1 where community_id = OLD.community_id;
