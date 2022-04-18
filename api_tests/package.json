@@ -9,14 +9,14 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest src/ -i --verbose"
+    "api-test": "jest -i follow.spec.ts && jest -i src/post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "eslint": "^7.30.0",
     "eslint-plugin-jane": "^9.0.3",
     "jest": "^27.0.6",
-    "lemmy-js-client": "0.12.0-rc.1",
+    "lemmy-js-client": "0.13.1-rc.1",
     "node-fetch": "^2.6.1",
     "prettier": "^2.3.2",
     "ts-jest": "^27.0.3",

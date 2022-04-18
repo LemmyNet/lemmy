@@ -1,0 +1,10 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "to": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "object": "http://enterprise.lemmy.ml/post/7",
+  "summary": "report this post",
+  "type": "Flag",
+  "id": "http://ds9.lemmy.ml/activities/flag/98b0933f-5e45-4a95-a15f-e0dc86361ba4"
+}

@@ -1,0 +1,20 @@
+{
+  "type": "Service",
+  "id": "https://enterprise.lemmy.ml/",
+  "name": "Enterprise",
+  "summary": "A test instance",
+  "content": "<p>Enterprise sidebar</p>\\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "Enterprise sidebar",
+    "mediaType": "text/markdown"
+  },
+  "inbox": "https://enterprise.lemmy.ml/inbox",
+  "outbox": "https://enterprise.lemmy.ml/outbox",
+  "publicKey": {
+    "id": "https://enterprise.lemmy.ml/#main-key",
+    "owner": "https://enterprise.lemmy.ml/",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAupcK0xTw5yQb/fnztAmb\n9LfPbhJJP1+1GwUaOXGYiDJD6uYJhl9CLmgztLl3RyV9ltOYoN8/NLNDfOMmgOjd\nrsNWEjDI9IcVPmiZnhU7hsi6KgQvJzzv8O5/xYjAGhDfrGmtdpL+lyG0B5fQod8J\n/V5VWvTQ0B0qFrLSBBuhOrp8/fTtDskdtElDPtnNfH2jn6FgtLOijidWwf9ekFo4\n0I1JeuEw6LuD/CzKVJTPoztzabUV1DQF/DnFJm+8y7SCJa9jEO56Uf9eVfa1jF6f\ndH6ZvNJMiafstVuLMAw7C/eNJy3ufXgtZ4403oOKA0aRSYf1cc9pHSZ9gDE/mevH\nLwIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "published": "2022-01-19T21:52:11.110741+00:00"
+}

@@ -1,184 +1,258 @@
 use crate::{
-  extensions::{context::lemmy_context, signatures::PublicKey},
-  fetcher::community::fetch_community_mods,
+  check_is_apub_id_valid,
+  collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   generate_moderators_url,
-  objects::{create_tombstone, FromApub, ImageObject, Source, ToApub},
-  ActorType,
+  generate_outbox_url,
+  objects::instance::fetch_instance_actor_for_object,
+  protocol::{
+    objects::{group::Group, tombstone::Tombstone, Endpoints},
+    ImageObject,
+    Source,
+  },
 };
-use activitystreams::{
-  actor::{kind::GroupType, Endpoints},
-  base::AnyBase,
-  object::{kind::ImageType, Tombstone},
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
-use chrono::{DateTime, FixedOffset};
+use activitystreams_kinds::actor::GroupType;
+use chrono::NaiveDateTime;
+use itertools::Itertools;
 use lemmy_api_common::blocking;
 use lemmy_apub_lib::{
-  values::{MediaTypeHtml, MediaTypeMarkdown},
-  verify_domains_match,
+  object_id::ObjectId,
+  traits::{ActorType, ApubObject},
 };
-use lemmy_db_queries::{ApubObject, DbPool};
-use lemmy_db_schema::{
-  naive_now,
-  source::community::{Community, CommunityForm},
-};
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
 use lemmy_utils::{
-  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
+  utils::{convert_datetime, markdown_to_html},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use std::ops::Deref;
+use tracing::debug;
 use url::Url;
 
-#[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Group {
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(rename = "type")]
-  kind: GroupType,
-  id: Url,
-  /// username, set at account creation and can never be changed
-  preferred_username: String,
-  /// title (can be changed at any time)
-  name: String,
-  content: Option<String>,
-  media_type: Option<MediaTypeHtml>,
-  source: Option<Source>,
-  icon: Option<ImageObject>,
-  /// banner
-  image: Option<ImageObject>,
-  // lemmy extension
-  sensitive: Option<bool>,
-  // lemmy extension
-  pub(crate) moderators: Option<Url>,
-  inbox: Url,
-  pub(crate) outbox: Url,
-  followers: Url,
-  endpoints: Endpoints<Url>,
-  public_key: PublicKey,
-  published: DateTime<FixedOffset>,
-  updated: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
+#[derive(Clone, Debug)]
+pub struct ApubCommunity(Community);
+
+impl Deref for ApubCommunity {
+  type Target = Community;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
 }
 
-impl Group {
-  pub(crate) fn id(&self, expected_domain: &Url) -> Result<&Url, LemmyError> {
-    verify_domains_match(&self.id, expected_domain)?;
-    Ok(&self.id)
-  }
-  pub(crate) async fn from_apub_to_form(
-    group: &Group,
-    expected_domain: &Url,
-  ) -> Result<CommunityForm, LemmyError> {
-    let actor_id = Some(group.id(expected_domain)?.clone().into());
-    let name = group.preferred_username.clone();
-    let title = group.name.clone();
-    let description = group.source.clone().map(|s| s.content);
-    let shared_inbox = group.endpoints.shared_inbox.clone().map(|s| s.into());
-
-    check_slurs(&name)?;
-    check_slurs(&title)?;
-    check_slurs_opt(&description)?;
-
-    Ok(CommunityForm {
-      name,
-      title,
-      description,
-      removed: None,
-      published: Some(group.published.naive_local()),
-      updated: group.updated.map(|u| u.naive_local()),
-      deleted: None,
-      nsfw: Some(group.sensitive.unwrap_or(false)),
-      actor_id,
-      local: Some(false),
-      private_key: None,
-      public_key: Some(group.public_key.public_key_pem.clone()),
-      last_refreshed_at: Some(naive_now()),
-      icon: Some(group.icon.clone().map(|i| i.url.into())),
-      banner: Some(group.image.clone().map(|i| i.url.into())),
-      followers_url: Some(group.followers.clone().into()),
-      inbox_url: Some(group.inbox.clone().into()),
-      shared_inbox_url: Some(shared_inbox),
-    })
+impl From<Community> for ApubCommunity {
+  fn from(c: Community) -> Self {
+    ApubCommunity(c)
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ToApub for Community {
+impl ApubObject for ApubCommunity {
+  type DataType = LemmyContext;
   type ApubType = Group;
+  type DbType = Community;
+  type TombstoneType = Tombstone;
 
-  async fn to_apub(&self, _pool: &DbPool) -> Result<Group, LemmyError> {
-    let source = self.description.clone().map(|bio| Source {
-      content: bio,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let icon = self.icon.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
-    let image = self.banner.clone().map(|url| ImageObject {
-      kind: ImageType::Image,
-      url: url.into(),
-    });
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    Some(self.last_refreshed_at)
+  }
 
+  #[tracing::instrument(skip_all)]
+  async fn read_from_apub_id(
+    object_id: Url,
+    context: &LemmyContext,
+  ) -> Result<Option<Self>, LemmyError> {
+    Ok(
+      blocking(context.pool(), move |conn| {
+        Community::read_from_apub_id(conn, &object_id.into())
+      })
+      .await??
+      .map(Into::into),
+    )
+  }
+
+  #[tracing::instrument(skip_all)]
+  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+    blocking(context.pool(), move |conn| {
+      Community::update_deleted(conn, self.id, true)
+    })
+    .await??;
+    Ok(())
+  }
+
+  #[tracing::instrument(skip_all)]
+  async fn into_apub(self, _context: &LemmyContext) -> Result<Group, LemmyError> {
     let group = Group {
-      context: lemmy_context(),
       kind: GroupType::Group,
-      id: self.actor_id(),
+      id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
-      name: self.title.clone(),
-      content: self.description.as_ref().map(|b| markdown_to_html(b)),
-      media_type: self.description.as_ref().map(|_| MediaTypeHtml::Html),
-      source,
-      icon,
-      image,
+      name: Some(self.title.clone()),
+      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
+      source: self.description.clone().map(Source::new),
+      icon: self.icon.clone().map(ImageObject::new),
+      image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
-      moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
+      moderators: Some(ObjectId::<ApubCommunityModerators>::new(
+        generate_moderators_url(&self.actor_id)?,
+      )),
       inbox: self.inbox_url.clone().into(),
-      outbox: self.get_outbox_url()?,
+      outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
-      endpoints: Endpoints {
-        shared_inbox: self.shared_inbox_url.clone().map(|s| s.into()),
-        ..Default::default()
-      },
+      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
+        shared_inbox: s.into(),
+      }),
       public_key: self.get_public_key()?,
-      published: convert_datetime(self.published),
+      published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
-      unparsed: Default::default(),
     };
     Ok(group)
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      self.actor_id.to_owned().into(),
-      self.updated,
-      GroupType::Group,
-    )
+    Ok(Tombstone::new(self.actor_id()))
+  }
+
+  #[tracing::instrument(skip_all)]
+  async fn verify(
+    group: &Group,
+    expected_domain: &Url,
+    context: &LemmyContext,
+    _request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    group.verify(expected_domain, context).await
+  }
+
+  /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
+  #[tracing::instrument(skip_all)]
+  async fn from_apub(
+    group: Group,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let form = Group::into_form(group.clone());
+
+    // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
+    // we need to ignore these errors so that tests can work entirely offline.
+    let community: ApubCommunity =
+      blocking(context.pool(), move |conn| Community::upsert(conn, &form))
+        .await??
+        .into();
+    let outbox_data = CommunityContext(community.clone(), context.clone());
+
+    group
+      .outbox
+      .dereference(&outbox_data, context.client(), request_counter)
+      .await
+      .map_err(|e| debug!("{}", e))
+      .ok();
+
+    if let Some(moderators) = &group.moderators {
+      moderators
+        .dereference(&outbox_data, context.client(), request_counter)
+        .await
+        .map_err(|e| debug!("{}", e))
+        .ok();
+    }
+
+    fetch_instance_actor_for_object(community.actor_id(), context, request_counter).await;
+
+    Ok(community)
   }
 }
 
-#[async_trait::async_trait(?Send)]
-impl FromApub for Community {
-  type ApubType = Group;
+impl ActorType for ApubCommunity {
+  fn actor_id(&self) -> Url {
+    self.actor_id.to_owned().into()
+  }
+  fn public_key(&self) -> String {
+    self.public_key.to_owned()
+  }
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
+  }
 
-  /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
-  async fn from_apub(
-    group: &Group,
+  fn inbox_url(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into())
+  }
+}
+
+impl ApubCommunity {
+  /// For a given community, returns the inboxes of all followers.
+  #[tracing::instrument(skip_all)]
+  pub(crate) async fn get_follower_inboxes(
+    &self,
     context: &LemmyContext,
-    expected_domain: &Url,
-    request_counter: &mut i32,
-  ) -> Result<Community, LemmyError> {
-    fetch_community_mods(context, group, request_counter).await?;
-    let form = Group::from_apub_to_form(group, expected_domain).await?;
+  ) -> Result<Vec<Url>, LemmyError> {
+    let id = self.id;
 
-    let community = blocking(context.pool(), move |conn| Community::upsert(conn, &form)).await??;
-    Ok(community)
+    let follows = blocking(context.pool(), move |conn| {
+      CommunityFollowerView::for_community(conn, id)
+    })
+    .await??;
+    let inboxes: Vec<Url> = follows
+      .into_iter()
+      .filter(|f| !f.follower.local)
+      .map(|f| {
+        f.follower
+          .shared_inbox_url
+          .unwrap_or(f.follower.inbox_url)
+          .into()
+      })
+      .unique()
+      .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
+      // Don't send to blocked instances
+      .filter(|inbox| check_is_apub_id_valid(inbox, false, &context.settings()).is_ok())
+      .collect();
+
+    Ok(inboxes)
+  }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+  use super::*;
+  use crate::{
+    objects::{instance::tests::parse_lemmy_instance, tests::init_context},
+    protocol::tests::file_to_json_object,
+  };
+  use lemmy_db_schema::{source::site::Site, traits::Crud};
+  use serial_test::serial;
+
+  pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
+    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
+    // change these links so they dont fetch over the network
+    json.moderators = None;
+    json.outbox =
+      ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
+
+    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
+    let mut request_counter = 0;
+    ApubCommunity::verify(&json, &url, context, &mut request_counter)
+      .await
+      .unwrap();
+    let community = ApubCommunity::from_apub(json, context, &mut request_counter)
+      .await
+      .unwrap();
+    // this makes one requests to the (intentionally broken) outbox collection
+    assert_eq!(request_counter, 1);
+    community
+  }
+
+  #[actix_rt::test]
+  #[serial]
+  async fn test_parse_lemmy_community() {
+    let context = init_context();
+    let site = parse_lemmy_instance(&context).await;
+    let community = parse_lemmy_community(&context).await;
+
+    assert_eq!(community.title, "Ten Forward");
+    assert!(!community.local);
+    assert_eq!(community.description.as_ref().unwrap().len(), 132);
+
+    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
+    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
   }
 }

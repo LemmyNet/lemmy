@@ -1,0 +1,12 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Delete",
+  "id": "http://ds9.lemmy.ml/activities/delete/f2abee48-c7bb-41d5-9e27-8775ff32db12"
+}

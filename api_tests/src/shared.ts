@@ -49,6 +49,16 @@ import {
   CreatePrivateMessage,
   ResolveObjectResponse,
   ResolveObject,
+  CreatePostReport,
+  PostReport,
+  ListPostReports,
+  PostReportResponse,
+  ListPostReportsResponse,
+  CreateCommentReport,
+  CommentReportResponse,
+  ListCommentReports,
+  ListCommentReportsResponse,
+  DeleteAccount,
 } from 'lemmy-js-client';
 
 export interface API {
@@ -57,53 +67,55 @@ export interface API {
 }
 
 export let alpha: API = {
-  client: new LemmyHttp('http://localhost:8541'),
+  client: new LemmyHttp('http://127.0.0.1:8541'),
 };
 
 export let beta: API = {
-  client: new LemmyHttp('http://localhost:8551'),
+  client: new LemmyHttp('http://127.0.0.1:8551'),
 };
 
 export let gamma: API = {
-  client: new LemmyHttp('http://localhost:8561'),
+  client: new LemmyHttp('http://127.0.0.1:8561'),
 };
 
 export let delta: API = {
-  client: new LemmyHttp('http://localhost:8571'),
+  client: new LemmyHttp('http://127.0.0.1:8571'),
 };
 
 export let epsilon: API = {
-  client: new LemmyHttp('http://localhost:8581'),
+  client: new LemmyHttp('http://127.0.0.1:8581'),
 };
+
+const password = 'lemmylemmy'
 
 export async function setupLogins() {
   let formAlpha: Login = {
     username_or_email: 'lemmy_alpha',
-    password: 'lemmy',
+    password,
   };
   let resAlpha = alpha.client.login(formAlpha);
 
   let formBeta = {
     username_or_email: 'lemmy_beta',
-    password: 'lemmy',
+    password,
   };
   let resBeta = beta.client.login(formBeta);
 
   let formGamma = {
     username_or_email: 'lemmy_gamma',
-    password: 'lemmy',
+    password,
   };
   let resGamma = gamma.client.login(formGamma);
 
   let formDelta = {
     username_or_email: 'lemmy_delta',
-    password: 'lemmy',
+    password,
   };
   let resDelta = delta.client.login(formDelta);
 
   let formEpsilon = {
     username_or_email: 'lemmy_epsilon',
-    password: 'lemmy',
+    password,
   };
   let resEpsilon = epsilon.client.login(formEpsilon);
 
@@ -278,13 +290,14 @@ export async function resolvePerson(
 export async function banPersonFromSite(
   api: API,
   person_id: number,
-  ban: boolean
+  ban: boolean,
+  remove_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data: false,
+    remove_data,
     auth: api.auth,
   };
   return api.client.banPerson(form);
@@ -294,13 +307,13 @@ export async function banPersonFromCommunity(
   api: API,
   person_id: number,
   community_id: number,
+  remove_data: boolean,
   ban: boolean
 ): Promise<BanFromCommunityResponse> {
-  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: false,
+    remove_data,
     ban,
     auth: api.auth,
   };
@@ -415,14 +428,10 @@ export async function createCommunity(
   name_: string = randomString(5)
 ): Promise<CommunityResponse> {
   let description = 'a sample description';
-  let icon = 'https://image.flaticon.com/icons/png/512/35/35896.png';
-  let banner = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
-    icon,
-    banner,
     nsfw: false,
     auth: api.auth,
   };
@@ -510,8 +519,8 @@ export async function registerUser(
 ): Promise<LoginResponse> {
   let form: Register = {
     username,
-    password: 'test',
-    password_verify: 'test',
+    password,
+    password_verify: password,
     show_nsfw: true,
   };
   return api.client.register(form);
@@ -539,6 +548,16 @@ export async function saveUserSettings(
   form: SaveUserSettings
 ): Promise<LoginResponse> {
   return api.client.saveUserSettings(form);
+}
+
+export async function deleteUser(
+  api: API,
+): Promise<LoginResponse> {
+  let form: DeleteAccount = {
+    auth: api.auth,
+    password
+  };
+  return api.client.deleteAccount(form);
 }
 
 export async function getSite(
@@ -584,6 +603,46 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
   }
 }
 
+export async function reportPost(
+  api: API,
+  post_id: number,
+  reason: string,
+): Promise<PostReportResponse> {
+  let form: CreatePostReport = {
+    post_id,
+    reason,
+    auth: api.auth,
+  };
+  return api.client.createPostReport(form);
+}
+
+export async function listPostReports(api: API): Promise<ListPostReportsResponse> {
+  let form: ListPostReports = {
+    auth: api.auth,
+  };
+  return api.client.listPostReports(form);
+}
+
+export async function reportComment(
+  api: API,
+  comment_id: number,
+  reason: string,
+): Promise<CommentReportResponse> {
+  let form: CreateCommentReport = {
+    comment_id,
+    reason,
+    auth: api.auth,
+  };
+  return api.client.createCommentReport(form);
+}
+
+export async function listCommentReports(api: API): Promise<ListCommentReportsResponse> {
+  let form: ListCommentReports = {
+    auth: api.auth,
+  };
+  return api.client.listCommentReports(form);
+}
+
 export function delay(millis: number = 500) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
@@ -596,12 +655,19 @@ export function wrapper(form: any): string {
   return JSON.stringify(form);
 }
 
-function randomString(length: number): string {
+export function randomString(length: number): string {
   var result = '';
-  var characters = 'abcdefghijklmnopqrstuvwxyz0123456789_';
+  var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
   var charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
+}
+
+export async function unfollows() {
+  await unfollowRemotes(alpha);
+  await unfollowRemotes(gamma);
+  await unfollowRemotes(delta);
+  await unfollowRemotes(epsilon);
 }

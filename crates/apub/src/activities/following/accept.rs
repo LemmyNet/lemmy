@@ -1,100 +1,82 @@
 use crate::{
-  activities::{
-    following::follow::FollowCommunity,
-    generate_activity_id,
-    verify_activity,
-    verify_community,
-  },
-  activity_queue::send_activity_new,
-  extensions::context::lemmy_context,
-  fetcher::{community::get_or_fetch_and_upsert_community, person::get_or_fetch_and_upsert_person},
-  ActorType,
+  activities::{generate_activity_id, send_lemmy_activity, verify_activity},
+  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
-use activitystreams::{
-  activity::kind::AcceptType,
-  base::AnyBase,
-  primitives::OneOrMany,
-  unparsed::Unparsed,
-};
+use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_urls_match, ActivityFields, ActivityHandler};
-use lemmy_db_queries::{ApubObject, Followable};
-use lemmy_db_schema::source::{
-  community::{Community, CommunityFollower},
-  person::Person,
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
+  verify::verify_urls_match,
 };
+use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct AcceptFollowCommunity {
-  actor: Url,
-  to: Url,
-  object: FollowCommunity,
-  #[serde(rename = "type")]
-  kind: AcceptType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
 
 impl AcceptFollowCommunity {
-  pub async fn send(follow: FollowCommunity, context: &LemmyContext) -> Result<(), LemmyError> {
-    let community_id = follow.object.clone();
-    let community = blocking(context.pool(), move |conn| {
-      Community::read_from_apub_id(conn, &community_id.into())
-    })
-    .await??;
-    let person_id = follow.actor().clone();
-    let person = blocking(context.pool(), move |conn| {
-      Person::read_from_apub_id(conn, &person_id.into())
-    })
-    .await??;
-
-    let accept = AcceptFollowCommunity {
-      actor: community.actor_id(),
-      to: person.actor_id(),
-      object: follow,
-      kind: AcceptType::Accept,
-      id: generate_activity_id(AcceptType::Accept)?,
-      context: lemmy_context(),
-      unparsed: Default::default(),
-    };
-    let inbox = vec![person.inbox_url.into()];
-    send_activity_new(context, &accept, &accept.id, &community, inbox, true).await
-  }
-}
-/// Handle accepted follows
-#[async_trait::async_trait(?Send)]
-impl ActivityHandler for AcceptFollowCommunity {
-  async fn verify(
-    &self,
+  #[tracing::instrument(skip_all)]
+  pub async fn send(
+    follow: FollowCommunity,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
-    verify_urls_match(&self.to, self.object.actor())?;
-    verify_urls_match(&self.actor, &self.object.to)?;
-    verify_community(&self.actor, context, request_counter).await?;
+    let community = follow.object.dereference_local(context).await?;
+    let person = follow
+      .actor
+      .clone()
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let accept = AcceptFollowCommunity {
+      actor: ObjectId::new(community.actor_id()),
+      object: follow,
+      kind: AcceptType::Accept,
+      id: generate_activity_id(
+        AcceptType::Accept,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
+      unparsed: Default::default(),
+    };
+    let inbox = vec![person.inbox_url()];
+    send_lemmy_activity(context, &accept, &accept.id, &community, inbox, true).await
+  }
+}
+
+/// Handle accepted follows
+#[async_trait::async_trait(?Send)]
+impl ActivityHandler for AcceptFollowCommunity {
+  type DataType = LemmyContext;
+
+  #[tracing::instrument(skip_all)]
+  async fn verify(
+    &self,
+    context: &Data<LemmyContext>,
+    request_counter: &mut i32,
+  ) -> Result<(), LemmyError> {
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
+    verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_community(&self.actor, context, request_counter).await?;
-    let to = get_or_fetch_and_upsert_person(&self.to, context, request_counter).await?;
+    let person = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let community = self
+      .object
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {
-      CommunityFollower::follow_accepted(conn, actor.id, to.id)
+      CommunityFollower::follow_accepted(conn, person.id, community.id)
     })
     .await??;
 

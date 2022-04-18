@@ -1,12 +1,15 @@
-use crate::utils::{
-  is_valid_actor_name,
-  is_valid_display_name,
-  is_valid_matrix_id,
-  is_valid_post_title,
-  remove_slurs,
-  scrape_text_for_mentions,
-  slur_check,
-  slurs_vec_to_str,
+use crate::{
+  settings::structs::Settings,
+  utils::{
+    is_valid_actor_name,
+    is_valid_display_name,
+    is_valid_matrix_id,
+    is_valid_post_title,
+    remove_slurs,
+    scrape_text_for_mentions,
+    slur_check,
+    slurs_vec_to_str,
+  },
 };
 
 #[test]
@@ -21,23 +24,28 @@ fn test_mentions_regex() {
 
 #[test]
 fn test_valid_actor_name() {
-  assert!(is_valid_actor_name("Hello_98"));
-  assert!(is_valid_actor_name("ten"));
-  assert!(!is_valid_actor_name("Hello-98"));
-  assert!(!is_valid_actor_name("a"));
-  assert!(!is_valid_actor_name(""));
+  let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
+  assert!(is_valid_actor_name("Hello_98", actor_name_max_length));
+  assert!(is_valid_actor_name("ten", actor_name_max_length));
+  assert!(!is_valid_actor_name("Hello-98", actor_name_max_length));
+  assert!(!is_valid_actor_name("a", actor_name_max_length));
+  assert!(!is_valid_actor_name("", actor_name_max_length));
 }
 
 #[test]
 fn test_valid_display_name() {
-  assert!(is_valid_display_name("hello @there"));
-  assert!(!is_valid_display_name("@hello there"));
+  let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
+  assert!(is_valid_display_name("hello @there", actor_name_max_length));
+  assert!(!is_valid_display_name(
+    "@hello there",
+    actor_name_max_length
+  ));
 
   // Make sure zero-space with an @ doesn't work
-  assert!(!is_valid_display_name(&format!(
-    "{}@my name is",
-    '\u{200b}'
-  )));
+  assert!(!is_valid_display_name(
+    &format!("{}@my name is", '\u{200b}'),
+    actor_name_max_length
+  ));
 }
 
 #[test]

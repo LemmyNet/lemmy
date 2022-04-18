@@ -1,36 +1,52 @@
-use crate::PerformCrud;
 use actix_web::web::Data;
-use lemmy_api_common::{blocking, check_community_ban, get_local_user_view_from_jwt, post::*};
-use lemmy_apub::activities::{post::create_or_update::CreateOrUpdatePost, CreateOrUpdateType};
-use lemmy_db_queries::{source::post::Post_, Crud};
-use lemmy_db_schema::{naive_now, source::post::*};
+
+use lemmy_api_common::{
+  blocking,
+  check_community_ban,
+  check_community_deleted_or_removed,
+  get_local_user_view_from_jwt,
+  post::*,
+};
+use lemmy_apub::protocol::activities::{
+  create_or_update::post::CreateOrUpdatePost,
+  CreateOrUpdateType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::post::{Post, PostForm},
+  traits::Crud,
+};
 use lemmy_utils::{
   request::fetch_site_data,
-  utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
-  ApiError,
+  utils::{check_slurs_opt, clean_optional_text, clean_url_params, is_valid_post_title},
   ConnectionId,
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
+use crate::PerformCrud;
+
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {
   type Response = PostResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs_opt(&data.name)?;
-    check_slurs_opt(&data.body)?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs_opt(&data.name, slur_regex)?;
+    check_slurs_opt(&data.body, slur_regex)?;
 
     if let Some(name) = &data.name {
       if !is_valid_post_title(name) {
-        return Err(ApiError::err("invalid_post_title").into());
+        return Err(LemmyError::from_message("invalid_post_title"));
       }
     }
 
@@ -43,15 +59,17 @@ impl PerformCrud for EditPost {
       context.pool(),
     )
     .await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(ApiError::err("no_post_edit_allowed").into());
+      return Err(LemmyError::from_message("no_post_edit_allowed"));
     }
 
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) = fetch_site_data(context.client(), data_url).await;
+    let (metadata_res, pictrs_thumbnail) =
+      fetch_site_data(context.client(), &context.settings(), data_url).await;
     let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
@@ -61,7 +79,7 @@ impl PerformCrud for EditPost {
       community_id: orig_post.community_id,
       name: data.name.to_owned().unwrap_or(orig_post.name),
       url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
-      body: data.body.to_owned(),
+      body: clean_optional_text(&data.body),
       nsfw: data.nsfw,
       updated: Some(naive_now()),
       embed_title,
@@ -85,14 +103,14 @@ impl PerformCrud for EditPost {
           "couldnt_update_post"
         };
 
-        return Err(ApiError::err(err_type).into());
+        return Err(LemmyError::from_error_message(e, err_type));
       }
     };
 
     // Send apub update
     CreateOrUpdatePost::send(
-      &updated_post,
-      &local_user_view.person,
+      updated_post.into(),
+      &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,
       context,
     )

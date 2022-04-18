@@ -2,10 +2,9 @@
   hostname: lemmy-beta:8551
   port: 8551
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_beta
-    admin_password: lemmy
+    admin_password: lemmylemmy
     site_name: lemmy-beta
   }
   database: {
@@ -33,5 +32,7 @@
     register_per_second: 3600
     image: 6
     image_per_second: 3600
+    comment: 99999
+    comment_per_second: 600
   }
 }

@@ -1,13 +1,13 @@
 use crate::{
+  newtypes::{CommunityBlockId, CommunityId, PersonId},
   schema::community_block,
   source::community::Community,
-  CommunityBlockId,
-  CommunityId,
-  PersonId,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(
+  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
+)]
 #[table_name = "community_block"]
 #[belongs_to(Community)]
 pub struct CommunityBlock {

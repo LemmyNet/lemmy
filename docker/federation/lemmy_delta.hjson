@@ -2,10 +2,9 @@
   hostname: lemmy-delta:8571
   port: 8571
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_delta
-    admin_password: lemmy
+    admin_password: lemmylemmy
     site_name: lemmy-delta
   }
   database: {
@@ -33,5 +32,7 @@
     register_per_second: 3600
     image: 6
     image_per_second: 3600
+    comment: 99999
+    comment_per_second: 600
   }
 }

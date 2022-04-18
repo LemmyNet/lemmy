@@ -1,23 +1,31 @@
 use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
+use once_cell::sync::Lazy;
+use regex::{Regex, RegexBuilder};
 use std::{env, fs, io::Error, sync::RwLock};
 
 pub mod structs;
 
-static CONFIG_FILE: &str = "config/config.hjson";
+static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-lazy_static! {
-  static ref SETTINGS: RwLock<Settings> =
-    RwLock::new(Settings::init().expect("Failed to load settings file"));
-}
+static SETTINGS: Lazy<RwLock<Settings>> =
+  Lazy::new(|| RwLock::new(Settings::init().expect("Failed to load settings file")));
+static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(&format!(
+    "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
+    Settings::get().hostname
+  ))
+  .expect("compile webfinger regex")
+});
 
 impl Settings {
   /// Reads config from configuration file.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
-  /// `lemmy_db_queries/src/lib.rs::get_database_url_from_env()`
-  fn init() -> Result<Self, LemmyError> {
+  /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
+  /// Warning: Only call this once.
+  pub fn init() -> Result<Self, LemmyError> {
     // Read the config file
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
@@ -42,7 +50,7 @@ impl Settings {
   }
 
   pub fn get_config_location() -> String {
-    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE.to_string())
+    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| DEFAULT_CONFIG_FILE.to_string())
   }
 
   pub fn read_config_file() -> Result<String, Error> {
@@ -80,7 +88,10 @@ impl Settings {
   }
 
   pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
-    fs::write(CONFIG_FILE, data)?;
+    // check that the config is valid
+    from_str::<Settings>(data)?;
+
+    fs::write(Settings::get_config_location(), data)?;
 
     // Reload the new settings
     // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
@@ -91,5 +102,18 @@ impl Settings {
     };
 
     Ok(Self::read_config_file()?)
+  }
+
+  pub fn webfinger_regex(&self) -> Regex {
+    WEBFINGER_REGEX.to_owned()
+  }
+
+  pub fn slur_regex(&self) -> Option<Regex> {
+    self.slur_filter.as_ref().map(|slurs| {
+      RegexBuilder::new(slurs)
+        .case_insensitive(true)
+        .build()
+        .expect("compile regex")
+    })
   }
 }

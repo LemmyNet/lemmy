@@ -1,0 +1,88 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://pirati.ca/objects/ec054ce7-4762-3c1c-3c25-0cc665717210/Update",
+  "type": "Update",
+  "actor": "https://pirati.ca/profile/heluecht",
+  "published": "2022-03-24T07:22:36Z",
+  "instrument": {
+    "type": "Service",
+    "name": "Friendica 'Siberian Iris' 2022.05-dev-1453",
+    "url": "https://pirati.ca"
+  },
+  "to": [
+    "https://pirati.ca/profile/test8",
+    "https://ds9.lemmy.ml/c/testcom"
+  ],
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://ds9.lemmy.ml/c/testcom/followers"
+  ],
+  "object": {
+    "id": "https://pirati.ca/objects/ec054ce7-4762-3c1c-3c25-0cc665717210",
+    "type": "Note",
+    "summary": "",
+    "inReplyTo": "https://pirati.ca/objects/ec054ce7-2062-3bfa-8687-ca8313624820",
+    "diaspora:guid": "ec054ce7-4762-3c1c-3c25-0cc665717210",
+    "published": "2022-03-24T07:22:36Z",
+    "updated": "2022-03-24T21:37:34Z",
+    "url": "https://pirati.ca/display/ec054ce7-4762-3c1c-3c25-0cc665717210",
+    "attributedTo": "https://pirati.ca/profile/heluecht",
+    "sensitive": false,
+    "context": "https://pirati.ca/objects/ec054ce7-2062-3bfa-8687-ca8313624820#context",
+    "content": "<span class=\"h-card\"><a href=\"https://pirati.ca/profile/test8\" class=\"u-url mention\">@<span>test8</span></a></span> This is an edited comment.",
+    "contentMap": {
+      "de": "This is an edited comment."
+    },
+    "source": {
+      "content": "This is an edited comment.",
+      "mediaType": "text/bbcode"
+    },
+    "diaspora:comment": "{\"author\":\"heluecht@pirati.ca\",\"guid\":\"ec054ce7-4762-3c1c-3c25-0cc665717210\",\"created_at\":\"2022-03-24T07:22:36Z\",\"edited_at\":\"2022-03-24T07:22:36Z\",\"parent_guid\":\"ec054ce7-2062-3bfa-8687-ca8313624820\",\"text\":\"This is a comment.\",\"author_signature\":\"oqthcfSIjETYRshGeN0Zq9yGJ9+bbghdzMH4Vfl\\/kxDyNQe7tsvK6M5cQlM46h2+jmpK2Okb4mK7K6Yenh+6aH2sJKIyMUdKIINzhp9Gav31sUtHf4\\/A0x1aqqTp1oLvnc5uKdKdIGaSdODUZY\\/ABmDjin5sE1gjIBlAkAlhvdhy\\/k+4c3UCFtazjawb1oXbh94uSgu4DxseBec4Kn5laWNwLhZLdx9PMSN1mhNqz2rnF6gWAlrlaLLeRDawh2AS5t2TUPH92QY818DW9b0rF9Gz4w1PtEIkzXDd6u\\/VEMMrwmRtd8SSDgnDPFzH4HqZDf1Y4TnQixZIqgUyv9zsiNT0pg0vOXTkuQ7hJ7hj6BI92SISTtQnEVhZBmW+i22roFs87EbSb5e6Yy4+2YphjCUd2NWlyrtG1UTR1hzCN+kzKIQU34zgXTtnwvYhi6wz71Lh3w1VoQbLthxpG1t1WRsXQ\\/QZNUNInyHyIgzWTcWAS6MdzVnmXSV+1080PQ5zFWbR6Tft3YySyk8iIyhdhTAjfEDGTRGHciiPtLBPQFlHMPTiMZjEWFnBZuhDhOrA6OazONXHRO09Xr6S\\/+ZudMvEOAG1FvcBec6gWRZdcma6UBi+2M3ay3dYFJw4+fG4XZh3H\\/sCA\\/q8MUgreP3t9q\\/wzxCW\\/BXZAv4u2FvwKvw=\"}",
+    "attachment": [],
+    "tag": [
+      {
+        "type": "Mention",
+        "href": "https://pirati.ca/profile/test8",
+        "name": "@test8@pirati.ca"
+      },
+      {
+        "type": "Mention",
+        "href": "https://ds9.lemmy.ml/c/testcom",
+        "name": "@testcom@ds9.lemmy.ml"
+      }
+    ],
+    "to": [
+      "https://pirati.ca/profile/test8",
+      "https://ds9.lemmy.ml/c/testcom"
+    ],
+    "cc": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://ds9.lemmy.ml/c/testcom/followers"
+    ]
+  },
+  "signature": {
+    "type": "RsaSignature2017",
+    "nonce": "534f3e33435fa56911a12094d9918002b2d734794609019793603116b6509a54",
+    "creator": "https://pirati.ca/profile/heluecht#main-key",
+    "created": "2022-03-24T21:37:50Z",
+    "signatureValue": "lhLotVmAv22CmiYCSmQgQA/X38ype7o89iJIC0I2FzIWGQkvZz58YAxpmW047Z2hT2qm15sV02bPgyoOBXAdXd+M8WNwz+cNwU1cE7QNZ7102Y+tQRgpTfHz+e57QwUXESo46xAG0qSVu0UQMm+3uCUFYWKgHEmAXy89sp//3J/vJtI2+3jbaC9YWdsBe8XwcoHeelnX7f8LNniRnZIkKTLfoOhcEIHAJkEV4otSCOfzwGHN0SqbGlK9xWBPQhgtN3GvnOZU9zhNQMsQiX+9Wb2X4NLXs0tTRkDubF78stH+0xbep7ZfyvRNLoebPtecN8dMnfHQs8y0a9iG9tuNjcwht2ezIwf1h140+iB8znav35sA6LzgcfEyzU8O6JYF9p9x3tCw2rcMMiy/f7mvOLCP/05d0GEoUNZXrfuXf/osysMYp1Y05Lkze5WqTMu7sEW6jDx8r1NTE6s88wqZAJa56G5NVxG5vU3Cj7yscI6LQiqaUDilVHLa+DzR0pQEUSSh2J1PgBFT2KKPZIY22UinDgI1QNl+Dhfj2nPzf/xXssuDTvWyU8vJzXc2MZNqFz7ds7tNdea6laLiMl7nOnMo1wz1f+w1bn4Y1YR/iwFgaqo2WEt+cIzAaN4dUw00WlXPCNNhrgaXHxlXI6SeFtviUfwz/dehcfbxMTxX7e0="
+  }
+}

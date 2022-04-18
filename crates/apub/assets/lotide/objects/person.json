@@ -1,0 +1,22 @@
+{
+  "publicKey": {
+    "id": "https://narwhal.city//users/3#main-key",
+    "owner": "https://narwhal.city/users/3",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvC+ZURasjlyX1o4FqMWB\npAppKWU2zPV7cUokKsnKo9m2PKw+53mmVUMQ66LtN80l/WCK/hy7r2lDKvpyt3YO\nnEsNcSCYLaYnTLDNkE2u14kx8jKOFiyRKKVKCNA32b+XvM+rLDmfaNOeBsB92mVR\nVmIz+WO+0FVPtg1MQMKWIoe6SgKW8SHpz/qVeggYNMKp/b2ai7Of0KTSbYIcqFR2\nT8g/6L5Mmjz4zKIn+a5GFmBNTMTCsJTxa5yOjPwefh/9SrukWt01N5KLrIpmApms\nRoJSsBWh0xo7N+v23PaFHEkaJ2zCtT5zkzITa8bUfHoIc3rM6Ipa1uFlnmrnUIZE\nUQIDAQAB\n-----END PUBLIC KEY-----\n",
+    "signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+  },
+  "inbox": "https://narwhal.city/users/3/inbox",
+  "outbox": "https://narwhal.city/users/3/outbox",
+  "preferredUsername": "57H",
+  "endpoints": {
+    "sharedInbox": "https://narwhal.city/inbox"
+  },
+  "summary": "",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
+  "id": "https://narwhal.city/users/3",
+  "type": "Person",
+  "name": "57H"
+}

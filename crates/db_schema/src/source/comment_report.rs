@@ -1,4 +1,8 @@
-use crate::{schema::comment_report, source::comment::Comment, CommentId, PersonId};
+use crate::{
+  newtypes::{CommentId, CommentReportId, PersonId},
+  schema::comment_report,
+  source::comment::Comment,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -7,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[belongs_to(Comment)]
 #[table_name = "comment_report"]
 pub struct CommentReport {
-  pub id: i32,
+  pub id: CommentReportId,
   pub creator_id: PersonId,
   pub comment_id: CommentId,
   pub original_comment_text: String,

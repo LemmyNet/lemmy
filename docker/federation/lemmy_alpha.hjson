@@ -2,10 +2,9 @@
   hostname: lemmy-alpha:8541
   port: 8541
   tls_enabled: false
-  jwt_secret: changeme
   setup: {
     admin_username: lemmy_alpha
-    admin_password: lemmy
+    admin_password: lemmylemmy
     site_name: lemmy-alpha
     sidebar: alphas sidebar
   }
@@ -34,5 +33,7 @@
     register_per_second: 3600
     image: 6
     image_per_second: 3600
+    comment: 99999
+    comment_per_second: 600
   }
 }

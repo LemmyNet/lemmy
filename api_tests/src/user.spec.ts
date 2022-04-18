@@ -6,6 +6,15 @@ import {
   resolvePerson,
   saveUserSettings,
   getSite,
+  createPost,
+  gamma,
+  resolveCommunity,
+  createComment,
+  resolveBetaCommunity,
+  deleteUser,
+  resolvePost,
+  API,
+  resolveComment,
 } from './shared';
 import {
   PersonViewSafe,
@@ -59,4 +68,34 @@ test('Set some user settings, check that they are federated', async () => {
   let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
   let betaPerson = (await resolvePerson(beta, apShortname)).person;
   assertUserFederation(alphaPerson, betaPerson);
+});
+
+test('Delete user', async () => {
+  let userRes = await registerUser(alpha);
+  expect(userRes.jwt).toBeDefined();
+  let user: API = {
+    client: alpha.client,
+    auth: userRes.jwt
+  }
+
+  // make a local post and comment
+  let alphaCommunity = (await resolveCommunity(user, '!main@lemmy-alpha:8541')).community;
+  let localPost = (await createPost(user, alphaCommunity.community.id)).post_view.post;
+  expect(localPost).toBeDefined();
+  let localComment = (await createComment(user, localPost.id)).comment_view.comment;
+  expect(localComment).toBeDefined();
+
+  // make a remote post and comment
+  let betaCommunity = (await resolveBetaCommunity(user)).community;
+  let remotePost = (await createPost(user, betaCommunity.community.id)).post_view.post;
+  expect(remotePost).toBeDefined();
+  let remoteComment = (await createComment(user, remotePost.id)).comment_view.comment;
+  expect(remoteComment).toBeDefined();
+
+  await deleteUser(user);
+
+  expect((await resolvePost(alpha, localPost)).post).toBeUndefined();
+  expect((await resolveComment(alpha, localComment)).comment).toBeUndefined();
+  expect((await resolvePost(alpha, remotePost)).post).toBeUndefined();
+  expect((await resolveComment(alpha, remoteComment)).comment).toBeUndefined();
 });

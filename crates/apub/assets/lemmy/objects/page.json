@@ -1,0 +1,31 @@
+{
+  "id": "https://enterprise.lemmy.ml/post/55143",
+  "type": "Page",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": [
+    "https://enterprise.lemmy.ml/c/tenforward",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "name": "Post title",
+  "content": "<p>This is a post in the /c/tenforward community</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "This is a post in the /c/tenforward community",
+    "mediaType": "text/markdown"
+  },
+  "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png",
+  "attachment": [
+    {
+      "type": "Link",
+      "href": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
+    }
+  ],
+  "image": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
+  },
+  "sensitive": false,
+  "commentsEnabled": true,
+  "stickied": true,
+  "published": "2021-02-26T12:35:34.292626+00:00"
+}

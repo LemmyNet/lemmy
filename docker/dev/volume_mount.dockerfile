@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:experimental
 
 # Warning: this will not pick up migrations unless there are code changes
-FROM rust:1.51-buster as rust
+FROM rust:1 as rust
 
 ENV HOME=/home/root
 
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 RUN --mount=type=cache,target=/app/target \
     cp target/debug/lemmy_server lemmy_server
 
-FROM ubuntu:20.10
+FROM ubuntu:20.04
 
 # Install libpq for postgres
 RUN apt-get update -y

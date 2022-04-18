@@ -1,101 +1,58 @@
 use crate::{
   activities::{
-    community::announce::AnnouncableActivities,
+    community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
+    verify_is_public,
     verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
-  activity_queue::send_to_community_new,
-  extensions::context::lemmy_context,
-  fetcher::{
-    objects::get_or_fetch_and_insert_post_or_comment,
-    person::get_or_fetch_and_upsert_person,
-  },
-  ActorType,
+  activity_lists::AnnouncableActivities,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::voting::vote::{Vote, VoteType},
   PostOrComment,
 };
-use activitystreams::{base::AnyBase, primitives::OneOrMany, unparsed::Unparsed};
+use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{values::PublicUrl, ActivityFields, ActivityHandler};
-use lemmy_db_queries::Crud;
+use lemmy_apub_lib::{
+  data::Data,
+  object_id::ObjectId,
+  traits::{ActivityHandler, ActorType},
+};
 use lemmy_db_schema::{
-  source::{community::Community, person::Person},
-  CommunityId,
+  newtypes::CommunityId,
+  source::{community::Community, post::Post, site::Site},
+  traits::Crud,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
-use std::{convert::TryFrom, ops::Deref};
-use strum_macros::ToString;
-use url::Url;
 
-#[derive(Clone, Debug, ToString, Deserialize, Serialize)]
-pub enum VoteType {
-  Like,
-  Dislike,
-}
-
-impl TryFrom<i16> for VoteType {
-  type Error = LemmyError;
-
-  fn try_from(value: i16) -> Result<Self, Self::Error> {
-    match value {
-      1 => Ok(VoteType::Like),
-      -1 => Ok(VoteType::Dislike),
-      _ => Err(anyhow!("invalid vote value").into()),
-    }
-  }
-}
-
-impl From<&VoteType> for i16 {
-  fn from(value: &VoteType) -> i16 {
-    match value {
-      VoteType::Like => 1,
-      VoteType::Dislike => -1,
-    }
-  }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityFields)]
-#[serde(rename_all = "camelCase")]
-pub struct Vote {
-  actor: Url,
-  to: [PublicUrl; 1],
-  pub(in crate::activities::voting) object: Url,
-  cc: [Url; 1],
-  #[serde(rename = "type")]
-  pub(in crate::activities::voting) kind: VoteType,
-  id: Url,
-  #[serde(rename = "@context")]
-  context: OneOrMany<AnyBase>,
-  #[serde(flatten)]
-  unparsed: Unparsed,
-}
-
+/// Vote has as:Public value in cc field, unlike other activities. This indicates to other software
+/// (like GNU social, or presumably Mastodon), that the like actor should not be disclosed.
 impl Vote {
   pub(in crate::activities::voting) fn new(
     object: &PostOrComment,
-    actor: &Person,
-    community: &Community,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
     kind: VoteType,
+    context: &LemmyContext,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
-      actor: actor.actor_id(),
-      to: [PublicUrl::Public],
-      object: object.ap_id(),
-      cc: [community.actor_id()],
+      actor: ObjectId::new(actor.actor_id()),
+      to: vec![community.actor_id()],
+      object: ObjectId::new(object.ap_id()),
+      cc: vec![public()],
       kind: kind.clone(),
-      id: generate_activity_id(kind)?,
-      context: lemmy_context(),
+      id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
       unparsed: Default::default(),
     })
   }
 
+  #[tracing::instrument(skip_all)]
   pub async fn send(
     object: &PostOrComment,
-    actor: &Person,
+    actor: &ApubPerson,
     community_id: CommunityId,
     kind: VoteType,
     context: &LemmyContext,
@@ -103,38 +60,79 @@ impl Vote {
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
-    .await??;
-    let vote = Vote::new(object, actor, &community, kind)?;
+    .await??
+    .into();
+    let vote = Vote::new(object, actor, &community, kind, context)?;
     let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
-    send_to_community_new(activity, &vote_id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, &vote_id, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Vote {
+  type DataType = LemmyContext;
+
+  #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(self)?;
-    verify_person_in_community(&self.actor, &self.cc[0], context, request_counter).await?;
+    verify_is_public(&self.to, &self.cc)?;
+    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
+    let community = self.get_community(context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    let site = blocking(context.pool(), Site::read_local_site).await??;
+    if self.kind == VoteType::Dislike && !site.enable_downvotes {
+      return Err(anyhow!("Downvotes disabled").into());
+    }
     Ok(())
   }
 
+  #[tracing::instrument(skip_all)]
   async fn receive(
     self,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let actor = get_or_fetch_and_upsert_person(&self.actor, context, request_counter).await?;
-    let object =
-      get_or_fetch_and_insert_post_or_comment(&self.object, context, request_counter).await?;
+    let actor = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let object = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
     match object {
-      PostOrComment::Post(p) => vote_post(&self.kind, actor, p.deref(), context).await,
-      PostOrComment::Comment(c) => vote_comment(&self.kind, actor, c.deref(), context).await,
+      PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
+      PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
     }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl GetCommunity for Vote {
+  #[tracing::instrument(skip_all)]
+  async fn get_community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let object = self
+      .object
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let cid = match object {
+      PostOrComment::Post(p) => p.community_id,
+      PostOrComment::Comment(c) => {
+        blocking(context.pool(), move |conn| Post::read(conn, c.post_id))
+          .await??
+          .community_id
+      }
+    };
+    let community = blocking(context.pool(), move |conn| Community::read(conn, cid)).await??;
+    Ok(community.into())
   }
 }

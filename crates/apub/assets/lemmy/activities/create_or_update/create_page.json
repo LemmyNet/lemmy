@@ -1,0 +1,38 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": {
+    "type": "Page",
+    "id": "http://ds9.lemmy.ml/post/1",
+    "attributedTo": "http://ds9.lemmy.ml/u/lemmy_alpha",
+    "to": [
+      "http://enterprise.lemmy.ml/c/main",
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "name": "test post",
+    "content": "<p>test body</p>\n",
+    "mediaType": "text/html",
+    "source": {
+      "content": "test body",
+      "mediaType": "text/markdown"
+    },
+    "url": "https://lemmy.ml/pictrs/image/xl8W7FZfk9.jpg",
+    "attachment": [
+      {
+        "type": "Link",
+        "href": "https://lemmy.ml/pictrs/image/xl8W7FZfk9.jpg"
+      }
+    ],
+    "commentsEnabled": true,
+    "sensitive": false,
+    "stickied": false,
+    "published": "2021-10-29T15:10:51.557399+00:00"
+  },
+  "cc": [
+    "http://enterprise.lemmy.ml/c/main"
+  ],
+  "type": "Create",
+  "id": "http://ds9.lemmy.ml/activities/create/eee6a57a-622f-464d-b560-73ae1fcd3ddf"
+}

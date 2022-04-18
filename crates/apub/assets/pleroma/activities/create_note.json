@@ -1,0 +1,52 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://greenish.red/schemas/litepub-0.1.jsonld",
+    {
+      "@language": "und"
+    }
+  ],
+  "actor": "https://greenish.red/users/nutomic",
+  "cc": [
+    "https://greenish.red/users/nutomic/followers"
+  ],
+  "context": "https://greenish.red/contexts/f6244742-0526-4b84-ac4f-ceadf1fb4e56",
+  "context_id": 6336544,
+  "directMessage": false,
+  "id": "https://greenish.red/activities/db61d52b-9c35-486a-bf27-bbd4edc6c6a1",
+  "object": {
+    "actor": "https://greenish.red/users/nutomic",
+    "attachment": [],
+    "attributedTo": "https://greenish.red/users/nutomic",
+    "cc": [
+      "https://greenish.red/users/nutomic/followers"
+    ],
+    "content": "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"ACimPLEXPDd7enu3cm\" href=\"https://enterprise.lemmy.ml/u/picard\" rel=\"ugc\">@<span>lanodan</span></a></span> test",
+    "context": "https://greenish.red/contexts/f6244742-0526-4b84-ac4f-ceadf1fb4e56",
+    "conversation": "https://greenish.red/contexts/f6244742-0526-4b84-ac4f-ceadf1fb4e56",
+    "id": "https://greenish.red/objects/1a522f2e-d5ab-454b-93d7-e58bc0650c2a",
+    "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
+    "published": "2021-10-26T10:28:35.602455Z",
+    "sensitive": false,
+    "source": "@lanodan@ds9.lemmy.ml test",
+    "summary": "",
+    "tag": [
+      {
+        "href": "https://enterprise.lemmy.ml/u/picard",
+        "name": "@lanodan@ds9.lemmy.ml",
+        "type": "Mention"
+      }
+    ],
+    "to": [
+      "https://enterprise.lemmy.ml/u/picard",
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "type": "Note"
+  },
+  "published": "2021-10-26T10:28:35.595650Z",
+  "to": [
+    "https://enterprise.lemmy.ml/u/picard",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Create"
+}

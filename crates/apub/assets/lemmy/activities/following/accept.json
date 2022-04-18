@@ -1,0 +1,11 @@
+{
+  "actor": "http://enterprise.lemmy.ml/c/main",
+  "object": {
+    "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+    "object": "http://enterprise.lemmy.ml/c/main",
+    "type": "Follow",
+    "id": "http://ds9.lemmy.ml/activities/follow/6abcd50b-b8ca-4952-86b0-a6dd8cc12866"
+  },
+  "type": "Accept",
+  "id": "http://enterprise.lemmy.ml/activities/accept/75f080cc-3d45-4654-8186-8f3bb853fa27"
+}

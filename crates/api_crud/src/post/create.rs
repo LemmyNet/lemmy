@@ -3,55 +3,69 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
   check_community_ban,
+  check_community_deleted_or_removed,
   get_local_user_view_from_jwt,
+  honeypot_check,
   mark_post_as_read,
   post::*,
 };
 use lemmy_apub::{
-  activities::{
-    post::create_or_update::CreateOrUpdatePost,
-    voting::vote::{Vote, VoteType},
-    CreateOrUpdateType,
-  },
-  generate_apub_endpoint,
+  generate_local_apub_endpoint,
+  objects::post::ApubPost,
+  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
   EndpointType,
-  PostOrComment,
 };
-use lemmy_db_queries::{source::post::Post_, Crud, Likeable};
-use lemmy_db_schema::source::post::*;
+use lemmy_db_schema::{
+  source::post::{Post, PostForm, PostLike, PostLikeForm},
+  traits::{Crud, Likeable},
+};
 use lemmy_utils::{
   request::fetch_site_data,
-  utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
-  ApiError,
+  utils::{
+    check_slurs,
+    check_slurs_opt,
+    clean_optional_text,
+    clean_url_params,
+    is_valid_post_title,
+  },
   ConnectionId,
   LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use tracing::{warn, Instrument};
+use url::Url;
+use webmention::{Webmention, WebmentionError};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePost {
   type Response = PostResponse;
 
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
-    let local_user_view = get_local_user_view_from_jwt(&data.auth, context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs(&data.name)?;
-    check_slurs_opt(&data.body)?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs(&data.name, slur_regex)?;
+    check_slurs_opt(&data.body, slur_regex)?;
+    honeypot_check(&data.honeypot)?;
 
     if !is_valid_post_title(&data.name) {
-      return Err(ApiError::err("invalid_post_title").into());
+      return Err(LemmyError::from_message("invalid_post_title"));
     }
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
+    check_community_deleted_or_removed(data.community_id, context.pool()).await?;
 
     // Fetch post links and pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) = fetch_site_data(context.client(), data_url).await;
+    let (metadata_res, pictrs_thumbnail) =
+      fetch_site_data(context.client(), &context.settings(), data_url).await;
     let (embed_title, embed_description, embed_html) = metadata_res
       .map(|u| (u.title, u.description, u.html))
       .unwrap_or((None, None, None));
@@ -59,7 +73,7 @@ impl PerformCrud for CreatePost {
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
       url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
-      body: data.body.to_owned(),
+      body: clean_optional_text(&data.body),
       community_id: data.community_id,
       creator_id: local_user_view.person.id,
       nsfw: data.nsfw,
@@ -80,25 +94,22 @@ impl PerformCrud for CreatePost {
             "couldnt_create_post"
           };
 
-          return Err(ApiError::err(err_type).into());
+          return Err(LemmyError::from_error_message(e, err_type));
         }
       };
 
     let inserted_post_id = inserted_post.id;
+    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
-      let apub_id = generate_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string())?;
+      let apub_id = generate_local_apub_endpoint(
+        EndpointType::Post,
+        &inserted_post_id.to_string(),
+        &protocol_and_hostname,
+      )?;
       Ok(Post::update_ap_id(conn, inserted_post_id, apub_id)?)
     })
     .await?
-    .map_err(|_| ApiError::err("couldnt_create_post"))?;
-
-    CreateOrUpdatePost::send(
-      &updated_post,
-      &local_user_view.person,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
+    .map_err(|e| e.with_message("couldnt_create_post"))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -110,19 +121,33 @@ impl PerformCrud for CreatePost {
     };
 
     let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
-    if blocking(context.pool(), like).await?.is_err() {
-      return Err(ApiError::err("couldnt_like_post").into());
-    }
+    blocking(context.pool(), like)
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    let object = PostOrComment::Post(Box::new(updated_post));
-    Vote::send(
-      &object,
-      &local_user_view.person,
-      inserted_post.community_id,
-      VoteType::Like,
+    if let Some(url) = &updated_post.url {
+      let mut webmention =
+        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+      webmention.set_checked(true);
+      match webmention
+        .send()
+        .instrument(tracing::info_span!("Sending webmention"))
+        .await
+      {
+        Ok(_) => {}
+        Err(WebmentionError::NoEndpointDiscovered(_)) => {}
+        Err(e) => warn!("Failed to send webmention: {}", e),
+      }
+    }
+
+    let apub_post: ApubPost = updated_post.into();
+    CreateOrUpdatePost::send(
+      apub_post.clone(),
+      &local_user_view.person.clone().into(),
+      CreateOrUpdateType::Create,
       context,
     )
     .await?;

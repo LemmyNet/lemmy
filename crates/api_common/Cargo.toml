@@ -1,9 +1,11 @@
 [package]
 name = "lemmy_api_common"
-version = "0.12.0-rc.1"
-edition = "2018"
+version = "0.16.3"
+edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
+homepage = "https://join-lemmy.org/"
+documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [lib]
 name = "lemmy_api_common"
@@ -11,16 +13,17 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_db_queries = { version = "=0.12.0-rc.1", path = "../db_queries" }
-lemmy_db_views = { version = "=0.12.0-rc.1", path = "../db_views" }
-lemmy_db_views_moderator = { version = "=0.12.0-rc.1", path = "../db_views_moderator" }
-lemmy_db_views_actor = { version = "=0.12.0-rc.1", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.12.0-rc.1", path = "../db_schema" }
-lemmy_utils = { version = "=0.12.0-rc.1", path = "../utils" }
-serde = { version = "1.0.129", features = ["derive"] }
-log = "0.4.14"
-diesel = "1.4.7"
-actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["cookies"] }
+lemmy_db_views = { version = "=0.16.3", path = "../db_views" }
+lemmy_db_views_moderator = { version = "=0.16.3", path = "../db_views_moderator" }
+lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.16.3", path = "../db_schema" }
+lemmy_utils = { version = "=0.16.3", path = "../utils" }
+serde = { version = "1.0.136", features = ["derive"] }
+diesel = "1.4.8"
+actix-web = { version = "4.0.1", default-features = false, features = ["cookies"] }
 chrono = { version = "0.4.19", features = ["serde"] }
-serde_json = { version = "1.0.66", features = ["preserve_order"] }
+serde_json = { version = "1.0.79", features = ["preserve_order"] }
+tracing = "0.1.32"
 url = "2.2.2"
+itertools = "0.10.3"
+rosetta-i18n = "0.1.2"

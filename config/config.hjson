@@ -1,0 +1,12 @@
+# See the documentation for available config fields and descriptions:
+# https://join-lemmy.org/docs/en/administration/configuration.html
+{
+  hostname: lemmy-alpha
+  federation: {
+    enabled: true
+  }
+  slur_filter:
+    '''
+    (fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)
+    '''
+}

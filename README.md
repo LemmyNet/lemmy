@@ -124,14 +124,15 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 ### Apps
 
 - [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/krawieck/lemmur)
+- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/LemmurOrg/lemmur)
+- [Jerboa - A native Android app made by Lemmy's developers](https://github.com/dessalines/jerboa)
 - [Remmel - A native iOS app](https://github.com/uuttff8/Lemmy-iOS)
 
 ### Libraries
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
 - [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
-- [Dart API client](https://github.com/krawieck/lemmy_api_client)
+- [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
 
 ## Support / Donate
 
@@ -147,6 +148,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
+- cardano: `addr1q858t89l2ym6xmrugjs0af9cslfwvnvsh2xxp6x4dcez7pf5tushkp4wl7zxfhm2djp6gq60dk4cmc7seaza5p3slx0sakjutm`
 
 ## Contributing
 

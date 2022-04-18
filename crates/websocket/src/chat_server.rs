@@ -14,17 +14,20 @@ use diesel::{
   PgConnection,
 };
 use lemmy_api_common::{comment::*, post::*};
-use lemmy_db_schema::{CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, LocalUserId, PostId},
+  source::secret::Secret,
+};
 use lemmy_utils::{
   location_info,
   rate_limit::RateLimit,
-  ApiError,
+  settings::structs::Settings,
   ConnectionId,
   IpAddr,
   LemmyError,
 };
 use rand::rngs::ThreadRng;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -71,6 +74,12 @@ pub struct ChatServer {
   /// The DB Pool
   pub(super) pool: Pool<ConnectionManager<PgConnection>>,
 
+  /// The Settings
+  pub(super) settings: Settings,
+
+  /// The Secrets
+  pub(super) secret: Secret,
+
   /// Rate limiting based on rate type and IP addr
   pub(super) rate_limiter: RateLimit,
 
@@ -81,7 +90,7 @@ pub struct ChatServer {
   message_handler_crud: MessageHandlerCrudType,
 
   /// An HTTP Client
-  client: Client,
+  client: ClientWithMiddleware,
 
   activity_queue: QueueHandle,
 }
@@ -95,13 +104,16 @@ pub struct SessionInfo {
 /// And manages available rooms. Peers send messages to other peers in same
 /// room through `ChatServer`.
 impl ChatServer {
+  #![allow(clippy::too_many_arguments)]
   pub fn startup(
     pool: Pool<ConnectionManager<PgConnection>>,
     rate_limiter: RateLimit,
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
-    client: Client,
+    client: ClientWithMiddleware,
     activity_queue: QueueHandle,
+    settings: Settings,
+    secret: Secret,
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -117,6 +129,8 @@ impl ChatServer {
       message_handler_crud,
       client,
       activity_queue,
+      settings,
+      secret,
     }
   }
 
@@ -452,28 +466,46 @@ impl ChatServer {
       chat_server: ctx.address(),
       client: self.client.to_owned(),
       activity_queue: self.activity_queue.to_owned(),
+      settings: self.settings.to_owned(),
+      secret: self.secret.to_owned(),
     };
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
       let data = &json["data"].to_string();
-      let op = &json["op"].as_str().ok_or(ApiError {
-        message: "Unknown op type".to_string(),
-      })?;
+      let op = &json["op"]
+        .as_str()
+        .ok_or_else(|| LemmyError::from_message("missing op"))?;
 
-      if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
-        let fut = (message_handler_crud)(context, msg.id, user_operation_crud.clone(), data);
-        match user_operation_crud {
-          UserOperationCrud::Register => rate_limiter.register().wrap(ip, fut).await,
-          UserOperationCrud::CreatePost => rate_limiter.post().wrap(ip, fut).await,
-          UserOperationCrud::CreateCommunity => rate_limiter.register().wrap(ip, fut).await,
-          _ => rate_limiter.message().wrap(ip, fut).await,
-        }
+      // check if api call passes the rate limit, and generate future for later execution
+      let (passed, fut) = if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
+        let passed = match user_operation_crud {
+          UserOperationCrud::Register => rate_limiter.register().check(ip),
+          UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
+          UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
+          UserOperationCrud::CreateComment => rate_limiter.comment().check(ip),
+          _ => true,
+        };
+        let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
+        (passed, fut)
       } else {
         let user_operation = UserOperation::from_str(op)?;
-        let fut = (message_handler)(context, msg.id, user_operation.clone(), data);
-        rate_limiter.message().wrap(ip, fut).await
+        let passed = match user_operation {
+          UserOperation::GetCaptcha => rate_limiter.post().check(ip),
+          UserOperation::Search => rate_limiter.search().check(ip),
+          _ => true,
+        };
+        let fut = (message_handler)(context, msg.id, user_operation, data);
+        (passed, fut)
+      };
+
+      // if rate limit passed, execute api call future
+      if passed {
+        fut.await
+      } else {
+        // if rate limit was hit, respond with empty message
+        Ok("".to_string())
       }
     }
   }

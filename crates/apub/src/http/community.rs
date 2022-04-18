@@ -1,38 +1,34 @@
 use crate::{
-  activities::{
-    community::announce::{AnnouncableActivities, AnnounceActivity},
-    extract_community,
-    following::{follow::FollowCommunity, undo::UndoFollowCommunity},
+  activities::{community::announce::GetCommunity, verify_person_in_community},
+  activity_lists::GroupInboxActivities,
+  collections::{
+    community_moderators::ApubCommunityModerators,
+    community_outbox::ApubCommunityOutbox,
+    CommunityContext,
   },
-  extensions::context::lemmy_context,
-  generate_moderators_url,
+  context::WithContext,
+  generate_outbox_url,
   http::{
     create_apub_response,
     create_apub_tombstone_response,
     payload_to_string,
     receive_activity,
+    ActivityCommonFields,
   },
-  objects::ToApub,
-  ActorType,
+  objects::community::ApubCommunity,
+  protocol::{
+    activities::community::announce::AnnounceActivity,
+    collections::group_followers::GroupFollowers,
+  },
 };
-use activitystreams::{
-  base::{AnyBase, BaseExt},
-  collection::{CollectionExt, OrderedCollection, UnorderedCollection},
-  url::Url,
-};
-use actix_web::{body::Body, web, web::Payload, HttpRequest, HttpResponse};
+use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{ActivityFields, ActivityHandler};
-use lemmy_db_queries::source::{activity::Activity_, community::Community_};
-use lemmy_db_schema::source::{activity::Activity, community::Community};
-use lemmy_db_views_actor::{
-  community_follower_view::CommunityFollowerView,
-  community_moderator_view::CommunityModeratorView,
-};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
+use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use log::trace;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use tracing::info;
 
 #[derive(Deserialize)]
 pub(crate) struct CommunityQuery {
@@ -40,17 +36,19 @@ pub(crate) struct CommunityQuery {
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
+#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
+) -> Result<HttpResponse, LemmyError> {
+  let community: ApubCommunity = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
-  .await??;
+  .await??
+  .into();
 
   if !community.deleted {
-    let apub = community.to_apub(context.pool()).await?;
+    let apub = community.into_apub(&**context).await?;
 
     Ok(create_apub_response(&apub))
   } else {
@@ -58,15 +56,8 @@ pub(crate) async fn get_apub_community_http(
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler, ActivityFields)]
-#[serde(untagged)]
-pub enum GroupInboxActivities {
-  FollowCommunity(FollowCommunity),
-  UndoFollowCommunity(UndoFollowCommunity),
-  AnnouncableActivities(AnnouncableActivities),
-}
-
 /// Handler for all incoming receive to community inboxes.
+#[tracing::instrument(skip_all)]
 pub async fn community_inbox(
   request: HttpRequest,
   payload: Payload,
@@ -74,50 +65,50 @@ pub async fn community_inbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let unparsed = payload_to_string(payload).await?;
-  trace!("Received community inbox activity {}", unparsed);
-  let activity = serde_json::from_str::<GroupInboxActivities>(&unparsed)?;
+  info!("Received community inbox activity {}", unparsed);
+  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
+  let activity = serde_json::from_str::<WithContext<GroupInboxActivities>>(&unparsed)?;
 
-  receive_group_inbox(activity.clone(), request, &context).await?;
+  receive_group_inbox(activity.inner(), activity_data, request, &context).await?;
 
-  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
-    let community = extract_community(&announcable.cc(), &context, &mut 0).await?;
-    if community.local {
-      AnnounceActivity::send(announcable, &community, vec![], &context).await?;
-    }
-  }
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(in crate::http) async fn receive_group_inbox(
   activity: GroupInboxActivities,
+  activity_data: ActivityCommonFields,
   request: HttpRequest,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, activity.clone(), context).await
+  let actor_id = ObjectId::new(activity_data.actor.clone());
+  let res = receive_activity(request, activity.clone(), activity_data, context).await?;
+
+  if let GroupInboxActivities::AnnouncableActivities(announcable) = activity {
+    // Ignore failures in get_community(). those happen because Delete/PrivateMessage is not in a
+    // community, but looks identical to Delete/Post or Delete/Comment which are in a community.
+    let community = announcable.get_community(context, &mut 0).await;
+    if let Ok(community) = community {
+      if community.local {
+        verify_person_in_community(&actor_id, &community, context, &mut 0).await?;
+        AnnounceActivity::send(*announcable, &community, context).await?;
+      }
+    }
+  }
+
+  Ok(res)
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-
-  let community_id = community.id;
-  let community_followers = blocking(context.pool(), move |conn| {
-    CommunityFollowerView::for_community(conn, community_id)
-  })
-  .await??;
-
-  let mut collection = UnorderedCollection::new();
-  collection
-    .set_many_contexts(lemmy_context())
-    .set_id(community.followers_url.into())
-    .set_total_items(community_followers.len() as u64);
-  Ok(create_apub_response(&collection))
+  let followers = GroupFollowers::new(community, &context).await?;
+  Ok(create_apub_response(&followers))
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
@@ -125,76 +116,35 @@ pub(crate) async fn get_apub_community_followers(
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
-
-  let community_actor_id = community.actor_id.to_owned();
-  let activities = blocking(context.pool(), move |conn| {
-    Activity::read_community_outbox(conn, &community_actor_id)
-  })
-  .await??;
-
-  let activities = activities
-    .iter()
-    .map(AnyBase::from_arbitrary_json)
-    .collect::<Result<Vec<AnyBase>, serde_json::Error>>()?;
-  let len = activities.len();
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_many_items(activities)
-    .set_many_contexts(lemmy_context())
-    .set_id(community.get_outbox_url()?)
-    .set_total_items(len as u64);
-  Ok(create_apub_response(&collection))
+  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
+  let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
+  let outbox: ApubCommunityOutbox = id
+    .dereference(&outbox_data, context.client(), &mut 0)
+    .await?;
+  Ok(create_apub_response(&outbox.into_apub(&outbox_data).await?))
 }
 
-pub(crate) async fn get_apub_community_inbox(
-  info: web::Path<CommunityQuery>,
-  context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
-  })
-  .await??;
-
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_id(community.inbox_url.into())
-    .set_many_contexts(lemmy_context());
-  Ok(create_apub_response(&collection))
-}
-
+#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(context.pool(), move |conn| {
+) -> Result<HttpResponse, LemmyError> {
+  let community: ApubCommunity = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
-  .await??;
-
-  // The attributed to, is an ordered vector with the creator actor_ids first,
-  // then the rest of the moderators
-  // TODO Technically the instance admins can mod the community, but lets
-  // ignore that for now
-  let cid = community.id;
-  let moderators = blocking(context.pool(), move |conn| {
-    CommunityModeratorView::for_community(conn, cid)
-  })
-  .await??;
-
-  let moderators: Vec<Url> = moderators
-    .into_iter()
-    .map(|m| m.moderator.actor_id.into())
-    .collect();
-  let mut collection = OrderedCollection::new();
-  collection
-    .set_id(generate_moderators_url(&community.actor_id)?.into())
-    .set_total_items(moderators.len() as u64)
-    .set_many_items(moderators)
-    .set_many_contexts(lemmy_context());
-  Ok(create_apub_response(&collection))
+  .await??
+  .into();
+  let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
+  let outbox_data = CommunityContext(community, context.get_ref().clone());
+  let moderators: ApubCommunityModerators = id
+    .dereference(&outbox_data, context.client(), &mut 0)
+    .await?;
+  Ok(create_apub_response(
+    &moderators.into_apub(&outbox_data).await?,
+  ))
 }

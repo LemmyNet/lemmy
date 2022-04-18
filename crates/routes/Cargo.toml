@@ -1,35 +1,37 @@
 [package]
 name = "lemmy_routes"
-version = "0.12.0-rc.1"
-edition = "2018"
+version = "0.16.3"
+edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
+homepage = "https://join-lemmy.org/"
+documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [lib]
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.12.0-rc.1", path = "../utils" }
-lemmy_websocket = { version = "=0.12.0-rc.1", path = "../websocket" }
-lemmy_db_queries = { version = "=0.12.0-rc.1", path = "../db_queries" }
-lemmy_db_views = { version = "=0.12.0-rc.1", path = "../db_views" }
-lemmy_db_views_actor = { version = "=0.12.0-rc.1", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.12.0-rc.1", path = "../db_schema" }
-lemmy_api_common = { version = "=0.12.0-rc.1", path = "../api_common" }
-lemmy_apub_lib = { version = "=0.12.0-rc.1", path = "../apub_lib" }
-diesel = "1.4.7"
-actix = "0.12.0"
-actix-web = { version = "4.0.0-beta.8", default-features = false, features = ["rustls"] }
-actix-web-actors = { version = "4.0.0-beta.6", default-features = false }
-sha2 = "0.9.5"
-log = "0.4.14"
-anyhow = "1.0.43"
+lemmy_utils = { version = "=0.16.3", path = "../utils" }
+lemmy_websocket = { version = "=0.16.3", path = "../websocket" }
+lemmy_db_views = { version = "=0.16.3", path = "../db_views" }
+lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.16.3", path = "../db_schema" }
+lemmy_api_common = { version = "=0.16.3", path = "../api_common" }
+lemmy_apub = { version = "=0.16.3", path = "../apub" }
+diesel = "1.4.8"
+actix = "0.13.0"
+actix-web = { version = "4.0.1", default-features = false, features = ["rustls"] }
+actix-web-actors = { version = "4.1.0", default-features = false }
+sha2 = "0.10.2"
+anyhow = "1.0.56"
 chrono = { version = "0.4.19", features = ["serde"] }
-rss = "1.10.0"
-serde = { version = "1.0.129", features = ["derive"] }
-# TODO awc should use default-features = false, because gzip is a heavy dependency.
-# This must wait for pictrs to have a configurable disabled gzip
-awc = "3.0.0-beta.7"
+futures = "0.3.21"
+reqwest = { version = "0.11.10", features = ["stream"] }
+reqwest-middleware = "0.1.5"
+rss = "2.0.0"
+serde = { version = "1.0.136", features = ["derive"] }
 url = { version = "2.2.2", features = ["serde"] }
-strum = "0.21.0"
-lazy_static = "1.4.0"
+strum = "0.24.0"
+once_cell = "1.10.0"
+tracing = "0.1.32"
+tokio = { version = "1.17.0", features = ["sync"] }

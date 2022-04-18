@@ -1,33 +1,47 @@
-use crate::{check_is_apub_id_valid, CommunityType};
-use itertools::Itertools;
-use lemmy_db_schema::source::community::Community;
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use crate::{
+  activities::send_lemmy_activity,
+  activity_lists::AnnouncableActivities,
+  objects::community::ApubCommunity,
+  protocol::activities::community::announce::AnnounceActivity,
+};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
 pub mod add_mod;
 pub mod announce;
-pub mod block_user;
 pub mod remove_mod;
-pub mod undo_block_user;
+pub mod report;
 pub mod update;
 
-async fn list_community_follower_inboxes(
-  community: &Community,
-  additional_inboxes: Vec<Url>,
+#[tracing::instrument(skip_all)]
+pub(crate) async fn send_activity_in_community<T: ActorType>(
+  activity: AnnouncableActivities,
+  activity_id: &Url,
+  actor: &T,
+  community: &ApubCommunity,
+  mut inboxes: Vec<Url>,
   context: &LemmyContext,
-) -> Result<Vec<Url>, LemmyError> {
-  Ok(
-    vec![
-      community.get_follower_inboxes(context.pool()).await?,
-      additional_inboxes,
-    ]
-    .iter()
-    .flatten()
-    .unique()
-    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname))
-    .filter(|inbox| check_is_apub_id_valid(inbox, false).is_ok())
-    .map(|inbox| inbox.to_owned())
-    .collect(),
-  )
+) -> Result<(), LemmyError> {
+  inboxes.push(community.shared_inbox_or_inbox_url());
+  send_lemmy_activity(context, &activity, activity_id, actor, inboxes, false).await?;
+
+  if community.local {
+    AnnounceActivity::send(activity, community, context).await?;
+  }
+
+  Ok(())
+}
+
+#[tracing::instrument(skip_all)]
+async fn get_community_from_moderators_url(
+  moderators: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<ApubCommunity, LemmyError> {
+  let community_id = Url::parse(&moderators.to_string().replace("/moderators", ""))?;
+  ObjectId::new(community_id)
+    .dereference(context, context.client(), request_counter)
+    .await
 }

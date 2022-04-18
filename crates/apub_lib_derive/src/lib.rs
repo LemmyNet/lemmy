@@ -1,6 +1,6 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields::Unnamed, Ident, Variant};
+use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields::Unnamed, Ident, Variant};
 
 /// Generates implementation ActivityHandler for an enum, which looks like the following (handling
 /// all enum variants).
@@ -46,9 +46,29 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields::Unnamed, Ident, Variant}
 ///   }
 ///
 /// ```
-#[proc_macro_derive(ActivityHandler)]
+#[proc_macro_derive(ActivityHandler, attributes(activity_handler))]
 pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let input = parse_macro_input!(input as DeriveInput);
+  let attrs: Vec<&Attribute> = input
+    .attrs
+    .iter()
+    .filter(|attr| attr.path.is_ident("activity_handler"))
+    .collect();
+  let attrs: &Vec<TokenStream> = &attrs
+    .first()
+    .expect("Could not decode first attribute from token stream")
+    .tokens
+    .clone()
+    .into_iter()
+    .map(|t| {
+      if let TokenTree::Group(g) = t {
+        g.stream()
+      } else {
+        panic!()
+      }
+    })
+    .collect();
+  let attrs = attrs.first();
 
   let enum_name = input.ident;
 
@@ -71,10 +91,11 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
 
   let expanded = quote! {
       #[async_trait::async_trait(?Send)]
-      impl #impl_generics lemmy_apub_lib::ActivityHandler for #enum_name #ty_generics #where_clause {
+      impl #impl_generics lemmy_apub_lib::traits::ActivityHandler for #enum_name #ty_generics #where_clause {
+        type DataType = #attrs;
           async fn verify(
               &self,
-              context: &lemmy_websocket::LemmyContext,
+              context: &lemmy_apub_lib::data::Data<Self::DataType>,
               request_counter: &mut i32,
             ) -> Result<(), lemmy_utils::LemmyError> {
             match self {
@@ -83,7 +104,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
           }
           async fn receive(
             self,
-            context: &lemmy_websocket::LemmyContext,
+            context: &lemmy_apub_lib::data::Data<Self::DataType>,
             request_counter: &mut i32,
           ) -> Result<(), lemmy_utils::LemmyError> {
             match self {
@@ -105,59 +126,4 @@ fn generate_match_arm(enum_name: &Ident, variant: &Variant, body: &TokenStream) 
     }
     _ => unimplemented!(),
   }
-}
-
-#[proc_macro_derive(ActivityFields)]
-pub fn derive_activity_fields(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  let input = parse_macro_input!(input as DeriveInput);
-
-  let name = input.ident;
-
-  let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-
-  let expanded = match input.data {
-    Data::Enum(e) => {
-      let variants = e.variants;
-      let impl_id = variants
-        .iter()
-        .map(|v| generate_match_arm(&name, v, &quote! {a.id_unchecked()}));
-      let impl_actor = variants
-        .iter()
-        .map(|v| generate_match_arm(&name, v, &quote! {a.actor()}));
-      let impl_cc = variants
-        .iter()
-        .map(|v| generate_match_arm(&name, v, &quote! {a.cc()}));
-      quote! {
-          impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
-              fn id_unchecked(&self) -> &url::Url { match self { #(#impl_id)* } }
-              fn actor(&self) -> &url::Url { match self { #(#impl_actor)* } }
-              fn cc(&self) -> Vec<url::Url> { match self { #(#impl_cc)* } }
-          }
-      }
-    }
-    Data::Struct(s) => {
-      // check if the struct has a field "cc", and generate impl for cc() function depending on that
-      let has_cc = if let syn::Fields::Named(n) = s.fields {
-        n.named
-          .iter()
-          .any(|i| format!("{}", i.ident.as_ref().unwrap()) == "cc")
-      } else {
-        unimplemented!()
-      };
-      let cc_impl = if has_cc {
-        quote! {self.cc.clone().into()}
-      } else {
-        quote! {vec![]}
-      };
-      quote! {
-          impl #impl_generics lemmy_apub_lib::ActivityFields for #name #ty_generics #where_clause {
-              fn id_unchecked(&self) -> &url::Url { &self.id }
-              fn actor(&self) -> &url::Url { &self.actor }
-              fn cc(&self) -> Vec<url::Url> { #cc_impl }
-          }
-      }
-    }
-    _ => unimplemented!(),
-  };
-  expanded.into()
 }

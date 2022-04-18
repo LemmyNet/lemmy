@@ -1,28 +1,23 @@
 use crate::{community_moderator_view::CommunityModeratorView, person_view::PersonViewSafe};
 use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use lemmy_db_schema::{
   aggregates::community_aggregates::CommunityAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  ListingType,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
-  schema::{community, community_aggregates, community_block, community_follower},
+  newtypes::{CommunityId, PersonId},
+  schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
     community::{Community, CommunityFollower, CommunitySafe},
     community_block::CommunityBlock,
   },
-  CommunityId,
-  PersonId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  ListingType,
+  SortType,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityView {
   pub community: CommunitySafe,
   pub subscribed: bool,
@@ -172,6 +167,7 @@ impl<'a> CommunityQueryBuilder<'a> {
 
     let mut query = community::table
       .inner_join(community_aggregates::table)
+      .left_join(local_user::table.on(local_user::person_id.eq(person_id_join)))
       .left_join(
         community_follower::table.on(
           community::id
@@ -206,7 +202,24 @@ impl<'a> CommunityQueryBuilder<'a> {
       SortType::New => query = query.order_by(community::published.desc()),
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      // Covers all other sorts, including hot
+      SortType::Hot => {
+        query = query
+          .order_by(
+            hot_rank(
+              community_aggregates::subscribers,
+              community_aggregates::published,
+            )
+            .desc(),
+          )
+          .then_order_by(community_aggregates::published.desc());
+        // Don't show hidden communities in Hot (trending)
+        query = query.filter(
+          community::hidden
+            .eq(false)
+            .or(community_follower::person_id.eq(person_id_join)),
+        );
+      }
+      // Covers all other sorts
       _ => {
         query = query
           .order_by(
@@ -220,10 +233,6 @@ impl<'a> CommunityQueryBuilder<'a> {
       }
     };
 
-    if !self.show_nsfw.unwrap_or(false) {
-      query = query.filter(community::nsfw.eq(false));
-    };
-
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {
         ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
@@ -232,9 +241,15 @@ impl<'a> CommunityQueryBuilder<'a> {
       };
     }
 
-    // Don't show blocked communities
+    // Don't show blocked communities or nsfw communities if not enabled in profile
     if self.my_person_id.is_some() {
       query = query.filter(community_block::person_id.is_null());
+      query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
+    } else {
+      // No person in request, only show nsfw communities if show_nsfw passed into request
+      if !self.show_nsfw.unwrap_or(false) {
+        query = query.filter(community::nsfw.eq(false));
+      }
     }
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);

@@ -1,0 +1,9 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": [
+    "http://enterprise.lemmy.ml/u/lemmy_beta"
+  ],
+  "object": "http://enterprise.lemmy.ml/private_message/1",
+  "type": "Delete",
+  "id": "http://enterprise.lemmy.ml/activities/delete/041d9858-5eef-4ad9-84ae-7455b4d87ed9"
+}

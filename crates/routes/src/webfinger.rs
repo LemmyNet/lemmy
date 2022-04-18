@@ -1,25 +1,23 @@
-use actix_web::{error::ErrorBadRequest, web::Query, *};
-use anyhow::anyhow;
+use actix_web::{web, web::Query, HttpResponse};
+use anyhow::Context;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::webfinger::{WebfingerLink, WebfingerResponse};
-use lemmy_db_queries::source::{community::Community_, person::Person_};
-use lemmy_db_schema::source::{community::Community, person::Person};
-use lemmy_utils::{
-  settings::structs::Settings,
-  LemmyError,
-  WEBFINGER_COMMUNITY_REGEX,
-  WEBFINGER_USERNAME_REGEX,
+use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
+use lemmy_db_schema::{
+  source::{community::Community, person::Person},
+  traits::ApubActor,
 };
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 struct Params {
   resource: String,
 }
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation.enabled {
+pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
+  if settings.federation.enabled {
     cfg.route(
       ".well-known/webfinger",
       web::get().to(get_webfinger_response),
@@ -36,61 +34,63 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn get_webfinger_response(
   info: Query<Params>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse, Error> {
-  let community_regex_parsed = WEBFINGER_COMMUNITY_REGEX
+) -> Result<HttpResponse, LemmyError> {
+  let name = context
+    .settings()
+    .webfinger_regex()
     .captures(&info.resource)
-    .map(|c| c.get(1))
-    .flatten();
+    .and_then(|c| c.get(1))
+    .context(location_info!())?
+    .as_str()
+    .to_string();
 
-  let username_regex_parsed = WEBFINGER_USERNAME_REGEX
-    .captures(&info.resource)
-    .map(|c| c.get(1))
-    .flatten();
+  let name_ = name.clone();
+  let user_id: Option<Url> = blocking(context.pool(), move |conn| {
+    Person::read_from_name(conn, &name_)
+  })
+  .await?
+  .ok()
+  .map(|c| c.actor_id.into());
+  let community_id: Option<Url> = blocking(context.pool(), move |conn| {
+    Community::read_from_name(conn, &name)
+  })
+  .await?
+  .ok()
+  .map(|c| c.actor_id.into());
 
-  let url = if let Some(community_name) = community_regex_parsed {
-    let community_name = community_name.as_str().to_owned();
-    // Make sure the requested community exists.
-    blocking(context.pool(), move |conn| {
-      Community::read_from_name(conn, &community_name)
-    })
-    .await?
-    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
-    .actor_id
-  } else if let Some(person_name) = username_regex_parsed {
-    let person_name = person_name.as_str().to_owned();
-    // Make sure the requested person exists.
-    blocking(context.pool(), move |conn| {
-      Person::find_by_name(conn, &person_name)
-    })
-    .await?
-    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
-    .actor_id
-  } else {
-    return Err(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))));
-  };
+  // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
+  // community last so that it gets prioritized. For Lemmy the order doesnt matter.
+  let links = vec![
+    webfinger_link_for_actor(user_id),
+    webfinger_link_for_actor(community_id),
+  ]
+  .into_iter()
+  .flatten()
+  .collect();
 
   let json = WebfingerResponse {
     subject: info.resource.to_owned(),
-    aliases: vec![url.to_owned().into()],
-    links: vec![
-      WebfingerLink {
-        rel: Some("http://webfinger.net/rel/profile-page".to_string()),
-        type_: Some("text/html".to_string()),
-        href: Some(url.to_owned().into()),
-        template: None,
-      },
-      WebfingerLink {
-        rel: Some("self".to_string()),
-        type_: Some("application/activity+json".to_string()),
-        href: Some(url.into()),
-        template: None,
-      }, // TODO: this also needs to return the subscribe link once that's implemented
-         //{
-         //  "rel": "http://ostatus.org/schema/1.0/subscribe",
-         //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
-         //}
-    ],
+    links,
   };
 
   Ok(HttpResponse::Ok().json(json))
+}
+
+fn webfinger_link_for_actor(url: Option<Url>) -> Vec<WebfingerLink> {
+  if let Some(url) = url {
+    vec![
+      WebfingerLink {
+        rel: Some("http://webfinger.net/rel/profile-page".to_string()),
+        kind: Some("text/html".to_string()),
+        href: Some(url.to_owned()),
+      },
+      WebfingerLink {
+        rel: Some("self".to_string()),
+        kind: Some("application/activity+json".to_string()),
+        href: Some(url),
+      },
+    ]
+  } else {
+    vec![]
+  }
 }

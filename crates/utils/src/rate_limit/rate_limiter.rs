@@ -1,11 +1,11 @@
-use crate::{ApiError, IpAddr, LemmyError};
-use log::debug;
-use std::{collections::HashMap, time::SystemTime};
+use crate::IpAddr;
+use std::{collections::HashMap, time::Instant};
 use strum::IntoEnumIterator;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 struct RateLimitBucket {
-  last_checked: SystemTime,
+  last_checked: Instant,
   allowance: f64,
 }
 
@@ -15,20 +15,14 @@ pub(crate) enum RateLimitType {
   Register,
   Post,
   Image,
+  Comment,
+  Search,
 }
 
 /// Rate limiting based on rate type and IP addr
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RateLimiter {
   buckets: HashMap<RateLimitType, HashMap<IpAddr, RateLimitBucket>>,
-}
-
-impl Default for RateLimiter {
-  fn default() -> Self {
-    Self {
-      buckets: HashMap::<RateLimitType, HashMap<IpAddr, RateLimitBucket>>::new(),
-    }
-  }
 }
 
 impl RateLimiter {
@@ -43,7 +37,7 @@ impl RateLimiter {
           bucket.insert(
             ip.clone(),
             RateLimitBucket {
-              last_checked: SystemTime::now(),
+              last_checked: Instant::now(),
               allowance: -2f64,
             },
           );
@@ -52,6 +46,9 @@ impl RateLimiter {
     }
   }
 
+  /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
+  ///
+  /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
   #[allow(clippy::float_cmp)]
   pub(super) fn check_rate_limit_full(
     &mut self,
@@ -59,13 +56,12 @@ impl RateLimiter {
     ip: &IpAddr,
     rate: i32,
     per: i32,
-    check_only: bool,
-  ) -> Result<(), LemmyError> {
+  ) -> bool {
     self.insert_ip(ip);
     if let Some(bucket) = self.buckets.get_mut(&type_) {
       if let Some(rate_limit) = bucket.get_mut(ip) {
-        let current = SystemTime::now();
-        let time_passed = current.duration_since(rate_limit.last_checked)?.as_secs() as f64;
+        let current = Instant::now();
+        let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f64;
 
         // The initial value
         if rate_limit.allowance == -2f64 {
@@ -74,7 +70,7 @@ impl RateLimiter {
 
         rate_limit.last_checked = current;
         rate_limit.allowance += time_passed * (rate as f64 / per as f64);
-        if !check_only && rate_limit.allowance > rate as f64 {
+        if rate_limit.allowance > rate as f64 {
           rate_limit.allowance = rate as f64;
         }
 
@@ -86,29 +82,16 @@ impl RateLimiter {
             time_passed,
             rate_limit.allowance
           );
-          Err(
-            ApiError {
-              message: format!(
-                "Too many requests. type: {}, IP: {}, {} per {} seconds",
-                type_.as_ref(),
-                ip,
-                rate,
-                per
-              ),
-            }
-            .into(),
-          )
+          false
         } else {
-          if !check_only {
-            rate_limit.allowance -= 1.0;
-          }
-          Ok(())
+          rate_limit.allowance -= 1.0;
+          true
         }
       } else {
-        Ok(())
+        true
       }
     } else {
-      Ok(())
+      true
     }
   }
 }

@@ -6,19 +6,19 @@
     # username for the admin user
     admin_username: "lemmy"
     # password for the admin user
-    admin_password: "lemmy"
+    admin_password: "lemmylemmy"
     # name of the site (can be changed later)
     site_name: "lemmy-test"
   }
 
+  opentelemetry_url: "http://otel:4137"
+
   # the domain name of your instance (eg "lemmy.ml")
-  hostname: "my_domain"
+  hostname: "mydomain.ml"
   # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
   # port where lemmy should listen for incoming requests
   port: 8536
-  # json web token for authorization between server and client
-  jwt_secret: "changeme"
   # settings related to the postgresql database
   # address where pictrs is available
   pictrs_url: "http://pictrs:8080"
@@ -36,6 +36,10 @@
     # maximum number of active sql connections
     pool_size: 5
   }
+  slur_filter:
+    '''
+    (fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)
+    '''
 #  # optional: email sending configuration
 #  email: {
 #    # hostname and port of the smtp server

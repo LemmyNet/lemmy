@@ -24,6 +24,13 @@ import {
   searchPostLocal,
   followCommunity,
   banPersonFromCommunity,
+  reportPost,
+  listPostReports,
+  randomString,
+  registerUser,
+  API,
+  getSite,
+  unfollows
 } from './shared';
 import { PostView, CommunityView } from 'lemmy-js-client';
 
@@ -39,13 +46,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await unfollows();
 });
-
-async function unfollows() {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
-  await unfollowRemotes(delta);
-  await unfollowRemotes(epsilon);
-}
 
 function assertPostFederation(postOne: PostView, postTwo: PostView) {
   expect(postOne.post.ap_id).toBe(postTwo.post.ap_id);
@@ -90,7 +90,7 @@ test('Create a post', async () => {
 
 test('Create a post in a non-existent community', async () => {
   let postRes = await createPost(alpha, -2);
-  expect(postRes).toStrictEqual({ error: 'couldnt_create_post' });
+  expect(postRes).toStrictEqual({ error: 'couldnt_find_community' });
 });
 
 test('Unlike a post', async () => {
@@ -135,7 +135,8 @@ test('Update a post', async () => {
 test('Sticky a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
-  let stickiedPostRes = await stickyPost(alpha, true, postRes.post_view.post);
+  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let stickiedPostRes = await stickyPost(beta, true, betaPost1.post);
   expect(stickiedPostRes.post_view.post.stickied).toBe(true);
 
   // Make sure that post is stickied on beta
@@ -145,7 +146,7 @@ test('Sticky a post', async () => {
   expect(betaPost.post.stickied).toBe(true);
 
   // Unsticky a post
-  let unstickiedPost = await stickyPost(alpha, false, postRes.post_view.post);
+  let unstickiedPost = await stickyPost(beta, false, betaPost1.post);
   expect(unstickiedPost.post_view.post.stickied).toBe(false);
 
   // Make sure that post is unstickied on beta
@@ -202,7 +203,7 @@ test('Delete a post', async () => {
 
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
   expect(deletedPost.post_view.post.deleted).toBe(true);
-  expect(deletedPost.post_view.post.name).toBe("");
+  expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
   let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
@@ -224,18 +225,19 @@ test('Delete a post', async () => {
 });
 
 test('Remove a post from admin and community on different instance', async () => {
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  let postRes = await createPost(gamma, betaCommunity.community.id);
 
-  let removedPost = await removePost(alpha, true, postRes.post_view.post);
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let removedPost = await removePost(alpha, true, alphaPost.post);
   expect(removedPost.post_view.post.removed).toBe(true);
-  expect(removedPost.post_view.post.name).toBe("");
+  expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is NOT removed
   let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost.post.removed).toBe(false);
 
   // Undelete
-  let undeletedPost = await removePost(alpha, false, postRes.post_view.post);
+  let undeletedPost = await removePost(alpha, false, alphaPost.post);
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
@@ -284,6 +286,92 @@ test('Search for a post', async () => {
   expect(betaPost.post.name).toBeDefined();
 });
 
+test('Enforce site ban for federated user', async () => {
+  // create a test user
+  let alphaUserJwt = await registerUser(alpha);
+  expect(alphaUserJwt).toBeDefined();
+  let alphaUser: API = {
+      client: alpha.client,
+      auth: alphaUserJwt.jwt,
+  };
+  let alphaUserActorId = (await getSite(alphaUser)).my_user.local_user_view.person.actor_id;
+  expect(alphaUserActorId).toBeDefined();
+  let alphaPerson = (await resolvePerson(alphaUser, alphaUserActorId)).person;
+  expect(alphaPerson).toBeDefined();
+
+  // alpha makes post in beta community, it federates to beta instance
+  let postRes1 = await createPost(alphaUser, betaCommunity.community.id);
+  let searchBeta1 = await searchPostLocal(beta, postRes1.post_view.post);
+  expect(searchBeta1.posts[0]).toBeDefined();
+
+  // ban alpha from its instance
+  let banAlpha = await banPersonFromSite(alpha, alphaPerson.person.id, true, true);
+  expect(banAlpha.banned).toBe(true);
+
+  // alpha ban should be federated to beta
+  let alphaUserOnBeta1 = await resolvePerson(beta, alphaUserActorId);
+  expect(alphaUserOnBeta1.person.person.banned).toBe(true);
+
+  // existing alpha post should be removed on beta
+  let searchBeta2 = await searchPostLocal(beta, postRes1.post_view.post);
+  expect(searchBeta2.posts[0]).toBeUndefined();
+
+  // Unban alpha
+  let unBanAlpha = await banPersonFromSite(alpha, alphaPerson.person.id, false, false);
+  expect(unBanAlpha.banned).toBe(false);
+
+  // alpha makes new post in beta community, it federates
+  let postRes2 = await createPost(alphaUser, betaCommunity.community.id);
+  let searchBeta3 = await searchPostLocal(beta, postRes2.post_view.post);
+  expect(searchBeta3.posts[0]).toBeDefined();
+
+  let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId)
+  expect(alphaUserOnBeta2.person.person.banned).toBe(false);
+});
+
+test('Enforce community ban for federated user', async () => {
+  let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
+  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
+  expect(alphaPerson).toBeDefined();
+
+  // make a post in beta, it goes through
+  let postRes1 = await createPost(alpha, betaCommunity.community.id);
+  let searchBeta1 = await searchPostLocal(beta, postRes1.post_view.post);
+  expect(searchBeta1.posts[0]).toBeDefined();
+
+  // ban alpha from beta community
+  let banAlpha = await banPersonFromCommunity(beta, alphaPerson.person.id, 2, true, true);
+  expect(banAlpha.banned).toBe(true);
+
+  // ensure that the post by alpha got removed
+  let searchAlpha1 = await searchPostLocal(alpha, postRes1.post_view.post);
+  expect(searchAlpha1.posts[0]).toBeUndefined();
+
+  // Alpha tries to make post on beta, but it fails because of ban
+  let postRes2 = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes2.post_view).toBeUndefined();
+
+  // Unban alpha
+  let unBanAlpha = await banPersonFromCommunity(
+    beta,
+    alphaPerson.person.id,
+    2,
+    false,
+    false
+  );
+  expect(unBanAlpha.banned).toBe(false);
+  let postRes3 = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes3.post_view.post).toBeDefined();
+  expect(postRes3.post_view.community.local).toBe(false);
+  expect(postRes3.post_view.creator.local).toBe(true);
+  expect(postRes3.post_view.counts.score).toBe(1);
+
+  // Make sure that post makes it to beta community
+  let searchBeta2 = await searchPostLocal(beta, postRes3.post_view.post);
+  expect(searchBeta2.posts[0]).toBeDefined();
+});
+
+
 test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
@@ -292,62 +380,20 @@ test('A and G subscribe to B (center) A posts, it gets announced to G', async ()
   expect(betaPost.post.name).toBeDefined();
 });
 
-test('Enforce site ban for federated user', async () => {
-  let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
-  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
-  expect(alphaPerson).toBeDefined();
-
-  // ban alpha from beta site
-  let banAlpha = await banPersonFromSite(beta, alphaPerson.person.id, true);
-  expect(banAlpha.banned).toBe(true);
-
-  // Alpha makes post on beta
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+test('Report a post', async () => {
+  let betaCommunity = (await resolveBetaCommunity(beta)).community;
+  let postRes = await createPost(beta, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
-  expect(postRes.post_view.community.local).toBe(false);
-  expect(postRes.post_view.creator.local).toBe(true);
-  expect(postRes.post_view.counts.score).toBe(1);
 
-  // Make sure that post doesn't make it to beta
-  let searchBeta = await searchPostLocal(beta, postRes.post_view.post);
-  let betaPost = searchBeta.posts[0];
-  expect(betaPost).toBeUndefined();
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let alphaReport = (await reportPost(alpha, alphaPost.post.id, randomString(10)))
+        .post_report_view.post_report;
 
-  // Unban alpha
-  let unBanAlpha = await banPersonFromSite(beta, alphaPerson.person.id, false);
-  expect(unBanAlpha.banned).toBe(false);
-});
-
-test('Enforce community ban for federated user', async () => {
-  let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
-  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
-  expect(alphaPerson).toBeDefined();
-
-  // ban alpha from beta site
-  await banPersonFromCommunity(beta, alphaPerson.person.id, 2, false);
-  let banAlpha = await banPersonFromCommunity(beta, alphaPerson.person.id, 2, true);
-  expect(banAlpha.banned).toBe(true);
-
-  // Alpha tries to make post on beta, but it fails because of ban
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes.post_view).toBeUndefined();
-
-  // Unban alpha
-  let unBanAlpha = await banPersonFromCommunity(
-    beta,
-    alphaPerson.person.id,
-    2,
-    false
-  );
-  expect(unBanAlpha.banned).toBe(false);
-  let postRes2 = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes2.post_view.post).toBeDefined();
-  expect(postRes2.post_view.community.local).toBe(false);
-  expect(postRes2.post_view.creator.local).toBe(true);
-  expect(postRes2.post_view.counts.score).toBe(1);
-
-  // Make sure that post makes it to beta community
-  let searchBeta = await searchPostLocal(beta, postRes2.post_view.post);
-  let betaPost = searchBeta.posts[0];
-  expect(betaPost).toBeDefined();
+  let betaReport = (await listPostReports(beta)).post_reports[0].post_report;
+  expect(betaReport).toBeDefined();
+  expect(betaReport.resolved).toBe(false);
+  expect(betaReport.original_post_name).toBe(alphaReport.original_post_name);
+  expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
+  expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
+  expect(betaReport.reason).toBe(alphaReport.reason);
 });

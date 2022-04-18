@@ -1,126 +1,183 @@
 use crate::{
   activities::{
-    deletion::{delete::Delete, undo_delete::UndoDelete},
+    community::{announce::GetCommunity, send_activity_in_community},
+    send_lemmy_activity,
+    verify_is_public,
     verify_mod_action,
+    verify_person,
     verify_person_in_community,
   },
-  fetcher::person::get_or_fetch_and_upsert_person,
-  ActorType,
+  activity_lists::AnnouncableActivities,
+  objects::{
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
+    private_message::ApubPrivateMessage,
+  },
+  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
+use activitystreams_kinds::public;
 use lemmy_api_common::blocking;
-use lemmy_apub_lib::{verify_domains_match, ActivityFields};
-use lemmy_db_queries::{
-  source::{comment::Comment_, community::Community_, post::Post_},
-  ApubObject,
+use lemmy_apub_lib::{
+  object_id::ObjectId,
+  traits::{ActorType, ApubObject},
+  verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  source::{comment::Comment, community::Community, person::Person, post::Post},
-  DbUrl,
+  source::{
+    comment::Comment,
+    community::Community,
+    person::Person,
+    post::Post,
+    private_message::PrivateMessage,
+  },
+  traits::Crud,
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{
-  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+  send::{
+    send_comment_ws_message_simple,
+    send_community_ws_message,
+    send_pm_ws_message,
+    send_post_ws_message,
+  },
   LemmyContext,
   UserOperationCrud,
 };
+use std::ops::Deref;
 use url::Url;
 
 pub mod delete;
+pub mod delete_user;
 pub mod undo_delete;
 
-pub async fn send_apub_delete(
-  actor: &Person,
-  community: &Community,
-  object_id: Url,
+/// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
+/// action was done by a normal user.
+#[tracing::instrument(skip_all)]
+pub async fn send_apub_delete_in_community(
+  actor: Person,
+  community: Community,
+  object: DeletableObjects,
+  reason: Option<String>,
   deleted: bool,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  if deleted {
-    Delete::send(actor, community, object_id, None, context).await
+  let (id, activity) = if deleted {
+    let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
+    (delete.id.clone(), AnnouncableActivities::Delete(delete))
   } else {
-    UndoDelete::send(actor, community, object_id, None, context).await
-  }
+    let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
+    (undo.id.clone(), AnnouncableActivities::UndoDelete(undo))
+  };
+  send_activity_in_community(
+    activity,
+    &id,
+    &ApubPerson::from(actor),
+    &community.into(),
+    vec![],
+    context,
+  )
+  .await
 }
 
-// TODO: remove reason is actually optional in lemmy. we set an empty string in that case, but its
-//       ugly
-pub async fn send_apub_remove(
-  actor: &Person,
-  community: &Community,
-  object_id: Url,
-  reason: String,
-  removed: bool,
+#[tracing::instrument(skip_all)]
+pub async fn send_apub_delete_private_message(
+  actor: &ApubPerson,
+  pm: PrivateMessage,
+  deleted: bool,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  if removed {
-    Delete::send(actor, community, object_id, Some(reason), context).await
+  let recipient_id = pm.recipient_id;
+  let recipient: ApubPerson =
+    blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
+      .await??
+      .into();
+
+  let deletable = DeletableObjects::PrivateMessage(Box::new(pm.into()));
+  let inbox = vec![recipient.shared_inbox_or_inbox_url()];
+  if deleted {
+    let delete = Delete::new(actor, deletable, recipient.actor_id(), None, None, context)?;
+    let id = delete.id.clone();
+    send_lemmy_activity(context, &delete, &id, actor, inbox, true).await?;
   } else {
-    UndoDelete::send(actor, community, object_id, Some(reason), context).await
-  }
+    let undo = UndoDelete::new(actor, deletable, recipient.actor_id(), None, None, context)?;
+    let id = undo.id.clone();
+    send_lemmy_activity(context, &undo, &id, actor, inbox, true).await?;
+  };
+  Ok(())
 }
 
 pub enum DeletableObjects {
-  Community(Box<Community>),
-  Comment(Box<Comment>),
-  Post(Box<Post>),
+  Community(Box<ApubCommunity>),
+  Comment(Box<ApubComment>),
+  Post(Box<ApubPost>),
+  PrivateMessage(Box<ApubPrivateMessage>),
 }
 
 impl DeletableObjects {
+  #[tracing::instrument(skip_all)]
   pub(crate) async fn read_from_db(
     ap_id: &Url,
     context: &LemmyContext,
   ) -> Result<DeletableObjects, LemmyError> {
-    let id: DbUrl = ap_id.clone().into();
-
-    if let Some(c) = DeletableObjects::read_type_from_db::<Community>(id.clone(), context).await? {
+    if let Some(c) = ApubCommunity::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Community(Box::new(c)));
     }
-    if let Some(p) = DeletableObjects::read_type_from_db::<Post>(id.clone(), context).await? {
+    if let Some(p) = ApubPost::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Post(Box::new(p)));
     }
-    if let Some(c) = DeletableObjects::read_type_from_db::<Comment>(id.clone(), context).await? {
+    if let Some(c) = ApubComment::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Comment(Box::new(c)));
+    }
+    if let Some(p) = ApubPrivateMessage::read_from_apub_id(ap_id.clone(), context).await? {
+      return Ok(DeletableObjects::PrivateMessage(Box::new(p)));
     }
     Err(diesel::NotFound.into())
   }
 
-  // TODO: a method like this should be provided by fetcher module
-  async fn read_type_from_db<Type: ApubObject + Send + 'static>(
-    ap_id: DbUrl,
-    context: &LemmyContext,
-  ) -> Result<Option<Type>, LemmyError> {
-    blocking(context.pool(), move |conn| {
-      Type::read_from_apub_id(conn, &ap_id).ok()
-    })
-    .await
+  pub(crate) fn id(&self) -> Url {
+    match self {
+      DeletableObjects::Community(c) => c.actor_id(),
+      DeletableObjects::Comment(c) => c.ap_id.clone().into(),
+      DeletableObjects::Post(p) => p.ap_id.clone().into(),
+      DeletableObjects::PrivateMessage(p) => p.ap_id.clone().into(),
+    }
   }
 }
 
+#[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn verify_delete_activity(
-  object: &Url,
-  activity: &dyn ActivityFields,
-  community_id: &Url,
+  activity: &Delete,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let object = DeletableObjects::read_from_db(object, context).await?;
+  let object = DeletableObjects::read_from_db(activity.object.id(), context).await?;
   match object {
-    DeletableObjects::Community(c) => {
-      if c.local {
+    DeletableObjects::Community(community) => {
+      verify_is_public(&activity.to, &[])?;
+      if community.local {
         // can only do this check for local community, in remote case it would try to fetch the
         // deleted community (which fails)
-        verify_person_in_community(activity.actor(), community_id, context, request_counter)
-          .await?;
+        verify_person_in_community(&activity.actor, &community, context, request_counter).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(activity.actor(), c.actor_id(), context).await?;
+      verify_mod_action(
+        &activity.actor,
+        activity.object.id(),
+        &community,
+        context,
+        request_counter,
+      )
+      .await?;
     }
     DeletableObjects::Post(p) => {
-      verify_delete_activity_post_or_comment(
-        activity,
-        &p.ap_id.into(),
-        community_id,
+      verify_is_public(&activity.to, &[])?;
+      verify_delete_post_or_comment(
+        &activity.actor,
+        &p.ap_id.clone().into(),
+        &activity.get_community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,
@@ -128,51 +185,49 @@ pub(in crate::activities) async fn verify_delete_activity(
       .await?;
     }
     DeletableObjects::Comment(c) => {
-      verify_delete_activity_post_or_comment(
-        activity,
-        &c.ap_id.into(),
-        community_id,
+      verify_is_public(&activity.to, &[])?;
+      verify_delete_post_or_comment(
+        &activity.actor,
+        &c.ap_id.clone().into(),
+        &activity.get_community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,
       )
       .await?;
     }
+    DeletableObjects::PrivateMessage(_) => {
+      verify_person(&activity.actor, context, request_counter).await?;
+      verify_domains_match(activity.actor.inner(), activity.object.id())?;
+    }
   }
   Ok(())
 }
 
-async fn verify_delete_activity_post_or_comment(
-  activity: &dyn ActivityFields,
+#[tracing::instrument(skip_all)]
+async fn verify_delete_post_or_comment(
+  actor: &ObjectId<ApubPerson>,
   object_id: &Url,
-  community_id: &Url,
+  community: &ApubCommunity,
   is_mod_action: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  verify_person_in_community(activity.actor(), community_id, context, request_counter).await?;
+  verify_person_in_community(actor, community, context, request_counter).await?;
   if is_mod_action {
-    verify_mod_action(activity.actor(), community_id.clone(), context).await?;
+    verify_mod_action(actor, object_id, community, context, request_counter).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
-    verify_domains_match(activity.actor(), object_id)?;
+    verify_domains_match(actor.inner(), object_id)?;
   }
   Ok(())
 }
 
-struct WebsocketMessages {
-  community: UserOperationCrud,
-  post: UserOperationCrud,
-  comment: UserOperationCrud,
-}
-
 /// Write deletion or restoring of an object to the database, and send websocket message.
-/// TODO: we should do something similar for receive_remove_action(), but its much more complicated
-///       because of the mod log
+#[tracing::instrument(skip_all)]
 async fn receive_delete_action(
   object: &Url,
-  actor: &Url,
-  ws_messages: WebsocketMessages,
+  actor: &ObjectId<ApubPerson>,
   deleted: bool,
   context: &LemmyContext,
   request_counter: &mut i32,
@@ -180,30 +235,72 @@ async fn receive_delete_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        let mod_ = get_or_fetch_and_upsert_person(actor, context, request_counter).await?;
-        let object = community.actor_id();
-        send_apub_delete(&mod_, &community.clone(), object, true, context).await?;
+        let mod_: Person = actor
+          .dereference(context, context.client(), request_counter)
+          .await?
+          .deref()
+          .clone();
+        let object = DeletableObjects::Community(community.clone());
+        let c: Community = community.deref().deref().clone();
+        send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
       }
 
       let community = blocking(context.pool(), move |conn| {
         Community::update_deleted(conn, community.id, deleted)
       })
       .await??;
-      send_community_ws_message(community.id, ws_messages.community, None, None, context).await?;
+      send_community_ws_message(
+        community.id,
+        UserOperationCrud::DeleteCommunity,
+        None,
+        None,
+        context,
+      )
+      .await?;
     }
     DeletableObjects::Post(post) => {
-      let deleted_post = blocking(context.pool(), move |conn| {
-        Post::update_deleted(conn, post.id, deleted)
-      })
-      .await??;
-      send_post_ws_message(deleted_post.id, ws_messages.post, None, None, context).await?;
+      if deleted != post.deleted {
+        let deleted_post = blocking(context.pool(), move |conn| {
+          Post::update_deleted(conn, post.id, deleted)
+        })
+        .await??;
+        send_post_ws_message(
+          deleted_post.id,
+          UserOperationCrud::DeletePost,
+          None,
+          None,
+          context,
+        )
+        .await?;
+      }
     }
     DeletableObjects::Comment(comment) => {
-      let deleted_comment = blocking(context.pool(), move |conn| {
-        Comment::update_deleted(conn, comment.id, deleted)
+      if deleted != comment.deleted {
+        let deleted_comment = blocking(context.pool(), move |conn| {
+          Comment::update_deleted(conn, comment.id, deleted)
+        })
+        .await??;
+        send_comment_ws_message_simple(
+          deleted_comment.id,
+          UserOperationCrud::DeleteComment,
+          context,
+        )
+        .await?;
+      }
+    }
+    DeletableObjects::PrivateMessage(pm) => {
+      let deleted_private_message = blocking(context.pool(), move |conn| {
+        PrivateMessage::update_deleted(conn, pm.id, deleted)
       })
       .await??;
-      send_comment_ws_message_simple(deleted_comment.id, ws_messages.comment, context).await?;
+
+      send_pm_ws_message(
+        deleted_private_message.id,
+        UserOperationCrud::DeletePrivateMessage,
+        None,
+        context,
+      )
+      .await?;
     }
   }
   Ok(())

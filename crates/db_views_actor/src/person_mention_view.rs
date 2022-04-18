@@ -1,14 +1,9 @@
-use diesel::{result::Error, *};
-use lemmy_db_queries::{
+use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
   limit_and_offset,
-  MaybeOptional,
-  SortType,
-  ToSafe,
-  ViewToVec,
-};
-use lemmy_db_schema::{
+  newtypes::{PersonId, PersonMentionId},
   schema::{
     comment,
     comment_aggregates,
@@ -31,12 +26,12 @@ use lemmy_db_schema::{
     person_mention::PersonMention,
     post::Post,
   },
-  PersonId,
-  PersonMentionId,
+  traits::{MaybeOptional, ToSafe, ViewToVec},
+  SortType,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
   pub comment: Comment,
@@ -101,7 +96,12 @@ impl PersonMentionView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(
@@ -162,6 +162,17 @@ impl PersonMentionView {
       creator_blocked: creator_blocked.is_some(),
       my_vote,
     })
+  }
+
+  /// Gets the number of unread mentions
+  pub fn get_unread_mentions(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+    use diesel::dsl::*;
+
+    person_mention::table
+      .filter(person_mention::recipient_id.eq(my_person_id))
+      .filter(person_mention::read.eq(false))
+      .select(count(person_mention::id))
+      .first::<i64>(conn)
   }
 }
 
@@ -235,7 +246,12 @@ impl<'a> PersonMentionQueryBuilder<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
         ),
       )
       .left_join(

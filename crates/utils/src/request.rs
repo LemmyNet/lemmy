@@ -1,11 +1,12 @@
-use crate::{settings::structs::Settings, LemmyError};
+use crate::{settings::structs::Settings, version::VERSION, LemmyError, REQWEST_TIMEOUT};
 use anyhow::anyhow;
-use log::error;
+use encoding::{all::encodings, DecoderTrap};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use thiserror::Error;
+use tracing::{error, info};
 use url::Url;
 use webpage::HTML;
 
@@ -17,30 +18,35 @@ struct SendError(pub String);
 #[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
-pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
+#[tracing::instrument(skip_all)]
+pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<T, reqwest::Error>>,
+  Fut: Future<Output = Result<T, reqwest_middleware::Error>>,
 {
   retry_custom(|| async { Ok((f)().await) }).await
 }
 
-async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
+#[tracing::instrument(skip_all)]
+async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<Result<T, reqwest::Error>, reqwest::Error>>,
+  Fut: Future<Output = Result<Result<T, reqwest_middleware::Error>, reqwest_middleware::Error>>,
 {
-  let mut response: Option<Result<T, reqwest::Error>> = None;
+  let mut response: Option<Result<T, reqwest_middleware::Error>> = None;
 
   for _ in 0u8..3 {
     match (f)().await? {
       Ok(t) => return Ok(t),
-      Err(e) => {
+      Err(reqwest_middleware::Error::Reqwest(e)) => {
         if e.is_timeout() {
-          response = Some(Err(e));
+          response = Some(Err(reqwest_middleware::Error::Reqwest(e)));
           continue;
         }
-        return Err(e);
+        return Err(reqwest_middleware::Error::Reqwest(e));
+      }
+      Err(otherwise) => {
+        return Err(otherwise);
       }
     }
   }
@@ -57,21 +63,63 @@ pub struct SiteMetadata {
 }
 
 /// Fetches the post link html tags (like title, description, image, etc)
-pub async fn fetch_site_metadata(client: &Client, url: &Url) -> Result<SiteMetadata, LemmyError> {
-  let response = retry(|| client.get(url.as_str()).send()).await?;
+#[tracing::instrument(skip_all)]
+pub async fn fetch_site_metadata(
+  client: &ClientWithMiddleware,
+  url: &Url,
+) -> Result<SiteMetadata, LemmyError> {
+  info!("Fetching site metadata for url: {}", url);
+  let response = client
+    .get(url.as_str())
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?;
 
-  let html = response
-    .text()
+  // Can't use .text() here, because it only checks the content header, not the actual bytes
+  // https://github.com/LemmyNet/lemmy/issues/1964
+  let html_bytes = response
+    .bytes()
     .await
-    .map_err(|e| RecvError(e.to_string()))?;
+    .map_err(|e| RecvError(e.to_string()))?
+    .to_vec();
 
-  let tags = html_to_site_metadata(&html)?;
+  let tags = html_to_site_metadata(&html_bytes)?;
 
   Ok(tags)
 }
 
-fn html_to_site_metadata(html: &str) -> Result<SiteMetadata, LemmyError> {
-  let page = HTML::from_string(html.to_string(), None)?;
+fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> {
+  let html = String::from_utf8_lossy(html_bytes);
+
+  // Make sure the first line is doctype html
+  let first_line = html
+    .trim_start()
+    .lines()
+    .into_iter()
+    .next()
+    .ok_or_else(|| LemmyError::from_message("No lines in html"))?
+    .to_lowercase();
+
+  if !first_line.starts_with("<!doctype html>") {
+    return Err(LemmyError::from_message(
+      "Site metadata page fetch is not DOCTYPE html",
+    ));
+  }
+
+  let mut page = HTML::from_string(html.to_string(), None)?;
+
+  // If the web page specifies that it isn't actually UTF-8, re-decode the received bytes with the
+  // proper encoding. If the specified encoding cannot be found, fall back to the original UTF-8
+  // version.
+  if let Some(charset) = page.meta.get("charset") {
+    if charset.to_lowercase() != "utf-8" {
+      if let Some(encoding_ref) = encodings().iter().find(|e| e.name() == charset) {
+        if let Ok(html_with_encoding) = encoding_ref.decode(html_bytes, DecoderTrap::Replace) {
+          page = HTML::from_string(html_with_encoding, None)?;
+        }
+      }
+    }
+  }
 
   let page_title = page.title;
   let page_description = page.description;
@@ -90,8 +138,7 @@ fn html_to_site_metadata(html: &str) -> Result<SiteMetadata, LemmyError> {
     .opengraph
     .images
     .get(0)
-    .map(|ogo| Url::parse(&ogo.url).ok())
-    .flatten();
+    .and_then(|ogo| Url::parse(&ogo.url).ok());
 
   let title = og_title.or(page_title);
   let description = og_description.or(page_description);
@@ -114,14 +161,17 @@ pub(crate) struct PictrsResponse {
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct PictrsFile {
   file: String,
+  #[allow(dead_code)]
   delete_token: String,
 }
 
+#[tracing::instrument(skip_all)]
 pub(crate) async fn fetch_pictrs(
-  client: &Client,
+  client: &ClientWithMiddleware,
+  settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
-  if let Some(pictrs_url) = Settings::get().pictrs_url {
+  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
     is_image_content_type(client, image_url).await?;
 
     let fetch_url = format!(
@@ -130,7 +180,11 @@ pub(crate) async fn fetch_pictrs(
       utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
     );
 
-    let response = retry(|| client.get(&fetch_url).send()).await?;
+    let response = client
+      .get(&fetch_url)
+      .timeout(REQWEST_TIMEOUT)
+      .send()
+      .await?;
 
     let response: PictrsResponse = response
       .json()
@@ -149,8 +203,10 @@ pub(crate) async fn fetch_pictrs(
 
 /// Both are options, since the URL might be either an html page, or an image
 /// Returns the SiteMetadata, and a Pictrs URL, if there is a picture associated
+#[tracing::instrument(skip_all)]
 pub async fn fetch_site_data(
-  client: &Client,
+  client: &ClientWithMiddleware,
+  settings: &Settings,
   url: Option<&Url>,
 ) -> (Option<SiteMetadata>, Option<Url>) {
   match &url {
@@ -165,16 +221,16 @@ pub async fn fetch_site_data(
         Some(metadata_res) => match &metadata_res.image {
           // Metadata, with image
           // Try to generate a small thumbnail if there's a full sized one from post-links
-          Some(metadata_image) => fetch_pictrs(client, metadata_image)
+          Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
             .await
             .map(|r| r.files[0].file.to_owned()),
           // Metadata, but no image
-          None => fetch_pictrs(client, url)
+          None => fetch_pictrs(client, settings, url)
             .await
             .map(|r| r.files[0].file.to_owned()),
         },
         // No metadata, try to fetch the URL as an image
-        None => fetch_pictrs(client, url)
+        None => fetch_pictrs(client, settings, url)
           .await
           .map(|r| r.files[0].file.to_owned()),
       };
@@ -184,7 +240,7 @@ pub async fn fetch_site_data(
         .map(|p| {
           Url::parse(&format!(
             "{}/pictrs/image/{}",
-            Settings::get().get_protocol_and_hostname(),
+            settings.get_protocol_and_hostname(),
             p
           ))
           .ok()
@@ -198,8 +254,13 @@ pub async fn fetch_site_data(
   }
 }
 
-async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyError> {
-  let response = retry(|| client.get(test.to_owned()).send()).await?;
+#[tracing::instrument(skip_all)]
+async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
+  let response = client
+    .get(url.as_str())
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?;
   if response
     .headers()
     .get("Content-Type")
@@ -213,26 +274,47 @@ async fn is_image_content_type(client: &Client, test: &Url) -> Result<(), LemmyE
   }
 }
 
+pub fn build_user_agent(settings: &Settings) -> String {
+  format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  )
+}
+
 #[cfg(test)]
 mod tests {
-  use crate::request::fetch_site_metadata;
+  use crate::request::{build_user_agent, fetch_site_metadata};
   use url::Url;
 
   use super::SiteMetadata;
+  use crate::settings::structs::Settings;
 
   // These helped with testing
   #[actix_rt::test]
   async fn test_site_metadata() {
-    let client = reqwest::Client::default();
-    let sample_url = Url::parse("https://www.redspark.nu/en/peoples-war/district-leader-of-chand-led-cpn-arrested-in-bhojpur/").unwrap();
+    let settings = Settings::init().unwrap();
+    let client = reqwest::Client::builder()
+      .user_agent(build_user_agent(&settings))
+      .build()
+      .unwrap()
+      .into();
+    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(
       SiteMetadata {
-        title: Some("District Leader Of Chand Led CPN Arrested In Bhojpur - Redspark".to_string()),
-        description: Some("BHOJPUR: A district leader of the outlawed Netra Bikram Chand alias Biplav-led outfit has been arrested. According to District Police".to_string()),
-        image: Some(Url::parse("https://www.redspark.nu/wp-content/uploads/2020/03/netra-bikram-chand-attends-program-1272019033653-1000x0-845x653-1.jpg").unwrap()),
+        title: Some("FAQ · Wiki · IzzyOnDroid / repo".to_string()),
+        description: Some(
+          "The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()
+        ),
+        image: Some(
+          Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
+            .unwrap()
+        ),
         html: None,
-      }, sample_res);
+      },
+      sample_res
+    );
 
     let youtube_url = Url::parse("https://www.youtube.com/watch?v=IquO_TcMZIQ").unwrap();
     let youtube_res = fetch_site_metadata(&client, &youtube_url).await.unwrap();

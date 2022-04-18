@@ -1,0 +1,83 @@
+version: '3.3'
+
+services:
+  nginx:
+    image: nginx:1-alpine
+    ports:
+      - "8540:8540"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    restart: always
+    depends_on:
+      - pictrs
+      - lemmy-ui
+
+  pictrs:
+    restart: always
+    image: asonix/pictrs:0.3.1
+    user: 991:991
+    volumes:
+      - ./volumes/pictrs:/mnt
+
+  lemmy-ui:
+    image: dessalines/lemmy-ui:0.13.3
+    restart: always
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy:8541
+      - LEMMY_EXTERNAL_HOST=localhost:8541
+      - LEMMY_HTTPS=false
+    depends_on:
+      - lemmy
+  lemmy:
+    image: lemmy-federation:latest
+    restart: always
+    volumes:
+      - ./lemmy.hjson:/config/config.hjson
+    environment:
+      - APUB_TESTING_SEND_SYNC
+      - RUST_BACKTRACE=1
+      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
+    depends_on:
+      - postgres_lemmy
+    ports: 
+      - "8541:8541"
+  postgres_lemmy:
+    image: postgres:12-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
+    volumes:
+      - ./volumes/postgres_lemmy:/var/lib/postgresql/data
+
+  pleroma:
+    image: jordemort/pleroma
+    restart: always
+    ports:
+      - 127.0.0.1:4000:4000
+    volumes:
+      - ./pleroma_config.exs:/etc/pleroma/config.exs
+      - uploads:/var/lib/pleroma/uploads
+      - static:/var/lib/pleroma/static
+    environment:
+      DOMAIN: pleroma:4000
+      ADMIN_EMAIL: chicken@example.com
+      USE_RUM: "y"
+      USE_SOAPBOX: "n"
+      POSTGRES_PASSWORD: hunter2
+
+  postgres:
+    image: jordemort/postgres-rum
+    restart: always
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: pleroma
+      POSTGRES_USER: pleroma
+      POSTGRES_PASSWORD: hunter2
+
+volumes:
+  uploads:
+  static:
+  data:

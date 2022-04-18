@@ -1,0 +1,6 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "object": "http://enterprise.lemmy.ml/c/main",
+  "type": "Follow",
+  "id": "http://ds9.lemmy.ml/activities/follow/6abcd50b-b8ca-4952-86b0-a6dd8cc12866"
+}

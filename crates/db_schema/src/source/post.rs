@@ -1,13 +1,9 @@
 use crate::{
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{post, post_like, post_read, post_saved},
-  CommunityId,
-  DbUrl,
-  PersonId,
-  PostId,
 };
-use serde::Serialize;
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+use serde::{Deserialize, Serialize};
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "post"]
 pub struct Post {
   pub id: PostId,

@@ -4,15 +4,12 @@ use diesel::{
   *,
 };
 use lemmy_apub::{
-  generate_apub_endpoint,
   generate_followers_url,
   generate_inbox_url,
+  generate_local_apub_endpoint,
   generate_shared_inbox_url,
+  generate_site_inbox_url,
   EndpointType,
-};
-use lemmy_db_queries::{
-  source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
-  Crud,
 };
 use lemmy_db_schema::{
   naive_now,
@@ -22,31 +19,41 @@ use lemmy_db_schema::{
     person::{Person, PersonForm},
     post::Post,
     private_message::PrivateMessage,
+    site::{Site, SiteForm},
   },
+  traits::Crud,
 };
-use lemmy_utils::{apub::generate_actor_keypair, settings::structs::Settings, LemmyError};
-use log::info;
+use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
+use tracing::info;
+use url::Url;
 
-pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
-  user_updates_2020_04_02(conn)?;
-  community_updates_2020_04_02(conn)?;
-  post_updates_2020_04_03(conn)?;
-  comment_updates_2020_04_03(conn)?;
-  private_message_updates_2020_05_05(conn)?;
-  post_thumbnail_url_updates_2020_07_27(conn)?;
+pub fn run_advanced_migrations(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
+  user_updates_2020_04_02(conn, protocol_and_hostname)?;
+  community_updates_2020_04_02(conn, protocol_and_hostname)?;
+  post_updates_2020_04_03(conn, protocol_and_hostname)?;
+  comment_updates_2020_04_03(conn, protocol_and_hostname)?;
+  private_message_updates_2020_05_05(conn, protocol_and_hostname)?;
+  post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
   apub_columns_2021_02_02(conn)?;
+  instance_actor_2022_01_28(conn, protocol_and_hostname)?;
 
   Ok(())
 }
 
-fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
+fn user_updates_2020_04_02(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::*;
 
   info!("Running user_updates_2020_04_02");
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_persons = person
-    .filter(actor_id.like("http://changeme_%"))
+    .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Person>(conn)?;
 
@@ -55,9 +62,13 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
     let form = PersonForm {
       name: cperson.name.to_owned(),
-      actor_id: Some(generate_apub_endpoint(EndpointType::Person, &cperson.name)?),
+      actor_id: Some(generate_local_apub_endpoint(
+        EndpointType::Person,
+        &cperson.name,
+        protocol_and_hostname,
+      )?),
       private_key: Some(Some(keypair.private_key)),
-      public_key: Some(Some(keypair.public_key)),
+      public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
       ..PersonForm::default()
     };
@@ -70,20 +81,27 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
+fn community_updates_2020_04_02(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::*;
 
   info!("Running community_updates_2020_04_02");
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
-    .filter(actor_id.like("http://changeme_%"))
+    .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_actor_id = generate_apub_endpoint(EndpointType::Community, &ccommunity.name)?;
+    let community_actor_id = generate_local_apub_endpoint(
+      EndpointType::Community,
+      &ccommunity.name,
+      protocol_and_hostname,
+    )?;
 
     let form = CommunityForm {
       name: ccommunity.name.to_owned(),
@@ -93,10 +111,11 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       deleted: None,
       nsfw: None,
       updated: None,
+      hidden: Some(false),
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),
-      private_key: Some(keypair.private_key),
-      public_key: Some(keypair.public_key),
+      private_key: Some(Some(keypair.private_key)),
+      public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
       published: None,
       icon: Some(ccommunity.icon.to_owned()),
@@ -114,19 +133,26 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
+fn post_updates_2020_04_03(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_updates_2020_04_03");
 
   // Update the ap_id
   let incorrect_posts = post
-    .filter(ap_id.like("http://changeme_%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Post>(conn)?;
 
   for cpost in &incorrect_posts {
-    let apub_id = generate_apub_endpoint(EndpointType::Post, &cpost.id.to_string())?;
+    let apub_id = generate_local_apub_endpoint(
+      EndpointType::Post,
+      &cpost.id.to_string(),
+      protocol_and_hostname,
+    )?;
     Post::update_ap_id(conn, cpost.id, apub_id)?;
   }
 
@@ -135,19 +161,26 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
+fn comment_updates_2020_04_03(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::*;
 
   info!("Running comment_updates_2020_04_03");
 
   // Update the ap_id
   let incorrect_comments = comment
-    .filter(ap_id.like("http://changeme_%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = generate_apub_endpoint(EndpointType::Comment, &ccomment.id.to_string())?;
+    let apub_id = generate_local_apub_endpoint(
+      EndpointType::Comment,
+      &ccomment.id.to_string(),
+      protocol_and_hostname,
+    )?;
     Comment::update_ap_id(conn, ccomment.id, apub_id)?;
   }
 
@@ -156,19 +189,26 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   Ok(())
 }
 
-fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyError> {
+fn private_message_updates_2020_05_05(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::*;
 
   info!("Running private_message_updates_2020_05_05");
 
   // Update the ap_id
   let incorrect_pms = private_message
-    .filter(ap_id.like("http://changeme_%"))
+    .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
     .load::<PrivateMessage>(conn)?;
 
   for cpm in &incorrect_pms {
-    let apub_id = generate_apub_endpoint(EndpointType::PrivateMessage, &cpm.id.to_string())?;
+    let apub_id = generate_local_apub_endpoint(
+      EndpointType::PrivateMessage,
+      &cpm.id.to_string(),
+      protocol_and_hostname,
+    )?;
     PrivateMessage::update_ap_id(conn, cpm.id, apub_id)?;
   }
 
@@ -177,15 +217,15 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
   Ok(())
 }
 
-fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), LemmyError> {
+fn post_thumbnail_url_updates_2020_07_27(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
-  let domain_prefix = format!(
-    "{}/pictrs/image/",
-    Settings::get().get_protocol_and_hostname(),
-  );
+  let domain_prefix = format!("{}/pictrs/image/", protocol_and_hostname,);
 
   let incorrect_thumbnails = post.filter(thumbnail_url.not_like("http%"));
 
@@ -212,7 +252,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   {
     use lemmy_db_schema::schema::person::dsl::*;
     let persons = person
-      .filter(inbox_url.like("http://changeme_%"))
+      .filter(inbox_url.like("http://changeme%"))
       .load::<Person>(conn)?;
 
     for p in &persons {
@@ -230,7 +270,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
   {
     use lemmy_db_schema::schema::community::dsl::*;
     let communities = community
-      .filter(inbox_url.like("http://changeme_%"))
+      .filter(inbox_url.like("http://changeme%"))
       .load::<Community>(conn)?;
 
     for c in &communities {
@@ -247,5 +287,31 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
     }
   }
 
+  Ok(())
+}
+
+/// Site object turns into an actor, so that things like instance description can be federated. This
+/// means we need to add actor columns to the site table, and initialize them with correct values.
+/// Before this point, there is only a single value in the site table which refers to the local
+/// Lemmy instance, so thats all we need to update.
+fn instance_actor_2022_01_28(
+  conn: &PgConnection,
+  protocol_and_hostname: &str,
+) -> Result<(), LemmyError> {
+  info!("Running instance_actor_2021_09_29");
+  if let Ok(site) = Site::read_local_site(conn) {
+    let key_pair = generate_actor_keypair()?;
+    let actor_id = Url::parse(protocol_and_hostname)?;
+    let site_form = SiteForm {
+      name: site.name,
+      actor_id: Some(actor_id.clone().into()),
+      last_refreshed_at: Some(naive_now()),
+      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
+      private_key: Some(Some(key_pair.private_key)),
+      public_key: Some(key_pair.public_key),
+      ..Default::default()
+    };
+    Site::update(conn, site.id, &site_form)?;
+  }
   Ok(())
 }

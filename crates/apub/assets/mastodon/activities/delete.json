@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri"
+    }
+  ],
+  "id": "https://mastodon.madrid/users/felix/statuses/107773559874184870#delete",
+  "type": "Delete",
+  "actor": "https://mastodon.madrid/users/felix",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "object": {
+    "id": "https://mastodon.madrid/users/felix/statuses/107773559874184870",
+    "type": "Tombstone",
+    "atomUri": "https://mastodon.madrid/users/felix/statuses/107773559874184870"
+  },
+  "signature": {
+    "type": "RsaSignature2017",
+    "creator": "https://mastodon.madrid/users/felix#main-key",
+    "created": "2022-02-10T11:54:18Z",
+    "signatureValue": "NjGnbkvouSP/cSusR7+sz39iEYxWXCu6nFmBXU3t8ETPkmbpMF5ASeJixXvpTOqbOfkMoWfXncw+jDsbqZ3ELaHGG1gZ5wHWym7mk7YCjQokpF3oPhTWmlEJCVKgewXMrfI4Ok8GGsUMGzuki9EyBDGc/UNBMEAhcxV5Huu7QSQDowcbIwxS3ImxFmtKFceh6mv/kMiXUerCgkYSm6rYZeXZGMTUpvcn9gP6X6Ed6UsrLjCSb3Fj0Naz7LHtzZXRSZDZF/SX2Vw/xKJIgEGzSCv+LKZGvEEkK8PPfMJJhi8cBJebkqOnBGtE6gYK2z2cm/oGorZtXU2L05pXmLAlYQ=="
+  }
+}

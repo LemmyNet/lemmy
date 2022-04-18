@@ -1,0 +1,7 @@
+{
+  "actor": "https://narwhal.city/users/3",
+  "object": "https://narwhal.city/posts/12",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://narwhal.city/posts/12/delete",
+  "type": "Delete"
+}

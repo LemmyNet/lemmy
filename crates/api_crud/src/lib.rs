@@ -108,6 +108,9 @@ pub async fn match_websocket_operation_crud(
     UserOperationCrud::RemoveComment => {
       do_websocket_operation::<RemoveComment>(context, id, op, data).await
     }
+    UserOperationCrud::GetComment => {
+      do_websocket_operation::<GetComment>(context, id, op, data).await
+    }
     UserOperationCrud::GetComments => {
       do_websocket_operation::<GetComments>(context, id, op, data).await
     }

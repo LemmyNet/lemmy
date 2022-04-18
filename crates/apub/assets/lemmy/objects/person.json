@@ -1,0 +1,32 @@
+{
+  "id": "https://enterprise.lemmy.ml/u/picard",
+  "type": "Person",
+  "preferredUsername": "picard",
+  "name": "Jean-Luc Picard",
+  "summary": "<p>Captain of the starship <strong>Enterprise</strong>.</p>\n",
+  "source": {
+    "content": "Captain of the starship **Enterprise**.",
+    "mediaType": "text/markdown"
+  },
+  "icon": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/ed9ej7.jpg"
+  },
+  "image": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/XenaYI5hTn.png"
+  },
+  "matrixUserId": "@picard:matrix.org",
+  "inbox": "https://enterprise.lemmy.ml/u/picard/inbox",
+  "outbox": "https://enterprise.lemmy.ml/u/picard/outbox",
+  "endpoints": {
+    "sharedInbox": "https://enterprise.lemmy.ml/inbox"
+  },
+  "published": "2020-01-17T01:38:22.348392+00:00",
+  "updated": "2021-08-13T00:11:15.941990+00:00",
+  "publicKey": {
+    "id": "https://enterprise.lemmy.ml/u/picard#main-key",
+    "owner": "https://enterprise.lemmy.ml/u/picard",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0lP99/s5Vv+XbPdkeqIJ\nwoD4GFnHmBnBHdEKChEUWfWj1TtioC/rGNoXFQeXQA3Amhy4nxSceiDnUgwkkuQY\nv0MtIW58NzgknEavtllxL+LSds5pg3gANaDIk8UiWTkqXTg0GnlJMpCK1Chen0l/\nszL6DEvUyTSuS5ZYDXFgewF89Pe7U0S15V5U2Harv7AgJYDyxmUL0D1pGuUCRqcE\nl5MTHJjrXeNnH1w2g8aly8YlO/Cr0L51rFg/lBF23vni7ZLv8HbmWh6YpaAf1R8h\nE45zKR7OHqymdjzrg1ITBwovefpwMkVgnJ+Wdr4HPnFlBSkXPoZeM11+Z8L0anzA\nXwIDAQAB\n-----END PUBLIC KEY-----\n"
+  }
+}
