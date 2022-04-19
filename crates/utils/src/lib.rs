@@ -51,50 +51,54 @@ macro_rules! location_info {
 
 #[derive(serde::Serialize)]
 struct ApiError {
-  error: &'static str,
+  error: String,
 }
 
 pub struct LemmyError {
-  pub message: Option<&'static str>,
+  pub message: Option<String>,
   pub inner: anyhow::Error,
   pub context: SpanTrace,
 }
 
 impl LemmyError {
   /// Create LemmyError from a message, including stack trace
-  pub fn from_message(message: &'static str) -> Self {
+  pub fn from_message(message: &str) -> Self {
     let inner = anyhow::anyhow!("{}", message);
     LemmyError {
-      message: Some(message),
+      message: Some(message.into()),
       inner,
       context: SpanTrace::capture(),
     }
   }
 
   /// Create a LemmyError from error and message, including stack trace
-  pub fn from_error_message<E>(error: E, message: &'static str) -> Self
+  pub fn from_error_message<E>(error: E, message: &str) -> Self
   where
     E: Into<anyhow::Error>,
   {
     LemmyError {
-      message: Some(message),
+      message: Some(message.into()),
       inner: error.into(),
       context: SpanTrace::capture(),
     }
   }
 
   /// Add message to existing LemmyError (or overwrite existing error)
-  pub fn with_message(self, message: &'static str) -> Self {
+  pub fn with_message(self, message: &str) -> Self {
     LemmyError {
-      message: Some(message),
+      message: Some(message.into()),
       ..self
     }
   }
 
   pub fn to_json(&self) -> Result<String, Self> {
-    let api_error = match self.message {
-      Some(error) => ApiError { error },
-      None => ApiError { error: "Unknown" },
+    let api_error = match &self.message {
+      Some(error) => ApiError {
+        error: error.into(),
+      },
+      None => ApiError {
+        error: "Unknown".into(),
+      },
     };
 
     Ok(serde_json::to_string(&api_error)?)
@@ -126,7 +130,7 @@ impl std::fmt::Debug for LemmyError {
 
 impl Display for LemmyError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    if let Some(message) = self.message {
+    if let Some(message) = &self.message {
       write!(f, "{}: ", message)?;
     }
     writeln!(f, "{}", self.inner)?;
@@ -144,7 +148,9 @@ impl actix_web::error::ResponseError for LemmyError {
 
   fn error_response(&self) -> HttpResponse {
     if let Some(message) = &self.message {
-      HttpResponse::build(self.status_code()).json(ApiError { error: message })
+      HttpResponse::build(self.status_code()).json(ApiError {
+        error: message.into(),
+      })
     } else {
       HttpResponse::build(self.status_code())
         .content_type("text/plain")
