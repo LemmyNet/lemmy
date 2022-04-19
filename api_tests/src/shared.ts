@@ -50,7 +50,6 @@ import {
   ResolveObjectResponse,
   ResolveObject,
   CreatePostReport,
-  PostReport,
   ListPostReports,
   PostReportResponse,
   ListPostReportsResponse,
@@ -59,6 +58,7 @@ import {
   ListCommentReports,
   ListCommentReportsResponse,
   DeleteAccount,
+  DeleteAccountResponse
 } from 'lemmy-js-client';
 
 export interface API {
@@ -132,6 +132,13 @@ export async function setupLogins() {
   gamma.auth = res[2].jwt;
   delta.auth = res[3].jwt;
   epsilon.auth = res[4].jwt;
+
+  // regstration applications are now enabled by default, need to disable them
+  await alpha.client.editSite({ require_application: false, auth: alpha.auth});
+  await beta.client.editSite({ require_application: false, auth: beta.auth});
+  await gamma.client.editSite({ require_application: false, auth: gamma.auth});
+  await delta.client.editSite({ require_application: false, auth: delta.auth});
+  await epsilon.client.editSite({ require_application: false, auth: epsilon.auth});
 }
 
 export async function createPost(
@@ -552,7 +559,7 @@ export async function saveUserSettings(
 
 export async function deleteUser(
   api: API,
-): Promise<LoginResponse> {
+): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     auth: api.auth,
     password
