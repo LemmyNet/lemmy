@@ -217,4 +217,6 @@ pub struct SetupConfig {
   pub private_instance: Option<bool>,
   #[default(None)]
   pub default_theme: Option<String>,
+  #[default(None)]
+  pub default_post_listing_type: Option<String>,
 }

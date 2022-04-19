@@ -5,7 +5,7 @@ use lemmy_api_common::{
   check_private_instance,
   get_local_user_view_from_jwt_opt,
   mark_post_as_read,
-  post::*,
+  post::{GetPost, GetPostResponse},
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostView};

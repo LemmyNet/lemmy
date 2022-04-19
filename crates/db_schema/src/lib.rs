@@ -46,7 +46,7 @@ pub enum SortType {
   NewComments,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum ListingType {
   All,
   Local,
