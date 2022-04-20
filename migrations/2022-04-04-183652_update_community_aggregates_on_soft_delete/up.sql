@@ -14,7 +14,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 as $$
     begin
-        IF (TG_OP NOT IN ('DELETE', 'UPDATE')) THEN
+        IF (TG_OP = 'INSERT') THEN
             return false;
         end if;
 
@@ -33,7 +33,7 @@ create or replace function was_restored_or_created(TG_OP text, OLD record, NEW r
     LANGUAGE plpgsql
 as $$
 begin
-    IF (TG_OP NOT IN ('INSERT', 'UPDATE')) THEN
+    IF (TG_OP = 'DELETE') THEN
         return false;
     end if;
 
@@ -141,8 +141,10 @@ create or replace function site_aggregates_post_insert()
 as $$
 begin
     IF (was_restored_or_created(TG_OP, OLD, NEW)) THEN
-        update site_aggregates
-        set posts = posts + 1;
+        update site_aggregates sa
+        set posts = posts + 1
+        from site s
+        where sa.site_id = s.id;
     END IF;
     return null;
 end $$;
@@ -165,8 +167,10 @@ create or replace function site_aggregates_comment_insert()
 as $$
 begin
     IF (was_restored_or_created(TG_OP, OLD, NEW)) THEN
-        update site_aggregates
-        set comments = comments + 1;
+        update site_aggregates sa
+        set comments = comments + 1
+        from site s
+        where sa.site_id = s.id;
     END IF;
     return null;
 end $$;
@@ -189,8 +193,10 @@ create or replace function site_aggregates_community_insert()
 as $$
 begin
     IF (was_restored_or_created(TG_OP, OLD, NEW)) THEN
-        update site_aggregates
-        set communities = communities + 1;
+        update site_aggregates sa
+        set communities = communities + 1
+        from site s
+        where sa.site_id = s.id;
     END IF;
     return null;
 end $$;
