@@ -2,7 +2,7 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
   mentions::collect_non_local_mentions,
-  objects::read_from_string_or_source,
+  objects::{check_is_local_object, read_from_string_or_source},
   protocol::{
     objects::{note::Note, tombstone::Tombstone},
     Source,
@@ -149,6 +149,7 @@ impl ApubObject for ApubComment {
     })
     .await??;
     check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
+    check_is_local_object(note.id.inner())?;
     verify_person_in_community(
       &note.attributed_to,
       &community.into(),

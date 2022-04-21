@@ -1,7 +1,8 @@
 use crate::protocol::{ImageObject, Source};
+use anyhow::anyhow;
 use html2md::parse_html;
 use lemmy_apub_lib::verify::verify_domains_match;
-use lemmy_utils::LemmyError;
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use url::Url;
 
 pub mod comment;
@@ -30,9 +31,25 @@ pub(crate) fn read_from_string_or_source_opt(
   }
 }
 
-pub fn verify_image_domain_matches(a: &Url, b: &Option<ImageObject>) -> Result<(), LemmyError> {
+pub(crate) fn verify_image_domain_matches(
+  a: &Url,
+  b: &Option<ImageObject>,
+) -> Result<(), LemmyError> {
   if let Some(b) = b {
     verify_domains_match(a, &b.url)
+  } else {
+    Ok(())
+  }
+}
+
+/// When for example a Post is made in a remote community, the community will send it back,
+/// wrapped in Announce. If we simply receive this like any other federated object, overwrite the
+/// existing, local Post. In particular, it will set the field local = false, so that the object
+/// can't be fetched from the Activitypub HTTP endpoint anymore (which only serves local objects).
+pub(crate) fn check_is_local_object(id: &Url) -> Result<(), LemmyError> {
+  let local_domain = Settings::get().get_hostname_without_port()?;
+  if id.domain() == Some(&local_domain) {
+    Err(anyhow!("cant accept local object from remote instance").into())
   } else {
     Ok(())
   }
