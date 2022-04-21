@@ -157,14 +157,13 @@ impl ApubObject for ApubPost {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubPost, LemmyError> {
-      let creator = page
-        .attributed_to
-        .dereference(context, context.client(), request_counter)
-        .await?;
+    let creator = page
+      .attributed_to
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let community = page.extract_community(context, request_counter).await?;
 
     let form = if !page.is_mod_action(context).await? {
-      let community = page.extract_community(context, request_counter).await?;
-
       let url = if let Some(attachment) = page.attachment.first() {
         Some(attachment.href.clone())
       } else {
@@ -205,6 +204,9 @@ impl ApubObject for ApubPost {
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
       PostForm {
+        name: page.name.clone(),
+        creator_id: creator.id,
+        community_id: community.id,
         locked: page.comments_enabled.map(|e| !e),
         stickied: page.stickied,
         ..Default::default()
