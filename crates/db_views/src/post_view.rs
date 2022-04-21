@@ -571,9 +571,9 @@ mod tests {
     let inserted_blocked_person = Person::create(&conn, &blocked_person).unwrap();
 
     let post_from_blocked_person = PostForm {
-      name: "blocked_person_post".to_string(),
-      creator_id: inserted_blocked_person.id,
-      community_id: inserted_community.id,
+      name: Some("blocked_person_post".to_string()),
+      creator_id: Some(inserted_blocked_person.id),
+      community_id: Some(inserted_community.id),
       ..PostForm::default()
     };
 
@@ -589,18 +589,18 @@ mod tests {
 
     // A sample post
     let new_post = PostForm {
-      name: post_name.to_owned(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
+      name: Some(post_name.to_owned()),
+      creator_id: Some(inserted_person.id),
+      community_id: Some(inserted_community.id),
       ..PostForm::default()
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
 
     let new_bot_post = PostForm {
-      name: bot_post_name,
-      creator_id: inserted_bot.id,
-      community_id: inserted_community.id,
+      name: Some(bot_post_name),
+      creator_id: Some(inserted_bot.id),
+      community_id: Some(inserted_community.id),
       ..PostForm::default()
     };
 

@@ -75,9 +75,9 @@ impl Page {
       .dereference_local(context)
       .await;
 
-    let is_mod_action = Page::is_stickied_changed(&old_post, &self.stickied)
-      || Page::is_locked_changed(&old_post, &self.comments_enabled);
-    Ok(is_mod_action)
+    let stickied_changed = Page::is_stickied_changed(&old_post, &self.stickied);
+    let locked_changed = Page::is_locked_changed(&old_post, &self.comments_enabled);
+    Ok(stickied_changed || locked_changed)
   }
 
   pub(crate) fn is_stickied_changed<E>(

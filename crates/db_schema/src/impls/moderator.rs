@@ -301,9 +301,9 @@ mod tests {
     let inserted_community = Community::create(&conn, &new_community).unwrap();
 
     let new_post = PostForm {
-      name: "A test post thweep".into(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
+      name: Some("A test post thweep".into()),
+      creator_id: Some(inserted_person.id),
+      community_id: Some(inserted_community.id),
       ..PostForm::default()
     };
 

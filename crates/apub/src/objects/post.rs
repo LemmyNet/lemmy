@@ -1,7 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
-  objects::{check_is_local_object, read_from_string_or_source_opt},
+  objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
       page::{Attachment, Page, PageType},
@@ -139,7 +139,7 @@ impl ApubObject for ApubPost {
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
-      check_is_local_object(page.id.inner())?;
+      verify_is_remote_object(page.id.inner())?;
     };
 
     let community = page.extract_community(context, request_counter).await?;
@@ -182,11 +182,11 @@ impl ApubObject for ApubPost {
         .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
 
       PostForm {
-        name: page.name.clone(),
+        name: Some(page.name.clone()),
         url: url.map(Into::into),
         body: body_slurs_removed,
-        creator_id: creator.id,
-        community_id: community.id,
+        creator_id: Some(creator.id),
+        community_id: Some(community.id),
         removed: None,
         locked: page.comments_enabled.map(|e| !e),
         published: page.published.map(|u| u.naive_local()),
@@ -204,9 +204,6 @@ impl ApubObject for ApubPost {
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
       PostForm {
-        name: page.name.clone(),
-        creator_id: creator.id,
-        community_id: community.id,
         locked: page.comments_enabled.map(|e| !e),
         stickied: page.stickied,
         ..Default::default()

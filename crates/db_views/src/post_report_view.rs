@@ -360,9 +360,9 @@ mod tests {
     let _inserted_moderator = CommunityModerator::join(&conn, &timmy_moderator_form).unwrap();
 
     let new_post = PostForm {
-      name: "A test post crv".into(),
-      creator_id: inserted_timmy.id,
-      community_id: inserted_community.id,
+      name: Some("A test post crv".into()),
+      creator_id: Some(inserted_timmy.id),
+      community_id: Some(inserted_community.id),
       ..PostForm::default()
     };
 
