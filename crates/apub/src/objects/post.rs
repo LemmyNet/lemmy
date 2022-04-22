@@ -182,11 +182,11 @@ impl ApubObject for ApubPost {
         .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
 
       PostForm {
-        name: Some(page.name.clone()),
+        name: page.name.clone(),
         url: url.map(Into::into),
         body: body_slurs_removed,
-        creator_id: Some(creator.id),
-        community_id: Some(community.id),
+        creator_id: creator.id,
+        community_id: community.id,
         removed: None,
         locked: page.comments_enabled.map(|e| !e),
         published: page.published.map(|u| u.naive_local()),
@@ -204,6 +204,9 @@ impl ApubObject for ApubPost {
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
       PostForm {
+        name: page.name.clone(),
+        creator_id: creator.id,
+        community_id: community.id,
         locked: page.comments_enabled.map(|e| !e),
         stickied: page.stickied,
         updated: page.updated.map(|u| u.naive_local()),

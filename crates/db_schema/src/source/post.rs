@@ -30,9 +30,9 @@ pub struct Post {
 #[derive(Insertable, AsChangeset, Default)]
 #[table_name = "post"]
 pub struct PostForm {
-  pub creator_id: Option<PersonId>,
-  pub community_id: Option<CommunityId>,
-  pub name: Option<String>,
+  pub name: String,
+  pub creator_id: PersonId,
+  pub community_id: CommunityId,
   pub nsfw: Option<bool>,
   pub url: Option<DbUrl>,
   pub body: Option<String>,

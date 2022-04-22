@@ -75,9 +75,9 @@ impl PerformCrud for EditPost {
       .unwrap_or((None, None, None));
 
     let post_form = PostForm {
-      creator_id: Some(orig_post.creator_id.to_owned()),
-      community_id: Some(orig_post.community_id),
-      name: Some(data.name.to_owned().unwrap_or(orig_post.name)),
+      creator_id: orig_post.creator_id.to_owned(),
+      community_id: orig_post.community_id,
+      name: data.name.to_owned().unwrap_or(orig_post.name),
       url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
       body: clean_optional_text(&data.body),
       nsfw: data.nsfw,

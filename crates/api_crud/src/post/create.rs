@@ -71,11 +71,11 @@ impl PerformCrud for CreatePost {
       .unwrap_or((None, None, None));
 
     let post_form = PostForm {
-      name: Some(data.name.trim().to_owned()),
+      name: data.name.trim().to_owned(),
       url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
       body: clean_optional_text(&data.body),
-      community_id: Some(data.community_id),
-      creator_id: Some(local_user_view.person.id),
+      community_id: data.community_id,
+      creator_id: local_user_view.person.id,
       nsfw: data.nsfw,
       embed_title,
       embed_description,
