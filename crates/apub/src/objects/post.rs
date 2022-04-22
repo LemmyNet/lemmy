@@ -206,6 +206,8 @@ impl ApubObject for ApubPost {
       PostForm {
         locked: page.comments_enabled.map(|e| !e),
         stickied: page.stickied,
+        updated: page.updated.map(|u| u.naive_local()),
+        ap_id: Some(page.id.clone().into()),
         ..Default::default()
       }
     };
