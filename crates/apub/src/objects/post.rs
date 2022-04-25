@@ -1,7 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
-  objects::read_from_string_or_source_opt,
+  objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
       page::{Attachment, Page, PageType},
@@ -139,6 +139,7 @@ impl ApubObject for ApubPost {
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
+      verify_is_remote_object(page.id.inner())?;
     };
 
     let community = page.extract_community(context, request_counter).await?;
@@ -162,42 +163,56 @@ impl ApubObject for ApubPost {
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
-    let url = if let Some(attachment) = page.attachment.first() {
-      Some(attachment.href.clone())
-    } else {
-      page.url
-    };
-    let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
-    let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
-      fetch_site_data(context.client(), &context.settings(), Some(url)).await
-    } else {
-      (None, thumbnail_url)
-    };
-    let (embed_title, embed_description, embed_html) = metadata_res
-      .map(|u| (u.title, u.description, u.html))
-      .unwrap_or((None, None, None));
-    let body_slurs_removed = read_from_string_or_source_opt(&page.content, &page.source)
-      .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
+    let form = if !page.is_mod_action(context).await? {
+      let url = if let Some(attachment) = page.attachment.first() {
+        Some(attachment.href.clone())
+      } else {
+        page.url
+      };
+      let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
+      let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
+        fetch_site_data(context.client(), &context.settings(), Some(url)).await
+      } else {
+        (None, thumbnail_url)
+      };
+      let (embed_title, embed_description, embed_html) = metadata_res
+        .map(|u| (u.title, u.description, u.html))
+        .unwrap_or((None, None, None));
+      let body_slurs_removed = read_from_string_or_source_opt(&page.content, &page.source)
+        .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
 
-    let form = PostForm {
-      name: page.name.clone(),
-      url: url.map(Into::into),
-      body: body_slurs_removed,
-      creator_id: creator.id,
-      community_id: community.id,
-      removed: None,
-      locked: page.comments_enabled.map(|e| !e),
-      published: page.published.map(|u| u.naive_local()),
-      updated: page.updated.map(|u| u.naive_local()),
-      deleted: None,
-      nsfw: page.sensitive,
-      stickied: page.stickied,
-      embed_title,
-      embed_description,
-      embed_html,
-      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(page.id.clone().into()),
-      local: Some(false),
+      PostForm {
+        name: page.name.clone(),
+        url: url.map(Into::into),
+        body: body_slurs_removed,
+        creator_id: creator.id,
+        community_id: community.id,
+        removed: None,
+        locked: page.comments_enabled.map(|e| !e),
+        published: page.published.map(|u| u.naive_local()),
+        updated: page.updated.map(|u| u.naive_local()),
+        deleted: None,
+        nsfw: page.sensitive,
+        stickied: page.stickied,
+        embed_title,
+        embed_description,
+        embed_html,
+        thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
+        ap_id: Some(page.id.clone().into()),
+        local: Some(false),
+      }
+    } else {
+      // if is mod action, only update locked/stickied fields, nothing else
+      PostForm {
+        name: page.name.clone(),
+        creator_id: creator.id,
+        community_id: community.id,
+        locked: page.comments_enabled.map(|e| !e),
+        stickied: page.stickied,
+        updated: page.updated.map(|u| u.naive_local()),
+        ap_id: Some(page.id.clone().into()),
+        ..Default::default()
+      }
     };
 
     // read existing, local post if any (for generating mod log)
