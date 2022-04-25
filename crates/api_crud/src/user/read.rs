@@ -46,15 +46,16 @@ impl PerformCrud for GetPersonDetails {
     let person_details_id = match data.person_id {
       Some(id) => id,
       None => {
-        let name = data
-          .username
-          .to_owned()
-          .unwrap_or_else(|| "admin".to_string());
-
-        resolve_actor_identifier::<ApubPerson, Person>(&name, context)
-          .await
-          .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
-          .id
+        if let Some(username) = &data.username {
+          resolve_actor_identifier::<ApubPerson, Person>(username, context)
+            .await
+            .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
+            .id
+        } else {
+          return Err(LemmyError::from_message(
+            "couldnt_find_that_username_or_email",
+          ));
+        }
       }
     };
 
