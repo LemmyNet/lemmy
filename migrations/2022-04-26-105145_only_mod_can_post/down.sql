@@ -1,0 +1,1 @@
+alter table community drop column posting_restricted;

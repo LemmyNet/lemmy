@@ -147,3 +147,10 @@ pub struct TransferCommunity {
   pub person_id: PersonId,
   pub auth: Sensitive<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RestrictCommunity {
+  pub community_id: CommunityId,
+  pub restricted: bool,
+  pub auth: Sensitive<String>,
+}

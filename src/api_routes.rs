@@ -49,7 +49,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", web::get().to(route_get_crud::<GetCommunity>))
           .route("", web::put().to(route_post_crud::<EditCommunity>))
-          .route("/hide", web::put().to(route_post_crud::<HideCommunity>))
+          .route("/hide", web::put().to(route_post::<HideCommunity>))
           .route("/list", web::get().to(route_get_crud::<ListCommunities>))
           .route("/follow", web::post().to(route_post::<FollowCommunity>))
           .route("/block", web::post().to(route_post::<BlockCommunity>))
@@ -66,7 +66,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
           .route("/join", web::post().to(route_post::<CommunityJoin>))
-          .route("/mod/join", web::post().to(route_post::<ModJoin>)),
+          .route("/mod/join", web::post().to(route_post::<ModJoin>))
+          .route("/restrict", web::put().to(route_post::<RestrictCommunity>)),
       )
       // Post
       .service(

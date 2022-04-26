@@ -94,6 +94,7 @@ table! {
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
         hidden -> Bool,
+        posting_restricted -> Bool,
     }
 }
 

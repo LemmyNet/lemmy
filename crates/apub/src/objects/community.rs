@@ -103,6 +103,7 @@ impl ApubObject for ApubCommunity {
       public_key: self.get_public_key()?,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
+      posting_restricted: Some(self.posting_restricted),
     };
     Ok(group)
   }

@@ -123,6 +123,7 @@ fn community_updates_2020_04_02(
       followers_url: None,
       inbox_url: None,
       shared_inbox_url: None,
+      posting_restricted: None,
     };
 
     Community::update(conn, ccommunity.id, &form)?;

@@ -43,6 +43,7 @@ mod safe_type {
     icon,
     banner,
     hidden,
+    posting_restricted,
   );
 
   impl ToSafe for Community {
@@ -63,6 +64,7 @@ mod safe_type {
         icon,
         banner,
         hidden,
+        posting_restricted,
       )
     }
   }
@@ -373,6 +375,7 @@ mod tests {
       inbox_url: inserted_community.inbox_url.to_owned(),
       shared_inbox_url: None,
       hidden: false,
+      posting_restricted: false,
     };
 
     let community_follower_form = CommunityFollowerForm {

@@ -1,25 +1,22 @@
-use crate::PerformCrud;
+use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   blocking,
-  check_image_has_local_domain,
-  community::{CommunityResponse, EditCommunity},
+  community::{CommunityResponse, RestrictCommunity},
   get_local_user_view_from_jwt,
+  is_mod_or_admin,
 };
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
-  diesel_option_overwrite_to_url,
   naive_now,
-  newtypes::PersonId,
   source::community::{Community, CommunityForm},
   traits::Crud,
 };
-use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
-use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
+use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
-impl PerformCrud for EditCommunity {
+impl Perform for RestrictCommunity {
   type Response = CommunityResponse;
 
   #[tracing::instrument(skip(context, websocket_id))]
@@ -28,28 +25,11 @@ impl PerformCrud for EditCommunity {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &EditCommunity = self;
+    let data: &RestrictCommunity = self;
+
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-
-    let icon = diesel_option_overwrite_to_url(&data.icon)?;
-    let banner = diesel_option_overwrite_to_url(&data.banner)?;
-
-    check_slurs_opt(&data.title, &context.settings().slur_regex())?;
-    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
-    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
-
-    // Verify its a mod (only mods can edit it)
-    let community_id = data.community_id;
-    let mods: Vec<PersonId> = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())
-    })
-    .await??;
-    if !mods.contains(&local_user_view.person.id) {
-      return Err(LemmyError::from_message("not_a_moderator"));
-    }
+    is_mod_or_admin(context.pool(), local_user_view.person.id, data.community_id).await?;
 
     let community_id = data.community_id;
     let read_community = blocking(context.pool(), move |conn| {
@@ -59,11 +39,8 @@ impl PerformCrud for EditCommunity {
 
     let community_form = CommunityForm {
       name: read_community.name,
-      title: data.title.to_owned().unwrap_or(read_community.title),
-      description: data.description.to_owned(),
-      icon,
-      banner,
-      nsfw: data.nsfw,
+      title: read_community.title,
+      posting_restricted: Some(data.restricted),
       updated: Some(naive_now()),
       ..CommunityForm::default()
     };
@@ -73,7 +50,7 @@ impl PerformCrud for EditCommunity {
       Community::update(conn, community_id, &community_form)
     })
     .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
 
     UpdateCommunity::send(
       updated_community.into(),

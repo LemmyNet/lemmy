@@ -74,20 +74,15 @@ impl CommunityView {
     })
   }
 
-  // TODO: this function is only used by is_mod_or_admin() below, can probably be merged
-  fn community_mods_and_admins(
-    conn: &PgConnection,
-    community_id: CommunityId,
-  ) -> Result<Vec<PersonId>, Error> {
-    let mut mods_and_admins: Vec<PersonId> = Vec::new();
-    mods_and_admins.append(
-      &mut CommunityModeratorView::for_community(conn, community_id)
-        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?,
-    );
-    mods_and_admins.append(
-      &mut PersonViewSafe::admins(conn).map(|v| v.into_iter().map(|a| a.person.id).collect())?,
-    );
-    Ok(mods_and_admins)
+  pub fn is_mod(conn: &PgConnection, person_id: PersonId, community_id: CommunityId) -> bool {
+    CommunityModeratorView::for_community(conn, community_id)
+      .map(|v| {
+        v.into_iter()
+          .map(|m| m.moderator.id)
+          .collect::<Vec<PersonId>>()
+      })
+      .unwrap_or_default()
+      .contains(&person_id)
   }
 
   pub fn is_mod_or_admin(
@@ -95,7 +90,16 @@ impl CommunityView {
     person_id: PersonId,
     community_id: CommunityId,
   ) -> bool {
-    Self::community_mods_and_admins(conn, community_id)
+    if CommunityView::is_mod(conn, person_id, community_id) {
+      return true;
+    }
+
+    PersonViewSafe::admins(conn)
+      .map(|v| {
+        v.into_iter()
+          .map(|a| a.person.id)
+          .collect::<Vec<PersonId>>()
+      })
       .unwrap_or_default()
       .contains(&person_id)
   }
