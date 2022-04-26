@@ -1,5 +1,5 @@
 use crate::{
-  mentions::Mention,
+  mentions::MentionOrValue,
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::note::Note, Unparsed},
 };
@@ -17,7 +17,7 @@ pub struct CreateOrUpdateComment {
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(default)]
-  pub(crate) tag: Vec<Mention>,
+  pub(crate) tag: Vec<MentionOrValue>,
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,

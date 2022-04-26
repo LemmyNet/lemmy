@@ -75,7 +75,8 @@ mod tests {
     test_json::<Person>("assets/friendica/objects/person_2.json").unwrap();
     test_json::<Page>("assets/friendica/objects/page_1.json").unwrap();
     test_json::<Page>("assets/friendica/objects/page_2.json").unwrap();
-    test_json::<Note>("assets/friendica/objects/note.json").unwrap();
+    test_json::<Note>("assets/friendica/objects/note_1.json").unwrap();
+    test_json::<Note>("assets/friendica/objects/note_2.json").unwrap();
   }
 
   #[test]
