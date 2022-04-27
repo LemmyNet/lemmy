@@ -13,35 +13,14 @@ lemmy_apub_lib = { version = "=0.16.3", path = "../apub_lib" }
 lemmy_utils = { version = "=0.16.3", path = "../utils" }
 lemmy_db_schema = { version = "=0.16.3", path = "../db_schema" }
 lemmy_db_views = { version = "=0.16.3", path = "../db_views" }
-lemmy_db_views_moderator = { version = "=0.16.3", path = "../db_views_moderator" }
 lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor" }
 lemmy_api_common = { version = "=0.16.3", path = "../api_common" }
 lemmy_websocket = { version = "=0.16.3", path = "../websocket" }
-diesel = "1.4.8"
 bcrypt = "0.12.1"
-chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.79", features = ["preserve_order"] }
 serde = { version = "1.0.136", features = ["derive"] }
-actix = "0.13.0"
 actix-web = { version = "4.0.1", default-features = false }
-actix-rt = { version = "2.7.0", default-features = false }
 tracing = "0.1.32"
-rand = "0.8.5"
-strum = "0.24.0"
-strum_macros = "0.24.0"
 url = { version = "2.2.2", features = ["serde"] }
-openssl = "0.10.38"
-http = "0.2.6"
-http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["sha-2"] }
-base64 = "0.13.0"
-tokio = "1.17.0"
-futures = "0.3.21"
-itertools = "0.10.3"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
-sha2 = "0.10.2"
 async-trait = "0.1.53"
-anyhow = "1.0.56"
-thiserror = "1.0.30"
-background-jobs = "0.12.0"
-reqwest = { version = "0.11.10", features = ["json"] }
 webmention = "0.4.0"

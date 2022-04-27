@@ -27,26 +27,10 @@ bcrypt = "0.12.1"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde_json = { version = "1.0.79", features = ["preserve_order"] }
 serde = { version = "1.0.136", features = ["derive"] }
-actix = "0.13.0"
 actix-web = { version = "4.0.1", default-features = false }
-actix-rt = { version = "2.7.0", default-features = false }
-rand = "0.8.5"
-strum = "0.24.0"
-strum_macros = "0.24.0"
-url = { version = "2.2.2", features = ["serde"] }
-openssl = "0.10.38"
-http = "0.2.6"
-http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["sha-2"] }
 base64 = "0.13.0"
-tokio = "1.17.0"
-futures = "0.3.21"
-itertools = "0.10.3"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
-sha2 = "0.10.2"
 async-trait = "0.1.53"
 captcha = "0.0.8"
 anyhow = "1.0.56"
-thiserror = "1.0.30"
 tracing = "0.1.32"
-background-jobs = "0.12.0"
-reqwest = { version = "0.11.10", features = ["json"] }
