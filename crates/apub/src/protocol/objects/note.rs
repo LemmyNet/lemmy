@@ -1,6 +1,6 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
-  mentions::Mention,
+  mentions::MentionOrValue,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
@@ -38,7 +38,7 @@ pub struct Note {
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
-  pub(crate) tag: Vec<Mention>,
+  pub(crate) tag: Vec<MentionOrValue>,
 }
 
 impl Note {

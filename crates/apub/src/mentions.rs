@@ -16,7 +16,15 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use url::Url;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum MentionOrValue {
+  Mention(Mention),
+  Value(Value),
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Mention {
@@ -28,7 +36,7 @@ pub struct Mention {
 
 pub struct MentionsAndAddresses {
   pub ccs: Vec<Url>,
-  pub tags: Vec<Mention>,
+  pub tags: Vec<MentionOrValue>,
 }
 
 /// This takes a comment, and builds a list of to_addresses, inboxes,
@@ -81,6 +89,7 @@ pub async fn collect_non_local_mentions(
     }
   }
 
+  let tags = tags.into_iter().map(MentionOrValue::Mention).collect();
   Ok(MentionsAndAddresses {
     ccs: addressed_ccs,
     tags,

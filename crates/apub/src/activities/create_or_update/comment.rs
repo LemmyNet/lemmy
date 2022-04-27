@@ -9,6 +9,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
@@ -70,6 +71,13 @@ impl CreateOrUpdateComment {
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
       .tag
       .iter()
+      .filter_map(|t| {
+        if let MentionOrValue::Mention(t) = t {
+          Some(t)
+        } else {
+          None
+        }
+      })
       .map(|t| t.href.clone())
       .map(ObjectId::new)
       .collect();
