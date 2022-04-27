@@ -33,7 +33,6 @@ actix-rt = { version = "2.7.0", default-features = false }
 anyhow = "1.0.56"
 reqwest = { version = "0.11.10", features = ["json"] }
 reqwest-middleware = "0.1.5"
-tokio = { version = "1.17.0", features = ["sync"] }
 strum = "0.24.0"
 strum_macros = "0.24.0"
 futures = "0.3.21"
