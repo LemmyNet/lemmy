@@ -303,7 +303,7 @@ mod tests {
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(
       SiteMetadata {
-        title: Some("FAQ · Wiki · IzzyOnDroid / repo".to_string()),
+        title: Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
         description: Some(
           "The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()
         ),
