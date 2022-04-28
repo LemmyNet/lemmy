@@ -20,7 +20,7 @@
   "inbox": "https://enterprise.lemmy.ml/c/tenforward/inbox",
   "followers": "https://enterprise.lemmy.ml/c/tenforward/followers",
   "moderators": "https://enterprise.lemmy.ml/c/tenforward/moderators",
-  "posting_restricted": false,
+  "posting_restricted_to_mods": false,
   "endpoints": {
     "sharedInbox": "https://enterprise.lemmy.ml/inbox"
   },

@@ -74,23 +74,20 @@ impl CommunityView {
     })
   }
 
-  pub fn is_mod(conn: &PgConnection, person_id: PersonId, community_id: CommunityId) -> bool {
-    CommunityModeratorView::for_community(conn, community_id)
+  pub fn is_mod_or_admin(
+    conn: &PgConnection,
+    person_id: PersonId,
+    community_id: CommunityId,
+  ) -> bool {
+    let is_mod = CommunityModeratorView::for_community(conn, community_id)
       .map(|v| {
         v.into_iter()
           .map(|m| m.moderator.id)
           .collect::<Vec<PersonId>>()
       })
       .unwrap_or_default()
-      .contains(&person_id)
-  }
-
-  pub fn is_mod_or_admin(
-    conn: &PgConnection,
-    person_id: PersonId,
-    community_id: CommunityId,
-  ) -> bool {
-    if CommunityView::is_mod(conn, person_id, community_id) {
+      .contains(&person_id);
+    if is_mod {
       return true;
     }
 

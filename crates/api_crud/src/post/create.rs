@@ -71,10 +71,10 @@ impl PerformCrud for CreatePost {
       Community::read(conn, community_id)
     })
     .await??;
-    if community.posting_restricted {
+    if community.posting_restricted_to_mods {
       let community_id = data.community_id;
       let is_mod = blocking(context.pool(), move |conn| {
-        CommunityView::is_mod(conn, local_user_view.local_user.person_id, community_id)
+        CommunityView::is_mod_or_admin(conn, local_user_view.local_user.person_id, community_id)
       })
       .await?;
       if !is_mod {
