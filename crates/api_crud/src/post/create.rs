@@ -16,9 +16,13 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
-  source::post::{Post, PostForm, PostLike, PostLikeForm},
+  source::{
+    community::Community,
+    post::{Post, PostForm, PostLike, PostLikeForm},
+  },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views_actor::community_view::CommunityView;
 use lemmy_utils::{
   request::fetch_site_data,
   utils::{
@@ -61,6 +65,22 @@ impl PerformCrud for CreatePost {
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
+
+    let community_id = data.community_id;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    if community.posting_restricted_to_mods {
+      let community_id = data.community_id;
+      let is_mod = blocking(context.pool(), move |conn| {
+        CommunityView::is_mod_or_admin(conn, local_user_view.local_user.person_id, community_id)
+      })
+      .await?;
+      if !is_mod {
+        return Err(LemmyError::from_message("only_mods_can_post_in_community"));
+      }
+    }
 
     // Fetch post links and pictrs cached image
     let data_url = data.url.as_ref();

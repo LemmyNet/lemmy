@@ -15,6 +15,7 @@
     },
     "sensitive": false,
     "moderators": "http://enterprise.lemmy.ml/c/main/moderators",
+    "postingRestrictedToMods": false,
     "inbox": "http://enterprise.lemmy.ml/c/main/inbox",
     "outbox": "http://enterprise.lemmy.ml/c/main/outbox",
     "followers": "http://enterprise.lemmy.ml/c/main/followers",

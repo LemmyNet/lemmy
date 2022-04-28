@@ -1,0 +1,1 @@
+alter table community add column posting_restricted_to_mods boolean default false;

@@ -49,7 +49,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", web::get().to(route_get_crud::<GetCommunity>))
           .route("", web::put().to(route_post_crud::<EditCommunity>))
-          .route("/hide", web::put().to(route_post_crud::<HideCommunity>))
+          .route("/hide", web::put().to(route_post::<HideCommunity>))
           .route("/list", web::get().to(route_get_crud::<ListCommunities>))
           .route("/follow", web::post().to(route_post::<FollowCommunity>))
           .route("/block", web::post().to(route_post::<BlockCommunity>))

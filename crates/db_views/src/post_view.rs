@@ -703,6 +703,7 @@ mod tests {
         updated: None,
         banner: None,
         hidden: false,
+        posting_restricted_to_mods: false,
         published: inserted_community.published,
       },
       counts: PostAggregates {

@@ -107,22 +107,15 @@ fn community_updates_2020_04_02(
       name: ccommunity.name.to_owned(),
       title: ccommunity.title.to_owned(),
       description: ccommunity.description.to_owned(),
-      removed: None,
-      deleted: None,
-      nsfw: None,
-      updated: None,
       hidden: Some(false),
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),
       private_key: Some(Some(keypair.private_key)),
       public_key: keypair.public_key,
       last_refreshed_at: Some(naive_now()),
-      published: None,
       icon: Some(ccommunity.icon.to_owned()),
       banner: Some(ccommunity.banner.to_owned()),
-      followers_url: None,
-      inbox_url: None,
-      shared_inbox_url: None,
+      ..Default::default()
     };
 
     Community::update(conn, ccommunity.id, &form)?;
