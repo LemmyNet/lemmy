@@ -103,6 +103,7 @@ impl PerformCrud for CreateCommunity {
       followers_url: Some(generate_followers_url(&community_actor_id)?),
       inbox_url: Some(generate_inbox_url(&community_actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&community_actor_id)?)),
+      posting_restricted_to_mods: data.posting_restricted_to_mods,
       ..CommunityForm::default()
     };
 
