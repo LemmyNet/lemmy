@@ -34,6 +34,7 @@ pub struct CreateCommunity {
   pub icon: Option<String>,
   pub banner: Option<String>,
   pub nsfw: Option<bool>,
+  pub posting_restricted_to_mods: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
@@ -94,6 +95,7 @@ pub struct EditCommunity {
   pub icon: Option<String>,
   pub banner: Option<String>,
   pub nsfw: Option<bool>,
+  pub posting_restricted_to_mods: Option<bool>,
   pub auth: Sensitive<String>,
 }
 

@@ -64,6 +64,7 @@ impl PerformCrud for EditCommunity {
       icon,
       banner,
       nsfw: data.nsfw,
+      posting_restricted_to_mods: data.posting_restricted_to_mods,
       updated: Some(naive_now()),
       ..CommunityForm::default()
     };
