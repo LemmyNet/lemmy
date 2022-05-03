@@ -4,7 +4,7 @@ use crate::{
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Attachment, Page, PageType},
+      page::{Attachment, AttributedTo, Page, PageType},
       tombstone::Tombstone,
     },
     ImageObject,
@@ -17,7 +17,7 @@ use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
-  values::MediaTypeHtml,
+  values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -102,14 +102,14 @@ impl ApubObject for ApubPost {
     .await??;
 
     let page = Page {
-      r#type: PageType::Page,
+      kind: PageType::Page,
       id: ObjectId::new(self.ap_id.clone()),
-      attributed_to: ObjectId::new(creator.actor_id),
+      attributed_to: AttributedTo::Lemmy(ObjectId::new(creator.actor_id)),
       to: vec![community.actor_id.into(), public()],
       cc: vec![],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
-      media_type: Some(MediaTypeHtml::Html),
+      media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
       url: self.url.clone().map(|u| u.into()),
       attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
@@ -143,9 +143,9 @@ impl ApubObject for ApubPost {
 
     let community = page.extract_community(context, request_counter).await?;
     check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
-    verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
+    verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
-    verify_domains_match(page.attributed_to.inner(), page.id.inner())?;
+    verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_is_public(&page.to, &page.cc)?;
     Ok(())
   }
@@ -157,15 +157,20 @@ impl ApubObject for ApubPost {
     request_counter: &mut i32,
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
-      .attributed_to
+      .creator()?
       .dereference(context, context.client(), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
     let form = if !page.is_mod_action(context).await? {
       let url = if let Some(attachment) = page.attachment.first() {
+        // url as sent by Lemmy (new)
         Some(attachment.href.clone())
+      } else if page.kind == PageType::Video {
+        // we cant display videos directly, so insert a link to external video page
+        Some(page.id.inner().clone())
       } else {
+        // url sent by lemmy (old)
         page.url
       };
       let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
@@ -177,8 +182,9 @@ impl ApubObject for ApubPost {
       let (embed_title, embed_description, embed_html) = metadata_res
         .map(|u| (u.title, u.description, u.html))
         .unwrap_or((None, None, None));
-      let body_slurs_removed = read_from_string_or_source_opt(&page.content, &page.source)
-        .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
+      let body_slurs_removed =
+        read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
+          .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
 
       PostForm {
         name: page.name.clone(),

@@ -19,8 +19,7 @@ pub struct ChatMessage {
   pub(crate) content: String,
 
   pub(crate) media_type: Option<MediaTypeHtml>,
-  #[serde(default)]
-  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,

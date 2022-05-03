@@ -1,7 +1,7 @@
 use crate::{
   activity_lists::AnnouncableActivities,
   objects::community::ApubCommunity,
-  protocol::Unparsed,
+  protocol::{IdOrNestedObject, Unparsed},
 };
 use activitystreams_kinds::activity::AnnounceType;
 use lemmy_apub_lib::object_id::ObjectId;
@@ -14,7 +14,7 @@ pub struct AnnounceActivity {
   pub(crate) actor: ObjectId<ApubCommunity>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: AnnouncableActivities,
+  pub(crate) object: IdOrNestedObject<AnnouncableActivities>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]

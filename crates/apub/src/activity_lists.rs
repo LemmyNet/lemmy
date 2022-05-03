@@ -25,12 +25,14 @@ use crate::{
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     objects::page::Page,
+    Id,
   },
 };
 use lemmy_apub_lib::traits::ActivityHandler;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
@@ -118,5 +120,25 @@ impl GetCommunity for AnnouncableActivities {
       Page(_) => unimplemented!(),
     };
     Ok(community)
+  }
+}
+
+impl Id for AnnouncableActivities {
+  fn id(&self) -> &Url {
+    use AnnouncableActivities::*;
+    match self {
+      CreateOrUpdateComment(c) => &c.id,
+      CreateOrUpdatePost(c) => &c.id,
+      Vote(v) => &v.id,
+      UndoVote(u) => &u.id,
+      Delete(d) => &d.id,
+      UndoDelete(u) => &u.id,
+      UpdateCommunity(u) => &u.id,
+      BlockUser(b) => &b.id,
+      UndoBlockUser(u) => &u.id,
+      AddMod(a) => &a.id,
+      RemoveMod(r) => &r.id,
+      Page(p) => p.id.inner(),
+    }
   }
 }

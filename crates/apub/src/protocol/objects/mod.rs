@@ -86,4 +86,12 @@ mod tests {
     test_json::<Page>("assets/gnusocial/objects/page.json").unwrap();
     test_json::<Note>("assets/gnusocial/objects/note.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_object_peertube() {
+    test_json::<Person>("assets/peertube/objects/person.json").unwrap();
+    test_json::<Group>("assets/peertube/objects/group.json").unwrap();
+    test_json::<Page>("assets/peertube/objects/video.json").unwrap();
+    test_json::<Note>("assets/peertube/objects/note.json").unwrap();
+  }
 }

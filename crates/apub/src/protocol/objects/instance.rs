@@ -30,8 +30,7 @@ pub struct Instance {
 
   // sidebar
   pub(crate) content: Option<String>,
-  #[serde(default)]
-  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   // short instance description
   pub(crate) summary: Option<String>,

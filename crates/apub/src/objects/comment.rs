@@ -15,7 +15,7 @@ use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
-  values::MediaTypeHtml,
+  values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -117,7 +117,7 @@ impl ApubObject for ApubComment {
       to: vec![public()],
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
-      media_type: Some(MediaTypeHtml::Html),
+      media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: Some(Source::new(self.content.clone())),
       in_reply_to,
       published: Some(convert_datetime(self.published)),
@@ -178,7 +178,7 @@ impl ApubObject for ApubComment {
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 
-    let content = read_from_string_or_source(&note.content, &note.source);
+    let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
     let content_slurs_removed = remove_slurs(&content, &context.settings().slur_regex());
 
     let form = CommentForm {

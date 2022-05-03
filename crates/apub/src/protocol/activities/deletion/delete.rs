@@ -1,5 +1,8 @@
-use crate::{objects::person::ApubPerson, protocol::Unparsed};
-use activitystreams_kinds::{activity::DeleteType, object::TombstoneType};
+use crate::{
+  objects::person::ApubPerson,
+  protocol::{objects::tombstone::Tombstone, IdOrNestedObject, Unparsed},
+};
+use activitystreams_kinds::activity::DeleteType;
 use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -12,7 +15,7 @@ pub struct Delete {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: IdOrNestedObject,
+  pub(crate) object: IdOrNestedObject<Tombstone>,
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,
   pub(crate) id: Url,
@@ -26,30 +29,4 @@ pub struct Delete {
   pub(crate) summary: Option<String>,
   #[serde(flatten)]
   pub(crate) unparsed: Unparsed,
-}
-
-/// Instead of a simple ID string as object, Mastodon sends a nested tombstone for some reason,
-/// so we need to handle that as well.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub(crate) enum IdOrNestedObject {
-  Id(Url),
-  NestedObject(NestedObject),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub(crate) struct NestedObject {
-  pub(crate) id: Url,
-  // Backwards compatibility with Lemmy 0.15
-  #[serde(rename = "type")]
-  pub(crate) kind: TombstoneType,
-}
-
-impl IdOrNestedObject {
-  pub(crate) fn id(&self) -> &Url {
-    match self {
-      IdOrNestedObject::Id(i) => i,
-      IdOrNestedObject::NestedObject(n) => &n.id,
-    }
-  }
 }

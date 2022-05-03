@@ -1,7 +1,7 @@
 use crate::protocol::{ImageObject, Source};
 use anyhow::anyhow;
 use html2md::parse_html;
-use lemmy_apub_lib::verify::verify_domains_match;
+use lemmy_apub_lib::{values::MediaTypeMarkdownOrHtml, verify::verify_domains_match};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use url::Url;
 
@@ -12,23 +12,31 @@ pub mod person;
 pub mod post;
 pub mod private_message;
 
-pub(crate) fn read_from_string_or_source(raw: &str, source: &Option<Source>) -> String {
+pub(crate) fn read_from_string_or_source(
+  content: &str,
+  media_type: &Option<MediaTypeMarkdownOrHtml>,
+  source: &Option<Source>,
+) -> String {
   if let Some(s) = source {
+    // markdown sent by lemmy in source field
     s.content.clone()
+  } else if media_type == &Some(MediaTypeMarkdownOrHtml::Markdown) {
+    // markdown sent by peertube in content field
+    content.to_string()
   } else {
-    parse_html(raw)
+    // otherwise, convert content html to markdown
+    parse_html(content)
   }
 }
 
 pub(crate) fn read_from_string_or_source_opt(
-  raw: &Option<String>,
+  content: &Option<String>,
+  media_type: &Option<MediaTypeMarkdownOrHtml>,
   source: &Option<Source>,
 ) -> Option<String> {
-  if let Some(s2) = source {
-    Some(s2.content.clone())
-  } else {
-    raw.as_ref().map(|s| parse_html(s))
-  }
+  content
+    .as_ref()
+    .map(|content| read_from_string_or_source(content, media_type, source))
 }
 
 pub(crate) fn verify_image_domain_matches(

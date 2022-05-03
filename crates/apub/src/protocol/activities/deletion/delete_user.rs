@@ -17,8 +17,7 @@ pub struct DeleteUser {
   pub(crate) kind: DeleteType,
   pub(crate) id: Url,
 
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
-  #[serde(default)]
+  #[serde(deserialize_with = "crate::deserialize_one_or_many", default)]
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub(crate) cc: Vec<Url>,
 }
