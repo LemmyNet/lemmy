@@ -1,5 +1,9 @@
 use crate::sensitive::Sensitive;
-use lemmy_db_schema::newtypes::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId};
+use lemmy_db_schema::{
+  newtypes::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId},
+  ListingType,
+  SortType,
+};
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use serde::{Deserialize, Serialize};
 
@@ -71,8 +75,8 @@ pub struct CreateCommentLike {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetComments {
-  pub type_: Option<String>,
-  pub sort: Option<String>,
+  pub type_: Option<ListingType>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,

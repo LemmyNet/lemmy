@@ -8,7 +8,10 @@ pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
 }
-use lemmy_db_schema::newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId},
+  SortType,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Register {
@@ -84,7 +87,7 @@ pub struct GetPersonDetails {
   pub person_id: Option<PersonId>, // One of these two are required
   /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
-  pub sort: Option<String>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
@@ -168,7 +171,7 @@ pub struct BlockPersonResponse {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetReplies {
-  pub sort: Option<String>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
@@ -177,7 +180,7 @@ pub struct GetReplies {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetPersonMentions {
-  pub sort: Option<String>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,

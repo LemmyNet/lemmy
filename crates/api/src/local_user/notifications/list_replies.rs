@@ -4,7 +4,6 @@ use lemmy_api_common::{
   person::{GetReplies, GetRepliesResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::{utils::from_opt_str_to_opt_enum, SortType};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -23,8 +22,7 @@ impl Perform for GetReplies {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-
+    let sort = data.sort;
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;

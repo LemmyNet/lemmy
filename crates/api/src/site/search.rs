@@ -5,14 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{
-  source::community::Community,
-  traits::DeleteableOrRemoveable,
-  utils::from_opt_str_to_opt_enum,
-  ListingType,
-  SearchType,
-  SortType,
-};
+use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable, SearchType};
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::{
   community_view::CommunityQueryBuilder,
@@ -59,9 +52,9 @@ impl Perform for Search {
     let q = data.q.to_owned();
     let page = data.page;
     let limit = data.limit;
-    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.listing_type);
-    let search_type: SearchType = from_opt_str_to_opt_enum(&data.type_).unwrap_or(SearchType::All);
+    let sort = data.sort;
+    let listing_type = data.listing_type;
+    let search_type = data.type_.unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)

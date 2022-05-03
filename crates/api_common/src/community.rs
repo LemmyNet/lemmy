@@ -2,6 +2,8 @@ use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::site::Site,
+  ListingType,
+  SortType,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
@@ -41,8 +43,8 @@ pub struct CommunityResponse {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ListCommunities {
-  pub type_: Option<String>,
-  pub sort: Option<String>,
+  pub type_: Option<ListingType>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Option<Sensitive<String>>,

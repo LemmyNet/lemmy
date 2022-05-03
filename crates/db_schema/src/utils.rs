@@ -21,10 +21,6 @@ pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }
 
-pub fn from_opt_str_to_opt_enum<T: std::str::FromStr>(opt: &Option<String>) -> Option<T> {
-  opt.as_ref().and_then(|t| T::from_str(t).ok())
-}
-
 pub fn fuzzy_search(q: &str) -> String {
   let replaced = q.replace('%', "\\%").replace('_', "\\_").replace(' ', "%");
   format!("%{}%", replaced)

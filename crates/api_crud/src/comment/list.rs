@@ -5,13 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{
-  source::community::Community,
-  traits::DeleteableOrRemoveable,
-  utils::from_opt_str_to_opt_enum,
-  ListingType,
-  SortType,
-};
+use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -38,9 +32,6 @@ impl PerformCrud for GetComments {
       .map(|t| t.local_user.show_bot_accounts);
     let person_id = local_user_view.map(|u| u.person.id);
 
-    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.type_);
-
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
@@ -50,6 +41,8 @@ impl PerformCrud for GetComments {
     } else {
       None
     };
+    let sort = data.sort;
+    let listing_type = data.type_;
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;

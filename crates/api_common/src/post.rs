@@ -1,5 +1,9 @@
 use crate::sensitive::Sensitive;
-use lemmy_db_schema::newtypes::{CommunityId, PostId, PostReportId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PostId, PostReportId},
+  ListingType,
+  SortType,
+};
 use lemmy_db_views::structs::{CommentView, PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
@@ -38,8 +42,8 @@ pub struct GetPostResponse {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct GetPosts {
-  pub type_: Option<String>,
-  pub sort: Option<String>,
+  pub type_: Option<ListingType>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
