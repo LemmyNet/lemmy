@@ -1,7 +1,4 @@
-use crate::{
-  newtypes::{CommunityId, PersonId},
-  DbUrl,
-};
+use crate::newtypes::{CommunityId, DbUrl, PersonId};
 use diesel::{result::Error, PgConnection};
 
 pub trait Crud {

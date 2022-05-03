@@ -14,7 +14,7 @@ use crate::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
-use lemmy_db_schema::{naive_now, source::community::CommunityForm};
+use lemmy_db_schema::{source::community::CommunityForm, utils::naive_now};
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt},
   LemmyError,

@@ -70,13 +70,13 @@ fn bytes_to_hex(bytes: Vec<u8>) -> String {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{
       local_user::{LocalUser, LocalUserForm},
       password_reset_request::PasswordResetRequest,
       person::*,
     },
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

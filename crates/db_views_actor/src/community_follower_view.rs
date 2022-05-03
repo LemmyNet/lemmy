@@ -1,3 +1,4 @@
+use crate::structs::CommunityFollowerView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -8,13 +9,6 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommunityFollowerView {
-  pub community: CommunitySafe,
-  pub follower: PersonSafe,
-}
 
 type CommunityFollowerViewTuple = (CommunitySafe, PersonSafe);
 

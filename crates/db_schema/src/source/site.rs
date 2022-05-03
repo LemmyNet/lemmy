@@ -1,8 +1,12 @@
-use crate::{newtypes::DbUrl, schema::site};
+use crate::newtypes::DbUrl;
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize, Deserialize)]
-#[table_name = "site"]
+#[cfg(feature = "full")]
+use crate::schema::site;
+
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "site")]
 pub struct Site {
   pub id: i32,
   pub name: String,
@@ -29,8 +33,9 @@ pub struct Site {
   pub default_post_listing_type: String,
 }
 
-#[derive(Insertable, AsChangeset, Default)]
-#[table_name = "site"]
+#[derive(Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "site")]
 pub struct SiteForm {
   pub name: String,
   pub sidebar: Option<Option<String>>,

@@ -1,10 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  get_local_user_view_from_jwt,
   post::{CreatePostReport, PostReportResponse},
+  utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_apub_lib::object_id::ObjectId;
@@ -12,7 +10,7 @@ use lemmy_db_schema::{
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
 };
-use lemmy_db_views::{post_report_view::PostReportView, post_view::PostView};
+use lemmy_db_views::structs::{PostReportView, PostView};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 

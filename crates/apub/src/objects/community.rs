@@ -13,13 +13,13 @@ use crate::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
 };
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
+use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
   utils::{convert_datetime, markdown_to_html},
   LemmyError,

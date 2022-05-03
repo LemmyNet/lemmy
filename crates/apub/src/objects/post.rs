@@ -13,7 +13,7 @@ use crate::{
 };
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
@@ -31,7 +31,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  request::fetch_site_data,
   utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };

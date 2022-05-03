@@ -79,12 +79,12 @@ impl Activity {
 mod tests {
   use super::*;
   use crate::{
-    establish_unpooled_connection,
     newtypes::DbUrl,
     source::{
       activity::{Activity, ActivityForm},
       person::{Person, PersonForm},
     },
+    utils::establish_unpooled_connection,
   };
   use serde_json::Value;
   use serial_test::serial;

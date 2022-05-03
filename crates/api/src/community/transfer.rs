@@ -2,9 +2,8 @@ use crate::Perform;
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_common::{
-  blocking,
   community::{GetCommunityResponse, TransferCommunity},
-  get_local_user_view_from_jwt,
+  utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,11 +12,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  community_view::CommunityView,
-  person_view::PersonViewSafe,
-};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use lemmy_utils::{location_info, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

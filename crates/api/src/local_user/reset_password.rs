@@ -1,11 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   person::{PasswordReset, PasswordResetResponse},
-  send_password_reset_email,
+  utils::{blocking, send_password_reset_email},
 };
-use lemmy_db_views::local_user_view::LocalUserView;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

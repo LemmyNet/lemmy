@@ -1,6 +1,4 @@
 use crate::{
-  functions::lower,
-  naive_now,
   newtypes::{CommunityId, DbUrl, PersonId},
   source::community::{
     Community,
@@ -14,6 +12,7 @@ use crate::{
     CommunitySafe,
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  utils::{functions::lower, naive_now},
 };
 use diesel::{
   dsl::*,
@@ -327,9 +326,9 @@ impl ApubActor for Community {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{community::*, person::*},
     traits::{Bannable, Crud, Followable, Joinable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

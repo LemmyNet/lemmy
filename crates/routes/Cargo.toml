@@ -21,7 +21,7 @@ lemmy_apub = { version = "=0.16.3", path = "../apub" }
 diesel = "1.4.8"
 actix-web = { version = "4.0.1", default-features = false, features = ["rustls"] }
 anyhow = "1.0.56"
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { version = "0.4.19", features = ["serde"], default-features = false }
 futures = "0.3.21"
 reqwest = { version = "0.11.10", features = ["stream"] }
 reqwest-middleware = "0.1.5"

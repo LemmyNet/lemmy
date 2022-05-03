@@ -1,6 +1,6 @@
+use crate::structs::ModAddView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   newtypes::PersonId,
   schema::{mod_add, person, person_alias_1},
   source::{
@@ -8,15 +8,8 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
   traits::{ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ModAddView {
-  pub mod_add: ModAdd,
-  pub moderator: PersonSafe,
-  pub modded_person: PersonSafeAlias1,
-}
 
 type ModAddViewTuple = (ModAdd, PersonSafe, PersonSafeAlias1);
 

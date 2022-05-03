@@ -1,9 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   person::{VerifyEmail, VerifyEmailResponse},
-  send_email_verification_success,
+  utils::{blocking, send_email_verification_success},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,7 +11,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::local_user_view::LocalUserView;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 

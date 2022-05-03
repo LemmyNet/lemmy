@@ -1,8 +1,7 @@
+use crate::structs::PersonMentionView;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::comment_aggregates::CommentAggregates,
-  functions::hot_rank,
-  limit_and_offset,
+  aggregates::structs::CommentAggregates,
   newtypes::{PersonId, PersonMentionId},
   schema::{
     comment,
@@ -27,25 +26,8 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  SortType,
+  utils::{functions::hot_rank, limit_and_offset, SortType},
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct PersonMentionView {
-  pub person_mention: PersonMention,
-  pub comment: Comment,
-  pub creator: PersonSafe,
-  pub post: Post,
-  pub community: CommunitySafe,
-  pub recipient: PersonSafeAlias1,
-  pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: bool,                    // Left join to CommunityFollower
-  pub saved: bool,                         // Left join to CommentSaved
-  pub creator_blocked: bool,               // Left join to PersonBlock
-  pub my_vote: Option<i16>,                // Left join to CommentLike
-}
 
 type PersonMentionViewTuple = (
   PersonMention,

@@ -2,15 +2,13 @@ use crate::Perform;
 use actix_web::web::Data;
 use diesel::NotFound;
 use lemmy_api_common::{
-  blocking,
-  check_private_instance,
-  get_local_user_view_from_jwt_opt,
   site::{ResolveObject, ResolveObjectResponse},
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::fetcher::search::{search_by_apub_id, SearchableObjects};
-use lemmy_db_schema::{newtypes::PersonId, DbPool};
-use lemmy_db_views::{comment_view::CommentView, post_view::PostView};
-use lemmy_db_views_actor::{community_view::CommunityView, person_view::PersonViewSafe};
+use lemmy_db_schema::{newtypes::PersonId, utils::DbPool};
+use lemmy_db_views::structs::{CommentView, PostView};
+use lemmy_db_views_actor::structs::{CommunityView, PersonViewSafe};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

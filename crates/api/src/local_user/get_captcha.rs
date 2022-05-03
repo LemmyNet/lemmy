@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse};
-use lemmy_db_schema::naive_now;
+use lemmy_db_schema::utils::naive_now;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::CaptchaItem, LemmyContext};
 

@@ -1,5 +1,5 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{CommunityId, PostId};
-use lemmy_utils::Sensitive;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

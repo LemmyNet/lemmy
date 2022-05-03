@@ -1,13 +1,9 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::site::Site,
 };
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  community_view::CommunityView,
-  person_view::PersonViewSafe,
-};
-use lemmy_utils::Sensitive;
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

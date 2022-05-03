@@ -1,6 +1,6 @@
+use crate::structs::PrivateMessageView;
 use diesel::{pg::Pg, result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, person_alias_1, private_message},
   source::{
@@ -8,16 +8,9 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
 use tracing::debug;
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct PrivateMessageView {
-  pub private_message: PrivateMessage,
-  pub creator: PersonSafe,
-  pub recipient: PersonSafeAlias1,
-}
 
 type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafeAlias1);
 

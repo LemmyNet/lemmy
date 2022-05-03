@@ -4,7 +4,7 @@ use crate::{
   OperationType,
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
-use lemmy_db_schema::naive_now;
+use lemmy_db_schema::utils::naive_now;
 use lemmy_utils::ConnectionId;
 use opentelemetry::trace::TraceContextExt;
 use rand::Rng;

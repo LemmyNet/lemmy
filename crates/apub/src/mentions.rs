@@ -3,12 +3,12 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
 };
 use activitystreams_kinds::link::MentionType;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
-  DbPool,
+  utils::DbPool,
 };
 use lemmy_utils::{
   utils::{scrape_text_for_mentions, MentionData},

@@ -1,19 +1,17 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  build_federated_instances,
-  get_local_user_settings_view_from_jwt_opt,
   person::Register,
-  site::*,
+  site::{CreateSite, GetSite, GetSiteResponse, MyUserInfo},
+  utils::{blocking, build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
-use lemmy_db_views::site_view::SiteView;
-use lemmy_db_views_actor::{
-  community_block_view::CommunityBlockView,
-  community_follower_view::CommunityFollowerView,
-  community_moderator_view::CommunityModeratorView,
-  person_block_view::PersonBlockView,
-  person_view::PersonViewSafe,
+use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_actor::structs::{
+  CommunityBlockView,
+  CommunityFollowerView,
+  CommunityModeratorView,
+  PersonBlockView,
+  PersonViewSafe,
 };
 use lemmy_utils::{version, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};

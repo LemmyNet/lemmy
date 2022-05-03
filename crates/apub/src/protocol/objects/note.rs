@@ -6,7 +6,7 @@ use crate::{
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;

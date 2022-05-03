@@ -12,7 +12,7 @@ use crate::{
   protocol::activities::community::update::UpdateCommunity,
 };
 use activitystreams_kinds::{activity::UpdateType, public};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

@@ -1,11 +1,12 @@
-use crate::{
-  newtypes::{LocalUserId, PersonId},
-  schema::registration_application,
-};
+use crate::newtypes::{LocalUserId, PersonId};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "registration_application"]
+#[cfg(feature = "full")]
+use crate::schema::registration_application;
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "registration_application")]
 pub struct RegistrationApplication {
   pub id: i32,
   pub local_user_id: LocalUserId,
@@ -15,8 +16,9 @@ pub struct RegistrationApplication {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Default)]
-#[table_name = "registration_application"]
+#[derive(Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "registration_application")]
 pub struct RegistrationApplicationForm {
   pub local_user_id: Option<LocalUserId>,
   pub answer: Option<String>,

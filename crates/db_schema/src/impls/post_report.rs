@@ -1,8 +1,8 @@
 use crate::{
-  naive_now,
   newtypes::{PersonId, PostReportId},
   source::post_report::*,
   traits::Reportable,
+  utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
 

@@ -1,9 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  get_local_user_view_from_jwt,
-  is_admin,
   site::{GetSiteConfig, GetSiteConfigResponse},
+  utils::{get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_utils::{settings::structs::Settings, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;

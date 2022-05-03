@@ -14,24 +14,20 @@ doctest = false
 
 [dependencies]
 regex = "1.5.5"
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { version = "0.4.19", features = ["serde"], default-features = false }
 lettre = "0.10.0-rc.4"
 tracing = "0.1.32"
 tracing-error = "0.2.0"
 itertools = "0.10.3"
 rand = "0.8.5"
-percent-encoding = "2.1.0"
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = { version = "1.0.79", features = ["preserve_order"] }
-thiserror = "1.0.30"
 comrak = { version = "0.12.1", default-features = false }
 once_cell = "1.10.0"
 openssl = "0.10.38"
 url = { version = "2.2.2", features = ["serde"] }
 actix-web = { version = "4.0.1", default-features = false, features = ["rustls"] }
-actix-rt = { version = "2.7.0", default-features = false }
 anyhow = "1.0.56"
-reqwest = { version = "0.11.10", features = ["json"] }
 reqwest-middleware = "0.1.5"
 strum = "0.24.0"
 strum_macros = "0.24.0"
@@ -40,11 +36,9 @@ diesel = "1.4.8"
 http = "0.2.6"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
-webpage = { version = "1.4.0", default-features = false, features = ["serde"] }
 jsonwebtoken = "8.0.1"
 doku = "0.11.0"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
-encoding = "0.2.33"
 html2text = "0.3.1"
 rosetta-i18n = "0.1.2"
 parking_lot = "0.12.0"

@@ -11,7 +11,7 @@ use crate::{
 };
 use activitystreams_kinds::{object::NoteType, public};
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,

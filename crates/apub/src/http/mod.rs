@@ -15,7 +15,7 @@ use actix_web::{
 use anyhow::{anyhow, Context};
 use futures::StreamExt;
 use http::StatusCode;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

@@ -9,10 +9,13 @@ use diesel::{
 };
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
-use lemmy_api_common::{blocking, check_private_instance_and_federation_enabled};
+use lemmy_api_common::{
+  request::build_user_agent,
+  utils::{blocking, check_private_instance_and_federation_enabled},
+};
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub_lib::activity_queue::create_activity_queue;
-use lemmy_db_schema::{get_database_url_from_env, source::secret::Secret};
+use lemmy_db_schema::{source::secret::Secret, utils::get_database_url_from_env};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
   api_routes,
@@ -23,7 +26,6 @@ use lemmy_server::{
 };
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  request::build_user_agent,
   settings::structs::Settings,
   LemmyError,
   REQWEST_TIMEOUT,

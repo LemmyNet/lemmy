@@ -1,6 +1,6 @@
 use actix_web::{web, web::Query, HttpResponse};
 use anyhow::Context;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},

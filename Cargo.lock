@@ -1831,18 +1831,24 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.16.3"
 dependencies = [
+ "actix-rt",
  "actix-web",
  "chrono",
  "diesel",
+ "encoding",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "percent-encoding",
+ "reqwest",
+ "reqwest-middleware",
  "rosetta-i18n",
  "serde",
  "tracing",
  "url",
+ "webpage",
 ]
 
 [[package]]
@@ -2062,7 +2068,6 @@ dependencies = [
 name = "lemmy_utils"
 version = "0.16.3"
 dependencies = [
- "actix-rt",
  "actix-web",
  "anyhow",
  "chrono",
@@ -2070,7 +2075,6 @@ dependencies = [
  "deser-hjson",
  "diesel",
  "doku",
- "encoding",
  "futures",
  "html2text",
  "http",
@@ -2080,10 +2084,8 @@ dependencies = [
  "once_cell",
  "openssl",
  "parking_lot 0.12.0",
- "percent-encoding",
  "rand 0.8.5",
  "regex",
- "reqwest",
  "reqwest-middleware",
  "rosetta-build",
  "rosetta-i18n",
@@ -2092,12 +2094,10 @@ dependencies = [
  "smart-default",
  "strum",
  "strum_macros",
- "thiserror",
  "tracing",
  "tracing-error",
  "url",
  "uuid",
- "webpage",
 ]
 
 [[package]]

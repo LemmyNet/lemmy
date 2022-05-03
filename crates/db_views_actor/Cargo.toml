@@ -10,7 +10,10 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 [lib]
 doctest = false
 
+[features]
+full = ["lemmy_db_schema/full", "diesel"]
+
 [dependencies]
 lemmy_db_schema = { version = "=0.16.3", path = "../db_schema" }
-diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
+diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
 serde = { version = "1.0.136", features = ["derive"] }

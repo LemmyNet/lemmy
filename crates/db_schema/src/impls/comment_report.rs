@@ -1,8 +1,8 @@
 use crate::{
-  naive_now,
   newtypes::{CommentReportId, PersonId},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
+  utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
 

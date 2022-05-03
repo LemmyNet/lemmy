@@ -1,11 +1,12 @@
-use crate::{
-  newtypes::{LocalUserId, PersonId},
-  schema::local_user,
-};
+use crate::newtypes::{LocalUserId, PersonId};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "local_user"]
+#[cfg(feature = "full")]
+use crate::schema::local_user;
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "local_user")]
 pub struct LocalUser {
   pub id: LocalUserId,
   pub person_id: PersonId,
@@ -28,8 +29,9 @@ pub struct LocalUser {
 }
 
 // TODO redo these, check table defaults
-#[derive(Insertable, AsChangeset, Clone, Default)]
-#[table_name = "local_user"]
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "local_user")]
 pub struct LocalUserForm {
   pub person_id: Option<PersonId>,
   pub password_encrypted: Option<String>,
@@ -50,8 +52,9 @@ pub struct LocalUserForm {
 }
 
 /// A local user view that removes password encrypted
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "local_user"]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "local_user")]
 pub struct LocalUserSettings {
   pub id: LocalUserId,
   pub person_id: PersonId,

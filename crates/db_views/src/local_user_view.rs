@@ -1,7 +1,7 @@
+use crate::structs::{LocalUserSettingsView, LocalUserView};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  aggregates::person_aggregates::PersonAggregates,
-  functions::lower,
+  aggregates::structs::PersonAggregates,
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
   source::{
@@ -9,15 +9,8 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ToSafeSettings},
+  utils::functions::lower,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LocalUserView {
-  pub local_user: LocalUser,
-  pub person: Person,
-  pub counts: PersonAggregates,
-}
 
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
@@ -116,13 +109,6 @@ impl LocalUserView {
       counts,
     })
   }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LocalUserSettingsView {
-  pub local_user: LocalUserSettings,
-  pub person: PersonSafe,
-  pub counts: PersonAggregates,
 }
 
 type LocalUserSettingsViewTuple = (LocalUserSettings, PersonSafe, PersonAggregates);

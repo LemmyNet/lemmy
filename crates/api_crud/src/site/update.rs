@@ -1,25 +1,24 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_image_has_local_domain,
-  get_local_user_view_from_jwt,
-  is_admin,
   site::{EditSite, SiteResponse},
-  site_description_length_check,
+  utils::{
+    blocking,
+    check_image_has_local_domain,
+    get_local_user_view_from_jwt,
+    is_admin,
+    site_description_length_check,
+  },
 };
 use lemmy_db_schema::{
-  diesel_option_overwrite,
-  diesel_option_overwrite_to_url,
-  naive_now,
   source::{
     local_user::LocalUser,
     site::{Site, SiteForm},
   },
   traits::Crud,
-  ListingType,
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now, ListingType},
 };
-use lemmy_db_views::site_view::SiteView;
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
 use std::{default::Default, str::FromStr};

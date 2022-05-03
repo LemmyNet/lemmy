@@ -1,12 +1,14 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  check_community_deleted_or_removed,
-  get_local_user_view_from_jwt,
-  is_mod_or_admin,
   post::{PostResponse, StickyPost},
+  utils::{
+    blocking,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    get_local_user_view_from_jwt,
+    is_mod_or_admin,
+  },
 };
 use lemmy_apub::{
   objects::post::ApubPost,

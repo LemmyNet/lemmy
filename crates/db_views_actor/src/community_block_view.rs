@@ -1,3 +1,4 @@
+use crate::structs::CommunityBlockView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -8,13 +9,6 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommunityBlockView {
-  pub person: PersonSafe,
-  pub community: CommunitySafe,
-}
 
 type CommunityBlockViewTuple = (PersonSafe, CommunitySafe);
 

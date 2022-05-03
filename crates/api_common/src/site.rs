@@ -1,33 +1,33 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{CommunityId, PersonId};
-use lemmy_db_views::{
-  comment_view::CommentView,
-  local_user_view::LocalUserSettingsView,
-  post_view::PostView,
-  registration_application_view::RegistrationApplicationView,
-  site_view::SiteView,
+use lemmy_db_views::structs::{
+  CommentView,
+  LocalUserSettingsView,
+  PostView,
+  RegistrationApplicationView,
+  SiteView,
 };
-use lemmy_db_views_actor::{
-  community_block_view::CommunityBlockView,
-  community_follower_view::CommunityFollowerView,
-  community_moderator_view::CommunityModeratorView,
-  community_view::CommunityView,
-  person_block_view::PersonBlockView,
-  person_view::PersonViewSafe,
+use lemmy_db_views_actor::structs::{
+  CommunityBlockView,
+  CommunityFollowerView,
+  CommunityModeratorView,
+  CommunityView,
+  PersonBlockView,
+  PersonViewSafe,
 };
-use lemmy_db_views_moderator::{
-  mod_add_community_view::ModAddCommunityView,
-  mod_add_view::ModAddView,
-  mod_ban_from_community_view::ModBanFromCommunityView,
-  mod_ban_view::ModBanView,
-  mod_hide_community_view::ModHideCommunityView,
-  mod_lock_post_view::ModLockPostView,
-  mod_remove_comment_view::ModRemoveCommentView,
-  mod_remove_community_view::ModRemoveCommunityView,
-  mod_remove_post_view::ModRemovePostView,
-  mod_sticky_post_view::ModStickyPostView,
-  mod_transfer_community_view::ModTransferCommunityView,
+use lemmy_db_views_moderator::structs::{
+  ModAddCommunityView,
+  ModAddView,
+  ModBanFromCommunityView,
+  ModBanView,
+  ModHideCommunityView,
+  ModLockPostView,
+  ModRemoveCommentView,
+  ModRemoveCommunityView,
+  ModRemovePostView,
+  ModStickyPostView,
+  ModTransferCommunityView,
 };
-use lemmy_utils::Sensitive;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

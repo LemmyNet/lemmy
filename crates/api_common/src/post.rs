@@ -1,14 +1,7 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{CommunityId, PostId, PostReportId};
-use lemmy_db_views::{
-  comment_view::CommentView,
-  post_report_view::PostReportView,
-  post_view::PostView,
-};
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  community_view::CommunityView,
-};
-use lemmy_utils::{request::SiteMetadata, Sensitive};
+use lemmy_db_views::structs::{CommentView, PostReportView, PostView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -163,4 +156,12 @@ pub struct GetSiteMetadata {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetSiteMetadataResponse {
   pub metadata: SiteMetadata,
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub struct SiteMetadata {
+  pub title: Option<String>,
+  pub description: Option<String>,
+  pub(crate) image: Option<Url>,
+  pub html: Option<String>,
 }

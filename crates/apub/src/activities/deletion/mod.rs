@@ -18,7 +18,7 @@ use crate::{
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},

@@ -1,15 +1,13 @@
-use crate::{
-  newtypes::{CommentId, CommentReportId, PersonId},
-  schema::comment_report,
-  source::comment::Comment,
-};
+use crate::newtypes::{CommentId, CommentReportId, PersonId};
 use serde::{Deserialize, Serialize};
 
-#[derive(
-  Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone,
-)]
-#[belongs_to(Comment)]
-#[table_name = "comment_report"]
+#[cfg(feature = "full")]
+use crate::schema::comment_report;
+
+#[derive(PartialEq, Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::comment::Comment))]
+#[cfg_attr(feature = "full", table_name = "comment_report")]
 pub struct CommentReport {
   pub id: CommentReportId,
   pub creator_id: PersonId,
@@ -22,8 +20,9 @@ pub struct CommentReport {
   pub updated: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "comment_report"]
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "comment_report")]
 pub struct CommentReportForm {
   pub creator_id: PersonId,
   pub comment_id: CommentId,

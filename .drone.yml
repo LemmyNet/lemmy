@@ -22,6 +22,11 @@ steps:
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
 
+  - name: check lemmy_api_common with minimal deps
+    image: clux/muslrust:1.56.0
+    commands:
+      - cargo check -p lemmy_api_common
+
   - name: cargo clippy
     image: clux/muslrust:1.56.0
     commands:

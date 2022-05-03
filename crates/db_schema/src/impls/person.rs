@@ -1,10 +1,9 @@
 use crate::{
-  functions::lower,
-  naive_now,
   newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
   source::person::{Person, PersonForm, PersonSafe},
   traits::{ApubActor, Crud},
+  utils::{functions::lower, naive_now},
 };
 use diesel::{
   dsl::*,
@@ -318,7 +317,7 @@ impl ApubActor for Person {
 
 #[cfg(test)]
 mod tests {
-  use crate::{establish_unpooled_connection, source::person::*, traits::Crud};
+  use crate::{source::person::*, traits::Crud, utils::establish_unpooled_connection};
 
   #[test]
   fn test_crud() {

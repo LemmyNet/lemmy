@@ -1,9 +1,7 @@
+use crate::structs::PostView;
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::post_aggregates::PostAggregates,
-  functions::hot_rank,
-  fuzzy_search,
-  limit_and_offset,
+  aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{
     community,
@@ -25,25 +23,9 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  ListingType,
-  SortType,
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset, ListingType, SortType},
 };
-use serde::{Deserialize, Serialize};
 use tracing::debug;
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct PostView {
-  pub post: Post,
-  pub creator: PersonSafe,
-  pub community: CommunitySafe,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub counts: PostAggregates,
-  pub subscribed: bool,      // Left join to CommunityFollower
-  pub saved: bool,           // Left join to PostSaved
-  pub read: bool,            // Left join to PostRead
-  pub creator_blocked: bool, // Left join to PersonBlock
-  pub my_vote: Option<i16>,  // Left join to PostLike
-}
 
 type PostViewTuple = (
   Post,
@@ -514,8 +496,7 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
   use lemmy_db_schema::{
-    aggregates::post_aggregates::PostAggregates,
-    establish_unpooled_connection,
+    aggregates::structs::PostAggregates,
     source::{
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -524,8 +505,7 @@ mod tests {
       post::*,
     },
     traits::{Blockable, Crud, Likeable},
-    ListingType,
-    SortType,
+    utils::{establish_unpooled_connection, ListingType, SortType},
   };
   use serial_test::serial;
 

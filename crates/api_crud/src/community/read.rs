@@ -1,10 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_private_instance,
-  community::*,
-  get_local_user_view_from_jwt_opt,
+  community::{GetCommunity, GetCommunityResponse},
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{
   fetcher::resolve_actor_identifier,
@@ -14,10 +12,7 @@ use lemmy_db_schema::{
   source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
 };
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  community_view::CommunityView,
-};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 

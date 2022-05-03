@@ -12,7 +12,6 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
-  naive_now,
   source::{
     comment::Comment,
     community::{Community, CommunityForm},
@@ -22,6 +21,7 @@ use lemmy_db_schema::{
     site::{Site, SiteForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
 use tracing::info;

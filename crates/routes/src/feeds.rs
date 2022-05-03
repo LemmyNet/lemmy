@@ -2,20 +2,22 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
-  ListingType,
-  SortType,
+  utils::{ListingType, SortType},
 };
 use lemmy_db_views::{
-  comment_view::{CommentQueryBuilder, CommentView},
-  post_view::{PostQueryBuilder, PostView},
-  site_view::SiteView,
+  comment_view::CommentQueryBuilder,
+  post_view::PostQueryBuilder,
+  structs::{CommentView, PostView, SiteView},
 };
-use lemmy_db_views_actor::person_mention_view::{PersonMentionQueryBuilder, PersonMentionView};
+use lemmy_db_views_actor::{
+  person_mention_view::PersonMentionQueryBuilder,
+  structs::PersonMentionView,
+};
 use lemmy_utils::{claims::Claims, utils::markdown_to_html, LemmyError};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::Lazy;

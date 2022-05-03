@@ -1,11 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{BanFromCommunity, BanFromCommunityResponse},
-  get_local_user_view_from_jwt,
-  is_mod_or_admin,
-  remove_user_data_in_community,
+  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
 };
 use lemmy_apub::{
   activities::block::SiteOrCommunity,
@@ -26,7 +23,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_db_views_actor::person_view::PersonViewSafe;
+use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{utils::naive_from_unix, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 

@@ -1,11 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
   person::{GetPersonMentions, GetPersonMentionsResponse},
+  utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::{from_opt_str_to_opt_enum, SortType};
+use lemmy_db_schema::utils::{from_opt_str_to_opt_enum, SortType};
 use lemmy_db_views_actor::person_mention_view::PersonMentionQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
