@@ -36,7 +36,7 @@ pub struct GetPostResponse {
   pub online: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct GetPosts {
   pub type_: Option<String>,
   pub sort: Option<String>,
@@ -132,7 +132,7 @@ pub struct ResolvePostReport {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ListPostReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,

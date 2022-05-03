@@ -23,7 +23,9 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, limit_and_offset, ListingType, SortType},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
+  ListingType,
+  SortType,
 };
 use tracing::debug;
 
@@ -505,7 +507,9 @@ mod tests {
       post::*,
     },
     traits::{Blockable, Crud, Likeable},
-    utils::{establish_unpooled_connection, ListingType, SortType},
+    utils::establish_unpooled_connection,
+    ListingType,
+    SortType,
   };
   use serial_test::serial;
 

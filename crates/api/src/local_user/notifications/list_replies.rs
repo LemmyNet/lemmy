@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::{GetReplies, GetRepliesResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::utils::{from_opt_str_to_opt_enum, SortType};
+use lemmy_db_schema::{utils::from_opt_str_to_opt_enum, SortType};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;

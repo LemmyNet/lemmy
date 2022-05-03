@@ -40,7 +40,7 @@ pub struct CaptchaResponse {
   pub uuid: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub show_scores: Option<bool>,
@@ -79,7 +79,7 @@ pub struct LoginResponse {
   pub verify_email_sent: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetPersonDetails {
   pub person_id: Option<PersonId>, // One of these two are required
   /// Example: dessalines , or dessalines@xyz.tld
@@ -166,7 +166,7 @@ pub struct BlockPersonResponse {
   pub blocked: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetReplies {
   pub sort: Option<String>,
   pub page: Option<i64>,
@@ -175,7 +175,7 @@ pub struct GetReplies {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetPersonMentions {
   pub sort: Option<String>,
   pub page: Option<i64>,
@@ -248,7 +248,7 @@ pub struct MarkPrivateMessageAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetPrivateMessages {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,

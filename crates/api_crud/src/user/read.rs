@@ -5,10 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
-use lemmy_db_schema::{
-  source::person::Person,
-  utils::{from_opt_str_to_opt_enum, SortType},
-};
+use lemmy_db_schema::{source::person::Person, utils::from_opt_str_to_opt_enum, SortType};
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
 use lemmy_utils::{ConnectionId, LemmyError};

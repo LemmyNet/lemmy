@@ -12,7 +12,6 @@ use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_utils::LemmyError;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::{env, env::VarError, io::Write};
 use url::Url;
 
@@ -20,38 +19,6 @@ pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgC
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
-pub enum SortType {
-  Active,
-  Hot,
-  New,
-  TopDay,
-  TopWeek,
-  TopMonth,
-  TopYear,
-  TopAll,
-  MostComments,
-  NewComments,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
-pub enum ListingType {
-  All,
-  Local,
-  Subscribed,
-  Community,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
-pub enum SearchType {
-  All,
-  Comments,
-  Posts,
-  Communities,
-  Users,
-  Url,
 }
 
 pub fn from_opt_str_to_opt_enum<T: std::str::FromStr>(opt: &Option<String>) -> Option<T> {

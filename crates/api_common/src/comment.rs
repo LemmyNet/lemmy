@@ -69,7 +69,7 @@ pub struct CreateCommentLike {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetComments {
   pub type_: Option<String>,
   pub sort: Option<String>,
@@ -105,7 +105,7 @@ pub struct ResolveCommentReport {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ListCommentReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,

@@ -8,7 +8,9 @@ use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubComm
 use lemmy_db_schema::{
   source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
-  utils::{from_opt_str_to_opt_enum, ListingType, SortType},
+  utils::from_opt_str_to_opt_enum,
+  ListingType,
+  SortType,
 };
 use lemmy_db_views::post_view::PostQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};

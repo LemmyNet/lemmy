@@ -6,7 +6,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetCommunity {
   pub id: Option<CommunityId>,
   /// Example: star_trek , or star_trek@xyz.tld
@@ -39,7 +39,7 @@ pub struct CommunityResponse {
   pub community_view: CommunityView,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ListCommunities {
   pub type_: Option<String>,
   pub sort: Option<String>,
@@ -83,7 +83,7 @@ pub struct AddModToCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct EditCommunity {
   pub community_id: CommunityId,
   pub title: Option<String>,

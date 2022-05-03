@@ -6,7 +6,9 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   traits::DeleteableOrRemoveable,
-  utils::{from_opt_str_to_opt_enum, ListingType, SortType},
+  utils::from_opt_str_to_opt_enum,
+  ListingType,
+  SortType,
 };
 use lemmy_db_views_actor::community_view::CommunityQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};

@@ -26,7 +26,8 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  utils::{functions::hot_rank, limit_and_offset, SortType},
+  utils::{functions::hot_rank, limit_and_offset},
+  SortType,
 };
 
 type PersonMentionViewTuple = (

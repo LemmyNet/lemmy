@@ -4,7 +4,7 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
 #[serde(transparent)]
 pub struct Sensitive<T>(T);
 

@@ -26,7 +26,9 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, limit_and_offset, ListingType, SortType},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
+  ListingType,
+  SortType,
 };
 
 type CommentViewTuple = (

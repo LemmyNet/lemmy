@@ -30,7 +30,7 @@ use lemmy_db_views_moderator::structs::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Search {
   pub q: String,
   pub community_id: Option<CommunityId>,
@@ -67,7 +67,7 @@ pub struct ResolveObjectResponse {
   pub person: Option<PersonViewSafe>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetModlog {
   pub mod_person_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
@@ -111,7 +111,7 @@ pub struct CreateSite {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct EditSite {
   pub name: Option<String>,
   pub sidebar: Option<String>,
