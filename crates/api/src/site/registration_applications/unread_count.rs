@@ -1,13 +1,11 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
-  is_admin,
   site::{GetUnreadRegistrationApplicationCount, GetUnreadRegistrationApplicationCountResponse},
+  utils::{blocking, get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::source::site::Site;
-use lemmy_db_views::registration_application_view::RegistrationApplicationView;
+use lemmy_db_views::structs::RegistrationApplicationView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

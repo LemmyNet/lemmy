@@ -1,8 +1,8 @@
 use crate::{
-  naive_now,
   newtypes::{DbUrl, PersonId, PrivateMessageId},
   source::private_message::*,
   traits::{Crud, DeleteableOrRemoveable},
+  utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
 use lemmy_utils::LemmyError;
@@ -138,9 +138,9 @@ impl DeleteableOrRemoveable for PrivateMessage {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{person::*, private_message::*},
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

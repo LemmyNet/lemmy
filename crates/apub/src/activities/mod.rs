@@ -7,7 +7,7 @@ use crate::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
   object_id::ObjectId,
@@ -15,10 +15,7 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::community::Community;
-use lemmy_db_views_actor::{
-  community_person_ban_view::CommunityPersonBanView,
-  community_view::CommunityView,
-};
+use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;

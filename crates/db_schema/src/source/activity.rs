@@ -2,7 +2,7 @@ use crate::{newtypes::DbUrl, schema::activity};
 use serde_json::Value;
 use std::fmt::Debug;
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(PartialEq, Debug, Queryable, Identifiable)]
 #[table_name = "activity"]
 pub struct Activity {
   pub id: i32,

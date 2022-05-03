@@ -1,6 +1,6 @@
+use crate::structs::ModHideCommunityView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   newtypes::{CommunityId, PersonId},
   schema::{community, mod_hide_community, person},
   source::{
@@ -9,15 +9,8 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ModHideCommunityView {
-  pub mod_hide_community: ModHideCommunity,
-  pub admin: PersonSafe,
-  pub community: CommunitySafe,
-}
 
 type ModHideCommunityViewTuple = (ModHideCommunity, PersonSafe, CommunitySafe);
 

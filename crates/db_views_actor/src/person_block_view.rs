@@ -1,3 +1,4 @@
+use crate::structs::PersonBlockView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -5,13 +6,6 @@ use lemmy_db_schema::{
   source::person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   traits::{ToSafe, ViewToVec},
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PersonBlockView {
-  pub person: PersonSafe,
-  pub target: PersonSafeAlias1,
-}
 
 type PersonBlockViewTuple = (PersonSafe, PersonSafeAlias1);
 

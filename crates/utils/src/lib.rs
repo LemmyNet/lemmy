@@ -6,18 +6,14 @@ extern crate smart_default;
 pub mod apub;
 pub mod email;
 pub mod rate_limit;
-pub mod request;
 pub mod settings;
 
 pub mod claims;
+pub mod request;
 #[cfg(test)]
 mod test;
 pub mod utils;
 pub mod version;
-
-mod sensitive;
-
-pub use sensitive::Sensitive;
 
 use actix_web::HttpResponse;
 use http::StatusCode;

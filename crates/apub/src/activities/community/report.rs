@@ -10,7 +10,7 @@ use crate::{
   PostOrComment,
 };
 use activitystreams_kinds::activity::FlagType;
-use lemmy_api_common::{blocking, comment::CommentReportResponse, post::PostReportResponse};
+use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse, utils::blocking};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   },
   traits::Reportable,
 };
-use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
+use lemmy_db_views::structs::{CommentReportView, PostReportView};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 

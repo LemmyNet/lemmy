@@ -1,11 +1,13 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  check_community_deleted_or_removed,
   community::{CommunityResponse, FollowCommunity},
-  get_local_user_view_from_jwt,
+  utils::{
+    blocking,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    get_local_user_view_from_jwt,
+  },
 };
 use lemmy_apub::{
   objects::community::ApubCommunity,
@@ -18,7 +20,7 @@ use lemmy_db_schema::{
   source::community::{Community, CommunityFollower, CommunityFollowerForm},
   traits::{Crud, Followable},
 };
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

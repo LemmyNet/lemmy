@@ -1,19 +1,5 @@
-use crate::{newtypes::PersonId, schema::person_aggregates};
+use crate::{aggregates::structs::PersonAggregates, newtypes::PersonId, schema::person_aggregates};
 use diesel::{result::Error, *};
-use serde::{Deserialize, Serialize};
-
-#[derive(
-  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone, Default,
-)]
-#[table_name = "person_aggregates"]
-pub struct PersonAggregates {
-  pub id: i32,
-  pub person_id: PersonId,
-  pub post_count: i64,
-  pub post_score: i64,
-  pub comment_count: i64,
-  pub comment_score: i64,
-}
 
 impl PersonAggregates {
   pub fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
@@ -27,7 +13,6 @@ impl PersonAggregates {
 mod tests {
   use crate::{
     aggregates::person_aggregates::PersonAggregates,
-    establish_unpooled_connection,
     source::{
       comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
       community::{Community, CommunityForm},
@@ -35,6 +20,7 @@ mod tests {
       post::{Post, PostForm, PostLike, PostLikeForm},
     },
     traits::{Crud, Likeable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

@@ -4,7 +4,7 @@ use crate::{
   protocol::activities::deletion::delete_user::DeleteUser,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::{blocking, delete_user_account};
+use lemmy_api_common::utils::{blocking, delete_user_account};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

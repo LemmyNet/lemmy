@@ -1,20 +1,17 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_image_has_local_domain,
   community::{CommunityResponse, EditCommunity},
-  get_local_user_view_from_jwt,
+  utils::{blocking, check_image_has_local_domain, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
-  diesel_option_overwrite_to_url,
-  naive_now,
   newtypes::PersonId,
   source::community::{Community, CommunityForm},
   traits::Crud,
+  utils::{diesel_option_overwrite_to_url, naive_now},
 };
-use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 

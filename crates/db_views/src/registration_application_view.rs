@@ -1,6 +1,6 @@
+use crate::structs::RegistrationApplicationView;
 use diesel::{dsl::count, result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   schema::{local_user, person, person_alias_1, registration_application},
   source::{
     local_user::{LocalUser, LocalUserSettings},
@@ -8,16 +8,8 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::{MaybeOptional, ToSafe, ToSafeSettings, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct RegistrationApplicationView {
-  pub registration_application: RegistrationApplication,
-  pub creator_local_user: LocalUserSettings,
-  pub creator: PersonSafe,
-  pub admin: Option<PersonSafeAlias1>,
-}
 
 type RegistrationApplicationViewTuple = (
   RegistrationApplication,
@@ -177,13 +169,13 @@ mod tests {
     RegistrationApplicationView,
   };
   use lemmy_db_schema::{
-    establish_unpooled_connection,
     source::{
       local_user::{LocalUser, LocalUserForm, LocalUserSettings},
       person::*,
       registration_application::{RegistrationApplication, RegistrationApplicationForm},
     },
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

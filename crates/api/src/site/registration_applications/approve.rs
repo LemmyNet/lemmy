@@ -1,24 +1,18 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
-  is_admin,
-  send_application_approved_email,
-  site::*,
+  site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
+  utils::{blocking, get_local_user_view_from_jwt, is_admin, send_application_approved_email},
 };
 use lemmy_db_schema::{
-  diesel_option_overwrite,
   source::{
     local_user::{LocalUser, LocalUserForm},
     registration_application::{RegistrationApplication, RegistrationApplicationForm},
   },
   traits::Crud,
+  utils::diesel_option_overwrite,
 };
-use lemmy_db_views::{
-  local_user_view::LocalUserView,
-  registration_application_view::RegistrationApplicationView,
-};
+use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

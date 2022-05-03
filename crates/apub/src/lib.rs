@@ -1,7 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
-use lemmy_api_common::blocking;
-use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
+use lemmy_api_common::utils::blocking;
+use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use serde::{Deserialize, Deserializer};
 use std::net::IpAddr;
@@ -14,7 +14,6 @@ mod context;
 pub mod fetcher;
 pub mod http;
 pub(crate) mod mentions;
-pub mod migrations;
 pub mod objects;
 pub mod protocol;
 

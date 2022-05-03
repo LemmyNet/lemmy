@@ -1,23 +1,21 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_private_instance,
-  get_local_user_view_from_jwt_opt,
   site::{GetModlog, GetModlogResponse},
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
-use lemmy_db_views_moderator::{
-  mod_add_community_view::ModAddCommunityView,
-  mod_add_view::ModAddView,
-  mod_ban_from_community_view::ModBanFromCommunityView,
-  mod_ban_view::ModBanView,
-  mod_hide_community_view::ModHideCommunityView,
-  mod_lock_post_view::ModLockPostView,
-  mod_remove_comment_view::ModRemoveCommentView,
-  mod_remove_community_view::ModRemoveCommunityView,
-  mod_remove_post_view::ModRemovePostView,
-  mod_sticky_post_view::ModStickyPostView,
-  mod_transfer_community_view::ModTransferCommunityView,
+use lemmy_db_views_moderator::structs::{
+  ModAddCommunityView,
+  ModAddView,
+  ModBanFromCommunityView,
+  ModBanView,
+  ModHideCommunityView,
+  ModLockPostView,
+  ModRemoveCommentView,
+  ModRemoveCommunityView,
+  ModRemovePostView,
+  ModStickyPostView,
+  ModTransferCommunityView,
 };
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;

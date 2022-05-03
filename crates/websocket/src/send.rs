@@ -4,14 +4,11 @@ use crate::{
   OperationType,
 };
 use lemmy_api_common::{
-  blocking,
-  check_person_block,
   comment::CommentResponse,
   community::CommunityResponse,
-  get_user_lang,
   person::PrivateMessageResponse,
   post::PostResponse,
-  send_email_to_user,
+  utils::{blocking, check_person_block, get_user_lang, send_email_to_user},
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
@@ -23,13 +20,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, DeleteableOrRemoveable},
 };
-use lemmy_db_views::{
-  comment_view::CommentView,
-  local_user_view::LocalUserView,
-  post_view::PostView,
-  private_message_view::PrivateMessageView,
-};
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views::structs::{CommentView, LocalUserView, PostView, PrivateMessageView};
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{utils::MentionData, ConnectionId, LemmyError};
 
 #[tracing::instrument(skip_all)]

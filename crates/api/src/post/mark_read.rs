@@ -1,13 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
-  mark_post_as_read,
-  mark_post_as_unread,
   post::{MarkPostAsRead, PostResponse},
+  utils::{blocking, get_local_user_view_from_jwt, mark_post_as_read, mark_post_as_unread},
 };
-use lemmy_db_views::post_view::PostView;
+use lemmy_db_views::structs::PostView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

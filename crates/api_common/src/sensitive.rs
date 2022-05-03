@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::{
   borrow::Borrow,
   ops::{Deref, DerefMut},
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct Sensitive<T>(T);
 
@@ -12,8 +13,8 @@ impl<T> Sensitive<T> {
     Sensitive(item)
   }
 
-  pub fn into_inner(this: Self) -> T {
-    this.0
+  pub fn into_inner(self) -> T {
+    self.0
   }
 }
 

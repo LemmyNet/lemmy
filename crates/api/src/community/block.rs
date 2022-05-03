@@ -1,9 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{BlockCommunity, BlockCommunityResponse},
-  get_local_user_view_from_jwt,
+  utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::following::undo_follow::UndoFollowCommunity;
 use lemmy_db_schema::{
@@ -13,7 +12,7 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud, Followable},
 };
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

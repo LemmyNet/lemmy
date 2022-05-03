@@ -1,6 +1,6 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId};
-use lemmy_db_views::{comment_report_view::CommentReportView, comment_view::CommentView};
-use lemmy_utils::Sensitive;
+use lemmy_db_views::structs::{CommentReportView, CommentView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

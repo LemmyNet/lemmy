@@ -1,23 +1,9 @@
-use crate::{newtypes::CommunityId, schema::community_aggregates};
+use crate::{
+  aggregates::structs::CommunityAggregates,
+  newtypes::CommunityId,
+  schema::community_aggregates,
+};
 use diesel::{result::Error, *};
-use serde::{Deserialize, Serialize};
-
-#[derive(
-  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
-)]
-#[table_name = "community_aggregates"]
-pub struct CommunityAggregates {
-  pub id: i32,
-  pub community_id: CommunityId,
-  pub subscribers: i64,
-  pub posts: i64,
-  pub comments: i64,
-  pub published: chrono::NaiveDateTime,
-  pub users_active_day: i64,
-  pub users_active_week: i64,
-  pub users_active_month: i64,
-  pub users_active_half_year: i64,
-}
 
 impl CommunityAggregates {
   pub fn read(conn: &PgConnection, community_id: CommunityId) -> Result<Self, Error> {
@@ -31,7 +17,6 @@ impl CommunityAggregates {
 mod tests {
   use crate::{
     aggregates::community_aggregates::CommunityAggregates,
-    establish_unpooled_connection,
     source::{
       comment::{Comment, CommentForm},
       community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
@@ -39,6 +24,7 @@ mod tests {
       post::{Post, PostForm},
     },
     traits::{Crud, Followable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

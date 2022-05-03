@@ -1,9 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  password_length_check,
   person::{LoginResponse, PasswordChangeAfterReset},
+  utils::{blocking, password_length_check},
 };
 use lemmy_db_schema::source::{
   local_user::LocalUser,

@@ -1,4 +1,4 @@
-use crate::{source::site::*, traits::Crud, DbUrl};
+use crate::{newtypes::DbUrl, source::site::*, traits::Crud};
 use diesel::{dsl::*, result::Error, *};
 use url::Url;
 

@@ -16,16 +16,16 @@ use crate::{
   },
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  naive_now,
   source::person::{Person as DbPerson, PersonForm},
   traits::ApubActor,
+  utils::naive_now,
 };
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},

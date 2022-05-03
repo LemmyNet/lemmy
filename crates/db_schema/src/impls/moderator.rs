@@ -266,9 +266,9 @@ impl Crud for ModAdd {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{comment::*, community::*, moderator::*, person::*, post::*},
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

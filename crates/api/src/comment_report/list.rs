@@ -1,9 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   comment::{ListCommentReports, ListCommentReportsResponse},
-  get_local_user_view_from_jwt,
+  utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_views::comment_report_view::CommentReportQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};

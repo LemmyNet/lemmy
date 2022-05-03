@@ -1,23 +1,5 @@
-use crate::schema::site_aggregates;
+use crate::{aggregates::structs::SiteAggregates, schema::site_aggregates};
 use diesel::{result::Error, *};
-use serde::{Deserialize, Serialize};
-
-#[derive(
-  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
-)]
-#[table_name = "site_aggregates"]
-pub struct SiteAggregates {
-  pub id: i32,
-  pub site_id: i32,
-  pub users: i64,
-  pub posts: i64,
-  pub comments: i64,
-  pub communities: i64,
-  pub users_active_day: i64,
-  pub users_active_week: i64,
-  pub users_active_month: i64,
-  pub users_active_half_year: i64,
-}
 
 impl SiteAggregates {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
@@ -29,7 +11,6 @@ impl SiteAggregates {
 mod tests {
   use crate::{
     aggregates::site_aggregates::SiteAggregates,
-    establish_unpooled_connection,
     source::{
       comment::{Comment, CommentForm},
       community::{Community, CommunityForm},
@@ -38,6 +19,7 @@ mod tests {
       site::{Site, SiteForm},
     },
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

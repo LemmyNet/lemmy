@@ -2,12 +2,11 @@ use crate::Perform;
 use actix_web::web::Data;
 use bcrypt::verify;
 use lemmy_api_common::{
-  blocking,
-  check_registration_application,
   person::{Login, LoginResponse},
+  utils::{blocking, check_registration_application},
 };
 use lemmy_db_schema::source::site::Site;
-use lemmy_db_views::local_user_view::LocalUserView;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{claims::Claims, ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

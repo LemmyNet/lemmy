@@ -1,10 +1,7 @@
-use crate::{community_moderator_view::CommunityModeratorView, person_view::PersonViewSafe};
+use crate::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  aggregates::community_aggregates::CommunityAggregates,
-  functions::hot_rank,
-  fuzzy_search,
-  limit_and_offset,
+  aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
@@ -12,18 +9,8 @@ use lemmy_db_schema::{
     community_block::CommunityBlock,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  ListingType,
-  SortType,
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset, ListingType, SortType},
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommunityView {
-  pub community: CommunitySafe,
-  pub subscribed: bool,
-  pub blocked: bool,
-  pub counts: CommunityAggregates,
-}
 
 type CommunityViewTuple = (
   CommunitySafe,

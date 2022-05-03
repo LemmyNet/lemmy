@@ -1,11 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
   person::{GetReportCount, GetReportCountResponse},
+  utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_views::{comment_report_view::CommentReportView, post_report_view::PostReportView};
+use lemmy_db_views::structs::{CommentReportView, PostReportView};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

@@ -11,7 +11,7 @@ use crate::{
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use futures::future::join_all;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityHandler, ApubObject},

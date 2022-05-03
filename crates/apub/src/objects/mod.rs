@@ -62,15 +62,14 @@ pub(crate) mod tests {
     r2d2::{ConnectionManager, Pool},
     PgConnection,
   };
+  use lemmy_api_common::request::build_user_agent;
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{
-    establish_unpooled_connection,
-    get_database_url_from_env,
     source::secret::Secret,
+    utils::{establish_unpooled_connection, get_database_url_from_env},
   };
   use lemmy_utils::{
     rate_limit::{rate_limiter::RateLimiter, RateLimit},
-    request::build_user_agent,
     settings::structs::Settings,
     LemmyError,
   };

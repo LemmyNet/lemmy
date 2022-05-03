@@ -1,14 +1,6 @@
-use lemmy_db_views::{
-  comment_view::CommentView,
-  post_view::PostView,
-  private_message_view::PrivateMessageView,
-};
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  person_mention_view::PersonMentionView,
-  person_view::PersonViewSafe,
-};
-use lemmy_utils::Sensitive;
+use crate::sensitive::Sensitive;
+use lemmy_db_views::structs::{CommentView, PostView, PrivateMessageView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonMentionView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,13 +1,15 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  check_community_deleted_or_removed,
-  check_post_deleted_or_removed,
-  comment::*,
-  get_local_user_view_from_jwt,
-  get_post,
+  comment::{CommentResponse, CreateComment},
+  utils::{
+    blocking,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    check_post_deleted_or_removed,
+    get_local_user_view_from_jwt,
+    get_post,
+  },
 };
 use lemmy_apub::{
   generate_local_apub_endpoint,
@@ -22,7 +24,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::comment_view::CommentView;
+use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,

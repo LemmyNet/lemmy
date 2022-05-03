@@ -6,13 +6,13 @@ use crate::{
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
 };
-use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::LemmyError;
 use url::Url;
 

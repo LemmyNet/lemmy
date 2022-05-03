@@ -1,11 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  honeypot_check,
-  password_length_check,
-  person::*,
-  send_verification_email,
+  person::{LoginResponse, Register},
+  utils::{blocking, honeypot_check, password_length_check, send_verification_email},
 };
 use lemmy_apub::{
   generate_followers_url,
@@ -15,7 +12,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
-  aggregates::person_aggregates::PersonAggregates,
+  aggregates::structs::PersonAggregates,
   newtypes::CommunityId,
   source::{
     community::{
@@ -33,8 +30,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Followable, Joinable},
 };
-use lemmy_db_views::local_user_view::LocalUserView;
-use lemmy_db_views_actor::person_view::PersonViewSafe;
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   apub::generate_actor_keypair,
   claims::Claims,

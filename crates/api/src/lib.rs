@@ -206,15 +206,15 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 
 #[cfg(test)]
 mod tests {
-  use lemmy_api_common::check_validator_time;
+  use lemmy_api_common::utils::check_validator_time;
   use lemmy_db_schema::{
-    establish_unpooled_connection,
     source::{
       local_user::{LocalUser, LocalUserForm},
       person::{Person, PersonForm},
       secret::Secret,
     },
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use lemmy_utils::{claims::Claims, settings::structs::Settings};
 

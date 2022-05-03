@@ -1,12 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_private_instance,
-  comment::*,
-  get_local_user_view_from_jwt_opt,
+  comment::{CommentResponse, GetComment},
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
-use lemmy_db_views::comment_view::CommentView;
+use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 

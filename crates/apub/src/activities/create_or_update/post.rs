@@ -13,7 +13,7 @@ use crate::{
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

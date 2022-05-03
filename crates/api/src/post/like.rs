@@ -1,13 +1,15 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  check_community_deleted_or_removed,
-  check_downvotes_enabled,
-  get_local_user_view_from_jwt,
-  mark_post_as_read,
   post::{CreatePostLike, PostResponse},
+  utils::{
+    blocking,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    check_downvotes_enabled,
+    get_local_user_view_from_jwt,
+    mark_post_as_read,
+  },
 };
 use lemmy_apub::{
   fetcher::post_or_comment::PostOrComment,

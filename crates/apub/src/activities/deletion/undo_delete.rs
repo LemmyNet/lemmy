@@ -9,7 +9,7 @@ use crate::{
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::{

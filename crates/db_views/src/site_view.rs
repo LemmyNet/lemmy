@@ -1,16 +1,10 @@
+use crate::structs::SiteView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  aggregates::site_aggregates::SiteAggregates,
+  aggregates::structs::SiteAggregates,
   schema::{site, site_aggregates},
   source::site::Site,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SiteView {
-  pub site: Site,
-  pub counts: SiteAggregates,
-}
 
 impl SiteView {
   pub fn read_local(conn: &PgConnection) -> Result<Self, Error> {

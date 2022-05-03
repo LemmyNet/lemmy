@@ -1,18 +1,14 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_private_instance,
-  comment::*,
-  get_local_user_view_from_jwt_opt,
+  comment::{GetComments, GetCommentsResponse},
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
-  from_opt_str_to_opt_enum,
   source::community::Community,
   traits::DeleteableOrRemoveable,
-  ListingType,
-  SortType,
+  utils::{from_opt_str_to_opt_enum, ListingType, SortType},
 };
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};

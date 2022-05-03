@@ -1,22 +1,22 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_image_has_local_domain,
-  get_local_user_view_from_jwt,
   person::{LoginResponse, SaveUserSettings},
-  send_verification_email,
+  utils::{
+    blocking,
+    check_image_has_local_domain,
+    get_local_user_view_from_jwt,
+    send_verification_email,
+  },
 };
 use lemmy_db_schema::{
-  diesel_option_overwrite,
-  diesel_option_overwrite_to_url,
-  naive_now,
   source::{
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
     site::Site,
   },
   traits::Crud,
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
 use lemmy_utils::{
   claims::Claims,

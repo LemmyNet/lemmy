@@ -1,7 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use bcrypt::verify;
-use lemmy_api_common::{delete_user_account, get_local_user_view_from_jwt, person::*};
+use lemmy_api_common::{
+  person::{DeleteAccount, DeleteAccountResponse},
+  utils::{delete_user_account, get_local_user_view_from_jwt},
+};
 use lemmy_apub::protocol::activities::deletion::delete_user::DeleteUser;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;

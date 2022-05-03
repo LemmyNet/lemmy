@@ -12,7 +12,7 @@ use crate::{
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

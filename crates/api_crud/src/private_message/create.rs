@@ -1,12 +1,14 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_person_block,
-  get_local_user_view_from_jwt,
-  get_user_lang,
   person::{CreatePrivateMessage, PrivateMessageResponse},
-  send_email_to_user,
+  utils::{
+    blocking,
+    check_person_block,
+    get_local_user_view_from_jwt,
+    get_user_lang,
+    send_email_to_user,
+  },
 };
 use lemmy_apub::{
   generate_local_apub_endpoint,
@@ -20,7 +22,7 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageForm},
   traits::Crud,
 };
-use lemmy_db_views::local_user_view::LocalUserView;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{utils::remove_slurs, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 

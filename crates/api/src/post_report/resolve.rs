@@ -1,13 +1,11 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
-  is_mod_or_admin,
   post::{PostReportResponse, ResolvePostReport},
+  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin},
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
-use lemmy_db_views::post_report_view::PostReportView;
+use lemmy_db_views::structs::PostReportView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 

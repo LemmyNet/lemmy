@@ -16,7 +16,7 @@ use crate::{
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
-use lemmy_api_common::{blocking, remove_user_data, remove_user_data_in_community};
+use lemmy_api_common::utils::{blocking, remove_user_data, remove_user_data_in_community};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

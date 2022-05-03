@@ -1,6 +1,6 @@
+use crate::structs::ModAddCommunityView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   newtypes::{CommunityId, PersonId},
   schema::{community, mod_add_community, person, person_alias_1},
   source::{
@@ -9,16 +9,8 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
   traits::{ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ModAddCommunityView {
-  pub mod_add_community: ModAddCommunity,
-  pub moderator: PersonSafe,
-  pub community: CommunitySafe,
-  pub modded_person: PersonSafeAlias1,
-}
 
 type ModAddCommunityViewTuple = (ModAddCommunity, PersonSafe, CommunitySafe, PersonSafeAlias1);
 

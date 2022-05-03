@@ -1,10 +1,8 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{AddModToCommunity, AddModToCommunityResponse},
-  get_local_user_view_from_jwt,
-  is_mod_or_admin,
+  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin},
 };
 use lemmy_apub::{
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -18,7 +16,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 

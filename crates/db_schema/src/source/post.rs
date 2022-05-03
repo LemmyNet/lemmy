@@ -1,10 +1,12 @@
-use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{post, post_like, post_read, post_saved},
-};
+use crate::newtypes::{CommunityId, DbUrl, PersonId, PostId};
 use serde::{Deserialize, Serialize};
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "post"]
+
+#[cfg(feature = "full")]
+use crate::schema::{post, post_like, post_read, post_saved};
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "post")]
 pub struct Post {
   pub id: PostId,
   pub name: String,
@@ -27,8 +29,9 @@ pub struct Post {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset, Default)]
-#[table_name = "post"]
+#[derive(Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "post")]
 pub struct PostForm {
   pub name: String,
   pub creator_id: PersonId,
@@ -50,9 +53,10 @@ pub struct PostForm {
   pub local: Option<bool>,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Post)]
-#[table_name = "post_like"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Post))]
+#[cfg_attr(feature = "full", table_name = "post_like")]
 pub struct PostLike {
   pub id: i32,
   pub post_id: PostId,
@@ -61,17 +65,19 @@ pub struct PostLike {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "post_like"]
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "post_like")]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Post)]
-#[table_name = "post_saved"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Post))]
+#[cfg_attr(feature = "full", table_name = "post_saved")]
 pub struct PostSaved {
   pub id: i32,
   pub post_id: PostId,
@@ -79,16 +85,17 @@ pub struct PostSaved {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset)]
-#[table_name = "post_saved"]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "post_saved")]
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Post)]
-#[table_name = "post_read"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Post))]
+#[cfg_attr(feature = "full", table_name = "post_read")]
 pub struct PostRead {
   pub id: i32,
   pub post_id: PostId,
@@ -96,8 +103,8 @@ pub struct PostRead {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset)]
-#[table_name = "post_read"]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "post_read")]
 pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,

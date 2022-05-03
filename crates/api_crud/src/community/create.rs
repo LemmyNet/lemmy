@@ -1,11 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_image_has_local_domain,
   community::{CommunityResponse, CreateCommunity},
-  get_local_user_view_from_jwt,
-  is_admin,
+  utils::{blocking, check_image_has_local_domain, get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_apub::{
   generate_followers_url,
@@ -17,7 +14,6 @@ use lemmy_apub::{
 };
 use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
-  diesel_option_overwrite_to_url,
   source::{
     community::{
       Community,
@@ -30,8 +26,9 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Followable, Joinable},
+  utils::diesel_option_overwrite_to_url,
 };
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   apub::generate_actor_keypair,
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
