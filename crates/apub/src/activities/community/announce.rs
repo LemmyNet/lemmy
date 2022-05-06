@@ -4,7 +4,10 @@ use crate::{
   http::ActivityCommonFields,
   insert_activity,
   objects::community::ApubCommunity,
-  protocol::activities::{community::announce::AnnounceActivity, CreateOrUpdateType},
+  protocol::{
+    activities::{community::announce::AnnounceActivity, CreateOrUpdateType},
+    IdOrNestedObject,
+  },
 };
 use activitystreams_kinds::{activity::AnnounceType, public};
 use lemmy_apub_lib::{
@@ -34,7 +37,7 @@ impl AnnounceActivity {
     Ok(AnnounceActivity {
       actor: ObjectId::new(community.actor_id()),
       to: vec![public()],
-      object,
+      object: IdOrNestedObject::NestedObject(object),
       cc: vec![community.followers_url.clone().into()],
       kind: AnnounceType::Announce,
       id: generate_activity_id(
@@ -92,11 +95,10 @@ impl ActivityHandler for AnnounceActivity {
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
-    request_counter: &mut i32,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
-    self.object.verify(context, request_counter).await?;
     Ok(())
   }
 
@@ -106,12 +108,16 @@ impl ActivityHandler for AnnounceActivity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let object = self.object.object(context, request_counter).await?;
+    // we have to verify this here in order to avoid fetching the object twice over http
+    object.verify(context, request_counter).await?;
+
     // TODO: this can probably be implemented in a cleaner way
-    match self.object {
+    match object {
       // Dont insert these into activities table, as they are not activities.
       AnnouncableActivities::Page(_) => {}
       _ => {
-        let object_value = serde_json::to_value(&self.object)?;
+        let object_value = serde_json::to_value(&object)?;
         let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
 
         let insert =
@@ -125,6 +131,6 @@ impl ActivityHandler for AnnounceActivity {
         }
       }
     }
-    self.object.receive(context, request_counter).await
+    object.receive(context, request_counter).await
   }
 }

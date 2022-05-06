@@ -7,7 +7,7 @@ use crate::{
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeMarkdownOrHtml};
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -25,15 +25,13 @@ pub struct Note {
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  #[serde(default)]
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "crate::deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) in_reply_to: ObjectId<PostOrComment>,
 
-  pub(crate) media_type: Option<MediaTypeHtml>,
-  #[serde(default)]
-  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,

@@ -6,7 +6,7 @@ use chrono::NaiveDateTime;
 use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -15,11 +15,17 @@ pub enum UserOrCommunity {
   Community(ApubCommunity),
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum PersonOrGroup {
   Person(Person),
   Group(Group),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum PersonOrGroupType {
+  Person,
+  Group,
 }
 
 #[async_trait::async_trait(?Send)]

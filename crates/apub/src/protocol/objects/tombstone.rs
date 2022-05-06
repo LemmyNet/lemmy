@@ -1,3 +1,4 @@
+use crate::protocol::Id;
 use activitystreams_kinds::object::TombstoneType;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -9,7 +10,7 @@ use url::Url;
 pub struct Tombstone {
   pub(crate) id: Url,
   #[serde(rename = "type")]
-  kind: TombstoneType,
+  pub(crate) kind: TombstoneType,
 }
 
 impl Tombstone {
@@ -18,5 +19,11 @@ impl Tombstone {
       id,
       kind: TombstoneType::Tombstone,
     }
+  }
+}
+
+impl Id for Tombstone {
+  fn id(&self) -> &Url {
+    &self.id
   }
 }

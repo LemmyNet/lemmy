@@ -40,8 +40,7 @@ pub struct Group {
   /// title
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  #[serde(default)]
-  #[serde(deserialize_with = "crate::deserialize_skip_error")]
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) icon: Option<ImageObject>,
   /// banner
@@ -72,7 +71,7 @@ impl Group {
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&self.preferred_username, slur_regex)?;
     check_slurs_opt(&self.name, slur_regex)?;
-    let description = read_from_string_or_source_opt(&self.summary, &self.source);
+    let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
     check_slurs_opt(&description, slur_regex)?;
     Ok(())
   }
@@ -81,7 +80,7 @@ impl Group {
     CommunityForm {
       name: self.preferred_username.clone(),
       title: self.name.unwrap_or(self.preferred_username),
-      description: read_from_string_or_source_opt(&self.summary, &self.source),
+      description: read_from_string_or_source_opt(&self.summary, &None, &self.source),
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),

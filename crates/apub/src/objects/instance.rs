@@ -124,7 +124,11 @@ impl ApubObject for ApubSite {
   ) -> Result<Self, LemmyError> {
     let site_form = SiteForm {
       name: apub.name.clone(),
-      sidebar: Some(read_from_string_or_source_opt(&apub.content, &apub.source)),
+      sidebar: Some(read_from_string_or_source_opt(
+        &apub.content,
+        &None,
+        &apub.source,
+      )),
       updated: apub.updated.map(|u| u.clone().naive_local()),
       icon: Some(apub.icon.clone().map(|i| i.url.into())),
       banner: Some(apub.image.clone().map(|i| i.url.into())),

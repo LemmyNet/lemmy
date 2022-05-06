@@ -18,6 +18,7 @@ pub enum CreateOrUpdateType {
 mod tests {
   use crate::protocol::{
     activities::{
+      community::announce::AnnounceActivity,
       create_or_update::{comment::CreateOrUpdateComment, post::CreateOrUpdatePost},
       deletion::delete::Delete,
       following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
@@ -69,5 +70,10 @@ mod tests {
     test_json::<CreateOrUpdatePost>("assets/gnusocial/activities/create_page.json").unwrap();
     test_json::<CreateOrUpdateComment>("assets/gnusocial/activities/create_note.json").unwrap();
     test_json::<Vote>("assets/gnusocial/activities/like_note.json").unwrap();
+  }
+
+  #[test]
+  fn test_parse_peertube_activities() {
+    test_json::<AnnounceActivity>("assets/peertube/activities/announce_video.json").unwrap();
   }
 }

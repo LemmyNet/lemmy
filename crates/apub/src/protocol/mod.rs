@@ -1,7 +1,9 @@
 use activitystreams_kinds::object::ImageType;
-use lemmy_apub_lib::values::MediaTypeMarkdown;
+use lemmy_apub_lib::{utils::fetch_object_http, values::MediaTypeMarkdown};
 use lemmy_db_schema::newtypes::DbUrl;
-use serde::{Deserialize, Serialize};
+use lemmy_utils::LemmyError;
+use lemmy_websocket::LemmyContext;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 use url::Url;
 
@@ -42,9 +44,39 @@ impl ImageObject {
   }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct Unparsed(HashMap<String, serde_json::Value>);
+
+pub(crate) trait Id {
+  fn id(&self) -> &Url;
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub(crate) enum IdOrNestedObject<Kind: Id> {
+  Id(Url),
+  NestedObject(Kind),
+}
+
+impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
+  pub(crate) fn id(&self) -> &Url {
+    match self {
+      IdOrNestedObject::Id(i) => i,
+      IdOrNestedObject::NestedObject(n) => n.id(),
+    }
+  }
+  pub(crate) async fn object(
+    self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<Kind, LemmyError> {
+    match self {
+      IdOrNestedObject::Id(i) => fetch_object_http(&i, context.client(), request_counter).await,
+      IdOrNestedObject::NestedObject(o) => Ok(o),
+    }
+  }
+}
 
 #[cfg(test)]
 pub(crate) mod tests {

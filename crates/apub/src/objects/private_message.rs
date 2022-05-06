@@ -137,7 +137,7 @@ impl ApubObject for ApubPrivateMessage {
     let form = PrivateMessageForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content: read_from_string_or_source(&note.content, &note.source),
+      content: read_from_string_or_source(&note.content, &None, &note.source),
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,

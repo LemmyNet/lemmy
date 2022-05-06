@@ -134,7 +134,7 @@ impl ApubObject for ApubPerson {
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
-    let bio = read_from_string_or_source_opt(&person.summary, &person.source);
+    let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     check_slurs_opt(&bio, slur_regex)?;
     Ok(())
   }
@@ -158,6 +158,7 @@ impl ApubObject for ApubPerson {
       actor_id: Some(person.id.into()),
       bio: Some(read_from_string_or_source_opt(
         &person.summary,
+        &None,
         &person.source,
       )),
       local: Some(false),
