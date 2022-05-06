@@ -7,7 +7,8 @@ use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
-  utils::{ListingType, SortType},
+  ListingType,
+  SortType,
 };
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,

@@ -4,7 +4,7 @@ pub mod person;
 pub mod post;
 #[cfg(feature = "full")]
 pub mod request;
-mod sensitive;
+pub mod sensitive;
 pub mod site;
 #[cfg(feature = "full")]
 pub mod utils;

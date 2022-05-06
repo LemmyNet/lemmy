@@ -3,14 +3,17 @@ use lemmy_db_views::structs::{CommentView, PostView, PrivateMessageView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonMentionView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
 }
-use lemmy_db_schema::newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId},
+  SortType,
+};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Register {
   pub username: String,
   pub password: Sensitive<String>,
@@ -25,22 +28,22 @@ pub struct Register {
   pub answer: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetCaptcha {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCaptchaResponse {
   pub ok: Option<CaptchaResponse>, // Will be None if captchas are disabled
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CaptchaResponse {
   pub png: String, // A Base64 encoded png
   pub wav: String, // A Base64 encoded wav audio
   pub uuid: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub show_scores: Option<bool>,
@@ -63,7 +66,7 @@ pub struct SaveUserSettings {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ChangePassword {
   pub new_password: Sensitive<String>,
   pub new_password_verify: Sensitive<String>,
@@ -71,7 +74,7 @@ pub struct ChangePassword {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
   pub jwt: Option<Sensitive<String>>,
@@ -79,12 +82,12 @@ pub struct LoginResponse {
   pub verify_email_sent: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPersonDetails {
   pub person_id: Option<PersonId>, // One of these two are required
   /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
-  pub sort: Option<String>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
@@ -92,7 +95,7 @@ pub struct GetPersonDetails {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPersonDetailsResponse {
   pub person_view: PersonViewSafe,
   pub comments: Vec<CommentView>,
@@ -100,22 +103,22 @@ pub struct GetPersonDetailsResponse {
   pub moderates: Vec<CommunityModeratorView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetRepliesResponse {
   pub replies: Vec<CommentView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPersonMentionsResponse {
   pub mentions: Vec<PersonMentionView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MarkAllAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AddAdmin {
   pub person_id: PersonId,
   pub added: bool,
@@ -127,7 +130,7 @@ pub struct AddAdminResponse {
   pub admins: Vec<PersonViewSafe>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BanPerson {
   pub person_id: PersonId,
   pub ban: bool,
@@ -137,12 +140,12 @@ pub struct BanPerson {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetBannedPersons {
   pub auth: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BannedPersonsResponse {
   pub banned: Vec<PersonViewSafe>,
 }
@@ -153,7 +156,7 @@ pub struct BanPersonResponse {
   pub banned: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BlockPerson {
   pub person_id: PersonId,
   pub block: bool,
@@ -166,25 +169,25 @@ pub struct BlockPersonResponse {
   pub blocked: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetReplies {
-  pub sort: Option<String>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPersonMentions {
-  pub sort: Option<String>,
+  pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MarkPersonMentionAsRead {
   pub person_mention_id: PersonMentionId,
   pub read: bool,
@@ -196,7 +199,7 @@ pub struct PersonMentionResponse {
   pub person_mention_view: PersonMentionView,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeleteAccount {
   pub password: Sensitive<String>,
   pub auth: Sensitive<String>,
@@ -205,7 +208,7 @@ pub struct DeleteAccount {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeleteAccountResponse {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct PasswordReset {
   pub email: Sensitive<String>,
 }
@@ -213,42 +216,42 @@ pub struct PasswordReset {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PasswordResetResponse {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct PasswordChangeAfterReset {
   pub token: Sensitive<String>,
   pub password: Sensitive<String>,
   pub password_verify: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreatePrivateMessage {
   pub content: String,
   pub recipient_id: PersonId,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditPrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub content: String,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeletePrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub deleted: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MarkPrivateMessageAsRead {
   pub private_message_id: PrivateMessageId,
   pub read: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPrivateMessages {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
@@ -266,7 +269,7 @@ pub struct PrivateMessageResponse {
   pub private_message_view: PrivateMessageView,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
   pub auth: Sensitive<String>,
@@ -279,7 +282,7 @@ pub struct GetReportCountResponse {
   pub post_reports: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetUnreadCount {
   pub auth: Sensitive<String>,
 }
@@ -291,7 +294,7 @@ pub struct GetUnreadCountResponse {
   pub private_messages: i64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct VerifyEmail {
   pub token: String,
 }

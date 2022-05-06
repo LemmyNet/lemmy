@@ -16,7 +16,8 @@ use lemmy_db_schema::{
     site::{Site, SiteForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now, ListingType},
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  ListingType,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};

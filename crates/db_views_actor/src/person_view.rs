@@ -6,7 +6,8 @@ use lemmy_db_schema::{
   schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  utils::{fuzzy_search, limit_and_offset, SortType},
+  utils::{fuzzy_search, limit_and_offset},
+  SortType,
 };
 
 type PersonViewSafeTuple = (PersonSafe, PersonAggregates);

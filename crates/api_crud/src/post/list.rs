@@ -8,7 +8,7 @@ use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubComm
 use lemmy_db_schema::{
   source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
-  utils::{from_opt_str_to_opt_enum, ListingType, SortType},
+  ListingType,
 };
 use lemmy_db_views::post_view::PostQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
@@ -42,15 +42,14 @@ impl PerformCrud for GetPosts {
       .as_ref()
       .map(|t| t.local_user.show_read_posts);
 
-    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-    let listing_type: ListingType = match from_opt_str_to_opt_enum(&data.type_) {
+    let sort = data.sort;
+    let listing_type: ListingType = match data.type_ {
       Some(l) => l,
       None => {
         let site = blocking(context.pool(), Site::read_local_site).await??;
         ListingType::from_str(&site.default_post_listing_type)?
       }
     };
-
     let page = data.page;
     let limit = data.limit;
     let community_id = data.community_id;

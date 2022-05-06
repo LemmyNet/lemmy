@@ -4,10 +4,7 @@ use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
-use lemmy_db_schema::{
-  traits::DeleteableOrRemoveable,
-  utils::{from_opt_str_to_opt_enum, ListingType, SortType},
-};
+use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views_actor::community_view::CommunityQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -37,9 +34,8 @@ impl PerformCrud for ListCommunities {
       None => false,
     };
 
-    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-    let listing_type: Option<ListingType> = from_opt_str_to_opt_enum(&data.type_);
-
+    let sort = data.sort;
+    let listing_type = data.type_;
     let page = data.page;
     let limit = data.limit;
     let mut communities = blocking(context.pool(), move |conn| {
