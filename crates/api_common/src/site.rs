@@ -35,7 +35,7 @@ use lemmy_db_views_moderator::structs::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Search {
   pub q: String,
   pub community_id: Option<CommunityId>,
@@ -49,7 +49,7 @@ pub struct Search {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchResponse {
   pub type_: String,
   pub comments: Vec<CommentView>,
@@ -58,7 +58,7 @@ pub struct SearchResponse {
   pub users: Vec<PersonViewSafe>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ResolveObject {
   pub q: String,
   pub auth: Option<Sensitive<String>>,
@@ -72,7 +72,7 @@ pub struct ResolveObjectResponse {
   pub person: Option<PersonViewSafe>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetModlog {
   pub mod_person_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
@@ -81,7 +81,7 @@ pub struct GetModlog {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetModlogResponse {
   pub removed_posts: Vec<ModRemovePostView>,
   pub locked_posts: Vec<ModLockPostView>,
@@ -96,7 +96,7 @@ pub struct GetModlogResponse {
   pub hidden_communities: Vec<ModHideCommunityView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreateSite {
   pub name: String,
   pub sidebar: Option<String>,
@@ -116,7 +116,7 @@ pub struct CreateSite {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditSite {
   pub name: Option<String>,
   pub sidebar: Option<String>,
@@ -136,7 +136,7 @@ pub struct EditSite {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetSite {
   pub auth: Option<Sensitive<String>>,
 }
@@ -146,7 +146,7 @@ pub struct SiteResponse {
   pub site_view: SiteView,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteResponse {
   pub site_view: Option<SiteView>, // Because the site might not be set up yet
   pub admins: Vec<PersonViewSafe>,
@@ -156,7 +156,7 @@ pub struct GetSiteResponse {
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MyUserInfo {
   pub local_user_view: LocalUserSettingsView,
   pub follows: Vec<CommunityFollowerView>,
@@ -165,35 +165,35 @@ pub struct MyUserInfo {
   pub person_blocks: Vec<PersonBlockView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeaveAdmin {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteConfig {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteConfigResponse {
   pub config_hjson: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SaveSiteConfig {
   pub config_hjson: String,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FederatedInstances {
   pub linked: Vec<String>,
   pub allowed: Option<Vec<String>>,
   pub blocked: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ListRegistrationApplications {
   /// Only shows the unread applications (IE those without an admin actor)
   pub unread_only: Option<bool>,
@@ -202,12 +202,12 @@ pub struct ListRegistrationApplications {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ListRegistrationApplicationsResponse {
   pub registration_applications: Vec<RegistrationApplicationView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ApproveRegistrationApplication {
   pub id: i32,
   pub approve: bool,
@@ -215,17 +215,17 @@ pub struct ApproveRegistrationApplication {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RegistrationApplicationResponse {
   pub registration_application: RegistrationApplicationView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetUnreadRegistrationApplicationCount {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetUnreadRegistrationApplicationCountResponse {
   pub registration_applications: i64,
 }

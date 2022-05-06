@@ -8,7 +8,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetCommunity {
   pub id: Option<CommunityId>,
   /// Example: star_trek , or star_trek@xyz.tld
@@ -16,7 +16,7 @@ pub struct GetCommunity {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCommunityResponse {
   pub community_view: CommunityView,
   pub site: Option<Site>,
@@ -24,7 +24,7 @@ pub struct GetCommunityResponse {
   pub online: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreateCommunity {
   pub name: String,
   pub title: String,
@@ -41,7 +41,7 @@ pub struct CommunityResponse {
   pub community_view: CommunityView,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -50,12 +50,12 @@ pub struct ListCommunities {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
@@ -72,7 +72,7 @@ pub struct BanFromCommunityResponse {
   pub banned: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
@@ -85,7 +85,7 @@ pub struct AddModToCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditCommunity {
   pub community_id: CommunityId,
   pub title: Option<String>,
@@ -97,7 +97,7 @@ pub struct EditCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
@@ -105,14 +105,14 @@ pub struct HideCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
   pub deleted: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
   pub removed: bool,
@@ -121,14 +121,14 @@ pub struct RemoveCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct FollowCommunity {
   pub community_id: CommunityId,
   pub follow: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
@@ -141,7 +141,7 @@ pub struct BlockCommunityResponse {
   pub blocked: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,

@@ -9,7 +9,7 @@ use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreatePost {
   pub name: String,
   pub community_id: CommunityId,
@@ -25,13 +25,13 @@ pub struct PostResponse {
   pub post_view: PostView,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPost {
   pub id: PostId,
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
@@ -40,7 +40,7 @@ pub struct GetPostResponse {
   pub online: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct GetPosts {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -52,19 +52,19 @@ pub struct GetPosts {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreatePostLike {
   pub post_id: PostId,
   pub score: i16,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditPost {
   pub post_id: PostId,
   pub name: Option<String>,
@@ -74,14 +74,14 @@ pub struct EditPost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
@@ -89,35 +89,35 @@ pub struct RemovePost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct StickyPost {
   pub post_id: PostId,
   pub stickied: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
@@ -129,14 +129,14 @@ pub struct PostReportResponse {
   pub post_report_view: PostReportView,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ListPostReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -147,22 +147,22 @@ pub struct ListPostReports {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ListPostReportsResponse {
   pub post_reports: Vec<PostReportView>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteMetadata {
   pub url: Url,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteMetadataResponse {
   pub metadata: SiteMetadata,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct SiteMetadata {
   pub title: Option<String>,
   pub description: Option<String>,

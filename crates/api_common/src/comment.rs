@@ -7,7 +7,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreateComment {
   pub content: String,
   pub post_id: PostId,
@@ -16,13 +16,13 @@ pub struct CreateComment {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetComment {
   pub id: CommentId,
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditComment {
   pub content: String,
   pub comment_id: CommentId,
@@ -30,14 +30,14 @@ pub struct EditComment {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
@@ -45,14 +45,14 @@ pub struct RemoveComment {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MarkCommentAsRead {
   pub comment_id: CommentId,
   pub read: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SaveComment {
   pub comment_id: CommentId,
   pub save: bool,
@@ -66,14 +66,14 @@ pub struct CommentResponse {
   pub form_id: Option<String>, // An optional front end ID, to tell which is coming back
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
   pub score: i16,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetComments {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -85,12 +85,12 @@ pub struct GetComments {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
@@ -102,14 +102,14 @@ pub struct CommentReportResponse {
   pub comment_report_view: CommentReportView,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ListCommentReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -120,7 +120,7 @@ pub struct ListCommentReports {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ListCommentReportsResponse {
   pub comment_reports: Vec<CommentReportView>,
 }
