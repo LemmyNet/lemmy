@@ -11,6 +11,7 @@ import {
   PostResponse,
   SearchResponse,
   FollowCommunity,
+  FollowCommunityResponse,
   CommunityResponse,
   GetPostResponse,
   Register,
@@ -298,7 +299,7 @@ export async function banPersonFromSite(
   api: API,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_data: boolean
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
@@ -331,7 +332,7 @@ export async function followCommunity(
   api: API,
   follow: boolean,
   community_id: number
-): Promise<CommunityResponse> {
+): Promise<FollowCommunityResponse> {
   let form: FollowCommunity = {
     community_id,
     follow,
@@ -558,7 +559,7 @@ export async function saveUserSettings(
 }
 
 export async function deleteUser(
-  api: API,
+  api: API
 ): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     auth: api.auth,
@@ -602,7 +603,7 @@ export async function unfollowRemotes(
   return siteRes;
 }
 
-export async function followBeta(api: API): Promise<CommunityResponse> {
+export async function followBeta(api: API): Promise<FollowCommunityResponse> {
   let betaCommunity = (await resolveBetaCommunity(api)).community;
   if (betaCommunity) {
     let follow = await followCommunity(api, true, betaCommunity.community.id);
@@ -613,7 +614,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 export async function reportPost(
   api: API,
   post_id: number,
-  reason: string,
+  reason: string
 ): Promise<PostReportResponse> {
   let form: CreatePostReport = {
     post_id,
@@ -633,7 +634,7 @@ export async function listPostReports(api: API): Promise<ListPostReportsResponse
 export async function reportComment(
   api: API,
   comment_id: number,
-  reason: string,
+  reason: string
 ): Promise<CommentReportResponse> {
   let form: CreateCommentReport = {
     comment_id,
