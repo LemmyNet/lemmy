@@ -38,7 +38,7 @@ test('Follow federated community', async () => {
 
   // Test an unfollow
   let unfollow = await followCommunity(alpha, false, remoteCommunityId);
-  expect(unfollow.community_follower_view.community.local).toBe(false);
+  expect(unfollow.community_follower_view).toBeNull()
 
   // Make sure you are unsubbed locally
   let siteUnfollowCheck = await getSite(alpha);

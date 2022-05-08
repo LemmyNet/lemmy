@@ -47,8 +47,9 @@ pub struct CommunityResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// An unfollow will return None
 pub struct FollowCommunityResponse {
-  pub community_follower_view: CommunityFollowerView,
+  pub community_follower_view: Option<CommunityFollowerView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
