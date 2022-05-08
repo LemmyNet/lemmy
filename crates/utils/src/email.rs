@@ -1,7 +1,7 @@
 use crate::{settings::structs::Settings, LemmyError};
 use html2text;
 use lettre::{
-  message::{header, Mailbox, MultiPart, SinglePart},
+  message::{Mailbox, MultiPart},
   transport::smtp::{authentication::Credentials, extension::ClientId},
   Address,
   Message,
@@ -60,23 +60,10 @@ pub fn send_email(
     ))
     .message_id(Some(format!("{}@{}", Uuid::new_v4(), settings.hostname)))
     .subject(subject)
-    .multipart(
-      MultiPart::mixed().multipart(
-        MultiPart::alternative()
-          .singlepart(
-            SinglePart::builder()
-              .header(header::ContentType::TEXT_PLAIN)
-              .body(plain_text),
-          )
-          .multipart(
-            MultiPart::related().singlepart(
-              SinglePart::builder()
-                .header(header::ContentType::TEXT_HTML)
-                .body(html.to_string()),
-            ),
-          ),
-      ),
-    )
+    .multipart(MultiPart::alternative_plain_html(
+      plain_text,
+      html.to_string(),
+    ))
     .expect("email built incorrectly");
 
   // don't worry about 'dangeous'. it's just that leaving it at the default configuration
