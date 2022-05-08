@@ -85,7 +85,8 @@ impl Perform for FollowCommunity {
     let community_follower_view = blocking(context.pool(), move |conn| {
       CommunityFollowerView::read(conn, community_id, person_id)
     })
-    .await?.ok();
+    .await?
+    .ok();
 
     Ok(Self::Response {
       community_follower_view,
