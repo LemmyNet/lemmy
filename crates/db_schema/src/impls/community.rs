@@ -380,7 +380,7 @@ mod tests {
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     let inserted_community_follower =
@@ -390,7 +390,7 @@ mod tests {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: Some(false),
+      pending: false,
       published: inserted_community_follower.published,
     };
 

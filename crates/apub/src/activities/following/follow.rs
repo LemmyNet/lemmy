@@ -50,7 +50,7 @@ impl FollowCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: actor.id,
-      pending: true,
+      pending: Some(true),
     };
     blocking(context.pool(), move |conn| {
       CommunityFollower::follow(conn, &community_follower_form).ok()
@@ -100,7 +100,7 @@ impl ActivityHandler for FollowCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     // This will fail if they're already a follower, but ignore the error.

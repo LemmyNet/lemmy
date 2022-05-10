@@ -47,7 +47,7 @@ impl Perform for BlockCommunity {
       let community_follower_form = CommunityFollowerForm {
         community_id: data.community_id,
         person_id,
-        pending: false,
+        pending: Some(false),
       };
       blocking(context.pool(), move |conn: &'_ _| {
         CommunityFollower::unfollow(conn, &community_follower_form)

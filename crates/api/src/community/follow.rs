@@ -47,7 +47,7 @@ impl Perform for FollowCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
-      pending: false, // Don't worry, this form isn't used for remote follows
+      pending: Some(false), // Don't worry, this form isn't used for remote follows
     };
 
     if community.local {

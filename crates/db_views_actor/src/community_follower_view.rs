@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::{ToSafe, ViewToVec},
 };
 
-type CommunityFollowerViewTuple = (CommunitySafe, PersonSafe, Option<bool>);
+type CommunityFollowerViewTuple = (CommunitySafe, PersonSafe, bool);
 
 impl CommunityFollowerView {
   pub fn for_community(conn: &PgConnection, community_id: CommunityId) -> Result<Vec<Self>, Error> {

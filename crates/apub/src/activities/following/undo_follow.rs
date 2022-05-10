@@ -77,7 +77,7 @@ impl ActivityHandler for UndoFollowCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     // This will fail if they aren't a follower, but ignore the error.

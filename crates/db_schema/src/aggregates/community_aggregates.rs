@@ -66,7 +66,7 @@ mod tests {
     let first_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     CommunityFollower::follow(&conn, &first_person_follow).unwrap();
@@ -74,7 +74,7 @@ mod tests {
     let second_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: another_inserted_person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     CommunityFollower::follow(&conn, &second_person_follow).unwrap();
@@ -82,7 +82,7 @@ mod tests {
     let another_community_follow = CommunityFollowerForm {
       community_id: another_inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     CommunityFollower::follow(&conn, &another_community_follow).unwrap();

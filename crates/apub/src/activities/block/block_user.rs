@@ -200,7 +200,7 @@ impl ActivityHandler for BlockUser {
         let community_follower_form = CommunityFollowerForm {
           community_id: community.id,
           person_id: blocked_person.id,
-          pending: false,
+          pending: Some(false),
         };
         blocking(context.pool(), move |conn: &'_ _| {
           CommunityFollower::unfollow(conn, &community_follower_form)

@@ -123,7 +123,7 @@ impl PerformCrud for CreateCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: local_user_view.person.id,
-      pending: false,
+      pending: Some(false),
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
