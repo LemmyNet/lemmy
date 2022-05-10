@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
-  utils::{blocking, check_image_has_local_domain, get_local_user_view_from_jwt},
+  utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
@@ -34,8 +34,6 @@ impl PerformCrud for EditCommunity {
 
     check_slurs_opt(&data.title, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
-    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;

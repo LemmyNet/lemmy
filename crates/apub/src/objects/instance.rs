@@ -1,6 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
-  objects::{read_from_string_or_source_opt, verify_image_domain_matches},
+  objects::read_from_string_or_source_opt,
   protocol::{
     objects::instance::{Instance, InstanceType},
     ImageObject,
@@ -107,8 +107,6 @@ impl ApubObject for ApubSite {
   ) -> Result<(), LemmyError> {
     check_is_apub_id_valid(apub.id.inner(), true, &data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
-    verify_image_domain_matches(expected_domain, &apub.icon)?;
-    verify_image_domain_matches(expected_domain, &apub.image)?;
 
     let slur_regex = &data.settings().slur_regex();
     check_slurs(&apub.name, slur_regex)?;

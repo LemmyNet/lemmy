@@ -1,11 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
-  objects::{
-    instance::fetch_instance_actor_for_object,
-    read_from_string_or_source_opt,
-    verify_image_domain_matches,
-  },
+  objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::{
       person::{Person, UserTypes},
@@ -128,8 +124,6 @@ impl ApubObject for ApubPerson {
   ) -> Result<(), LemmyError> {
     verify_domains_match(person.id.inner(), expected_domain)?;
     check_is_apub_id_valid(person.id.inner(), false, &context.settings())?;
-    verify_image_domain_matches(expected_domain, &person.icon)?;
-    verify_image_domain_matches(expected_domain, &person.image)?;
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;
