@@ -2,13 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{EditSite, SiteResponse},
-  utils::{
-    blocking,
-    check_image_has_local_domain,
-    get_local_user_view_from_jwt,
-    is_admin,
-    site_description_length_check,
-  },
+  utils::{blocking, get_local_user_view_from_jwt, is_admin, site_description_length_check},
 };
 use lemmy_db_schema::{
   source::{
@@ -51,8 +45,6 @@ impl PerformCrud for EditSite {
 
     check_slurs_opt(&data.name, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-    check_image_has_local_domain(icon.as_ref().unwrap_or(&None))?;
-    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
 
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;

@@ -2,12 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, SaveUserSettings},
-  utils::{
-    blocking,
-    check_image_has_local_domain,
-    get_local_user_view_from_jwt,
-    send_verification_email,
-  },
+  utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -48,9 +43,6 @@ impl Perform for SaveUserSettings {
     let bot_account = data.bot_account;
     let email_deref = data.email.as_deref().map(|e| e.to_owned());
     let email = diesel_option_overwrite(&email_deref);
-
-    check_image_has_local_domain(avatar.as_ref().unwrap_or(&None))?;
-    check_image_has_local_domain(banner.as_ref().unwrap_or(&None))?;
 
     if let Some(Some(email)) = &email {
       let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();

@@ -1,6 +1,6 @@
 use crate::{sensitive::Sensitive, site::FederatedInstances};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
     comment::Comment,
     community::Community,
@@ -590,16 +590,5 @@ pub async fn delete_user_account(person_id: PersonId, pool: &DbPool) -> Result<(
 
   blocking(pool, move |conn| Person::delete_account(conn, person_id)).await??;
 
-  Ok(())
-}
-
-pub fn check_image_has_local_domain(url: &Option<DbUrl>) -> Result<(), LemmyError> {
-  if let Some(url) = url {
-    let settings = Settings::get();
-    let domain = url.domain().expect("url has domain");
-    if domain != settings.hostname {
-      return Err(LemmyError::from_message("image_not_local"));
-    }
-  }
   Ok(())
 }

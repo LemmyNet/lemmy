@@ -1,7 +1,7 @@
-use crate::protocol::{ImageObject, Source};
+use crate::protocol::Source;
 use anyhow::anyhow;
 use html2md::parse_html;
-use lemmy_apub_lib::{values::MediaTypeMarkdownOrHtml, verify::verify_domains_match};
+use lemmy_apub_lib::values::MediaTypeMarkdownOrHtml;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use url::Url;
 
@@ -37,17 +37,6 @@ pub(crate) fn read_from_string_or_source_opt(
   content
     .as_ref()
     .map(|content| read_from_string_or_source(content, media_type, source))
-}
-
-pub(crate) fn verify_image_domain_matches(
-  a: &Url,
-  b: &Option<ImageObject>,
-) -> Result<(), LemmyError> {
-  if let Some(b) = b {
-    verify_domains_match(a, &b.url)
-  } else {
-    Ok(())
-  }
 }
 
 /// When for example a Post is made in a remote community, the community will send it back,

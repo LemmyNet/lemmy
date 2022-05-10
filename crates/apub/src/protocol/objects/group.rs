@@ -4,11 +4,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  objects::{
-    community::ApubCommunity,
-    read_from_string_or_source_opt,
-    verify_image_domain_matches,
-  },
+  objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{objects::Endpoints, ImageObject, Source},
 };
 use activitystreams_kinds::actor::GroupType;
@@ -65,8 +61,6 @@ impl Group {
   ) -> Result<(), LemmyError> {
     check_is_apub_id_valid(self.id.inner(), true, &context.settings())?;
     verify_domains_match(expected_domain, self.id.inner())?;
-    verify_image_domain_matches(expected_domain, &self.icon)?;
-    verify_image_domain_matches(expected_domain, &self.image)?;
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&self.preferred_username, slur_regex)?;
