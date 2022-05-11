@@ -25,7 +25,7 @@ serde = { version = "1.0.136", features = ["derive"] }
 serde_json = { version = "1.0.79", features = ["preserve_order"] }
 actix = "0.13.0"
 anyhow = "1.0.56"
-diesel = "1.4.8"
+diesel = "2.0.0-rc.0"
 background-jobs = "0.12.0"
 tokio = "1.17.0"
 strum = "0.24.0"

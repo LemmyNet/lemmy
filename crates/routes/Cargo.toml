@@ -18,7 +18,7 @@ lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor" }
 lemmy_db_schema = { version = "=0.16.3", path = "../db_schema" }
 lemmy_api_common = { version = "=0.16.3", path = "../api_common" }
 lemmy_apub = { version = "=0.16.3", path = "../apub" }
-diesel = "1.4.8"
+diesel = "2.0.0-rc.0"
 actix-web = { version = "4.0.1", default-features = false, features = ["rustls"] }
 anyhow = "1.0.56"
 chrono = { version = "0.4.19", features = ["serde"], default-features = false }

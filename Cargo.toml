@@ -45,8 +45,8 @@ lemmy_db_schema = { version = "=0.16.3", path = "./crates/db_schema" }
 lemmy_api_common = { version = "=0.16.3", path = "crates/api_common" }
 lemmy_websocket = { version = "=0.16.3", path = "./crates/websocket" }
 lemmy_routes = { version = "=0.16.3", path = "./crates/routes" }
-diesel = "1.4.8"
-diesel_migrations = "1.4.0"
+diesel = "2.0.0-rc.0"
+diesel_migrations = "2.0.0-rc.0"
 serde = { version = "1.0.136", features = ["derive"] }
 actix = "0.13.0"
 actix-web = { version = "4.0.1", default-features = false, features = ["macros", "rustls"] }

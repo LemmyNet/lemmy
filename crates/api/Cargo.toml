@@ -22,7 +22,7 @@ lemmy_db_views_moderator = { version = "=0.16.3", path = "../db_views_moderator"
 lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor", features = ["full"] }
 lemmy_api_common = { version = "=0.16.3", path = "../api_common", features = ["full"] }
 lemmy_websocket = { version = "=0.16.3", path = "../websocket" }
-diesel = "1.4.8"
+diesel = "2.0.0-rc.0"
 bcrypt = "0.12.1"
 chrono = { version = "0.4.19", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.79", features = ["preserve_order"] }

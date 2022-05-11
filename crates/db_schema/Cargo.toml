@@ -26,9 +26,9 @@ serde_json = { version = "1.0.79", features = ["preserve_order"], optional = tru
 lemmy_apub_lib = { version = "=0.16.3", path = "../apub_lib", optional = true }
 lemmy_utils = { version = "=0.16.3", path = "../utils", optional = true }
 bcrypt = { version = "0.12.1", optional = true }
-diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
+diesel = { version = "2.0.0-rc.0", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
 diesel-derive-newtype = { version = "0.1.2", optional = true }
-diesel_migrations = { version = "1.4.0", optional = true }
+diesel_migrations = { version = "2.0.0-rc.0", optional = true }
 sha2 = { version = "0.10.2", optional = true }
 regex = { version = "1.5.5", optional = true }
 once_cell = { version = "1.10.0", optional = true }
