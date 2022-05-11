@@ -919,10 +919,21 @@ version = "1.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b28135ecf6b7d446b43e27e225622a038cc4e2930a1022f51cdb97ada19b8e4d"
 dependencies = [
+ "byteorder",
+ "diesel_derives 1.4.1",
+]
+
+[[package]]
+name = "diesel"
+version = "2.0.0-rc.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e531d0abf8147036383c88ce3785d9cda6fe1b8b1183021ffa01cf49c5819d24"
+dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
- "diesel_derives",
+ "diesel_derives 2.0.0-rc.0",
+ "itoa",
  "pq-sys",
  "r2d2",
  "serde_json",
@@ -934,7 +945,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e844e8e6f65dcf27aa0b97d4234f974d93dfbf56816033d71b5e0c7eb701709f"
 dependencies = [
- "diesel",
+ "diesel 1.4.8",
  "proc-macro2 0.4.30",
  "quote 0.6.13",
  "syn 0.14.9",
@@ -952,11 +963,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "diesel_migrations"
-version = "1.4.0"
+name = "diesel_derives"
+version = "2.0.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf3cde8413353dc7f5d72fa8ce0b99a560a359d2c5ef1e5817ca731cd9008f4c"
+checksum = "212ba0cdc611523c37f26c7b3b4aedb4af7cbfe9239c4e7736a8a7c82284d77b"
 dependencies = [
+ "proc-macro-error",
+ "proc-macro2 1.0.36",
+ "quote 1.0.17",
+ "syn 1.0.90",
+]
+
+[[package]]
+name = "diesel_migrations"
+version = "2.0.0-rc.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2edcb7e9cff76af48e7fa33cc4680acc7df19e58a4a4aaed3e2b67fb83bc06d"
+dependencies = [
+ "diesel 2.0.0-rc.0",
  "migrations_internals",
  "migrations_macros",
 ]
@@ -1771,7 +1795,7 @@ dependencies = [
  "bcrypt",
  "captcha",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "lemmy_api_common",
  "lemmy_apub",
  "lemmy_apub_lib",
@@ -1794,7 +1818,7 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "encoding",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -1845,7 +1869,7 @@ dependencies = [
  "assert-json-diff",
  "async-trait",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "futures",
  "html2md",
  "http",
@@ -1883,7 +1907,7 @@ dependencies = [
  "background-jobs",
  "base64",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
@@ -1916,7 +1940,7 @@ version = "0.16.3"
 dependencies = [
  "bcrypt",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "diesel-derive-newtype",
  "diesel_migrations",
  "lemmy_apub_lib",
@@ -1936,7 +1960,7 @@ dependencies = [
 name = "lemmy_db_views"
 version = "0.16.3"
 dependencies = [
- "diesel",
+ "diesel 2.0.0-rc.0",
  "lemmy_db_schema",
  "serde",
  "serial_test",
@@ -1947,7 +1971,7 @@ dependencies = [
 name = "lemmy_db_views_actor"
 version = "0.16.3"
 dependencies = [
- "diesel",
+ "diesel 2.0.0-rc.0",
  "lemmy_db_schema",
  "serde",
 ]
@@ -1956,7 +1980,7 @@ dependencies = [
 name = "lemmy_db_views_moderator"
 version = "0.16.3"
 dependencies = [
- "diesel",
+ "diesel 2.0.0-rc.0",
  "lemmy_db_schema",
  "serde",
 ]
@@ -1968,7 +1992,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "futures",
  "lemmy_api_common",
  "lemmy_apub",
@@ -1996,7 +2020,7 @@ dependencies = [
  "actix-web",
  "clokwerk",
  "console-subscriber",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "diesel_migrations",
  "doku",
  "lemmy_api",
@@ -2033,7 +2057,7 @@ dependencies = [
  "chrono",
  "comrak",
  "deser-hjson",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "doku",
  "futures",
  "html2text",
@@ -2070,7 +2094,7 @@ dependencies = [
  "anyhow",
  "background-jobs",
  "chrono",
- "diesel",
+ "diesel 2.0.0-rc.0",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2244,23 +2268,23 @@ checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 
 [[package]]
 name = "migrations_internals"
-version = "1.4.1"
+version = "2.0.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b4fc84e4af020b837029e017966f86a1c2d5e83e64b589963d5047525995860"
+checksum = "61e2226081f9176165a49b006a0729de8cafa749615b349e15c444dbd39e4d9d"
 dependencies = [
- "diesel",
+ "serde",
+ "toml",
 ]
 
 [[package]]
 name = "migrations_macros"
-version = "1.4.2"
+version = "2.0.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9753f12909fd8d923f75ae5c3258cae1ed3c8ec052e1b38c93c21a6d157f789c"
+checksum = "37dbadac6f186c134552cd9a0ec14b157cf4f04eacacebd5e6c1bfc6aeb158b3"
 dependencies = [
  "migrations_internals",
  "proc-macro2 1.0.36",
  "quote 1.0.17",
- "syn 1.0.90",
 ]
 
 [[package]]

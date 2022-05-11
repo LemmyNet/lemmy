@@ -32,7 +32,7 @@ reqwest-middleware = "0.1.5"
 strum = "0.24.0"
 strum_macros = "0.24.0"
 futures = "0.3.21"
-diesel = "2.0.0-rc.0"
+diesel = { version = "2.0.0-rc.0", features = ["chrono"] }
 http = "0.2.6"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
