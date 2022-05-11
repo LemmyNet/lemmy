@@ -6,6 +6,7 @@ use crate::schema::private_message;
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::person::Person, foreign_key = "creator_id"))]  // Is this the right assoc?
 #[cfg_attr(feature = "full", table_name = "private_message")]
 pub struct PrivateMessage {
   pub id: PrivateMessageId,

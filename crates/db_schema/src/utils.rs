@@ -1,4 +1,5 @@
 use crate::newtypes::DbUrl;
+use diesel_migrations::EmbeddedMigrations;
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
@@ -65,7 +66,7 @@ pub fn diesel_option_overwrite_to_url(
   }
 }
 
-embed_migrations!();
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub fn establish_unpooled_connection() -> PgConnection {
   let db_url = match get_database_url_from_env() {
@@ -77,7 +78,7 @@ pub fn establish_unpooled_connection() -> PgConnection {
   };
   let conn =
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
-  embedded_migrations::run(&conn).expect("load migrations");
+  conn.run_pending_migrations(MIGRATIONS).unwrap();
   conn
 }
 

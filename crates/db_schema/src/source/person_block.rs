@@ -6,6 +6,7 @@ use crate::schema::person_block;
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::person::Person))]
 #[cfg_attr(feature = "full", table_name = "person_block")]
 pub struct PersonBlock {
   pub id: PersonBlockId,

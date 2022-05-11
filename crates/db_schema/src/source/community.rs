@@ -81,7 +81,7 @@ pub struct CommunityForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Community))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::community::Community))]
 #[cfg_attr(feature = "full", table_name = "community_moderator")]
 pub struct CommunityModerator {
   pub id: i32,
@@ -100,7 +100,7 @@ pub struct CommunityModeratorForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Community))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::community::Community))]
 #[cfg_attr(feature = "full", table_name = "community_person_ban")]
 pub struct CommunityPersonBan {
   pub id: i32,
@@ -121,7 +121,7 @@ pub struct CommunityPersonBanForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Community))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::community::Community))]
 #[cfg_attr(feature = "full", table_name = "community_follower")]
 pub struct CommunityFollower {
   pub id: i32,

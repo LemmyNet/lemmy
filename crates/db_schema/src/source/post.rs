@@ -55,7 +55,7 @@ pub struct PostForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Post))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
 #[cfg_attr(feature = "full", table_name = "post_like")]
 pub struct PostLike {
   pub id: i32,
@@ -76,7 +76,7 @@ pub struct PostLikeForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Post))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
 #[cfg_attr(feature = "full", table_name = "post_saved")]
 pub struct PostSaved {
   pub id: i32,
@@ -94,7 +94,7 @@ pub struct PostSavedForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Post))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
 #[cfg_attr(feature = "full", table_name = "post_read")]
 pub struct PostRead {
   pub id: i32,

@@ -6,7 +6,7 @@ use crate::schema::post_report;
 
 #[derive(PartialEq, Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]  // Is this the right assoc?
 #[cfg_attr(feature = "full", table_name = "post_report")]
 pub struct PostReport {
   pub id: PostReportId,
