@@ -14,6 +14,7 @@ use lemmy_apub::protocol::activities::{
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
+  newtypes::LanguageIdentifier,
   source::post::{Post, PostForm},
   traits::Crud,
   utils::naive_now,
@@ -87,6 +88,7 @@ impl PerformCrud for EditPost {
       embed_description,
       embed_video_url,
       thumbnail_url,
+      language: data.language.as_ref().map(|l| LanguageIdentifier::new(l)),
       ..PostForm::default()
     };
 

@@ -152,7 +152,7 @@ table! {
         theme -> Varchar,
         default_sort_type -> Int2,
         default_listing_type -> Int2,
-        lang -> Varchar,
+        interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
@@ -162,6 +162,7 @@ table! {
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
+        discussion_languages -> Array<Text>,
     }
 }
 
@@ -361,6 +362,7 @@ table! {
         thumbnail_url -> Nullable<Text>,
         ap_id -> Varchar,
         local -> Bool,
+        language -> Varchar,
     }
 }
 

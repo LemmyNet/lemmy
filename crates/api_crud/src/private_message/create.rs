@@ -5,8 +5,8 @@ use lemmy_api_common::{
   utils::{
     blocking,
     check_person_block,
+    get_interface_language,
     get_local_user_view_from_jwt,
-    get_user_lang,
     send_email_to_user,
   },
 };
@@ -109,7 +109,7 @@ impl PerformCrud for CreatePrivateMessage {
         LocalUserView::read_person(conn, recipient_id)
       })
       .await??;
-      let lang = get_user_lang(&local_recipient);
+      let lang = get_interface_language(&local_recipient);
       let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
       send_email_to_user(
         &local_recipient,

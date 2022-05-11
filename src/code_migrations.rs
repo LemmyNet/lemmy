@@ -13,9 +13,11 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  newtypes::LanguageIdentifier,
   source::{
     comment::Comment,
     community::{Community, CommunityForm},
+    local_user::LocalUser,
     person::{Person, PersonForm},
     post::Post,
     private_message::PrivateMessage,
@@ -40,6 +42,7 @@ pub fn run_advanced_migrations(
   post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
   apub_columns_2021_02_02(conn)?;
   instance_actor_2022_01_28(conn, protocol_and_hostname)?;
+  language_tags_2022_05_11(conn)?;
 
   Ok(())
 }
@@ -306,6 +309,19 @@ fn instance_actor_2022_01_28(
       ..Default::default()
     };
     Site::update(conn, site.id, &site_form)?;
+  }
+  Ok(())
+}
+
+fn language_tags_2022_05_11(conn: &PgConnection) -> Result<(), LemmyError> {
+  use lemmy_db_schema::schema::local_user::dsl::*;
+  let users = local_user.load::<LocalUser>(conn)?;
+
+  for u in &users {
+    let all_languages = LanguageIdentifier::all_languages();
+    diesel::update(local_user.find(u.id))
+      .set((discussion_languages.eq(all_languages),))
+      .get_result::<LocalUser>(conn)?;
   }
   Ok(())
 }

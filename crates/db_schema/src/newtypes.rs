@@ -1,9 +1,11 @@
+use iso639_1::Iso639_1;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
   fmt::{Display, Formatter},
   ops::Deref,
 };
+use strum::IntoEnumIterator;
 use url::Url;
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
@@ -99,5 +101,50 @@ impl Deref for DbUrl {
 
   fn deref(&self) -> &Self::Target {
     &self.0
+  }
+}
+
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+pub struct LanguageIdentifier(String);
+
+impl LanguageIdentifier {
+  pub fn new(lang: &str) -> LanguageIdentifier {
+    // check that language is valid
+    match Iso639_1::try_from(lang) {
+      Ok(_) => return LanguageIdentifier(lang.to_string()),
+      Err(_) => {
+        // undetermined language (ISO 639-2)
+        if lang == "und" {
+          return LanguageIdentifier(lang.to_string());
+        }
+      }
+    }
+
+    LanguageIdentifier::default()
+  }
+
+  pub fn into_inner(self) -> String {
+    self.0
+  }
+
+  /// Returns identifiers for all valid languages (including undefined).
+  pub fn all_languages() -> Vec<LanguageIdentifier> {
+    let mut all: Vec<LanguageIdentifier> = Iso639_1::iter()
+      .map(|i| LanguageIdentifier(i.name().to_string()))
+      .collect();
+    all.push(LanguageIdentifier("und".to_string()));
+    all
+  }
+
+  pub fn is_undetermined(&self) -> bool {
+    self.0 == "und"
+  }
+}
+
+impl Default for LanguageIdentifier {
+  fn default() -> LanguageIdentifier {
+    // default is "undetermined language"
+    LanguageIdentifier("und".to_string())
   }
 }

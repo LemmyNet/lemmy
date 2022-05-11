@@ -32,15 +32,11 @@ impl Perform for Search {
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
       .as_ref()
       .map(|t| t.local_user.show_bot_accounts);
-    let show_read_posts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_read_posts);
 
-    let person_id = local_user_view.map(|u| u.person.id);
+    let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
     let mut posts = Vec::new();
     let mut comments = Vec::new();
@@ -69,15 +65,12 @@ impl Perform for Search {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
+            .set_params_for_user(&local_user_view)
             .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)
-            .my_person_id(person_id)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -134,15 +127,12 @@ impl Perform for Search {
 
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
+            .set_params_for_user(&local_user_view)
             .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .community_id(community_id)
             .community_actor_id(community_actor_id_2)
             .creator_id(creator_id)
-            .my_person_id(person_id)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -206,12 +196,9 @@ impl Perform for Search {
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
+            .set_params_for_user(&local_user_view)
             .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
-            .my_person_id(person_id)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)

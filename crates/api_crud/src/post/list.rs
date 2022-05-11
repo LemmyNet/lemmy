@@ -32,15 +32,7 @@ impl PerformCrud for GetPosts {
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let person_id = local_user_view.to_owned().map(|l| l.person.id);
-
-    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
-    let show_bot_accounts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_bot_accounts);
-    let show_read_posts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_read_posts);
+    let is_logged_in = local_user_view.is_some();
 
     let sort = data.sort;
     let listing_type: ListingType = match data.type_ {
@@ -66,14 +58,11 @@ impl PerformCrud for GetPosts {
     let mut posts = blocking(context.pool(), move |conn| {
       PostQueryBuilder::create(conn)
         .listing_type(listing_type)
+        .set_params_for_user(&local_user_view)
         .sort(sort)
-        .show_nsfw(show_nsfw)
-        .show_bot_accounts(show_bot_accounts)
-        .show_read_posts(show_read_posts)
         .community_id(community_id)
         .community_actor_id(community_actor_id)
         .saved_only(saved_only)
-        .my_person_id(person_id)
         .page(page)
         .limit(limit)
         .list()
@@ -82,7 +71,7 @@ impl PerformCrud for GetPosts {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
 
     // Blank out deleted or removed info for non-logged in users
-    if person_id.is_none() {
+    if !is_logged_in {
       for pv in posts
         .iter_mut()
         .filter(|p| p.post.deleted || p.post.removed)

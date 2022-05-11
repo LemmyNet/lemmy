@@ -19,6 +19,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  newtypes::LanguageIdentifier,
   source::{
     community::Community,
     post::{Post, PostForm, PostLike, PostLikeForm},
@@ -103,6 +104,7 @@ impl PerformCrud for CreatePost {
       embed_description,
       embed_video_url,
       thumbnail_url,
+      language: data.language.as_ref().map(|l| LanguageIdentifier::new(l)),
       ..PostForm::default()
     };
 

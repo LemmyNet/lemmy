@@ -50,7 +50,7 @@ pub struct SaveUserSettings {
   pub theme: Option<String>,
   pub default_sort_type: Option<i16>,
   pub default_listing_type: Option<i16>,
-  pub lang: Option<String>,
+  pub interface_language: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,
   pub display_name: Option<String>,
@@ -63,6 +63,7 @@ pub struct SaveUserSettings {
   pub show_bot_accounts: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
+  pub discussion_languages: Option<Vec<String>>,
   pub auth: Sensitive<String>,
 }
 

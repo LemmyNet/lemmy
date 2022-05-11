@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
+  newtypes::LanguageIdentifier,
   source::{
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
@@ -117,6 +118,16 @@ impl Perform for SaveUserSettings {
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+    let mut discussion_languages: Vec<LanguageIdentifier> = data
+      .discussion_languages
+      .clone()
+      .into_iter()
+      .flatten()
+      .map(|l| LanguageIdentifier::new(&l))
+      .collect();
+    if discussion_languages.is_empty() {
+      discussion_languages = LanguageIdentifier::all_languages()
+    }
 
     let local_user_form = LocalUserForm {
       person_id: Some(person_id),
@@ -128,13 +139,14 @@ impl Perform for SaveUserSettings {
       theme: data.theme.to_owned(),
       default_sort_type,
       default_listing_type,
-      lang: data.lang.to_owned(),
+      interface_language: data.interface_language.to_owned(),
       show_avatars: data.show_avatars,
       show_read_posts: data.show_read_posts,
       show_new_post_notifs: data.show_new_post_notifs,
       send_notifications_to_email: data.send_notifications_to_email,
       email_verified: None,
       accepted_application: None,
+      discussion_languages: Some(discussion_languages),
     };
 
     let local_user_res = blocking(context.pool(), move |conn| {

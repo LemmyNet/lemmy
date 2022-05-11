@@ -16,7 +16,7 @@ use activitypub_federation::{
 use activitystreams_kinds::link::LinkType;
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
-use lemmy_db_schema::newtypes::DbUrl;
+use lemmy_db_schema::newtypes::{DbUrl, LanguageIdentifier};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -62,8 +62,29 @@ pub struct Page {
   pub(crate) stickied: Option<bool>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) language: Option<Language>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Language {
+  pub(crate) identifier: String,
+  pub(crate) name: String,
+}
+
+impl Language {
+  pub(crate) fn new(lang: LanguageIdentifier) -> Option<Language> {
+    if lang.is_undetermined() {
+      None
+    } else {
+      // TODO: need to get the language name
+      Some(Language {
+        identifier: lang.into_inner(),
+        name: "todo".to_string(),
+      })
+    }
+  }
+}
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Attachment {

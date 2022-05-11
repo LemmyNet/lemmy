@@ -262,7 +262,7 @@ mod tests {
         theme: inserted_sara_local_user.theme,
         default_sort_type: inserted_sara_local_user.default_sort_type,
         default_listing_type: inserted_sara_local_user.default_listing_type,
-        lang: inserted_sara_local_user.lang,
+        interface_language: inserted_sara_local_user.interface_language,
         show_avatars: inserted_sara_local_user.show_avatars,
         send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
         validator_time: inserted_sara_local_user.validator_time,
@@ -272,6 +272,7 @@ mod tests {
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
+        discussion_languages: inserted_sara_local_user.discussion_languages,
       },
       creator: PersonSafe {
         id: inserted_sara_person.id,

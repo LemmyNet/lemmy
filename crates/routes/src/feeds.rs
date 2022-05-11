@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
   post_view::PostQueryBuilder,
-  structs::{CommentView, PostView, SiteView},
+  structs::{CommentView, LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQueryBuilder,
@@ -245,13 +245,11 @@ fn get_feed_front(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(conn)?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(conn, local_user_id)?;
+  let local_user = LocalUserView::read(conn, local_user_id)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::Subscribed)
-    .my_person_id(local_user.person_id)
-    .show_bot_accounts(local_user.show_bot_accounts)
-    .show_read_posts(local_user.show_read_posts)
+    .set_params_for_user(&Some(local_user))
     .sort(*sort_type)
     .limit(RSS_FETCH_LIMIT)
     .list()?;

@@ -1,4 +1,4 @@
-use crate::newtypes::{LocalUserId, PersonId};
+use crate::newtypes::{LanguageIdentifier, LocalUserId, PersonId};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
@@ -16,7 +16,7 @@ pub struct LocalUser {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
-  pub lang: String,
+  pub interface_language: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
@@ -26,6 +26,7 @@ pub struct LocalUser {
   pub show_new_post_notifs: bool,
   pub email_verified: bool,
   pub accepted_application: bool,
+  pub discussion_languages: Vec<LanguageIdentifier>,
 }
 
 // TODO redo these, check table defaults
@@ -40,7 +41,7 @@ pub struct LocalUserForm {
   pub theme: Option<String>,
   pub default_sort_type: Option<i16>,
   pub default_listing_type: Option<i16>,
-  pub lang: Option<String>,
+  pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
@@ -49,6 +50,7 @@ pub struct LocalUserForm {
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
+  pub discussion_languages: Option<Vec<LanguageIdentifier>>,
 }
 
 /// A local user view that removes password encrypted
@@ -63,7 +65,7 @@ pub struct LocalUserSettings {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
-  pub lang: String,
+  pub interface_language: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
@@ -73,4 +75,5 @@ pub struct LocalUserSettings {
   pub show_new_post_notifs: bool,
   pub email_verified: bool,
   pub accepted_application: bool,
+  pub discussion_languages: Vec<LanguageIdentifier>,
 }

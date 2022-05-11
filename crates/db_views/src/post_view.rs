@@ -1,8 +1,8 @@
-use crate::structs::PostView;
+use crate::structs::{LocalUserView, PostView};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, LanguageIdentifier, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -165,6 +165,7 @@ pub struct PostQueryBuilder<'a> {
   show_bot_accounts: Option<bool>,
   show_read_posts: Option<bool>,
   saved_only: Option<bool>,
+  languages: Option<Vec<LanguageIdentifier>>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -185,6 +186,7 @@ impl<'a> PostQueryBuilder<'a> {
       show_bot_accounts: None,
       show_read_posts: None,
       saved_only: None,
+      languages: None,
       page: None,
       limit: None,
     }
@@ -202,11 +204,6 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
     self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
-    self.my_person_id = my_person_id.get_optional();
     self
   }
 
@@ -230,21 +227,6 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn show_nsfw<T: MaybeOptional<bool>>(mut self, show_nsfw: T) -> Self {
-    self.show_nsfw = show_nsfw.get_optional();
-    self
-  }
-
-  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
-    self.show_bot_accounts = show_bot_accounts.get_optional();
-    self
-  }
-
-  pub fn show_read_posts<T: MaybeOptional<bool>>(mut self, show_read_posts: T) -> Self {
-    self.show_read_posts = show_read_posts.get_optional();
-    self
-  }
-
   pub fn saved_only<T: MaybeOptional<bool>>(mut self, saved_only: T) -> Self {
     self.saved_only = saved_only.get_optional();
     self
@@ -257,6 +239,17 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
     self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn set_params_for_user(mut self, user: &Option<LocalUserView>) -> Self {
+    self.my_person_id = user.to_owned().map(|l| l.person.id);
+    self.show_nsfw = user.as_ref().map(|t| t.local_user.show_nsfw);
+    self.show_bot_accounts = user.as_ref().map(|t| t.local_user.show_bot_accounts);
+    self.show_read_posts = user.as_ref().map(|t| t.local_user.show_read_posts);
+    self.languages = user
+      .as_ref()
+      .map(|l| l.local_user.discussion_languages.clone());
     self
   }
 
@@ -408,6 +401,10 @@ impl<'a> PostQueryBuilder<'a> {
     // setting wont be able to see saved posts.
     else if !self.show_read_posts.unwrap_or(true) {
       query = query.filter(post_read::id.is_null());
+    }
+
+    if let Some(languages) = self.languages {
+      query = query.filter(post::language.eq(any(languages)))
     }
 
     // Don't show blocked communities or persons
@@ -607,14 +604,13 @@ mod tests {
       score: 1,
     };
 
-    let read_post_listings_with_person = PostQueryBuilder::create(&conn)
+    let mut read_post_listings_with_person = PostQueryBuilder::create(&conn)
       .listing_type(ListingType::Community)
       .sort(SortType::New)
-      .show_bot_accounts(false)
-      .community_id(inserted_community.id)
-      .my_person_id(inserted_person.id)
-      .list()
-      .unwrap();
+      .community_id(inserted_community.id);
+    read_post_listings_with_person.show_bot_accounts = Some(false);
+    read_post_listings_with_person.my_person_id = Some(inserted_person.id);
+    let read_post_listings_with_person = read_post_listings_with_person.list().unwrap();
 
     let read_post_listings_no_person = PostQueryBuilder::create(&conn)
       .listing_type(ListingType::Community)
@@ -651,6 +647,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
+        language: Default::default(),
       },
       my_vote: None,
       creator: PersonSafe {
@@ -716,14 +713,14 @@ mod tests {
     };
     CommunityBlock::block(&conn, &community_block).unwrap();
 
-    let read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
+    let mut read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
       .listing_type(ListingType::Community)
       .sort(SortType::New)
-      .show_bot_accounts(false)
-      .community_id(inserted_community.id)
-      .my_person_id(inserted_person.id)
-      .list()
-      .unwrap();
+      .community_id(inserted_community.id);
+    read_post_listings_with_person_after_block.show_bot_accounts = Some(true);
+    read_post_listings_with_person_after_block.my_person_id = Some(inserted_person.id);
+    let read_post_listings_with_person_after_block =
+      read_post_listings_with_person_after_block.list().unwrap();
 
     // TODO More needs to be added here
     let mut expected_post_listing_with_user = expected_post_listing_no_person.to_owned();

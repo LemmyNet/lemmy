@@ -14,7 +14,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
-  newtypes::CommunityId,
+  newtypes::{CommunityId, LanguageIdentifier},
   source::{
     community::{
       Community,
@@ -149,6 +149,7 @@ impl PerformCrud for Register {
       password_encrypted: Some(data.password.to_string()),
       show_nsfw: Some(data.show_nsfw),
       email_verified: Some(false),
+      discussion_languages: Some(LanguageIdentifier::all_languages()),
       ..LocalUserForm::default()
     };
 

@@ -23,7 +23,7 @@ mod safe_settings_type {
     theme,
     default_sort_type,
     default_listing_type,
-    lang,
+    interface_language,
     show_avatars,
     send_notifications_to_email,
     validator_time,
@@ -33,6 +33,7 @@ mod safe_settings_type {
     show_new_post_notifs,
     email_verified,
     accepted_application,
+    discussion_languages,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -48,7 +49,7 @@ mod safe_settings_type {
         theme,
         default_sort_type,
         default_listing_type,
-        lang,
+        interface_language,
         show_avatars,
         send_notifications_to_email,
         validator_time,
@@ -58,6 +59,7 @@ mod safe_settings_type {
         show_new_post_notifs,
         email_verified,
         accepted_application,
+        discussion_languages,
       )
     }
   }
