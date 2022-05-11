@@ -20,7 +20,7 @@ use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
   api_routes,
   code_migrations::run_advanced_migrations,
-  init_tracing,
+  init_logging,
   root_span_builder::QuieterRootSpanBuilder,
   scheduled_tasks,
 };
@@ -54,7 +54,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let settings = Settings::init().expect("Couldn't initialize settings.");
 
-  init_tracing(settings.opentelemetry_url.as_deref())?;
+  init_logging(settings.opentelemetry_url.as_deref())?;
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {
