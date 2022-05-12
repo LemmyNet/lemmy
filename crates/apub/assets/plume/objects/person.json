@@ -1,0 +1,44 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "Emoji": "toot:Emoji",
+      "Hashtag": "as:Hashtag",
+      "atomUri": "ostatus:atomUri",
+      "conversation": "ostatus:conversation",
+      "featured": "toot:featured",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      },
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "movedTo": "as:movedTo",
+      "ostatus": "http://ostatus.org#",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#"
+    }
+  ],
+  "endpoints": {
+    "sharedInbox": "https://fediverse.blog/inbox"
+  },
+  "followers": "https://fediverse.blog/@/FDB_hiroshima/followers",
+  "icon": {
+    "type": "Image",
+    "url": "https://fediverse.blog/static/media/23F7B1CD-446B-DFC4-A896-0750F1457723.jpg"
+  },
+  "id": "https://fediverse.blog/@/FDB_hiroshima/",
+  "inbox": "https://fediverse.blog/@/FDB_hiroshima/inbox",
+  "name": "FDB_hiroshima",
+  "outbox": "https://fediverse.blog/@/FDB_hiroshima/outbox",
+  "preferredUsername": "FDB_hiroshima",
+  "publicKey": {
+    "id": "https://fediverse.blog/@/FDB_hiroshima/#main-key",
+    "owner": "https://fediverse.blog/@/FDB_hiroshima/",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtLj9oZhSqWZJ+I4FGqwB\nWfX30q5ntZDV0YkXshtVh54vUh42Bqe2XPfPdsE4r1VseeX/F2Gpgys/ubW5zk2H\n+ocLMLj4kGyxMy/mH9+f6pFP0Kty/lhO73wXv7N0FFoqb0g327dWzSB8LZFPG2n9\nWyNiSaZ29As33p7VSeGzKlYNJ+il4XQazrdf/UqP6d5fHY6hIZ0jV9L5Scwor+gC\nJRA0coLG8+WkKMpILjKjHXjIzbxVH+iBMQYULeQ/nqwX5gegTHF4LvFMMIlBPzQi\nhWvmdz7XymRdoF4M4/eKdI0Ct4VBZLjtLUfdzpx59WAAipQL/yhlo3E4acCwBkYP\npQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "summary": "<p>One of the Plume developers.\n<a href=\"https://anticapitalist.party/@a000d4f7a91939d0e71df1646d7a48\" rel=\"noopener noreferrer\"></a></p>\n",
+  "type": "Person",
+  "url": "https://fediverse.blog/@/FDB_hiroshima/"
+}

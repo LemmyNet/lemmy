@@ -76,4 +76,9 @@ mod tests {
   fn test_parse_peertube_activities() {
     test_json::<AnnounceActivity>("assets/peertube/activities/announce_video.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_plume_activities() {
+    test_json::<CreateOrUpdatePost>("assets/plume/activities/create_page.json").unwrap();
+  }
 }

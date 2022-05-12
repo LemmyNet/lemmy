@@ -9,7 +9,7 @@ use itertools::Itertools;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, ActorType, ApubObject},
   values::MediaTypeMarkdownOrHtml,
 };
 use lemmy_db_schema::newtypes::DbUrl;
@@ -72,6 +72,7 @@ pub(crate) struct Attachment {
 pub(crate) enum AttributedTo {
   Lemmy(ObjectId<ApubPerson>),
   Peertube([AttributedToPeertube; 2]),
+  Plume(Vec<Url>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -130,20 +131,13 @@ impl Page {
   ) -> Result<ApubCommunity, LemmyError> {
     match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
-        let mut iter = self.to.iter().merge(self.cc.iter());
-        loop {
-          if let Some(cid) = iter.next() {
-            let cid = ObjectId::new(cid.clone());
-            if let Ok(c) = cid
-              .dereference(context, context.client(), request_counter)
-              .await
-            {
-              break Ok(c);
-            }
-          } else {
-            return Err(LemmyError::from_message("No community found in cc"));
-          }
-        }
+        let urls = self
+          .to
+          .clone()
+          .into_iter()
+          .merge(self.cc.clone().into_iter())
+          .collect();
+        Page::extract_actor_by_type(&urls, context, request_counter).await
       }
       AttributedTo::Peertube(p) => {
         p.iter()
@@ -153,10 +147,15 @@ impl Page {
           .dereference(context, context.client(), request_counter)
           .await
       }
+      AttributedTo::Plume(p) => Page::extract_actor_by_type(p, context, request_counter).await,
     }
   }
 
-  pub(crate) fn creator(&self) -> Result<ObjectId<ApubPerson>, LemmyError> {
+  pub(crate) async fn creator(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ObjectId<ApubPerson>, LemmyError> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.clone()),
       AttributedTo::Peertube(p) => p
@@ -164,7 +163,33 @@ impl Page {
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::new(a.id.clone().into_inner()))
         .ok_or_else(|| LemmyError::from_message("page does not specify creator person")),
+      AttributedTo::Plume(p) => {
+        let person: ApubPerson = Page::extract_actor_by_type(p, context, request_counter).await?;
+        Ok(ObjectId::new(person.actor_id()))
+      }
     }
+  }
+
+  async fn extract_actor_by_type<Kind>(
+    urls: &Vec<Url>,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<Kind, LemmyError>
+  where
+    Kind: ApubObject + Send + 'static,
+    for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
+    Kind: ApubObject<DataType = LemmyContext>,
+  {
+    for u in urls {
+      let actor_id = ObjectId::new(u.clone());
+      if let Ok(actor) = actor_id
+        .dereference(context, context.client(), request_counter)
+        .await
+      {
+        return Ok(actor);
+      }
+    }
+    Err(LemmyError::from_message("No valid community/creator found"))
   }
 }
 

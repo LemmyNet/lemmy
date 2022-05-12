@@ -96,7 +96,7 @@ impl ApubObject for ApubCommunity {
       )),
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
-      followers: self.followers_url.clone().into(),
+      followers: Some(self.followers_url.clone().into()),
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),

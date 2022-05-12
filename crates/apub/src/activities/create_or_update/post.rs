@@ -89,11 +89,12 @@ impl ActivityHandler for CreateOrUpdatePost {
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;
+    let creator = self.object.creator(context, request_counter).await?;
 
     match self.kind {
       CreateOrUpdateType::Create => {
         verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-        verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
+        verify_urls_match(self.actor.inner(), creator.inner())?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
@@ -119,7 +120,7 @@ impl ActivityHandler for CreateOrUpdatePost {
           .await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-          verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
+          verify_urls_match(self.actor.inner(), creator.inner())?;
         }
       }
     }

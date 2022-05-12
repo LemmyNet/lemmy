@@ -94,4 +94,11 @@ mod tests {
     test_json::<Page>("assets/peertube/objects/video.json").unwrap();
     test_json::<Note>("assets/peertube/objects/note.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_object_plume() {
+    test_json::<Person>("assets/plume/objects/person.json").unwrap();
+    test_json::<Group>("assets/plume/objects/group.json").unwrap();
+    test_json::<Page>("assets/plume/objects/page.json").unwrap();
+  }
 }

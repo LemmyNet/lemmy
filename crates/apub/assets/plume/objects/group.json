@@ -1,0 +1,49 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "Emoji": "toot:Emoji",
+      "Hashtag": "as:Hashtag",
+      "atomUri": "ostatus:atomUri",
+      "conversation": "ostatus:conversation",
+      "featured": "toot:featured",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      },
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "movedTo": "as:movedTo",
+      "ostatus": "http://ostatus.org#",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#"
+    }
+  ],
+  "icon": {
+    "attributedTo": "https://fediverse.blog/@/Ana/",
+    "type": "Image",
+    "url": "https://fediverse.blog/static/media/5C0A19F1-D925-819A-62DE-542F733DCAB7.png"
+  },
+  "id": "https://fediverse.blog/~/PlumeDev/",
+  "image": {
+    "attributedTo": "https://fediverse.blog/@/Ana/",
+    "type": "Image",
+    "url": "https://fediverse.blog/static/media/4707CEE2-A372-FFA0-D92F-AA00BB43C9F1.png"
+  },
+  "inbox": "https://fediverse.blog/~/PlumeDev/inbox",
+  "name": "Plume development",
+  "outbox": "https://fediverse.blog/~/PlumeDev/outbox",
+  "preferredUsername": "PlumeDev",
+  "publicKey": {
+    "id": "https://fediverse.blog/~/PlumeDev/#main-key",
+    "owner": "https://fediverse.blog/~/PlumeDev/",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2T9pH6TbaS2eShgf50CG\nuJn7A5kcl1Ia/wbwyu8nZZqbbJ4zJIBssWVnyWtE7Y1SusVvfJHdZIN4WCg1/4lZ\nhSQ1PhBQeZNmF/eLIUqfJuYRpZzarXbMH0R4D6PD2s3mj15EfJthhHB/u6NHdtcp\nUsFhPw3rcozScv/quZxJTxDs4/pGzPTvHhK9b3ypyzg0hoOmyDdbOWQElbHnWt9c\nHw/dL4NH+eM9MZlGxxky/XQ3HLtdoyVsXNhZtVVqTY+wNRZ9DpeLgWuBo1GrTGCF\nmgoPttH/m2zd3k89UDAP3sLe2ACxdFRTH+FpWz6yHzz3cL6PAXJn6H6TMqQRIlYr\newIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "source": {
+    "content": "Main blog for news about Plume.",
+    "mediaType": "text/markdown"
+  },
+  "summary": "<p>Main blog for news about Plume.</p>\n",
+  "type": "Group"
+}

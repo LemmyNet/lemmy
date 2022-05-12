@@ -1,0 +1,148 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "Emoji": "toot:Emoji",
+      "Hashtag": "as:Hashtag",
+      "atomUri": "ostatus:atomUri",
+      "conversation": "ostatus:conversation",
+      "featured": "toot:featured",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      },
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "movedTo": "as:movedTo",
+      "ostatus": "http://ostatus.org#",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#"
+    }
+  ],
+  "attributedTo": [
+    "https://fediverse.blog/@/KitaitiMakoto/",
+    "https://fediverse.blog/~/PlumeDev/"
+  ],
+  "cc": [
+    "https://uwu.social/users/xenospaniel",
+    "https://mastodon.social/users/thickpaws",
+    "https://misskey.fr/users/8i8j6u8115",
+    "https://metalhead.club/users/Aarkon",
+    "https://lufimianet.jp/users/4ioskd",
+    "https://blogs.c3d2.de/@/astro/",
+    "https://bookwor.ms/users/KitaitiMakoto",
+    "https://fe.disroot.org/users/juanro49",
+    "https://ni.hil.ist/users/samizda",
+    "https://masto.nobigtech.es/users/manusaurio",
+    "https://fedi.absturztau.be/users/mad_math",
+    "https://social.pesso.al/users/cochise",
+    "https://social.balsillie.net/users/michael",
+    "https://river.group.lt/users/saint",
+    "https://social.coop/users/django",
+    "https://pleromazela.world/users/bushgrad",
+    "https://pleroma.miguelcr.me/users/MiguelX413",
+    "https://mastodon.social/users/ijurisic",
+    "https://wandering.shop/users/manusaurio",
+    "https://transmom.love/users/mirrorwitch",
+    "https://masto.nogafam.es/users/juanro49",
+    "https://zoinks.one/users/vidak",
+    "https://plume.korako.me/@/karasu_sue/",
+    "https://plume.pullopen.xyz/@/admin/",
+    "https://plume.xn--krsgw--n73t.com/@/karasu_sue/",
+    "https://blog.wagner.pp.ru/@/vitus/",
+    "https://mastodon.social/users/baslow",
+    "https://social.tchncs.de/users/dermotelga",
+    "https://qoto.org/users/Acer",
+    "https://fediverse.blog/@/mskf1383/",
+    "https://campaign.openworlds.info/users/Hamishcampbell",
+    "https://masto.nobigtech.es/users/juanro49",
+    "https://mastodon.online/users/pytition",
+    "https://mastodon.social/users/openscience",
+    "https://socialize.cyou/users/arcestia",
+    "https://plume.otakufarms.com/@/auraman/",
+    "https://bsd.network/users/myrdin",
+    "https://mamot.fr/users/Alchimiste_marin",
+    "https://layer8.space/users/manusaurio",
+    "https://mastodon.social/users/Jelv",
+    "https://plume.seediqbale.xyz/@/pch_xyz/",
+    "https://webopt.eu/@/den/",
+    "https://mastodon.social/users/MediaFormat",
+    "https://txt.basspistol.org/@/basspistol/",
+    "https://alltomorrows.party/users/ezdog",
+    "https://misskey.io/users/8kzgl5xqzn",
+    "https://plume.pullopen.xyz/@/maozhub/",
+    "https://plume.korako.me/@/Telmina/",
+    "https://mastodon.mnethome.de/users/mat",
+    "https://amreolog.duckdns.org/@/amreo/",
+    "https://plume.xn--krsgw--n73t.com/@/Telmina/",
+    "https://social.soap.coffee/users/lthms",
+    "https://search.fedi.app/users/followbot",
+    "https://social.tchncs.de/users/milan",
+    "https://grasstruths.co.za/@/bushgrad/",
+    "https://mastodon.social/users/tsalvo",
+    "https://fedi.absturztau.be/users/webfreak",
+    "https://writeworks.uk/@/mark/",
+    "https://fosstodon.org/users/jvalleroy",
+    "https://mastodon.social/users/moormaan",
+    "https://pleroma.remerge.net/users/3np",
+    "https://blog.nataraj.ru/@/nataraj/",
+    "https://wandering.shop/users/KelsonV",
+    "https://chaos.social/users/astro",
+    "https://sun.minuscule.space/users/mardijker",
+    "https://blog.antopie.org/@/miraty/",
+    "https://microblog.ourcommon.cloud/users/baslow",
+    "https://metalhead.club/users/mariusor",
+    "https://pleroma.lclsea.icu/users/laiyi",
+    "https://hey.dou.bet/@/daniel/",
+    "https://plume.pullopen.xyz/@/Agh/",
+    "https://plume.nogafam.es/@/Juanro49/"
+  ],
+  "content": "<p dir=\"auto\">We are pleased to announce this new alpha version of Plume. This release has no migration. You don’t need run it before updating.</p>\n<p dir=\"auto\">The most major change is internal one: ActivityPub library’s upgrading.</p>\n<p dir=\"auto\">We also added changes to home page and timeline. See a <a href=\"Plume%20Development%202022-05-06\" rel=\"noopener noreferrer\">blog post</a> for details.</p>\n<p dir=\"auto\">In addition, a problem that activities don’t reach other instances is solved. We should have fixed it, but other cause have remained. It should be away.</p>\n<p dir=\"auto\">See the <a href=\"https://git.joinplu.me/Plume/Plume/releases\" rel=\"noopener noreferrer\">release note</a> for details.</p>\n",
+  "id": "https://fediverse.blog/~/PlumeDev/Plume%200.7.2%20is%20out/",
+  "license": "CC-0",
+  "name": "Plume 0.7.2 is out",
+  "published": "2022-05-11T21:17:11.781437Z",
+  "source": {
+    "content": "We are pleased to announce this new alpha version of Plume. This release has no migration. You don't need run it before updating.\r\n\r\nThe most major change is internal one: ActivityPub library’s upgrading.\r\n\r\nWe also added changes to home page and timeline. See a [blog post](Plume%20Development%202022-05-06) for details.\r\n\r\nIn addition, a problem that activities don’t reach other instances is solved. We should have fixed it, but other cause have remained. It should be away.\r\n\r\nSee the [release note][] for details.\r\n\r\n[release note]: https://git.joinplu.me/Plume/Plume/releases",
+    "mediaType": "text/markdown"
+  },
+  "summary": "Changes for timelines, fix for federation and internal improvements",
+  "tag": [
+    {
+      "href": "https://fediverse.blog/tag/Fediverse",
+      "name": "Fediverse",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://fediverse.blog/tag/ActivityPub",
+      "name": "ActivityPub",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://fediverse.blog/tag/Release",
+      "name": "Release",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://fediverse.blog/tag/Alpha",
+      "name": "Alpha",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://fediverse.blog/tag/Federation",
+      "name": "Federation",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://fediverse.blog/tag/Plume",
+      "name": "Plume",
+      "type": "Hashtag"
+    }
+  ],
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Article",
+  "url": "https://fediverse.blog/~/PlumeDev/Plume%200.7.2%20is%20out/"
+}

@@ -142,10 +142,11 @@ impl ApubObject for ApubPost {
     };
 
     let community = page.extract_community(context, request_counter).await?;
+    let creator = page.creator(context, request_counter).await?;
     check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
-    verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
+    verify_person_in_community(&creator, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
-    verify_domains_match(page.creator()?.inner(), page.id.inner())?;
+    verify_domains_match(creator.inner(), page.id.inner())?;
     verify_is_public(&page.to, &page.cc)?;
     Ok(())
   }
@@ -157,7 +158,8 @@ impl ApubObject for ApubPost {
     request_counter: &mut i32,
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
-      .creator()?
+      .creator(context, request_counter)
+      .await?
       .dereference(context, context.client(), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
