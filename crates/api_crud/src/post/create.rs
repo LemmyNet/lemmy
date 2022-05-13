@@ -88,9 +88,9 @@ impl PerformCrud for CreatePost {
     let data_url = data.url.as_ref();
     let (metadata_res, pictrs_thumbnail) =
       fetch_site_data(context.client(), &context.settings(), data_url).await;
-    let (embed_title, embed_description, embed_html) = metadata_res
-      .map(|u| (u.title, u.description, u.html))
-      .unwrap_or((None, None, None));
+    let (embed_title, embed_description, embed_video_url) = metadata_res
+      .map(|u| (u.title, u.description, u.embed_video_url))
+      .unwrap_or_default();
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
@@ -101,7 +101,7 @@ impl PerformCrud for CreatePost {
       nsfw: data.nsfw,
       embed_title,
       embed_description,
-      embed_html,
+      embed_video_url,
       thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
       ..PostForm::default()
     };
