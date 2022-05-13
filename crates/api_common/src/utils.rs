@@ -401,7 +401,7 @@ pub async fn send_password_reset_email(
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
-  let body = &lang.password_reset_body(&user.person.name, reset_link);
+  let body = &lang.password_reset_body(reset_link, &user.person.name);
   send_email(subject, email, &user.person.name, body, settings)
 }
 
@@ -426,7 +426,7 @@ pub async fn send_verification_email(
 
   let lang = get_user_lang(user);
   let subject = lang.verify_email_subject(&settings.hostname);
-  let body = lang.verify_email_body(&user.person.name, &settings.hostname, verify_link);
+  let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
   send_email(&subject, new_email, &user.person.name, &body, settings)?;
 
   Ok(())
