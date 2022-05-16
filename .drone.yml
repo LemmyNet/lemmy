@@ -12,10 +12,10 @@ steps:
     image: clux/muslrust:1.56.0
     user: root
     commands:
-      - chown 1000:1000 . -R
       - git fetch --tags
       - git submodule init
       - git submodule update --recursive --remote
+      - chown 1000:1000 . -R
 
   - name: check formatting
     image: rustdocker/rust:nightly
