@@ -113,11 +113,11 @@ impl PerformCrud for CreatePrivateMessage {
       let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
       send_email_to_user(
         &local_recipient,
-        &lang.notification_mentioned_by_subject(&local_recipient.person.name),
-        &lang.notification_mentioned_by_body(
-          &local_recipient.person.name,
-          &content_slurs_removed,
+        &lang.notification_private_message_subject(&local_recipient.person.name),
+        &lang.notification_private_message_body(
           &inbox_link,
+          &content_slurs_removed,
+          &local_recipient.person.name,
         ),
         &context.settings(),
       );

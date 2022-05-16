@@ -215,7 +215,7 @@ pub async fn send_local_notifs(
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&person.name, &comment.content, &inbox_link),
+          &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
           &context.settings(),
         )
       }
@@ -249,8 +249,8 @@ pub async fn send_local_notifs(
               let lang = get_user_lang(&parent_user_view);
               send_email_to_user(
                 &parent_user_view,
-                &lang.notification_post_reply_subject(&person.name),
-                &lang.notification_post_reply_body(&person.name, &comment.content, &inbox_link),
+                &lang.notification_comment_reply_subject(&person.name),
+                &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
                 &context.settings(),
               )
             }
@@ -280,7 +280,7 @@ pub async fn send_local_notifs(
             send_email_to_user(
               &parent_user_view,
               &lang.notification_post_reply_subject(&person.name),
-              &lang.notification_post_reply_body(&person.name, &comment.content, &inbox_link),
+              &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
               &context.settings(),
             )
           }
