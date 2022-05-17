@@ -31,6 +31,6 @@ actix-web = { version = "4.0.1", default-features = false }
 base64 = "0.13.0"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 async-trait = "0.1.53"
-captcha = "0.0.8"
+captcha = "0.0.9"
 anyhow = "1.0.56"
 tracing = "0.1.32"
