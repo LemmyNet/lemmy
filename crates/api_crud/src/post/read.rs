@@ -134,6 +134,9 @@ impl PerformCrud for GetPosts {
     // if data.community_name.is_none() && data.community_id.is_none() {
     //   return Err(LemmyError::from_message("no_id_given"));
     // }
+    if data.limit >= 50 {
+      return Err(LemmyError::from_message("limit_too_high"));
+    }
 
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
