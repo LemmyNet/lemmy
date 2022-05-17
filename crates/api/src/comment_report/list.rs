@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::{blocking, check_page_and_limit, get_local_user_view_from_jwt},
 };
 use lemmy_db_views::comment_report_view::CommentReportQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
@@ -31,6 +31,9 @@ impl Perform for ListCommentReports {
 
     let page = data.page;
     let limit = data.limit;
+
+    check_page_and_limit(page, limit)?;
+
     let comment_reports = blocking(context.pool(), move |conn| {
       CommentReportQueryBuilder::create(conn, person_id, admin)
         .community_id(community_id)

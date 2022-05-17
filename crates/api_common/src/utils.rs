@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Readable},
-  utils::DbPool,
+  utils::{DbPool, FETCH_LIMIT_MAX},
   ListingType,
 };
 use lemmy_db_views::{
@@ -619,4 +619,21 @@ pub fn check_missing_community_id(
   } else {
     Ok(())
   }
+}
+
+/// Check to make sure the page and limit are within correct limits
+pub fn check_page_and_limit(page: Option<i64>, limit: Option<i64>) -> Result<(), LemmyError> {
+  if let Some(page) = page {
+    if page < 1 {
+      return Err(LemmyError::from_message("page_outside_bounds"));
+    }
+  }
+
+  if let Some(limit) = limit {
+    if limit < 1 || limit > FETCH_LIMIT_MAX {
+      return Err(LemmyError::from_message("limit_outside_bounds"));
+    }
+  }
+
+  Ok(())
 }

@@ -2,7 +2,12 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{
+    blocking,
+    check_page_and_limit,
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+  },
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
 use lemmy_db_schema::source::person::Person;
@@ -72,6 +77,8 @@ impl PerformCrud for GetPersonDetails {
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
+
+    check_page_and_limit(page, limit)?;
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
       let mut posts_query = PostQueryBuilder::create(conn)

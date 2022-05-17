@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::{
     blocking,
     check_missing_community_id,
+    check_page_and_limit,
     check_private_instance,
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
@@ -56,6 +57,9 @@ impl PerformCrud for GetComments {
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
+
+    check_page_and_limit(page, limit)?;
+
     let mut comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .listing_type(listing_type)
