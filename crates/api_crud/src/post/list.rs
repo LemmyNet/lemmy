@@ -2,18 +2,19 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{
+    blocking,
+    check_missing_community_id,
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+    listing_type_with_site_default,
+  },
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{
-  source::{community::Community, site::Site},
-  traits::DeleteableOrRemoveable,
-  ListingType,
-};
+use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
 use lemmy_db_views::post_view::PostQueryBuilder;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPosts {
@@ -26,11 +27,6 @@ impl PerformCrud for GetPosts {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
-
-    // Check to make sure a community_id or community_name is given
-    if data.community_name.is_none() && data.community_id.is_none() {
-      return Err(LemmyError::from_message("no_id_given"));
-    }
 
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
@@ -48,17 +44,14 @@ impl PerformCrud for GetPosts {
       .as_ref()
       .map(|t| t.local_user.show_read_posts);
 
+    let community_id = data.community_id;
     let sort = data.sort;
-    let listing_type: ListingType = match data.type_ {
-      Some(l) => l,
-      None => {
-        let site = blocking(context.pool(), Site::read_local_site).await??;
-        ListingType::from_str(&site.default_post_listing_type)?
-      }
-    };
+    let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
+
+    check_missing_community_id(listing_type, &data.community_name, data.community_id)?;
+
     let page = data.page;
     let limit = data.limit;
-    let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
         .await
