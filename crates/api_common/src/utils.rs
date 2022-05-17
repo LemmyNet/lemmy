@@ -630,7 +630,7 @@ pub fn check_page_and_limit(page: Option<i64>, limit: Option<i64>) -> Result<(),
   }
 
   if let Some(limit) = limit {
-    if limit < 1 || limit > FETCH_LIMIT_MAX {
+    if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
       return Err(LemmyError::from_message("limit_outside_bounds"));
     }
   }
