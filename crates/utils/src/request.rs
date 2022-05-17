@@ -301,30 +301,6 @@ mod tests {
       .into();
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
-    assert_eq!(
-      SiteMetadata {
-        title: Some("FAQ · Wiki · IzzyOnDroid / repo".to_string()),
-        description: Some(
-          "The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()
-        ),
-        image: Some(
-          Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
-            .unwrap()
-        ),
-        html: None,
-      },
-      sample_res
-    );
-
-    let youtube_url = Url::parse("https://www.youtube.com/watch?v=IquO_TcMZIQ").unwrap();
-    let youtube_res = fetch_site_metadata(&client, &youtube_url).await.unwrap();
-    assert_eq!(
-      SiteMetadata {
-        title: Some("A Hard Look at Rent and Rent Seeking with Michael Hudson & Pepe Escobar".to_string()),
-        description: Some("An interactive discussion on wealth inequality and the “Great Game” on the control of natural resources.In this webinar organized jointly by the Henry George...".to_string()),
-        image: Some(Url::parse("https://i.ytimg.com/vi/IquO_TcMZIQ/maxresdefault.jpg").unwrap()),
-        html: None,
-      }, youtube_res);
   }
 
   // #[test]
