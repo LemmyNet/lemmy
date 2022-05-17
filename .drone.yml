@@ -9,13 +9,13 @@ platform:
 steps:
 
   - name: prepare repo
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.59.0
     user: root
     commands:
-      - chown 1000:1000 . -R
       - git fetch --tags
       - git submodule init
       - git submodule update --recursive --remote
+      - chown 1000:1000 . -R
 
   - name: check formatting
     image: rustdocker/rust:nightly
@@ -23,7 +23,7 @@ steps:
       - /root/.cargo/bin/cargo fmt -- --check
 
   - name: check with different features
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.59.0
     commands:
       # api with minimal deps
       - cargo check -p lemmy_api_common
@@ -33,14 +33,14 @@ steps:
       - cargo check
 
   - name: cargo clippy
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.59.0
     commands:
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.59.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -52,13 +52,13 @@ steps:
       - cargo test --workspace --no-fail-fast
 
   - name: check defaults.hjson updated
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.59.0
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: cargo build
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.59.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
