@@ -16,7 +16,7 @@ use std::{env, env::VarError, io::Write};
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
-const FETCH_LIMIT_MAX: i64 = 50;
+pub const FETCH_LIMIT_MAX: i64 = 50;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 

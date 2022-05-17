@@ -2,7 +2,12 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{Search, SearchResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{
+    blocking,
+    check_page_and_limit,
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+  },
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable, SearchType};
@@ -55,6 +60,7 @@ impl Perform for Search {
     let sort = data.sort;
     let listing_type = data.listing_type;
     let search_type = data.type_.unwrap_or(SearchType::All);
+    let creator_id = data.creator_id;
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
@@ -64,7 +70,9 @@ impl Perform for Search {
     } else {
       None
     };
-    let creator_id = data.creator_id;
+
+    check_page_and_limit(page, limit)?;
+
     match search_type {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
