@@ -134,7 +134,7 @@ impl PerformCrud for GetPosts {
     // if data.community_name.is_none() && data.community_id.is_none() {
     //   return Err(LemmyError::from_message("no_id_given"));
     // }
-    if data.limit >= 50 {
+    if data.limit.unwrap_or(10) >= 50 {
       return Err(LemmyError::from_message("limit_too_high"));
     }
 

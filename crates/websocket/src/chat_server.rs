@@ -481,6 +481,8 @@ impl ChatServer {
       // check if api call passes the rate limit, and generate future for later execution
       let (passed, fut) = if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let passed = match user_operation_crud {
+          UserOperationCrud::GetPosts => rate_limiter.message().check(ip),
+          UserOperationCrud::GetPost => rate_limiter.message().check(ip),
           UserOperationCrud::Register => rate_limiter.register().check(ip),
           UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
           UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
