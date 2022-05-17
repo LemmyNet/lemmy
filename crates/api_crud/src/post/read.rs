@@ -129,6 +129,12 @@ impl PerformCrud for GetPosts {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
+
+    // Check to make sure a community_id or community_name is given
+    if data.community_name.is_none() && data.community_id.is_none() {
+      return Err(LemmyError::from_message("no_id_given"));
+    }
+    
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;

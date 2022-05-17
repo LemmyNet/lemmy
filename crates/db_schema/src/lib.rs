@@ -28,6 +28,9 @@ use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 use url::Url;
 
+const FETCH_LIMIT_DEFAULT: i64 = 10;
+const FETCH_LIMIT_MAX: i64 = 50;
+
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }
@@ -75,7 +78,10 @@ pub fn fuzzy_search(q: &str) -> String {
 
 pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
   let page = page.unwrap_or(1);
-  let limit = limit.unwrap_or(10);
+  let limit = match limit {
+    Some(l) => std::cmp::min(FETCH_LIMIT_MAX, l),
+    None => FETCH_LIMIT_DEFAULT,
+  };
   let offset = limit * (page - 1);
   (limit, offset)
 }
