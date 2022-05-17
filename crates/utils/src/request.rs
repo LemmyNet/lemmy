@@ -281,33 +281,3 @@ pub fn build_user_agent(settings: &Settings) -> String {
     settings.get_protocol_and_hostname()
   )
 }
-
-#[cfg(test)]
-mod tests {
-  use crate::request::{build_user_agent, fetch_site_metadata};
-  use url::Url;
-
-  use super::SiteMetadata;
-  use crate::settings::structs::Settings;
-
-  // These helped with testing
-  #[actix_rt::test]
-  async fn test_site_metadata() {
-    let settings = Settings::init().unwrap();
-    let client = reqwest::Client::builder()
-      .user_agent(build_user_agent(&settings))
-      .build()
-      .unwrap()
-      .into();
-    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
-    let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
-  }
-
-  // #[test]
-  // fn test_pictshare() {
-  //   let res = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpg");
-  //   assert!(res.is_ok());
-  //   let res_other = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpgaoeu");
-  //   assert!(res_other.is_err());
-  // }
-}
