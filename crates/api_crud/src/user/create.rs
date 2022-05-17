@@ -232,7 +232,7 @@ impl PerformCrud for Register {
     let community_follower_form = CommunityFollowerForm {
       community_id: main_community.id,
       person_id: inserted_person.id,
-      pending: Some(false),
+      pending: false,
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);

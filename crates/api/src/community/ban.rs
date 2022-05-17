@@ -76,7 +76,7 @@ impl Perform for BanFromCommunity {
       let community_follower_form = CommunityFollowerForm {
         community_id: data.community_id,
         person_id: banned_person_id,
-        pending: Some(false),
+        pending: false,
       };
       blocking(context.pool(), move |conn: &'_ _| {
         CommunityFollower::unfollow(conn, &community_follower_form)

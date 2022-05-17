@@ -137,5 +137,5 @@ pub struct CommunityFollower {
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  pub pending: Option<bool>,
+  pub pending: bool,
 }
