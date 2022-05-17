@@ -77,7 +77,10 @@ pub fn fuzzy_search(q: &str) -> String {
 }
 
 pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
-  let page = page.unwrap_or(1);
+  let page = match page {
+    Some(p) => std::cmp::max(1, p),
+    None => 1,
+  };
   let limit = match limit {
     Some(l) => std::cmp::min(FETCH_LIMIT_MAX, l),
     None => FETCH_LIMIT_DEFAULT,
