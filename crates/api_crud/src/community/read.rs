@@ -2,7 +2,12 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{
+    blocking,
+    check_missing_community_id,
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+  },
 };
 use lemmy_apub::{
   fetcher::resolve_actor_identifier,
@@ -11,6 +16,7 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   source::{community::Community, site::Site},
   traits::DeleteableOrRemoveable,
+  ListingType,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{ConnectionId, LemmyError};
@@ -30,6 +36,8 @@ impl PerformCrud for GetCommunity {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    check_missing_community_id(ListingType::Community, &data.name, data.id)?;
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
