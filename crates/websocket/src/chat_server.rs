@@ -481,31 +481,20 @@ impl ChatServer {
       // check if api call passes the rate limit, and generate future for later execution
       let (passed, fut) = if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
         let passed = match user_operation_crud {
-          UserOperationCrud::GetSite => rate_limiter.message().check(ip),
-          UserOperationCrud::GetCommunity => rate_limiter.message().check(ip),
-          UserOperationCrud::ListCommunities => rate_limiter.message().check(ip),
-          UserOperationCrud::GetPost => rate_limiter.message().check(ip),
-          UserOperationCrud::GetPosts => rate_limiter.message().check(ip),
-          UserOperationCrud::GetComment => rate_limiter.message().check(ip),
-          UserOperationCrud::GetComments => rate_limiter.message().check(ip),
-          UserOperationCrud::GetPersonDetails => rate_limiter.message().check(ip),
           UserOperationCrud::Register => rate_limiter.register().check(ip),
           UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
           UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
           UserOperationCrud::CreateComment => rate_limiter.comment().check(ip),
-          _ => true,
+          _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
         (passed, fut)
       } else {
         let user_operation = UserOperation::from_str(op)?;
         let passed = match user_operation {
-          UserOperation::GetModlog => rate_limiter.message().check(ip),
-          UserOperation::ResolveObject => rate_limiter.message().check(ip),
-          UserOperation::GetSiteMetadata => rate_limiter.message().check(ip),
           UserOperation::GetCaptcha => rate_limiter.post().check(ip),
           UserOperation::Search => rate_limiter.search().check(ip),
-          _ => true,
+          _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler)(context, msg.id, user_operation, data);
         (passed, fut)
