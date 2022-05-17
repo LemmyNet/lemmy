@@ -15,6 +15,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Readable},
   utils::DbPool,
+  ListingType,
 };
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
@@ -33,6 +34,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use rosetta_i18n::{Language, LanguageId};
+use std::str::FromStr;
 use tracing::warn;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
@@ -591,4 +593,30 @@ pub async fn delete_user_account(person_id: PersonId, pool: &DbPool) -> Result<(
   blocking(pool, move |conn| Person::delete_account(conn, person_id)).await??;
 
   Ok(())
+}
+
+pub async fn listing_type_with_site_default(
+  listing_type: Option<ListingType>,
+  pool: &DbPool,
+) -> Result<ListingType, LemmyError> {
+  Ok(match listing_type {
+    Some(l) => l,
+    None => {
+      let site = blocking(pool, Site::read_local_site).await??;
+      ListingType::from_str(&site.default_post_listing_type)?
+    }
+  })
+}
+
+/// Check to make sure a community_id or community_name is given for community listings
+pub fn check_missing_community_id(
+  listing_type: ListingType,
+  community_name: &Option<String>,
+  community_id: Option<CommunityId>,
+) -> Result<(), LemmyError> {
+  if listing_type == ListingType::Community && community_name.is_none() && community_id.is_none() {
+    Err(LemmyError::from_message("no_id_given"))
+  } else {
+    Ok(())
+  }
 }
