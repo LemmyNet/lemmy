@@ -22,7 +22,7 @@ pub fn init_logging(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
     .trim_matches('"')
     .parse::<Targets>()?;
 
-  let format_layer = tracing_subscriber::fmt::layer().with_filter(targets);
+  let format_layer = tracing_subscriber::fmt::layer().with_filter(targets.clone());
 
   let subscriber = Registry::default()
     .with(format_layer)
