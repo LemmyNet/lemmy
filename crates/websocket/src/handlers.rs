@@ -6,11 +6,9 @@ use crate::{
 use actix::{Actor, Context, Handler, ResponseFuture};
 use lemmy_db_schema::utils::naive_now;
 use lemmy_utils::ConnectionId;
-use opentelemetry::trace::TraceContextExt;
 use rand::Rng;
 use serde::Serialize;
 use tracing::{error, info};
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Make actor from `ChatServer`
 impl Actor for ChatServer {
@@ -70,7 +68,10 @@ fn root_span() -> tracing::Span {
     "Websocket Request",
     trace_id = tracing::field::Empty,
   );
+  #[cfg(feature = "console")]
   {
+    use opentelemetry::trace::TraceContextExt;
+    use tracing_opentelemetry::OpenTelemetrySpanExt;
     let trace_id = span.context().span().span_context().trace_id().to_string();
     span.record("trace_id", &tracing::field::display(trace_id));
   }

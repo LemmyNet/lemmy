@@ -15,7 +15,7 @@ debug = 0
 
 [features]
 console = ["console-subscriber", "opentelemetry", "opentelemetry-otlp", "tracing-opentelemetry",
-    "reqwest-tracing/opentelemetry_0_16"]
+    "reqwest-tracing/opentelemetry_0_16", "lemmy_websocket/console"]
 default = []
 
 [workspace]
