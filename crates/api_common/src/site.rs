@@ -133,6 +133,7 @@ pub struct EditSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<String>,
+  pub legal_information: Option<String>,
   pub auth: Sensitive<String>,
 }
 

@@ -463,6 +463,7 @@ table! {
         public_key -> Text,
         default_theme -> Text,
         default_post_listing_type -> Text,
+        legal_information -> Nullable<Text>,
     }
 }
 
