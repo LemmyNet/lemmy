@@ -494,6 +494,7 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
+  use diesel::PgConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
@@ -511,11 +512,15 @@ mod tests {
   };
   use serial_test::serial;
 
-  #[test]
-  #[serial]
-  fn test_crud() {
-    let conn = establish_unpooled_connection();
+  struct Data {
+    inserted_person: Person,
+    inserted_blocked_person: Person,
+    inserted_bot: Person,
+    inserted_community: Community,
+    inserted_post: Post,
+  }
 
+  fn init_data(conn: &PgConnection) -> Data {
     let person_name = "tegan".to_string();
     let community_name = "test_community_3".to_string();
     let post_name = "test post 3".to_string();
@@ -526,7 +531,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let new_bot = PersonForm {
       name: person_name.to_owned(),
@@ -534,23 +539,23 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_bot = Person::create(&conn, &new_bot).unwrap();
+    let inserted_bot = Person::create(conn, &new_bot).unwrap();
 
     let new_community = CommunityForm {
-      name: community_name.to_owned(),
+      name: community_name,
       title: "nada".to_owned(),
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(conn, &new_community).unwrap();
 
     // Test a person block, make sure the post query doesn't include their post
     let blocked_person = PersonForm {
-      name: person_name.to_owned(),
+      name: person_name,
       ..PersonForm::default()
     };
 
-    let inserted_blocked_person = Person::create(&conn, &blocked_person).unwrap();
+    let inserted_blocked_person = Person::create(conn, &blocked_person).unwrap();
 
     let post_from_blocked_person = PostForm {
       name: "blocked_person_post".to_string(),
@@ -559,7 +564,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    Post::create(&conn, &post_from_blocked_person).unwrap();
+    Post::create(conn, &post_from_blocked_person).unwrap();
 
     // block that person
     let person_block = PersonBlockForm {
@@ -567,17 +572,17 @@ mod tests {
       target_id: inserted_blocked_person.id,
     };
 
-    PersonBlock::block(&conn, &person_block).unwrap();
+    PersonBlock::block(conn, &person_block).unwrap();
 
     // A sample post
     let new_post = PostForm {
-      name: post_name.to_owned(),
+      name: post_name,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(conn, &new_post).unwrap();
 
     let new_bot_post = PostForm {
       name: bot_post_name,
@@ -586,50 +591,38 @@ mod tests {
       ..PostForm::default()
     };
 
-    let _inserted_bot_post = Post::create(&conn, &new_bot_post).unwrap();
+    let _inserted_bot_post = Post::create(conn, &new_bot_post).unwrap();
 
-    let post_like_form = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
+    Data {
+      inserted_person,
+      inserted_blocked_person,
+      inserted_bot,
+      inserted_community,
+      inserted_post,
+    }
+  }
 
-    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
+  fn cleanup(data: Data, conn: &PgConnection) {
+    let num_deleted = Post::delete(conn, data.inserted_post.id).unwrap();
+    Community::delete(conn, data.inserted_community.id).unwrap();
+    Person::delete(conn, data.inserted_person.id).unwrap();
+    Person::delete(conn, data.inserted_bot.id).unwrap();
+    Person::delete(conn, data.inserted_blocked_person.id).unwrap();
+    assert_eq!(1, num_deleted);
+  }
 
-    let expected_post_like = PostLike {
-      id: inserted_post_like.id,
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      published: inserted_post_like.published,
-      score: 1,
-    };
+  fn expected_post_listing(data: &Data, conn: &PgConnection) -> PostView {
+    let (inserted_person, inserted_community, inserted_post) = (
+      &data.inserted_person,
+      &data.inserted_community,
+      &data.inserted_post,
+    );
+    let agg = PostAggregates::read(conn, inserted_post.id).unwrap();
 
-    let mut read_post_listings_with_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(SortType::New)
-      .community_id(inserted_community.id);
-    read_post_listings_with_person.show_bot_accounts = Some(false);
-    read_post_listings_with_person.my_person_id = Some(inserted_person.id);
-    let read_post_listings_with_person = read_post_listings_with_person.list().unwrap();
-
-    let read_post_listings_no_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(SortType::New)
-      .community_id(inserted_community.id)
-      .list()
-      .unwrap();
-
-    let read_post_listing_no_person = PostView::read(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_person =
-      PostView::read(&conn, inserted_post.id, Some(inserted_person.id)).unwrap();
-
-    let agg = PostAggregates::read(&conn, inserted_post.id).unwrap();
-
-    // the non person version
-    let expected_post_listing_no_person = PostView {
+    PostView {
       post: Post {
         id: inserted_post.id,
-        name: post_name,
+        name: inserted_post.name.clone(),
         creator_id: inserted_person.id,
         url: None,
         body: None,
@@ -652,7 +645,7 @@ mod tests {
       my_vote: None,
       creator: PersonSafe {
         id: inserted_person.id,
-        name: person_name,
+        name: inserted_person.name.clone(),
         display_name: None,
         published: inserted_person.published,
         avatar: None,
@@ -673,7 +666,7 @@ mod tests {
       creator_banned_from_community: false,
       community: CommunitySafe {
         id: inserted_community.id,
-        name: community_name,
+        name: inserted_community.name.clone(),
         icon: None,
         removed: false,
         deleted: false,
@@ -692,8 +685,8 @@ mod tests {
         id: agg.id,
         post_id: inserted_post.id,
         comments: 0,
-        score: 1,
-        upvotes: 1,
+        score: 0,
+        upvotes: 0,
         downvotes: 0,
         stickied: false,
         published: agg.published,
@@ -704,65 +697,131 @@ mod tests {
       read: false,
       saved: false,
       creator_blocked: false,
-    };
+    }
+  }
 
-    // Test a community block
+  #[test]
+  #[serial]
+  fn post_listing_with_person() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    let mut read_post_listings_with_person = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(SortType::New)
+      .community_id(data.inserted_community.id);
+    read_post_listings_with_person.show_bot_accounts = Some(false);
+    read_post_listings_with_person.my_person_id = Some(data.inserted_person.id);
+    let read_post_listing_multiple_with_person = read_post_listings_with_person.list().unwrap();
+
+    let read_post_listing_single_with_person =
+      PostView::read(&conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
+
+    let mut expected_post_listing_with_user = expected_post_listing(&data, &conn);
+
+    // Should be only one person, IE the bot post, and blocked should be missing
+    assert_eq!(1, read_post_listing_multiple_with_person.len());
+
+    assert_eq!(
+      expected_post_listing_with_user,
+      read_post_listing_multiple_with_person[0]
+    );
+    expected_post_listing_with_user.my_vote = Some(0);
+    assert_eq!(
+      expected_post_listing_with_user,
+      read_post_listing_single_with_person
+    );
+
+    cleanup(data, &conn);
+  }
+
+  #[test]
+  #[serial]
+  fn post_listing_no_person() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    let read_post_listing_multiple_no_person = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(SortType::New)
+      .community_id(data.inserted_community.id)
+      .list()
+      .unwrap();
+
+    let read_post_listing_single_no_person =
+      PostView::read(&conn, data.inserted_post.id, None).unwrap();
+
+    let expected_post_listing_no_person = expected_post_listing(&data, &conn);
+
+    // Should be 2 posts, with the bot post, and the blocked
+    assert_eq!(3, read_post_listing_multiple_no_person.len());
+
+    assert_eq!(
+      expected_post_listing_no_person,
+      read_post_listing_multiple_no_person[1]
+    );
+    assert_eq!(
+      expected_post_listing_no_person,
+      read_post_listing_single_no_person
+    );
+
+    cleanup(data, &conn);
+  }
+
+  #[test]
+  #[serial]
+  fn post_listing_block_community() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
     let community_block = CommunityBlockForm {
-      person_id: inserted_person.id,
-      community_id: inserted_community.id,
+      person_id: data.inserted_person.id,
+      community_id: data.inserted_community.id,
     };
     CommunityBlock::block(&conn, &community_block).unwrap();
 
     let mut read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
       .listing_type(ListingType::Community)
       .sort(SortType::New)
-      .community_id(inserted_community.id);
+      .community_id(data.inserted_community.id);
     read_post_listings_with_person_after_block.show_bot_accounts = Some(true);
-    read_post_listings_with_person_after_block.my_person_id = Some(inserted_person.id);
+    read_post_listings_with_person_after_block.my_person_id = Some(data.inserted_person.id);
     let read_post_listings_with_person_after_block =
       read_post_listings_with_person_after_block.list().unwrap();
-
-    // TODO More needs to be added here
-    let mut expected_post_listing_with_user = expected_post_listing_no_person.to_owned();
-    expected_post_listing_with_user.my_vote = Some(1);
-
-    let like_removed = PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
-    let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
-    PersonBlock::unblock(&conn, &person_block).unwrap();
-    CommunityBlock::unblock(&conn, &community_block).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
-    Person::delete(&conn, inserted_bot.id).unwrap();
-    Person::delete(&conn, inserted_blocked_person.id).unwrap();
-
-    // The with user
-    assert_eq!(
-      expected_post_listing_with_user,
-      read_post_listings_with_person[0]
-    );
-    assert_eq!(
-      expected_post_listing_with_user,
-      read_post_listing_with_person
-    );
-
-    // Should be only one person, IE the bot post, and blocked should be missing
-    assert_eq!(1, read_post_listings_with_person.len());
-
-    // Without the user
-    assert_eq!(
-      expected_post_listing_no_person,
-      read_post_listings_no_person[1]
-    );
-    assert_eq!(expected_post_listing_no_person, read_post_listing_no_person);
-
-    // Should be 2 posts, with the bot post, and the blocked
-    assert_eq!(3, read_post_listings_no_person.len());
 
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
+    CommunityBlock::unblock(&conn, &community_block).unwrap();
+    cleanup(data, &conn);
+  }
+
+  #[test]
+  #[serial]
+  fn post_listing_like() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    let post_like_form = PostLikeForm {
+      post_id: data.inserted_post.id,
+      person_id: data.inserted_person.id,
+      score: 1,
+    };
+
+    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
+
+    let expected_post_like = PostLike {
+      id: inserted_post_like.id,
+      post_id: data.inserted_post.id,
+      person_id: data.inserted_person.id,
+      published: inserted_post_like.published,
+      score: 1,
+    };
     assert_eq!(expected_post_like, inserted_post_like);
+
+    let like_removed =
+      PostLike::remove(&conn, data.inserted_person.id, data.inserted_post.id).unwrap();
     assert_eq!(1, like_removed);
-    assert_eq!(1, num_deleted);
+    cleanup(data, &conn);
   }
 }
