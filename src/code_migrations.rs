@@ -11,6 +11,7 @@ use lemmy_apub::{
   generate_site_inbox_url,
   EndpointType,
 };
+use lemmy_apub_lib::signatures::generate_actor_keypair;
 use lemmy_db_schema::{
   source::{
     comment::Comment,
@@ -23,7 +24,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
+use lemmy_utils::LemmyError;
 use tracing::info;
 use url::Url;
 

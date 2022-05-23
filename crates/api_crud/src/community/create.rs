@@ -12,7 +12,7 @@ use lemmy_apub::{
   objects::community::ApubCommunity,
   EndpointType,
 };
-use lemmy_apub_lib::object_id::ObjectId;
+use lemmy_apub_lib::{object_id::ObjectId, signatures::generate_actor_keypair};
 use lemmy_db_schema::{
   source::{
     community::{
@@ -30,7 +30,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
-  apub::generate_actor_keypair,
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
   LemmyError,

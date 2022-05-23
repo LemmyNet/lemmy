@@ -11,6 +11,7 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   EndpointType,
 };
+use lemmy_apub_lib::signatures::generate_actor_keypair;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::CommunityId,
@@ -33,7 +34,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
-  apub::generate_actor_keypair,
   claims::Claims,
   utils::{check_slurs, is_valid_actor_name},
   ConnectionId,

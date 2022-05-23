@@ -12,7 +12,7 @@ use std::{
 use url::Url;
 
 /// We store Url on the heap because it is quite large (88 bytes).
-#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Serialize, Deserialize, Debug)]
 #[serde(transparent)]
 pub struct ObjectId<Kind>(Box<Url>, #[serde(skip)] PhantomData<Kind>)
 where
@@ -118,6 +118,17 @@ where
 
     Kind::verify(&res2, self.inner(), data, request_counter).await?;
     Kind::from_apub(res2, data, request_counter).await
+  }
+}
+
+/// Need to implement clone manually, to avoid requiring Kind to be Clone
+impl<Kind> Clone for ObjectId<Kind>
+where
+  Kind: ApubObject + Send + 'static,
+  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
+{
+  fn clone(&self) -> Self {
+    ObjectId(self.0.clone(), self.1)
   }
 }
 

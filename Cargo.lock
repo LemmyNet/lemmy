@@ -861,6 +861,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-new"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3418329ca0ad70234b9735dc4ceed10af4df60eff9c8e7b06cb5e520d92c3535"
+dependencies = [
+ "proc-macro2 1.0.36",
+ "quote 1.0.17",
+ "syn 1.0.90",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1877,12 +1888,14 @@ dependencies = [
 name = "lemmy_apub_lib"
 version = "0.16.4-rc.11"
 dependencies = [
+ "activitystreams-kinds",
  "actix-web",
  "anyhow",
  "async-trait",
  "background-jobs",
  "base64",
  "chrono",
+ "derive-new",
  "diesel",
  "http",
  "http-signature-normalization-actix",
@@ -1896,6 +1909,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tokio",
  "tracing",
  "url",
 ]
@@ -2042,7 +2056,6 @@ dependencies = [
  "jsonwebtoken",
  "lettre",
  "once_cell",
- "openssl",
  "parking_lot 0.12.0",
  "rand 0.8.5",
  "regex",
@@ -3768,9 +3781,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.17.0"
+version = "1.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2af73ac49756f3f7c01172e34a23e5d0216f6c32333757c2c61feb2bbff5a5ee"
+checksum = "4903bf0427cf68dddd5aa6a93220756f8be0c34fcfa9f5e6191e103e15a31395"
 dependencies = [
  "bytes",
  "libc",

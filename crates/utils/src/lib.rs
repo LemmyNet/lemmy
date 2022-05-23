@@ -3,7 +3,6 @@ extern crate strum_macros;
 #[macro_use]
 extern crate smart_default;
 
-pub mod apub;
 pub mod email;
 pub mod rate_limit;
 pub mod settings;

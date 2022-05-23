@@ -27,9 +27,11 @@ pub trait ApubObject {
   type DbType;
   type TombstoneType;
 
-  /// If this object should be refetched after a certain interval, it should return the last refresh
-  /// time here. This is mainly used to update remote actors.
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime>;
+  /// If the object is stored in the database, this method should return the fetch time. Used to
+  /// update actors after certain interval.
+  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+    None
+  }
   /// Try to read the object with given ID from local database. Returns Ok(None) if it doesn't exist.
   async fn read_from_apub_id(
     object_id: Url,
@@ -37,7 +39,8 @@ pub trait ApubObject {
   ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized;
-  /// Marks the object as deleted in local db. Called when a tombstone is received.
+  /// Marks the object as deleted in local db. Called when a delete activity is received, or if
+  /// fetch returns a tombstone.
   async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
 
   /// Trait for converting an object or actor into the respective ActivityPub type.
@@ -76,7 +79,9 @@ pub trait ActorType {
 
   fn inbox_url(&self) -> Url;
 
-  fn shared_inbox_url(&self) -> Option<Url>;
+  fn shared_inbox_url(&self) -> Option<Url> {
+    None
+  }
 
   fn shared_inbox_or_inbox_url(&self) -> Url {
     self.shared_inbox_url().unwrap_or_else(|| self.inbox_url())

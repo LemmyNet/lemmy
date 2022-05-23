@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt, is_admin, site_description_length_check},
 };
 use lemmy_apub::generate_site_inbox_url;
+use lemmy_apub_lib::signatures::generate_actor_keypair;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::site::{Site, SiteForm},
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  apub::generate_actor_keypair,
   settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   ConnectionId,
