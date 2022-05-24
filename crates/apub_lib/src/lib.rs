@@ -13,6 +13,8 @@ pub mod values;
 pub mod verify;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
+/// HTTP signatures are valid for 10s, so it makes sense to use the same as timeout when sending
+pub static DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct LocalInstance {
   domain: String,
@@ -70,9 +72,7 @@ impl Default for InstanceSettings {
       http_fetch_retry_limit: 20,
       worker_count: 64,
       testing_send_sync: false,
-      // HTTP signatures are valid for 10s, so it makes sense to use the same as timeout
-      // when sending
-      request_timeout: Duration::from_secs(10),
+      request_timeout: DEFAULT_TIMEOUT,
     }
   }
 }

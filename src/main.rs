@@ -27,17 +27,20 @@ use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   settings::structs::Settings,
   LemmyError,
-  REQWEST_TIMEOUT,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread};
+use std::{env, sync::Arc, thread, time::Duration};
 use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
+
+/// Max timeout for http requests
+pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
@@ -101,7 +104,17 @@ async fn main() -> Result<(), LemmyError> {
     .timeout(REQWEST_TIMEOUT)
     .build()?;
 
-  let client = ClientBuilder::new(client).with(TracingMiddleware).build();
+  let retry_policy = ExponentialBackoff {
+    max_n_retries: 3,
+    max_retry_interval: REQWEST_TIMEOUT,
+    min_retry_interval: Duration::from_millis(100),
+    backoff_exponent: 2,
+  };
+
+  let client = ClientBuilder::new(client)
+    .with(TracingMiddleware)
+    .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+    .build();
 
   check_private_instance_and_federation_enabled(&pool, &settings).await?;
 

@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::{request::retry, LemmyError};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -51,7 +51,7 @@ where
     return Err(LemmyError::from_message("Request retry limit reached"));
   }
 
-  let response = retry(|| context.client().get(&fetch_url).send()).await?;
+  let response = context.client().get(&fetch_url).send().await?;
 
   let res: WebfingerResponse = response.json().await.map_err(LemmyError::from)?;
 

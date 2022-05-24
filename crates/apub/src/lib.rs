@@ -1,9 +1,9 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{signatures::PublicKey, InstanceSettings, LocalInstance};
+use lemmy_apub_lib::{signatures::PublicKey, InstanceSettings, LocalInstance, DEFAULT_TIMEOUT};
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError, REQWEST_TIMEOUT};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Deserializer};
@@ -28,7 +28,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       context.settings().http_fetch_retry_limit,
       context.settings().federation.worker_count,
       env::var("APUB_TESTING_SEND_SYNC").is_ok(),
-      REQWEST_TIMEOUT,
+      DEFAULT_TIMEOUT,
     );
     LocalInstance::new(
       context.settings().hostname,

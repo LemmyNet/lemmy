@@ -1,6 +1,5 @@
 use crate::{Error, LocalInstance, APUB_JSON_CONTENT_TYPE};
 use http::StatusCode;
-use lemmy_utils::request::retry;
 use serde::de::DeserializeOwned;
 use tracing::log::info;
 use url::Url;
@@ -19,16 +18,14 @@ pub async fn fetch_object_http<Kind: DeserializeOwned>(
     return Err(Error::RequestLimit);
   }
 
-  let res = retry(|| {
-    instance
-      .client
-      .get(url.as_str())
-      .header("Accept", APUB_JSON_CONTENT_TYPE)
-      .timeout(instance.settings.request_timeout)
-      .send()
-  })
-  .await
-  .map_err(Error::conv)?;
+  let res = instance
+    .client
+    .get(url.as_str())
+    .header("Accept", APUB_JSON_CONTENT_TYPE)
+    .timeout(instance.settings.request_timeout)
+    .send()
+    .await
+    .map_err(Error::conv)?;
 
   if res.status() == StatusCode::GONE {
     return Err(Error::ObjectDeleted);

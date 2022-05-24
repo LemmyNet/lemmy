@@ -8,7 +8,6 @@ pub mod rate_limit;
 pub mod settings;
 
 pub mod claims;
-pub mod request;
 #[cfg(test)]
 mod test;
 pub mod utils;
@@ -16,12 +15,10 @@ pub mod version;
 
 use actix_web::HttpResponse;
 use http::StatusCode;
-use std::{fmt, fmt::Display, time::Duration};
+use std::{fmt, fmt::Display};
 use tracing_error::SpanTrace;
 
 pub type ConnectionId = usize;
-
-pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct IpAddr(pub String);
