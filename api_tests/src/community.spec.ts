@@ -67,7 +67,7 @@ test('Delete community', async () => {
   );
 
   // Make sure the follow response went through
-  expect(follow.community_view.community.local).toBe(false);
+  expect(follow.community_follower_view.community.local).toBe(false);
 
   let deleteCommunityRes = await deleteCommunity(
     beta,
@@ -118,7 +118,7 @@ test('Remove community', async () => {
   );
 
   // Make sure the follow response went through
-  expect(follow.community_view.community.local).toBe(false);
+  expect(follow.community_follower_view.community.local).toBe(false);
 
   let removeCommunityRes = await removeCommunity(
     beta,

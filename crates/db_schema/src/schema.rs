@@ -119,7 +119,7 @@ table! {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamp,
-        pending -> Nullable<Bool>,
+        pending -> Bool,
     }
 }
 
@@ -463,6 +463,7 @@ table! {
         public_key -> Text,
         default_theme -> Text,
         default_post_listing_type -> Text,
+        legal_information -> Nullable<Text>,
     }
 }
 

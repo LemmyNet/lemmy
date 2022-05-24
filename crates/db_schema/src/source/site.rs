@@ -31,6 +31,7 @@ pub struct Site {
   pub public_key: String,
   pub default_theme: String,
   pub default_post_listing_type: String,
+  pub legal_information: Option<String>,
 }
 
 #[derive(Default)]
@@ -59,4 +60,5 @@ pub struct SiteForm {
   pub public_key: Option<String>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<String>,
+  pub legal_information: Option<String>,
 }

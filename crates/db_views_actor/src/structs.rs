@@ -20,6 +20,7 @@ pub struct CommunityBlockView {
 pub struct CommunityFollowerView {
   pub community: CommunitySafe,
   pub follower: PersonSafe,
+  pub pending: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
