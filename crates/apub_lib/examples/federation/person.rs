@@ -1,13 +1,16 @@
 use crate::{
   activities::{CreateNote, Follow},
+  lib::generate_object_id,
   note::MyPost,
 };
 use activitystreams_kinds::{actor::PersonType, public};
 use anyhow::Error;
 use lemmy_apub_lib::{
+  activity_queue::SendActivity,
   object_id::ObjectId,
   signatures::{Keypair, PublicKey},
-  traits::{ActorType, ApubObject},
+  traits::ApubObject,
+  LocalInstance,
 };
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -34,24 +37,67 @@ pub struct Person {
 }
 
 impl MyUser {
-  pub(crate) fn followers(&self) -> Result<Url, Error> {
+  pub fn followers(&self) -> &Vec<Url> {
+    &self.followers
+  }
+
+  pub fn followers_url(&self) -> Result<Url, Error> {
     Ok(Url::parse(&format!("{}/followers", self.ap_id.inner()))?)
   }
 
-  pub async fn follow(&self, other: &MyUser) -> Result<(), Error> {
-    let follow = Follow::new(self.ap_id.clone(), other.ap_id.clone(), todo!());
-    // TODO: send
+  fn public_key(&self) -> PublicKey {
+    PublicKey::new_main_key(
+      self.ap_id.clone().into_inner(),
+      self.keypair.private_key.clone(),
+    )
+  }
+
+  pub async fn follow(&self, other: &MyUser, local_instance: &LocalInstance) -> Result<(), Error> {
+    let id = generate_object_id(local_instance)?;
+    let follow = Follow::new(self.ap_id.clone(), other.ap_id.clone(), id.clone());
+    self
+      .send(
+        id,
+        serde_json::to_string(&follow)?,
+        vec![other.ap_id.clone().into_inner()],
+        local_instance,
+      )
+      .await?;
     Ok(())
   }
 
-  pub async fn post(&self, post: MyPost) -> Result<(), LemmyError> {
+  pub async fn post(&self, post: MyPost, local_instance: &LocalInstance) -> Result<(), LemmyError> {
+    let id = generate_object_id(local_instance)?;
+    let to = vec![public(), self.followers_url()?];
     let create = CreateNote::new(
       self.ap_id.clone(),
-      vec![public(), self.followers()?],
+      to.clone(),
       post.into_apub(&()).await?,
-      todo!(),
+      id.clone(),
     );
-    // TODO: send
+    self
+      .send(id, serde_json::to_string(&create)?, to, local_instance)
+      .await?;
+    Ok(())
+  }
+
+  // TODO: maybe store LocalInstance in self
+  async fn send(
+    &self,
+    activity_id: Url,
+    activity: String,
+    inboxes: Vec<Url>,
+    local_instance: &LocalInstance,
+  ) -> Result<(), Error> {
+    SendActivity {
+      activity_id,
+      actor_public_key: self.public_key(),
+      actor_private_key: self.keypair.private_key.clone(),
+      inboxes,
+      activity,
+    }
+    .send(local_instance)
+    .await?;
     Ok(())
   }
 }
@@ -103,23 +149,5 @@ impl ApubObject for MyUser {
     Self: Sized,
   {
     todo!()
-  }
-}
-
-impl ActorType for MyUser {
-  fn actor_id(&self) -> Url {
-    self.ap_id.clone().into_inner()
-  }
-
-  fn public_key(&self) -> String {
-    self.keypair.public_key.clone()
-  }
-
-  fn private_key(&self) -> Option<String> {
-    Some(self.keypair.private_key.clone())
-  }
-
-  fn inbox_url(&self) -> Url {
-    Url::parse(&format!("{}/inbox", &self.ap_id)).expect("generate inbox url")
   }
 }

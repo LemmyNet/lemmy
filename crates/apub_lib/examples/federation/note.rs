@@ -1,6 +1,5 @@
 use crate::person::MyUser;
 use activitystreams_kinds::{object::NoteType, public};
-use chrono::NaiveDateTime;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -48,7 +47,7 @@ impl ApubObject for MyPost {
       kind: Default::default(),
       id: self.ap_id,
       attributed_to: self.creator,
-      to: vec![public(), creator.followers()?],
+      to: vec![public(), creator.followers_url()?],
       content: self.text,
     })
   }

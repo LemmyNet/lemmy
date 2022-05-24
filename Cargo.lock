@@ -1889,6 +1889,7 @@ name = "lemmy_apub_lib"
 version = "0.16.4-rc.11"
 dependencies = [
  "activitystreams-kinds",
+ "actix-rt",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -1903,13 +1904,13 @@ dependencies = [
  "lemmy_utils",
  "once_cell",
  "openssl",
+ "rand 0.8.5",
  "reqwest",
  "reqwest-middleware",
  "serde",
  "serde_json",
  "sha2",
  "thiserror",
- "tokio",
  "tracing",
  "url",
 ]

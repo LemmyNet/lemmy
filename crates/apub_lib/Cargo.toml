@@ -33,4 +33,5 @@ thiserror = "1.0.31"
 [dev-dependencies]
 activitystreams-kinds = "0.2.1"
 derive-new = "0.5"
-tokio = { version = "1.18.2", features = ["rt-multi-thread"] }
+rand = "0.8.5"
+actix-rt = "2.7.0"

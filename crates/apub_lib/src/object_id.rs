@@ -81,7 +81,7 @@ where
     data: &<Kind as ApubObject>::DataType,
   ) -> Result<Kind, LemmyError> {
     let object = self.dereference_from_db(data).await?;
-    object.ok_or(Error::NotFound.into())
+    object.ok_or_else(|| Error::NotFound.into())
   }
 
   /// returning none means the object was not found in local db

@@ -17,7 +17,7 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 pub static DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct LocalInstance {
-  domain: String,
+  pub domain: String,
   client: ClientWithMiddleware,
   activity_queue: Manager,
   settings: InstanceSettings,

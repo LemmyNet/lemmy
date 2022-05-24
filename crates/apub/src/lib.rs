@@ -262,10 +262,6 @@ pub trait ActorType {
   }
 
   fn get_public_key(&self) -> PublicKey {
-    PublicKey::new(
-      format!("{}#main-key", self.actor_id()),
-      self.actor_id(),
-      self.public_key(),
-    )
+    PublicKey::new_main_key(self.actor_id(), self.public_key())
   }
 }

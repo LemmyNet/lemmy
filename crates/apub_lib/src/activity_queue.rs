@@ -21,10 +21,15 @@ use tracing::{info, warn};
 use url::Url;
 
 pub struct SendActivity {
+  /// Id of the sent activity, used for logging
   pub activity_id: Url,
+  /// Public key and actor id of the sender
   pub actor_public_key: PublicKey,
+  /// Signing key of sender for HTTP signatures
   pub actor_private_key: String,
+  /// List of Activitypub inboxes that the activity gets delivered to
   pub inboxes: Vec<Url>,
+  /// Activity json
   pub activity: String,
 }
 
