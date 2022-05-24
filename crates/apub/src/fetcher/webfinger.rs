@@ -1,10 +1,7 @@
-use crate::local_instance;
+use crate::{local_instance, ActorType};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{request::retry, LemmyError};
 use lemmy_websocket::LemmyContext;

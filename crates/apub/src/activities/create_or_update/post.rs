@@ -11,13 +11,14 @@ use crate::{
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+  ActorType,
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ApubObject},
   verify::{verify_domains_match, verify_urls_match},
 };
 use lemmy_db_schema::{

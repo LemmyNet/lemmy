@@ -50,17 +50,14 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
 pub(crate) async fn sign_request(
   request_builder: RequestBuilder,
   activity: String,
-  actor_id: &Url,
+  public_key: PublicKey,
   private_key: String,
 ) -> Result<Request, anyhow::Error> {
-  // TODO: should not be hardcoded
-  let signing_key_id = format!("{}#main-key", actor_id);
-
   Ok(
     request_builder
       .signature_with_digest(
         HTTP_SIG_CONFIG.clone(),
-        signing_key_id,
+        public_key.id,
         Sha256::new(),
         activity,
         move |signing_string| {
@@ -106,6 +103,16 @@ pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), a
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
   pub(crate) id: String,
-  pub(crate) owner: Box<Url>,
+  pub(crate) owner: Url,
   pub public_key_pem: String,
+}
+
+impl PublicKey {
+  pub fn new(id: String, owner: Url, public_key_pem: String) -> Self {
+    PublicKey {
+      id,
+      owner,
+      public_key_pem,
+    }
+  }
 }

@@ -13,13 +13,14 @@ use crate::{
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
+  ActorType,
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{

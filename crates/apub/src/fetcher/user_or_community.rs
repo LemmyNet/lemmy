@@ -1,9 +1,10 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
+  ActorType,
 };
 use chrono::NaiveDateTime;
-use lemmy_apub_lib::traits::{ActorType, ApubObject};
+use lemmy_apub_lib::traits::ApubObject;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

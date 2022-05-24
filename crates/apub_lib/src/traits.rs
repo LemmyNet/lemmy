@@ -1,4 +1,4 @@
-use crate::{data::Data, signatures::PublicKey};
+use crate::data::Data;
 use chrono::NaiveDateTime;
 pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::LemmyError;
@@ -67,31 +67,4 @@ pub trait ApubObject {
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
-}
-
-/// Common methods provided by ActivityPub actors (community and person). Not all methods are
-/// implemented by all actors.
-pub trait ActorType {
-  fn actor_id(&self) -> Url;
-
-  fn public_key(&self) -> String;
-  fn private_key(&self) -> Option<String>;
-
-  fn inbox_url(&self) -> Url;
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    None
-  }
-
-  fn shared_inbox_or_inbox_url(&self) -> Url {
-    self.shared_inbox_url().unwrap_or_else(|| self.inbox_url())
-  }
-
-  fn get_public_key(&self) -> Result<PublicKey, LemmyError> {
-    Ok(PublicKey {
-      id: format!("{}#main-key", self.actor_id()),
-      owner: Box::new(self.actor_id()),
-      public_key_pem: self.public_key(),
-    })
-  }
 }

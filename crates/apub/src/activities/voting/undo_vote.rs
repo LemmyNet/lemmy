@@ -14,6 +14,7 @@ use crate::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
+  ActorType,
   PostOrComment,
 };
 use activitystreams_kinds::{activity::UndoType, public};
@@ -21,7 +22,7 @@ use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
+  traits::ActivityHandler,
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};

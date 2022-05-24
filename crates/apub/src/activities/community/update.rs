@@ -11,13 +11,14 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
+  ActorType,
 };
 use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType, ApubObject},
+  traits::{ActivityHandler, ApubObject},
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityForm},

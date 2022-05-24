@@ -11,13 +11,14 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  ActorType,
 };
 use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
+  traits::ActivityHandler,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{

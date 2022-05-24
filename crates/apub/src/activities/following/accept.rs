@@ -2,13 +2,14 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity},
   local_instance,
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
+  ActorType,
 };
 use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
+  traits::ActivityHandler,
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};

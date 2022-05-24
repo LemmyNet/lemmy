@@ -4,8 +4,9 @@ use crate::{
   local_instance,
   objects::community::ApubCommunity,
   protocol::activities::community::announce::AnnounceActivity,
+  ActorType,
 };
-use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
+use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

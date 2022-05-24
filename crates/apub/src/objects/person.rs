@@ -10,14 +10,11 @@ use crate::{
     ImageObject,
     Source,
   },
+  ActorType,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-  verify::verify_domains_match,
-};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::person::{Person as DbPerson, PersonForm},
   traits::ApubActor,
@@ -104,7 +101,7 @@ impl ApubObject for ApubPerson {
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
-      public_key: self.get_public_key()?,
+      public_key: self.get_public_key(),
       updated: self.updated.map(convert_datetime),
       inbox: self.inbox_url.clone().into(),
     };

@@ -1,13 +1,11 @@
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::objects::{group::Group, instance::Instance},
+  ActorType,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-};
+use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::{source::site::Site, utils::DbPool};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

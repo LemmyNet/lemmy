@@ -1,4 +1,9 @@
-use crate::{signatures::sign_request, Error, LocalInstance, APUB_JSON_CONTENT_TYPE};
+use crate::{
+  signatures::{sign_request, PublicKey},
+  Error,
+  LocalInstance,
+  APUB_JSON_CONTENT_TYPE,
+};
 use anyhow::anyhow;
 use background_jobs::{
   memory_storage::Storage,
@@ -17,7 +22,7 @@ use url::Url;
 
 pub struct SendActivity {
   pub activity_id: Url,
-  pub actor_id: Url,
+  pub actor_public_key: PublicKey,
   pub actor_private_key: String,
   pub inboxes: Vec<Url>,
   pub activity: String,
@@ -30,8 +35,8 @@ impl SendActivity {
       let message = SendActivityTask {
         activity_id: self.activity_id.clone(),
         inbox,
-        actor_id: self.actor_id.clone(),
         activity: self.activity.clone(),
+        public_key: self.actor_public_key.clone(),
         private_key: self.actor_private_key.clone(),
       };
       if instance.settings.testing_send_sync {
@@ -63,8 +68,8 @@ impl SendActivity {
 struct SendActivityTask {
   activity_id: Url,
   inbox: Url,
-  actor_id: Url,
   activity: String,
+  public_key: PublicKey,
   private_key: String,
 }
 
@@ -107,7 +112,7 @@ async fn do_send(
   let request = sign_request(
     request_builder,
     task.activity.clone(),
-    &task.actor_id,
+    task.public_key.clone(),
     task.private_key.to_owned(),
   )
   .await?;

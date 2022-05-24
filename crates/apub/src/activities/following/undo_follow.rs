@@ -3,13 +3,14 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
+  ActorType,
 };
 use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
+  traits::ActivityHandler,
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{

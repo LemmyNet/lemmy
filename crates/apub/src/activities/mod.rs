@@ -5,6 +5,7 @@ use crate::{
   insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
+  ActorType,
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
@@ -12,7 +13,6 @@ use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   activity_queue::SendActivity,
   object_id::ObjectId,
-  traits::ActorType,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::community::Community;
@@ -203,7 +203,7 @@ async fn send_lemmy_activity<T: Serialize>(
 
   SendActivity {
     activity_id: activity_id.clone(),
-    actor_id: actor.actor_id(),
+    actor_public_key: actor.get_public_key(),
     actor_private_key: actor.private_key().expect("actor has private key"),
     inboxes,
     activity: serialised_activity,

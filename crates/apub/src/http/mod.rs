@@ -6,6 +6,7 @@ use crate::{
   http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
   local_instance,
+  ActorType,
 };
 use actix_web::{
   web,
@@ -21,7 +22,7 @@ use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
   signatures::verify_signature,
-  traits::{ActivityHandler, ActorType},
+  traits::ActivityHandler,
   APUB_JSON_CONTENT_TYPE,
 };
 use lemmy_db_schema::source::activity::Activity;

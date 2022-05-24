@@ -1,7 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{InstanceSettings, LocalInstance};
+use lemmy_apub_lib::{signatures::PublicKey, InstanceSettings, LocalInstance};
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
@@ -241,4 +241,31 @@ async fn insert_activity(
     })
     .await??,
   )
+}
+
+/// Common methods provided by ActivityPub actors (community and person). Not all methods are
+/// implemented by all actors.
+pub trait ActorType {
+  fn actor_id(&self) -> Url;
+
+  fn public_key(&self) -> String;
+  fn private_key(&self) -> Option<String>;
+
+  fn inbox_url(&self) -> Url;
+
+  fn shared_inbox_url(&self) -> Option<Url> {
+    None
+  }
+
+  fn shared_inbox_or_inbox_url(&self) -> Url {
+    self.shared_inbox_url().unwrap_or_else(|| self.inbox_url())
+  }
+
+  fn get_public_key(&self) -> PublicKey {
+    PublicKey::new(
+      format!("{}#main-key", self.actor_id()),
+      self.actor_id(),
+      self.public_key(),
+    )
+  }
 }

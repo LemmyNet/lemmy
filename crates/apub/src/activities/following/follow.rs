@@ -9,14 +9,11 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
+  ActorType,
 };
 use activitystreams_kinds::activity::FollowType;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-};
+use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
   traits::Followable,

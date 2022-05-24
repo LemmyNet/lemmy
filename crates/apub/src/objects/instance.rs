@@ -7,12 +7,13 @@ use crate::{
     ImageObject,
     Source,
   },
+  ActorType,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
-  traits::{ActorType, ApubObject},
+  traits::ApubObject,
   values::MediaTypeHtml,
   verify::verify_domains_match,
 };
@@ -88,7 +89,7 @@ impl ApubObject for ApubSite {
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
       outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
-      public_key: self.get_public_key()?,
+      public_key: self.get_public_key(),
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
     };
