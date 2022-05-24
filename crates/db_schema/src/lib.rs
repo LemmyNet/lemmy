@@ -57,7 +57,7 @@ pub enum SearchType {
   Url,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub enum SubscribedType {
   Subscribed,
   NotSubscribed,

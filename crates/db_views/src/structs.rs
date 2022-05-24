@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
     site::Site,
   },
+  SubscribedType,
 };
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +39,7 @@ pub struct CommentView {
   pub community: CommunitySafe,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: bool,                    // Left join to CommunityFollower
+  pub subscribed: SubscribedType,          // Left join to CommunityFollower
   pub saved: bool,                         // Left join to CommentSaved
   pub creator_blocked: bool,               // Left join to PersonBlock
   pub my_vote: Option<i16>,                // Left join to CommentLike
@@ -78,11 +79,11 @@ pub struct PostView {
   pub community: CommunitySafe,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub counts: PostAggregates,
-  pub subscribed: bool,      // Left join to CommunityFollower
-  pub saved: bool,           // Left join to PostSaved
-  pub read: bool,            // Left join to PostRead
-  pub creator_blocked: bool, // Left join to PersonBlock
-  pub my_vote: Option<i16>,  // Left join to PostLike
+  pub subscribed: SubscribedType, // Left join to CommunityFollower
+  pub saved: bool,                // Left join to PostSaved
+  pub read: bool,                 // Left join to PostRead
+  pub creator_blocked: bool,      // Left join to PersonBlock
+  pub my_vote: Option<i16>,       // Left join to PostLike
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

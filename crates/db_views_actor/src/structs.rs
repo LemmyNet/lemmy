@@ -60,7 +60,7 @@ pub struct PersonMentionView {
   pub recipient: PersonSafeAlias1,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: bool,                    // Left join to CommunityFollower
+  pub subscribed: SubscribedType,          // Left join to CommunityFollower
   pub saved: bool,                         // Left join to CommentSaved
   pub creator_blocked: bool,               // Left join to PersonBlock
   pub my_vote: Option<i16>,                // Left join to CommentLike
