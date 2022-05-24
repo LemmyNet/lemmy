@@ -7,6 +7,7 @@ use lemmy_db_schema::{
     person_mention::PersonMention,
     post::Post,
   },
+  SubscribedType,
 };
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +39,7 @@ pub struct CommunityPersonBanView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityView {
   pub community: CommunitySafe,
-  pub subscribed: bool,
+  pub subscribed: SubscribedType,
   pub blocked: bool,
   pub counts: CommunityAggregates,
 }

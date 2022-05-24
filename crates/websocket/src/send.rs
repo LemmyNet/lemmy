@@ -19,6 +19,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{Crud, DeleteableOrRemoveable},
+  SubscribedType,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView, PrivateMessageView};
 use lemmy_db_views_actor::structs::CommunityView;
@@ -115,7 +116,7 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
 
   // Strip out the person id and subscribed when sending to others
   let mut res_mut = res.clone();
-  res_mut.community_view.subscribed = false;
+  res_mut.community_view.subscribed = SubscribedType::NotSubscribed;
 
   context.chat_server().do_send(SendCommunityRoomMessage {
     op,

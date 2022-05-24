@@ -12,6 +12,7 @@ use lemmy_db_schema::{
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
+  SubscribedType,
 };
 
 type CommunityViewTuple = (
@@ -57,10 +58,23 @@ impl CommunityView {
 
     Ok(CommunityView {
       community,
-      subscribed: follower.is_some(),
+      subscribed: CommunityView::follower_to_subscribed(&follower),
       blocked: blocked.is_some(),
       counts,
     })
+  }
+
+  pub fn follower_to_subscribed(follower: &Option<CommunityFollower>) -> SubscribedType {
+    match follower {
+      Some(f) => {
+        if f.pending {
+          SubscribedType::Pending
+        } else {
+          SubscribedType::Subscribed
+        }
+      }
+      None => SubscribedType::NotSubscribed,
+    }
   }
 
   pub fn is_mod_or_admin(
@@ -262,7 +276,7 @@ impl ViewToVec for CommunityView {
       .map(|a| Self {
         community: a.0.to_owned(),
         counts: a.1.to_owned(),
-        subscribed: a.2.is_some(),
+        subscribed: CommunityView::follower_to_subscribed(&a.2),
         blocked: a.3.is_some(),
       })
       .collect::<Vec<Self>>()
