@@ -1,11 +1,12 @@
-use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_follower, community_moderator, community_person_ban},
-};
+use crate::newtypes::{CommunityId, DbUrl, PersonId};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "community"]
+#[cfg(feature = "full")]
+use crate::schema::{community, community_follower, community_moderator, community_person_ban};
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "community")]
 pub struct Community {
   pub id: CommunityId,
   pub name: String,
@@ -27,11 +28,13 @@ pub struct Community {
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
   pub hidden: bool,
+  pub posting_restricted_to_mods: bool,
 }
 
 /// A safe representation of community, without the sensitive info
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "community"]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "community")]
 pub struct CommunitySafe {
   pub id: CommunityId,
   pub name: String,
@@ -47,10 +50,12 @@ pub struct CommunitySafe {
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
   pub hidden: bool,
+  pub posting_restricted_to_mods: bool,
 }
 
-#[derive(Insertable, AsChangeset, Debug, Default)]
-#[table_name = "community"]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "community")]
 pub struct CommunityForm {
   pub name: String,
   pub title: String,
@@ -71,11 +76,13 @@ pub struct CommunityForm {
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
   pub hidden: Option<bool>,
+  pub posting_restricted_to_mods: Option<bool>,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Community)]
-#[table_name = "community_moderator"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Community))]
+#[cfg_attr(feature = "full", table_name = "community_moderator")]
 pub struct CommunityModerator {
   pub id: i32,
   pub community_id: CommunityId,
@@ -83,16 +90,18 @@ pub struct CommunityModerator {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "community_moderator"]
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "community_moderator")]
 pub struct CommunityModeratorForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Community)]
-#[table_name = "community_person_ban"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Community))]
+#[cfg_attr(feature = "full", table_name = "community_person_ban")]
 pub struct CommunityPersonBan {
   pub id: i32,
   pub community_id: CommunityId,
@@ -101,27 +110,30 @@ pub struct CommunityPersonBan {
   pub expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "community_person_ban"]
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "community_person_ban")]
 pub struct CommunityPersonBanForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub expires: Option<Option<chrono::NaiveDateTime>>,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Community)]
-#[table_name = "community_follower"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Community))]
+#[cfg_attr(feature = "full", table_name = "community_follower")]
 pub struct CommunityFollower {
   pub id: i32,
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
-  pub pending: Option<bool>,
+  pub pending: bool,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "community_follower"]
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "community_follower")]
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,

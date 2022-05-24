@@ -1,0 +1,16 @@
+{
+  "type": "Like",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams"
+  ],
+  "id": "https://another_instance.gnusocial.test/activity/41362",
+  "published": "2022-03-20T17:54:15+00:00",
+  "actor": "https://another_instance.gnusocial.test/actor/43",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": [
+    "https://instance.gnusocial.test/actor/42"
+  ],
+  "object": "https://instance.gnusocial.test/object/note/1337"
+}

@@ -67,7 +67,7 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<PasswordReset>(context, id, op, data).await
     }
     UserOperation::PasswordChange => {
-      do_websocket_operation::<PasswordChange>(context, id, op, data).await
+      do_websocket_operation::<PasswordChangeAfterReset>(context, id, op, data).await
     }
     UserOperation::UserJoin => do_websocket_operation::<UserJoin>(context, id, op, data).await,
     UserOperation::PostJoin => do_websocket_operation::<PostJoin>(context, id, op, data).await,
@@ -216,15 +216,15 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 
 #[cfg(test)]
 mod tests {
-  use lemmy_api_common::check_validator_time;
+  use lemmy_api_common::utils::check_validator_time;
   use lemmy_db_schema::{
-    establish_unpooled_connection,
     source::{
       local_user::{LocalUser, LocalUserForm},
       person::{Person, PersonForm},
       secret::Secret,
     },
     traits::Crud,
+    utils::establish_unpooled_connection,
   };
   use lemmy_utils::{claims::Claims, settings::structs::Settings};
 

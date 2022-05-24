@@ -1,0 +1,53 @@
+{
+  "type": "Create",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "gs": "https://www.gnu.org/software/social/ns#"
+    },
+    {
+      "litepub": "http://litepub.social/ns#"
+    },
+    {
+      "chatMessage": "litepub:chatMessage"
+    },
+    {
+      "inConversation": {
+        "@id": "gs:inConversation",
+        "@type": "@id"
+      }
+    }
+  ],
+  "id": "https://instance.gnusocial.test/activity/1339",
+  "published": "2022-03-01T20:58:48+00:00",
+  "actor": "https://instance.gnusocial.test/actor/42",
+  "object": {
+    "type": "Note",
+    "id": "https://instance.gnusocial.test/object/note/1339",
+    "published": "2022-03-01T21:00:16+00:00",
+    "attributedTo": "https://instance.gnusocial.test/actor/42",
+    "content": "<p>yay ^^</p>",
+    "mediaType": "text/html",
+    "source": {
+      "content": "yay ^^",
+      "mediaType": "text/plain"
+    },
+    "attachment": [],
+    "tag": [],
+    "inReplyTo": "https://instance.gnusocial.test/object/note/1338",
+    "inConversation": "https://instance.gnusocial.test/conversation/1338",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "https://instance.gnusocial.test/actor/42/subscribers"
+    ]
+  },
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": [
+    "https://instance.gnusocial.test/actor/42/subscribers"
+  ]
+}

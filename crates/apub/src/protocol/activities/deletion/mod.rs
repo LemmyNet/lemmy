@@ -1,10 +1,11 @@
 pub mod delete;
+pub mod delete_user;
 pub mod undo_delete;
 
 #[cfg(test)]
 mod tests {
   use crate::protocol::{
-    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+    activities::deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
     tests::test_parse_lemmy_item,
   };
 
@@ -23,5 +24,8 @@ mod tests {
       "assets/lemmy/activities/deletion/undo_delete_private_message.json",
     )
     .unwrap();
+
+    test_parse_lemmy_item::<DeleteUser>("assets/lemmy/activities/deletion/delete_user.json")
+      .unwrap();
   }
 }

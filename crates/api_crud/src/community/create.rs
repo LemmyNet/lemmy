@@ -1,10 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
   community::{CommunityResponse, CreateCommunity},
-  get_local_user_view_from_jwt,
-  is_admin,
+  utils::{blocking, get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_apub::{
   generate_followers_url,
@@ -16,7 +14,6 @@ use lemmy_apub::{
 };
 use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
-  diesel_option_overwrite_to_url,
   source::{
     community::{
       Community,
@@ -29,8 +26,9 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Followable, Joinable},
+  utils::diesel_option_overwrite_to_url,
 };
-use lemmy_db_views_actor::community_view::CommunityView;
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   apub::generate_actor_keypair,
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
@@ -60,6 +58,10 @@ impl PerformCrud for CreateCommunity {
       ));
     }
 
+    // Check to make sure the icon and banners are urls
+    let icon = diesel_option_overwrite_to_url(&data.icon)?;
+    let banner = diesel_option_overwrite_to_url(&data.banner)?;
+
     check_slurs(&data.name, &context.settings().slur_regex())?;
     check_slurs(&data.title, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
@@ -80,10 +82,6 @@ impl PerformCrud for CreateCommunity {
       return Err(LemmyError::from_message("community_already_exists"));
     }
 
-    // Check to make sure the icon and banners are urls
-    let icon = diesel_option_overwrite_to_url(&data.icon)?;
-    let banner = diesel_option_overwrite_to_url(&data.banner)?;
-
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
 
@@ -100,6 +98,7 @@ impl PerformCrud for CreateCommunity {
       followers_url: Some(generate_followers_url(&community_actor_id)?),
       inbox_url: Some(generate_inbox_url(&community_actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&community_actor_id)?)),
+      posting_restricted_to_mods: data.posting_restricted_to_mods,
       ..CommunityForm::default()
     };
 

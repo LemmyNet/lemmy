@@ -14,6 +14,12 @@
     "mediaType": "text/markdown"
   },
   "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png",
+  "attachment": [
+    {
+      "type": "Link",
+      "href": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
+    }
+  ],
   "image": {
     "type": "Image",
     "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"

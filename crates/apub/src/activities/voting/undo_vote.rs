@@ -16,7 +16,7 @@ use crate::{
   PostOrComment,
 };
 use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -28,6 +28,9 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 impl UndoVote {
+  /// UndoVote has as:Public value in cc field, unlike other activities. This indicates to other
+  /// software (like GNU social, or presumably Mastodon), that the like actor should not be
+  /// disclosed.
   #[tracing::instrument(skip_all)]
   pub async fn send(
     object: &PostOrComment,
@@ -49,9 +52,9 @@ impl UndoVote {
     )?;
     let undo_vote = UndoVote {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![public()],
+      to: vec![community.actor_id()],
       object,
-      cc: vec![community.actor_id()],
+      cc: vec![public()],
       kind: UndoType::Undo,
       id: id.clone(),
       unparsed: Default::default(),

@@ -1,23 +1,5 @@
-use crate::{newtypes::PostId, schema::post_aggregates};
+use crate::{aggregates::structs::PostAggregates, newtypes::PostId, schema::post_aggregates};
 use diesel::{result::Error, *};
-use serde::{Deserialize, Serialize};
-
-#[derive(
-  Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
-)]
-#[table_name = "post_aggregates"]
-pub struct PostAggregates {
-  pub id: i32,
-  pub post_id: PostId,
-  pub comments: i64,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
-  pub stickied: bool,
-  pub published: chrono::NaiveDateTime,
-  pub newest_comment_time_necro: chrono::NaiveDateTime, // A newest comment time, limited to 2 days, to prevent necrobumping
-  pub newest_comment_time: chrono::NaiveDateTime,
-}
 
 impl PostAggregates {
   pub fn read(conn: &PgConnection, post_id: PostId) -> Result<Self, Error> {
@@ -31,7 +13,6 @@ impl PostAggregates {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    establish_unpooled_connection,
     source::{
       comment::{Comment, CommentForm},
       community::{Community, CommunityForm},
@@ -39,6 +20,7 @@ mod tests {
       post::{Post, PostForm, PostLike, PostLikeForm},
     },
     traits::{Crud, Likeable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

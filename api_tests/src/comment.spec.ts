@@ -23,6 +23,7 @@ import {
   listCommentReports,
   randomString,
   API,
+  unfollows,
 } from './shared';
 import { CommentView } from 'lemmy-js-client';
 
@@ -32,6 +33,7 @@ let postRes: PostResponse;
 
 beforeAll(async () => {
   await setupLogins();
+  await unfollows();
   await followBeta(alpha);
   await followBeta(gamma);
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
@@ -42,8 +44,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
+  await unfollows();
 });
 
 function assertCommentFederation(
@@ -328,12 +329,12 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
 test('Check that activity from another instance is sent to third instance', async () => {
   // Alpha and gamma users follow beta community
   let alphaFollow = await followBeta(alpha);
-  expect(alphaFollow.community_view.community.local).toBe(false);
-  expect(alphaFollow.community_view.community.name).toBe('main');
+  expect(alphaFollow.community_follower_view.community.local).toBe(false);
+  expect(alphaFollow.community_follower_view.community.name).toBe('main');
 
   let gammaFollow = await followBeta(gamma);
-  expect(gammaFollow.community_view.community.local).toBe(false);
-  expect(gammaFollow.community_view.community.name).toBe('main');
+  expect(gammaFollow.community_follower_view.community.local).toBe(false);
+  expect(gammaFollow.community_follower_view.community.name).toBe('main');
 
   // Create a post on beta
   let betaPost = await createPost(beta, 2);
@@ -406,8 +407,8 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 
   // Follow beta again
   let follow = await followBeta(alpha);
-  expect(follow.community_view.community.local).toBe(false);
-  expect(follow.community_view.community.name).toBe('main');
+  expect(follow.community_follower_view.community.local).toBe(false);
+  expect(follow.community_follower_view.community.name).toBe('main');
 
   // An update to the child comment on beta, should push the post, parent, and child to alpha now
   let updatedCommentContent = 'An update child comment from beta';

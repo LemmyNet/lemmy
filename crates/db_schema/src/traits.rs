@@ -1,6 +1,5 @@
-use crate::newtypes::{CommunityId, PersonId};
+use crate::newtypes::{CommunityId, DbUrl, PersonId};
 use diesel::{result::Error, PgConnection};
-use url::Url;
 
 pub trait Crud {
   type Form;
@@ -166,7 +165,7 @@ pub trait ViewToVec {
 
 pub trait ApubActor {
   // TODO: this should be in a trait ApubObject (and implemented for Post, Comment, PrivateMessage as well)
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error>
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error>
   where
     Self: Sized;
   fn read_from_name(conn: &PgConnection, actor_name: &str) -> Result<Self, Error>

@@ -1,7 +1,7 @@
+use crate::structs::PostReportView;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::post_aggregates::PostAggregates,
-  limit_and_offset,
+  aggregates::structs::PostAggregates,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
     community,
@@ -22,21 +22,8 @@ use lemmy_db_schema::{
     post_report::PostReport,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct PostReportView {
-  pub post_report: PostReport,
-  pub post: Post,
-  pub community: CommunitySafe,
-  pub creator: PersonSafe,
-  pub post_creator: PersonSafeAlias1,
-  pub creator_banned_from_community: bool,
-  pub my_vote: Option<i16>,
-  pub counts: PostAggregates,
-  pub resolver: Option<PersonSafeAlias2>,
-}
 
 type PostReportViewTuple = (
   PostReport,
@@ -111,7 +98,7 @@ impl PostReportView {
       ))
       .first::<PostReportViewTuple>(conn)?;
 
-    let my_vote = if post_like.is_none() { None } else { post_like };
+    let my_vote = post_like;
 
     Ok(Self {
       post_report,
@@ -304,8 +291,7 @@ impl ViewToVec for PostReportView {
 mod tests {
   use crate::post_report_view::{PostReportQueryBuilder, PostReportView};
   use lemmy_db_schema::{
-    aggregates::post_aggregates::PostAggregates,
-    establish_unpooled_connection,
+    aggregates::structs::PostAggregates,
     source::{
       community::*,
       person::*,
@@ -313,6 +299,7 @@ mod tests {
       post_report::{PostReport, PostReportForm},
     },
     traits::{Crud, Joinable, Reportable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 
@@ -413,6 +400,7 @@ mod tests {
         updated: None,
         banner: None,
         hidden: false,
+        posting_restricted_to_mods: false,
         published: inserted_community.published,
       },
       creator: PersonSafe {

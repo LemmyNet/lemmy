@@ -2,23 +2,20 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
   mentions::collect_non_local_mentions,
+  objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
-    objects::{
-      note::{Note, SourceCompat},
-      tombstone::Tombstone,
-    },
+    objects::{note::Note, tombstone::Tombstone},
     Source,
   },
   PostOrComment,
 };
 use activitystreams_kinds::{object::NoteType, public};
 use chrono::NaiveDateTime;
-use html2md::parse_html;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
-  values::MediaTypeHtml,
+  values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
@@ -50,7 +47,7 @@ impl Deref for ApubComment {
 
 impl From<Comment> for ApubComment {
   fn from(c: Comment) -> Self {
-    ApubComment { 0: c }
+    ApubComment(c)
   }
 }
 
@@ -58,6 +55,7 @@ impl From<Comment> for ApubComment {
 impl ApubObject for ApubComment {
   type DataType = LemmyContext;
   type ApubType = Note;
+  type DbType = Comment;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -119,8 +117,8 @@ impl ApubObject for ApubComment {
       to: vec![public()],
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
-      media_type: Some(MediaTypeHtml::Html),
-      source: SourceCompat::Lemmy(Source::new(self.content.clone())),
+      media_type: Some(MediaTypeMarkdownOrHtml::Html),
+      source: Some(Source::new(self.content.clone())),
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -151,6 +149,7 @@ impl ApubObject for ApubComment {
     })
     .await??;
     check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
+    verify_is_remote_object(note.id.inner())?;
     verify_person_in_community(
       &note.attributed_to,
       &community.into(),
@@ -179,11 +178,7 @@ impl ApubObject for ApubComment {
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 
-    let content = if let SourceCompat::Lemmy(source) = &note.source {
-      source.content.clone()
-    } else {
-      parse_html(&note.content)
-    };
+    let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
     let content_slurs_removed = remove_slurs(&content, &context.settings().slur_regex());
 
     let form = CommentForm {
@@ -218,6 +213,7 @@ pub(crate) mod tests {
     protocol::tests::file_to_json_object,
   };
   use assert_json_diff::assert_json_include;
+  use html2md::parse_html;
   use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 

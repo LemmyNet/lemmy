@@ -1,26 +1,22 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
-  is_admin,
   site::{EditSite, SiteResponse},
-  site_description_length_check,
+  utils::{blocking, get_local_user_view_from_jwt, is_admin, site_description_length_check},
 };
 use lemmy_db_schema::{
-  diesel_option_overwrite,
-  diesel_option_overwrite_to_url,
-  naive_now,
   source::{
     local_user::LocalUser,
     site::{Site, SiteForm},
   },
   traits::Crud,
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  ListingType,
 };
-use lemmy_db_views::site_view::SiteView;
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
-use std::default::Default;
+use std::{default::Default, str::FromStr};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -36,9 +32,6 @@ impl PerformCrud for EditSite {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    check_slurs_opt(&data.name, &context.settings().slur_regex())?;
-    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
-
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
@@ -50,8 +43,28 @@ impl PerformCrud for EditSite {
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
+    check_slurs_opt(&data.name, &context.settings().slur_regex())?;
+    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
+
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;
+    }
+
+    // Make sure if applications are required, that there is an application questionnaire
+    if data.require_application.unwrap_or(false)
+      && application_question.as_ref().unwrap_or(&None).is_none()
+    {
+      return Err(LemmyError::from_message("application_question_required"));
+    }
+
+    if let Some(default_post_listing_type) = &data.default_post_listing_type {
+      // only allow all or local as default listing types
+      let val = ListingType::from_str(default_post_listing_type);
+      if val != Ok(ListingType::All) && val != Ok(ListingType::Local) {
+        return Err(LemmyError::from_message(
+          "invalid_default_post_listing_type",
+        ));
+      }
     }
 
     let site_form = SiteForm {
@@ -70,6 +83,8 @@ impl PerformCrud for EditSite {
       application_question,
       private_instance: data.private_instance,
       default_theme: data.default_theme.clone(),
+      default_post_listing_type: data.default_post_listing_type.clone(),
+      legal_information: data.legal_information.clone(),
       ..SiteForm::default()
     };
 

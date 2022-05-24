@@ -1,5 +1,9 @@
 use crate::protocol::Source;
+use anyhow::anyhow;
 use html2md::parse_html;
+use lemmy_apub_lib::values::MediaTypeMarkdownOrHtml;
+use lemmy_utils::{settings::structs::Settings, LemmyError};
+use url::Url;
 
 pub mod comment;
 pub mod community;
@@ -8,14 +12,43 @@ pub mod person;
 pub mod post;
 pub mod private_message;
 
-pub(crate) fn get_summary_from_string_or_source(
-  raw: &Option<String>,
+pub(crate) fn read_from_string_or_source(
+  content: &str,
+  media_type: &Option<MediaTypeMarkdownOrHtml>,
+  source: &Option<Source>,
+) -> String {
+  if let Some(s) = source {
+    // markdown sent by lemmy in source field
+    s.content.clone()
+  } else if media_type == &Some(MediaTypeMarkdownOrHtml::Markdown) {
+    // markdown sent by peertube in content field
+    content.to_string()
+  } else {
+    // otherwise, convert content html to markdown
+    parse_html(content)
+  }
+}
+
+pub(crate) fn read_from_string_or_source_opt(
+  content: &Option<String>,
+  media_type: &Option<MediaTypeMarkdownOrHtml>,
   source: &Option<Source>,
 ) -> Option<String> {
-  if let Some(source) = &source {
-    Some(source.content.clone())
+  content
+    .as_ref()
+    .map(|content| read_from_string_or_source(content, media_type, source))
+}
+
+/// When for example a Post is made in a remote community, the community will send it back,
+/// wrapped in Announce. If we simply receive this like any other federated object, overwrite the
+/// existing, local Post. In particular, it will set the field local = false, so that the object
+/// can't be fetched from the Activitypub HTTP endpoint anymore (which only serves local objects).
+pub(crate) fn verify_is_remote_object(id: &Url) -> Result<(), LemmyError> {
+  let local_domain = Settings::get().get_hostname_without_port()?;
+  if id.domain() == Some(&local_domain) {
+    Err(anyhow!("cant accept local object from remote instance").into())
   } else {
-    raw.as_ref().map(|s| parse_html(s))
+    Ok(())
   }
 }
 
@@ -26,23 +59,22 @@ pub(crate) mod tests {
     r2d2::{ConnectionManager, Pool},
     PgConnection,
   };
+  use lemmy_api_common::request::build_user_agent;
   use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{
-    establish_unpooled_connection,
-    get_database_url_from_env,
     source::secret::Secret,
+    utils::{establish_unpooled_connection, get_database_url_from_env},
   };
   use lemmy_utils::{
     rate_limit::{rate_limiter::RateLimiter, RateLimit},
-    request::build_user_agent,
     settings::structs::Settings,
     LemmyError,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
+  use parking_lot::Mutex;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use std::sync::Arc;
-  use tokio::sync::Mutex;
 
   // TODO: would be nice if we didnt have to use a full context for tests.
   //       or at least write a helper function so this code is shared with main.rs

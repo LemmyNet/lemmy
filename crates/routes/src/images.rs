@@ -12,12 +12,11 @@ use actix_web::{
 };
 use anyhow::anyhow;
 use futures::stream::{Stream, StreamExt};
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, LemmyError};
+use lemmy_utils::{claims::Claims, rate_limit::RateLimit, LemmyError, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
   cfg
@@ -67,7 +66,7 @@ fn adapt_request(
 
   let client_request = client
     .request(request.method().clone(), url)
-    .timeout(Duration::from_secs(30));
+    .timeout(REQWEST_TIMEOUT);
 
   request
     .headers()

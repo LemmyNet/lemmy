@@ -1,7 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
-use lemmy_api_common::blocking;
-use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, DbPool};
+use lemmy_api_common::utils::blocking;
+use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use serde::{Deserialize, Deserializer};
 use std::net::IpAddr;
@@ -14,7 +14,6 @@ mod context;
 pub mod fetcher;
 pub mod http;
 pub(crate) mod mentions;
-pub mod migrations;
 pub mod objects;
 pub mod protocol;
 
@@ -130,6 +129,18 @@ where
   })
 }
 
+pub(crate) fn deserialize_skip_error<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+  T: Deserialize<'de> + Default,
+  D: Deserializer<'de>,
+{
+  let result = Deserialize::deserialize(deserializer);
+  Ok(match result {
+    Ok(o) => o,
+    Err(_) => Default::default(),
+  })
+}
+
 pub enum EndpointType {
   Community,
   Person,
@@ -201,11 +212,12 @@ async fn insert_activity(
   local: bool,
   sensitive: bool,
   pool: &DbPool,
-) -> Result<(), LemmyError> {
+) -> Result<bool, LemmyError> {
   let ap_id = ap_id.to_owned().into();
-  blocking(pool, move |conn| {
-    Activity::insert(conn, ap_id, activity, local, sensitive)
-  })
-  .await??;
-  Ok(())
+  Ok(
+    blocking(pool, move |conn| {
+      Activity::insert(conn, ap_id, activity, local, sensitive)
+    })
+    .await??,
+  )
 }

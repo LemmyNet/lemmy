@@ -1,17 +1,14 @@
-use crate::{traits::ApubObject, APUB_JSON_CONTENT_TYPE};
+use crate::{traits::ApubObject, utils::fetch_object_http};
 use anyhow::anyhow;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use diesel::NotFound;
-use lemmy_utils::{request::retry, settings::structs::Settings, LemmyError};
-use reqwest::StatusCode;
+use lemmy_utils::{settings::structs::Settings, LemmyError};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt::{Debug, Display, Formatter},
   marker::PhantomData,
-  time::Duration,
 };
-use tracing::info;
 use url::Url;
 
 /// We store Url on the heap because it is quite large (88 bytes).
@@ -36,6 +33,10 @@ where
 
   pub fn inner(&self) -> &Url {
     &self.0
+  }
+
+  pub fn into_inner(self) -> Url {
+    *self.0
   }
 
   /// Fetches an activitypub object, either from local database (if possible), or over http.
@@ -101,35 +102,22 @@ where
     request_counter: &mut i32,
     db_object: Option<Kind>,
   ) -> Result<Kind, LemmyError> {
-    // dont fetch local objects this way
-    debug_assert!(self.0.domain() != Some(&Settings::get().hostname));
-    info!("Fetching remote object {}", self.to_string());
+    let res = fetch_object_http(&self.0, client, request_counter).await;
 
-    *request_counter += 1;
-    if *request_counter > Settings::get().http_fetch_retry_limit {
-      return Err(LemmyError::from(anyhow!("Request retry limit reached")));
-    }
-
-    let res = retry(|| {
-      client
-        .get(self.0.as_str())
-        .header("Accept", APUB_JSON_CONTENT_TYPE)
-        .timeout(Duration::from_secs(60))
-        .send()
-    })
-    .await?;
-
-    if res.status() == StatusCode::GONE {
-      if let Some(db_object) = db_object {
-        db_object.delete(data).await?;
+    if let Err(e) = &res {
+      // TODO: very ugly
+      if e.message == Some("410".to_string()) {
+        if let Some(db_object) = db_object {
+          db_object.delete(data).await?;
+        }
+        return Err(anyhow!("Fetched remote object {} which was deleted", self).into());
       }
-      return Err(anyhow!("Fetched remote object {} which was deleted", self).into());
     }
 
-    let res2: Kind::ApubType = res.json().await?;
+    let res2 = res?;
 
     Kind::verify(&res2, self.inner(), data, request_counter).await?;
-    Ok(Kind::from_apub(res2, data, request_counter).await?)
+    Kind::from_apub(res2, data, request_counter).await
   }
 }
 

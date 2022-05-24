@@ -1,3 +1,4 @@
+use crate::structs::CommunityPersonBanView;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -8,13 +9,6 @@ use lemmy_db_schema::{
   },
   traits::ToSafe,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommunityPersonBanView {
-  pub community: CommunitySafe,
-  pub person: PersonSafe,
-}
 
 impl CommunityPersonBanView {
   pub fn get(

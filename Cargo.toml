@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_server"
-version = "0.16.1"
+version = "0.16.3"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -14,7 +14,8 @@ doctest = false
 debug = 0
 
 [features]
-console = ["console-subscriber"]
+console = ["console-subscriber", "opentelemetry", "opentelemetry-otlp", "tracing-opentelemetry",
+    "reqwest-tracing/opentelemetry_0_16"]
 default = []
 
 [workspace]
@@ -35,43 +36,33 @@ members = [
 ]
 
 [dependencies]
-lemmy_api = { version = "=0.16.1", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.16.1", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.16.1", path = "./crates/apub" }
-lemmy_apub_lib = { version = "=0.16.1", path = "./crates/apub_lib" }
-lemmy_utils = { version = "=0.16.1", path = "./crates/utils" }
-lemmy_db_schema = { version = "=0.16.1", path = "./crates/db_schema" }
-lemmy_db_views = { version = "=0.16.1", path = "./crates/db_views" }
-lemmy_db_views_moderator = { version = "=0.16.1", path = "./crates/db_views_moderator" }
-lemmy_db_views_actor = { version = "=0.16.1", path = "./crates/db_views_actor" }
-lemmy_api_common = { version = "=0.16.1", path = "crates/api_common" }
-lemmy_websocket = { version = "=0.16.1", path = "./crates/websocket" }
-lemmy_routes = { version = "=0.16.1", path = "./crates/routes" }
+lemmy_api = { version = "=0.16.3", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.16.3", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.16.3", path = "./crates/apub" }
+lemmy_apub_lib = { version = "=0.16.3", path = "./crates/apub_lib" }
+lemmy_utils = { version = "=0.16.3", path = "./crates/utils" }
+lemmy_db_schema = { version = "=0.16.3", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.16.3", path = "crates/api_common" }
+lemmy_websocket = { version = "=0.16.3", path = "./crates/websocket" }
+lemmy_routes = { version = "=0.16.3", path = "./crates/routes" }
 diesel = "1.4.8"
 diesel_migrations = "1.4.0"
-chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.131", features = ["derive"] }
+serde = { version = "1.0.136", features = ["derive"] }
 actix = "0.13.0"
-actix-web = { version = "4.0.0", default-features = false, features = ["macros", "rustls"] }
-tracing = "0.1.29"
-tracing-actix-web = { version = "0.5.0", default-features = false }
+actix-web = { version = "4.0.1", default-features = false, features = ["macros", "rustls"] }
+tracing = "0.1.32"
+tracing-actix-web = { version = "0.5.1", default-features = false }
 tracing-error = "0.2.0"
 tracing-log = "0.1.2"
-tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
-console-subscriber = { version = "0.1.0", optional = true }
-strum = "0.23.0"
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 url = { version = "2.2.2", features = ["serde"] }
-openssl = "0.10.38"
-http-signature-normalization-actix = { version = "0.6.0-beta.6", default-features = false, features = ["sha-2"] }
-tokio = { version = "1.14.0", features = ["sync", "tracing"] }
-anyhow = "1.0.51"
-reqwest = { version = "0.11.7", features = ["json"] }
-reqwest-middleware = "0.1.3"
-reqwest-tracing = { version = "0.2.0", features = ["opentelemetry_0_16"] }
-actix-rt = { version = "2.5.0", default-features = false }
-serde_json = { version = "1.0.72", features = ["preserve_order"] }
+reqwest = { version = "0.11.10", features = ["json"] }
+reqwest-middleware = "0.1.5"
+reqwest-tracing = "0.2.1"
 clokwerk = "0.3.5"
-doku = "0.10.2"
-opentelemetry = { version = "0.16", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.9"
-tracing-opentelemetry = "0.16"
+doku = "0.11.0"
+parking_lot = "0.12.0"
+console-subscriber = { version = "0.1.3", optional = true }
+opentelemetry = { version = "0.17.0", features = ["rt-tokio"], optional = true }
+opentelemetry-otlp = { version = "0.10.0", optional = true }
+tracing-opentelemetry = { version = "0.17.2", optional = true }

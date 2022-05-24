@@ -1,9 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  get_local_user_view_from_jwt,
   person::{DeletePrivateMessage, PrivateMessageResponse},
+  utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_apub::activities::deletion::send_apub_delete_private_message;
 use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};

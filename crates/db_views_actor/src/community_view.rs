@@ -1,10 +1,7 @@
-use crate::{community_moderator_view::CommunityModeratorView, person_view::PersonViewSafe};
+use crate::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  aggregates::community_aggregates::CommunityAggregates,
-  functions::hot_rank,
-  fuzzy_search,
-  limit_and_offset,
+  aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
@@ -12,18 +9,10 @@ use lemmy_db_schema::{
     community_block::CommunityBlock,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommunityView {
-  pub community: CommunitySafe,
-  pub subscribed: bool,
-  pub blocked: bool,
-  pub counts: CommunityAggregates,
-}
 
 type CommunityViewTuple = (
   CommunitySafe,
@@ -74,28 +63,29 @@ impl CommunityView {
     })
   }
 
-  // TODO: this function is only used by is_mod_or_admin() below, can probably be merged
-  fn community_mods_and_admins(
-    conn: &PgConnection,
-    community_id: CommunityId,
-  ) -> Result<Vec<PersonId>, Error> {
-    let mut mods_and_admins: Vec<PersonId> = Vec::new();
-    mods_and_admins.append(
-      &mut CommunityModeratorView::for_community(conn, community_id)
-        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?,
-    );
-    mods_and_admins.append(
-      &mut PersonViewSafe::admins(conn).map(|v| v.into_iter().map(|a| a.person.id).collect())?,
-    );
-    Ok(mods_and_admins)
-  }
-
   pub fn is_mod_or_admin(
     conn: &PgConnection,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> bool {
-    Self::community_mods_and_admins(conn, community_id)
+    let is_mod = CommunityModeratorView::for_community(conn, community_id)
+      .map(|v| {
+        v.into_iter()
+          .map(|m| m.moderator.id)
+          .collect::<Vec<PersonId>>()
+      })
+      .unwrap_or_default()
+      .contains(&person_id);
+    if is_mod {
+      return true;
+    }
+
+    PersonViewSafe::admins(conn)
+      .map(|v| {
+        v.into_iter()
+          .map(|a| a.person.id)
+          .collect::<Vec<PersonId>>()
+      })
       .unwrap_or_default()
       .contains(&person_id)
   }

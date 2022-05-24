@@ -1,8 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use bcrypt::verify;
-use lemmy_api_common::{blocking, get_local_user_view_from_jwt, person::*};
-use lemmy_db_schema::source::{comment::Comment, person::Person, post::Post};
+use lemmy_api_common::{
+  person::{DeleteAccount, DeleteAccountResponse},
+  utils::{delete_user_account, get_local_user_view_from_jwt},
+};
+use lemmy_apub::protocol::activities::deletion::delete_user::DeleteUser;
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
@@ -30,23 +33,8 @@ impl PerformCrud for DeleteAccount {
       return Err(LemmyError::from_message("password_incorrect"));
     }
 
-    // Comments
-    let person_id = local_user_view.person.id;
-    let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
-    blocking(context.pool(), permadelete)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
-
-    // Posts
-    let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
-    blocking(context.pool(), permadelete)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
-
-    blocking(context.pool(), move |conn| {
-      Person::delete_account(conn, person_id)
-    })
-    .await??;
+    delete_user_account(local_user_view.person.id, context.pool()).await?;
+    DeleteUser::send(&local_user_view.person.into(), context).await?;
 
     Ok(DeleteAccountResponse {})
   }

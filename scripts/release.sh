@@ -1,6 +1,8 @@
 #!/bin/sh
 #git checkout main
 
+pushd ../docker/prod/
+
 # Creating the new tag
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
@@ -21,6 +23,8 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   echo $new_tag > "VERSION"
   git add "VERSION"
   git commit -m"Updating VERSION"
+  git tag $new_tag
+  git push origin $new_tag
   git push
   popd
 fi

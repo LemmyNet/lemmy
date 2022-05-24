@@ -1,9 +1,10 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
+  objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Page, PageType},
+      page::{Attachment, AttributedTo, Page, PageType},
       tombstone::Tombstone,
     },
     ImageObject,
@@ -12,24 +13,24 @@ use crate::{
 };
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
-  values::{MediaTypeHtml, MediaTypeMarkdown},
+  values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
   self,
   source::{
     community::Community,
+    moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
     person::Person,
     post::{Post, PostForm},
   },
   traits::Crud,
 };
 use lemmy_utils::{
-  request::fetch_site_data,
   utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
   LemmyError,
 };
@@ -49,7 +50,7 @@ impl Deref for ApubPost {
 
 impl From<Post> for ApubPost {
   fn from(p: Post) -> Self {
-    ApubPost { 0: p }
+    ApubPost(p)
   }
 }
 
@@ -57,6 +58,7 @@ impl From<Post> for ApubPost {
 impl ApubObject for ApubPost {
   type DataType = LemmyContext;
   type ApubType = Page;
+  type DbType = Post;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -99,24 +101,19 @@ impl ApubObject for ApubPost {
     })
     .await??;
 
-    let source = self.body.clone().map(|body| Source {
-      content: body,
-      media_type: MediaTypeMarkdown::Markdown,
-    });
-    let image = self.thumbnail_url.clone().map(ImageObject::new);
-
     let page = Page {
-      r#type: PageType::Page,
+      kind: PageType::Page,
       id: ObjectId::new(self.ap_id.clone()),
-      attributed_to: ObjectId::new(creator.actor_id),
+      attributed_to: AttributedTo::Lemmy(ObjectId::new(creator.actor_id)),
       to: vec![community.actor_id.into(), public()],
       cc: vec![],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
-      media_type: Some(MediaTypeHtml::Html),
-      source,
+      media_type: Some(MediaTypeMarkdownOrHtml::Html),
+      source: self.body.clone().map(Source::new),
       url: self.url.clone().map(|u| u.into()),
-      image,
+      attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
+      image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
@@ -141,13 +138,14 @@ impl ApubObject for ApubPost {
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
+      verify_is_remote_object(page.id.inner())?;
     };
 
     let community = page.extract_community(context, request_counter).await?;
     check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
-    verify_person_in_community(&page.attributed_to, &community, context, request_counter).await?;
+    verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
-    verify_domains_match(page.attributed_to.inner(), page.id.inner())?;
+    verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_is_public(&page.to, &page.cc)?;
     Ok(())
   }
@@ -159,46 +157,97 @@ impl ApubObject for ApubPost {
     request_counter: &mut i32,
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
-      .attributed_to
+      .creator()?
       .dereference(context, context.client(), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
-    let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
-    let (metadata_res, pictrs_thumbnail) = if let Some(url) = &page.url {
-      fetch_site_data(context.client(), &context.settings(), Some(url)).await
-    } else {
-      (None, thumbnail_url)
-    };
-    let (embed_title, embed_description, embed_html) = metadata_res
-      .map(|u| (u.title, u.description, u.html))
-      .unwrap_or((None, None, None));
+    let form = if !page.is_mod_action(context).await? {
+      let url = if let Some(attachment) = page.attachment.first() {
+        // url as sent by Lemmy (new)
+        Some(attachment.href.clone())
+      } else if page.kind == PageType::Video {
+        // we cant display videos directly, so insert a link to external video page
+        Some(page.id.inner().clone())
+      } else {
+        // url sent by lemmy (old)
+        page.url
+      };
+      let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
+      let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
+        fetch_site_data(context.client(), &context.settings(), Some(url)).await
+      } else {
+        (None, thumbnail_url)
+      };
+      let (embed_title, embed_description, embed_html) = metadata_res
+        .map(|u| (u.title, u.description, u.html))
+        .unwrap_or((None, None, None));
+      let body_slurs_removed =
+        read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
+          .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
 
-    let body_slurs_removed = page
-      .source
-      .as_ref()
-      .map(|s| remove_slurs(&s.content, &context.settings().slur_regex()));
-    let form = PostForm {
-      name: page.name,
-      url: page.url.map(|u| u.into()),
-      body: body_slurs_removed,
-      creator_id: creator.id,
-      community_id: community.id,
-      removed: None,
-      locked: page.comments_enabled.map(|e| !e),
-      published: page.published.map(|u| u.naive_local()),
-      updated: page.updated.map(|u| u.naive_local()),
-      deleted: None,
-      nsfw: page.sensitive,
-      stickied: page.stickied,
-      embed_title,
-      embed_description,
-      embed_html,
-      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
-      ap_id: Some(page.id.into()),
-      local: Some(false),
+      PostForm {
+        name: page.name.clone(),
+        url: url.map(Into::into),
+        body: body_slurs_removed,
+        creator_id: creator.id,
+        community_id: community.id,
+        removed: None,
+        locked: page.comments_enabled.map(|e| !e),
+        published: page.published.map(|u| u.naive_local()),
+        updated: page.updated.map(|u| u.naive_local()),
+        deleted: None,
+        nsfw: page.sensitive,
+        stickied: page.stickied,
+        embed_title,
+        embed_description,
+        embed_html,
+        thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
+        ap_id: Some(page.id.clone().into()),
+        local: Some(false),
+      }
+    } else {
+      // if is mod action, only update locked/stickied fields, nothing else
+      PostForm {
+        name: page.name.clone(),
+        creator_id: creator.id,
+        community_id: community.id,
+        locked: page.comments_enabled.map(|e| !e),
+        stickied: page.stickied,
+        updated: page.updated.map(|u| u.naive_local()),
+        ap_id: Some(page.id.clone().into()),
+        ..Default::default()
+      }
     };
+
+    // read existing, local post if any (for generating mod log)
+    let old_post = ObjectId::<ApubPost>::new(page.id.clone())
+      .dereference_local(context)
+      .await;
+
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;
+
+    // write mod log entries for sticky/lock
+    if Page::is_stickied_changed(&old_post, &page.stickied) {
+      let form = ModStickyPostForm {
+        mod_person_id: creator.id,
+        post_id: post.id,
+        stickied: Some(post.stickied),
+      };
+      blocking(context.pool(), move |conn| {
+        ModStickyPost::create(conn, &form)
+      })
+      .await??;
+    }
+    if Page::is_locked_changed(&old_post, &page.comments_enabled) {
+      let form = ModLockPostForm {
+        mod_person_id: creator.id,
+        post_id: post.id,
+        locked: Some(post.locked),
+      };
+      blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
+    }
+
     Ok(post.into())
   }
 }

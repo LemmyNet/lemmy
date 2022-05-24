@@ -18,15 +18,18 @@ use crate::{
   protocol::activities::community::remove_mod::RemoveMod,
 };
 use activitystreams_kinds::{activity::RemoveType, public};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ActorType},
 };
 use lemmy_db_schema::{
-  source::community::{CommunityModerator, CommunityModeratorForm},
-  traits::Joinable,
+  source::{
+    community::{CommunityModerator, CommunityModeratorForm},
+    moderator::{ModAddCommunity, ModAddCommunityForm},
+  },
+  traits::{Crud, Joinable},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -74,7 +77,14 @@ impl ActivityHandler for RemoveMod {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    verify_mod_action(
+      &self.actor,
+      self.object.inner(),
+      &community,
+      context,
+      request_counter,
+    )
+    .await?;
     verify_add_remove_moderator_target(&self.target, &community)?;
     Ok(())
   }
@@ -99,6 +109,23 @@ impl ActivityHandler for RemoveMod {
       CommunityModerator::leave(conn, &form)
     })
     .await??;
+
+    // write mod log
+    let actor = self
+      .actor
+      .dereference(context, context.client(), request_counter)
+      .await?;
+    let form = ModAddCommunityForm {
+      mod_person_id: actor.id,
+      other_person_id: remove_mod.id,
+      community_id: community.id,
+      removed: Some(true),
+    };
+    blocking(context.pool(), move |conn| {
+      ModAddCommunity::create(conn, &form)
+    })
+    .await??;
+
     // TODO: send websocket notification about removed mod
     Ok(())
   }

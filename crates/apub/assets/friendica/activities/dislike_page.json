@@ -1,0 +1,48 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "vcard": "http://www.w3.org/2006/vcard/ns#",
+      "dfrn": "http://purl.org/macgirvin/dfrn/1.0/",
+      "diaspora": "https://diasporafoundation.org/ns/",
+      "litepub": "http://litepub.social/ns#",
+      "toot": "http://joinmastodon.org/ns#",
+      "schema": "http://schema.org#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "sensitive": "as:sensitive",
+      "Hashtag": "as:Hashtag",
+      "directMessage": "litepub:directMessage",
+      "discoverable": "toot:discoverable",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value"
+    }
+  ],
+  "id": "https://pirati.ca/objects/ec054ce7-5762-3ce2-b3e4-87e268433367",
+  "type": "Dislike",
+  "actor": "https://pirati.ca/profile/heluecht",
+  "published": "2022-03-24T21:29:23Z",
+  "instrument": {
+    "type": "Service",
+    "name": "Friendica 'Siberian Iris' 2022.05-dev-1453",
+    "url": "https://pirati.ca"
+  },
+  "to": [
+    "https://pirati.ca/profile/test8",
+    "https://ds9.lemmy.ml/c/testcom"
+  ],
+  "cc": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://ds9.lemmy.ml/c/testcom/followers"
+  ],
+  "diaspora:guid": "ec054ce7-1862-3ce2-b3e4-870035437794",
+  "diaspora:like": "{\"author\":\"heluecht@pirati.ca\",\"guid\":\"ec054ce7-1862-3ce2-b3e4-870035437794\",\"parent_guid\":\"ec054ce7-2062-3bfa-8687-ca8313624820\",\"parent_type\":\"Post\",\"positive\":\"false\",\"author_signature\":\"KWp5AQ71Tn4kFgGxzgLDLQUvULKMtsb4DYwP\\/Ap9QNGStMQuKvYE2VBthRBaIvX9LmknZ3cBvuqKvNaL2Nj7B2R2Goa7\\/eWYDCogwafbp6Pj93vWvdy2+fGTkHGSxobnvgLvFIqv9IOy2Lk4QjWj7o64dUCiopR0OKjL8+vPM+l8iF+7bYeG+xSqy8SX8Fai5XOoNhy9anaJzK9ASLah8VeXKdfjGrvYsx2X\\/PaP+B8xFySP2XM95kGPKxyExi7Hk0j2igvjHqC2s3Cdg9+nwuUijnUycqGHUq3djMTLoPRjMHOJquZ1t2BNY575iRbYJTlteIgQkPHf50WALkzxn8zY5MkudBzffxm8B1Q6bnwoQHK8TR7KU2gMPwnQm6\\/ncygHuq1flVm3dqrF9xG6Cp2wC2SgTcErhrS\\/6in7FzrgBIOl570cxY0ovFICrE6rinuBdJkjfWYE3CZGCo6fVTAXUmje48c0611JmGD3PM6XQigFXGE32fjjaQoIkXf8TWI01kIqJDmZn80S6NXaYSrf9maWN1CB5gQ2E6B6Zk586sTZ2nnnJNol2KTkM1BPCTSMkrdiLtpjkUEGeo1tTe87oUzFHx++rgSO\\/lM94Dw5oN2jifGQquDBgIHY5ovxXVN3xrTgfrLEx+HWxdsiuIYpPx4lu4Qe0CVgZwPMqR4=\"}",
+  "object": "https://pirati.ca/objects/ec054ce7-2062-3bfa-8687-ca8313624820",
+  "signature": {
+    "type": "RsaSignature2017",
+    "nonce": "02cae41f51765647ceeac26de13e29757cb47b7da1b54703116a7ae185fe967e",
+    "creator": "https://pirati.ca/profile/heluecht#main-key",
+    "created": "2022-03-24T21:32:43Z",
+    "signatureValue": "C27zo2Ks9twwhMs3WndG3c8l6y6PVM/4fUZKIxHuh50eEx2g9hIRUD0GFgxR5Mbx76E0PDePbJtrEaad+H97USmylFYw+Opp12zAkpFMMsKQgZfSG6ARyKfn/AK6qn/+5gmxAvX5qTMw29Qsbhh9w7mlyYfqZb+A5xmdxi/kV7FAa5AEK9UR8wsCb6FeHhpRPBmSGFqluFyPY0m8uYHwLILZac+KkvQz2+dVQkpt5S+C2N4POxFYQwd1mEoone4HQQtSEfnrlbxLbyCgLKM4Vf6SJnzzyufTzurSySp4kmsnTxfUKsR200TUAozwWBde9UyEjdcv/j1m/ZX18YHzwE4OwAGF6G1LCDAXcwzmH3RvjJwGsFuTz68lZJ5qcAbHvsGxymPJf2RTfLS0I7E2JWZ/yStcwtm9siHNBhusUq7lwJWWkwYw4iuoZBHNT24gj0uTbj82jB5UAIlFyIXbIbR8Di70Jg2ucvQK36XKm6/6TGntkoJ3VGa1qIhB/r0KiVTBPwPSrf8v0sHB6zc3osirpyG8Gzd+FVMs11UaGDQOIur4Bu1/StmuWdh3VFwFE9t4XaR1OEIRexYh4717B8ImfPbSTtyqsc8mE0Hvp+3wkLaD4l889Zu0BGNK9KXvT2ifKGhCg/Q8mM89oNnb4Fsl3Uu5fp8GtE3RPBt4a/g="
+  }
+}

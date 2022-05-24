@@ -1,5 +1,4 @@
 use crate::{
-  naive_now,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::post::{
     Post,
@@ -12,6 +11,7 @@ use crate::{
     PostSavedForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
+  utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use url::Url;
@@ -50,6 +50,8 @@ impl Post {
     use crate::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
+      .filter(deleted.eq(false))
+      .filter(removed.eq(false))
       .then_order_by(published.desc())
       .then_order_by(stickied.desc())
       .limit(20)
@@ -259,13 +261,13 @@ impl DeleteableOrRemoveable for Post {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{
       community::{Community, CommunityForm},
       person::*,
       post::*,
     },
     traits::{Crud, Likeable, Readable, Saveable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 

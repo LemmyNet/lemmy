@@ -10,7 +10,7 @@ use crate::{
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
 use activitystreams_kinds::activity::FollowType;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

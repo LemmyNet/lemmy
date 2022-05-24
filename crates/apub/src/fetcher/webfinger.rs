@@ -5,10 +5,7 @@ use lemmy_apub_lib::{
   traits::{ActorType, ApubObject},
 };
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::{
-  request::{retry, RecvError},
-  LemmyError,
-};
+use lemmy_utils::{request::retry, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -58,10 +55,7 @@ where
 
   let response = retry(|| context.client().get(&fetch_url).send()).await?;
 
-  let res: WebfingerResponse = response
-    .json()
-    .await
-    .map_err(|e| RecvError(e.to_string()))?;
+  let res: WebfingerResponse = response.json().await.map_err(LemmyError::from)?;
 
   let links: Vec<Url> = res
     .links
@@ -73,8 +67,7 @@ where
         false
       }
     })
-    .map(|l| l.href.clone())
-    .flatten()
+    .filter_map(|l| l.href.clone())
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)

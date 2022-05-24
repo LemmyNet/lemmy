@@ -1,9 +1,7 @@
+use crate::structs::PostView;
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::post_aggregates::PostAggregates,
-  functions::hot_rank,
-  fuzzy_search,
-  limit_and_offset,
+  aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{
     community,
@@ -25,25 +23,11 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
-use serde::{Deserialize, Serialize};
 use tracing::debug;
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct PostView {
-  pub post: Post,
-  pub creator: PersonSafe,
-  pub community: CommunitySafe,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub counts: PostAggregates,
-  pub subscribed: bool,      // Left join to CommunityFollower
-  pub saved: bool,           // Left join to PostSaved
-  pub read: bool,            // Left join to PostRead
-  pub creator_blocked: bool, // Left join to PersonBlock
-  pub my_vote: Option<i16>,  // Left join to PostLike
-}
 
 type PostViewTuple = (
   Post,
@@ -446,21 +430,29 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
-      SortType::MostComments => query.then_order_by(post_aggregates::comments.desc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
-      SortType::TopAll => query.then_order_by(post_aggregates::score.desc()),
+      SortType::MostComments => query
+        .then_order_by(post_aggregates::comments.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopAll => query
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopYear => query
-        .filter(post::published.gt(now - 1.years()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.years()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopMonth => query
-        .filter(post::published.gt(now - 1.months()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.months()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopWeek => query
-        .filter(post::published.gt(now - 1.weeks()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.weeks()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::TopDay => query
-        .filter(post::published.gt(now - 1.days()))
-        .then_order_by(post_aggregates::score.desc()),
+        .filter(post_aggregates::published.gt(now - 1.days()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
@@ -506,8 +498,7 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
   use lemmy_db_schema::{
-    aggregates::post_aggregates::PostAggregates,
-    establish_unpooled_connection,
+    aggregates::structs::PostAggregates,
     source::{
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -516,6 +507,7 @@ mod tests {
       post::*,
     },
     traits::{Blockable, Crud, Likeable},
+    utils::establish_unpooled_connection,
     ListingType,
     SortType,
   };
@@ -695,6 +687,7 @@ mod tests {
         updated: None,
         banner: None,
         hidden: false,
+        posting_restricted_to_mods: false,
         published: inserted_community.published,
       },
       counts: PostAggregates {

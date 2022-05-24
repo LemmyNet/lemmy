@@ -1,10 +1,12 @@
-use crate::protocol::{
-  objects::chat_message::{ChatMessage, ChatMessageType},
-  Source,
+use crate::{
+  objects::read_from_string_or_source,
+  protocol::{
+    objects::chat_message::{ChatMessage, ChatMessageType},
+    Source,
+  },
 };
 use chrono::NaiveDateTime;
-use html2md::parse_html;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
@@ -38,7 +40,7 @@ impl Deref for ApubPrivateMessage {
 
 impl From<PrivateMessage> for ApubPrivateMessage {
   fn from(pm: PrivateMessage) -> Self {
-    ApubPrivateMessage { 0: pm }
+    ApubPrivateMessage(pm)
   }
 }
 
@@ -46,6 +48,7 @@ impl From<PrivateMessage> for ApubPrivateMessage {
 impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
   type ApubType = ChatMessage;
+  type DbType = PrivateMessage;
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -130,16 +133,11 @@ impl ApubObject for ApubPrivateMessage {
     let recipient = note.to[0]
       .dereference(context, context.client(), request_counter)
       .await?;
-    let content = if let Some(source) = &note.source {
-      source.content.clone()
-    } else {
-      parse_html(&note.content)
-    };
 
     let form = PrivateMessageForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content,
+      content: read_from_string_or_source(&note.content, &None, &note.source),
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,

@@ -1,9 +1,7 @@
+use crate::structs::CommentView;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::comment_aggregates::CommentAggregates,
-  functions::hot_rank,
-  fuzzy_search,
-  limit_and_offset,
+  aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
   schema::{
     comment,
@@ -28,25 +26,10 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct CommentView {
-  pub comment: Comment,
-  pub creator: PersonSafe,
-  pub recipient: Option<PersonSafeAlias1>, // Left joins to comment and person
-  pub post: Post,
-  pub community: CommunitySafe,
-  pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: bool,                    // Left join to CommunityFollower
-  pub saved: bool,                         // Left join to CommentSaved
-  pub creator_blocked: bool,               // Left join to PersonBlock
-  pub my_vote: Option<i16>,                // Left join to CommentLike
-}
 
 type CommentViewTuple = (
   Comment,
@@ -544,10 +527,10 @@ impl ViewToVec for CommentView {
 mod tests {
   use crate::comment_view::*;
   use lemmy_db_schema::{
-    aggregates::comment_aggregates::CommentAggregates,
-    establish_unpooled_connection,
+    aggregates::structs::CommentAggregates,
     source::{comment::*, community::*, person::*, person_block::PersonBlockForm, post::*},
     traits::{Blockable, Crud, Likeable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 
@@ -709,6 +692,7 @@ mod tests {
         updated: None,
         banner: None,
         hidden: false,
+        posting_restricted_to_mods: false,
         published: inserted_community.published,
       },
       counts: CommentAggregates {

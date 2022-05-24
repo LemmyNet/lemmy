@@ -1,11 +1,8 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  honeypot_check,
-  password_length_check,
-  person::*,
-  send_verification_email,
+  person::{LoginResponse, Register},
+  utils::{blocking, honeypot_check, password_length_check, send_verification_email},
 };
 use lemmy_apub::{
   generate_followers_url,
@@ -15,6 +12,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  aggregates::structs::PersonAggregates,
   newtypes::CommunityId,
   source::{
     community::{
@@ -32,7 +30,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Followable, Joinable},
 };
-use lemmy_db_views_actor::person_view::PersonViewSafe;
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   apub::generate_actor_keypair,
   claims::Claims,
@@ -272,11 +271,20 @@ impl PerformCrud for Register {
       );
     } else {
       if email_verification {
+        let local_user_view = LocalUserView {
+          local_user: inserted_local_user,
+          person: inserted_person,
+          counts: PersonAggregates::default(),
+        };
+        // we check at the beginning of this method that email is set
+        let email = local_user_view
+          .local_user
+          .email
+          .clone()
+          .expect("email was provided");
         send_verification_email(
-          inserted_local_user.id,
-          // we check at the beginning of this method that email is set
-          &inserted_local_user.email.expect("email was provided"),
-          &inserted_person.name,
+          &local_user_view,
+          &email,
           context.pool(),
           &context.settings(),
         )

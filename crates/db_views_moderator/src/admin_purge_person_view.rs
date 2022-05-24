@@ -1,6 +1,6 @@
+use crate::structs::AdminPurgePersonView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   newtypes::PersonId,
   schema::{admin_purge_person, person},
   source::{
@@ -8,14 +8,8 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AdminPurgePersonView {
-  pub admin_purge_person: AdminPurgePerson,
-  pub admin: PersonSafe,
-}
 
 type AdminPurgePersonViewTuple = (AdminPurgePerson, PersonSafe);
 

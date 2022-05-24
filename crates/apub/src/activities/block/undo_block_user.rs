@@ -12,7 +12,7 @@ use crate::{
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -22,7 +22,7 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},
-    moderator::{ModBan, ModBanForm},
+    moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
   traits::{Bannable, Crud},
@@ -136,14 +136,18 @@ impl ActivityHandler for UndoBlockUser {
         .await??;
 
         // write to mod log
-        let form = ModBanForm {
+        let form = ModBanFromCommunityForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
+          community_id: community.id,
           reason: self.object.summary,
           banned: Some(false),
           expires,
         };
-        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+        blocking(context.pool(), move |conn| {
+          ModBanFromCommunity::create(conn, &form)
+        })
+        .await??;
       }
     }
 

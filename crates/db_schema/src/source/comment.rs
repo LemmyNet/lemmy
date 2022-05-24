@@ -1,9 +1,8 @@
-use crate::{
-  newtypes::{CommentId, DbUrl, PersonId, PostId},
-  schema::{comment, comment_alias_1, comment_like, comment_saved},
-  source::post::Post,
-};
+use crate::newtypes::{CommentId, DbUrl, PersonId, PostId};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "full")]
+use crate::schema::{comment, comment_alias_1, comment_like, comment_saved};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -12,11 +11,10 @@ use serde::{Deserialize, Serialize};
 // )
 // SELECT * FROM MyTree;
 
-#[derive(
-  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
-)]
-#[belongs_to(Post)]
-#[table_name = "comment"]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
+#[cfg_attr(feature = "full", table_name = "comment")]
 pub struct Comment {
   pub id: CommentId,
   pub creator_id: PersonId,
@@ -32,11 +30,10 @@ pub struct Comment {
   pub local: bool,
 }
 
-#[derive(
-  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
-)]
-#[belongs_to(Post)]
-#[table_name = "comment_alias_1"]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
+#[cfg_attr(feature = "full", table_name = "comment_alias_1")]
 pub struct CommentAlias1 {
   pub id: CommentId,
   pub creator_id: PersonId,
@@ -52,8 +49,9 @@ pub struct CommentAlias1 {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Default)]
-#[table_name = "comment"]
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "comment")]
 pub struct CommentForm {
   pub creator_id: PersonId,
   pub post_id: PostId,
@@ -68,9 +66,10 @@ pub struct CommentForm {
   pub local: Option<bool>,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Clone)]
-#[belongs_to(Comment)]
-#[table_name = "comment_like"]
+#[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Comment))]
+#[cfg_attr(feature = "full", table_name = "comment_like")]
 pub struct CommentLike {
   pub id: i32,
   pub person_id: PersonId,
@@ -80,8 +79,9 @@ pub struct CommentLike {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "comment_like"]
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "comment_like")]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
@@ -89,9 +89,10 @@ pub struct CommentLikeForm {
   pub score: i16,
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Comment)]
-#[table_name = "comment_saved"]
+#[derive(PartialEq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", belongs_to(Comment))]
+#[cfg_attr(feature = "full", table_name = "comment_saved")]
 pub struct CommentSaved {
   pub id: i32,
   pub comment_id: CommentId,
@@ -99,8 +100,8 @@ pub struct CommentSaved {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset)]
-#[table_name = "comment_saved"]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "comment_saved")]
 pub struct CommentSavedForm {
   pub comment_id: CommentId,
   pub person_id: PersonId,

@@ -1,0 +1,49 @@
+version: '2.2'
+
+services:
+  postgres:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+    restart: always
+
+  lemmy:
+    image: dessalines/lemmy:0.16.3
+    ports:
+      - "127.0.0.1:8536:8536"
+      - "127.0.0.1:6669:6669"
+    restart: always
+    environment:
+      - RUST_LOG="warn,lemmy_server=info,lemmy_api=info,lemmy_api_common=info,lemmy_api_crud=info,lemmy_apub=info,lemmy_db_schema=info,lemmy_db_views=info,lemmy_db_views_actor=info,lemmy_db_views_moderator=info,lemmy_routes=info,lemmy_utils=info,lemmy_websocket=info"
+    volumes:
+      - ./lemmy.hjson:/config/config.hjson
+    depends_on:
+      - postgres
+      - pictrs
+
+  lemmy-ui:
+    image: dessalines/lemmy-ui:0.16.3
+    ports:
+      - "127.0.0.1:1235:1234"
+    restart: always
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_EXTERNAL_HOST=localhost:8536
+      - LEMMY_HTTPS=true
+    depends_on: 
+      - lemmy
+
+  pictrs:
+    image: asonix/pictrs:0.3.1
+    ports: 
+      - "127.0.0.1:8537:8080"
+      - "127.0.0.1:6670:6669"
+    user: 991:991
+    volumes:
+      - ./volumes/pictrs:/mnt
+    restart: always
+

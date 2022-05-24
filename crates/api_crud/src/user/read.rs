@@ -1,18 +1,13 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_private_instance,
-  get_local_user_view_from_jwt_opt,
-  person::*,
-  resolve_actor_identifier,
+  person::{GetPersonDetails, GetPersonDetailsResponse},
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
-use lemmy_db_schema::{from_opt_str_to_opt_enum, source::person::Person, SortType};
+use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
+use lemmy_db_schema::source::person::Person;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
-use lemmy_db_views_actor::{
-  community_moderator_view::CommunityModeratorView,
-  person_view::PersonViewSafe,
-};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
 use lemmy_utils::{ConnectionId, LemmyError};
 use lemmy_websocket::LemmyContext;
 
@@ -41,20 +36,19 @@ impl PerformCrud for GetPersonDetails {
       .as_ref()
       .map(|t| t.local_user.show_read_posts);
 
-    let sort: Option<SortType> = from_opt_str_to_opt_enum(&data.sort);
-
     let person_details_id = match data.person_id {
       Some(id) => id,
       None => {
-        let name = data
-          .username
-          .to_owned()
-          .unwrap_or_else(|| "admin".to_string());
-
-        resolve_actor_identifier::<Person>(&name, context.pool())
-          .await
-          .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
-          .id
+        if let Some(username) = &data.username {
+          resolve_actor_identifier::<ApubPerson, Person>(username, context)
+            .await
+            .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
+            .id
+        } else {
+          return Err(LemmyError::from_message(
+            "couldnt_find_that_username_or_email",
+          ));
+        }
       }
     };
 
@@ -67,6 +61,7 @@ impl PerformCrud for GetPersonDetails {
     })
     .await??;
 
+    let sort = data.sort;
     let page = data.page;
     let limit = data.limit;
     let saved_only = data.saved_only;

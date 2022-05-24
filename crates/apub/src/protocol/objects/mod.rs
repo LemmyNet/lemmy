@@ -71,7 +71,27 @@ mod tests {
 
   #[test]
   fn test_parse_object_friendica() {
-    test_json::<Person>("assets/friendica/objects/person.json").unwrap();
-    test_json::<Note>("assets/friendica/objects/note.json").unwrap();
+    test_json::<Person>("assets/friendica/objects/person_1.json").unwrap();
+    test_json::<Person>("assets/friendica/objects/person_2.json").unwrap();
+    test_json::<Page>("assets/friendica/objects/page_1.json").unwrap();
+    test_json::<Page>("assets/friendica/objects/page_2.json").unwrap();
+    test_json::<Note>("assets/friendica/objects/note_1.json").unwrap();
+    test_json::<Note>("assets/friendica/objects/note_2.json").unwrap();
+  }
+
+  #[test]
+  fn test_parse_object_gnusocial() {
+    test_json::<Person>("assets/gnusocial/objects/person.json").unwrap();
+    test_json::<Group>("assets/gnusocial/objects/group.json").unwrap();
+    test_json::<Page>("assets/gnusocial/objects/page.json").unwrap();
+    test_json::<Note>("assets/gnusocial/objects/note.json").unwrap();
+  }
+
+  #[test]
+  fn test_parse_object_peertube() {
+    test_json::<Person>("assets/peertube/objects/person.json").unwrap();
+    test_json::<Group>("assets/peertube/objects/group.json").unwrap();
+    test_json::<Page>("assets/peertube/objects/video.json").unwrap();
+    test_json::<Note>("assets/peertube/objects/note.json").unwrap();
   }
 }

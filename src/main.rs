@@ -9,30 +9,33 @@ use diesel::{
 };
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
-use lemmy_api_common::{blocking, check_private_instance_and_federation_enabled};
+use lemmy_api_common::{
+  request::build_user_agent,
+  utils::{blocking, check_private_instance_and_federation_enabled},
+};
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_apub_lib::activity_queue::create_activity_queue;
-use lemmy_db_schema::{get_database_url_from_env, source::secret::Secret};
+use lemmy_db_schema::{source::secret::Secret, utils::get_database_url_from_env};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
   api_routes,
   code_migrations::run_advanced_migrations,
-  init_tracing,
+  init_logging,
   root_span_builder::QuieterRootSpanBuilder,
   scheduled_tasks,
 };
 use lemmy_utils::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  request::build_user_agent,
   settings::structs::Settings,
   LemmyError,
+  REQWEST_TIMEOUT,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
+use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
-use tokio::sync::Mutex;
+use std::{env, sync::Arc, thread};
 use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
@@ -51,7 +54,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let settings = Settings::init().expect("Couldn't initialize settings.");
 
-  init_tracing(settings.opentelemetry_url.as_deref())?;
+  init_logging(settings.opentelemetry_url.as_deref())?;
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {
@@ -96,7 +99,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let client = Client::builder()
     .user_agent(build_user_agent(&settings))
-    .timeout(Duration::from_secs(10))
+    .timeout(REQWEST_TIMEOUT)
     .build()?;
 
   let client = ClientBuilder::new(client).with(TracingMiddleware).build();
@@ -135,6 +138,7 @@ async fn main() -> Result<(), LemmyError> {
       .wrap(actix_web::middleware::Logger::default())
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
+      .app_data(Data::new(rate_limiter.clone()))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))

@@ -10,7 +10,8 @@ use crate::{
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use futures::future::join_all;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   traits::{ActivityHandler, ApubObject},
@@ -97,7 +98,7 @@ impl ApubObject for ApubCommunityOutbox {
   async fn from_apub(
     apub: Self::ApubType,
     data: &Self::DataType,
-    request_counter: &mut i32,
+    _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() > 20 {
@@ -108,14 +109,23 @@ impl ApubObject for ApubCommunityOutbox {
     // Lemmy versions, or from other software which we cant parse. In that case, we simply skip the
     // item and only parse the ones that work.
     let data = Data::new(data.1.clone());
-    for activity in outbox_activities {
-      let verify = activity.verify(&data, request_counter).await;
-      if verify.is_ok() {
-        activity.receive(&data, request_counter).await.ok();
+    // process items in parallel, to avoid long delay from fetch_site_metadata() and other processing
+    join_all(outbox_activities.into_iter().map(|activity| {
+      async {
+        // use separate request counter for each item, otherwise there will be problems with
+        // parallel processing
+        let request_counter = &mut 0;
+        let verify = activity.verify(&data, request_counter).await;
+        if verify.is_ok() {
+          activity.receive(&data, request_counter).await.ok();
+        }
       }
-    }
+    }))
+    .await;
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityOutbox { 0: vec![] })
+    Ok(ApubCommunityOutbox(Vec::new()))
   }
+
+  type DbType = ();
 }

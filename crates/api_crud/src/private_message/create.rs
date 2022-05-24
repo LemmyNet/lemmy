@@ -1,11 +1,14 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_person_block,
-  get_local_user_view_from_jwt,
   person::{CreatePrivateMessage, PrivateMessageResponse},
-  send_email_to_user,
+  utils::{
+    blocking,
+    check_person_block,
+    get_local_user_view_from_jwt,
+    get_user_lang,
+    send_email_to_user,
+  },
 };
 use lemmy_apub::{
   generate_local_apub_endpoint,
@@ -19,7 +22,7 @@ use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageForm},
   traits::Crud,
 };
-use lemmy_db_views::local_user_view::LocalUserView;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{utils::remove_slurs, ConnectionId, LemmyError};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
@@ -106,11 +109,16 @@ impl PerformCrud for CreatePrivateMessage {
         LocalUserView::read_person(conn, recipient_id)
       })
       .await??;
+      let lang = get_user_lang(&local_recipient);
+      let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
       send_email_to_user(
         &local_recipient,
-        "Private Message from",
-        "Private Message",
-        &content_slurs_removed,
+        &lang.notification_private_message_subject(&local_recipient.person.name),
+        &lang.notification_private_message_body(
+          &inbox_link,
+          &content_slurs_removed,
+          &local_recipient.person.name,
+        ),
         &context.settings(),
       );
     }

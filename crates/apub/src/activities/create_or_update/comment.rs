@@ -9,11 +9,12 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::{blocking, check_post_deleted_or_removed};
+use lemmy_api_common::utils::{blocking, check_post_deleted_or_removed};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -21,8 +22,12 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
+  source::{
+    comment::{CommentLike, CommentLikeForm},
+    community::Community,
+    post::Post,
+  },
+  traits::{Crud, Likeable},
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
@@ -66,6 +71,13 @@ impl CreateOrUpdateComment {
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
       .tag
       .iter()
+      .filter_map(|t| {
+        if let MentionOrValue::Mention(t) = t {
+          Some(t)
+        } else {
+          None
+        }
+      })
       .map(|t| t.href.clone())
       .map(ObjectId::new)
       .collect();
@@ -113,6 +125,19 @@ impl ActivityHandler for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
+
+    // author likes their own comment by default
+    let like_form = CommentLikeForm {
+      comment_id: comment.id,
+      post_id: comment.post_id,
+      person_id: comment.creator_id,
+      score: 1,
+    };
+    blocking(context.pool(), move |conn: &'_ _| {
+      CommentLike::like(conn, &like_form)
+    })
+    .await??;
+
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let recipients = get_comment_notif_recipients(
       &self.actor,

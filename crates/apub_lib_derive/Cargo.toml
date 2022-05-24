@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_apub_lib_derive"
-version = "0.16.1"
+version = "0.16.3"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -11,9 +11,9 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 proc-macro = true
 
 [dev-dependencies]
-trybuild = { version = "1.0.53", features = ["diff"] }
+trybuild = { version = "1.0.57", features = ["diff"] }
 
 [dependencies]
-proc-macro2 = "1.0.33"
-syn = "1.0.82"
-quote = "1.0.10"
+proc-macro2 = "1.0.36"
+syn = "1.0.90"
+quote = "1.0.17"

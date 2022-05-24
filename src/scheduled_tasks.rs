@@ -2,7 +2,7 @@
 use clokwerk::{Scheduler, TimeUnits};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
-use lemmy_db_schema::{source::activity::Activity, DbPool};
+use lemmy_db_schema::{source::activity::Activity, utils::DbPool};
 use lemmy_utils::LemmyError;
 use std::{thread, time::Duration};
 use tracing::info;
@@ -13,12 +13,14 @@ pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
 
   let conn = pool.get()?;
   active_counts(&conn);
+  update_banned_when_expired(&conn);
 
   // On startup, reindex the tables non-concurrently
   // TODO remove this for now, since it slows down startup a lot on lemmy.ml
   reindex_aggregates_tables(&conn, true);
   scheduler.every(1.hour()).run(move || {
     active_counts(&conn);
+    update_banned_when_expired(&conn);
     reindex_aggregates_tables(&conn, true);
   });
 
@@ -90,4 +92,14 @@ fn active_counts(conn: &PgConnection) {
   }
 
   info!("Done.");
+}
+
+/// Set banned to false after ban expires
+fn update_banned_when_expired(conn: &PgConnection) {
+  info!("Updating banned column if it expires ...");
+  let update_ban_expires_stmt =
+    "update person set banned = false where banned = true and ban_expires < now()";
+  sql_query(update_ban_expires_stmt)
+    .execute(conn)
+    .expect("update banned when expires");
 }

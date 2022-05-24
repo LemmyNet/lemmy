@@ -12,7 +12,7 @@ use crate::{
   protocol::activities::community::update::UpdateCommunity,
 };
 use activitystreams_kinds::{activity::UpdateType, public};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -65,7 +65,14 @@ impl ActivityHandler for UpdateCommunity {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(&self.actor, &community, context, request_counter).await?;
+    verify_mod_action(
+      &self.actor,
+      self.object.id.inner(),
+      &community,
+      context,
+      request_counter,
+    )
+    .await?;
     ApubCommunity::verify(
       &self.object,
       &community.actor_id.clone().into(),

@@ -1,19 +1,17 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  build_federated_instances,
-  get_local_user_settings_view_from_jwt_opt,
   person::Register,
-  site::*,
+  site::{CreateSite, GetSite, GetSiteResponse, MyUserInfo},
+  utils::{blocking, build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
-use lemmy_db_views::site_view::SiteView;
-use lemmy_db_views_actor::{
-  community_block_view::CommunityBlockView,
-  community_follower_view::CommunityFollowerView,
-  community_moderator_view::CommunityModeratorView,
-  person_block_view::PersonBlockView,
-  person_view::PersonViewSafe,
+use lemmy_db_views::structs::SiteView;
+use lemmy_db_views_actor::structs::{
+  CommunityBlockView,
+  CommunityFollowerView,
+  CommunityModeratorView,
+  PersonBlockView,
+  PersonViewSafe,
 };
 use lemmy_utils::{version, ConnectionId, LemmyError};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
@@ -69,6 +67,7 @@ impl PerformCrud for GetSite {
             application_question: setup.application_question.to_owned(),
             private_instance: setup.private_instance,
             default_theme: setup.default_theme.to_owned(),
+            default_post_listing_type: setup.default_post_listing_type.to_owned(),
             auth: admin_jwt,
           };
           create_site.perform(context, websocket_id).await?;
@@ -134,12 +133,8 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances = build_federated_instances(
-      context.pool(),
-      &context.settings().federation,
-      &context.settings().hostname,
-    )
-    .await?;
+    let federated_instances =
+      build_federated_instances(context.pool(), &context.settings()).await?;
 
     Ok(GetSiteResponse {
       site_view,

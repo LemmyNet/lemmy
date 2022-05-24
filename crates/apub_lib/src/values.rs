@@ -42,11 +42,19 @@ pub enum MediaTypeMarkdown {
   Markdown,
 }
 
-/// Media type for HTML text/
+/// Media type for HTML text.
 ///
 /// <https://www.iana.org/assignments/media-types/media-types.xhtml>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum MediaTypeHtml {
+  #[serde(rename = "text/html")]
+  Html,
+}
+/// Media type which allows both markdown and HTML.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub enum MediaTypeMarkdownOrHtml {
+  #[serde(rename = "text/markdown")]
+  Markdown,
   #[serde(rename = "text/html")]
   Html,
 }

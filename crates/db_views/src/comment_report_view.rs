@@ -1,7 +1,7 @@
+use crate::structs::CommentReportView;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::comment_aggregates::CommentAggregates,
-  limit_and_offset,
+  aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
@@ -24,22 +24,8 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct CommentReportView {
-  pub comment_report: CommentReport,
-  pub comment: Comment,
-  pub post: Post,
-  pub community: CommunitySafe,
-  pub creator: PersonSafe,
-  pub comment_creator: PersonSafeAlias1,
-  pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub my_vote: Option<i16>,                // Left join to CommentLike
-  pub resolver: Option<PersonSafeAlias2>,
-}
 
 type CommentReportViewTuple = (
   CommentReport,
@@ -120,11 +106,7 @@ impl CommentReportView {
       ))
       .first::<CommentReportViewTuple>(conn)?;
 
-    let my_vote = if comment_like.is_none() {
-      None
-    } else {
-      comment_like
-    };
+    let my_vote = comment_like;
 
     Ok(Self {
       comment_report,
@@ -325,10 +307,10 @@ impl ViewToVec for CommentReportView {
 mod tests {
   use crate::comment_report_view::{CommentReportQueryBuilder, CommentReportView};
   use lemmy_db_schema::{
-    aggregates::comment_aggregates::CommentAggregates,
-    establish_unpooled_connection,
+    aggregates::structs::CommentAggregates,
     source::{comment::*, comment_report::*, community::*, person::*, post::*},
     traits::{Crud, Joinable, Reportable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 
@@ -435,6 +417,7 @@ mod tests {
         updated: None,
         banner: None,
         hidden: false,
+        posting_restricted_to_mods: false,
         published: inserted_community.published,
       },
       creator: PersonSafe {

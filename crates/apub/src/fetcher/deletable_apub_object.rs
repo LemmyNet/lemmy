@@ -1,5 +1,5 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_queries::source::{
   comment::Comment_,
   community::Community_,

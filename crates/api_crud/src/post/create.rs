@@ -1,31 +1,32 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  check_community_deleted_or_removed,
-  get_local_user_view_from_jwt,
-  honeypot_check,
-  mark_post_as_read,
-  post::*,
+  post::{CreatePost, PostResponse},
+  request::fetch_site_data,
+  utils::{
+    blocking,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    get_local_user_view_from_jwt,
+    honeypot_check,
+    mark_post_as_read,
+  },
 };
 use lemmy_apub::{
-  fetcher::post_or_comment::PostOrComment,
   generate_local_apub_endpoint,
   objects::post::ApubPost,
-  protocol::activities::{
-    create_or_update::post::CreateOrUpdatePost,
-    voting::vote::{Vote, VoteType},
-    CreateOrUpdateType,
-  },
+  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
   EndpointType,
 };
 use lemmy_db_schema::{
-  source::post::{Post, PostForm, PostLike, PostLikeForm},
+  source::{
+    community::Community,
+    post::{Post, PostForm, PostLike, PostLikeForm},
+  },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
-  request::fetch_site_data,
   utils::{
     check_slurs,
     check_slurs_opt,
@@ -66,6 +67,22 @@ impl PerformCrud for CreatePost {
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
+
+    let community_id = data.community_id;
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
+    if community.posting_restricted_to_mods {
+      let community_id = data.community_id;
+      let is_mod = blocking(context.pool(), move |conn| {
+        CommunityView::is_mod_or_admin(conn, local_user_view.local_user.person_id, community_id)
+      })
+      .await?;
+      if !is_mod {
+        return Err(LemmyError::from_message("only_mods_can_post_in_community"));
+      }
+    }
 
     // Fetch post links and pictrs cached image
     let data_url = data.url.as_ref();
@@ -153,15 +170,6 @@ impl PerformCrud for CreatePost {
       apub_post.clone(),
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
-    let object = PostOrComment::Post(Box::new(apub_post));
-    Vote::send(
-      &object,
-      &local_user_view.person.clone().into(),
-      inserted_post.community_id,
-      VoteType::Like,
       context,
     )
     .await?;

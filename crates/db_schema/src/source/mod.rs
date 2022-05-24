@@ -1,3 +1,4 @@
+#[cfg(feature = "full")]
 pub mod activity;
 pub mod comment;
 pub mod comment_report;

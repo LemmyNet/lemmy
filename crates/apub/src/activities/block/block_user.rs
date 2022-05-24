@@ -16,7 +16,7 @@ use crate::{
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
-use lemmy_api_common::{blocking, remove_user_data, remove_user_data_in_community};
+use lemmy_api_common::utils::{blocking, remove_user_data, remove_user_data_in_community};
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
@@ -31,7 +31,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
-    moderator::{ModBan, ModBanForm},
+    moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
   traits::{Bannable, Crud, Followable},
@@ -133,7 +133,14 @@ impl ActivityHandler for BlockUser {
       }
       SiteOrCommunity::Community(community) => {
         verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-        verify_mod_action(&self.actor, &community, context, request_counter).await?;
+        verify_mod_action(
+          &self.actor,
+          self.object.inner(),
+          &community,
+          context,
+          request_counter,
+        )
+        .await?;
       }
     }
     Ok(())
@@ -206,14 +213,18 @@ impl ActivityHandler for BlockUser {
         }
 
         // write to mod log
-        let form = ModBanForm {
+        let form = ModBanFromCommunityForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
+          community_id: community.id,
           reason: self.summary,
           banned: Some(true),
           expires,
         };
-        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+        blocking(context.pool(), move |conn| {
+          ModBanFromCommunity::create(conn, &form)
+        })
+        .await??;
       }
     }
 

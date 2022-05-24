@@ -3,12 +3,12 @@ use crate::{
   protocol::objects::{group::Group, instance::Instance},
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
 };
-use lemmy_db_schema::{source::site::Site, DbPool};
+use lemmy_db_schema::{source::site::Site, utils::DbPool};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
@@ -34,6 +34,7 @@ pub enum InstanceOrGroup {
 impl ApubObject for SiteOrCommunity {
   type DataType = LemmyContext;
   type ApubType = InstanceOrGroup;
+  type DbType = ();
   type TombstoneType = ();
 
   #[tracing::instrument(skip_all)]

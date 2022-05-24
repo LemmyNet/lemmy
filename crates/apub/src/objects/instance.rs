@@ -1,11 +1,14 @@
 use crate::{
   check_is_apub_id_valid,
-  objects::get_summary_from_string_or_source,
-  protocol::{objects::instance::Instance, ImageObject, Source},
+  objects::read_from_string_or_source_opt,
+  protocol::{
+    objects::instance::{Instance, InstanceType},
+    ImageObject,
+    Source,
+  },
 };
-use activitystreams_kinds::actor::ServiceType;
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
@@ -13,8 +16,8 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  naive_now,
   source::site::{Site, SiteForm},
+  utils::naive_now,
 };
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
@@ -37,7 +40,7 @@ impl Deref for ApubSite {
 
 impl From<Site> for ApubSite {
   fn from(s: Site) -> Self {
-    ApubSite { 0: s }
+    ApubSite(s)
   }
 }
 
@@ -45,6 +48,7 @@ impl From<Site> for ApubSite {
 impl ApubObject for ApubSite {
   type DataType = LemmyContext;
   type ApubType = Instance;
+  type DbType = Site;
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -72,7 +76,7 @@ impl ApubObject for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let instance = Instance {
-      kind: ServiceType::Service,
+      kind: InstanceType::Service,
       id: ObjectId::new(self.actor_id()),
       name: self.name.clone(),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
@@ -118,8 +122,9 @@ impl ApubObject for ApubSite {
   ) -> Result<Self, LemmyError> {
     let site_form = SiteForm {
       name: apub.name.clone(),
-      sidebar: Some(get_summary_from_string_or_source(
+      sidebar: Some(read_from_string_or_source_opt(
         &apub.content,
+        &None,
         &apub.source,
       )),
       updated: apub.updated.map(|u| u.clone().naive_local()),

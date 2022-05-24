@@ -28,12 +28,13 @@ services:
       - otel
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.16.1
+    image: dessalines/lemmy-ui:0.16.3
     restart: always
     environment:
       - LEMMY_INTERNAL_HOST=lemmy:8536
       - LEMMY_EXTERNAL_HOST=localhost:1234
       - LEMMY_HTTPS=false
+      - LEMMY_UI_DEBUG=true
     depends_on: 
       - lemmy
 
@@ -51,7 +52,7 @@ services:
     restart: always
 
   pictrs:
-    image: asonix/pictrs:0.3.0-beta.12-r1
+    image: asonix/pictrs:0.3.1
     user: 991:991
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137

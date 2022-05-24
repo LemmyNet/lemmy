@@ -4,7 +4,7 @@ use crate::{
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
 };
 use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,

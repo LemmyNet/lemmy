@@ -1,0 +1,42 @@
+{
+  "type": "Person",
+  "streams": [],
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "gs": "https://www.gnu.org/software/social/ns#"
+    },
+    {
+      "litepub": "http://litepub.social/ns#"
+    },
+    {
+      "chatMessage": "litepub:chatMessage"
+    },
+    {
+      "inConversation": {
+        "@id": "gs:inConversation",
+        "@type": "@id"
+      }
+    }
+  ],
+  "id": "https://instance.gnusocial.test/actor/42",
+  "inbox": "https://instance.gnusocial.test/actor/42/inbox.json",
+  "outbox": "https://instance.gnusocial.test/actor/42/outbox.json",
+  "following": "https://instance.gnusocial.test/actor/42/subscriptions",
+  "followers": "https://instance.gnusocial.test/actor/42/subscribers",
+  "liked": "https://instance.gnusocial.test/actor/42/favourites",
+  "preferredUsername": "diogo",
+  "publicKey": {
+    "id": "https://instance.gnusocial.test/actor/42#public-key",
+    "owner": "https://instance.gnusocial.test/actor/42",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArBB+3ldwA2qC1hQTtIho\n9KYhvvMlPdydn8dA6OlyIQ3Jy57ADt2e144jDSY5RQ3esmzWm2QqsI8rAsZsAraO\nl2+855y7Fw35WH4GBc7PJ6MLAEvMk1YWeS/rttXaDzh2i4n/AXkMuxDjS1IBqw2w\nn0qTz2sdGcBJ+mop6AB9Qt2lseBc5IW040jSnfLEDDIaYgoc5m2yRsjGKItOh3BG\njGHDb6JB9FySToSMGIt0/tE5k06wfvAxtkxX5dfGeKtciBpC2MGT169iyMIOM8DN\nFhSl8mowtV1NJQ7nN692USrmNvSJjqe9ugPCDPPvwQ5A6A61Qrgpz5pav/o5Sz69\nzQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "name": "Diogo Peralta Cordeiro",
+  "published": "2022-02-23T17:20:30+00:00",
+  "updated": "2022-02-25T02:12:48+00:00",
+  "url": "https://instance.gnusocial.test/@diogo",
+  "endpoints": {
+    "sharedInbox": "https://instance.gnusocial.test/inbox.json"
+  }
+}

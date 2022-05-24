@@ -115,7 +115,7 @@ pub struct FederationConfig {
   #[default(false)]
   pub enabled: bool,
   /// Allows and blocks are described here:
-  /// https://join-lemmy.org/docs/en/federation/administration.html///instance-allowlist-and-blocklist
+  /// https://join-lemmy.org/docs/en/administration/federation_getting_started.html
   ///
   /// list of instances with which federation is allowed
   #[default(None)]
@@ -170,6 +170,11 @@ pub struct RateLimitConfig {
   /// Interval length for comment limit, in seconds
   #[default(600)]
   pub comment_per_second: i32,
+  #[default(6)]
+  pub search: i32,
+  /// Interval length for search limit, in seconds
+  #[default(600)]
+  pub search_per_second: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -212,4 +217,6 @@ pub struct SetupConfig {
   pub private_instance: Option<bool>,
   #[default(None)]
   pub default_theme: Option<String>,
+  #[default(None)]
+  pub default_post_listing_type: Option<String>,
 }

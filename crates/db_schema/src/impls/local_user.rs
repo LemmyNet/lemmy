@@ -1,9 +1,9 @@
 use crate::{
-  naive_now,
   newtypes::LocalUserId,
   schema::local_user::dsl::*,
   source::local_user::{LocalUser, LocalUserForm},
   traits::Crud,
+  utils::naive_now,
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};

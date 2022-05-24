@@ -13,13 +13,13 @@ use crate::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
 };
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_db_views_actor::community_follower_view::CommunityFollowerView;
+use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
   utils::{convert_datetime, markdown_to_html},
   LemmyError,
@@ -41,7 +41,7 @@ impl Deref for ApubCommunity {
 
 impl From<Community> for ApubCommunity {
   fn from(c: Community) -> Self {
-    ApubCommunity { 0: c }
+    ApubCommunity(c)
   }
 }
 
@@ -49,6 +49,7 @@ impl From<Community> for ApubCommunity {
 impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
   type ApubType = Group;
+  type DbType = Community;
   type TombstoneType = Tombstone;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -62,7 +63,7 @@ impl ApubObject for ApubCommunity {
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       blocking(context.pool(), move |conn| {
-        Community::read_from_apub_id(conn, object_id)
+        Community::read_from_apub_id(conn, &object_id.into())
       })
       .await??
       .map(Into::into),
@@ -84,7 +85,7 @@ impl ApubObject for ApubCommunity {
       kind: GroupType::Group,
       id: ObjectId::new(self.actor_id()),
       preferred_username: self.name.clone(),
-      name: self.title.clone(),
+      name: Some(self.title.clone()),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
       source: self.description.clone().map(Source::new),
       icon: self.icon.clone().map(ImageObject::new),
@@ -102,6 +103,7 @@ impl ApubObject for ApubCommunity {
       public_key: self.get_public_key()?,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
+      posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
     };
     Ok(group)
   }

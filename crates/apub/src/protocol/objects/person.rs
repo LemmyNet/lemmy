@@ -12,6 +12,7 @@ use url::Url;
 pub enum UserTypes {
   Person,
   Service,
+  Organization,
 }
 
 #[skip_serializing_none]
@@ -31,6 +32,7 @@ pub struct Person {
   /// displayname
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   /// user avatar
   pub(crate) icon: Option<ImageObject>,

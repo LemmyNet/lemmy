@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_api_common"
-version = "0.16.1"
+version = "0.16.3"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -12,17 +12,29 @@ name = "lemmy_api_common"
 path = "src/lib.rs"
 doctest = false
 
+[features]
+full = ["diesel", "tracing", "rosetta-i18n", "chrono", "actix-web", "lemmy_utils",
+    "lemmy_db_views/full", "lemmy_db_views_actor/full", "lemmy_db_views_moderator/full",
+    "percent-encoding", "encoding", "reqwest-middleware", "webpage"]
+
 [dependencies]
-lemmy_db_views = { version = "=0.16.1", path = "../db_views" }
-lemmy_db_views_moderator = { version = "=0.16.1", path = "../db_views_moderator" }
-lemmy_db_views_actor = { version = "=0.16.1", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.16.1", path = "../db_schema" }
-lemmy_utils = { version = "=0.16.1", path = "../utils" }
-serde = { version = "1.0.131", features = ["derive"] }
-diesel = "1.4.8"
-actix-web = { version = "4.0.0", default-features = false, features = ["cookies"] }
-chrono = { version = "0.4.19", features = ["serde"] }
-serde_json = { version = "1.0.72", features = ["preserve_order"] }
-tracing = "0.1.29"
+lemmy_db_views = { version = "=0.16.3", path = "../db_views" }
+lemmy_db_views_moderator = { version = "=0.16.3", path = "../db_views_moderator" }
+lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.16.3", path = "../db_schema", default-features = false }
+lemmy_utils = { version = "=0.16.3", path = "../utils", optional = true }
+serde = { version = "1.0.136", features = ["derive"] }
 url = "2.2.2"
-itertools = "0.10.3"
+actix-web = { version = "4.0.1", default-features = false, features = ["cookies"], optional = true }
+chrono = { version = "0.4.19", features = ["serde"], optional = true }
+diesel = { version = "1.4.8", optional = true }
+tracing = { version = "0.1.32", optional = true }
+rosetta-i18n = { version = "0.1.2", optional = true }
+percent-encoding = { version = "2.1.0", optional = true }
+encoding = { version = "0.2.33", optional = true }
+reqwest-middleware = { version = "0.1.5", optional = true }
+webpage = { version = "1.4.0", default-features = false, features = ["serde"], optional = true }
+
+[dev-dependencies]
+actix-rt = { version = "2.7.0", default-features = false }
+reqwest = { version = "0.11.10", features = ["json"] }

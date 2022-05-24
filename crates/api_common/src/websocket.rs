@@ -1,8 +1,8 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{CommunityId, PostId};
-use lemmy_utils::Sensitive;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserJoin {
   pub auth: Sensitive<String>,
 }
@@ -12,7 +12,7 @@ pub struct UserJoinResponse {
   pub joined: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityJoin {
   pub community_id: CommunityId,
 }
@@ -22,7 +22,7 @@ pub struct CommunityJoinResponse {
   pub joined: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModJoin {
   pub community_id: CommunityId,
 }
@@ -32,7 +32,7 @@ pub struct ModJoinResponse {
   pub joined: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PostJoin {
   pub post_id: PostId,
 }

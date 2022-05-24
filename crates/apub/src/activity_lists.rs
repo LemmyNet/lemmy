@@ -16,7 +16,7 @@ use crate::{
         post::CreateOrUpdatePost,
         private_message::CreateOrUpdatePrivateMessage,
       },
-      deletion::{delete::Delete, undo_delete::UndoDelete},
+      deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
       following::{
         accept::AcceptFollowCommunity,
         follow::FollowCommunity,
@@ -25,12 +25,14 @@ use crate::{
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     objects::page::Page,
+    Id,
   },
 };
 use lemmy_apub_lib::traits::ActivityHandler;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
@@ -70,7 +72,7 @@ pub enum PersonInboxActivities {
 #[activity_handler(LemmyContext)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(CreateOrUpdatePost),
+  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
   Vote(Vote),
   UndoVote(UndoVote),
   Delete(Delete),
@@ -87,9 +89,11 @@ pub enum AnnouncableActivities {
 #[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
 #[serde(untagged)]
 #[activity_handler(LemmyContext)]
+#[allow(clippy::enum_variant_names)]
 pub enum SiteInboxActivities {
   BlockUser(BlockUser),
   UndoBlockUser(UndoBlockUser),
+  DeleteUser(DeleteUser),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -116,5 +120,25 @@ impl GetCommunity for AnnouncableActivities {
       Page(_) => unimplemented!(),
     };
     Ok(community)
+  }
+}
+
+impl Id for AnnouncableActivities {
+  fn id(&self) -> &Url {
+    use AnnouncableActivities::*;
+    match self {
+      CreateOrUpdateComment(c) => &c.id,
+      CreateOrUpdatePost(c) => &c.id,
+      Vote(v) => &v.id,
+      UndoVote(u) => &u.id,
+      Delete(d) => &d.id,
+      UndoDelete(u) => &u.id,
+      UpdateCommunity(u) => &u.id,
+      BlockUser(b) => &b.id,
+      UndoBlockUser(u) => &u.id,
+      AddMod(a) => &a.id,
+      RemoveMod(r) => &r.id,
+      Page(p) => p.id.inner(),
+    }
   }
 }

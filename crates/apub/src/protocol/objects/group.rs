@@ -4,13 +4,13 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  objects::{community::ApubCommunity, get_summary_from_string_or_source},
+  objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{objects::Endpoints, ImageObject, Source},
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
-use lemmy_db_schema::{naive_now, source::community::CommunityForm};
+use lemmy_db_schema::{source::community::CommunityForm, utils::naive_now};
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt},
   LemmyError,
@@ -29,13 +29,14 @@ pub struct Group {
   pub(crate) id: ObjectId<ApubCommunity>,
   /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
-  /// displayname
-  pub(crate) name: String,
   pub(crate) inbox: Url,
   pub(crate) followers: Url,
   pub(crate) public_key: PublicKey,
 
+  /// title
+  pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) icon: Option<ImageObject>,
   /// banner
@@ -44,6 +45,8 @@ pub struct Group {
   pub(crate) sensitive: Option<bool>,
   // lemmy extension
   pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
+  // lemmy extension
+  pub(crate) posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   pub(crate) endpoints: Option<Endpoints>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
@@ -61,17 +64,17 @@ impl Group {
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&self.preferred_username, slur_regex)?;
-    check_slurs(&self.name, slur_regex)?;
-    let description = get_summary_from_string_or_source(&self.summary, &self.source);
+    check_slurs_opt(&self.name, slur_regex)?;
+    let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
     check_slurs_opt(&description, slur_regex)?;
     Ok(())
   }
 
   pub(crate) fn into_form(self) -> CommunityForm {
     CommunityForm {
-      name: self.preferred_username,
-      title: self.name,
-      description: get_summary_from_string_or_source(&self.summary, &self.source),
+      name: self.preferred_username.clone(),
+      title: self.name.unwrap_or(self.preferred_username),
+      description: read_from_string_or_source_opt(&self.summary, &None, &self.source),
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),
@@ -88,6 +91,7 @@ impl Group {
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
       shared_inbox_url: Some(self.endpoints.map(|e| e.shared_inbox.into())),
+      posting_restricted_to_mods: self.posting_restricted_to_mods,
     }
   }
 }

@@ -1,4 +1,4 @@
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},

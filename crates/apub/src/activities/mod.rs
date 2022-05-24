@@ -7,7 +7,7 @@ use crate::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   activity_queue::send_activity,
   object_id::ObjectId,
@@ -15,10 +15,7 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::community::Community;
-use lemmy_db_views_actor::{
-  community_person_ban_view::CommunityPersonBanView,
-  community_view::CommunityView,
-};
+use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
@@ -86,15 +83,20 @@ fn verify_activity(id: &Url, actor: &Url, settings: &Settings) -> Result<(), Lem
 /// Verify that the actor is a community mod. This check is only run if the community is local,
 /// because in case of remote communities, admins can also perform mod actions. As admin status
 /// is not federated, we cant verify their actions remotely.
+///
+/// * `mod_id` - Activitypub ID of the mod or admin who performed the action
+/// * `object_id` - Activitypub ID of the actor or object that is being moderated
+/// * `community` - The community inside which moderation is happening
 #[tracing::instrument(skip_all)]
 pub(crate) async fn verify_mod_action(
-  actor_id: &ObjectId<ApubPerson>,
+  mod_id: &ObjectId<ApubPerson>,
+  object_id: &Url,
   community: &ApubCommunity,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   if community.local {
-    let actor = actor_id
+    let actor = mod_id
       .dereference(context, context.client(), request_counter)
       .await?;
 
@@ -102,13 +104,25 @@ pub(crate) async fn verify_mod_action(
     //       remote admins, it doesnt make any difference.
     let community_id = community.id;
     let actor_id = actor.id;
+
     let is_mod_or_admin = blocking(context.pool(), move |conn| {
       CommunityView::is_mod_or_admin(conn, actor_id, community_id)
     })
     .await?;
-    if !is_mod_or_admin {
-      return Err(LemmyError::from_message("Not a mod"));
+
+    // mod action was done either by a community mod or a local admin, so its allowed
+    if is_mod_or_admin {
+      return Ok(());
     }
+
+    // mod action comes from the same instance as the moderated object, so it was presumably done
+    // by an instance admin and is legitimate (admin status is not federated).
+    if mod_id.inner().domain() == object_id.domain() {
+      return Ok(());
+    }
+
+    // the user is not a valid mod
+    return Err(LemmyError::from_message("Not a mod"));
   }
   Ok(())
 }

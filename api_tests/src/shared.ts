@@ -11,6 +11,7 @@ import {
   PostResponse,
   SearchResponse,
   FollowCommunity,
+  FollowCommunityResponse,
   CommunityResponse,
   GetPostResponse,
   Register,
@@ -50,7 +51,6 @@ import {
   ResolveObjectResponse,
   ResolveObject,
   CreatePostReport,
-  PostReport,
   ListPostReports,
   PostReportResponse,
   ListPostReportsResponse,
@@ -58,6 +58,8 @@ import {
   CommentReportResponse,
   ListCommentReports,
   ListCommentReportsResponse,
+  DeleteAccount,
+  DeleteAccountResponse
 } from 'lemmy-js-client';
 
 export interface API {
@@ -131,6 +133,13 @@ export async function setupLogins() {
   gamma.auth = res[2].jwt;
   delta.auth = res[3].jwt;
   epsilon.auth = res[4].jwt;
+
+  // regstration applications are now enabled by default, need to disable them
+  await alpha.client.editSite({ require_application: false, auth: alpha.auth});
+  await beta.client.editSite({ require_application: false, auth: beta.auth});
+  await gamma.client.editSite({ require_application: false, auth: gamma.auth});
+  await delta.client.editSite({ require_application: false, auth: delta.auth});
+  await epsilon.client.editSite({ require_application: false, auth: epsilon.auth});
 }
 
 export async function createPost(
@@ -290,7 +299,7 @@ export async function banPersonFromSite(
   api: API,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_data: boolean
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
@@ -323,7 +332,7 @@ export async function followCommunity(
   api: API,
   follow: boolean,
   community_id: number
-): Promise<CommunityResponse> {
+): Promise<FollowCommunityResponse> {
   let form: FollowCommunity = {
     community_id,
     follow,
@@ -427,14 +436,10 @@ export async function createCommunity(
   name_: string = randomString(5)
 ): Promise<CommunityResponse> {
   let description = 'a sample description';
-  let icon = 'https://image.flaticon.com/icons/png/512/35/35896.png';
-  let banner = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
-    icon,
-    banner,
     nsfw: false,
     auth: api.auth,
   };
@@ -553,6 +558,16 @@ export async function saveUserSettings(
   return api.client.saveUserSettings(form);
 }
 
+export async function deleteUser(
+  api: API
+): Promise<DeleteAccountResponse> {
+  let form: DeleteAccount = {
+    auth: api.auth,
+    password
+  };
+  return api.client.deleteAccount(form);
+}
+
 export async function getSite(
   api: API
 ): Promise<GetSiteResponse> {
@@ -588,7 +603,7 @@ export async function unfollowRemotes(
   return siteRes;
 }
 
-export async function followBeta(api: API): Promise<CommunityResponse> {
+export async function followBeta(api: API): Promise<FollowCommunityResponse> {
   let betaCommunity = (await resolveBetaCommunity(api)).community;
   if (betaCommunity) {
     let follow = await followCommunity(api, true, betaCommunity.community.id);
@@ -599,7 +614,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 export async function reportPost(
   api: API,
   post_id: number,
-  reason: string,
+  reason: string
 ): Promise<PostReportResponse> {
   let form: CreatePostReport = {
     post_id,
@@ -619,7 +634,7 @@ export async function listPostReports(api: API): Promise<ListPostReportsResponse
 export async function reportComment(
   api: API,
   comment_id: number,
-  reason: string,
+  reason: string
 ): Promise<CommentReportResponse> {
   let form: CreateCommentReport = {
     comment_id,
@@ -656,4 +671,11 @@ export function randomString(length: number): string {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
+}
+
+export async function unfollows() {
+  await unfollowRemotes(alpha);
+  await unfollowRemotes(gamma);
+  await unfollowRemotes(delta);
+  await unfollowRemotes(epsilon);
 }

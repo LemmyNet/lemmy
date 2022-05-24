@@ -1,21 +1,14 @@
+use crate::structs::PersonViewSafe;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
-  aggregates::person_aggregates::PersonAggregates,
-  fuzzy_search,
-  limit_and_offset,
+  aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
   traits::{MaybeOptional, ToSafe, ViewToVec},
+  utils::{fuzzy_search, limit_and_offset},
   SortType,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PersonViewSafe {
-  pub person: PersonSafe,
-  pub counts: PersonAggregates,
-}
 
 type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
 

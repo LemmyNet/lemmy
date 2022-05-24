@@ -1,18 +1,17 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
-  mentions::Mention,
+  mentions::MentionOrValue,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_api_common::utils::blocking;
+use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeMarkdownOrHtml};
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
 use url::Url;
@@ -26,35 +25,18 @@ pub struct Note {
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  #[serde(default)]
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "crate::deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) in_reply_to: ObjectId<PostOrComment>,
 
-  pub(crate) media_type: Option<MediaTypeHtml>,
-  #[serde(default)]
-  pub(crate) source: SourceCompat,
+  pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
+  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
-  pub(crate) tag: Vec<Mention>,
-}
-
-/// Pleroma puts a raw string in the source, so we have to handle it here for deserialization to work
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
-pub(crate) enum SourceCompat {
-  Lemmy(Source),
-  Other(Value),
-  None,
-}
-
-impl Default for SourceCompat {
-  fn default() -> Self {
-    SourceCompat::None
-  }
+  pub(crate) tag: Vec<MentionOrValue>,
 }
 
 impl Note {

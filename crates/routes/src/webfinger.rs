@@ -1,6 +1,6 @@
 use actix_web::{web, web::Query, HttpResponse};
 use anyhow::Context;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -39,8 +39,7 @@ async fn get_webfinger_response(
     .settings()
     .webfinger_regex()
     .captures(&info.resource)
-    .map(|c| c.get(1))
-    .flatten()
+    .and_then(|c| c.get(1))
     .context(location_info!())?
     .as_str()
     .to_string();

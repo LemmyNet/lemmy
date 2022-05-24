@@ -1,3 +1,4 @@
+use crate::structs::CommunityModeratorView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -8,13 +9,6 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommunityModeratorView {
-  pub community: CommunitySafe,
-  pub moderator: PersonSafe,
-}
 
 type CommunityModeratorViewTuple = (CommunitySafe, PersonSafe);
 

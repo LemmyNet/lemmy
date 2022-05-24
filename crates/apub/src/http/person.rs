@@ -13,7 +13,7 @@ use crate::{
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::LemmyError;

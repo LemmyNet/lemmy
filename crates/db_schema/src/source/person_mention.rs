@@ -1,15 +1,13 @@
-use crate::{
-  newtypes::{CommentId, PersonId, PersonMentionId},
-  schema::person_mention,
-  source::comment::Comment,
-};
+use crate::newtypes::{CommentId, PersonId, PersonMentionId};
 use serde::{Deserialize, Serialize};
 
-#[derive(
-  Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize,
-)]
-#[belongs_to(Comment)]
-#[table_name = "person_mention"]
+#[cfg(feature = "full")]
+use crate::schema::person_mention;
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::comment::Comment))]
+#[cfg_attr(feature = "full", table_name = "person_mention")]
 pub struct PersonMention {
   pub id: PersonMentionId,
   pub recipient_id: PersonId,
@@ -18,8 +16,8 @@ pub struct PersonMention {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset)]
-#[table_name = "person_mention"]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "person_mention")]
 pub struct PersonMentionForm {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,

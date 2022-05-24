@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   generate_outbox_url,
-  objects::{get_summary_from_string_or_source, instance::fetch_instance_actor_for_object},
+  objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::{
       person::{Person, UserTypes},
@@ -12,16 +12,16 @@ use crate::{
   },
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
   verify::verify_domains_match,
 };
 use lemmy_db_schema::{
-  naive_now,
   source::person::{Person as DbPerson, PersonForm},
   traits::ApubActor,
+  utils::naive_now,
 };
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
@@ -43,7 +43,7 @@ impl Deref for ApubPerson {
 
 impl From<DbPerson> for ApubPerson {
   fn from(p: DbPerson) -> Self {
-    ApubPerson { 0: p }
+    ApubPerson(p)
   }
 }
 
@@ -51,6 +51,7 @@ impl From<DbPerson> for ApubPerson {
 impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
+  type DbType = DbPerson;
   type TombstoneType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -64,7 +65,7 @@ impl ApubObject for ApubPerson {
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       blocking(context.pool(), move |conn| {
-        DbPerson::read_from_apub_id(conn, object_id)
+        DbPerson::read_from_apub_id(conn, &object_id.into())
       })
       .await??
       .map(Into::into),
@@ -127,7 +128,7 @@ impl ApubObject for ApubPerson {
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
-    let bio = get_summary_from_string_or_source(&person.summary, &person.source);
+    let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     check_slurs_opt(&bio, slur_regex)?;
     Ok(())
   }
@@ -149,8 +150,9 @@ impl ApubObject for ApubPerson {
       published: person.published.map(|u| u.naive_local()),
       updated: person.updated.map(|u| u.naive_local()),
       actor_id: Some(person.id.into()),
-      bio: Some(get_summary_from_string_or_source(
+      bio: Some(read_from_string_or_source_opt(
         &person.summary,
+        &None,
         &person.source,
       )),
       local: Some(false),

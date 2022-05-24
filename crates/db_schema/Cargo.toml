@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_db_schema"
-version = "0.16.1"
+version = "0.16.3"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -12,22 +12,26 @@ name = "lemmy_db_schema"
 path = "src/lib.rs"
 doctest = false
 
+[features]
+full = ["diesel", "diesel-derive-newtype", "diesel_migrations", "bcrypt", "lemmy_utils",
+    "lemmy_apub_lib", "sha2", "regex", "once_cell", "serde_json"]
+
 [dependencies]
-lemmy_utils = { version = "=0.16.1", path = "../utils" }
-lemmy_apub_lib = { version = "=0.16.1", path = "../apub_lib" }
-diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"] }
-diesel_migrations = "1.4.0"
-chrono = { version = "0.4.19", features = ["serde"] }
-serde = { version = "1.0.131", features = ["derive"] }
-serde_json = { version = "1.0.72", features = ["preserve_order"] }
+chrono = { version = "0.4.19", features = ["serde"], default-features = false }
+serde = { version = "1.0.136", features = ["derive"] }
 url = { version = "2.2.2", features = ["serde"] }
-diesel-derive-newtype = "0.1.2"
-regex = "1.5.4"
-once_cell = "1.8.0"
-strum = "0.23.0"
-strum_macros = "0.23.1"
-sha2 = "0.10.0"
-bcrypt = "0.10.1"
+strum =  "0.24.0"
+strum_macros = "0.24.0"
+serde_json = { version = "1.0.79", features = ["preserve_order"], optional = true }
+lemmy_apub_lib = { version = "=0.16.3", path = "../apub_lib", optional = true }
+lemmy_utils = { version = "=0.16.3", path = "../utils", optional = true }
+bcrypt = { version = "0.12.1", optional = true }
+diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
+diesel-derive-newtype = { version = "0.1.2", optional = true }
+diesel_migrations = { version = "1.4.0", optional = true }
+sha2 = { version = "0.10.2", optional = true }
+regex = { version = "1.5.5", optional = true }
+once_cell = { version = "1.10.0", optional = true }
 
 [dev-dependencies]
-serial_test = "0.5.1"
+serial_test = "0.6.0"

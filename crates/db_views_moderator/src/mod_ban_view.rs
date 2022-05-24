@@ -1,6 +1,6 @@
+use crate::structs::ModBanView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  limit_and_offset,
   newtypes::PersonId,
   schema::{mod_ban, person, person_alias_1},
   source::{
@@ -8,15 +8,8 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
   },
   traits::{ToSafe, ViewToVec},
+  utils::limit_and_offset,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ModBanView {
-  pub mod_ban: ModBan,
-  pub moderator: PersonSafe,
-  pub banned_person: PersonSafeAlias1,
-}
 
 type ModBanViewTuple = (ModBan, PersonSafe, PersonSafeAlias1);
 

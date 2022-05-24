@@ -18,7 +18,7 @@ use crate::{
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::{ActorType, ApubObject},
@@ -49,6 +49,7 @@ use std::ops::Deref;
 use url::Url;
 
 pub mod delete;
+pub mod delete_user;
 pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
@@ -162,7 +163,14 @@ pub(in crate::activities) async fn verify_delete_activity(
         verify_person_in_community(&activity.actor, &community, context, request_counter).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(&activity.actor, &community, context, request_counter).await?;
+      verify_mod_action(
+        &activity.actor,
+        activity.object.id(),
+        &community,
+        context,
+        request_counter,
+      )
+      .await?;
     }
     DeletableObjects::Post(p) => {
       verify_is_public(&activity.to, &[])?;
@@ -207,7 +215,7 @@ async fn verify_delete_post_or_comment(
 ) -> Result<(), LemmyError> {
   verify_person_in_community(actor, community, context, request_counter).await?;
   if is_mod_action {
-    verify_mod_action(actor, community, context, request_counter).await?;
+    verify_mod_action(actor, object_id, community, context, request_counter).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;

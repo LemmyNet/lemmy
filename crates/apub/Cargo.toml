@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_apub"
-version = "0.16.1"
+version = "0.16.3"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -13,45 +13,39 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.1", path = "../utils" }
-lemmy_apub_lib = { version = "=0.16.1", path = "../apub_lib" }
-lemmy_db_schema = { version = "=0.16.1", path = "../db_schema" }
-lemmy_db_views = { version = "=0.16.1", path = "../db_views" }
-lemmy_db_views_actor = { version = "=0.16.1", path = "../db_views_actor" }
-lemmy_api_common = { version = "=0.16.1", path = "../api_common" }
-lemmy_websocket = { version = "=0.16.1", path = "../websocket" }
+lemmy_utils = { version = "=0.16.3", path = "../utils" }
+lemmy_apub_lib = { version = "=0.16.3", path = "../apub_lib" }
+lemmy_db_schema = { version = "=0.16.3", path = "../db_schema", features = ["full"] }
+lemmy_db_views = { version = "=0.16.3", path = "../db_views", features = ["full"] }
+lemmy_db_views_actor = { version = "=0.16.3", path = "../db_views_actor", features = ["full"] }
+lemmy_api_common = { version = "=0.16.3", path = "../api_common", features = ["full"] }
+lemmy_websocket = { version = "=0.16.3", path = "../websocket" }
 diesel = "1.4.8"
-activitystreams-kinds = "0.1.2"
-bcrypt = "0.10.1"
-chrono = { version = "0.4.19", features = ["serde"] }
-serde_json = { version = "1.0.72", features = ["preserve_order"] }
-serde = { version = "1.0.131", features = ["derive"] }
-serde_with = "1.11.0"
+activitystreams-kinds = "0.2.1"
+chrono = { version = "0.4.19", features = ["serde"], default-features = false }
+serde_json = { version = "1.0.79", features = ["preserve_order"] }
+serde = { version = "1.0.136", features = ["derive"] }
+serde_with = "1.12.0"
 actix = "0.13.0"
-actix-web = { version = "4.0.0", default-features = false }
-actix-rt = { version = "2.5.0", default-features = false }
-tracing = "0.1.29"
-rand = "0.8.4"
-strum = "0.23.0"
-strum_macros = "0.23.1"
+actix-web = { version = "4.0.1", default-features = false }
+actix-rt = { version = "2.7.0", default-features = false }
+tracing = "0.1.32"
+strum_macros = "0.24.0"
 url = { version = "2.2.2", features = ["serde"] }
-percent-encoding = "2.1.0"
-http = "0.2.5"
-http-signature-normalization-actix = { version = "0.6.0-beta.6", default-features = false, features = ["server", "sha-2"] }
-tokio = "1.14.0"
-futures = "0.3.17"
+http = "0.2.6"
+http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }
+futures = "0.3.21"
 itertools = "0.10.3"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
-sha2 = "0.10.0"
-async-trait = "0.1.52"
-anyhow = "1.0.51"
-thiserror = "1.0.30"
-background-jobs = "0.11.0"
-reqwest = { version = "0.11.7", features = ["json"] }
+sha2 = "0.10.2"
+async-trait = "0.1.53"
+anyhow = "1.0.56"
+reqwest = { version = "0.11.10", features = ["json"] }
 html2md = "0.2.13"
-once_cell = "1.8.0"
+once_cell = "1.10.0"
+parking_lot = "0.12.0"
 
 [dev-dependencies]
-serial_test = "0.5.1"
+serial_test = "0.6.0"
 assert-json-diff = "2.0.1"
-reqwest-middleware = "0.1.3"
+reqwest-middleware = "0.1.5"

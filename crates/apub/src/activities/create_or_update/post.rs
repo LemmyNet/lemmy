@@ -13,14 +13,20 @@ use crate::{
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ActorType, ApubObject},
   verify::{verify_domains_match, verify_urls_match},
 };
-use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_db_schema::{
+  source::{
+    community::Community,
+    post::{PostLike, PostLikeForm},
+  },
+  traits::{Crud, Likeable},
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
@@ -63,7 +69,7 @@ impl CreateOrUpdatePost {
 
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let id = create_or_update.id.clone();
-    let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
+    let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
     send_activity_in_community(activity, &id, actor, &community, vec![], context).await
   }
 }
@@ -87,7 +93,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     match self.kind {
       CreateOrUpdateType::Create => {
         verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-        verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
+        verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
         // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
@@ -103,10 +109,17 @@ impl ActivityHandler for CreateOrUpdatePost {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, &community, context, request_counter).await?;
+          verify_mod_action(
+            &self.actor,
+            self.object.id.inner(),
+            &community,
+            context,
+            request_counter,
+          )
+          .await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-          verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
+          verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
         }
       }
     }
@@ -121,6 +134,17 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let post = ApubPost::from_apub(self.object, context, request_counter).await?;
+
+    // author likes their own post by default
+    let like_form = PostLikeForm {
+      post_id: post.id,
+      person_id: post.creator_id,
+      score: 1,
+    };
+    blocking(context.pool(), move |conn: &'_ _| {
+      PostLike::like(conn, &like_form)
+    })
+    .await??;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

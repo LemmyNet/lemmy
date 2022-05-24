@@ -1,6 +1,4 @@
 use crate::{
-  functions::lower,
-  naive_now,
   newtypes::{CommunityId, DbUrl, PersonId},
   source::community::{
     Community,
@@ -14,6 +12,7 @@ use crate::{
     CommunitySafe,
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  utils::{functions::lower, naive_now},
 };
 use diesel::{
   dsl::*,
@@ -24,7 +23,6 @@ use diesel::{
   RunQueryDsl,
   TextExpressionMethods,
 };
-use url::Url;
 
 mod safe_type {
   use crate::{schema::community::*, source::community::Community, traits::ToSafe};
@@ -44,6 +42,7 @@ mod safe_type {
     icon,
     banner,
     hidden,
+    posting_restricted_to_mods,
   );
 
   impl ToSafe for Community {
@@ -64,6 +63,7 @@ mod safe_type {
         icon,
         banner,
         hidden,
+        posting_restricted_to_mods,
       )
     }
   }
@@ -291,9 +291,8 @@ impl Followable for CommunityFollower {
 }
 
 impl ApubActor for Community {
-  fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     use crate::schema::community::dsl::*;
-    let object_id: DbUrl = object_id.into();
     Ok(
       community
         .filter(actor_id.eq(object_id))
@@ -327,9 +326,9 @@ impl ApubActor for Community {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{community::*, person::*},
     traits::{Bannable, Crud, Followable, Joinable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 
@@ -375,6 +374,7 @@ mod tests {
       inbox_url: inserted_community.inbox_url.to_owned(),
       shared_inbox_url: None,
       hidden: false,
+      posting_restricted_to_mods: false,
     };
 
     let community_follower_form = CommunityFollowerForm {
@@ -390,7 +390,7 @@ mod tests {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: Some(false),
+      pending: false,
       published: inserted_community_follower.published,
     };
 

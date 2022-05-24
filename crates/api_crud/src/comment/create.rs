@@ -1,23 +1,20 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  blocking,
-  check_community_ban,
-  check_community_deleted_or_removed,
-  check_post_deleted_or_removed,
-  comment::*,
-  get_local_user_view_from_jwt,
-  get_post,
+  comment::{CommentResponse, CreateComment},
+  utils::{
+    blocking,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    check_post_deleted_or_removed,
+    get_local_user_view_from_jwt,
+    get_post,
+  },
 };
 use lemmy_apub::{
-  fetcher::post_or_comment::PostOrComment,
   generate_local_apub_endpoint,
   objects::comment::ApubComment,
-  protocol::activities::{
-    create_or_update::comment::CreateOrUpdateComment,
-    voting::vote::{Vote, VoteType},
-    CreateOrUpdateType,
-  },
+  protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -27,7 +24,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::comment_view::CommentView;
+use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,
@@ -148,15 +145,6 @@ impl PerformCrud for CreateComment {
       CreateOrUpdateType::Create,
       context,
       &mut 0,
-    )
-    .await?;
-    let object = PostOrComment::Comment(Box::new(apub_comment));
-    Vote::send(
-      &object,
-      &local_user_view.person.clone().into(),
-      community_id,
-      VoteType::Like,
-      context,
     )
     .await?;
 

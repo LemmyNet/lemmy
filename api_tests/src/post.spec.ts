@@ -29,7 +29,8 @@ import {
   randomString,
   registerUser,
   API,
-  getSite
+  getSite,
+  unfollows
 } from './shared';
 import { PostView, CommunityView } from 'lemmy-js-client';
 
@@ -45,13 +46,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await unfollows();
 });
-
-async function unfollows() {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
-  await unfollowRemotes(delta);
-  await unfollowRemotes(epsilon);
-}
 
 function assertPostFederation(postOne: PostView, postTwo: PostView) {
   expect(postOne.post.ap_id).toBe(postTwo.post.ap_id);
@@ -231,9 +225,10 @@ test('Delete a post', async () => {
 });
 
 test('Remove a post from admin and community on different instance', async () => {
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  let postRes = await createPost(gamma, betaCommunity.community.id);
 
-  let removedPost = await removePost(alpha, true, postRes.post_view.post);
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let removedPost = await removePost(alpha, true, alphaPost.post);
   expect(removedPost.post_view.post.removed).toBe(true);
   expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
@@ -242,7 +237,7 @@ test('Remove a post from admin and community on different instance', async () =>
   expect(betaPost.post.removed).toBe(false);
 
   // Undelete
-  let undeletedPost = await removePost(alpha, false, postRes.post_view.post);
+  let undeletedPost = await removePost(alpha, false, alphaPost.post);
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
@@ -266,7 +261,7 @@ test('Remove a post from admin and community on same instance', async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  let alphaPost = await getPost(alpha, postRes.post_view.post.id);
+  // let alphaPost = await getPost(alpha, postRes.post_view.post.id);
   // expect(alphaPost.post_view.post.removed).toBe(true); // TODO this shouldn't be commented
   // assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
@@ -288,14 +283,6 @@ test('Search for a post', async () => {
 
   let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
 
-  expect(betaPost.post.name).toBeDefined();
-});
-
-test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes.post_view.post).toBeDefined();
-
-  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
   expect(betaPost.post.name).toBeDefined();
 });
 
@@ -382,6 +369,15 @@ test('Enforce community ban for federated user', async () => {
   // Make sure that post makes it to beta community
   let searchBeta2 = await searchPostLocal(beta, postRes3.post_view.post);
   expect(searchBeta2.posts[0]).toBeDefined();
+});
+
+
+test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
+  let postRes = await createPost(alpha, betaCommunity.community.id);
+  expect(postRes.post_view.post).toBeDefined();
+
+  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  expect(betaPost.post.name).toBeDefined();
 });
 
 test('Report a post', async () => {

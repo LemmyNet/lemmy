@@ -4,7 +4,7 @@ use crate::{
 };
 use actix_web::{web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
 use lemmy_utils::LemmyError;

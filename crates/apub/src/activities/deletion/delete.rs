@@ -6,11 +6,15 @@ use crate::{
     verify_activity,
   },
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::deletion::delete::{Delete, IdOrNestedObject, NestedObject},
+  protocol::{
+    activities::deletion::delete::Delete,
+    objects::tombstone::Tombstone,
+    IdOrNestedObject,
+  },
 };
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
-use lemmy_api_common::blocking;
+use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::{
@@ -67,11 +71,13 @@ impl ActivityHandler for Delete {
         Some(reason)
       };
       receive_remove_action(
-        &self.actor,
+        &self
+          .actor
+          .dereference(context, context.client(), request_counter)
+          .await?,
         self.object.id(),
         reason,
         context,
-        request_counter,
       )
       .await
     } else {
@@ -104,7 +110,7 @@ impl Delete {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id.clone()),
       to: vec![to],
-      object: IdOrNestedObject::NestedObject(NestedObject {
+      object: IdOrNestedObject::NestedObject(Tombstone {
         id: object.id(),
         kind: Default::default(),
       }),
@@ -119,15 +125,11 @@ impl Delete {
 
 #[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn receive_remove_action(
-  actor: &ObjectId<ApubPerson>,
+  actor: &ApubPerson,
   object: &Url,
   reason: Option<String>,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let actor = actor
-    .dereference(context, context.client(), request_counter)
-    .await?;
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {

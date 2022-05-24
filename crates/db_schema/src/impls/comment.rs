@@ -1,5 +1,4 @@
 use crate::{
-  naive_now,
   newtypes::{CommentId, DbUrl, PersonId},
   source::comment::{
     Comment,
@@ -10,6 +9,7 @@ use crate::{
     CommentSavedForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
+  utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
 use url::Url;
@@ -209,7 +209,6 @@ impl DeleteableOrRemoveable for Comment {
 #[cfg(test)]
 mod tests {
   use crate::{
-    establish_unpooled_connection,
     source::{
       comment::*,
       community::{Community, CommunityForm},
@@ -217,6 +216,7 @@ mod tests {
       post::*,
     },
     traits::{Crud, Likeable, Saveable},
+    utils::establish_unpooled_connection,
   };
   use serial_test::serial;
 
