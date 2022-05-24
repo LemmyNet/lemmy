@@ -11,7 +11,6 @@ import {
   PostResponse,
   SearchResponse,
   FollowCommunity,
-  FollowCommunityResponse,
   CommunityResponse,
   GetPostResponse,
   Register,
@@ -332,7 +331,7 @@ export async function followCommunity(
   api: API,
   follow: boolean,
   community_id: number
-): Promise<FollowCommunityResponse> {
+): Promise<CommunityResponse> {
   let form: FollowCommunity = {
     community_id,
     follow,
@@ -603,7 +602,7 @@ export async function unfollowRemotes(
   return siteRes;
 }
 
-export async function followBeta(api: API): Promise<FollowCommunityResponse> {
+export async function followBeta(api: API): Promise<CommunityResponse> {
   let betaCommunity = (await resolveBetaCommunity(api)).community;
   if (betaCommunity) {
     let follow = await followCommunity(api, true, betaCommunity.community.id);
