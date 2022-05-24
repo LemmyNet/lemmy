@@ -1,5 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
 };
@@ -66,12 +67,12 @@ impl ActivityHandler for UndoFollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let community_follower_form = CommunityFollowerForm {

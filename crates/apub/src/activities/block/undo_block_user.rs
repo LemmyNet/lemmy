@@ -8,6 +8,7 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
@@ -92,20 +93,21 @@ impl ActivityHandler for UndoBlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let instance = local_instance(context);
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, instance, request_counter)
       .await?;
     let blocked_person = self
       .object
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, instance, request_counter)
       .await?;
     match self
       .object
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, instance, request_counter)
       .await?
     {
       SiteOrCommunity::Site(_site) => {

@@ -8,6 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{
     comment::ApubComment,
     community::ApubCommunity,
@@ -236,7 +237,7 @@ async fn receive_delete_action(
     DeletableObjects::Community(community) => {
       if community.local {
         let mod_: Person = actor
-          .dereference(context, context.client(), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await?
           .deref()
           .clone();

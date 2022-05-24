@@ -1,30 +1,30 @@
-use crate::{Error, APUB_JSON_CONTENT_TYPE};
+use crate::{Error, LocalInstance, APUB_JSON_CONTENT_TYPE};
 use http::StatusCode;
-use lemmy_utils::{request::retry, settings::structs::Settings, REQWEST_TIMEOUT};
-use reqwest_middleware::ClientWithMiddleware;
+use lemmy_utils::request::retry;
 use serde::de::DeserializeOwned;
 use tracing::log::info;
 use url::Url;
 
 pub async fn fetch_object_http<Kind: DeserializeOwned>(
   url: &Url,
-  client: &ClientWithMiddleware,
+  instance: &LocalInstance,
   request_counter: &mut i32,
 ) -> Result<Kind, Error> {
   // dont fetch local objects this way
-  debug_assert!(url.domain() != Some(&Settings::get().hostname));
+  debug_assert!(url.domain() != Some(&instance.domain));
   info!("Fetching remote object {}", url.to_string());
 
   *request_counter += 1;
-  if *request_counter > Settings::get().http_fetch_retry_limit {
+  if *request_counter > instance.settings.http_fetch_retry_limit {
     return Err(Error::RequestLimit);
   }
 
   let res = retry(|| {
-    client
+    instance
+      .client
       .get(url.as_str())
       .header("Accept", APUB_JSON_CONTENT_TYPE)
-      .timeout(REQWEST_TIMEOUT)
+      .timeout(instance.settings.request_timeout)
       .send()
   })
   .await

@@ -1,5 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_activity},
+  local_instance,
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
 use activitystreams_kinds::activity::AcceptType;
@@ -25,7 +26,7 @@ impl AcceptFollowCommunity {
     let person = follow
       .actor
       .clone()
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
@@ -67,12 +68,12 @@ impl ActivityHandler for AcceptFollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {

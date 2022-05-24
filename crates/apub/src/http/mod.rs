@@ -5,6 +5,7 @@ use crate::{
   fetcher::user_or_community::UserOrCommunity,
   http::{community::receive_group_inbox, person::receive_person_inbox},
   insert_activity,
+  local_instance,
 };
 use actix_web::{
   web,
@@ -88,14 +89,14 @@ where
     + Clone
     + Deserialize<'a>
     + Serialize
-    + std::fmt::Debug
+    + Debug
     + Send
     + 'static,
 {
   check_is_apub_id_valid(&activity_data.actor, false, &context.settings())?;
   let request_counter = &mut 0;
   let actor = ObjectId::<UserOrCommunity>::new(activity_data.actor)
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
   verify_signature(&request, &actor.public_key())?;
 

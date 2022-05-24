@@ -1,6 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
+  local_instance,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
@@ -174,7 +175,7 @@ impl ApubObject for ApubComment {
   ) -> Result<ApubComment, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 

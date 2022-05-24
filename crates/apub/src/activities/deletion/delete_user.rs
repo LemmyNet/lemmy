@@ -1,5 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
+  local_instance,
   objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
 };
@@ -39,7 +40,7 @@ impl ActivityHandler for DeleteUser {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     delete_user_account(actor.id, context.pool()).await?;
     Ok(())

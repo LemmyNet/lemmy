@@ -10,6 +10,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
 };
@@ -117,7 +118,7 @@ impl ActivityHandler for BlockUser {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     match self
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?
     {
       SiteOrCommunity::Site(site) => {
@@ -155,15 +156,15 @@ impl ActivityHandler for BlockUser {
     let expires = self.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let blocked_person = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let target = self
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match target {
       SiteOrCommunity::Site(_site) => {
@@ -242,7 +243,7 @@ impl GetCommunity for BlockUser {
   ) -> Result<ApubCommunity, LemmyError> {
     let target = self
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match target {
       SiteOrCommunity::Community(c) => Ok(c),

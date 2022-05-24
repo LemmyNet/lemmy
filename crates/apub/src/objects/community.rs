@@ -3,6 +3,7 @@ use crate::{
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   generate_moderators_url,
   generate_outbox_url,
+  local_instance,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
     objects::{group::Group, tombstone::Tombstone, Endpoints},
@@ -141,14 +142,14 @@ impl ApubObject for ApubCommunity {
 
     group
       .outbox
-      .dereference(&outbox_data, context.client(), request_counter)
+      .dereference(&outbox_data, local_instance(context), request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = &group.moderators {
       moderators
-        .dereference(&outbox_data, context.client(), request_counter)
+        .dereference(&outbox_data, local_instance(context), request_counter)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();

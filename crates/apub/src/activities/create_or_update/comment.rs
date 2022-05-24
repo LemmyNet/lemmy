@@ -9,6 +9,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
@@ -84,7 +85,7 @@ impl CreateOrUpdateComment {
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?;
       inboxes.push(person.shared_inbox_or_inbox_url());
     }

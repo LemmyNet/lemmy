@@ -6,6 +6,7 @@ use crate::{
     verify_person,
     verify_person_in_community,
   },
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
 };
@@ -77,7 +78,7 @@ impl ActivityHandler for FollowCommunity {
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -91,11 +92,11 @@ impl ActivityHandler for FollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,

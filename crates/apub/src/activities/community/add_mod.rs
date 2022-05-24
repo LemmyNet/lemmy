@@ -14,6 +14,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   generate_moderators_url,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::add_mod::AddMod,
 };
@@ -98,7 +99,7 @@ impl ActivityHandler for AddMod {
     let community = self.get_community(context, request_counter).await?;
     let new_mod = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
@@ -121,7 +122,7 @@ impl ActivityHandler for AddMod {
       // write mod log
       let actor = self
         .actor
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?;
       let form = ModAddCommunityForm {
         mod_person_id: actor.id,

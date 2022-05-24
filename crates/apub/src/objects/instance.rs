@@ -1,5 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
+  local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::instance::{Instance, InstanceType},
@@ -180,7 +181,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
   // try to fetch the instance actor (to make things like instance rules available)
   let instance_id = instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await;
   if let Err(e) = site {
     debug!("Failed to dereference site for {}: {}", instance_id, e);

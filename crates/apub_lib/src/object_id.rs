@@ -1,8 +1,7 @@
-use crate::{traits::ApubObject, utils::fetch_object_http, Error};
+use crate::{traits::ApubObject, utils::fetch_object_http, Error, LocalInstance};
 use anyhow::anyhow;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
-use lemmy_utils::{settings::structs::Settings, LemmyError};
-use reqwest_middleware::ClientWithMiddleware;
+use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt::{Debug, Display, Formatter},
@@ -42,13 +41,13 @@ where
   pub async fn dereference(
     &self,
     data: &<Kind as ApubObject>::DataType,
-    client: &ClientWithMiddleware,
+    instance: &LocalInstance,
     request_counter: &mut i32,
   ) -> Result<Kind, LemmyError> {
     let db_object = self.dereference_from_db(data).await?;
 
     // if its a local object, only fetch it from the database and not over http
-    if self.0.domain() == Some(&Settings::get().get_hostname_without_port()?) {
+    if self.0.domain() == Some(&instance.domain) {
       return match db_object {
         None => Err(Error::NotFound.into()),
         Some(o) => Ok(o),
@@ -61,7 +60,7 @@ where
       if let Some(last_refreshed_at) = object.last_refreshed_at() {
         if should_refetch_object(last_refreshed_at) {
           return self
-            .dereference_from_http(data, client, request_counter, Some(object))
+            .dereference_from_http(data, instance, request_counter, Some(object))
             .await;
         }
       }
@@ -70,7 +69,7 @@ where
     // object not found, need to fetch over http
     else {
       self
-        .dereference_from_http(data, client, request_counter, None)
+        .dereference_from_http(data, instance, request_counter, None)
         .await
     }
   }
@@ -97,11 +96,11 @@ where
   async fn dereference_from_http(
     &self,
     data: &<Kind as ApubObject>::DataType,
-    client: &ClientWithMiddleware,
+    instance: &LocalInstance,
     request_counter: &mut i32,
     db_object: Option<Kind>,
   ) -> Result<Kind, LemmyError> {
-    let res = fetch_object_http(&self.0, client, request_counter).await;
+    let res = fetch_object_http(&self.0, instance, request_counter).await;
 
     if let Err(Error::ObjectDeleted) = &res {
       if let Some(db_object) = db_object {

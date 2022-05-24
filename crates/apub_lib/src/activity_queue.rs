@@ -1,10 +1,4 @@
-use crate::{
-  signatures::sign_request,
-  traits::ActorType,
-  Error,
-  Error::PrivateKeyError,
-  APUB_JSON_CONTENT_TYPE,
-};
+use crate::{signatures::sign_request, Error, LocalInstance, APUB_JSON_CONTENT_TYPE};
 use anyhow::anyhow;
 use background_jobs::{
   memory_storage::Storage,
@@ -12,55 +6,57 @@ use background_jobs::{
   Backoff,
   Manager,
   MaxRetries,
-  QueueHandle,
   WorkerConfig,
 };
 use http::{header::HeaderName, HeaderMap, HeaderValue};
-use lemmy_utils::REQWEST_TIMEOUT;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::{env, fmt::Debug, future::Future, pin::Pin};
+use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
 use tracing::{info, warn};
 use url::Url;
 
-pub async fn send_activity(
-  activity_id: &Url,
-  actor: &dyn ActorType,
-  inboxes: Vec<&Url>,
-  activity: String,
-  client: &ClientWithMiddleware,
-  activity_queue: &QueueHandle,
-) -> Result<(), Error> {
-  for i in inboxes {
-    let message = SendActivityTask {
-      activity_id: activity_id.clone(),
-      inbox: i.to_owned(),
-      actor_id: actor.actor_id(),
-      activity: activity.clone(),
-      private_key: actor.private_key().ok_or(PrivateKeyError)?,
-    };
-    if env::var("APUB_TESTING_SEND_SYNC").is_ok() {
-      let res = do_send(message, client).await;
-      // Don't fail on error, as we intentionally do some invalid actions in tests, to verify that
-      // they are rejected on the receiving side. These errors shouldn't bubble up to make the API
-      // call fail. This matches the behaviour in production.
-      if let Err(e) = res {
-        warn!("{}", e);
-      }
-    } else {
-      activity_queue.queue::<SendActivityTask>(message).await?;
-      let stats = activity_queue.get_stats().await?;
-      info!(
+pub struct SendActivity {
+  pub activity_id: Url,
+  pub actor_id: Url,
+  pub actor_private_key: String,
+  pub inboxes: Vec<Url>,
+  pub activity: String,
+}
+
+impl SendActivity {
+  pub async fn send(self, instance: &LocalInstance) -> Result<(), Error> {
+    let activity_queue = &instance.activity_queue;
+    for inbox in self.inboxes {
+      let message = SendActivityTask {
+        activity_id: self.activity_id.clone(),
+        inbox,
+        actor_id: self.actor_id.clone(),
+        activity: self.activity.clone(),
+        private_key: self.actor_private_key.clone(),
+      };
+      if instance.settings.testing_send_sync {
+        let res = do_send(message, &instance.client, instance.settings.request_timeout).await;
+        // Don't fail on error, as we intentionally do some invalid actions in tests, to verify that
+        // they are rejected on the receiving side. These errors shouldn't bubble up to make the API
+        // call fail. This matches the behaviour in production.
+        if let Err(e) = res {
+          warn!("{}", e);
+        }
+      } else {
+        activity_queue.queue::<SendActivityTask>(message).await?;
+        let stats = activity_queue.get_stats().await?;
+        info!(
         "Activity queue stats: pending: {}, running: {}, dead (this hour): {}, complete (this hour): {}",
         stats.pending,
         stats.running,
         stats.dead.this_hour(),
         stats.complete.this_hour()
       );
+      }
     }
-  }
 
-  Ok(())
+    Ok(())
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -94,21 +90,19 @@ impl ActixJob for SendActivityTask {
   const BACKOFF: Backoff = Backoff::Exponential(3);
 
   fn run(self, state: Self::State) -> Self::Future {
-    Box::pin(async move { do_send(self, &state.client).await })
+    Box::pin(async move { do_send(self, &state.client, state.timeout).await })
   }
 }
 
 async fn do_send(
   task: SendActivityTask,
   client: &ClientWithMiddleware,
+  timeout: Duration,
 ) -> Result<(), anyhow::Error> {
   info!("Sending {} to {}", task.activity_id, task.inbox);
   let request_builder = client
     .post(&task.inbox.to_string())
-    // signature is only valid for 10 seconds, so no reason to wait any longer
-    // TODO: would be good if we could get expiration directly from
-    //       http_signature_normalization::Config, but its private
-    .timeout(REQWEST_TIMEOUT)
+    .timeout(timeout)
     .headers(generate_request_headers(&task.inbox));
   let request = sign_request(
     request_builder,
@@ -153,20 +147,25 @@ fn generate_request_headers(inbox_url: &Url) -> HeaderMap {
 
   let mut headers = HeaderMap::new();
   headers.insert(
-    HeaderName::from_static("Content-Type"),
+    HeaderName::from_static("content-type"),
     HeaderValue::from_static(APUB_JSON_CONTENT_TYPE),
   );
   headers.insert(
-    HeaderName::from_static("Host"),
+    HeaderName::from_static("host"),
     HeaderValue::from_str(&host).expect("Hostname is valid"),
   );
   headers
 }
 
-pub fn create_activity_queue(client: ClientWithMiddleware, worker_count: u64) -> Manager {
+pub(crate) fn create_activity_queue(
+  client: ClientWithMiddleware,
+  worker_count: u64,
+  timeout: Duration,
+) -> Manager {
   // Configure and start our workers
   WorkerConfig::new_managed(Storage::new(), move |_| MyState {
     client: client.clone(),
+    timeout,
   })
   .register::<SendActivityTask>()
   .set_worker_count("default", worker_count)
@@ -175,5 +174,6 @@ pub fn create_activity_queue(client: ClientWithMiddleware, worker_count: u64) ->
 
 #[derive(Clone)]
 struct MyState {
-  pub client: ClientWithMiddleware,
+  client: ClientWithMiddleware,
+  timeout: Duration,
 }

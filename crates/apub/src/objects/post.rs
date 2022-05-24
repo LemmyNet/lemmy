@@ -1,6 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_is_apub_id_valid,
+  local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
@@ -158,7 +159,7 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .creator()?
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 

@@ -5,6 +5,7 @@ use crate::{
     generate_activity_id,
     verify_activity,
   },
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
@@ -68,7 +69,7 @@ impl ActivityHandler for UndoDelete {
       UndoDelete::receive_undo_remove_action(
         &self
           .actor
-          .dereference(context, context.client(), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await?,
         self.object.object.id(),
         context,

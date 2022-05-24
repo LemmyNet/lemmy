@@ -14,6 +14,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   generate_moderators_url,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::remove_mod::RemoveMod,
 };
@@ -98,7 +99,7 @@ impl ActivityHandler for RemoveMod {
     let community = self.get_community(context, request_counter).await?;
     let remove_mod = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let form = CommunityModeratorForm {
@@ -113,7 +114,7 @@ impl ActivityHandler for RemoveMod {
     // write mod log
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let form = ModAddCommunityForm {
       mod_person_id: actor.id,

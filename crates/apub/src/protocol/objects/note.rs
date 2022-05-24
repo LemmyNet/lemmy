@@ -1,5 +1,6 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
+  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
@@ -49,7 +50,7 @@ impl Note {
     let parent = Box::pin(
       self
         .in_reply_to
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?,
     );
     match parent.deref() {

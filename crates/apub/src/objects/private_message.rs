@@ -1,4 +1,5 @@
 use crate::{
+  local_instance,
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
@@ -112,7 +113,7 @@ impl ApubObject for ApubPrivateMessage {
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     let person = note
       .attributed_to
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
@@ -128,10 +129,10 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let recipient = note.to[0]
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let form = PrivateMessageForm {

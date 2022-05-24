@@ -8,6 +8,7 @@ use crate::{
     voting::{vote_comment, vote_post},
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::vote::{Vote, VoteType},
   PostOrComment,
@@ -99,11 +100,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
@@ -122,7 +123,7 @@ impl GetCommunity for Vote {
   ) -> Result<ApubCommunity, LemmyError> {
     let object = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,

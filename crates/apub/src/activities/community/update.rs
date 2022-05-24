@@ -8,6 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
 };
@@ -129,7 +130,7 @@ impl GetCommunity for UpdateCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let cid = ObjectId::new(self.object.id.clone());
     cid
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await
   }
 }

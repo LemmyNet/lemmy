@@ -1,5 +1,6 @@
 use crate::{
   fetcher::webfinger::webfinger_resolve_actor,
+  local_instance,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::objects::{group::Group, note::Note, page::Page, person::Person},
 };
@@ -23,10 +24,11 @@ pub async fn search_by_apub_id(
   context: &LemmyContext,
 ) -> Result<SearchableObjects, LemmyError> {
   let request_counter = &mut 0;
+  let instance = local_instance(context);
   match Url::parse(query) {
     Ok(url) => {
       ObjectId::new(url)
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, instance, request_counter)
         .await
     }
     Err(_) => {
@@ -37,7 +39,7 @@ pub async fn search_by_apub_id(
             webfinger_resolve_actor::<ApubPerson>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Person(
             ObjectId::new(id)
-              .dereference(context, context.client(), request_counter)
+              .dereference(context, instance, request_counter)
               .await?,
           ))
         }
@@ -46,7 +48,7 @@ pub async fn search_by_apub_id(
             webfinger_resolve_actor::<ApubCommunity>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Community(
             ObjectId::new(id)
-              .dereference(context, context.client(), request_counter)
+              .dereference(context, instance, request_counter)
               .await?,
           ))
         }

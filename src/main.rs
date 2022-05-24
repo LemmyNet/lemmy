@@ -14,7 +14,6 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance_and_federation_enabled},
 };
 use lemmy_api_crud::match_websocket_operation_crud;
-use lemmy_apub_lib::activity_queue::create_activity_queue;
 use lemmy_db_schema::{source::secret::Secret, utils::get_database_url_from_env};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
@@ -104,10 +103,6 @@ async fn main() -> Result<(), LemmyError> {
 
   let client = ClientBuilder::new(client).with(TracingMiddleware).build();
 
-  let queue_manager = create_activity_queue(client.clone(), settings.federation.worker_count);
-
-  let activity_queue = queue_manager.queue_handle().clone();
-
   check_private_instance_and_federation_enabled(&pool, &settings).await?;
 
   let chat_server = ChatServer::startup(
@@ -116,7 +111,6 @@ async fn main() -> Result<(), LemmyError> {
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     client.clone(),
-    activity_queue.clone(),
     settings.clone(),
     secret.clone(),
   )
@@ -129,7 +123,6 @@ async fn main() -> Result<(), LemmyError> {
       pool.clone(),
       chat_server.to_owned(),
       client.clone(),
-      activity_queue.to_owned(),
       settings.to_owned(),
       secret.to_owned(),
     );
@@ -150,8 +143,6 @@ async fn main() -> Result<(), LemmyError> {
   .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
-
-  drop(queue_manager);
 
   Ok(())
 }

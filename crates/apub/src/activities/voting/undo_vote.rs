@@ -8,6 +8,7 @@ use crate::{
     voting::{undo_vote_comment, undo_vote_post},
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::{
     undo_vote::UndoVote,
@@ -91,12 +92,12 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

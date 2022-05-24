@@ -60,7 +60,6 @@ pub(crate) mod tests {
     PgConnection,
   };
   use lemmy_api_common::request::build_user_agent;
-  use lemmy_apub_lib::activity_queue::create_activity_queue;
   use lemmy_db_schema::{
     source::secret::Secret,
     utils::{establish_unpooled_connection, get_database_url_from_env},
@@ -77,12 +76,7 @@ pub(crate) mod tests {
   use std::sync::Arc;
 
   // TODO: would be nice if we didnt have to use a full context for tests.
-  //       or at least write a helper function so this code is shared with main.rs
   pub(crate) fn init_context() -> LemmyContext {
-    let client = reqwest::Client::new().into();
-    // activity queue isnt used in tests, so worker count makes no difference
-    let queue_manager = create_activity_queue(client, 4);
-    let activity_queue = queue_manager.queue_handle().clone();
     // call this to run migrations
     establish_unpooled_connection();
     let settings = Settings::init().unwrap();
@@ -118,11 +112,10 @@ pub(crate) mod tests {
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),
       client.clone(),
-      activity_queue.clone(),
       settings.clone(),
       secret.clone(),
     )
     .start();
-    LemmyContext::create(pool, chat_server, client, activity_queue, settings, secret)
+    LemmyContext::create(pool, chat_server, client, settings, secret)
   }
 }

@@ -1,10 +1,13 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use anyhow::{anyhow, Context};
 use lemmy_api_common::utils::blocking;
+use lemmy_apub_lib::{InstanceSettings, LocalInstance};
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_utils::{location_info, settings::structs::Settings, LemmyError, REQWEST_TIMEOUT};
+use lemmy_websocket::LemmyContext;
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Deserializer};
-use std::net::IpAddr;
+use std::{env, net::IpAddr};
 use url::{ParseError, Url};
 
 pub mod activities;
@@ -16,6 +19,24 @@ pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
+
+// TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
+fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
+  static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::new();
+  LOCAL_INSTANCE.get_or_init(|| {
+    let settings = InstanceSettings::new(
+      context.settings().http_fetch_retry_limit,
+      context.settings().federation.worker_count,
+      env::var("APUB_TESTING_SEND_SYNC").is_ok(),
+      REQWEST_TIMEOUT,
+    );
+    LocalInstance::new(
+      context.settings().hostname,
+      context.client().clone(),
+      settings,
+    )
+  })
+}
 
 /// Checks if the ID is allowed for sending or receiving.
 ///

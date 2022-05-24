@@ -1,4 +1,4 @@
-use crate::objects::person::ApubPerson;
+use crate::{local_instance, objects::person::ApubPerson};
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
@@ -24,7 +24,7 @@ async fn get_comment_notif_recipients(
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
   let actor = actor
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
 
   // Note:

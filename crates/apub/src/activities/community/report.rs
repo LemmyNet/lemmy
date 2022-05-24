@@ -5,6 +5,7 @@ use crate::{
     verify_activity,
     verify_person_in_community,
   },
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::report::Report,
   PostOrComment,
@@ -75,7 +76,7 @@ impl ActivityHandler for Report {
   ) -> Result<(), LemmyError> {
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.to[0]
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -89,11 +90,11 @@ impl ActivityHandler for Report {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?
     {
       PostOrComment::Post(post) => {

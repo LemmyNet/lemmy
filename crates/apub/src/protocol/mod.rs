@@ -1,3 +1,4 @@
+use crate::local_instance;
 use activitystreams_kinds::object::ImageType;
 use lemmy_apub_lib::{utils::fetch_object_http, values::MediaTypeMarkdown};
 use lemmy_db_schema::newtypes::DbUrl;
@@ -73,7 +74,7 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
   ) -> Result<Kind, LemmyError> {
     match self {
       IdOrNestedObject::Id(i) => {
-        Ok(fetch_object_http(&i, context.client(), request_counter).await?)
+        Ok(fetch_object_http(&i, local_instance(context), request_counter).await?)
       }
       IdOrNestedObject::NestedObject(o) => Ok(o),
     }
