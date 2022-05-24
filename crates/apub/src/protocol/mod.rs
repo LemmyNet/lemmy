@@ -72,7 +72,9 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
     request_counter: &mut i32,
   ) -> Result<Kind, LemmyError> {
     match self {
-      IdOrNestedObject::Id(i) => fetch_object_http(&i, context.client(), request_counter).await,
+      IdOrNestedObject::Id(i) => {
+        Ok(fetch_object_http(&i, context.client(), request_counter).await?)
+      }
       IdOrNestedObject::NestedObject(o) => Ok(o),
     }
   }

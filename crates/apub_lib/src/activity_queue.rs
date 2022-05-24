@@ -1,5 +1,11 @@
-use crate::{signatures::sign_and_send, traits::ActorType};
-use anyhow::{anyhow, Context, Error};
+use crate::{
+  signatures::sign_request,
+  traits::ActorType,
+  Error,
+  Error::PrivateKeyError,
+  APUB_JSON_CONTENT_TYPE,
+};
+use anyhow::anyhow;
 use background_jobs::{
   memory_storage::Storage,
   ActixJob,
@@ -9,7 +15,8 @@ use background_jobs::{
   QueueHandle,
   WorkerConfig,
 };
-use lemmy_utils::{location_info, LemmyError};
+use http::{header::HeaderName, HeaderMap, HeaderValue};
+use lemmy_utils::REQWEST_TIMEOUT;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use std::{env, fmt::Debug, future::Future, pin::Pin};
@@ -23,14 +30,14 @@ pub async fn send_activity(
   activity: String,
   client: &ClientWithMiddleware,
   activity_queue: &QueueHandle,
-) -> Result<(), LemmyError> {
+) -> Result<(), Error> {
   for i in inboxes {
     let message = SendActivityTask {
       activity_id: activity_id.clone(),
       inbox: i.to_owned(),
       actor_id: actor.actor_id(),
       activity: activity.clone(),
-      private_key: actor.private_key().context(location_info!())?,
+      private_key: actor.private_key().ok_or(PrivateKeyError)?,
     };
     if env::var("APUB_TESTING_SEND_SYNC").is_ok() {
       let res = do_send(message, client).await;
@@ -69,7 +76,7 @@ struct SendActivityTask {
 /// if the delivery failed.
 impl ActixJob for SendActivityTask {
   type State = MyState;
-  type Future = Pin<Box<dyn Future<Output = Result<(), Error>>>>;
+  type Future = Pin<Box<dyn Future<Output = Result<(), anyhow::Error>>>>;
   const NAME: &'static str = "SendActivityTask";
 
   /// With these params, retries are made at the following intervals:
@@ -91,22 +98,34 @@ impl ActixJob for SendActivityTask {
   }
 }
 
-async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Result<(), Error> {
+async fn do_send(
+  task: SendActivityTask,
+  client: &ClientWithMiddleware,
+) -> Result<(), anyhow::Error> {
   info!("Sending {} to {}", task.activity_id, task.inbox);
-  let result = sign_and_send(
-    client,
-    &task.inbox,
+  let request_builder = client
+    .post(&task.inbox.to_string())
+    // signature is only valid for 10 seconds, so no reason to wait any longer
+    // TODO: would be good if we could get expiration directly from
+    //       http_signature_normalization::Config, but its private
+    .timeout(REQWEST_TIMEOUT)
+    .headers(generate_request_headers(&task.inbox));
+  let request = sign_request(
+    request_builder,
     task.activity.clone(),
     &task.actor_id,
     task.private_key.to_owned(),
   )
-  .await;
+  .await?;
+  let response = client.execute(request).await;
 
-  let r: Result<(), Error> = match result {
+  match response {
     Ok(o) => {
-      if !o.status().is_success() {
+      if o.status().is_success() {
+        Ok(())
+      } else {
         let status = o.status();
-        let text = o.text().await?;
+        let text = o.text().await.map_err(Error::conv)?;
 
         Err(anyhow!(
           "Send {} to {} failed with status {}: {}",
@@ -115,8 +134,6 @@ async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Resul
           status,
           text,
         ))
-      } else {
-        Ok(())
       }
     }
     Err(e) => Err(anyhow!(
@@ -125,8 +142,25 @@ async fn do_send(task: SendActivityTask, client: &ClientWithMiddleware) -> Resul
       task.inbox,
       e
     )),
-  };
-  r
+  }
+}
+
+fn generate_request_headers(inbox_url: &Url) -> HeaderMap {
+  let mut host = inbox_url.domain().expect("read inbox domain").to_string();
+  if let Some(port) = inbox_url.port() {
+    host = format!("{}:{}", host, port);
+  }
+
+  let mut headers = HeaderMap::new();
+  headers.insert(
+    HeaderName::from_static("Content-Type"),
+    HeaderValue::from_static(APUB_JSON_CONTENT_TYPE),
+  );
+  headers.insert(
+    HeaderName::from_static("Host"),
+    HeaderValue::from_str(&host).expect("Hostname is valid"),
+  );
+  headers
 }
 
 pub fn create_activity_queue(client: ClientWithMiddleware, worker_count: u64) -> Manager {

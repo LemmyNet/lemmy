@@ -15,7 +15,7 @@ use url::Url;
 
 #[derive(new)]
 pub struct MyUser {
-  ap_id: ObjectId<MyUser>,
+  pub ap_id: ObjectId<MyUser>,
   keypair: Keypair,
   #[new(default)]
   followers: Vec<Url>,
@@ -44,7 +44,7 @@ impl MyUser {
     Ok(())
   }
 
-  pub async fn post(&self, post: MyPost) -> Result<(), Error> {
+  pub async fn post(&self, post: MyPost) -> Result<(), LemmyError> {
     let create = CreateNote::new(
       self.ap_id.clone(),
       vec![public(), self.followers()?],

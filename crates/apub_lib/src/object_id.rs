@@ -1,7 +1,6 @@
-use crate::{traits::ApubObject, utils::fetch_object_http};
+use crate::{traits::ApubObject, utils::fetch_object_http, Error};
 use anyhow::anyhow;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
-use diesel::NotFound;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
@@ -51,7 +50,7 @@ where
     // if its a local object, only fetch it from the database and not over http
     if self.0.domain() == Some(&Settings::get().get_hostname_without_port()?) {
       return match db_object {
-        None => Err(NotFound {}.into()),
+        None => Err(Error::NotFound.into()),
         Some(o) => Ok(o),
       };
     }
@@ -83,7 +82,7 @@ where
     data: &<Kind as ApubObject>::DataType,
   ) -> Result<Kind, LemmyError> {
     let object = self.dereference_from_db(data).await?;
-    object.ok_or_else(|| anyhow!("object not found in database {}", self).into())
+    object.ok_or(Error::NotFound.into())
   }
 
   /// returning none means the object was not found in local db
@@ -104,14 +103,11 @@ where
   ) -> Result<Kind, LemmyError> {
     let res = fetch_object_http(&self.0, client, request_counter).await;
 
-    if let Err(e) = &res {
-      // TODO: very ugly
-      if e.message == Some("410".to_string()) {
-        if let Some(db_object) = db_object {
-          db_object.delete(data).await?;
-        }
-        return Err(anyhow!("Fetched remote object {} which was deleted", self).into());
+    if let Err(Error::ObjectDeleted) = &res {
+      if let Some(db_object) = db_object {
+        db_object.delete(data).await?;
       }
+      return Err(anyhow!("Fetched remote object {} which was deleted", self).into());
     }
 
     let res2 = res?;

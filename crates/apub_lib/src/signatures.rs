@@ -1,10 +1,7 @@
-use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::HttpRequest;
 use anyhow::anyhow;
-use http::{header::HeaderName, HeaderMap, HeaderValue};
 use http_signature_normalization_actix::Config as ConfigActix;
 use http_signature_normalization_reqwest::prelude::{Config, SignExt};
-use lemmy_utils::{LemmyError, REQWEST_TIMEOUT};
 use once_cell::sync::Lazy;
 use openssl::{
   hash::MessageDigest,
@@ -12,14 +9,11 @@ use openssl::{
   rsa::Rsa,
   sign::{Signer, Verifier},
 };
-use reqwest::Response;
-use reqwest_middleware::ClientWithMiddleware;
+use reqwest::Request;
+use reqwest_middleware::RequestBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-  io::{Error, ErrorKind},
-  str::FromStr,
-};
+use std::io::{Error, ErrorKind};
 use tracing::debug;
 use url::Url;
 
@@ -53,60 +47,43 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
 
 /// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
 /// `activity` as request body. The request is signed with `private_key` and then sent.
-pub async fn sign_and_send(
-  client: &ClientWithMiddleware,
-  inbox_url: &Url,
+pub(crate) async fn sign_request(
+  request_builder: RequestBuilder,
   activity: String,
   actor_id: &Url,
   private_key: String,
-) -> Result<Response, LemmyError> {
+) -> Result<Request, anyhow::Error> {
+  // TODO: should not be hardcoded
   let signing_key_id = format!("{}#main-key", actor_id);
 
-  let mut headers = HeaderMap::new();
-  let mut host = inbox_url.domain().expect("read inbox domain").to_string();
-  if let Some(port) = inbox_url.port() {
-    host = format!("{}:{}", host, port);
-  }
-  headers.insert(
-    HeaderName::from_str("Content-Type")?,
-    HeaderValue::from_str(APUB_JSON_CONTENT_TYPE)?,
-  );
-  headers.insert(HeaderName::from_str("Host")?, HeaderValue::from_str(&host)?);
+  Ok(
+    request_builder
+      .signature_with_digest(
+        HTTP_SIG_CONFIG.clone(),
+        signing_key_id,
+        Sha256::new(),
+        activity,
+        move |signing_string| {
+          let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
+          let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
+          signer.update(signing_string.as_bytes())?;
 
-  let request = client
-    .post(&inbox_url.to_string())
-    // signature is only valid for 10 seconds, so no reason to wait any longer
-    .timeout(REQWEST_TIMEOUT)
-    .headers(headers)
-    .signature_with_digest(
-      HTTP_SIG_CONFIG.clone(),
-      signing_key_id,
-      Sha256::new(),
-      activity,
-      move |signing_string| {
-        let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
-        let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
-        signer.update(signing_string.as_bytes())?;
-
-        Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, LemmyError>
-      },
-    )
-    .await?;
-
-  let response = client.execute(request).await?;
-
-  Ok(response)
+          Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, anyhow::Error>
+        },
+      )
+      .await?,
+  )
 }
 
 /// Verifies the HTTP signature on an incoming inbox request.
-pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), LemmyError> {
+pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), anyhow::Error> {
   let verified = CONFIG2
     .begin_verify(
       request.method(),
       request.uri().path_and_query(),
       request.headers().clone(),
     )?
-    .verify(|signature, signing_string| -> Result<bool, LemmyError> {
+    .verify(|signature, signing_string| -> Result<bool, anyhow::Error> {
       debug!(
         "Verifying with key {}, message {}",
         &public_key, &signing_string

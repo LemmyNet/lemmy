@@ -1,5 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
+/// This type can be used to pass your own data into library functions and traits. It can be useful
+/// to pass around database connections or other context.
 #[derive(Debug)]
 pub struct Data<T: ?Sized>(Arc<T>);
 
