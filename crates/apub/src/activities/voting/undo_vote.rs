@@ -2,7 +2,6 @@ use crate::{
   activities::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
@@ -28,6 +27,7 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl UndoVote {
   /// UndoVote has as:Public value in cc field, unlike other activities. This indicates to other
@@ -70,6 +70,14 @@ impl UndoVote {
 impl ActivityHandler for UndoVote {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
@@ -77,7 +85,6 @@ impl ActivityHandler for UndoVote {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;

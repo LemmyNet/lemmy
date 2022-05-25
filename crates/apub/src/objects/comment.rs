@@ -1,6 +1,6 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   local_instance,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
@@ -149,7 +149,7 @@ impl ApubObject for ApubComment {
       Community::read(conn, community_id)
     })
     .await??;
-    check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), community.local, &context.settings())?;
     verify_is_remote_object(note.id.inner())?;
     verify_person_in_community(
       &note.attributed_to,

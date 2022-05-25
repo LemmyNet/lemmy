@@ -1,10 +1,5 @@
 use crate::{
-  activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_activity,
-    verify_person_in_community,
-  },
+  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::report::Report,
@@ -24,6 +19,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentReportView, PostReportView};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
+use url::Url;
 
 impl Report {
   #[tracing::instrument(skip_all)]
@@ -65,13 +61,20 @@ impl Report {
 impl ActivityHandler for Report {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.to[0]
       .dereference(context, local_instance(context), request_counter)
       .await?;

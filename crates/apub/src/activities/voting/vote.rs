@@ -2,7 +2,6 @@ use crate::{
   activities::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_person_in_community,
     voting::{vote_comment, vote_post},
@@ -25,6 +24,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 /// Vote has as:Public value in cc field, unlike other activities. This indicates to other software
 /// (like GNU social, or presumably Mastodon), that the like actor should not be disclosed.
@@ -72,6 +72,14 @@ impl Vote {
 impl ActivityHandler for Vote {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
@@ -79,7 +87,6 @@ impl ActivityHandler for Vote {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     let site = blocking(context.pool(), Site::read_local_site).await??;

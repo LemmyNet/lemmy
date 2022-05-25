@@ -3,7 +3,6 @@ use crate::{
     community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
-    verify_activity,
   },
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -46,13 +45,20 @@ use url::Url;
 impl ActivityHandler for Delete {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_delete_activity(self, self.summary.is_some(), context, request_counter).await?;
     Ok(())
   }

@@ -1,4 +1,5 @@
 use crate::{
+  check_apub_id_valid_with_strictness,
   local_instance,
   objects::read_from_string_or_source,
   protocol::{
@@ -22,6 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
+  settings::structs::Settings,
   utils::{convert_datetime, markdown_to_html},
   LemmyError,
 };
@@ -111,6 +113,7 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), false, &Settings::get())?;
     let person = note
       .attributed_to
       .dereference(context, local_instance(context), request_counter)

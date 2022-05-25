@@ -4,7 +4,6 @@ use crate::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     send_lemmy_activity,
-    verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
@@ -40,6 +39,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{settings::structs::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl BlockUser {
   pub(in crate::activities::block) async fn new(
@@ -109,6 +109,14 @@ impl BlockUser {
 impl ActivityHandler for BlockUser {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
@@ -116,7 +124,6 @@ impl ActivityHandler for BlockUser {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     match self
       .target
       .dereference(context, local_instance(context), request_counter)

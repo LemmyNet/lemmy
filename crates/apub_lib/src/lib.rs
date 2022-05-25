@@ -2,9 +2,11 @@ use crate::activity_queue::create_activity_queue;
 use background_jobs::Manager;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
+use url::Url;
 
 pub mod activity_queue;
 pub mod data;
+pub mod inbox;
 pub mod object_id;
 pub mod signatures;
 pub mod traits;
@@ -17,7 +19,7 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 pub static DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct LocalInstance {
-  pub domain: String,
+  pub hostname: String,
   client: ClientWithMiddleware,
   activity_queue: Manager,
   settings: InstanceSettings,
@@ -33,6 +35,10 @@ pub struct InstanceSettings {
   testing_send_sync: bool,
   /// Timeout for all HTTP requests
   request_timeout: Duration,
+  /// Function used to verify that urls are valid, used when receiving activities or fetching remote
+  /// objects. Use this to implement functionality like federation blocklists. In case verification
+  /// fails, it should return an error message.
+  verify_url_function: fn(&Url) -> Result<(), &'static str>,
 }
 
 impl LocalInstance {
@@ -43,7 +49,7 @@ impl LocalInstance {
       settings.request_timeout,
     );
     LocalInstance {
-      domain,
+      hostname: domain,
       client,
       activity_queue,
       settings,
@@ -57,12 +63,14 @@ impl InstanceSettings {
     worker_count: u64,
     testing_send_sync: bool,
     request_timeout: Duration,
+    verify_url_function: fn(&Url) -> Result<(), &'static str>,
   ) -> Self {
     InstanceSettings {
       http_fetch_retry_limit,
       worker_count,
       testing_send_sync,
       request_timeout,
+      verify_url_function,
     }
   }
 }
@@ -73,20 +81,21 @@ impl Default for InstanceSettings {
       worker_count: 64,
       testing_send_sync: false,
       request_timeout: DEFAULT_TIMEOUT,
+      verify_url_function: |_url| Ok(()),
     }
   }
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-  #[error("Domain did not pass verification")]
-  DomainError,
   #[error("Object was not found in database")]
   NotFound,
   #[error("Request limit was reached during fetch")]
   RequestLimit,
   #[error("Object to be fetched was deleted")]
   ObjectDeleted,
+  #[error("{0}")]
+  UrlVerificationError(&'static str),
   #[error(transparent)]
   Other(#[from] anyhow::Error),
 }

@@ -1,5 +1,5 @@
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_activity},
+  activities::{generate_activity_id, send_lemmy_activity},
   local_instance,
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
   ActorType,
@@ -15,6 +15,7 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl AcceptFollowCommunity {
   #[tracing::instrument(skip_all)]
@@ -49,13 +50,20 @@ impl AcceptFollowCommunity {
 impl ActivityHandler for AcceptFollowCommunity {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())

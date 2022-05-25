@@ -1,5 +1,5 @@
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   collections::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
@@ -59,7 +59,7 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    check_is_apub_id_valid(self.id.inner(), true, &context.settings())?;
+    check_apub_id_valid_with_strictness(self.id.inner(), true, &context.settings())?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
     let slur_regex = &context.settings().slur_regex();

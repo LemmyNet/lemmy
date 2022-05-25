@@ -50,7 +50,7 @@ impl ImageObject {
 pub struct Unparsed(HashMap<String, serde_json::Value>);
 
 pub(crate) trait Id {
-  fn id(&self) -> &Url;
+  fn object_id(&self) -> &Url;
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -64,7 +64,7 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
   pub(crate) fn id(&self) -> &Url {
     match self {
       IdOrNestedObject::Id(i) => i,
-      IdOrNestedObject::NestedObject(n) => n.id(),
+      IdOrNestedObject::NestedObject(n) => n.object_id(),
     }
   }
   pub(crate) async fn object(

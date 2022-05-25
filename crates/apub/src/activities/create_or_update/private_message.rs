@@ -1,5 +1,5 @@
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
+  activities::{generate_activity_id, send_lemmy_activity, verify_person},
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::private_message::CreateOrUpdatePrivateMessage,
@@ -17,6 +17,7 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{source::person::Person, traits::Crud};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
 
 impl CreateOrUpdatePrivateMessage {
   #[tracing::instrument(skip_all)]
@@ -53,13 +54,20 @@ impl CreateOrUpdatePrivateMessage {
 impl ActivityHandler for CreateOrUpdatePrivateMessage {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     ApubPrivateMessage::verify(&self.object, self.actor.inner(), context, request_counter).await?;

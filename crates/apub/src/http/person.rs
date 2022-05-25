@@ -2,24 +2,17 @@ use crate::{
   activity_lists::PersonInboxActivities,
   context::WithContext,
   generate_outbox_url,
-  http::{
-    create_apub_response,
-    create_apub_tombstone_response,
-    payload_to_string,
-    receive_activity,
-    ActivityCommonFields,
-  },
+  http::{create_apub_response, create_apub_tombstone_response, receive_lemmy_activity},
   objects::person::ApubPerson,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
-use tracing::info;
 
 #[derive(Deserialize)]
 pub struct PersonQuery {
@@ -52,24 +45,14 @@ pub(crate) async fn get_apub_person_http(
 #[tracing::instrument(skip_all)]
 pub async fn person_inbox(
   request: HttpRequest,
-  payload: Payload,
+  payload: String,
   _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let unparsed = payload_to_string(payload).await?;
-  info!("Received person inbox activity {}", unparsed);
-  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
-  let activity = serde_json::from_str::<WithContext<PersonInboxActivities>>(&unparsed)?;
-  receive_person_inbox(activity.inner(), activity_data, request, &context).await
-}
-
-pub(in crate::http) async fn receive_person_inbox(
-  activity: PersonInboxActivities,
-  activity_data: ActivityCommonFields,
-  request: HttpRequest,
-  context: &LemmyContext,
-) -> Result<HttpResponse, LemmyError> {
-  receive_activity(request, activity, activity_data, context).await
+  receive_lemmy_activity::<WithContext<PersonInboxActivities>, ApubPerson>(
+    request, payload, context,
+  )
+  .await
 }
 
 #[tracing::instrument(skip_all)]

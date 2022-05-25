@@ -7,6 +7,8 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 pub trait ActivityHandler {
   type DataType;
+  fn id(&self) -> &Url;
+  fn actor(&self) -> &Url;
   async fn verify(
     &self,
     data: &Data<Self::DataType>,

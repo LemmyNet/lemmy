@@ -80,6 +80,12 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
     unimplemented!()
   };
 
+  let impl_id = enum_variants
+    .iter()
+    .map(|v| generate_match_arm(&enum_name, v, &quote! {a.id()}));
+  let impl_actor = enum_variants
+    .iter()
+    .map(|v| generate_match_arm(&enum_name, v, &quote! {a.actor()}));
   let body_verify = quote! {a.verify(context, request_counter).await};
   let impl_verify = enum_variants
     .iter()
@@ -93,6 +99,20 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
       #[async_trait::async_trait(?Send)]
       impl #impl_generics lemmy_apub_lib::traits::ActivityHandler for #enum_name #ty_generics #where_clause {
         type DataType = #attrs;
+          fn id(
+              &self,
+            ) -> &Url {
+            match self {
+              #(#impl_id)*
+            }
+          }
+          fn actor(
+            &self,
+          ) -> &Url {
+            match self {
+              #(#impl_actor)*
+            }
+          }
           async fn verify(
               &self,
               context: &lemmy_apub_lib::data::Data<Self::DataType>,

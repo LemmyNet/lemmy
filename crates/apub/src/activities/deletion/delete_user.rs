@@ -15,12 +15,21 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::source::site::Site;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox
 /// (cause instance actor doesn't have shared inbox).
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for DeleteUser {
   type DataType = LemmyContext;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   async fn verify(
     &self,

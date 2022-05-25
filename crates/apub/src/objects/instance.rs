@@ -1,5 +1,5 @@
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
@@ -12,6 +12,7 @@ use crate::{
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
+  inbox::ActorPublicKey,
   object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeHtml,
@@ -107,7 +108,7 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    check_is_apub_id_valid(apub.id.inner(), true, &data.settings())?;
+    check_apub_id_valid_with_strictness(apub.id.inner(), true, &data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
     let slur_regex = &data.settings().slur_regex();
@@ -148,9 +149,6 @@ impl ActorType for ApubSite {
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
   }
-  fn public_key(&self) -> String {
-    self.public_key.to_owned()
-  }
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
@@ -161,6 +159,12 @@ impl ActorType for ApubSite {
 
   fn shared_inbox_url(&self) -> Option<Url> {
     None
+  }
+}
+
+impl ActorPublicKey for ApubSite {
+  fn public_key(&self) -> &str {
+    &self.public_key
   }
 }
 

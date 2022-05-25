@@ -4,7 +4,6 @@ use crate::{
     community::{announce::GetCommunity, send_activity_in_community},
     create_or_update::get_comment_notif_recipients,
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_person_in_community,
   },
@@ -33,6 +32,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
 
 impl CreateOrUpdateComment {
   #[tracing::instrument(skip(comment, actor, kind, context))]
@@ -100,6 +100,14 @@ impl CreateOrUpdateComment {
 impl ActivityHandler for CreateOrUpdateComment {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
@@ -110,7 +118,6 @@ impl ActivityHandler for CreateOrUpdateComment {
     let post = self.object.get_parents(context, request_counter).await?.0;
     let community = self.get_community(context, request_counter).await?;
 
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;

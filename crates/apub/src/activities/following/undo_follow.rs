@@ -1,5 +1,5 @@
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_person},
+  activities::{generate_activity_id, send_lemmy_activity, verify_person},
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
@@ -19,6 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl UndoFollowCommunity {
   #[tracing::instrument(skip_all)]
@@ -47,13 +48,20 @@ impl UndoFollowCommunity {
 impl ActivityHandler for UndoFollowCommunity {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context, request_counter).await?;
     self.object.verify(context, request_counter).await?;

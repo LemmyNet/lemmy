@@ -1,5 +1,4 @@
 use crate::{
-  check_is_apub_id_valid,
   context::WithContext,
   generate_moderators_url,
   insert_activity,
@@ -10,14 +9,10 @@ use crate::{
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  activity_queue::SendActivity,
-  object_id::ObjectId,
-  verify::verify_domains_match,
-};
+use lemmy_apub_lib::{activity_queue::SendActivity, object_id::ObjectId};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use tracing::info;
@@ -72,12 +67,6 @@ pub(crate) async fn verify_person_in_community(
     return Err(LemmyError::from_message("Person is banned from community"));
   }
 
-  Ok(())
-}
-
-fn verify_activity(id: &Url, actor: &Url, settings: &Settings) -> Result<(), LemmyError> {
-  check_is_apub_id_valid(actor, false, settings)?;
-  verify_domains_match(id, actor)?;
   Ok(())
 }
 

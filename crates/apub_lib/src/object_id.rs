@@ -47,7 +47,7 @@ where
     let db_object = self.dereference_from_db(data).await?;
 
     // if its a local object, only fetch it from the database and not over http
-    if self.0.domain() == Some(&instance.domain) {
+    if self.0.domain() == Some(&instance.hostname) {
       return match db_object {
         None => Err(Error::NotFound.into()),
         Some(o) => Ok(o),

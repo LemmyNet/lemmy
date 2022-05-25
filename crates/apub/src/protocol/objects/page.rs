@@ -10,7 +10,7 @@ use itertools::Itertools;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::{ActivityHandler, ApubObject},
+  traits::ActivityHandler,
   values::MediaTypeMarkdownOrHtml,
 };
 use lemmy_db_schema::newtypes::DbUrl;
@@ -182,19 +182,24 @@ impl Attachment {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Page {
   type DataType = LemmyContext;
+  fn id(&self) -> &Url {
+    unimplemented!()
+  }
+  fn actor(&self) -> &Url {
+    unimplemented!()
+  }
   async fn verify(
     &self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    ApubPost::verify(self, self.id.inner(), data, request_counter).await
+    unimplemented!()
   }
   async fn receive(
     self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    ApubPost::from_apub(self, data, request_counter).await?;
-    Ok(())
+    unimplemented!()
   }
 }

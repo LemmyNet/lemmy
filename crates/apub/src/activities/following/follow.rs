@@ -2,7 +2,6 @@ use crate::{
   activities::{
     generate_activity_id,
     send_lemmy_activity,
-    verify_activity,
     verify_person,
     verify_person_in_community,
   },
@@ -20,6 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl FollowCommunity {
   pub(in crate::activities::following) fn new(
@@ -65,13 +65,20 @@ impl FollowCommunity {
 impl ActivityHandler for FollowCommunity {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object

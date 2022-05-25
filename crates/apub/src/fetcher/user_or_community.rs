@@ -1,10 +1,9 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
-  ActorType,
 };
 use chrono::NaiveDateTime;
-use lemmy_apub_lib::traits::ApubObject;
+use lemmy_apub_lib::{inbox::ActorPublicKey, traits::ApubObject};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -107,30 +106,11 @@ impl ApubObject for UserOrCommunity {
   }
 }
 
-impl ActorType for UserOrCommunity {
-  fn actor_id(&self) -> Url {
-    match self {
-      UserOrCommunity::User(p) => p.actor_id(),
-      UserOrCommunity::Community(p) => p.actor_id(),
-    }
-  }
-
-  fn public_key(&self) -> String {
+impl ActorPublicKey for UserOrCommunity {
+  fn public_key(&self) -> &str {
     match self {
       UserOrCommunity::User(p) => p.public_key(),
       UserOrCommunity::Community(p) => p.public_key(),
     }
-  }
-
-  fn private_key(&self) -> Option<String> {
-    todo!()
-  }
-
-  fn inbox_url(&self) -> Url {
-    todo!()
-  }
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    todo!()
   }
 }

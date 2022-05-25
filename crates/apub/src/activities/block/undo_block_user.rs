@@ -4,7 +4,6 @@ use crate::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     send_lemmy_activity,
-    verify_activity,
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
@@ -31,6 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl UndoBlockUser {
   #[tracing::instrument(skip_all)]
@@ -75,6 +75,14 @@ impl UndoBlockUser {
 impl ActivityHandler for UndoBlockUser {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
@@ -82,7 +90,6 @@ impl ActivityHandler for UndoBlockUser {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())

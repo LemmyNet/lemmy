@@ -10,7 +10,7 @@ pub async fn fetch_object_http<Kind: DeserializeOwned>(
   request_counter: &mut i32,
 ) -> Result<Kind, Error> {
   // dont fetch local objects this way
-  debug_assert!(url.domain() != Some(&instance.domain));
+  debug_assert!(url.domain() != Some(&instance.hostname));
   info!("Fetching remote object {}", url.to_string());
 
   *request_counter += 1;

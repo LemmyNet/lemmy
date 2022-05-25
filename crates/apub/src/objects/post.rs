@@ -1,6 +1,6 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
@@ -143,7 +143,7 @@ impl ApubObject for ApubPost {
     };
 
     let community = page.extract_community(context, request_counter).await?;
-    check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
+    check_apub_id_valid_with_strictness(page.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;

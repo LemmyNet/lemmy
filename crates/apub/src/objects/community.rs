@@ -1,5 +1,5 @@
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   generate_moderators_url,
   generate_outbox_url,
@@ -16,7 +16,7 @@ use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
+use lemmy_apub_lib::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
@@ -163,9 +163,6 @@ impl ActorType for ApubCommunity {
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
   }
-  fn public_key(&self) -> String {
-    self.public_key.to_owned()
-  }
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
@@ -176,6 +173,12 @@ impl ActorType for ApubCommunity {
 
   fn shared_inbox_url(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(|s| s.into())
+  }
+}
+
+impl ActorPublicKey for ApubCommunity {
+  fn public_key(&self) -> &str {
+    &self.public_key
   }
 }
 
@@ -204,7 +207,9 @@ impl ApubCommunity {
       .unique()
       .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
-      .filter(|inbox| check_is_apub_id_valid(inbox, false, &context.settings()).is_ok())
+      .filter(|inbox| {
+        check_apub_id_valid_with_strictness(inbox, false, &context.settings()).is_ok()
+      })
       .collect();
 
     Ok(inboxes)

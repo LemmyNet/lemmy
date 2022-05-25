@@ -10,5 +10,8 @@ pub fn generate_object_id(local_instance: &LocalInstance) -> Result<Url, ParseEr
     .take(7)
     .map(char::from)
     .collect();
-  Url::parse(&format!("http://{}/objects/{}", local_instance.domain, id))
+  Url::parse(&format!(
+    "http://{}/objects/{}",
+    local_instance.hostname, id
+  ))
 }

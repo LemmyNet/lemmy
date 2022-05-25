@@ -3,7 +3,6 @@ use crate::{
     check_community_deleted_or_removed,
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
@@ -30,6 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(
@@ -79,6 +79,14 @@ impl CreateOrUpdatePost {
 impl ActivityHandler for CreateOrUpdatePost {
   type DataType = LemmyContext;
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
@@ -86,7 +94,6 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;

@@ -1,5 +1,5 @@
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   generate_outbox_url,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -14,7 +14,12 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
+use lemmy_apub_lib::{
+  inbox::ActorPublicKey,
+  object_id::ObjectId,
+  traits::ApubObject,
+  verify::verify_domains_match,
+};
 use lemmy_db_schema::{
   source::person::{Person as DbPerson, PersonForm},
   traits::ApubActor,
@@ -120,7 +125,7 @@ impl ApubObject for ApubPerson {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_domains_match(person.id.inner(), expected_domain)?;
-    check_is_apub_id_valid(person.id.inner(), false, &context.settings())?;
+    check_apub_id_valid_with_strictness(person.id.inner(), false, &context.settings())?;
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;
@@ -179,10 +184,6 @@ impl ActorType for ApubPerson {
     self.actor_id.to_owned().into()
   }
 
-  fn public_key(&self) -> String {
-    self.public_key.to_owned()
-  }
-
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
@@ -193,6 +194,12 @@ impl ActorType for ApubPerson {
 
   fn shared_inbox_url(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(|s| s.into())
+  }
+}
+
+impl ActorPublicKey for ApubPerson {
+  fn public_key(&self) -> &str {
+    &self.public_key
   }
 }
 
