@@ -247,6 +247,7 @@ impl CommunityFollower {
           SubscribedType::Subscribed
         }
       }
+      // If the row doesn't exist, the person isn't a follower.
       None => SubscribedType::NotSubscribed,
     }
   }
