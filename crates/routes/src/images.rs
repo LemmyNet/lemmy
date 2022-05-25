@@ -230,11 +230,14 @@ async fn purge(
 
   let mut client_req = adapt_request(&req, &client, url);
 
-  // TODO add the API token, X-Api-Token header
-
   if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+    client_req = client_req
+      .header("X-Forwarded-For", addr.to_string())
   }
+  
+  // TODO add the API token, X-Api-Token header
+  client_req = client_req
+    .header("x-api-token", "TEST");
 
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 

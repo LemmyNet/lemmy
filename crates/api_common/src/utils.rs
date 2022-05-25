@@ -506,6 +506,8 @@ pub async fn check_private_instance_and_federation_enabled(
 }
 
 pub async fn remove_user_data(banned_person_id: PersonId, pool: &DbPool) -> Result<(), LemmyError> {
+  // TODO also purge images here
+  //
   // Posts
   blocking(pool, move |conn: &'_ _| {
     Post::update_removed_for_creator(conn, banned_person_id, None, true)
