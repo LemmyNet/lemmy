@@ -69,7 +69,7 @@ impl PerformCrud for EditPost {
 
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) =
+    let (metadata_res, thumbnail_url) =
       fetch_site_data(context.client(), &context.settings(), data_url).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (u.title, u.description, u.embed_video_url))
@@ -86,7 +86,7 @@ impl PerformCrud for EditPost {
       embed_title,
       embed_description,
       embed_video_url,
-      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
+      thumbnail_url,
       ..PostForm::default()
     };
 
