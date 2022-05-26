@@ -52,8 +52,13 @@ impl MyUser {
     )
   }
 
-  pub async fn follow(&self, other: &MyUser, local_instance: &LocalInstance) -> Result<(), Error> {
-    let id = generate_object_id(local_instance)?;
+  pub async fn follow(
+    &self,
+    other: &MyUser,
+    local_instance: &LocalInstance,
+    hostname: &str,
+  ) -> Result<(), Error> {
+    let id = generate_object_id(hostname)?;
     let follow = Follow::new(self.ap_id.clone(), other.ap_id.clone(), id.clone());
     self
       .send(
@@ -66,8 +71,13 @@ impl MyUser {
     Ok(())
   }
 
-  pub async fn post(&self, post: MyPost, local_instance: &LocalInstance) -> Result<(), LemmyError> {
-    let id = generate_object_id(local_instance)?;
+  pub async fn post(
+    &self,
+    post: MyPost,
+    local_instance: &LocalInstance,
+    hostname: &str,
+  ) -> Result<(), LemmyError> {
+    let id = generate_object_id(hostname)?;
     let to = vec![public(), self.followers_url()?];
     let create = CreateNote::new(
       self.ap_id.clone(),

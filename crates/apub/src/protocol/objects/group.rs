@@ -71,6 +71,7 @@ impl Group {
   }
 
   pub(crate) fn into_form(self) -> CommunityForm {
+    dbg!("turn apub community {} into form", self.id.clone());
     CommunityForm {
       name: self.preferred_username.clone(),
       title: self.name.unwrap_or(self.preferred_username),

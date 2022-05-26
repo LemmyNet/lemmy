@@ -43,6 +43,14 @@ pub struct CreateNote {
 impl ActivityHandler for Follow {
   type DataType = ();
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   async fn verify(
     &self,
     data: &Data<Self::DataType>,
@@ -64,6 +72,14 @@ impl ActivityHandler for Follow {
 impl ActivityHandler for Accept {
   type DataType = ();
 
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
+
   async fn verify(
     &self,
     data: &Data<Self::DataType>,
@@ -84,6 +100,14 @@ impl ActivityHandler for Accept {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateNote {
   type DataType = ();
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   async fn verify(
     &self,

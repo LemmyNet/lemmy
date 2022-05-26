@@ -11,7 +11,6 @@ use actix_web::{HttpRequest, HttpResponse};
 use lemmy_utils::LemmyError;
 use serde::de::DeserializeOwned;
 use tracing::log::debug;
-use url::Url;
 
 pub trait ActorPublicKey {
   /// Returns the actor's public key for verification of HTTP signatures
@@ -30,7 +29,10 @@ where
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   verify_domains_match(activity.id(), activity.actor())?;
-  assert_activity_not_local(activity.id(), &local_instance.hostname)?;
+  if local_instance.is_local_url(activity.id()) {
+    return Err(Error::UrlVerificationError("Activity was sent from local instance").into());
+  }
+
   (local_instance.settings.verify_url_function)(activity.id())
     .map_err(Error::UrlVerificationError)?;
 
@@ -46,15 +48,4 @@ where
   debug!("Receiving activity {}", activity.id().to_string());
   activity.receive(data, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
-}
-
-fn assert_activity_not_local(id: &Url, hostname: &str) -> Result<(), Error> {
-  let activity_domain = id.domain().expect("activity url has a domain");
-
-  if activity_domain == hostname {
-    return Err(Error::UrlVerificationError(
-      "Activity was sent from local instance",
-    ));
-  }
-  Ok(())
 }

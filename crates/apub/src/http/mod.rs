@@ -19,6 +19,7 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Value;
 use tracing::{debug, log::info};
 use url::Url;
 
@@ -48,10 +49,10 @@ where
   Actor: ApubObject<DataType = LemmyContext> + ActorPublicKey + Send + 'static,
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
-  // Log the activity, so we avoid receiving and parsing it twice.
-  let activity_value = serde_json::to_value(&payload)?;
+  let activity_value: Value = serde_json::from_str(&payload)?;
   let activity: Activity = serde_json::from_value(activity_value.clone())?;
-  let insert = insert_activity(&activity.id(), activity_value, false, true, context.pool()).await?;
+  // Log the activity, so we avoid receiving and parsing it twice.
+  let insert = insert_activity(activity.id(), activity_value, false, true, context.pool()).await?;
   if !insert {
     debug!("Received duplicate activity {}", activity.id().to_string());
     return Ok(HttpResponse::BadRequest().finish());

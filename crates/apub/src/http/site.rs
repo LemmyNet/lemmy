@@ -2,7 +2,7 @@ use crate::{
   activity_lists::SiteInboxActivities,
   context::WithContext,
   http::{create_apub_response, receive_lemmy_activity},
-  objects::instance::ApubSite,
+  objects::{instance::ApubSite, person::ApubPerson},
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -40,6 +40,6 @@ pub async fn get_apub_site_inbox(
   payload: String,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_lemmy_activity::<WithContext<SiteInboxActivities>, ApubSite>(request, payload, context)
+  receive_lemmy_activity::<WithContext<SiteInboxActivities>, ApubPerson>(request, payload, context)
     .await
 }

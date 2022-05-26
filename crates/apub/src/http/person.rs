@@ -1,6 +1,7 @@
 use crate::{
   activity_lists::PersonInboxActivities,
   context::WithContext,
+  fetcher::user_or_community::UserOrCommunity,
   generate_outbox_url,
   http::{create_apub_response, create_apub_tombstone_response, receive_lemmy_activity},
   objects::person::ApubPerson,
@@ -46,10 +47,9 @@ pub(crate) async fn get_apub_person_http(
 pub async fn person_inbox(
   request: HttpRequest,
   payload: String,
-  _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_lemmy_activity::<WithContext<PersonInboxActivities>, ApubPerson>(
+  receive_lemmy_activity::<WithContext<PersonInboxActivities>, UserOrCommunity>(
     request, payload, context,
   )
   .await

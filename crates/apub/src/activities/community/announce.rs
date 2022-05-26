@@ -123,7 +123,7 @@ impl ActivityHandler for AnnounceActivity {
       _ => {
         let object_value = serde_json::to_value(&object)?;
         let insert =
-          insert_activity(&object.id(), object_value, false, true, context.pool()).await?;
+          insert_activity(object.id(), object_value, false, true, context.pool()).await?;
         if !insert {
           debug!(
             "Received duplicate activity in announce {}",

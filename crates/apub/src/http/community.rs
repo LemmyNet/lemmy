@@ -9,7 +9,7 @@ use crate::{
   generate_outbox_url,
   http::{create_apub_response, create_apub_tombstone_response, receive_lemmy_activity},
   local_instance,
-  objects::community::ApubCommunity,
+  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::collections::group_followers::GroupFollowers,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -51,13 +51,10 @@ pub(crate) async fn get_apub_community_http(
 pub async fn community_inbox(
   request: HttpRequest,
   payload: String,
-  _path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_lemmy_activity::<WithContext<GroupInboxActivities>, ApubCommunity>(
-    request, payload, context,
-  )
-  .await
+  receive_lemmy_activity::<WithContext<GroupInboxActivities>, ApubPerson>(request, payload, context)
+    .await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).

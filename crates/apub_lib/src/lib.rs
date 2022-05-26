@@ -19,7 +19,7 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 pub static DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct LocalInstance {
-  pub hostname: String,
+  hostname: String,
   client: ClientWithMiddleware,
   activity_queue: Manager,
   settings: InstanceSettings,
@@ -54,6 +54,15 @@ impl LocalInstance {
       activity_queue,
       settings,
     }
+  }
+  /// Returns true if the url refers to this instance. Handles hostnames like `localhost:8540` for
+  /// local debugging.
+  fn is_local_url(&self, url: &Url) -> bool {
+    let mut domain = url.domain().expect("id has domain").to_string();
+    if let Some(port) = url.port() {
+      domain = format!("{}:{}", domain, port);
+    }
+    domain == self.hostname
   }
 }
 

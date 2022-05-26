@@ -10,7 +10,7 @@ use itertools::Itertools;
 use lemmy_apub_lib::{
   data::Data,
   object_id::ObjectId,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, ApubObject},
   values::MediaTypeMarkdownOrHtml,
 };
 use lemmy_db_schema::newtypes::DbUrl;
@@ -190,16 +190,17 @@ impl ActivityHandler for Page {
   }
   async fn verify(
     &self,
-    _data: &Data<Self::DataType>,
-    _request_counter: &mut i32,
+    data: &Data<Self::DataType>,
+    request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    unimplemented!()
+    ApubPost::verify(self, self.id.inner(), data, request_counter).await
   }
   async fn receive(
     self,
-    _data: &Data<Self::DataType>,
-    _request_counter: &mut i32,
+    data: &Data<Self::DataType>,
+    request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    unimplemented!()
+    ApubPost::from_apub(self, data, request_counter).await?;
+    Ok(())
   }
 }
