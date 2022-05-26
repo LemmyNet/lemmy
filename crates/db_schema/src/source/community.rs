@@ -128,7 +128,7 @@ pub struct CommunityFollower {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: chrono::NaiveDateTime,
-  pub pending: bool,
+  pub pending: Option<bool>,
 }
 
 #[derive(Clone)]

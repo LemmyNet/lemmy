@@ -261,7 +261,7 @@ test('Remove a post from admin and community on same instance', async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  // let alphaPost = await getPost(alpha, postRes.post_view.post.id);
+  let alphaPost = await getPost(alpha, postRes.post_view.post.id);
   // expect(alphaPost.post_view.post.removed).toBe(true); // TODO this shouldn't be commented
   // assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
