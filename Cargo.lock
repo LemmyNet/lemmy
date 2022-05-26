@@ -861,17 +861,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive-new"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3418329ca0ad70234b9735dc4ceed10af4df60eff9c8e7b06cb5e520d92c3535"
-dependencies = [
- "proc-macro2 1.0.36",
- "quote 1.0.17",
- "syn 1.0.90",
-]
-
-[[package]]
 name = "derive_builder"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1896,7 +1885,6 @@ dependencies = [
  "background-jobs",
  "base64",
  "chrono",
- "derive-new",
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
@@ -1911,6 +1899,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "tokio",
  "tracing",
  "url",
 ]

@@ -20,6 +20,7 @@ use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
 use tracing::{info, warn};
 use url::Url;
 
+/// Necessary data for sending out an activity
 pub struct SendActivity {
   /// Id of the sent activity, used for logging
   pub activity_id: Url,
@@ -34,6 +35,11 @@ pub struct SendActivity {
 }
 
 impl SendActivity {
+  /// Send out the given activity to all inboxes, automatically generating the HTTP signatures. By
+  /// default, sending is done on a background thread, and automatically retried on failure with
+  /// exponential backoff.
+  ///
+  /// For debugging or testing, you might want to set [[InstanceSettings.testing_send_sync]].
   pub async fn send(self, instance: &LocalInstance) -> Result<(), Error> {
     let activity_queue = &instance.activity_queue;
     for inbox in self.inboxes {

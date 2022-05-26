@@ -1,15 +1,27 @@
-use crate::person::MyUser;
+use crate::{generate_object_id, objects::person::MyUser};
 use activitystreams_kinds::{object::NoteType, public};
 use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId, traits::ApubObject};
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, new)]
+#[derive(Clone)]
 pub struct MyPost {
   pub text: String,
   pub ap_id: ObjectId<MyPost>,
   pub creator: ObjectId<MyUser>,
+  pub local: bool,
+}
+
+impl MyPost {
+  pub fn new(text: String, creator: ObjectId<MyUser>) -> MyPost {
+    MyPost {
+      text,
+      ap_id: ObjectId::new(generate_object_id(creator.inner().domain().unwrap()).unwrap()),
+      creator,
+      local: true,
+    }
+  }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -18,9 +30,9 @@ pub struct Note {
   #[serde(rename = "type")]
   kind: NoteType,
   id: ObjectId<MyPost>,
-  attributed_to: ObjectId<MyUser>,
+  pub(crate) attributed_to: ObjectId<MyUser>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
-  to: Vec<Url>,
+  pub(crate) to: Vec<Url>,
   content: String,
 }
 
@@ -75,6 +87,7 @@ impl ApubObject for MyPost {
       text: apub.content,
       ap_id: apub.id,
       creator: apub.attributed_to,
+      local: false,
     })
   }
 }

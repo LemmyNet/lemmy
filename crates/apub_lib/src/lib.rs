@@ -16,6 +16,7 @@ pub mod utils;
 pub mod values;
 pub mod verify;
 
+/// Mime type for Activitypub, used for `Accept` and `Content-Type` HTTP headers
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 /// HTTP signatures are valid for 10s, so it makes sense to use the same as timeout when sending
 pub static DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -65,6 +66,10 @@ impl LocalInstance {
       domain = format!("{}:{}", domain, port);
     }
     domain == self.hostname
+  }
+
+  pub fn hostname(&self) -> &str {
+    &self.hostname
   }
 }
 

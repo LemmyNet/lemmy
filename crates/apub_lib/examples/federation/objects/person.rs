@@ -1,30 +1,49 @@
 use crate::{
-  activities::{CreateNote, Follow},
+  activities::{accept::Accept, create_note::CreateNote, follow::Follow},
   lib::generate_object_id,
-  note::MyPost,
+  objects::note::MyPost,
 };
 use activitystreams_kinds::{actor::PersonType, public};
 use anyhow::Error;
 use lemmy_apub_lib::{
   activity_queue::SendActivity,
   context::WithContext,
+  inbox::ActorPublicKey,
   object_id::ObjectId,
   signatures::{Keypair, PublicKey},
-  traits::ApubObject,
+  traits::{ActivityHandler, ApubObject},
   LocalInstance,
 };
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(new)]
 pub struct MyUser {
   pub ap_id: ObjectId<MyUser>,
   keypair: Keypair,
-  #[new(default)]
   followers: Vec<Url>,
-  #[new(default)]
-  pub known_posts: Vec<MyPost>,
+  pub local: bool,
+}
+
+/// List of all activities which this actor can receive.
+#[derive(Deserialize, Serialize, ActivityHandler)]
+#[serde(untagged)]
+#[activity_handler(())]
+pub enum PersonAcceptedActivities {
+  Follow(Follow),
+  Accept(Accept),
+  CreateNote(CreateNote),
+}
+
+impl MyUser {
+  pub fn new(ap_id: Url, keypair: Keypair) -> MyUser {
+    MyUser {
+      ap_id: ObjectId::new(ap_id),
+      keypair,
+      followers: vec![],
+      local: true,
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -80,18 +99,13 @@ impl MyUser {
   ) -> Result<(), LemmyError> {
     let id = generate_object_id(hostname)?;
     let to = vec![public(), self.followers_url()?];
-    let create = CreateNote::new(
-      self.ap_id.clone(),
-      to.clone(),
-      post.into_apub(&()).await?,
-      id.clone(),
-    );
+    let create = CreateNote::new(post.into_apub(&()).await?, id.clone());
     self.send(id, &create, to, local_instance).await?;
     Ok(())
   }
 
   // TODO: maybe store LocalInstance in self
-  async fn send<Activity: Serialize>(
+  pub(crate) async fn send<Activity: Serialize>(
     &self,
     activity_id: Url,
     activity: Activity,
@@ -159,5 +173,11 @@ impl ApubObject for MyUser {
     Self: Sized,
   {
     todo!()
+  }
+}
+
+impl ActorPublicKey for MyUser {
+  fn public_key(&self) -> &str {
+    &self.keypair.public_key
   }
 }
