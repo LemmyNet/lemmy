@@ -90,7 +90,7 @@ impl ApubObject for ApubPrivateMessage {
       r#type: ChatMessageType::ChatMessage,
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: [ObjectId::new(recipient.actor_id)],
+      to: ObjectId::new(recipient.actor_id),
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
@@ -134,7 +134,8 @@ impl ApubObject for ApubPrivateMessage {
       .attributed_to
       .dereference(context, local_instance(context), request_counter)
       .await?;
-    let recipient = note.to[0]
+    let recipient = note
+      .to
       .dereference(context, local_instance(context), request_counter)
       .await?;
 

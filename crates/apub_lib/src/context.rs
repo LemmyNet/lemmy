@@ -1,28 +1,30 @@
-use lemmy_apub_lib::{data::Data, traits::ActivityHandler};
+use crate::{data::Data, deser::deserialize_one_or_many, traits::ActivityHandler};
 use lemmy_utils::LemmyError;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::str::FromStr;
 use url::Url;
 
-static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
-  serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
-});
+const DEFAULT_CONTEXT: &str = "https://www.w3.org/ns/activitystreams";
 
+/// Simple wrapper which adds json-ld context to
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WithContext<T> {
   #[serde(rename = "@context")]
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
-  context: Vec<serde_json::Value>,
+  #[serde(deserialize_with = "deserialize_one_or_many")]
+  context: Vec<Value>,
   #[serde(flatten)]
   inner: T,
 }
 
 impl<T> WithContext<T> {
-  pub(crate) fn new(inner: T) -> WithContext<T> {
-    WithContext {
-      context: (*CONTEXT).clone(),
-      inner,
-    }
+  pub fn new_default(inner: T) -> WithContext<T> {
+    let context = vec![Value::from_str(DEFAULT_CONTEXT).expect("valid context")];
+    WithContext::new(inner, context)
+  }
+
+  pub fn new(inner: T, context: Vec<Value>) -> WithContext<T> {
+    WithContext { context, inner }
   }
 }
 

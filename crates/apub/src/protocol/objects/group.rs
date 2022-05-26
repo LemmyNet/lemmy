@@ -9,7 +9,12 @@ use crate::{
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
+use lemmy_apub_lib::{
+  deser::deserialize_skip_error,
+  object_id::ObjectId,
+  signatures::PublicKey,
+  verify::verify_domains_match,
+};
 use lemmy_db_schema::{source::community::CommunityForm, utils::naive_now};
 use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt},
@@ -36,7 +41,7 @@ pub struct Group {
   /// title
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) icon: Option<ImageObject>,
   /// banner

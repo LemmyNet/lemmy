@@ -9,6 +9,7 @@ use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use lemmy_apub_lib::{
   data::Data,
+  deser::{deserialize_one_or_many, deserialize_skip_error},
   object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   values::MediaTypeMarkdownOrHtml,
@@ -36,18 +37,18 @@ pub struct Page {
   pub(crate) kind: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) name: String,
 
-  #[serde(deserialize_with = "crate::deserialize_one_or_many", default)]
+  #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   /// deprecated, use attachment field
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) url: Option<Url>,
   /// most software uses array type for attachment field, so we do the same. nevertheless, we only
   /// use the first item

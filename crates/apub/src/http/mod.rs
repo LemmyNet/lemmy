@@ -1,14 +1,15 @@
 use crate::{
   activity_lists::SharedInboxActivities,
-  context::WithContext,
   fetcher::user_or_community::UserOrCommunity,
   insert_activity,
   local_instance,
+  CONTEXT,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use http::StatusCode;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{
+  context::WithContext,
   data::Data,
   inbox::{receive_activity, ActorPublicKey},
   traits::{ActivityHandler, ApubObject},
@@ -20,6 +21,7 @@ use lemmy_websocket::LemmyContext;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use std::ops::Deref;
 use tracing::{debug, log::info};
 use url::Url;
 
@@ -78,7 +80,7 @@ where
 {
   HttpResponse::Ok()
     .content_type(APUB_JSON_CONTENT_TYPE)
-    .json(WithContext::new(data))
+    .json(WithContext::new(data, CONTEXT.deref().clone()))
 }
 
 fn create_json_apub_response(data: serde_json::Value) -> HttpResponse {
@@ -94,7 +96,7 @@ where
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .status(StatusCode::GONE)
-    .json(WithContext::new(data))
+    .json(WithContext::new(data, CONTEXT.deref().clone()))
 }
 
 #[derive(Deserialize)]

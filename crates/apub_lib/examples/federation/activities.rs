@@ -1,6 +1,11 @@
 use crate::{note::Note, person::MyUser};
 use activitystreams_kinds::activity::{AcceptType, CreateType, FollowType};
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use lemmy_apub_lib::{
+  data::Data,
+  deser::deserialize_one_or_many,
+  object_id::ObjectId,
+  traits::ActivityHandler,
+};
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -31,6 +36,7 @@ struct Accept {
 #[serde(rename_all = "camelCase")]
 pub struct CreateNote {
   pub(crate) actor: ObjectId<MyUser>,
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: Note,
   #[serde(rename = "type")]
@@ -53,16 +59,16 @@ impl ActivityHandler for Follow {
 
   async fn verify(
     &self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
 
   async fn receive(
     self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
@@ -82,16 +88,16 @@ impl ActivityHandler for Accept {
 
   async fn verify(
     &self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
 
   async fn receive(
     self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
@@ -111,16 +117,16 @@ impl ActivityHandler for CreateNote {
 
   async fn verify(
     &self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
 
   async fn receive(
     self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }

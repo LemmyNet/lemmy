@@ -11,20 +11,22 @@ use lemmy_apub_lib::{
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
 use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use once_cell::sync::OnceCell;
-use serde::{Deserialize, Deserializer};
+use once_cell::sync::{Lazy, OnceCell};
 use std::env;
 use url::{ParseError, Url};
 
 pub mod activities;
 pub(crate) mod activity_lists;
 pub(crate) mod collections;
-mod context;
 pub mod fetcher;
 pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
+
+static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
+  serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
+});
 
 // TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
 fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
@@ -119,56 +121,6 @@ pub(crate) fn check_apub_id_valid_with_strictness(
     }
   }
   Ok(())
-}
-
-pub(crate) fn deserialize_one_or_many<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
-where
-  T: Deserialize<'de>,
-  D: Deserializer<'de>,
-{
-  #[derive(Deserialize)]
-  #[serde(untagged)]
-  enum OneOrMany<T> {
-    One(T),
-    Many(Vec<T>),
-  }
-
-  let result: OneOrMany<T> = Deserialize::deserialize(deserializer)?;
-  Ok(match result {
-    OneOrMany::Many(list) => list,
-    OneOrMany::One(value) => vec![value],
-  })
-}
-
-pub(crate) fn deserialize_one<'de, T, D>(deserializer: D) -> Result<[T; 1], D::Error>
-where
-  T: Deserialize<'de>,
-  D: Deserializer<'de>,
-{
-  #[derive(Deserialize)]
-  #[serde(untagged)]
-  enum MaybeArray<T> {
-    Simple(T),
-    Array([T; 1]),
-  }
-
-  let result: MaybeArray<T> = Deserialize::deserialize(deserializer)?;
-  Ok(match result {
-    MaybeArray::Simple(value) => [value],
-    MaybeArray::Array(value) => value,
-  })
-}
-
-pub(crate) fn deserialize_skip_error<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-where
-  T: Deserialize<'de> + Default,
-  D: Deserializer<'de>,
-{
-  let result = Deserialize::deserialize(deserializer);
-  Ok(match result {
-    Ok(o) => o,
-    Err(_) => Default::default(),
-  })
 }
 
 pub enum EndpointType {

@@ -5,7 +5,9 @@ use std::time::Duration;
 use url::Url;
 
 pub mod activity_queue;
+pub mod context;
 pub mod data;
+pub mod deser;
 pub mod inbox;
 pub mod object_id;
 pub mod signatures;

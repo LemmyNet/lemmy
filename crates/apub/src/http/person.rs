@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::PersonInboxActivities,
-  context::WithContext,
   fetcher::user_or_community::UserOrCommunity,
   generate_outbox_url,
   http::{create_apub_response, create_apub_tombstone_response, receive_lemmy_activity},
@@ -9,7 +8,7 @@ use crate::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::ApubObject;
+use lemmy_apub_lib::{context::WithContext, traits::ApubObject};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

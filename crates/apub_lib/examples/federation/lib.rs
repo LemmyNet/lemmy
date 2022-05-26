@@ -1,4 +1,3 @@
-use lemmy_apub_lib::LocalInstance;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use url::{ParseError, Url};
 

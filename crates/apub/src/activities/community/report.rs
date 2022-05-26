@@ -38,7 +38,7 @@ impl Report {
     )?;
     let report = Report {
       actor: ObjectId::new(actor.actor_id()),
-      to: [ObjectId::new(community.actor_id())],
+      to: ObjectId::new(community.actor_id()),
       object: object_id,
       summary: reason,
       kind,
@@ -75,7 +75,8 @@ impl ActivityHandler for Report {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.to[0]
+    let community = self
+      .to
       .dereference(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;

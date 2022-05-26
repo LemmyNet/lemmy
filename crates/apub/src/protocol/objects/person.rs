@@ -3,7 +3,7 @@ use crate::{
   protocol::{objects::Endpoints, ImageObject, Source},
 };
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey};
+use lemmy_apub_lib::{deser::deserialize_skip_error, object_id::ObjectId, signatures::PublicKey};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -32,7 +32,7 @@ pub struct Person {
   /// displayname
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   /// user avatar
   pub(crate) icon: Option<ImageObject>,

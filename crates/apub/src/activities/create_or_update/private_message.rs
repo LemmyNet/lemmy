@@ -40,7 +40,7 @@ impl CreateOrUpdatePrivateMessage {
     let create_or_update = CreateOrUpdatePrivateMessage {
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
-      to: [ObjectId::new(recipient.actor_id())],
+      to: ObjectId::new(recipient.actor_id()),
       object: private_message.into_apub(context).await?,
       kind,
       unparsed: Default::default(),
@@ -70,6 +70,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
+    verify_domains_match(self.to.inner(), self.object.to.inner())?;
     ApubPrivateMessage::verify(&self.object, self.actor.inner(), context, request_counter).await?;
     Ok(())
   }

@@ -83,8 +83,8 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  use crate::context::WithContext;
   use assert_json_diff::assert_json_include;
+  use lemmy_apub_lib::context::WithContext;
   use lemmy_utils::LemmyError;
   use serde::{de::DeserializeOwned, Serialize};
   use std::{collections::HashMap, fs::File, io::BufReader};

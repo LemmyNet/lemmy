@@ -1,20 +1,21 @@
 use crate::{
-  context::WithContext,
   generate_moderators_url,
   insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   ActorType,
+  CONTEXT,
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{activity_queue::SendActivity, object_id::ObjectId};
+use lemmy_apub_lib::{activity_queue::SendActivity, context::WithContext, object_id::ObjectId};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
+use std::ops::Deref;
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -173,7 +174,7 @@ async fn send_lemmy_activity<T: Serialize>(
   if !context.settings().federation.enabled || inboxes.is_empty() {
     return Ok(());
   }
-  let activity = WithContext::new(activity);
+  let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
   info!("Sending activity {}", activity_id.to_string());
 

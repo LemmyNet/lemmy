@@ -1,6 +1,6 @@
 use crate::person::MyUser;
 use activitystreams_kinds::{object::NoteType, public};
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
+use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId, traits::ApubObject};
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -19,6 +19,7 @@ pub struct Note {
   kind: NoteType,
   id: ObjectId<MyPost>,
   attributed_to: ObjectId<MyUser>,
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   to: Vec<Url>,
   content: String,
 }
@@ -31,13 +32,13 @@ impl ApubObject for MyPost {
   type TombstoneType = ();
 
   async fn read_from_apub_id(
-    object_id: Url,
-    data: &Self::DataType,
+    _object_id: Url,
+    _data: &Self::DataType,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(None)
   }
 
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
     todo!()
   }
 
@@ -57,18 +58,18 @@ impl ApubObject for MyPost {
   }
 
   async fn verify(
-    apub: &Self::ApubType,
-    expected_domain: &Url,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    _apub: &Self::ApubType,
+    _expected_domain: &Url,
+    _data: &Self::DataType,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
 
   async fn from_apub(
     apub: Self::ApubType,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    _data: &Self::DataType,
+    _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     Ok(MyPost {
       text: apub.content,

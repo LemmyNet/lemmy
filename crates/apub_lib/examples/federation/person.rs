@@ -7,6 +7,7 @@ use activitystreams_kinds::{actor::PersonType, public};
 use anyhow::Error;
 use lemmy_apub_lib::{
   activity_queue::SendActivity,
+  context::WithContext,
   object_id::ObjectId,
   signatures::{Keypair, PublicKey},
   traits::ApubObject,
@@ -63,7 +64,7 @@ impl MyUser {
     self
       .send(
         id,
-        serde_json::to_string(&follow)?,
+        follow,
         vec![other.ap_id.clone().into_inner()],
         local_instance,
       )
@@ -85,26 +86,25 @@ impl MyUser {
       post.into_apub(&()).await?,
       id.clone(),
     );
-    self
-      .send(id, serde_json::to_string(&create)?, to, local_instance)
-      .await?;
+    self.send(id, &create, to, local_instance).await?;
     Ok(())
   }
 
   // TODO: maybe store LocalInstance in self
-  async fn send(
+  async fn send<Activity: Serialize>(
     &self,
     activity_id: Url,
-    activity: String,
+    activity: Activity,
     inboxes: Vec<Url>,
     local_instance: &LocalInstance,
   ) -> Result<(), Error> {
+    let serialized = serde_json::to_string(&WithContext::new_default(activity))?;
     SendActivity {
       activity_id,
       actor_public_key: self.public_key(),
       actor_private_key: self.keypair.private_key.clone(),
       inboxes,
-      activity,
+      activity: serialized,
     }
     .send(local_instance)
     .await?;
@@ -120,8 +120,8 @@ impl ApubObject for MyUser {
   type TombstoneType = ();
 
   async fn read_from_apub_id(
-    object_id: Url,
-    data: &Self::DataType,
+    _object_id: Url,
+    _data: &Self::DataType,
   ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized,
@@ -129,11 +129,11 @@ impl ApubObject for MyUser {
     todo!()
   }
 
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
     todo!()
   }
 
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     todo!()
   }
 
@@ -142,18 +142,18 @@ impl ApubObject for MyUser {
   }
 
   async fn verify(
-    apub: &Self::ApubType,
-    expected_domain: &Url,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    _apub: &Self::ApubType,
+    _expected_domain: &Url,
+    _data: &Self::DataType,
+    _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     todo!()
   }
 
   async fn from_apub(
-    apub: Self::ApubType,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    _apub: Self::ApubType,
+    _data: &Self::DataType,
+    _request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized,

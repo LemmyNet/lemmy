@@ -1,13 +1,12 @@
 use crate::{
   activity_lists::SiteInboxActivities,
-  context::WithContext,
   http::{create_apub_response, receive_lemmy_activity},
   objects::{instance::ApubSite, person::ApubPerson},
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::ApubObject;
+use lemmy_apub_lib::{context::WithContext, traits::ApubObject};
 use lemmy_db_schema::source::site::Site;
 use lemmy_utils::{settings::structs::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;

@@ -11,7 +11,6 @@ use lemmy_apub_lib::{
 use lemmy_utils::LemmyError;
 use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
-use url::Url;
 
 mod activities;
 mod lib;
@@ -20,8 +19,8 @@ mod person;
 
 #[actix_rt::main]
 async fn main() -> Result<(), LemmyError> {
-  static ALPHA_HOSTNAME: &'static str = "localhost:8001";
-  static BETA_HOSTNAME: &'static str = "localhost:8001";
+  static ALPHA_HOSTNAME: &str = "localhost:8001";
+  static BETA_HOSTNAME: &str = "localhost:8001";
   let client: ClientWithMiddleware = Client::default().into();
   let alpha = LocalInstance::new(
     ALPHA_HOSTNAME.to_string(),

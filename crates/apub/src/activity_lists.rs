@@ -1,6 +1,5 @@
 use crate::{
   activities::{community::announce::GetCommunity, verify_person_in_community},
-  context::WithContext,
   objects::community::ApubCommunity,
   protocol::{
     activities::{
@@ -29,7 +28,12 @@ use crate::{
     Id,
   },
 };
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use lemmy_apub_lib::{
+  context::WithContext,
+  data::Data,
+  object_id::ObjectId,
+  traits::ActivityHandler,
+};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

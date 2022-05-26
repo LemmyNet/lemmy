@@ -3,7 +3,11 @@ use crate::{
   protocol::Source,
 };
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeHtml};
+use lemmy_apub_lib::{
+  deser::{deserialize_one, deserialize_skip_error},
+  object_id::ObjectId,
+  values::MediaTypeHtml,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -14,12 +18,12 @@ pub struct ChatMessage {
   pub(crate) r#type: ChatMessageType,
   pub(crate) id: ObjectId<ApubPrivateMessage>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  #[serde(deserialize_with = "crate::deserialize_one")]
-  pub(crate) to: [ObjectId<ApubPerson>; 1],
+  #[serde(deserialize_with = "deserialize_one")]
+  pub(crate) to: ObjectId<ApubPerson>,
   pub(crate) content: String,
 
   pub(crate) media_type: Option<MediaTypeHtml>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,

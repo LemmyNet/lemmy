@@ -4,7 +4,7 @@ use crate::{
   protocol::Unparsed,
 };
 use activitystreams_kinds::activity::FlagType;
-use lemmy_apub_lib::object_id::ObjectId;
+use lemmy_apub_lib::{deser::deserialize_one, object_id::ObjectId};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -12,8 +12,8 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Report {
   pub(crate) actor: ObjectId<ApubPerson>,
-  #[serde(deserialize_with = "crate::deserialize_one")]
-  pub(crate) to: [ObjectId<ApubCommunity>; 1],
+  #[serde(deserialize_with = "deserialize_one")]
+  pub(crate) to: ObjectId<ApubCommunity>,
   pub(crate) object: ObjectId<PostOrComment>,
   pub(crate) summary: String,
   #[serde(rename = "type")]
