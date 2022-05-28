@@ -13,7 +13,10 @@ use lemmy_db_schema::{
 type CommunityModeratorViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityModeratorView {
-  pub fn for_community(conn: &PgConnection, community_id: CommunityId) -> Result<Vec<Self>, Error> {
+  pub fn for_community(
+    conn: &mut PgConnection,
+    community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -28,7 +31,7 @@ impl CommunityModeratorView {
     Ok(Self::from_tuple_to_vec(res))
   }
 
-  pub fn for_person(conn: &PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub fn for_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -45,7 +48,7 @@ impl CommunityModeratorView {
 
   /// Finds all communities first mods / creators
   /// Ideally this should be a group by, but diesel doesn't support it yet
-  pub fn get_community_first_mods(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+  pub fn get_community_first_mods(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)

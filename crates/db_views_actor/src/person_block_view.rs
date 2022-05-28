@@ -10,7 +10,7 @@ use lemmy_db_schema::{
 type PersonBlockViewTuple = (PersonSafe, PersonSafeAlias1);
 
 impl PersonBlockView {
-  pub fn for_person(conn: &PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub fn for_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = person_block::table
       .inner_join(person::table)
       .inner_join(person_alias_1::table) // TODO I dont know if this will be smart abt the column

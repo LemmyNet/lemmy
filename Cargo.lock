@@ -915,16 +915,6 @@ dependencies = [
 
 [[package]]
 name = "diesel"
-version = "1.4.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b28135ecf6b7d446b43e27e225622a038cc4e2930a1022f51cdb97ada19b8e4d"
-dependencies = [
- "byteorder",
- "diesel_derives 1.4.1",
-]
-
-[[package]]
-name = "diesel"
 version = "2.0.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e531d0abf8147036383c88ce3785d9cda6fe1b8b1183021ffa01cf49c5819d24"
@@ -932,7 +922,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
- "diesel_derives 2.0.0-rc.0",
+ "diesel_derives",
  "itoa",
  "pq-sys",
  "r2d2",
@@ -941,25 +931,13 @@ dependencies = [
 
 [[package]]
 name = "diesel-derive-newtype"
-version = "0.1.2"
+version = "2.0.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e844e8e6f65dcf27aa0b97d4234f974d93dfbf56816033d71b5e0c7eb701709f"
+checksum = "dd577654b63c049f4eecd2ce1187740a050166372673f6b09c351c53b575c34a"
 dependencies = [
- "diesel 1.4.8",
  "proc-macro2 0.4.30",
  "quote 0.6.13",
  "syn 0.14.9",
-]
-
-[[package]]
-name = "diesel_derives"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45f5098f628d02a7a0f68ddba586fb61e80edec3bdc1be3b921f4ceec60858d3"
-dependencies = [
- "proc-macro2 1.0.36",
- "quote 1.0.17",
- "syn 1.0.90",
 ]
 
 [[package]]
@@ -980,7 +958,7 @@ version = "2.0.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2edcb7e9cff76af48e7fa33cc4680acc7df19e58a4a4aaed3e2b67fb83bc06d"
 dependencies = [
- "diesel 2.0.0-rc.0",
+ "diesel",
  "migrations_internals",
  "migrations_macros",
 ]
@@ -1795,7 +1773,7 @@ dependencies = [
  "bcrypt",
  "captcha",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "lemmy_api_common",
  "lemmy_apub",
  "lemmy_apub_lib",
@@ -1818,7 +1796,7 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "encoding",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -1869,7 +1847,7 @@ dependencies = [
  "assert-json-diff",
  "async-trait",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "futures",
  "html2md",
  "http",
@@ -1907,7 +1885,7 @@ dependencies = [
  "background-jobs",
  "base64",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
@@ -1940,7 +1918,7 @@ version = "0.16.3"
 dependencies = [
  "bcrypt",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "diesel-derive-newtype",
  "diesel_migrations",
  "lemmy_apub_lib",
@@ -1960,7 +1938,7 @@ dependencies = [
 name = "lemmy_db_views"
 version = "0.16.3"
 dependencies = [
- "diesel 2.0.0-rc.0",
+ "diesel",
  "lemmy_db_schema",
  "serde",
  "serial_test",
@@ -1971,7 +1949,7 @@ dependencies = [
 name = "lemmy_db_views_actor"
 version = "0.16.3"
 dependencies = [
- "diesel 2.0.0-rc.0",
+ "diesel",
  "lemmy_db_schema",
  "serde",
 ]
@@ -1980,7 +1958,7 @@ dependencies = [
 name = "lemmy_db_views_moderator"
 version = "0.16.3"
 dependencies = [
- "diesel 2.0.0-rc.0",
+ "diesel",
  "lemmy_db_schema",
  "serde",
 ]
@@ -1992,7 +1970,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "futures",
  "lemmy_api_common",
  "lemmy_apub",
@@ -2020,7 +1998,7 @@ dependencies = [
  "actix-web",
  "clokwerk",
  "console-subscriber",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "diesel_migrations",
  "doku",
  "lemmy_api",
@@ -2057,7 +2035,7 @@ dependencies = [
  "chrono",
  "comrak",
  "deser-hjson",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "doku",
  "futures",
  "html2text",
@@ -2094,7 +2072,7 @@ dependencies = [
  "anyhow",
  "background-jobs",
  "chrono",
- "diesel 2.0.0-rc.0",
+ "diesel",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",

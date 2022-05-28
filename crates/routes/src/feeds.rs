@@ -172,7 +172,7 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
 
 #[tracing::instrument(skip_all)]
 fn get_feed_user(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   sort_type: &SortType,
   user_name: &str,
   protocol_and_hostname: &str,
@@ -200,7 +200,7 @@ fn get_feed_user(
 
 #[tracing::instrument(skip_all)]
 fn get_feed_community(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   sort_type: &SortType,
   community_name: &str,
   protocol_and_hostname: &str,
@@ -232,7 +232,7 @@ fn get_feed_community(
 
 #[tracing::instrument(skip_all)]
 fn get_feed_front(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   jwt_secret: &str,
   sort_type: &SortType,
   jwt: &str,
@@ -268,7 +268,7 @@ fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 fn get_feed_inbox(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,

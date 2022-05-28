@@ -15,7 +15,7 @@ type ModBanViewTuple = (ModBan, PersonSafe, PersonSafeAlias1);
 
 impl ModBanView {
   pub fn list(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     mod_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,

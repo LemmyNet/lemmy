@@ -4,19 +4,9 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_alias_1,
-    comment_like,
-    comment_saved,
-    community,
-    community_block,
-    community_follower,
-    community_person_ban,
-    person,
-    person_alias_1,
-    person_block,
-    post,
+    comment, comment_aggregates, comment_alias_1, comment_like, comment_saved, community,
+    community_block, community_follower, community_person_ban, person, person_alias_1,
+    person_block, post,
   },
   source::{
     comment::{Comment, CommentAlias1, CommentSaved},
@@ -27,8 +17,7 @@ use lemmy_db_schema::{
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
-  ListingType,
-  SortType,
+  ListingType, SortType,
 };
 
 type CommentViewTuple = (
@@ -48,7 +37,7 @@ type CommentViewTuple = (
 
 impl CommentView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -166,7 +155,7 @@ impl CommentView {
   }
 
   /// Gets the number of unread replies
-  pub fn get_unread_replies(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_replies(conn: &mut PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
 
     comment::table
@@ -544,14 +533,14 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(&mut conn, &new_person).unwrap();
 
     let new_person_2 = PersonForm {
       name: "sara".into(),
       ..PersonForm::default()
     };
 
-    let inserted_person_2 = Person::create(&conn, &new_person_2).unwrap();
+    let inserted_person_2 = Person::create(&mut conn, &new_person_2).unwrap();
 
     let new_community = CommunityForm {
       name: "test community 5".to_string(),
@@ -559,7 +548,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(&mut conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post 2".into(),
@@ -568,7 +557,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(&mut conn, &new_post).unwrap();
 
     let comment_form = CommentForm {
       content: "A test comment 32".into(),
@@ -577,7 +566,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&mut conn, &comment_form).unwrap();
 
     let comment_form_2 = CommentForm {
       content: "A test blocked comment".into(),
@@ -587,14 +576,14 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment_2 = Comment::create(&conn, &comment_form_2).unwrap();
+    let inserted_comment_2 = Comment::create(&mut conn, &comment_form_2).unwrap();
 
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: inserted_person.id,
       target_id: inserted_person_2.id,
     };
 
-    let inserted_block = PersonBlock::block(&conn, &timmy_blocks_sara_form).unwrap();
+    let inserted_block = PersonBlock::block(&mut conn, &timmy_blocks_sara_form).unwrap();
 
     let expected_block = PersonBlock {
       id: inserted_block.id,
@@ -612,9 +601,9 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
+    let _inserted_comment_like = CommentLike::like(&mut conn, &comment_like_form).unwrap();
 
-    let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
+    let agg = CommentAggregates::read(&mut conn, inserted_comment.id).unwrap();
 
     let expected_comment_view_no_person = CommentView {
       creator_banned_from_community: false,
@@ -708,27 +697,27 @@ mod tests {
     let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
     expected_comment_view_with_person.my_vote = Some(1);
 
-    let read_comment_views_no_person = CommentQueryBuilder::create(&conn)
+    let read_comment_views_no_person = CommentQueryBuilder::create(&mut conn)
       .post_id(inserted_post.id)
       .list()
       .unwrap();
 
-    let read_comment_views_with_person = CommentQueryBuilder::create(&conn)
+    let read_comment_views_with_person = CommentQueryBuilder::create(&mut conn)
       .post_id(inserted_post.id)
       .my_person_id(inserted_person.id)
       .list()
       .unwrap();
 
     let read_comment_from_blocked_person =
-      CommentView::read(&conn, inserted_comment_2.id, Some(inserted_person.id)).unwrap();
+      CommentView::read(&mut conn, inserted_comment_2.id, Some(inserted_person.id)).unwrap();
 
-    let like_removed = CommentLike::remove(&conn, inserted_person.id, inserted_comment.id).unwrap();
-    let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
-    Comment::delete(&conn, inserted_comment_2.id).unwrap();
-    Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
-    Person::delete(&conn, inserted_person_2.id).unwrap();
+    let like_removed = CommentLike::remove(&mut conn, inserted_person.id, inserted_comment.id).unwrap();
+    let num_deleted = Comment::delete(&mut conn, inserted_comment.id).unwrap();
+    Comment::delete(&mut conn, inserted_comment_2.id).unwrap();
+    Post::delete(&mut conn, inserted_post.id).unwrap();
+    Community::delete(&mut conn, inserted_community.id).unwrap();
+    Person::delete(&mut conn, inserted_person.id).unwrap();
+    Person::delete(&mut conn, inserted_person_2.id).unwrap();
 
     // Make sure its 1, not showing the blocked comment
     assert_eq!(1, read_comment_views_with_person.len());

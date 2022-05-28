@@ -17,7 +17,7 @@ type ModHideCommunityViewTuple = (ModHideCommunity, PersonSafe, CommunitySafe);
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
   pub fn list(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: Option<CommunityId>,
     admin_id: Option<PersonId>,
     page: Option<i64>,

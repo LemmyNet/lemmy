@@ -4,17 +4,8 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_report,
-    community,
-    community_moderator,
-    community_person_ban,
-    person,
-    person_alias_1,
-    person_alias_2,
-    post,
+    comment, comment_aggregates, comment_like, comment_report, community, community_moderator,
+    community_person_ban, person, person_alias_1, person_alias_2, post,
   },
   source::{
     comment::Comment,
@@ -45,7 +36,7 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
@@ -124,7 +115,7 @@ impl CommentReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub fn get_report_count(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -324,14 +315,14 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_timmy = Person::create(&conn, &new_person).unwrap();
+    let inserted_timmy = Person::create(&mut conn, &new_person).unwrap();
 
     let new_person_2 = PersonForm {
       name: "sara_crv".into(),
       ..PersonForm::default()
     };
 
-    let inserted_sara = Person::create(&conn, &new_person_2).unwrap();
+    let inserted_sara = Person::create(&mut conn, &new_person_2).unwrap();
 
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonForm {
@@ -339,7 +330,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_jessica = Person::create(&conn, &new_person_3).unwrap();
+    let inserted_jessica = Person::create(&mut conn, &new_person_3).unwrap();
 
     let new_community = CommunityForm {
       name: "test community crv".to_string(),
@@ -347,7 +338,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(&mut conn, &new_community).unwrap();
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -355,7 +346,7 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(&conn, &timmy_moderator_form).unwrap();
+    let _inserted_moderator = CommunityModerator::join(&mut conn, &timmy_moderator_form).unwrap();
 
     let new_post = PostForm {
       name: "A test post crv".into(),
@@ -364,7 +355,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(&mut conn, &new_post).unwrap();
 
     let comment_form = CommentForm {
       content: "A test comment 32".into(),
@@ -373,7 +364,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&mut conn, &comment_form).unwrap();
 
     // sara reports
     let sara_report_form = CommentReportForm {
@@ -383,7 +374,7 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    let inserted_sara_report = CommentReport::report(&conn, &sara_report_form).unwrap();
+    let inserted_sara_report = CommentReport::report(&mut conn, &sara_report_form).unwrap();
 
     // jessica reports
     let jessica_report_form = CommentReportForm {
@@ -393,12 +384,12 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = CommentReport::report(&conn, &jessica_report_form).unwrap();
+    let inserted_jessica_report = CommentReport::report(&mut conn, &jessica_report_form).unwrap();
 
-    let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
+    let agg = CommentAggregates::read(&mut conn, inserted_comment.id).unwrap();
 
     let read_jessica_report_view =
-      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+      CommentReportView::read(&mut conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.to_owned(),
       comment: inserted_comment.to_owned(),
@@ -499,7 +490,7 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = CommentReportQueryBuilder::create(&conn, inserted_timmy.id, false)
+    let reports = CommentReportQueryBuilder::create(&mut conn, inserted_timmy.id, false)
       .list()
       .unwrap();
 
@@ -513,13 +504,13 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count =
-      CommentReportView::get_report_count(&conn, inserted_timmy.id, false, None).unwrap();
+      CommentReportView::get_report_count(&mut conn, inserted_timmy.id, false, None).unwrap();
     assert_eq!(2, report_count);
 
     // Try to resolve the report
-    CommentReport::resolve(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+    CommentReport::resolve(&mut conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let read_jessica_report_view_after_resolve =
-      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+      CommentReportView::read(&mut conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
@@ -561,19 +552,19 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = CommentReportQueryBuilder::create(&conn, inserted_timmy.id, false)
+    let reports_after_resolve = CommentReportQueryBuilder::create(&mut conn, inserted_timmy.id, false)
       .list()
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      CommentReportView::get_report_count(&conn, inserted_timmy.id, false, None).unwrap();
+      CommentReportView::get_report_count(&mut conn, inserted_timmy.id, false, None).unwrap();
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(&conn, inserted_timmy.id).unwrap();
-    Person::delete(&conn, inserted_sara.id).unwrap();
-    Person::delete(&conn, inserted_jessica.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
+    Person::delete(&mut conn, inserted_timmy.id).unwrap();
+    Person::delete(&mut conn, inserted_sara.id).unwrap();
+    Person::delete(&mut conn, inserted_jessica.id).unwrap();
+    Community::delete(&mut conn, inserted_community.id).unwrap();
   }
 }

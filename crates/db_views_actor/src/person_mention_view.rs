@@ -4,18 +4,8 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{PersonId, PersonMentionId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
-    community,
-    community_follower,
-    community_person_ban,
-    person,
-    person_alias_1,
-    person_block,
-    person_mention,
-    post,
+    comment, comment_aggregates, comment_like, comment_saved, community, community_follower,
+    community_person_ban, person, person_alias_1, person_block, person_mention, post,
   },
   source::{
     comment::{Comment, CommentSaved},
@@ -47,7 +37,7 @@ type PersonMentionViewTuple = (
 
 impl PersonMentionView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -148,7 +138,10 @@ impl PersonMentionView {
   }
 
   /// Gets the number of unread mentions
-  pub fn get_unread_mentions(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_mentions(
+    conn: &mut PgConnection,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::*;
 
     person_mention::table

@@ -2,7 +2,7 @@ use crate::{aggregates::structs::PersonAggregates, newtypes::PersonId, schema::p
 use diesel::{result::Error, *};
 
 impl PersonAggregates {
-  pub fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  pub fn read(conn: &mut PgConnection, person_id: PersonId) -> Result<Self, Error> {
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
       .first::<Self>(conn)
@@ -34,14 +34,14 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(&mut conn, &new_person).unwrap();
 
     let another_person = PersonForm {
       name: "jerry_user_agg".into(),
       ..PersonForm::default()
     };
 
-    let another_inserted_person = Person::create(&conn, &another_person).unwrap();
+    let another_inserted_person = Person::create(&mut conn, &another_person).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL_site_agg".into(),
@@ -49,7 +49,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(&mut conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post".into(),
@@ -58,7 +58,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(&mut conn, &new_post).unwrap();
 
     let post_like = PostLikeForm {
       post_id: inserted_post.id,
@@ -66,7 +66,7 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_post_like = PostLike::like(&conn, &post_like).unwrap();
+    let _inserted_post_like = PostLike::like(&mut conn, &post_like).unwrap();
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
@@ -75,7 +75,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&mut conn, &comment_form).unwrap();
 
     let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
@@ -84,7 +84,7 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_comment_like = CommentLike::like(&conn, &comment_like).unwrap();
+    let _inserted_comment_like = CommentLike::like(&mut conn, &comment_like).unwrap();
 
     let mut child_comment_form = CommentForm {
       content: "A test comment".into(),
@@ -94,7 +94,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let inserted_child_comment = Comment::create(&mut conn, &child_comment_form).unwrap();
 
     let child_comment_like = CommentLikeForm {
       comment_id: inserted_child_comment.id,
@@ -103,10 +103,10 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_child_comment_like = CommentLike::like(&conn, &child_comment_like).unwrap();
+    let _inserted_child_comment_like = CommentLike::like(&mut conn, &child_comment_like).unwrap();
 
     let person_aggregates_before_delete =
-      PersonAggregates::read(&conn, inserted_person.id).unwrap();
+      PersonAggregates::read(&mut conn, inserted_person.id).unwrap();
 
     assert_eq!(1, person_aggregates_before_delete.post_count);
     assert_eq!(1, person_aggregates_before_delete.post_score);
@@ -114,44 +114,45 @@ mod tests {
     assert_eq!(2, person_aggregates_before_delete.comment_score);
 
     // Remove a post like
-    PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
-    let after_post_like_remove = PersonAggregates::read(&conn, inserted_person.id).unwrap();
+    PostLike::remove(&mut conn, inserted_person.id, inserted_post.id).unwrap();
+    let after_post_like_remove = PersonAggregates::read(&mut conn, inserted_person.id).unwrap();
     assert_eq!(0, after_post_like_remove.post_score);
 
     // Remove a parent comment (the scores should also be removed)
-    Comment::delete(&conn, inserted_comment.id).unwrap();
-    let after_parent_comment_delete = PersonAggregates::read(&conn, inserted_person.id).unwrap();
+    Comment::delete(&mut conn, inserted_comment.id).unwrap();
+    let after_parent_comment_delete =
+      PersonAggregates::read(&mut conn, inserted_person.id).unwrap();
     assert_eq!(0, after_parent_comment_delete.comment_count);
     assert_eq!(0, after_parent_comment_delete.comment_score);
 
     // Add in the two comments again, then delete the post.
-    let new_parent_comment = Comment::create(&conn, &comment_form).unwrap();
+    let new_parent_comment = Comment::create(&mut conn, &comment_form).unwrap();
     child_comment_form.parent_id = Some(new_parent_comment.id);
-    Comment::create(&conn, &child_comment_form).unwrap();
+    Comment::create(&mut conn, &child_comment_form).unwrap();
     comment_like.comment_id = new_parent_comment.id;
-    CommentLike::like(&conn, &comment_like).unwrap();
-    let after_comment_add = PersonAggregates::read(&conn, inserted_person.id).unwrap();
+    CommentLike::like(&mut conn, &comment_like).unwrap();
+    let after_comment_add = PersonAggregates::read(&mut conn, inserted_person.id).unwrap();
     assert_eq!(2, after_comment_add.comment_count);
     assert_eq!(1, after_comment_add.comment_score);
 
-    Post::delete(&conn, inserted_post.id).unwrap();
-    let after_post_delete = PersonAggregates::read(&conn, inserted_person.id).unwrap();
+    Post::delete(&mut conn, inserted_post.id).unwrap();
+    let after_post_delete = PersonAggregates::read(&mut conn, inserted_person.id).unwrap();
     assert_eq!(0, after_post_delete.comment_score);
     assert_eq!(0, after_post_delete.comment_count);
     assert_eq!(0, after_post_delete.post_score);
     assert_eq!(0, after_post_delete.post_count);
 
     // This should delete all the associated rows, and fire triggers
-    let person_num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    let person_num_deleted = Person::delete(&mut conn, inserted_person.id).unwrap();
     assert_eq!(1, person_num_deleted);
-    Person::delete(&conn, another_inserted_person.id).unwrap();
+    Person::delete(&mut conn, another_inserted_person.id).unwrap();
 
     // Delete the community
-    let community_num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
+    let community_num_deleted = Community::delete(&mut conn, inserted_community.id).unwrap();
     assert_eq!(1, community_num_deleted);
 
     // Should be none found
-    let after_delete = PersonAggregates::read(&conn, inserted_person.id);
+    let after_delete = PersonAggregates::read(&mut conn, inserted_person.id);
     assert!(after_delete.is_err());
   }
 }

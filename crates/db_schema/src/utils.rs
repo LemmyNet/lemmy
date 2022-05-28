@@ -1,19 +1,19 @@
+use crate::diesel_migrations::MigrationHarness;
 use crate::newtypes::DbUrl;
-use diesel_migrations::EmbeddedMigrations;
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
   serialize::{Output, ToSql},
   sql_types::Text,
-  Connection,
-  PgConnection,
+  Connection, PgConnection,
 };
+use diesel_migrations::EmbeddedMigrations;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_utils::LemmyError;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{env, env::VarError, io::Write};
+use std::{env, env::VarError};
 use url::Url;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
@@ -105,8 +105,8 @@ impl<DB: Backend> ToSql<Text, DB> for DbUrl
 where
   String: ToSql<Text, DB>,
 {
-  fn to_sql<W: Write>(&self, out: &mut Output<W, DB>) -> diesel::serialize::Result {
-    self.0.to_string().to_sql(out)
+  fn to_sql(&self, out: &mut Output<DB>) -> diesel::serialize::Result {
+    self.0.to_string().to_sql(&mut out.reborrow())
   }
 }
 
@@ -114,8 +114,8 @@ impl<DB: Backend> FromSql<Text, DB> for DbUrl
 where
   String: FromSql<Text, DB>,
 {
-  fn from_sql(bytes: Option<&DB::RawValue>) -> diesel::deserialize::Result<Self> {
-    let str = String::from_sql(bytes)?;
+  fn from_sql(value: diesel::backend::RawValue<'_, DB>) -> diesel::deserialize::Result<Self> {
+    let str = String::from_sql(value)?;
     Ok(DbUrl(Url::parse(&str)?))
   }
 }

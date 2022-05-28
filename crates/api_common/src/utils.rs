@@ -45,7 +45,7 @@ where
   let res = actix_web::web::block(move || {
     let entered = blocking_span.enter();
     let conn = pool.get()?;
-    let res = (f)(&conn);
+    let res = (f)(&mut conn);
     drop(entered);
     Ok(res) as Result<T, LemmyError>
   })

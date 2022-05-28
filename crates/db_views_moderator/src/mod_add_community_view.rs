@@ -16,7 +16,7 @@ type ModAddCommunityViewTuple = (ModAddCommunity, PersonSafe, CommunitySafe, Per
 
 impl ModAddCommunityView {
   pub fn list(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: Option<CommunityId>,
     mod_person_id: Option<PersonId>,
     page: Option<i64>,

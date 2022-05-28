@@ -1,26 +1,14 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
   source::community::{
-    Community,
-    CommunityFollower,
-    CommunityFollowerForm,
-    CommunityForm,
-    CommunityModerator,
-    CommunityModeratorForm,
-    CommunityPersonBan,
-    CommunityPersonBanForm,
-    CommunitySafe,
+    Community, CommunityFollower, CommunityFollowerForm, CommunityForm, CommunityModerator,
+    CommunityModeratorForm, CommunityPersonBan, CommunityPersonBanForm, CommunitySafe,
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
   utils::{functions::lower, naive_now},
 };
 use diesel::{
-  dsl::*,
-  result::Error,
-  ExpressionMethods,
-  PgConnection,
-  QueryDsl,
-  RunQueryDsl,
+  dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl,
   TextExpressionMethods,
 };
 
@@ -72,17 +60,17 @@ mod safe_type {
 impl Crud for Community {
   type Form = CommunityForm;
   type IdType = CommunityId;
-  fn read(conn: &PgConnection, community_id: CommunityId) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, community_id: CommunityId) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community.find(community_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, community_id: CommunityId) -> Result<usize, Error> {
+  fn delete(conn: &mut PgConnection, community_id: CommunityId) -> Result<usize, Error> {
     use crate::schema::community::dsl::*;
     diesel::delete(community.find(community_id)).execute(conn)
   }
 
-  fn create(conn: &PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     insert_into(community)
       .values(new_community)
@@ -90,7 +78,7 @@ impl Crud for Community {
   }
 
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: CommunityId,
     new_community: &CommunityForm,
   ) -> Result<Self, Error> {
@@ -103,7 +91,7 @@ impl Crud for Community {
 
 impl Community {
   pub fn update_deleted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: CommunityId,
     new_deleted: bool,
   ) -> Result<Community, Error> {
@@ -114,7 +102,7 @@ impl Community {
   }
 
   pub fn update_removed(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: CommunityId,
     new_removed: bool,
   ) -> Result<Community, Error> {
@@ -124,12 +112,15 @@ impl Community {
       .get_result::<Self>(conn)
   }
 
-  pub fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<DbUrl>, Error> {
+  pub fn distinct_federated_communities(conn: &mut PgConnection) -> Result<Vec<DbUrl>, Error> {
     use crate::schema::community::dsl::*;
     community.select(actor_id).distinct().load::<DbUrl>(conn)
   }
 
-  pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
+  pub fn upsert(
+    conn: &mut PgConnection,
+    community_form: &CommunityForm,
+  ) -> Result<Community, Error> {
     use crate::schema::community::dsl::*;
     insert_into(community)
       .values(community_form)
@@ -143,7 +134,7 @@ impl Community {
 impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
   fn join(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_moderator::dsl::*;
@@ -153,7 +144,7 @@ impl Joinable for CommunityModerator {
   }
 
   fn leave(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::*;
@@ -188,7 +179,7 @@ impl DeleteableOrRemoveable for Community {
 
 impl CommunityModerator {
   pub fn delete_for_community(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::*;
@@ -196,7 +187,7 @@ impl CommunityModerator {
   }
 
   pub fn get_person_moderated_communities(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     use crate::schema::community_moderator::dsl::*;
@@ -210,7 +201,7 @@ impl CommunityModerator {
 impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
   fn ban(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_person_ban::dsl::*;
@@ -223,7 +214,7 @@ impl Bannable for CommunityPersonBan {
   }
 
   fn unban(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_person_ban::dsl::*;
@@ -239,7 +230,7 @@ impl Bannable for CommunityPersonBan {
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
   fn follow(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::*;
@@ -251,7 +242,7 @@ impl Followable for CommunityFollower {
       .get_result::<Self>(conn)
   }
   fn follow_accepted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id_: CommunityId,
     person_id_: PersonId,
   ) -> Result<Self, Error>
@@ -268,7 +259,7 @@ impl Followable for CommunityFollower {
     .get_result::<Self>(conn)
   }
   fn unfollow(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_follower::dsl::*;
@@ -281,7 +272,10 @@ impl Followable for CommunityFollower {
   }
   // TODO: this function name only makes sense if you call it with a remote community. for a local
   //       community, it will also return true if only remote followers exist
-  fn has_local_followers(conn: &PgConnection, community_id_: CommunityId) -> Result<bool, Error> {
+  fn has_local_followers(
+    conn: &mut PgConnection,
+    community_id_: CommunityId,
+  ) -> Result<bool, Error> {
     use crate::schema::community_follower::dsl::*;
     diesel::select(exists(
       community_follower.filter(community_id.eq(community_id_)),
@@ -291,7 +285,7 @@ impl Followable for CommunityFollower {
 }
 
 impl ApubActor for Community {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+  fn read_from_apub_id(conn: &mut PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     use crate::schema::community::dsl::*;
     Ok(
       community
@@ -302,7 +296,7 @@ impl ApubActor for Community {
     )
   }
 
-  fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error> {
+  fn read_from_name(conn: &mut PgConnection, community_name: &str) -> Result<Community, Error> {
     use crate::schema::community::dsl::*;
     community
       .filter(local.eq(true))
@@ -311,7 +305,7 @@ impl ApubActor for Community {
   }
 
   fn read_from_name_and_domain(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_name: &str,
     protocol_domain: &str,
   ) -> Result<Community, Error> {
@@ -342,7 +336,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(&mut conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL".into(),
@@ -351,7 +345,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(&mut conn, &new_community).unwrap();
 
     let expected_community = Community {
       id: inserted_community.id,
@@ -384,7 +378,7 @@ mod tests {
     };
 
     let inserted_community_follower =
-      CommunityFollower::follow(&conn, &community_follower_form).unwrap();
+      CommunityFollower::follow(&mut conn, &community_follower_form).unwrap();
 
     let expected_community_follower = CommunityFollower {
       id: inserted_community_follower.id,
@@ -400,7 +394,7 @@ mod tests {
     };
 
     let inserted_community_moderator =
-      CommunityModerator::join(&conn, &community_moderator_form).unwrap();
+      CommunityModerator::join(&mut conn, &community_moderator_form).unwrap();
 
     let expected_community_moderator = CommunityModerator {
       id: inserted_community_moderator.id,
@@ -416,7 +410,7 @@ mod tests {
     };
 
     let inserted_community_person_ban =
-      CommunityPersonBan::ban(&conn, &community_person_ban_form).unwrap();
+      CommunityPersonBan::ban(&mut conn, &community_person_ban_form).unwrap();
 
     let expected_community_person_ban = CommunityPersonBan {
       id: inserted_community_person_ban.id,
@@ -426,14 +420,14 @@ mod tests {
       expires: None,
     };
 
-    let read_community = Community::read(&conn, inserted_community.id).unwrap();
+    let read_community = Community::read(&mut conn, inserted_community.id).unwrap();
     let updated_community =
-      Community::update(&conn, inserted_community.id, &new_community).unwrap();
-    let ignored_community = CommunityFollower::unfollow(&conn, &community_follower_form).unwrap();
-    let left_community = CommunityModerator::leave(&conn, &community_moderator_form).unwrap();
-    let unban = CommunityPersonBan::unban(&conn, &community_person_ban_form).unwrap();
-    let num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
+      Community::update(&mut conn, inserted_community.id, &new_community).unwrap();
+    let ignored_community = CommunityFollower::unfollow(&mut conn, &community_follower_form).unwrap();
+    let left_community = CommunityModerator::leave(&mut conn, &community_moderator_form).unwrap();
+    let unban = CommunityPersonBan::unban(&mut conn, &community_person_ban_form).unwrap();
+    let num_deleted = Community::delete(&mut conn, inserted_community.id).unwrap();
+    Person::delete(&mut conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, inserted_community);

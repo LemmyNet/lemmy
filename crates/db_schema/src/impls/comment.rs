@@ -1,12 +1,7 @@
 use crate::{
   newtypes::{CommentId, DbUrl, PersonId},
   source::comment::{
-    Comment,
-    CommentForm,
-    CommentLike,
-    CommentLikeForm,
-    CommentSaved,
-    CommentSavedForm,
+    Comment, CommentForm, CommentLike, CommentLikeForm, CommentSaved, CommentSavedForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
   utils::naive_now,
@@ -16,7 +11,7 @@ use url::Url;
 
 impl Comment {
   pub fn update_ap_id(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     apub_id: DbUrl,
   ) -> Result<Self, Error> {
@@ -28,7 +23,7 @@ impl Comment {
   }
 
   pub fn permadelete_for_creator(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::comment::dsl::*;
@@ -42,7 +37,7 @@ impl Comment {
   }
 
   pub fn update_deleted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     new_deleted: bool,
   ) -> Result<Self, Error> {
@@ -53,7 +48,7 @@ impl Comment {
   }
 
   pub fn update_removed(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     new_removed: bool,
   ) -> Result<Self, Error> {
@@ -64,7 +59,7 @@ impl Comment {
   }
 
   pub fn update_removed_for_creator(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
@@ -75,7 +70,7 @@ impl Comment {
   }
 
   pub fn update_read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     new_read: bool,
   ) -> Result<Self, Error> {
@@ -86,7 +81,7 @@ impl Comment {
   }
 
   pub fn update_content(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     new_content: &str,
   ) -> Result<Self, Error> {
@@ -96,7 +91,7 @@ impl Comment {
       .get_result::<Self>(conn)
   }
 
-  pub fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Comment, Error> {
+  pub fn upsert(conn: &mut PgConnection, comment_form: &CommentForm) -> Result<Comment, Error> {
     use crate::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
@@ -105,7 +100,7 @@ impl Comment {
       .set(comment_form)
       .get_result::<Self>(conn)
   }
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+  pub fn read_from_apub_id(conn: &mut PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
     use crate::schema::comment::dsl::*;
     let object_id: DbUrl = object_id.into();
     Ok(
@@ -121,17 +116,17 @@ impl Comment {
 impl Crud for Comment {
   type Form = CommentForm;
   type IdType = CommentId;
-  fn read(conn: &PgConnection, comment_id: CommentId) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, comment_id: CommentId) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     comment.find(comment_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, comment_id: CommentId) -> Result<usize, Error> {
+  fn delete(conn: &mut PgConnection, comment_id: CommentId) -> Result<usize, Error> {
     use crate::schema::comment::dsl::*;
     diesel::delete(comment.find(comment_id)).execute(conn)
   }
 
-  fn create(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
@@ -139,7 +134,7 @@ impl Crud for Comment {
   }
 
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_id: CommentId,
     comment_form: &CommentForm,
   ) -> Result<Self, Error> {
@@ -153,7 +148,7 @@ impl Crud for Comment {
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
-  fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
+  fn like(conn: &mut PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use crate::schema::comment_like::dsl::*;
     insert_into(comment_like)
       .values(comment_like_form)
@@ -163,7 +158,7 @@ impl Likeable for CommentLike {
       .get_result::<Self>(conn)
   }
   fn remove(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_id: PersonId,
     comment_id: CommentId,
   ) -> Result<usize, Error> {
@@ -179,7 +174,7 @@ impl Likeable for CommentLike {
 
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
-  fn save(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
+  fn save(conn: &mut PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::*;
     insert_into(comment_saved)
       .values(comment_saved_form)
@@ -188,7 +183,10 @@ impl Saveable for CommentSaved {
       .set(comment_saved_form)
       .get_result::<Self>(conn)
   }
-  fn unsave(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
+  fn unsave(
+    conn: &mut PgConnection,
+    comment_saved_form: &CommentSavedForm,
+  ) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::*;
     diesel::delete(
       comment_saved
@@ -230,7 +228,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(&mut conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "test community".to_string(),
@@ -238,7 +236,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(&mut conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post".into(),
@@ -247,7 +245,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(&mut conn, &new_post).unwrap();
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
@@ -256,7 +254,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&mut conn, &comment_form).unwrap();
 
     let expected_comment = Comment {
       id: inserted_comment.id,
@@ -281,7 +279,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let inserted_child_comment = Comment::create(&mut conn, &child_comment_form).unwrap();
 
     // Comment Like
     let comment_like_form = CommentLikeForm {
@@ -291,7 +289,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
+    let inserted_comment_like = CommentLike::like(&mut conn, &comment_like_form).unwrap();
 
     let expected_comment_like = CommentLike {
       id: inserted_comment_like.id,
@@ -308,7 +306,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_comment_saved = CommentSaved::save(&conn, &comment_saved_form).unwrap();
+    let inserted_comment_saved = CommentSaved::save(&mut conn, &comment_saved_form).unwrap();
 
     let expected_comment_saved = CommentSaved {
       id: inserted_comment_saved.id,
@@ -317,15 +315,15 @@ mod tests {
       published: inserted_comment_saved.published,
     };
 
-    let read_comment = Comment::read(&conn, inserted_comment.id).unwrap();
-    let updated_comment = Comment::update(&conn, inserted_comment.id, &comment_form).unwrap();
-    let like_removed = CommentLike::remove(&conn, inserted_person.id, inserted_comment.id).unwrap();
-    let saved_removed = CommentSaved::unsave(&conn, &comment_saved_form).unwrap();
-    let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
-    Comment::delete(&conn, inserted_child_comment.id).unwrap();
-    Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
+    let read_comment = Comment::read(&mut conn, inserted_comment.id).unwrap();
+    let updated_comment = Comment::update(&mut conn, inserted_comment.id, &comment_form).unwrap();
+    let like_removed = CommentLike::remove(&mut conn, inserted_person.id, inserted_comment.id).unwrap();
+    let saved_removed = CommentSaved::unsave(&mut conn, &comment_saved_form).unwrap();
+    let num_deleted = Comment::delete(&mut conn, inserted_comment.id).unwrap();
+    Comment::delete(&mut conn, inserted_child_comment.id).unwrap();
+    Post::delete(&mut conn, inserted_post.id).unwrap();
+    Community::delete(&mut conn, inserted_community.id).unwrap();
+    Person::delete(&mut conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);

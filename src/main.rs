@@ -90,7 +90,7 @@ async fn main() -> Result<(), LemmyError> {
 
   // Initialize the secrets
   let conn = pool.get()?;
-  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
+  let secret = Secret::init(&mut conn).expect("Couldn't initialize secrets.");
 
   println!(
     "Starting http server at {}:{}",
