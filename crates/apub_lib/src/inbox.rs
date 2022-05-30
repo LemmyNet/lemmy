@@ -8,7 +8,7 @@ use crate::{
   LocalInstance,
 };
 use actix_web::{HttpRequest, HttpResponse};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::de::DeserializeOwned;
 use tracing::log::debug;
 

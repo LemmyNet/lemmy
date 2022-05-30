@@ -29,8 +29,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{convert_datetime, markdown_to_html, remove_slurs},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;

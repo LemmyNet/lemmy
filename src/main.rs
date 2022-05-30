@@ -24,9 +24,9 @@ use lemmy_server::{
   scheduled_tasks,
 };
 use lemmy_utils::{
+  error::LemmyError,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   settings::structs::Settings,
-  LemmyError,
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use parking_lot::Mutex;

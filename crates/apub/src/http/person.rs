@@ -10,7 +10,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{context::WithContext, traits::ApubObject};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 

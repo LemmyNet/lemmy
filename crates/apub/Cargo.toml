@@ -13,7 +13,7 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils" }
+lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils", features = ["full"] }
 lemmy_apub_lib = { version = "=0.16.4-rc.11", path = "../apub_lib" }
 lemmy_db_schema = { version = "=0.16.4-rc.11", path = "../db_schema", features = ["full"] }
 lemmy_db_views = { version = "=0.16.4-rc.11", path = "../db_views", features = ["full"] }

@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{utils::remove_slurs, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]

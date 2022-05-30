@@ -117,7 +117,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
               &self,
               context: &lemmy_apub_lib::data::Data<Self::DataType>,
               request_counter: &mut i32,
-            ) -> Result<(), lemmy_utils::LemmyError> {
+            ) -> Result<(), lemmy_utils::error::LemmyError> {
             match self {
               #(#impl_verify)*
             }
@@ -126,7 +126,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
             self,
             context: &lemmy_apub_lib::data::Data<Self::DataType>,
             request_counter: &mut i32,
-          ) -> Result<(), lemmy_utils::LemmyError> {
+          ) -> Result<(), lemmy_utils::error::LemmyError> {
             match self {
               #(#impl_receive)*
             }

@@ -4,7 +4,7 @@ use crate::{
   objects::{note::MyPost, person::MyUser},
 };
 use lemmy_apub_lib::signatures::generate_actor_keypair;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use tokio::task;
 
 mod activities;

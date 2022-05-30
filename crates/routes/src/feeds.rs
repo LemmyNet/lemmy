@@ -19,7 +19,7 @@ use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQueryBuilder,
   structs::PersonMentionView,
 };
-use lemmy_utils::{claims::Claims, utils::markdown_to_html, LemmyError};
+use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::Lazy;
 use rss::{

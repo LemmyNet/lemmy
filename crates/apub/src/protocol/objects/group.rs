@@ -17,8 +17,8 @@ use lemmy_apub_lib::{
 };
 use lemmy_db_schema::{source::community::CommunityForm, utils::naive_now};
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, check_slurs_opt},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

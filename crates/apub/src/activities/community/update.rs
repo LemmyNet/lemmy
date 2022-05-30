@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   source::community::{Community, CommunityForm},
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 

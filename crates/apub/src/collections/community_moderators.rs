@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::Joinable,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]

@@ -4,7 +4,7 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use lemmy_apub_lib::{inbox::ActorPublicKey, traits::ApubObject};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;

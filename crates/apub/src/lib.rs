@@ -9,7 +9,7 @@ use lemmy_apub_lib::{
   DEFAULT_TIMEOUT,
 };
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
 use std::env;

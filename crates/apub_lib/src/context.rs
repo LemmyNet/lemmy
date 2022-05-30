@@ -1,5 +1,5 @@
 use crate::{data::Data, deser::deserialize_one_or_many, traits::ActivityHandler};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::str::FromStr;

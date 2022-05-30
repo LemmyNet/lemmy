@@ -25,7 +25,7 @@ use lemmy_apub_lib::{
   verify::verify_urls_match,
 };
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 

@@ -30,9 +30,9 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 

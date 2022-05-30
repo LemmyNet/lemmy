@@ -13,7 +13,7 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonViewSafe,
 };
-use lemmy_utils::{version, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, version, ConnectionId};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 use tracing::info;
 

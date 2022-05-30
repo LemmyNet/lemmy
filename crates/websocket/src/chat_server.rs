@@ -18,12 +18,12 @@ use lemmy_db_schema::{
   source::secret::Secret,
 };
 use lemmy_utils::{
+  error::LemmyError,
   location_info,
   rate_limit::RateLimit,
   settings::structs::Settings,
   ConnectionId,
   IpAddr,
-  LemmyError,
 };
 use rand::rngs::ThreadRng;
 use reqwest_middleware::ClientWithMiddleware;

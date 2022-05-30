@@ -16,7 +16,7 @@ use lemmy_apub_lib::{
   APUB_JSON_CONTENT_TYPE,
 };
 use lemmy_db_schema::source::activity::Activity;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

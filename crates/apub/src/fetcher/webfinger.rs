@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use tracing::debug;

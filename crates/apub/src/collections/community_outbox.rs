@@ -18,7 +18,7 @@ use lemmy_apub_lib::{
   verify::verify_domains_match,
 };
 use lemmy_db_schema::source::post::Post;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]

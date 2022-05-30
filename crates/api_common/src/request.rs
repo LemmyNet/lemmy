@@ -1,6 +1,6 @@
 use crate::post::SiteMetadata;
 use encoding::{all::encodings, DecoderTrap};
-use lemmy_utils::{settings::structs::Settings, version::VERSION, LemmyError};
+use lemmy_utils::{error::LemmyError, settings::structs::Settings, version::VERSION};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;

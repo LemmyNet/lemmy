@@ -15,7 +15,7 @@ use lemmy_apub_lib::{
   LocalInstance,
   APUB_JSON_CONTENT_TYPE,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
 use std::{ops::Deref, sync::Arc};

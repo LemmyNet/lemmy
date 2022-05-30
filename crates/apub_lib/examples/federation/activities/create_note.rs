@@ -6,7 +6,7 @@ use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ActivityHandler,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

@@ -7,7 +7,7 @@ use diesel::result::Error::NotFound;
 use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 

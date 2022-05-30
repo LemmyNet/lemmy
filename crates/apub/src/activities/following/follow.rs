@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
   traits::Followable,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 

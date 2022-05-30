@@ -23,8 +23,8 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;

@@ -1,7 +1,7 @@
 use crate::{traits::ApubObject, utils::fetch_object_http, Error, LocalInstance};
 use anyhow::anyhow;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt::{Debug, Display, Formatter},

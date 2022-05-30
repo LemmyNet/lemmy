@@ -8,7 +8,7 @@ use lemmy_db_schema::source::{
   local_user::LocalUser,
   password_reset_request::PasswordResetRequest,
 };
-use lemmy_utils::{claims::Claims, ConnectionId, LemmyError};
+use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

@@ -7,7 +7,7 @@ use crate::{
   ActorType,
 };
 use lemmy_apub_lib::object_id::ObjectId;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 

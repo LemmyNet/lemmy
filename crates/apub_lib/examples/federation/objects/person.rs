@@ -14,7 +14,7 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ApubObject},
   LocalInstance,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

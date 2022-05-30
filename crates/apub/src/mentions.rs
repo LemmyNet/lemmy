@@ -12,8 +12,8 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{scrape_text_for_mentions, MentionData},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

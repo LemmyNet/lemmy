@@ -37,7 +37,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{settings::structs::Settings, utils::convert_datetime, LemmyError};
+use lemmy_utils::{error::LemmyError, settings::structs::Settings, utils::convert_datetime};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 

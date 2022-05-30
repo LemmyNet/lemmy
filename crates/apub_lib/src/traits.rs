@@ -1,7 +1,7 @@
 use crate::data::Data;
 use chrono::NaiveDateTime;
 pub use lemmy_apub_lib_derive::*;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]

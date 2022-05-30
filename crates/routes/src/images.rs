@@ -12,7 +12,7 @@ use actix_web::{
 };
 use anyhow::anyhow;
 use futures::stream::{Stream, StreamExt};
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, LemmyError};
+use lemmy_utils::{claims::Claims, error::LemmyError, rate_limit::RateLimit};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};

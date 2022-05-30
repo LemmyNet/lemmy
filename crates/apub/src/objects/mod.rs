@@ -2,7 +2,7 @@ use crate::protocol::Source;
 use anyhow::anyhow;
 use html2md::parse_html;
 use lemmy_apub_lib::values::MediaTypeMarkdownOrHtml;
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use url::Url;
 
 pub mod comment;
@@ -65,9 +65,9 @@ pub(crate) mod tests {
     utils::{establish_unpooled_connection, get_database_url_from_env},
   };
   use lemmy_utils::{
+    error::LemmyError,
     rate_limit::{rate_limiter::RateLimiter, RateLimit},
     settings::structs::Settings,
-    LemmyError,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use parking_lot::Mutex;

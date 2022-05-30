@@ -1,4 +1,4 @@
-use crate::{location_info, settings::structs::Settings, LemmyError};
+use crate::{error::LemmyError, location_info, settings::structs::Settings};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;

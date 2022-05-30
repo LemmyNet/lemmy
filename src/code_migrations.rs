@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use tracing::info;
 use url::Url;
 

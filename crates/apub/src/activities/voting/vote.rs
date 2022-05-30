@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post, site::Site},
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 

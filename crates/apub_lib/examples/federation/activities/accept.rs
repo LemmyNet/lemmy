@@ -1,7 +1,7 @@
 use crate::{activities::follow::Follow, objects::person::MyUser};
 use activitystreams_kinds::activity::AcceptType;
 use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

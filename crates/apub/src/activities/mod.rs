@@ -12,7 +12,7 @@ use lemmy_api_common::utils::blocking;
 use lemmy_apub_lib::{activity_queue::SendActivity, context::WithContext, object_id::ObjectId};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::ops::Deref;

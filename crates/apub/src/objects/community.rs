@@ -20,8 +20,8 @@ use lemmy_apub_lib::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObj
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
+  error::LemmyError,
   utils::{convert_datetime, markdown_to_html},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;

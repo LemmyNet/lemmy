@@ -1,7 +1,7 @@
 use crate::{generate_object_id, objects::person::MyUser};
 use activitystreams_kinds::{object::NoteType, public};
 use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId, traits::ApubObject};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

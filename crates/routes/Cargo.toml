@@ -11,7 +11,7 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils" }
+lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils", features = ["full"] }
 lemmy_websocket = { version = "=0.16.4-rc.11", path = "../websocket" }
 lemmy_db_views = { version = "=0.16.4-rc.11", path = "../db_views" }
 lemmy_db_views_actor = { version = "=0.16.4-rc.11", path = "../db_views_actor" }

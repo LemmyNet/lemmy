@@ -35,9 +35,9 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   claims::Claims,
+  error::LemmyError,
   utils::{check_slurs, is_valid_actor_name},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
 

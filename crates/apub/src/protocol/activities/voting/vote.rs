@@ -4,7 +4,7 @@ use crate::{
   protocol::Unparsed,
 };
 use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use strum_macros::Display;
