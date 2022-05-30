@@ -13,10 +13,10 @@ use crate::{
   ActorType,
   PostOrComment,
 };
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, post::Post, site::Site},

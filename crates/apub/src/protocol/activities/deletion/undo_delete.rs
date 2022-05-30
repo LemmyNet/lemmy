@@ -2,8 +2,8 @@ use crate::{
   objects::person::ApubPerson,
   protocol::{activities::deletion::delete::Delete, Unparsed},
 };
+use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
 use activitystreams_kinds::activity::UndoType;
-use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

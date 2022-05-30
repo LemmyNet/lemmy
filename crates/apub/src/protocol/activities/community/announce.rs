@@ -3,8 +3,8 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{IdOrNestedObject, Unparsed},
 };
+use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
 use activitystreams_kinds::activity::AnnounceType;
-use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

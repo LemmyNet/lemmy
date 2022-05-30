@@ -4,14 +4,14 @@ use crate::{
   objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
 };
-use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::utils::{blocking, delete_user_account};
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::ActivityHandler,
   verify::verify_urls_match,
 };
+use activitystreams_kinds::{activity::DeleteType, public};
+use lemmy_api_common::utils::{blocking, delete_user_account};
 use lemmy_db_schema::source::site::Site;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

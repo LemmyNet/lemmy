@@ -7,7 +7,8 @@ use url::Url;
 
 const DEFAULT_CONTEXT: &str = "https://www.w3.org/ns/activitystreams";
 
-/// Simple wrapper which adds json-ld context to
+/// Simple wrapper which adds json-ld context to an object or activity. Doing it this way ensures
+/// that nested objects dont have any context, but only the outermost one.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WithContext<T> {
   #[serde(rename = "@context")]

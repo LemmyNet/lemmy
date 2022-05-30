@@ -1,11 +1,11 @@
 use crate::{activities::accept::Accept, generate_object_id, objects::person::MyUser};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::FollowType;
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Follow {
   pub(crate) actor: ObjectId<MyUser>,

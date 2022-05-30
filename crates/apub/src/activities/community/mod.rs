@@ -6,7 +6,7 @@ use crate::{
   protocol::activities::community::announce::AnnounceActivity,
   ActorType,
 };
-use lemmy_apub_lib::object_id::ObjectId;
+use activitypub_federation::object_id::ObjectId;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

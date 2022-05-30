@@ -3,6 +3,47 @@
 version = 3
 
 [[package]]
+name = "activitypub_federation"
+version = "0.16.4-rc.11"
+dependencies = [
+ "activitypub_federation_derive",
+ "activitystreams-kinds",
+ "actix-rt",
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "background-jobs",
+ "base64",
+ "chrono",
+ "http",
+ "http-signature-normalization-actix",
+ "http-signature-normalization-reqwest",
+ "lemmy_utils",
+ "once_cell",
+ "openssl",
+ "rand 0.8.5",
+ "reqwest",
+ "reqwest-middleware",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "activitypub_federation_derive"
+version = "0.16.4-rc.11"
+dependencies = [
+ "proc-macro2 1.0.36",
+ "quote 1.0.17",
+ "syn 1.0.90",
+ "trybuild",
+]
+
+[[package]]
 name = "activitystreams-kinds"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1764,6 +1805,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api"
 version = "0.16.4-rc.11"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -1774,7 +1816,6 @@ dependencies = [
  "diesel",
  "lemmy_api_common",
  "lemmy_apub",
- "lemmy_apub_lib",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1815,12 +1856,12 @@ dependencies = [
 name = "lemmy_api_crud"
 version = "0.16.4-rc.11"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "async-trait",
  "bcrypt",
  "lemmy_api_common",
  "lemmy_apub",
- "lemmy_apub_lib",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1837,6 +1878,7 @@ dependencies = [
 name = "lemmy_apub"
 version = "0.16.4-rc.11"
 dependencies = [
+ "activitypub_federation",
  "activitystreams-kinds",
  "actix",
  "actix-rt",
@@ -1852,7 +1894,6 @@ dependencies = [
  "http-signature-normalization-actix",
  "itertools",
  "lemmy_api_common",
- "lemmy_apub_lib",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -1874,56 +1915,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_apub_lib"
-version = "0.16.4-rc.11"
-dependencies = [
- "activitystreams-kinds",
- "actix-rt",
- "actix-web",
- "anyhow",
- "async-trait",
- "background-jobs",
- "base64",
- "chrono",
- "http",
- "http-signature-normalization-actix",
- "http-signature-normalization-reqwest",
- "lemmy_apub_lib_derive",
- "lemmy_utils",
- "once_cell",
- "openssl",
- "rand 0.8.5",
- "reqwest",
- "reqwest-middleware",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "tokio",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "lemmy_apub_lib_derive"
-version = "0.16.4-rc.11"
-dependencies = [
- "proc-macro2 1.0.36",
- "quote 1.0.17",
- "syn 1.0.90",
- "trybuild",
-]
-
-[[package]]
 name = "lemmy_db_schema"
 version = "0.16.4-rc.11"
 dependencies = [
+ "activitypub_federation",
  "bcrypt",
  "chrono",
  "diesel",
  "diesel-derive-newtype",
  "diesel_migrations",
- "lemmy_apub_lib",
  "lemmy_utils",
  "once_cell",
  "regex",
@@ -1996,6 +1996,7 @@ dependencies = [
 name = "lemmy_server"
 version = "0.16.4-rc.11"
 dependencies = [
+ "activitypub_federation",
  "actix",
  "actix-web",
  "clokwerk",
@@ -2007,7 +2008,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_api_crud",
  "lemmy_apub",
- "lemmy_apub_lib",
  "lemmy_db_schema",
  "lemmy_routes",
  "lemmy_utils",

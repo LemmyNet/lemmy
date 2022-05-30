@@ -3,9 +3,7 @@ use crate::{
   lib::generate_object_id,
   objects::note::MyPost,
 };
-use activitystreams_kinds::{actor::PersonType, public};
-use anyhow::Error;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   activity_queue::SendActivity,
   context::WithContext,
   inbox::ActorPublicKey,
@@ -14,6 +12,8 @@ use lemmy_apub_lib::{
   traits::{ActivityHandler, ApubObject},
   LocalInstance,
 };
+use activitystreams_kinds::{actor::PersonType, public};
+use anyhow::Error;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;

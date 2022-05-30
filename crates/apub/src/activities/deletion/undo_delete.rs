@@ -8,9 +8,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::{
     comment::Comment,

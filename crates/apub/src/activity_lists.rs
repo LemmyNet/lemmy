@@ -28,7 +28,7 @@ use crate::{
     Id,
   },
 };
-use lemmy_apub_lib::{
+use activitypub_federation::{
   context::WithContext,
   data::Data,
   object_id::ObjectId,

@@ -16,14 +16,14 @@ use crate::{
   ActorType,
   PostOrComment,
 };
-use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::ActivityHandler,
   verify::verify_urls_match,
 };
+use activitystreams_kinds::{activity::UndoType, public};
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

@@ -1,4 +1,5 @@
 // This is for db migrations that require code
+use activitypub_federation::signatures::generate_actor_keypair;
 use diesel::{
   sql_types::{Nullable, Text},
   *,
@@ -11,7 +12,6 @@ use lemmy_apub::{
   generate_site_inbox_url,
   EndpointType,
 };
-use lemmy_apub_lib::signatures::generate_actor_keypair;
 use lemmy_db_schema::{
   source::{
     comment::Comment,

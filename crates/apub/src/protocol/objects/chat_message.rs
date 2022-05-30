@@ -2,12 +2,12 @@ use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::Source,
 };
-use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{
+use activitypub_federation::{
   deser::{deserialize_one, deserialize_skip_error},
   object_id::ObjectId,
   values::MediaTypeHtml,
 };
+use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

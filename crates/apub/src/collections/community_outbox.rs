@@ -8,15 +8,15 @@ use crate::{
     collections::group_outbox::GroupOutbox,
   },
 };
-use activitystreams_kinds::collection::OrderedCollectionType;
-use chrono::NaiveDateTime;
-use futures::future::join_all;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
+use activitystreams_kinds::collection::OrderedCollectionType;
+use chrono::NaiveDateTime;
+use futures::future::join_all;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::source::post::Post;
 use lemmy_utils::error::LemmyError;
 use url::Url;

@@ -21,6 +21,8 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 /// HTTP signatures are valid for 10s, so it makes sense to use the same as timeout when sending
 pub static DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Represents a single, federated instance (for example lemmy.ml). There should only be one of
+/// this in your application (except for testing).
 pub struct LocalInstance {
   hostname: String,
   client: ClientWithMiddleware,
@@ -68,6 +70,7 @@ impl LocalInstance {
     domain == self.hostname
   }
 
+  /// Returns the local hostname
   pub fn hostname(&self) -> &str {
     &self.hostname
   }
@@ -90,6 +93,7 @@ impl InstanceSettings {
     }
   }
 }
+
 impl Default for InstanceSettings {
   fn default() -> Self {
     InstanceSettings {

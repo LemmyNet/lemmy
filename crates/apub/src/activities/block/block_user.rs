@@ -14,16 +14,16 @@ use crate::{
   protocol::activities::block::block_user::BlockUser,
   ActorType,
 };
-use activitystreams_kinds::{activity::BlockType, public};
-use anyhow::anyhow;
-use chrono::NaiveDateTime;
-use lemmy_api_common::utils::{blocking, remove_user_data, remove_user_data_in_community};
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::ActivityHandler,
   verify::verify_domains_match,
 };
+use activitystreams_kinds::{activity::BlockType, public};
+use anyhow::anyhow;
+use chrono::NaiveDateTime;
+use lemmy_api_common::utils::{blocking, remove_user_data, remove_user_data_in_community};
 use lemmy_db_schema::{
   source::{
     community::{

@@ -6,10 +6,14 @@ use crate::{
   ActorType,
   CONTEXT,
 };
+use activitypub_federation::{
+  activity_queue::SendActivity,
+  context::WithContext,
+  object_id::ObjectId,
+};
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{activity_queue::SendActivity, context::WithContext, object_id::ObjectId};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;

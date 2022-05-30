@@ -2,10 +2,10 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
   objects::comment::ApubComment,
 };
+use activitypub_federation::traits::ApubObject;
 use actix_web::{web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

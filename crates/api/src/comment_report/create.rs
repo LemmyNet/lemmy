@@ -1,11 +1,11 @@
 use crate::Perform;
+use activitypub_federation::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::report::Report;
-use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,

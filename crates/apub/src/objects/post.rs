@@ -12,15 +12,15 @@ use crate::{
     Source,
   },
 };
-use activitystreams_kinds::public;
-use chrono::NaiveDateTime;
-use lemmy_api_common::{request::fetch_site_data, utils::blocking};
-use lemmy_apub_lib::{
+use activitypub_federation::{
   object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
 };
+use activitystreams_kinds::public;
+use chrono::NaiveDateTime;
+use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_db_schema::{
   self,
   source::{

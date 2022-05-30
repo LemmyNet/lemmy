@@ -1,4 +1,5 @@
-#[cfg_attr(feature = "full", macro_use)]
+#[cfg(feature = "full")]
+#[macro_use]
 extern crate strum_macros;
 #[cfg(feature = "full")]
 #[macro_use]

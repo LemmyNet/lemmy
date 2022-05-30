@@ -9,8 +9,8 @@ use crate::{
   },
   ActorType,
 };
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::{activity::AnnounceType, public};
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use tracing::debug;

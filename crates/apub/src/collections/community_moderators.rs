@@ -5,10 +5,14 @@ use crate::{
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
 };
+use activitypub_federation::{
+  object_id::ObjectId,
+  traits::ApubObject,
+  verify::verify_domains_match,
+};
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,

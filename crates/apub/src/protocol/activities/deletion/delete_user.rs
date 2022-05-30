@@ -1,6 +1,6 @@
 use crate::objects::person::ApubPerson;
+use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
 use activitystreams_kinds::activity::DeleteType;
-use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

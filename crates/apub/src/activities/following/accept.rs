@@ -4,14 +4,14 @@ use crate::{
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
   ActorType,
 };
-use activitystreams_kinds::activity::AcceptType;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::ActivityHandler,
   verify::verify_urls_match,
 };
+use activitystreams_kinds::activity::AcceptType;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

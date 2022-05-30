@@ -4,16 +4,16 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
 };
-use activitystreams_kinds::link::LinkType;
-use chrono::{DateTime, FixedOffset};
-use itertools::Itertools;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   deser::{deserialize_one_or_many, deserialize_skip_error},
   object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   values::MediaTypeMarkdownOrHtml,
 };
+use activitystreams_kinds::link::LinkType;
+use chrono::{DateTime, FixedOffset};
+use itertools::Itertools;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

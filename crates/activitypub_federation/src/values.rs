@@ -5,7 +5,7 @@
 //! If we used String as the field type, any value would be accepted, and we would have to check
 //! manually at runtime that it contains the expected value.
 //!
-//! The enums in [`activitystreams::activity::kind`] work in the same way, and can be used to
+//! The enums in `activitystreams::activity::kind` work in the same way, and can be used to
 //! distinguish different activity types.
 //!
 //! In the example below, `MyObject` can only be constructed or

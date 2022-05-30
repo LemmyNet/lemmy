@@ -12,11 +12,11 @@ use crate::{
   },
   ActorType,
 };
+use activitypub_federation::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObject};
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{

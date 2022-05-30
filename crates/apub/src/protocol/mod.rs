@@ -1,6 +1,6 @@
 use crate::local_instance;
+use activitypub_federation::{utils::fetch_object_http, values::MediaTypeMarkdown};
 use activitystreams_kinds::object::ImageType;
-use lemmy_apub_lib::{utils::fetch_object_http, values::MediaTypeMarkdown};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -83,8 +83,8 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+  use activitypub_federation::context::WithContext;
   use assert_json_diff::assert_json_include;
-  use lemmy_apub_lib::context::WithContext;
   use lemmy_utils::error::LemmyError;
   use serde::{de::DeserializeOwned, Serialize};
   use std::{collections::HashMap, fs::File, io::BufReader};

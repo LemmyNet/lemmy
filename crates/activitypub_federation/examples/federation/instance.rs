@@ -2,10 +2,7 @@ use crate::objects::{
   note::MyPost,
   person::{MyUser, PersonAcceptedActivities},
 };
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
-use anyhow::Error;
-use http_signature_normalization_actix::prelude::VerifyDigest;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   context::WithContext,
   data::Data,
   inbox::receive_activity,
@@ -15,6 +12,9 @@ use lemmy_apub_lib::{
   LocalInstance,
   APUB_JSON_CONTENT_TYPE,
 };
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
+use anyhow::Error;
+use http_signature_normalization_actix::prelude::VerifyDigest;
 use lemmy_utils::error::LemmyError;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
@@ -58,10 +58,10 @@ impl Instance {
     HttpServer::new(move || {
       App::new()
         .app_data(Data::new(local_instance.clone()))
-        // The routes
         .route("/objects/{user_name}", web::get().to(get_user))
         .service(
           web::scope("")
+            // TODO: this seems entirely unnecessary as http sig is verifyed in receive_activity
             .wrap(VerifyDigest::new(Sha256::new()))
             .route("/u/{user_name}/inbox", web::post().to(post_inbox)),
         )

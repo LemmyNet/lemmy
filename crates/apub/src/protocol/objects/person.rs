@@ -2,8 +2,12 @@ use crate::{
   objects::person::ApubPerson,
   protocol::{objects::Endpoints, ImageObject, Source},
 };
+use activitypub_federation::{
+  deser::deserialize_skip_error,
+  object_id::ObjectId,
+  signatures::PublicKey,
+};
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{deser::deserialize_skip_error, object_id::ObjectId, signatures::PublicKey};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

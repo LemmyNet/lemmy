@@ -1,4 +1,5 @@
 use crate::PerformCrud;
+use activitypub_federation::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, Register},
@@ -11,7 +12,6 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   EndpointType,
 };
-use lemmy_apub_lib::signatures::generate_actor_keypair;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::CommunityId,

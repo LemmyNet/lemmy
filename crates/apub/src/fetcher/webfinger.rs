@@ -1,7 +1,7 @@
 use crate::{local_instance, ActorType};
+use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

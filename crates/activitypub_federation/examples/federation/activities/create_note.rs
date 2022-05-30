@@ -1,11 +1,11 @@
 use crate::objects::{note::Note, person::MyUser};
-use activitystreams_kinds::activity::CreateType;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   deser::deserialize_one_or_many,
   object_id::ObjectId,
   traits::ActivityHandler,
 };
+use activitystreams_kinds::activity::CreateType;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;

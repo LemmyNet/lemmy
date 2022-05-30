@@ -3,7 +3,7 @@ use crate::{
   lib::generate_object_id,
   objects::{note::MyPost, person::MyUser},
 };
-use lemmy_apub_lib::signatures::generate_actor_keypair;
+use activitypub_federation::signatures::generate_actor_keypair;
 use lemmy_utils::error::LemmyError;
 use tokio::task;
 

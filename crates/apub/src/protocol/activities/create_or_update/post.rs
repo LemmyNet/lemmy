@@ -2,7 +2,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::page::Page, Unparsed},
 };
-use lemmy_apub_lib::{deser::deserialize_one_or_many, object_id::ObjectId};
+use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

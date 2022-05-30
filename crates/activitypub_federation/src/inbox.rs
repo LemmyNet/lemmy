@@ -17,6 +17,7 @@ pub trait ActorPublicKey {
   fn public_key(&self) -> &str;
 }
 
+/// Receive an activity and perform some basic checks, including HTTP signature verification.
 pub async fn receive_activity<Activity, Actor, Datatype>(
   request: HttpRequest,
   activity: Activity,

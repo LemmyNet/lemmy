@@ -2,8 +2,8 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
 };
+use activitypub_federation::{inbox::ActorPublicKey, traits::ApubObject};
 use chrono::NaiveDateTime;
-use lemmy_apub_lib::{inbox::ActorPublicKey, traits::ApubObject};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};

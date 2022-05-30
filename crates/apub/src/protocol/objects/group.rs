@@ -7,14 +7,14 @@ use crate::{
   objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{objects::Endpoints, ImageObject, Source},
 };
-use activitystreams_kinds::actor::GroupType;
-use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{
+use activitypub_federation::{
   deser::deserialize_skip_error,
   object_id::ObjectId,
   signatures::PublicKey,
   verify::verify_domains_match,
 };
+use activitystreams_kinds::actor::GroupType;
+use chrono::{DateTime, FixedOffset};
 use lemmy_db_schema::{source::community::CommunityForm, utils::naive_now};
 use lemmy_utils::{
   error::LemmyError,

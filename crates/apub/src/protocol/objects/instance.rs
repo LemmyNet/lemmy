@@ -2,13 +2,13 @@ use crate::{
   objects::instance::ApubSite,
   protocol::{ImageObject, Source},
 };
-use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{
+use activitypub_federation::{
   deser::deserialize_skip_error,
   object_id::ObjectId,
   signatures::PublicKey,
   values::MediaTypeHtml,
 };
+use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

@@ -5,16 +5,16 @@ use crate::{
   local_instance,
   CONTEXT,
 };
-use actix_web::{web, HttpRequest, HttpResponse};
-use http::StatusCode;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   context::WithContext,
   data::Data,
   inbox::{receive_activity, ActorPublicKey},
   traits::{ActivityHandler, ApubObject},
   APUB_JSON_CONTENT_TYPE,
 };
+use actix_web::{web, HttpRequest, HttpResponse};
+use http::StatusCode;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

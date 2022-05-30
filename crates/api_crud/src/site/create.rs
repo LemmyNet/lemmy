@@ -1,11 +1,11 @@
 use crate::PerformCrud;
+use activitypub_federation::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{CreateSite, SiteResponse},
   utils::{blocking, get_local_user_view_from_jwt, is_admin, site_description_length_check},
 };
 use lemmy_apub::generate_site_inbox_url;
-use lemmy_apub_lib::signatures::generate_actor_keypair;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::site::{Site, SiteForm},

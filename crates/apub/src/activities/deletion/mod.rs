@@ -19,9 +19,13 @@ use crate::{
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
   ActorType,
 };
+use activitypub_federation::{
+  object_id::ObjectId,
+  traits::ApubObject,
+  verify::verify_domains_match,
+};
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::{
     comment::Comment,

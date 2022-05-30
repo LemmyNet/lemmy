@@ -14,7 +14,7 @@ doctest = false
 
 [dependencies]
 lemmy_apub = { version = "=0.16.4-rc.11", path = "../apub" }
-lemmy_apub_lib = { version = "=0.16.4-rc.11", path = "../apub_lib" }
+activitypub_federation = { version = "=0.16.4-rc.11", path = "../activitypub_federation" }
 lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils", features = ["full"] }
 lemmy_db_schema = { version = "=0.16.4-rc.11", path = "../db_schema", features = ["full"] }
 lemmy_db_views = { version = "=0.16.4-rc.11", path = "../db_views", features = ["full"] }

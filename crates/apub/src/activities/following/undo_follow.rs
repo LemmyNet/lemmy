@@ -5,14 +5,14 @@ use crate::{
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
   ActorType,
 };
-use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::ActivityHandler,
   verify::verify_urls_match,
 };
+use activitystreams_kinds::activity::UndoType;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
   traits::Followable,

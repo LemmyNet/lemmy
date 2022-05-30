@@ -7,13 +7,13 @@ use crate::{
   },
   ActorType,
 };
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::person::Person, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};

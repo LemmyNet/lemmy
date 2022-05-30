@@ -12,10 +12,10 @@ use crate::{
     IdOrNestedObject,
   },
 };
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::{
     comment::Comment,

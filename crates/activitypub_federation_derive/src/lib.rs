@@ -97,7 +97,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
 
   let expanded = quote! {
       #[async_trait::async_trait(?Send)]
-      impl #impl_generics lemmy_apub_lib::traits::ActivityHandler for #enum_name #ty_generics #where_clause {
+      impl #impl_generics activitypub_federation::traits::ActivityHandler for #enum_name #ty_generics #where_clause {
         type DataType = #attrs;
           fn id(
               &self,
@@ -115,7 +115,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
           }
           async fn verify(
               &self,
-              context: &lemmy_apub_lib::data::Data<Self::DataType>,
+              context: &activitypub_federation::data::Data<Self::DataType>,
               request_counter: &mut i32,
             ) -> Result<(), lemmy_utils::error::LemmyError> {
             match self {
@@ -124,7 +124,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
           }
           async fn receive(
             self,
-            context: &lemmy_apub_lib::data::Data<Self::DataType>,
+            context: &activitypub_federation::data::Data<Self::DataType>,
             request_counter: &mut i32,
           ) -> Result<(), lemmy_utils::error::LemmyError> {
             match self {

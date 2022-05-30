@@ -9,15 +9,15 @@ use crate::{
   },
   ActorType,
 };
-use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   inbox::ActorPublicKey,
   object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeHtml,
   verify::verify_domains_match,
 };
+use chrono::NaiveDateTime;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::site::{Site, SiteForm},
   utils::naive_now,

@@ -5,14 +5,14 @@ use crate::{
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
-use activitystreams_kinds::object::NoteType;
-use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   deser::{deserialize_one_or_many, deserialize_skip_error},
   object_id::ObjectId,
   values::MediaTypeMarkdownOrHtml,
 };
+use activitystreams_kinds::object::NoteType;
+use chrono::{DateTime, FixedOffset};
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

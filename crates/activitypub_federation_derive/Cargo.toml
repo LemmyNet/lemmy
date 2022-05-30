@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_apub_lib_derive"
+name = "activitypub_federation_derive"
 version = "0.16.4-rc.11"
 edition = "2021"
 description = "A link aggregator for the fediverse"

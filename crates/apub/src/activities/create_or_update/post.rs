@@ -12,14 +12,14 @@ use crate::{
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
   ActorType,
 };
-use activitystreams_kinds::public;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   data::Data,
   object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   verify::{verify_domains_match, verify_urls_match},
 };
+use activitystreams_kinds::public;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     community::Community,

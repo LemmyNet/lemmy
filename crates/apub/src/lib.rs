@@ -1,13 +1,13 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use anyhow::Context;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
+use activitypub_federation::{
   inbox::ActorPublicKey,
   signatures::PublicKey,
   InstanceSettings,
   LocalInstance,
   DEFAULT_TIMEOUT,
 };
+use anyhow::Context;
+use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
 use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;

@@ -1,14 +1,22 @@
 use crate::data::Data;
+pub use activitypub_federation_derive::*;
 use chrono::NaiveDateTime;
-pub use lemmy_apub_lib_derive::*;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
+/// Trait which allows verification and reception of incoming activities.
 #[async_trait::async_trait(?Send)]
 pub trait ActivityHandler {
   type DataType;
+
+  /// `id` field of the activity
   fn id(&self) -> &Url;
+
+  /// `actor` field of activity
   fn actor(&self) -> &Url;
+
+  /// Verify that the activity is valid. If this method returns an error, the activity will be
+  /// discarded.
   async fn verify(
     &self,
     data: &Data<Self::DataType>,
