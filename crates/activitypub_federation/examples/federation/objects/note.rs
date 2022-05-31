@@ -1,10 +1,10 @@
-use crate::{generate_object_id, objects::person::MyUser, ObjectId};
+use crate::{generate_object_id, instance::InstanceHandle, objects::person::MyUser, ObjectId};
 use activitypub_federation::{deser::deserialize_one_or_many, traits::ApubObject};
 use activitystreams_kinds::{object::NoteType, public};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MyPost {
   pub text: String,
   pub ap_id: ObjectId<MyPost>,
@@ -23,7 +23,7 @@ impl MyPost {
   }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
   #[serde(rename = "type")]
@@ -37,7 +37,7 @@ pub struct Note {
 
 #[async_trait::async_trait(?Send)]
 impl ApubObject for MyPost {
-  type DataType = ();
+  type DataType = InstanceHandle;
   type ApubType = Note;
   type DbType = ();
   type TombstoneType = ();
@@ -47,10 +47,6 @@ impl ApubObject for MyPost {
     _object_id: Url,
     _data: &Self::DataType,
   ) -> Result<Option<Self>, Self::Error> {
-    Ok(None)
-  }
-
-  async fn delete(self, _data: &Self::DataType) -> Result<(), Self::Error> {
     todo!()
   }
 
@@ -65,29 +61,29 @@ impl ApubObject for MyPost {
     })
   }
 
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error> {
-    todo!()
-  }
-
   async fn verify(
     _apub: &Self::ApubType,
     _expected_domain: &Url,
     _data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<(), Self::Error> {
-    todo!()
+    Ok(())
   }
 
   async fn from_apub(
     apub: Self::ApubType,
-    _data: &Self::DataType,
+    data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<Self, Self::Error> {
-    Ok(MyPost {
+    let post = MyPost {
       text: apub.content,
       ap_id: apub.id,
       creator: apub.attributed_to,
       local: false,
-    })
+    };
+
+    let mut lock = data.posts.lock().unwrap();
+    lock.push(post.clone());
+    Ok(post)
   }
 }

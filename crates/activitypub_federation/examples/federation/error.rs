@@ -2,7 +2,6 @@ use actix_web::ResponseError;
 use std::fmt::{Display, Formatter};
 
 /// Necessary because of this issue: https://github.com/actix/actix-web/issues/1711
-/// Could be fixed by actix-web having `impl ResponseError for anyhow::Error` (maybe behind feature flag)
 #[derive(Debug)]
 pub struct Error(anyhow::Error);
 

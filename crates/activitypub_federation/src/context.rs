@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::str::FromStr;
 use url::Url;
 
-const DEFAULT_CONTEXT: &str = "https://www.w3.org/ns/activitystreams";
+const DEFAULT_CONTEXT: &str = "[\"https://www.w3.org/ns/activitystreams\"]";
 
 /// Simple wrapper which adds json-ld context to an object or activity. Doing it this way ensures
 /// that nested objects dont have any context, but only the outermost one.

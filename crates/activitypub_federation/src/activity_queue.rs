@@ -21,6 +21,7 @@ use tracing::{info, warn};
 use url::Url;
 
 /// Necessary data for sending out an activity
+#[derive(Debug)]
 pub struct SendActivity {
   /// Id of the sent activity, used for logging
   pub activity_id: Url,

@@ -21,7 +21,7 @@ static CONFIG2: Lazy<ConfigActix> = Lazy::new(ConfigActix::new);
 static HTTP_SIG_CONFIG: Lazy<Config> = Lazy::new(Config::new);
 
 /// A private/public key pair used for HTTP signatures
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Keypair {
   pub private_key: String,
   pub public_key: String,

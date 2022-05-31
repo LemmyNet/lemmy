@@ -7,38 +7,41 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields::Unnamed, Ident, Variant}
 ///
 /// Based on this code:
 /// ```ignore
-/// #[derive(serde::Deserialize, serde::Serialize, ActivityHandler)]
+/// #[derive(serde::Deserialize, serde::Serialize)]
 /// #[serde(untagged)]
+/// #[activity_handler(LemmyContext, LemmyError)]
 /// pub enum PersonInboxActivities {
 ///  CreateNote(CreateNote),
 ///  UpdateNote(UpdateNote),
+/// }
 /// ```
 /// It will generate this:
 /// ```ignore
 /// impl ActivityHandler for PersonInboxActivities {
+///     type DataType = LemmyContext;
+///     type Error = LemmyError;
 ///
 ///     async fn verify(
 ///     &self,
-///     context: &LemmyContext,
+///     data: &Self::DataType,
 ///     request_counter: &mut i32,
 ///   ) -> Result<(), Self::Error> {
 ///     match self {
-///       PersonInboxActivities::CreateNote(a) => a.verify(context, request_counter).await,
+///       PersonInboxActivities::CreateNote(a) => a.verify(data, request_counter).await,
 ///       PersonInboxActivities::UpdateNote(a) => a.verify(context, request_counter).await,
 ///     }
 ///   }
 ///
 ///   async fn receive(
 ///   &self,
-///   context: &LemmyContext,
+///   data: &Self::DataType,
 ///   request_counter: &mut i32,
 /// ) -> Result<(), Self::Error> {
 ///     match self {
-///       PersonInboxActivities::CreateNote(a) => a.receive(context, request_counter).await,
-///       PersonInboxActivities::UpdateNote(a) => a.receive(context, request_counter).await,
+///       PersonInboxActivities::CreateNote(a) => a.receive(data, request_counter).await,
+///       PersonInboxActivities::UpdateNote(a) => a.receive(data, request_counter).await,
 ///     }
 ///   }
-///
 /// ```
 #[proc_macro_attribute]
 pub fn activity_handler(
