@@ -1,21 +1,22 @@
-use crate::objects::{
-  note::MyPost,
-  person::{MyUser, PersonAcceptedActivities},
+use crate::{
+  error::Error,
+  objects::{
+    note::MyPost,
+    person::{MyUser, PersonAcceptedActivities},
+  },
+  ObjectId,
 };
 use activitypub_federation::{
   context::WithContext,
   data::Data,
   inbox::receive_activity,
-  object_id::ObjectId,
   traits::ApubObject,
   InstanceSettings,
   LocalInstance,
   APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
-use anyhow::Error;
 use http_signature_normalization_actix::prelude::VerifyDigest;
-use lemmy_utils::error::LemmyError;
 use reqwest::Client;
 use sha2::{Digest, Sha256};
 use std::{ops::Deref, sync::Arc};
@@ -73,7 +74,7 @@ impl Instance {
   }
 }
 
-async fn get_user(request: HttpRequest) -> Result<HttpResponse, LemmyError> {
+async fn get_user(request: HttpRequest) -> Result<HttpResponse, Error> {
   let url = Url::parse(&request.uri().to_string())?;
   let data = ObjectId::<MyUser>::new(url)
     .dereference_local(&())
@@ -91,10 +92,10 @@ async fn post_inbox(
   request: HttpRequest,
   payload: String,
   local_instance: web::Data<Arc<LocalInstance>>,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<HttpResponse, Error> {
   let activity = serde_json::from_str(&payload)?;
   Ok(
-    receive_activity::<WithContext<PersonAcceptedActivities>, MyUser, ()>(
+    receive_activity::<WithContext<PersonAcceptedActivities>, MyUser, (), Error>(
       request,
       activity,
       local_instance.deref(),

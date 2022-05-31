@@ -28,6 +28,7 @@ impl ApubObject for PostOrComment {
   type ApubType = PageOrNote;
   type DbType = ();
   type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None

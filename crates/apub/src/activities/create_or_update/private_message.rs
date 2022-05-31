@@ -6,10 +6,10 @@ use crate::{
     CreateOrUpdateType,
   },
   ActorType,
+  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
-  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
@@ -53,6 +53,7 @@ impl CreateOrUpdatePrivateMessage {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdatePrivateMessage {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

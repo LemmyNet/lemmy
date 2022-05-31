@@ -27,21 +27,21 @@ use crate::{
     objects::page::Page,
     Id,
   },
+  ObjectId,
 };
 use activitypub_federation::{
   context::WithContext,
   data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
+  traits::{activity_handler, ActivityHandler},
 };
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext)]
+#[activity_handler(LemmyContext, LemmyError)]
 pub enum SharedInboxActivities {
   GroupInboxActivities(Box<WithContext<GroupInboxActivities>>),
   // Note, pm activities need to be at the end, otherwise comments will end up here. We can probably
@@ -58,9 +58,9 @@ pub enum GroupInboxActivities {
   Report(Report),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext)]
+#[activity_handler(LemmyContext, LemmyError)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
   /// Some activities can also be sent from user to user, eg a comment with mentions
@@ -71,9 +71,9 @@ pub enum PersonInboxActivities {
   AnnounceActivity(AnnounceActivity),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext)]
+#[activity_handler(LemmyContext, LemmyError)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
   CreateOrUpdatePost(Box<CreateOrUpdatePost>),
@@ -90,9 +90,9 @@ pub enum AnnouncableActivities {
   Page(Page),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ActivityHandler)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext)]
+#[activity_handler(LemmyContext, LemmyError)]
 #[allow(clippy::enum_variant_names)]
 pub enum SiteInboxActivities {
   BlockUser(BlockUser),
@@ -137,6 +137,7 @@ impl Id for AnnouncableActivities {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for GroupInboxActivities {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     match self {

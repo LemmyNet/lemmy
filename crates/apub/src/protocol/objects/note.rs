@@ -4,10 +4,10 @@ use crate::{
   mentions::MentionOrValue,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
+  ObjectId,
 };
 use activitypub_federation::{
   deser::{deserialize_one_or_many, deserialize_skip_error},
-  object_id::ObjectId,
   values::MediaTypeMarkdownOrHtml,
 };
 use activitystreams_kinds::object::NoteType;

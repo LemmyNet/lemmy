@@ -1,10 +1,10 @@
 use crate::{
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::Source,
+  ObjectId,
 };
 use activitypub_federation::{
   deser::{deserialize_one, deserialize_skip_error},
-  object_id::ObjectId,
   values::MediaTypeHtml,
 };
 use chrono::{DateTime, FixedOffset};

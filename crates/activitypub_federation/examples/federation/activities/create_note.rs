@@ -1,12 +1,9 @@
-use crate::objects::{note::Note, person::MyUser};
-use activitypub_federation::{
-  data::Data,
-  deser::deserialize_one_or_many,
-  object_id::ObjectId,
-  traits::ActivityHandler,
+use crate::{
+  objects::{note::Note, person::MyUser},
+  ObjectId,
 };
+use activitypub_federation::{data::Data, deser::deserialize_one_or_many, traits::ActivityHandler};
 use activitystreams_kinds::activity::CreateType;
-use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -37,6 +34,7 @@ impl CreateNote {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateNote {
   type DataType = ();
+  type Error = crate::error::Error;
 
   fn id(&self) -> &Url {
     &self.id
@@ -50,7 +48,7 @@ impl ActivityHandler for CreateNote {
     &self,
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 
@@ -58,7 +56,7 @@ impl ActivityHandler for CreateNote {
     self,
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 }

@@ -1,8 +1,9 @@
 use crate::{
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::chat_message::ChatMessage, Unparsed},
+  ObjectId,
 };
-use activitypub_federation::{deser::deserialize_one, object_id::ObjectId};
+use activitypub_federation::deser::deserialize_one;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

@@ -47,8 +47,11 @@ pub async fn receive_lemmy_activity<Activity, Actor>(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError>
 where
-  Activity: ActivityHandler<DataType = LemmyContext> + DeserializeOwned + Send + 'static,
-  Actor: ApubObject<DataType = LemmyContext> + ActorPublicKey + Send + 'static,
+  Activity: ActivityHandler<DataType = LemmyContext, Error = LemmyError>
+    + DeserializeOwned
+    + Send
+    + 'static,
+  Actor: ApubObject<DataType = LemmyContext, Error = LemmyError> + ActorPublicKey + Send + 'static,
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   let activity_value: Value = serde_json::from_str(&payload)?;
@@ -63,7 +66,7 @@ where
 
   static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
   let data = DATA.get_or_init(|| Data::new(context.get_ref().clone()));
-  receive_activity::<Activity, Actor, LemmyContext>(
+  receive_activity::<Activity, Actor, LemmyContext, LemmyError>(
     request,
     activity,
     local_instance(&context),

@@ -4,13 +4,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  verify::verify_urls_match,
-};
+use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_urls_match};
 use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -47,6 +43,7 @@ impl UndoFollowCommunity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoFollowCommunity {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

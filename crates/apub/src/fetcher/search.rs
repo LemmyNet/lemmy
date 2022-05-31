@@ -82,6 +82,7 @@ impl ApubObject for SearchableObjects {
   type ApubType = SearchableApubTypes;
   type DbType = ();
   type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     match self {

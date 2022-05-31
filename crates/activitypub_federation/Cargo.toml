@@ -8,7 +8,6 @@ homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 
 [dependencies]
-lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils" }
 activitypub_federation_derive = { version = "=0.16.4-rc.11", path = "../activitypub_federation_derive" }
 chrono = { version = "0.4.19", features = ["clock"], default-features = false }
 serde = { version = "1.0.136", features = ["derive"] }

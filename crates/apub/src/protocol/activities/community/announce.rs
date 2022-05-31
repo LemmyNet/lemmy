@@ -2,8 +2,9 @@ use crate::{
   activity_lists::AnnouncableActivities,
   objects::community::ApubCommunity,
   protocol::{IdOrNestedObject, Unparsed},
+  ObjectId,
 };
-use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
+use activitypub_federation::deser::deserialize_one_or_many;
 use activitystreams_kinds::activity::AnnounceType;
 use serde::{Deserialize, Serialize};
 use url::Url;

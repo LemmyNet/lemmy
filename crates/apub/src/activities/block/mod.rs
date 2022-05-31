@@ -2,8 +2,9 @@ use crate::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::objects::{group::Group, instance::Instance},
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::traits::ApubObject;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::site::Site, utils::DbPool};
@@ -34,6 +35,7 @@ impl ApubObject for SiteOrCommunity {
   type ApubType = InstanceOrGroup;
   type DbType = ();
   type TombstoneType = ();
+  type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {

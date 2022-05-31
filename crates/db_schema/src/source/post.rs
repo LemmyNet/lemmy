@@ -1,7 +1,6 @@
 use crate::newtypes::{CommunityId, DbUrl, PersonId, PostId};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "full")]
 use crate::schema::{post, post_like, post_read, post_saved};
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]

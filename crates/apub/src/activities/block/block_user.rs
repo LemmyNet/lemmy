@@ -13,13 +13,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  verify::verify_domains_match,
-};
+use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_domains_match};
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
@@ -108,6 +104,7 @@ impl BlockUser {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for BlockUser {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

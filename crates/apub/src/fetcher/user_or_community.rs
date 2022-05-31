@@ -34,6 +34,7 @@ impl ApubObject for UserOrCommunity {
   type ApubType = PersonOrGroup;
   type DbType = ();
   type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(match self {

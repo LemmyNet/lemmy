@@ -53,6 +53,7 @@ impl ApubObject for ApubPrivateMessage {
   type ApubType = ChatMessage;
   type DbType = PrivateMessage;
   type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None

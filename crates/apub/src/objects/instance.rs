@@ -8,10 +8,10 @@ use crate::{
     Source,
   },
   ActorType,
+  ObjectId,
 };
 use activitypub_federation::{
   inbox::ActorPublicKey,
-  object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeHtml,
   verify::verify_domains_match,
@@ -53,6 +53,7 @@ impl ApubObject for ApubSite {
   type ApubType = Instance;
   type DbType = Site;
   type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)

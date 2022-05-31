@@ -17,8 +17,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::remove_mod::RemoveMod,
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::{activity::RemoveType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -64,6 +65,7 @@ impl RemoveMod {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for RemoveMod {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

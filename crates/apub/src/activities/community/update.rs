@@ -11,10 +11,10 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
   ActorType,
+  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
-  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};
@@ -56,6 +56,7 @@ impl UpdateCommunity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UpdateCommunity {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

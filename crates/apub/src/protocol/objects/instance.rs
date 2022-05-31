@@ -1,10 +1,10 @@
 use crate::{
   objects::instance::ApubSite,
   protocol::{ImageObject, Source},
+  ObjectId,
 };
 use activitypub_federation::{
   deser::deserialize_skip_error,
-  object_id::ObjectId,
   signatures::PublicKey,
   values::MediaTypeHtml,
 };

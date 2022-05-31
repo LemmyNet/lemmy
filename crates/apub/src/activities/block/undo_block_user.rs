@@ -11,13 +11,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  verify::verify_domains_match,
-};
+use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_domains_match};
 use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -74,6 +70,7 @@ impl UndoBlockUser {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoBlockUser {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

@@ -1,13 +1,13 @@
 use crate::data::Data;
 pub use activitypub_federation_derive::*;
 use chrono::NaiveDateTime;
-use lemmy_utils::error::LemmyError;
 use url::Url;
 
 /// Trait which allows verification and reception of incoming activities.
 #[async_trait::async_trait(?Send)]
 pub trait ActivityHandler {
   type DataType;
+  type Error;
 
   /// `id` field of the activity
   fn id(&self) -> &Url;
@@ -21,13 +21,13 @@ pub trait ActivityHandler {
     &self,
     data: &Data<Self::DataType>,
     request_counter: &mut i32,
-  ) -> Result<(), LemmyError>;
+  ) -> Result<(), Self::Error>;
 
   async fn receive(
     self,
     data: &Data<Self::DataType>,
     request_counter: &mut i32,
-  ) -> Result<(), LemmyError>;
+  ) -> Result<(), Self::Error>;
 }
 
 #[async_trait::async_trait(?Send)]
@@ -36,6 +36,7 @@ pub trait ApubObject {
   type ApubType;
   type DbType;
   type TombstoneType;
+  type Error;
 
   /// If the object is stored in the database, this method should return the fetch time. Used to
   /// update actors after certain interval.
@@ -46,23 +47,23 @@ pub trait ApubObject {
   async fn read_from_apub_id(
     object_id: Url,
     data: &Self::DataType,
-  ) -> Result<Option<Self>, LemmyError>
+  ) -> Result<Option<Self>, Self::Error>
   where
     Self: Sized;
   /// Marks the object as deleted in local db. Called when a delete activity is received, or if
   /// fetch returns a tombstone.
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError>;
+  async fn delete(self, data: &Self::DataType) -> Result<(), Self::Error>;
 
   /// Trait for converting an object or actor into the respective ActivityPub type.
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError>;
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError>;
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, Self::Error>;
+  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error>;
 
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
     data: &Self::DataType,
     request_counter: &mut i32,
-  ) -> Result<(), LemmyError>;
+  ) -> Result<(), Self::Error>;
 
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///
@@ -74,7 +75,7 @@ pub trait ApubObject {
     apub: Self::ApubType,
     data: &Self::DataType,
     request_counter: &mut i32,
-  ) -> Result<Self, LemmyError>
+  ) -> Result<Self, Self::Error>
   where
     Self: Sized;
 }

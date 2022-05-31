@@ -1,8 +1,8 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::Unparsed,
+  ObjectId,
 };
-use activitypub_federation::object_id::ObjectId;
 use activitystreams_kinds::activity::FollowType;
 use serde::{Deserialize, Serialize};
 use url::Url;

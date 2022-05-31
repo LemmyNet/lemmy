@@ -22,7 +22,7 @@ lemmy_db_views = { version = "=0.16.4-rc.11", path = "../db_views" }
 lemmy_db_views_moderator = { version = "=0.16.4-rc.11", path = "../db_views_moderator" }
 lemmy_db_views_actor = { version = "=0.16.4-rc.11", path = "../db_views_actor" }
 lemmy_db_schema = { version = "=0.16.4-rc.11", path = "../db_schema", default-features = false }
-lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils", features = ["full"], optional = true }
+lemmy_utils = { version = "=0.16.4-rc.11", path = "../utils", optional = true }
 serde = { version = "1.0.136", features = ["derive"] }
 url = "2.2.2"
 actix-web = { version = "4.0.1", default-features = false, features = ["cookies"], optional = true }

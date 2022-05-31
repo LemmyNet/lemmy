@@ -3,13 +3,9 @@ use crate::{
   local_instance,
   objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
+  ObjectId,
 };
-use activitypub_federation::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  verify::verify_urls_match,
-};
+use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_urls_match};
 use activitystreams_kinds::{activity::DeleteType, public};
 use lemmy_api_common::utils::{blocking, delete_user_account};
 use lemmy_db_schema::source::site::Site;
@@ -22,6 +18,7 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for DeleteUser {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

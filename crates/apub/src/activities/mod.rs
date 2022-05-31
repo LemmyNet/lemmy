@@ -4,13 +4,10 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   ActorType,
+  ObjectId,
   CONTEXT,
 };
-use activitypub_federation::{
-  activity_queue::SendActivity,
-  context::WithContext,
-  object_id::ObjectId,
-};
+use activitypub_federation::{activity_queue::SendActivity, context::WithContext};
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;

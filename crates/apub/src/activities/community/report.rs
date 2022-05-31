@@ -4,9 +4,10 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::report::Report,
   ActorType,
+  ObjectId,
   PostOrComment,
 };
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse, utils::blocking};
 use lemmy_db_schema::{
@@ -60,6 +61,7 @@ impl Report {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Report {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

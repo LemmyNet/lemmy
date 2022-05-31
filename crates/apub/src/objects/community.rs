@@ -11,8 +11,9 @@ use crate::{
     Source,
   },
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{inbox::ActorPublicKey, traits::ApubObject};
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
@@ -50,6 +51,7 @@ impl ApubObject for ApubCommunity {
   type ApubType = Group;
   type DbType = Community;
   type TombstoneType = Tombstone;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)

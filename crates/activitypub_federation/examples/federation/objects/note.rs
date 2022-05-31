@@ -1,11 +1,6 @@
-use crate::{generate_object_id, objects::person::MyUser};
-use activitypub_federation::{
-  deser::deserialize_one_or_many,
-  object_id::ObjectId,
-  traits::ApubObject,
-};
+use crate::{generate_object_id, objects::person::MyUser, ObjectId};
+use activitypub_federation::{deser::deserialize_one_or_many, traits::ApubObject};
 use activitystreams_kinds::{object::NoteType, public};
-use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -46,19 +41,20 @@ impl ApubObject for MyPost {
   type ApubType = Note;
   type DbType = ();
   type TombstoneType = ();
+  type Error = crate::error::Error;
 
   async fn read_from_apub_id(
     _object_id: Url,
     _data: &Self::DataType,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> Result<Option<Self>, Self::Error> {
     Ok(None)
   }
 
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Self::DataType) -> Result<(), Self::Error> {
     todo!()
   }
 
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, Self::Error> {
     let creator = self.creator.dereference_local(data).await?;
     Ok(Note {
       kind: Default::default(),
@@ -69,7 +65,7 @@ impl ApubObject for MyPost {
     })
   }
 
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
+  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error> {
     todo!()
   }
 
@@ -78,7 +74,7 @@ impl ApubObject for MyPost {
     _expected_domain: &Url,
     _data: &Self::DataType,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 
@@ -86,7 +82,7 @@ impl ApubObject for MyPost {
     apub: Self::ApubType,
     _data: &Self::DataType,
     _request_counter: &mut i32,
-  ) -> Result<Self, LemmyError> {
+  ) -> Result<Self, Self::Error> {
     Ok(MyPost {
       text: apub.content,
       ap_id: apub.id,

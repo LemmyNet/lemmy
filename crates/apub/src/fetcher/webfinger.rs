@@ -1,5 +1,5 @@
-use crate::{local_instance, ActorType};
-use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
+use crate::{local_instance, ActorType, ObjectId};
+use activitypub_federation::traits::ApubObject;
 use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_db_schema::newtypes::DbUrl;
@@ -32,7 +32,7 @@ pub(crate) async fn webfinger_resolve_actor<Kind>(
   request_counter: &mut i32,
 ) -> Result<DbUrl, LemmyError>
 where
-  Kind: ApubObject<DataType = LemmyContext> + ActorType + Send + 'static,
+  Kind: ApubObject<DataType = LemmyContext, Error = LemmyError> + ActorType + Send + 'static,
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   let protocol = context.settings().get_protocol_string();

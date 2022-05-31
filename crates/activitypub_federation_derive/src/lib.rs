@@ -1,6 +1,6 @@
-use proc_macro2::{TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields::Unnamed, Ident, Variant};
+use syn::{parse_macro_input, Data, DeriveInput, Fields::Unnamed, Ident, Variant};
 
 /// Generates implementation ActivityHandler for an enum, which looks like the following (handling
 /// all enum variants).
@@ -21,7 +21,7 @@ use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields::Unnamed, Iden
 ///     &self,
 ///     context: &LemmyContext,
 ///     request_counter: &mut i32,
-///   ) -> Result<(), LemmyError> {
+///   ) -> Result<(), Self::Error> {
 ///     match self {
 ///       PersonInboxActivities::CreateNote(a) => a.verify(context, request_counter).await,
 ///       PersonInboxActivities::UpdateNote(a) => a.verify(context, request_counter).await,
@@ -32,49 +32,32 @@ use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields::Unnamed, Iden
 ///   &self,
 ///   context: &LemmyContext,
 ///   request_counter: &mut i32,
-/// ) -> Result<(), LemmyError> {
+/// ) -> Result<(), Self::Error> {
 ///     match self {
 ///       PersonInboxActivities::CreateNote(a) => a.receive(context, request_counter).await,
 ///       PersonInboxActivities::UpdateNote(a) => a.receive(context, request_counter).await,
 ///     }
 ///   }
-/// fn common(&self) -> &ActivityCommonFields  {
-///     match self {
-///       PersonInboxActivities::CreateNote(a) => a.common(),
-///       PersonInboxActivities::UpdateNote(a) => a.common(),
-///     }
-///   }
 ///
 /// ```
-#[proc_macro_derive(ActivityHandler, attributes(activity_handler))]
-pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-  let input = parse_macro_input!(input as DeriveInput);
-  let attrs: Vec<&Attribute> = input
-    .attrs
-    .iter()
-    .filter(|attr| attr.path.is_ident("activity_handler"))
-    .collect();
-  let attrs: &Vec<TokenStream> = &attrs
-    .first()
-    .expect("Could not decode first attribute from token stream")
-    .tokens
-    .clone()
-    .into_iter()
-    .map(|t| {
-      if let TokenTree::Group(g) = t {
-        g.stream()
-      } else {
-        panic!()
-      }
-    })
-    .collect();
-  let attrs = attrs.first();
+#[proc_macro_attribute]
+pub fn activity_handler(
+  attr: proc_macro::TokenStream,
+  input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+  let derive_input = parse_macro_input!(input as DeriveInput);
+  let derive_input2 = derive_input.clone();
+  let attr = proc_macro2::TokenStream::from(attr);
+  let mut attr = attr.into_iter();
+  let data_type = attr.next().unwrap();
+  let _delimiter = attr.next();
+  let error = attr.next().unwrap();
 
-  let enum_name = input.ident;
+  let enum_name = derive_input2.ident;
 
-  let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+  let (impl_generics, ty_generics, where_clause) = derive_input2.generics.split_for_impl();
 
-  let enum_variants = if let Data::Enum(d) = input.data {
+  let enum_variants = if let Data::Enum(d) = derive_input2.data {
     d.variants
   } else {
     unimplemented!()
@@ -96,9 +79,11 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
     .map(|v| generate_match_arm(&enum_name, v, &body_receive));
 
   let expanded = quote! {
+      #derive_input
       #[async_trait::async_trait(?Send)]
       impl #impl_generics activitypub_federation::traits::ActivityHandler for #enum_name #ty_generics #where_clause {
-        type DataType = #attrs;
+        type DataType = #data_type;
+        type Error = #error;
           fn id(
               &self,
             ) -> &Url {
@@ -117,7 +102,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
               &self,
               context: &activitypub_federation::data::Data<Self::DataType>,
               request_counter: &mut i32,
-            ) -> Result<(), lemmy_utils::error::LemmyError> {
+            ) -> Result<(), Self::Error> {
             match self {
               #(#impl_verify)*
             }
@@ -126,7 +111,7 @@ pub fn derive_activity_handler(input: proc_macro::TokenStream) -> proc_macro::To
             self,
             context: &activitypub_federation::data::Data<Self::DataType>,
             request_counter: &mut i32,
-          ) -> Result<(), lemmy_utils::error::LemmyError> {
+          ) -> Result<(), Self::Error> {
             match self {
               #(#impl_receive)*
             }

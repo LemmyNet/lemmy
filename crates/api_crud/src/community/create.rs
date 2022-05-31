@@ -1,5 +1,5 @@
 use crate::PerformCrud;
-use activitypub_federation::{object_id::ObjectId, signatures::generate_actor_keypair};
+use activitypub_federation::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
@@ -12,6 +12,7 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   objects::community::ApubCommunity,
   EndpointType,
+  ObjectId,
 };
 use lemmy_db_schema::{
   source::{

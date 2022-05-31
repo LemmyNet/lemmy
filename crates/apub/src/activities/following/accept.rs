@@ -3,13 +3,9 @@ use crate::{
   local_instance,
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
   ActorType,
+  ObjectId,
 };
-use activitypub_federation::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  verify::verify_urls_match,
-};
+use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_urls_match};
 use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
@@ -49,6 +45,7 @@ impl AcceptFollowCommunity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AcceptFollowCommunity {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

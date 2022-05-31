@@ -55,6 +55,7 @@ impl ApubObject for ApubPerson {
   type ApubType = Person;
   type DbType = DbPerson;
   type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)

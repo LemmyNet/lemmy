@@ -2,8 +2,9 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::Unparsed,
+  ObjectId,
 };
-use activitypub_federation::{deser::deserialize_one, object_id::ObjectId};
+use activitypub_federation::deser::deserialize_one;
 use activitystreams_kinds::activity::FlagType;
 use serde::{Deserialize, Serialize};
 use url::Url;

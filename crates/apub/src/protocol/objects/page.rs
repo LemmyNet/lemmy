@@ -3,11 +3,11 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{ImageObject, Source},
+  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
   deser::{deserialize_one_or_many, deserialize_skip_error},
-  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   values::MediaTypeMarkdownOrHtml,
 };
@@ -183,6 +183,7 @@ impl Attachment {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Page {
   type DataType = LemmyContext;
+  type Error = LemmyError;
   fn id(&self) -> &Url {
     unimplemented!()
   }

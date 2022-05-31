@@ -2,8 +2,9 @@ use crate::{
   mentions::MentionOrValue,
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::note::Note, Unparsed},
+  ObjectId,
 };
-use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
+use activitypub_federation::deser::deserialize_one_or_many;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

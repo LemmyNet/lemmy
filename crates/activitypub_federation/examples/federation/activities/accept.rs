@@ -1,7 +1,6 @@
-use crate::{activities::follow::Follow, objects::person::MyUser};
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use crate::{activities::follow::Follow, objects::person::MyUser, ObjectId};
+use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::AcceptType;
-use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -29,6 +28,7 @@ impl Accept {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Accept {
   type DataType = ();
+  type Error = crate::error::Error;
 
   fn id(&self) -> &Url {
     &self.id
@@ -42,7 +42,7 @@ impl ActivityHandler for Accept {
     &self,
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 
@@ -50,7 +50,7 @@ impl ActivityHandler for Accept {
     self,
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 }

@@ -2,8 +2,9 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   objects::person::ApubPerson,
   protocol::Unparsed,
+  ObjectId,
 };
-use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
+use activitypub_federation::deser::deserialize_one_or_many;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;

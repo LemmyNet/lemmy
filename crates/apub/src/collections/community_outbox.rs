@@ -29,6 +29,7 @@ impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
   type TombstoneType = ();
   type ApubType = GroupOutbox;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None

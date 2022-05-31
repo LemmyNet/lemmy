@@ -119,12 +119,12 @@ where
   }
 }
 
-impl<Kind> From<ObjectId<Kind>> for DbUrl
+impl<Kind> From<ObjectId<Kind, LemmyError>> for DbUrl
 where
-  Kind: ApubObject + Send + 'static,
+  Kind: ApubObject<Error = LemmyError> + Send + 'static,
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
-  fn from(id: ObjectId<Kind>) -> Self {
+  fn from(id: ObjectId<Kind, LemmyError>) -> Self {
     DbUrl(id.into())
   }
 }

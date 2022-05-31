@@ -11,9 +11,9 @@ use crate::{
     ImageObject,
     Source,
   },
+  ObjectId,
 };
 use activitypub_federation::{
-  object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
@@ -22,7 +22,6 @@ use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_db_schema::{
-  self,
   source::{
     community::Community,
     moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
@@ -30,6 +29,7 @@ use lemmy_db_schema::{
     post::{Post, PostForm},
   },
   traits::Crud,
+  {self},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -61,6 +61,7 @@ impl ApubObject for ApubPost {
   type ApubType = Page;
   type DbType = Post;
   type TombstoneType = Tombstone;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None

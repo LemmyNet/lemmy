@@ -1,5 +1,4 @@
 use crate::{data::Data, deser::deserialize_one_or_many, traits::ActivityHandler};
-use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::str::FromStr;
@@ -35,6 +34,7 @@ where
   T: ActivityHandler,
 {
   type DataType = <T as ActivityHandler>::DataType;
+  type Error = <T as ActivityHandler>::Error;
 
   fn id(&self) -> &Url {
     self.inner.id()
@@ -48,7 +48,7 @@ where
     &self,
     data: &Data<Self::DataType>,
     request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     self.inner.verify(data, request_counter).await
   }
 
@@ -56,7 +56,7 @@ where
     self,
     data: &Data<Self::DataType>,
     request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     self.inner.receive(data, request_counter).await
   }
 }

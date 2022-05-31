@@ -1,7 +1,6 @@
 use crate::newtypes::{CommentId, DbUrl, PersonId, PostId};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "full")]
 use crate::schema::{comment, comment_alias_1, comment_like, comment_saved};
 
 // WITH RECURSIVE MyTree AS (

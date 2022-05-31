@@ -8,10 +8,10 @@ use crate::{
     objects::{note::Note, tombstone::Tombstone},
     Source,
   },
+  ObjectId,
   PostOrComment,
 };
 use activitypub_federation::{
-  object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
@@ -58,6 +58,7 @@ impl ApubObject for ApubComment {
   type ApubType = Note;
   type DbType = Comment;
   type TombstoneType = Tombstone;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None

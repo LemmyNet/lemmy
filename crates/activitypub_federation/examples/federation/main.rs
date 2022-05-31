@@ -1,19 +1,23 @@
 use crate::{
+  error::Error,
   instance::Instance,
   lib::generate_object_id,
   objects::{note::MyPost, person::MyUser},
 };
 use activitypub_federation::signatures::generate_actor_keypair;
-use lemmy_utils::error::LemmyError;
 use tokio::task;
 
 mod activities;
+mod error;
 mod instance;
 mod lib;
 mod objects;
 
+/// Workaround so we dont have to specify our error type all the time
+pub type ObjectId<Kind> = activitypub_federation::object_id::ObjectId<Kind, Error>;
+
 #[actix_rt::main]
-async fn main() -> Result<(), LemmyError> {
+async fn main() -> Result<(), Error> {
   static ALPHA_HOSTNAME: &str = "localhost:8001";
   static BETA_HOSTNAME: &str = "localhost:8001";
   let alpha = Instance::new(ALPHA_HOSTNAME.to_string());

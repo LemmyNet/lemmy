@@ -5,9 +5,12 @@ Comprehensive framework for [ActivityPub](https://www.w3.org/TR/activitypub/) fe
 
 ## Features
 
-
+- Generic error type (unfortunately this was necessary)
 - various helpers for verification, (de)serialization, context etc
 
+## Roadmap
+
+- 
 ## How to use
 
 To get started, have a look at the example. If anything is unclear, please open an issue for clarification. You can also look at [Lemmy code](https://github.com/LemmyNet/lemmy/tree/main/crates/apub) for a more detailed implementation.

@@ -1,5 +1,4 @@
-use crate::{local_instance, objects::person::ApubPerson};
-use activitypub_federation::object_id::ObjectId;
+use crate::{local_instance, objects::person::ApubPerson, ObjectId};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,

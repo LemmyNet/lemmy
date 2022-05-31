@@ -46,7 +46,6 @@ impl LemmyError {
     }
   }
 
-  #[cfg(feature = "full")]
   pub fn to_json(&self) -> Result<String, Self> {
     let api_error = match &self.message {
       Some(error) => ApiError {
@@ -94,7 +93,6 @@ impl Display for LemmyError {
   }
 }
 
-#[cfg(feature = "full")]
 impl actix_web::error::ResponseError for LemmyError {
   fn status_code(&self) -> http::StatusCode {
     match self.inner.downcast_ref::<diesel::result::Error>() {

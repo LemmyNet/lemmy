@@ -4,12 +4,9 @@ use crate::{
   local_instance,
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
+  ObjectId,
 };
-use activitypub_federation::{
-  object_id::ObjectId,
-  traits::ApubObject,
-  verify::verify_domains_match,
-};
+use activitypub_federation::{traits::ApubObject, verify::verify_domains_match};
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
@@ -29,6 +26,7 @@ impl ApubObject for ApubCommunityModerators {
   type DataType = CommunityContext;
   type TombstoneType = ();
   type ApubType = GroupModerators;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None

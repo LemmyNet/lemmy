@@ -1,20 +1,20 @@
 use crate::{
   activities::{accept::Accept, create_note::CreateNote, follow::Follow},
+  error::Error,
   lib::generate_object_id,
   objects::note::MyPost,
+  ObjectId,
 };
 use activitypub_federation::{
   activity_queue::SendActivity,
   context::WithContext,
   inbox::ActorPublicKey,
-  object_id::ObjectId,
   signatures::{Keypair, PublicKey},
   traits::{ActivityHandler, ApubObject},
   LocalInstance,
 };
+use activitypub_federation_derive::activity_handler;
 use activitystreams_kinds::{actor::PersonType, public};
-use anyhow::Error;
-use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -26,9 +26,9 @@ pub struct MyUser {
 }
 
 /// List of all activities which this actor can receive.
-#[derive(Deserialize, Serialize, ActivityHandler)]
+#[activity_handler((), Error)]
+#[derive(Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(())]
 pub enum PersonAcceptedActivities {
   Follow(Follow),
   Accept(Accept),
@@ -96,7 +96,7 @@ impl MyUser {
     post: MyPost,
     local_instance: &LocalInstance,
     hostname: &str,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Error> {
     let id = generate_object_id(hostname)?;
     let to = vec![public(), self.followers_url()?];
     let create = CreateNote::new(post.into_apub(&()).await?, id.clone());
@@ -132,26 +132,27 @@ impl ApubObject for MyUser {
   type ApubType = Person;
   type DbType = MyUser;
   type TombstoneType = ();
+  type Error = crate::error::Error;
 
   async fn read_from_apub_id(
     _object_id: Url,
     _data: &Self::DataType,
-  ) -> Result<Option<Self>, LemmyError>
+  ) -> Result<Option<Self>, Self::Error>
   where
     Self: Sized,
   {
     todo!()
   }
 
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Self::DataType) -> Result<(), Self::Error> {
     todo!()
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, Self::Error> {
     todo!()
   }
 
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
+  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error> {
     todo!()
   }
 
@@ -160,7 +161,7 @@ impl ApubObject for MyUser {
     _expected_domain: &Url,
     _data: &Self::DataType,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 
@@ -168,7 +169,7 @@ impl ApubObject for MyUser {
     _apub: Self::ApubType,
     _data: &Self::DataType,
     _request_counter: &mut i32,
-  ) -> Result<Self, LemmyError>
+  ) -> Result<Self, Self::Error>
   where
     Self: Sized,
   {

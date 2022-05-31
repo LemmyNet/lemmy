@@ -1,7 +1,6 @@
 use crate::newtypes::{DbUrl, PersonId};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "full")]
 use crate::schema::{person, person_alias_1, person_alias_2};
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]

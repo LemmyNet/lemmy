@@ -13,10 +13,10 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
   ActorType,
+  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
-  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
@@ -99,6 +99,7 @@ impl CreateOrUpdateComment {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdateComment {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id

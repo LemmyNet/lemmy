@@ -20,8 +20,11 @@ pub async fn resolve_actor_identifier<Actor, DbActor>(
   context: &LemmyContext,
 ) -> Result<DbActor, LemmyError>
 where
-  Actor:
-    ApubObject<DataType = LemmyContext> + ApubObject<DbType = DbActor> + ActorType + Send + 'static,
+  Actor: ApubObject<DataType = LemmyContext, Error = LemmyError>
+    + ApubObject<DbType = DbActor>
+    + ActorType
+    + Send
+    + 'static,
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
 {

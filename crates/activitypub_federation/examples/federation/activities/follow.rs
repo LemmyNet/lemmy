@@ -1,7 +1,6 @@
-use crate::{activities::accept::Accept, generate_object_id, objects::person::MyUser};
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use crate::{objects::person::MyUser, ObjectId};
+use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::FollowType;
-use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -29,6 +28,7 @@ impl Follow {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Follow {
   type DataType = ();
+  type Error = crate::error::Error;
 
   fn id(&self) -> &Url {
     &self.id
@@ -42,27 +42,15 @@ impl ActivityHandler for Follow {
     &self,
     _data: &Data<Self::DataType>,
     _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  ) -> Result<(), Self::Error> {
     todo!()
   }
 
   async fn receive(
     self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let target = self.object.dereference(data, request_counter).await?;
-
-    let id = generate_object_id(hostname)?;
-    let follow = Accept::new(self.object, self.clone(), id.clone());
-    target
-      .send(
-        id,
-        follow,
-        vec![other.ap_id.clone().into_inner()],
-        local_instance,
-      )
-      .await?;
-    Ok(())
+    _data: &Data<Self::DataType>,
+    _request_counter: &mut i32,
+  ) -> Result<(), Self::Error> {
+    todo!()
   }
 }

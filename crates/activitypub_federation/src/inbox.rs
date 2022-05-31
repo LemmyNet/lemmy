@@ -8,7 +8,6 @@ use crate::{
   LocalInstance,
 };
 use actix_web::{HttpRequest, HttpResponse};
-use lemmy_utils::error::LemmyError;
 use serde::de::DeserializeOwned;
 use tracing::log::debug;
 
@@ -18,16 +17,17 @@ pub trait ActorPublicKey {
 }
 
 /// Receive an activity and perform some basic checks, including HTTP signature verification.
-pub async fn receive_activity<Activity, Actor, Datatype>(
+pub async fn receive_activity<Activity, Actor, Datatype, E>(
   request: HttpRequest,
   activity: Activity,
   local_instance: &LocalInstance,
   data: &Data<Datatype>,
-) -> Result<HttpResponse, LemmyError>
+) -> Result<HttpResponse, E>
 where
-  Activity: ActivityHandler<DataType = Datatype> + DeserializeOwned + Send + 'static,
-  Actor: ApubObject<DataType = Datatype> + ActorPublicKey + Send + 'static,
+  Activity: ActivityHandler<DataType = Datatype, Error = E> + DeserializeOwned + Send + 'static,
+  Actor: ApubObject<DataType = Datatype, Error = E> + ActorPublicKey + Send + 'static,
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
+  E: From<anyhow::Error> + From<Error>,
 {
   verify_domains_match(activity.id(), activity.actor())?;
   if local_instance.is_local_url(activity.id()) {
@@ -38,7 +38,7 @@ where
     .map_err(Error::UrlVerificationError)?;
 
   let request_counter = &mut 0;
-  let actor = ObjectId::<Actor>::new(activity.actor().clone())
+  let actor = ObjectId::<Actor, E>::new(activity.actor().clone())
     .dereference(data, local_instance, request_counter)
     .await?;
   verify_signature(&request, actor.public_key())?;

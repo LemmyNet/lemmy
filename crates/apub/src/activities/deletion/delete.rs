@@ -11,8 +11,9 @@ use crate::{
     objects::tombstone::Tombstone,
     IdOrNestedObject,
   },
+  ObjectId,
 };
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
@@ -44,6 +45,7 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Delete {
   type DataType = LemmyContext;
+  type Error = LemmyError;
 
   fn id(&self) -> &Url {
     &self.id
