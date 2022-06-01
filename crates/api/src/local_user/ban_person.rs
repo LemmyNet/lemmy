@@ -49,7 +49,13 @@ impl Perform for BanPerson {
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
     if remove_data {
-      remove_user_data(person.id, context.pool()).await?;
+      remove_user_data(
+        person.id,
+        context.pool(),
+        &context.settings(),
+        context.client(),
+      )
+      .await?;
     }
 
     // Mod tables

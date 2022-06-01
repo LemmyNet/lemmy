@@ -38,7 +38,7 @@ impl Perform for PurgeComment {
 
     let post_id = comment.post_id;
 
-    // TODO read comments for pictrs and purge them
+    // TODO read comments for pictrs images and purge them
 
     blocking(context.pool(), move |conn| {
       Comment::delete(conn, comment_id)

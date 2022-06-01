@@ -138,6 +138,19 @@ impl Community {
       .set(community_form)
       .get_result::<Self>(conn)
   }
+
+  pub fn remove_avatar_and_banner(
+    conn: &PgConnection,
+    community_id: CommunityId,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set((
+        icon.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
+      ))
+      .get_result::<Self>(conn)
+  }
 }
 
 impl Joinable for CommunityModerator {

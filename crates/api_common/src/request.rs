@@ -118,12 +118,12 @@ pub(crate) async fn fetch_pictrs(
   settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
-  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
+  if let Some(pictrs_config) = settings.pictrs_config.to_owned() {
     is_image_content_type(client, image_url).await?;
 
     let fetch_url = format!(
       "{}/image/download?url={}",
-      pictrs_url,
+      pictrs_config.url,
       utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
     );
 
@@ -145,38 +145,56 @@ pub(crate) async fn fetch_pictrs(
   }
 }
 
+/// Purges an image from pictrs
+/// Note: This should often be coerced from a Result to .ok() in order to fail softly, because:
+/// - It might fail due to image being not local
+/// - It might not be an image
+/// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(
   client: &ClientWithMiddleware,
   settings: &Settings,
-  image_url: &Url, // TODO file or alias?
+  image_url: &Url,
 ) -> Result<(), LemmyError> {
-  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
+  if let Some(pictrs_config) = settings.pictrs_config.to_owned() {
     is_image_content_type(client, image_url).await?;
 
-    // TODO alias or file here?
-    // TODO force the API token in the request params?
-    let purge_url = format!(
-      "{}/internal/purge?file={}",
-      pictrs_url,
-      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
-    );
+    // Check to make sure hosts match
+    if settings
+      .get_hostname_without_port()?
+      .ne(image_url.host_str().unwrap_or(""))
+    {
+      return Err(LemmyError::from_message(&format!(
+        "Could not purge Pictrs image with incorrect domain: {}",
+        image_url.as_str()
+      )));
+    }
+
+    let alias = image_url
+      .path_segments()
+      .ok_or_else(|| LemmyError::from_message("Image URL missing path segments"))?
+      .next_back()
+      .ok_or_else(|| LemmyError::from_message("Image URL missing last path segment"))?;
+
+    let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
 
     let response = client
-      .get(&purge_url)
+      .post(&purge_url)
       .timeout(REQWEST_TIMEOUT)
+      .header("x-api-token", pictrs_config.api_key)
       .send()
       .await?;
 
     let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
     if response.msg == "ok" {
-      // Ok(response) // TODO
       Ok(())
     } else {
       Err(LemmyError::from_message(&response.msg))
     }
   } else {
-    Err(LemmyError::from_message("pictrs_url not set up in config"))
+    Err(LemmyError::from_message(
+      "pictrs_config block not set up in config",
+    ))
   }
 }
 

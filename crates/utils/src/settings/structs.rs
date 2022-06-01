@@ -14,6 +14,9 @@ pub struct Settings {
   /// Settings related to activitypub federation
   #[default(FederationConfig::default())]
   pub federation: FederationConfig,
+  /// Pictrs image server configuration.
+  #[default(None)]
+  pub pictrs_config: Option<PictrsConfig>,
   #[default(CaptchaConfig::default())]
   pub captcha: CaptchaConfig,
   /// Email sending configuration. All options except login/password are mandatory
@@ -36,12 +39,9 @@ pub struct Settings {
   /// Whether the site is available over TLS. Needs to be true for federation to work.
   #[default(true)]
   pub tls_enabled: bool,
-  /// Address where pictrs is available (for image hosting)
-  #[default(None)]
-  #[doku(example = "http://localhost:8080")]
-  pub pictrs_url: Option<String>,
   #[default(None)]
   #[doku(example = "(\\bThis\\b)|(\\bis\\b)|(\\bsample\\b)")]
+  /// A regex list of slurs to block / hide
   pub slur_filter: Option<String>,
   /// Maximum length of local community and user names
   #[default(20)]
@@ -54,6 +54,20 @@ pub struct Settings {
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(default)]
+pub struct PictrsConfig {
+  /// Address where pictrs is available (for image hosting)
+  #[default("http://pictrs:8080")]
+  #[doku(example = "http://localhost:8080")]
+  pub url: String,
+
+  /// Set a custom pictrs API key. ( Required for deleting images )
+  #[default("API_KEY")]
+  #[doku(example = "API_KEY")]
+  pub api_key: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

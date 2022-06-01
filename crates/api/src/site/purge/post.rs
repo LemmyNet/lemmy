@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  request::purge_image_from_pictrs,
   site::{PurgeItemResponse, PurgePost},
   utils::{blocking, get_local_user_view_from_jwt, is_admin},
 };
@@ -36,7 +37,18 @@ impl Perform for PurgePost {
     // Read the post to get the community_id
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
-    // TODO read post for pictrs and purge them
+    // Purge image
+    if let Some(url) = post.url {
+      purge_image_from_pictrs(context.client(), &context.settings(), &url)
+        .await
+        .ok();
+    }
+    // Purge thumbnail
+    if let Some(thumbnail_url) = post.thumbnail_url {
+      purge_image_from_pictrs(context.client(), &context.settings(), &thumbnail_url)
+        .await
+        .ok();
+    }
 
     let community_id = post.community_id;
 

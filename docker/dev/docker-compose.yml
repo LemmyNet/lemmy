@@ -56,7 +56,7 @@ services:
     user: 991:991
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137
-      - PICTRS__SERVER__API_KEY=TEST
+      - PICTRS__API_KEY=API_KEY
     ports:
       - "6670:6669"
       - "8080:8080"
