@@ -5,12 +5,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use lemmy_db_views_actor::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityView,
-  PersonViewSafe,
-};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -44,12 +39,6 @@ pub struct CreateCommunity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityResponse {
   pub community_view: CommunityView,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-/// An unfollow will return None
-pub struct FollowCommunityResponse {
-  pub community_follower_view: Option<CommunityFollowerView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

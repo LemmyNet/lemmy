@@ -119,7 +119,7 @@ table! {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamp,
-        pending -> Bool,
+        pending -> Nullable<Bool>,
     }
 }
 
