@@ -6,10 +6,10 @@ use crate::{
     CreateOrUpdateType,
   },
   ActorType,
-  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };

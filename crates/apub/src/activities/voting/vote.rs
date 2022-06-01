@@ -11,10 +11,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::vote::{Vote, VoteType},
   ActorType,
-  ObjectId,
   PostOrComment,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
@@ -106,11 +105,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
@@ -129,7 +128,7 @@ impl GetCommunity for Vote {
   ) -> Result<ApubCommunity, LemmyError> {
     let object = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,

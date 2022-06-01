@@ -4,12 +4,12 @@ use crate::{
   instance::InstanceHandle,
   lib::generate_object_id,
   objects::note::MyPost,
-  ObjectId,
 };
 use activitypub_federation::{
   activity_queue::SendActivity,
   context::WithContext,
   inbox::ActorPublicKey,
+  object_id::ObjectId,
   signatures::{Keypair, PublicKey},
   traits::ApubObject,
   LocalInstance,
@@ -98,11 +98,10 @@ impl MyUser {
   pub async fn post(&self, post: MyPost, instance: &InstanceHandle) -> Result<(), Error> {
     let id = generate_object_id(instance.local_instance().hostname())?;
     let create = CreateNote::new(post.into_apub(instance).await?, id.clone());
-    // TODO
     let mut inboxes = vec![];
     for f in self.followers.clone() {
       let user: MyUser = ObjectId::new(f)
-        .dereference(instance, instance.local_instance(), &mut 0)
+        .dereference::<Error>(instance, instance.local_instance(), &mut 0)
         .await?;
       inboxes.push(user.inbox);
     }

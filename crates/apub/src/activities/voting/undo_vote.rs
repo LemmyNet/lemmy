@@ -14,10 +14,14 @@ use crate::{
     vote::{Vote, VoteType},
   },
   ActorType,
-  ObjectId,
   PostOrComment,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_urls_match};
+use activitypub_federation::{
+  data::Data,
+  object_id::ObjectId,
+  traits::ActivityHandler,
+  verify::verify_urls_match,
+};
 use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
@@ -97,12 +101,12 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

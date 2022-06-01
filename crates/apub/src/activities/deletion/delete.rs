@@ -11,9 +11,8 @@ use crate::{
     objects::tombstone::Tombstone,
     IdOrNestedObject,
   },
-  ObjectId,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
@@ -82,7 +81,7 @@ impl ActivityHandler for Delete {
       receive_remove_action(
         &self
           .actor
-          .dereference(context, local_instance(context), request_counter)
+          .dereference::<LemmyError>(context, local_instance(context), request_counter)
           .await?,
         self.object.id(),
         reason,

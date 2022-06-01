@@ -4,9 +4,12 @@ use crate::{
   local_instance,
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
-  ObjectId,
 };
-use activitypub_federation::{traits::ApubObject, verify::verify_domains_match};
+use activitypub_federation::{
+  object_id::ObjectId,
+  traits::ApubObject,
+  verify::verify_domains_match,
+};
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
@@ -114,7 +117,7 @@ impl ApubObject for ApubCommunityModerators {
     for mod_id in apub.ordered_items {
       let mod_id = ObjectId::new(mod_id);
       let mod_user: ApubPerson = mod_id
-        .dereference(&data.1, local_instance(&data.1), request_counter)
+        .dereference::<LemmyError>(&data.1, local_instance(&data.1), request_counter)
         .await?;
 
       if !current_moderators

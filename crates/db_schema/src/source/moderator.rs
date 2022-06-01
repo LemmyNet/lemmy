@@ -1,6 +1,7 @@
 use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "full")]
 use crate::schema::{
   mod_add,
   mod_add_community,

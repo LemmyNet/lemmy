@@ -2,11 +2,11 @@ use crate::{
   instance::InstanceHandle,
   objects::{note::Note, person::MyUser},
   MyPost,
-  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
   deser::deserialize_one_or_many,
+  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::activity::CreateType;

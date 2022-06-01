@@ -4,10 +4,9 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::report::Report,
   ActorType,
-  ObjectId,
   PostOrComment,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse, utils::blocking};
 use lemmy_db_schema::{
@@ -31,7 +30,9 @@ impl Report {
     reason: String,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = community_id.dereference_local(context).await?;
+    let community = community_id
+      .dereference_local::<LemmyError>(context)
+      .await?;
     let kind = FlagType::Flag;
     let id = generate_activity_id(
       kind.clone(),
@@ -79,7 +80,7 @@ impl ActivityHandler for Report {
   ) -> Result<(), LemmyError> {
     let community = self
       .to
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -93,11 +94,11 @@ impl ActivityHandler for Report {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     match self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?
     {
       PostOrComment::Post(post) => {

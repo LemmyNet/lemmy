@@ -13,9 +13,13 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
   ActorType,
-  ObjectId,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler, verify::verify_domains_match};
+use activitypub_federation::{
+  data::Data,
+  object_id::ObjectId,
+  traits::ActivityHandler,
+  verify::verify_domains_match,
+};
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
@@ -123,7 +127,7 @@ impl ActivityHandler for BlockUser {
     verify_is_public(&self.to, &self.cc)?;
     match self
       .target
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?
     {
       SiteOrCommunity::Site(site) => {
@@ -161,15 +165,15 @@ impl ActivityHandler for BlockUser {
     let expires = self.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let blocked_person = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let target = self
       .target
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     match target {
       SiteOrCommunity::Site(_site) => {
@@ -248,7 +252,7 @@ impl GetCommunity for BlockUser {
   ) -> Result<ApubCommunity, LemmyError> {
     let target = self
       .target
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     match target {
       SiteOrCommunity::Community(c) => Ok(c),

@@ -7,9 +7,6 @@ mod instance;
 mod lib;
 mod objects;
 
-/// Workaround so we dont have to specify our error type all the time
-pub type ObjectId<Kind> = activitypub_federation::object_id::ObjectId<Kind, Error>;
-
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
   env_logger::builder()

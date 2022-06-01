@@ -12,9 +12,9 @@
 //! deserialized if `media_type` is `text/markdown`, but not if it is `text/html`.
 //!
 //! ```
-//! use lemmy_apub_lib::values::MediaTypeMarkdown;
 //! use serde_json::from_str;
 //! use serde::{Deserialize, Serialize};
+//! use activitypub_federation::values::MediaTypeMarkdown;
 //!
 //! #[derive(Deserialize, Serialize)]
 //! struct MyObject {

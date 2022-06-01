@@ -1,6 +1,11 @@
-use crate::{generate_object_id, instance::InstanceHandle, objects::person::MyUser, ObjectId};
-use activitypub_federation::{deser::deserialize_one_or_many, traits::ApubObject};
+use crate::{generate_object_id, instance::InstanceHandle, objects::person::MyUser};
+use activitypub_federation::{
+  deser::deserialize_one_or_many,
+  object_id::ObjectId,
+  traits::ApubObject,
+};
 use activitystreams_kinds::{object::NoteType, public};
+use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -51,7 +56,7 @@ impl ApubObject for MyPost {
   }
 
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, Self::Error> {
-    let creator = self.creator.dereference_local(data).await?;
+    let creator = self.creator.dereference_local::<Error>(data).await?;
     Ok(Note {
       kind: Default::default(),
       id: self.ap_id,

@@ -8,10 +8,10 @@ use crate::{
     Source,
   },
   ActorType,
-  ObjectId,
 };
 use activitypub_federation::{
   inbox::ActorPublicKey,
+  object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeHtml,
   verify::verify_domains_match,
@@ -187,7 +187,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
   // try to fetch the instance actor (to make things like instance rules available)
   let instance_id = instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
-    .dereference(context, local_instance(context), request_counter)
+    .dereference::<LemmyError>(context, local_instance(context), request_counter)
     .await;
   if let Err(e) = site {
     debug!("Failed to dereference site for {}: {}", instance_id, e);

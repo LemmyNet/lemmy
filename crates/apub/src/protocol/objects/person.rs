@@ -1,9 +1,12 @@
 use crate::{
   objects::person::ApubPerson,
   protocol::{objects::Endpoints, ImageObject, Source},
-  ObjectId,
 };
-use activitypub_federation::{deser::deserialize_skip_error, signatures::PublicKey};
+use activitypub_federation::{
+  deser::deserialize_skip_error,
+  object_id::ObjectId,
+  signatures::PublicKey,
+};
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

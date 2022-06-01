@@ -1,6 +1,7 @@
 use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "full")]
 use crate::schema::{
   comment_aggregates,
   community_aggregates,

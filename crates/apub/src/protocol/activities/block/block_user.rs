@@ -1,10 +1,5 @@
-use crate::{
-  activities::block::SiteOrCommunity,
-  objects::person::ApubPerson,
-  protocol::Unparsed,
-  ObjectId,
-};
-use activitypub_federation::deser::deserialize_one_or_many;
+use crate::{activities::block::SiteOrCommunity, objects::person::ApubPerson, protocol::Unparsed};
+use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
 use activitystreams_kinds::activity::BlockType;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};

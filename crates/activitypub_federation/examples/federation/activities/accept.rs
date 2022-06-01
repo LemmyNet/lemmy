@@ -1,10 +1,5 @@
-use crate::{
-  activities::follow::Follow,
-  instance::InstanceHandle,
-  objects::person::MyUser,
-  ObjectId,
-};
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use crate::{activities::follow::Follow, instance::InstanceHandle, objects::person::MyUser};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::AcceptType;
 use serde::{Deserialize, Serialize};
 use url::Url;

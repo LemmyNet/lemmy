@@ -28,7 +28,7 @@ pub async fn search_by_apub_id(
   match Url::parse(query) {
     Ok(url) => {
       ObjectId::new(url)
-        .dereference(context, instance, request_counter)
+        .dereference::<LemmyError>(context, instance, request_counter)
         .await
     }
     Err(_) => {
@@ -39,7 +39,7 @@ pub async fn search_by_apub_id(
             webfinger_resolve_actor::<ApubPerson>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Person(
             ObjectId::new(id)
-              .dereference(context, instance, request_counter)
+              .dereference::<LemmyError>(context, instance, request_counter)
               .await?,
           ))
         }
@@ -48,7 +48,7 @@ pub async fn search_by_apub_id(
             webfinger_resolve_actor::<ApubCommunity>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Community(
             ObjectId::new(id)
-              .dereference(context, instance, request_counter)
+              .dereference::<LemmyError>(context, instance, request_counter)
               .await?,
           ))
         }

@@ -11,9 +11,8 @@ use crate::{
     Source,
   },
   ActorType,
-  ObjectId,
 };
-use activitypub_federation::{inbox::ActorPublicKey, traits::ApubObject};
+use activitypub_federation::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObject};
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
@@ -142,14 +141,14 @@ impl ApubObject for ApubCommunity {
 
     group
       .outbox
-      .dereference(&outbox_data, local_instance(context), request_counter)
+      .dereference::<LemmyError>(&outbox_data, local_instance(context), request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = &group.moderators {
       moderators
-        .dereference(&outbox_data, local_instance(context), request_counter)
+        .dereference::<LemmyError>(&outbox_data, local_instance(context), request_counter)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();

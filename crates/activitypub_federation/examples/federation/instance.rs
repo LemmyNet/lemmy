@@ -5,12 +5,12 @@ use crate::{
     note::MyPost,
     person::{MyUser, PersonAcceptedActivities},
   },
-  ObjectId,
 };
 use activitypub_federation::{
   context::WithContext,
   data::Data,
   inbox::receive_activity,
+  object_id::ObjectId,
   signatures::generate_actor_keypair,
   traits::ApubObject,
   InstanceSettingsBuilder,
@@ -98,7 +98,7 @@ async fn http_get_user(
   let request_url = format!("http://{}{}", hostname, &request.uri().to_string());
   let url = Url::parse(&request_url)?;
   let user = ObjectId::<MyUser>::new(url)
-    .dereference_local(&data)
+    .dereference_local::<Error>(&data)
     .await?
     .into_apub(&data)
     .await?;

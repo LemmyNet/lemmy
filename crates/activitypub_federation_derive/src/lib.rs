@@ -52,9 +52,9 @@ pub fn activity_handler(
   let derive_input2 = derive_input.clone();
   let attr = proc_macro2::TokenStream::from(attr);
   let mut attr = attr.into_iter();
-  let data_type = attr.next().unwrap();
+  let data_type = attr.next().expect("data type input");
   let _delimiter = attr.next();
-  let error = attr.next().unwrap();
+  let error = attr.next().expect("error type input");
 
   let enum_name = derive_input2.ident;
 

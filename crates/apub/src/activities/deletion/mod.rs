@@ -18,9 +18,12 @@ use crate::{
   },
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
   ActorType,
-  ObjectId,
 };
-use activitypub_federation::{traits::ApubObject, verify::verify_domains_match};
+use activitypub_federation::{
+  object_id::ObjectId,
+  traits::ApubObject,
+  verify::verify_domains_match,
+};
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -235,7 +238,7 @@ async fn receive_delete_action(
     DeletableObjects::Community(community) => {
       if community.local {
         let mod_: Person = actor
-          .dereference(context, local_instance(context), request_counter)
+          .dereference::<LemmyError>(context, local_instance(context), request_counter)
           .await?
           .deref()
           .clone();

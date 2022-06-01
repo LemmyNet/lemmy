@@ -7,9 +7,8 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
-  ObjectId,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -77,7 +76,7 @@ impl ActivityHandler for UndoDelete {
       UndoDelete::receive_undo_remove_action(
         &self
           .actor
-          .dereference(context, local_instance(context), request_counter)
+          .dereference::<LemmyError>(context, local_instance(context), request_counter)
           .await?,
         self.object.object.id(),
         context,

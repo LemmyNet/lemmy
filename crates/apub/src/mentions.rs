@@ -2,8 +2,8 @@ use crate::{
   fetcher::webfinger::webfinger_resolve_actor,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   ActorType,
-  ObjectId,
 };
+use activitypub_federation::object_id::ObjectId;
 use activitystreams_kinds::link::MentionType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{

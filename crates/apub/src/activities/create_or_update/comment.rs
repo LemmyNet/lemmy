@@ -13,10 +13,10 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
   ActorType,
-  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
   verify::verify_domains_match,
 };
@@ -86,7 +86,7 @@ impl CreateOrUpdateComment {
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t
-        .dereference(context, local_instance(context), request_counter)
+        .dereference::<LemmyError>(context, local_instance(context), request_counter)
         .await?;
       inboxes.push(person.shared_inbox_or_inbox_url());
     }

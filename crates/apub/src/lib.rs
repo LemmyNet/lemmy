@@ -23,8 +23,6 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
-pub type ObjectId<Kind> = activitypub_federation::object_id::ObjectId<Kind, LemmyError>;
-
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
 });

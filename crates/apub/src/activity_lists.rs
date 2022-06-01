@@ -27,11 +27,11 @@ use crate::{
     objects::page::Page,
     Id,
   },
-  ObjectId,
 };
 use activitypub_federation::{
   context::WithContext,
   data::Data,
+  object_id::ObjectId,
   traits::{activity_handler, ActivityHandler},
 };
 use lemmy_utils::error::LemmyError;

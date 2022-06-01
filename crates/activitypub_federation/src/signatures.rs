@@ -57,7 +57,7 @@ pub(crate) async fn sign_request(
   request_builder
     .signature_with_digest(
       HTTP_SIG_CONFIG.clone(),
-      public_key.key_id,
+      public_key.id,
       Sha256::new(),
       activity,
       move |signing_string| {
@@ -101,23 +101,23 @@ pub fn verify_signature(request: &HttpRequest, public_key: &str) -> Result<(), a
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
-  pub(crate) key_id: String,
-  pub(crate) actor_id: Url,
+  pub(crate) id: String,
+  pub(crate) owner: Url,
   pub public_key_pem: String,
 }
 
 impl PublicKey {
   /// Create public key with default id, for actors that only have a single keypair
-  pub fn new_main_key(actor_id: Url, public_key_pem: String) -> Self {
-    let key_id = format!("{}#main-key", &actor_id);
-    PublicKey::new(key_id, actor_id, public_key_pem)
+  pub fn new_main_key(owner: Url, public_key_pem: String) -> Self {
+    let key_id = format!("{}#main-key", &owner);
+    PublicKey::new(key_id, owner, public_key_pem)
   }
 
   /// Create public key with custom key id. Use this method if there are multiple keypairs per actor
-  pub fn new(key_id: String, actor_id: Url, public_key_pem: String) -> Self {
+  pub fn new(id: String, owner: Url, public_key_pem: String) -> Self {
     PublicKey {
-      key_id,
-      actor_id,
+      id,
+      owner,
       public_key_pem,
     }
   }

@@ -1,5 +1,5 @@
 use crate::PerformCrud;
-use activitypub_federation::signatures::generate_actor_keypair;
+use activitypub_federation::{object_id::ObjectId, signatures::generate_actor_keypair};
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
@@ -12,7 +12,6 @@ use lemmy_apub::{
   generate_shared_inbox_url,
   objects::community::ApubCommunity,
   EndpointType,
-  ObjectId,
 };
 use lemmy_db_schema::{
   source::{
@@ -77,7 +76,9 @@ impl PerformCrud for CreateCommunity {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let community_actor_id_wrapped = ObjectId::<ApubCommunity>::new(community_actor_id.clone());
-    let community_dupe = community_actor_id_wrapped.dereference_local(context).await;
+    let community_dupe = community_actor_id_wrapped
+      .dereference_local::<LemmyError>(context)
+      .await;
     if community_dupe.is_ok() {
       return Err(LemmyError::from_message("community_already_exists"));
     }

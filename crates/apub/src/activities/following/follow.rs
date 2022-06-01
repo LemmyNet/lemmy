@@ -9,9 +9,8 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
   ActorType,
-  ObjectId,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::activity::FollowType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -84,7 +83,7 @@ impl ActivityHandler for FollowCommunity {
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -98,11 +97,11 @@ impl ActivityHandler for FollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,

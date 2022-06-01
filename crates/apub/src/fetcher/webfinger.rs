@@ -1,5 +1,5 @@
-use crate::{local_instance, ActorType, ObjectId};
-use activitypub_federation::traits::ApubObject;
+use crate::{local_instance, ActorType};
+use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_db_schema::newtypes::DbUrl;
@@ -69,7 +69,7 @@ where
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await;
     if object.is_ok() {
       return object.map(|o| o.actor_id().into());

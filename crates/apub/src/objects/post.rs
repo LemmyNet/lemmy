@@ -11,9 +11,9 @@ use crate::{
     ImageObject,
     Source,
   },
-  ObjectId,
 };
 use activitypub_federation::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
@@ -160,7 +160,7 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .creator()?
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
@@ -224,7 +224,7 @@ impl ApubObject for ApubPost {
 
     // read existing, local post if any (for generating mod log)
     let old_post = ObjectId::<ApubPost>::new(page.id.clone())
-      .dereference_local(context)
+      .dereference_local::<LemmyError>(context)
       .await;
 
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;

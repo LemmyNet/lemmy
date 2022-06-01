@@ -117,7 +117,7 @@ impl ApubObject for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, &Settings::get())?;
     let person = note
       .attributed_to
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
@@ -133,11 +133,11 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let recipient = note
       .to
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
 
     let form = PrivateMessageForm {

@@ -17,9 +17,8 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::remove_mod::RemoveMod,
   ActorType,
-  ObjectId,
 };
-use activitypub_federation::{data::Data, traits::ActivityHandler};
+use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use activitystreams_kinds::{activity::RemoveType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -105,7 +104,7 @@ impl ActivityHandler for RemoveMod {
     let community = self.get_community(context, request_counter).await?;
     let remove_mod = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
 
     let form = CommunityModeratorForm {
@@ -120,7 +119,7 @@ impl ActivityHandler for RemoveMod {
     // write mod log
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let form = ModAddCommunityForm {
       mod_person_id: actor.id,

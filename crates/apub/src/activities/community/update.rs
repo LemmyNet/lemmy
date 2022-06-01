@@ -11,10 +11,10 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
   ActorType,
-  ObjectId,
 };
 use activitypub_federation::{
   data::Data,
+  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};
@@ -139,7 +139,7 @@ impl GetCommunity for UpdateCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let cid = ObjectId::new(self.object.id.clone());
     cid
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await
   }
 }

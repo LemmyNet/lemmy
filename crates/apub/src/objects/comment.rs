@@ -8,10 +8,10 @@ use crate::{
     objects::{note::Note, tombstone::Tombstone},
     Source,
   },
-  ObjectId,
   PostOrComment,
 };
 use activitypub_federation::{
+  object_id::ObjectId,
   traits::ApubObject,
   values::MediaTypeMarkdownOrHtml,
   verify::verify_domains_match,
@@ -176,7 +176,7 @@ impl ApubObject for ApubComment {
   ) -> Result<ApubComment, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 

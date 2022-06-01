@@ -4,10 +4,13 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   ActorType,
-  ObjectId,
   CONTEXT,
 };
-use activitypub_federation::{activity_queue::SendActivity, context::WithContext};
+use activitypub_federation::{
+  activity_queue::SendActivity,
+  context::WithContext,
+  object_id::ObjectId,
+};
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
@@ -37,7 +40,7 @@ async fn verify_person(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference(context, local_instance(context), request_counter)
+    .dereference::<LemmyError>(context, local_instance(context), request_counter)
     .await?;
   if person.banned {
     let err = anyhow!("Person {} is banned", person_id);
@@ -56,7 +59,7 @@ pub(crate) async fn verify_person_in_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference(context, local_instance(context), request_counter)
+    .dereference::<LemmyError>(context, local_instance(context), request_counter)
     .await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
@@ -89,7 +92,7 @@ pub(crate) async fn verify_mod_action(
 ) -> Result<(), LemmyError> {
   if community.local {
     let actor = mod_id
-      .dereference(context, local_instance(context), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
 
     // Note: this will also return true for admins in addition to mods, but as we dont know about

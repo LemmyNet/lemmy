@@ -6,10 +6,10 @@ use crate::{
   },
   objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{objects::Endpoints, ImageObject, Source},
-  ObjectId,
 };
 use activitypub_federation::{
   deser::deserialize_skip_error,
+  object_id::ObjectId,
   signatures::PublicKey,
   verify::verify_domains_match,
 };
