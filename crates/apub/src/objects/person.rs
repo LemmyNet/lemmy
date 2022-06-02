@@ -53,7 +53,6 @@ impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
   type DbType = DbPerson;
-  type TombstoneType = ();
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -111,10 +110,6 @@ impl ApubObject for ApubPerson {
       inbox: self.inbox_url.clone().into(),
     };
     Ok(person)
-  }
-
-  fn to_tombstone(&self) -> Result<(), LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]

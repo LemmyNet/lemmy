@@ -3,6 +3,7 @@ use crate::{
   fetcher::user_or_community::UserOrCommunity,
   insert_activity,
   local_instance,
+  protocol::objects::tombstone::Tombstone,
   CONTEXT,
 };
 use activitypub_federation::{
@@ -92,14 +93,12 @@ fn create_json_apub_response(data: serde_json::Value) -> HttpResponse {
     .json(data)
 }
 
-fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse
-where
-  T: Serialize,
-{
+fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> HttpResponse {
+  let tombstone = Tombstone::new(id.into());
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .status(StatusCode::GONE)
-    .json(WithContext::new(data, CONTEXT.deref().clone()))
+    .json(WithContext::new(tombstone, CONTEXT.deref().clone()))
 }
 
 #[derive(Deserialize)]

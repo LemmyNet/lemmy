@@ -140,7 +140,6 @@ impl ApubObject for MyUser {
   type DataType = InstanceHandle;
   type ApubType = Person;
   type DbType = MyUser;
-  type TombstoneType = ();
   type Error = crate::error::Error;
 
   async fn read_from_apub_id(

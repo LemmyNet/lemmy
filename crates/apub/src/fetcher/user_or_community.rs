@@ -33,7 +33,6 @@ impl ApubObject for UserOrCommunity {
   type DataType = LemmyContext;
   type ApubType = PersonOrGroup;
   type DbType = ();
-  type TombstoneType = ();
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -66,10 +65,6 @@ impl ApubObject for UserOrCommunity {
   }
 
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
-    unimplemented!()
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
     unimplemented!()
   }
 

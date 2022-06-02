@@ -51,7 +51,6 @@ impl ApubObject for ApubSite {
   type DataType = LemmyContext;
   type ApubType = Instance;
   type DbType = Site;
-  type TombstoneType = ();
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -95,10 +94,6 @@ impl ApubObject for ApubSite {
       updated: self.updated.map(convert_datetime),
     };
     Ok(instance)
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]

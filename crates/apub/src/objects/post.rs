@@ -4,10 +4,7 @@ use crate::{
   local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
-    objects::{
-      page::{Attachment, AttributedTo, Page, PageType},
-      tombstone::Tombstone,
-    },
+    objects::page::{Attachment, AttributedTo, Page, PageType},
     ImageObject,
     Source,
   },
@@ -60,7 +57,6 @@ impl ApubObject for ApubPost {
   type DataType = LemmyContext;
   type ApubType = Page;
   type DbType = Post;
-  type TombstoneType = Tombstone;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -123,10 +119,6 @@ impl ApubObject for ApubPost {
       updated: self.updated.map(convert_datetime),
     };
     Ok(page)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(self.ap_id.clone().into()))
   }
 
   #[tracing::instrument(skip_all)]

@@ -33,7 +33,6 @@ impl ApubObject for SiteOrCommunity {
   type DataType = LemmyContext;
   type ApubType = InstanceOrGroup;
   type DbType = ();
-  type TombstoneType = ();
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
@@ -66,10 +65,6 @@ impl ApubObject for SiteOrCommunity {
   }
 
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
-    unimplemented!()
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
     unimplemented!()
   }
 

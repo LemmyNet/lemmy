@@ -201,7 +201,6 @@ mod tests {
     type DataType = TestObject;
     type ApubType = ();
     type DbType = ();
-    type TombstoneType = ();
     type Error = Error;
 
     async fn read_from_apub_id(

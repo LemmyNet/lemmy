@@ -37,7 +37,6 @@ pub trait ApubObject {
   type DataType;
   type ApubType;
   type DbType;
-  type TombstoneType;
   type Error;
 
   /// If the object is stored in the database, this method should return the fetch time. Used to
@@ -65,10 +64,6 @@ pub trait ApubObject {
 
   /// Trait for converting an object or actor into the respective ActivityPub type.
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, Self::Error>;
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, Self::Error> {
-    unimplemented!()
-  }
 
   /// Verify that the object is valid. If this method returns an error, it will be
   /// discarded. This is separate from from_apub(), so that it can be called recursively on nested

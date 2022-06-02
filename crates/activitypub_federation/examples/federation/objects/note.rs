@@ -45,7 +45,6 @@ impl ApubObject for MyPost {
   type DataType = InstanceHandle;
   type ApubType = Note;
   type DbType = ();
-  type TombstoneType = ();
   type Error = crate::error::Error;
 
   async fn read_from_apub_id(

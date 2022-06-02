@@ -4,10 +4,7 @@ use crate::{
   local_instance,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
-  protocol::{
-    objects::{note::Note, tombstone::Tombstone},
-    Source,
-  },
+  protocol::{objects::note::Note, Source},
   PostOrComment,
 };
 use activitypub_federation::{
@@ -57,7 +54,6 @@ impl ApubObject for ApubComment {
   type DataType = LemmyContext;
   type ApubType = Note;
   type DbType = Comment;
-  type TombstoneType = Tombstone;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -128,10 +124,6 @@ impl ApubObject for ApubComment {
     };
 
     Ok(note)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(self.ap_id.clone().into()))
   }
 
   #[tracing::instrument(skip_all)]

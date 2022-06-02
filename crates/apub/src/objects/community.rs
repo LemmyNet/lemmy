@@ -6,7 +6,7 @@ use crate::{
   local_instance,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
-    objects::{group::Group, tombstone::Tombstone, Endpoints},
+    objects::{group::Group, Endpoints},
     ImageObject,
     Source,
   },
@@ -52,7 +52,6 @@ impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
   type ApubType = Group;
   type DbType = Community;
-  type TombstoneType = Tombstone;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -109,10 +108,6 @@ impl ApubObject for ApubCommunity {
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
     };
     Ok(group)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(self.actor_id()))
   }
 
   #[tracing::instrument(skip_all)]

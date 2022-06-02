@@ -52,7 +52,6 @@ impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
   type ApubType = ChatMessage;
   type DbType = PrivateMessage;
-  type TombstoneType = ();
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -99,10 +98,6 @@ impl ApubObject for ApubPrivateMessage {
       updated: self.updated.map(convert_datetime),
     };
     Ok(note)
-  }
-
-  fn to_tombstone(&self) -> Result<(), LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]

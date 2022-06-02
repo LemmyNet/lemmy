@@ -38,7 +38,7 @@ pub(crate) async fn get_apub_person_http(
 
     Ok(create_apub_response(&apub))
   } else {
-    Ok(create_apub_tombstone_response(&person.to_tombstone()?))
+    Ok(create_apub_tombstone_response(person.actor_id.clone()))
   }
 }
 

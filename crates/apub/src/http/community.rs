@@ -45,7 +45,7 @@ pub(crate) async fn get_apub_community_http(
 
     Ok(create_apub_response(&apub))
   } else {
-    Ok(create_apub_tombstone_response(&community.to_tombstone()?))
+    Ok(create_apub_tombstone_response(community.actor_id.clone()))
   }
 }
 

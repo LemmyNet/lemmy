@@ -27,7 +27,6 @@ pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
-  type TombstoneType = ();
   type ApubType = GroupOutbox;
   type Error = LemmyError;
 
@@ -77,11 +76,6 @@ impl ApubObject for ApubCommunityOutbox {
       total_items: ordered_items.len() as i32,
       ordered_items,
     })
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
-    // no tombstone for this, there is only a tombstone for the community
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]

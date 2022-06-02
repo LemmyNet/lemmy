@@ -27,7 +27,6 @@ pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityModerators {
   type DataType = CommunityContext;
-  type TombstoneType = ();
   type ApubType = GroupModerators;
   type Error = LemmyError;
 
@@ -70,10 +69,6 @@ impl ApubObject for ApubCommunityModerators {
       id: generate_moderators_url(&data.0.actor_id)?.into(),
       ordered_items,
     })
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
