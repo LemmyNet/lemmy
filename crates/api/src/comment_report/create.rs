@@ -1,17 +1,17 @@
 use crate::Perform;
+use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::report::Report;
-use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a comment report and notifies the moderators of the community

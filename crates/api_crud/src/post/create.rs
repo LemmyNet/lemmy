@@ -27,6 +27,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
+  error::LemmyError,
   utils::{
     check_slurs,
     check_slurs_opt,
@@ -35,7 +36,6 @@ use lemmy_utils::{
     is_valid_post_title,
   },
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 use tracing::{warn, Instrument};

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_views::comment_report_view::CommentReportQueryBuilder;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 /// Lists comment reports for a community if an id is supplied

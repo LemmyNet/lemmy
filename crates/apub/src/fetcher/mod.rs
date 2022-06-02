@@ -1,9 +1,9 @@
-use crate::fetcher::webfinger::webfinger_resolve_actor;
+use crate::{fetcher::webfinger::webfinger_resolve_actor, ActorType};
+use activitypub_federation::traits::ApubObject;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_db_schema::traits::ApubActor;
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 
 pub mod post_or_comment;
@@ -20,8 +20,11 @@ pub async fn resolve_actor_identifier<Actor, DbActor>(
   context: &LemmyContext,
 ) -> Result<DbActor, LemmyError>
 where
-  Actor:
-    ApubObject<DataType = LemmyContext> + ApubObject<DbType = DbActor> + ActorType + Send + 'static,
+  Actor: ApubObject<DataType = LemmyContext, Error = LemmyError>
+    + ApubObject<DbType = DbActor>
+    + ActorType
+    + Send
+    + 'static,
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
 {

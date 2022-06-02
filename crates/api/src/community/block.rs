@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Blockable, Crud, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

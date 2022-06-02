@@ -170,10 +170,10 @@ test('Remove a comment from admin and community on the same instance', async () 
 });
 
 test('Remove a comment from admin and community on different instance', async () => {
-  let alphaUser = await registerUser(alpha);
+  let alpha_user = await registerUser(alpha);
   let newAlphaApi: API = {
     client: alpha.client,
-    auth: alphaUser.jwt,
+    auth: alpha_user.jwt,
   };
 
   // New alpha user creates a community, post, and comment.

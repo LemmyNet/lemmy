@@ -19,9 +19,9 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs_opt, clean_optional_text, clean_url_params, is_valid_post_title},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 

@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
 use std::convert::TryInto;
 

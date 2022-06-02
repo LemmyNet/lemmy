@@ -1,28 +1,30 @@
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   generate_moderators_url,
   generate_outbox_url,
+  local_instance,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
-    objects::{group::Group, tombstone::Tombstone, Endpoints},
+    objects::{group::Group, Endpoints},
     ImageObject,
     Source,
   },
+  ActorType,
+};
+use activitypub_federation::{
+  core::{inbox::ActorPublicKey, object_id::ObjectId},
+  traits::ApubObject,
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
+  error::LemmyError,
   utils::{convert_datetime, markdown_to_html},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -50,7 +52,7 @@ impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
   type ApubType = Group;
   type DbType = Community;
-  type TombstoneType = Tombstone;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -100,16 +102,12 @@ impl ApubObject for ApubCommunity {
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
-      public_key: self.get_public_key()?,
+      public_key: self.get_public_key(),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
     };
     Ok(group)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(self.actor_id()))
   }
 
   #[tracing::instrument(skip_all)]
@@ -141,14 +139,14 @@ impl ApubObject for ApubCommunity {
 
     group
       .outbox
-      .dereference(&outbox_data, context.client(), request_counter)
+      .dereference::<LemmyError>(&outbox_data, local_instance(context), request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = &group.moderators {
       moderators
-        .dereference(&outbox_data, context.client(), request_counter)
+        .dereference::<LemmyError>(&outbox_data, local_instance(context), request_counter)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();
@@ -164,9 +162,6 @@ impl ActorType for ApubCommunity {
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
   }
-  fn public_key(&self) -> String {
-    self.public_key.to_owned()
-  }
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
@@ -177,6 +172,12 @@ impl ActorType for ApubCommunity {
 
   fn shared_inbox_url(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(|s| s.into())
+  }
+}
+
+impl ActorPublicKey for ApubCommunity {
+  fn public_key(&self) -> &str {
+    &self.public_key
   }
 }
 
@@ -205,7 +206,9 @@ impl ApubCommunity {
       .unique()
       .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
-      .filter(|inbox| check_is_apub_id_valid(inbox, false, &context.settings()).is_ok())
+      .filter(|inbox| {
+        check_apub_id_valid_with_strictness(inbox, false, &context.settings()).is_ok()
+      })
       .collect();
 
     Ok(inboxes)

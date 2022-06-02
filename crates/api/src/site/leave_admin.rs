@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
-use lemmy_utils::{version, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, version, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

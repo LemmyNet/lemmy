@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::{delete_user_account, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::deletion::delete_user::DeleteUser;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
