@@ -6,11 +6,7 @@ use crate::{
   },
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::deletion::delete::Delete,
-    objects::tombstone::Tombstone,
-    IdOrNestedObject,
-  },
+  protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
@@ -118,10 +114,7 @@ impl Delete {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id.clone()),
       to: vec![to],
-      object: IdOrNestedObject::NestedObject(Tombstone {
-        id: object.id(),
-        kind: Default::default(),
-      }),
+      object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
       summary,
