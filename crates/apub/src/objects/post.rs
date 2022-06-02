@@ -167,15 +167,14 @@ impl ApubObject for ApubPost {
         // url sent by lemmy (old)
         page.url
       };
-      let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
-      let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
+      let (metadata_res, thumbnail_url) = if let Some(url) = &url {
         fetch_site_data(context.client(), &context.settings(), Some(url)).await
       } else {
-        (None, thumbnail_url)
+        (None, page.image.map(|i| i.url.into()))
       };
-      let (embed_title, embed_description, embed_html) = metadata_res
-        .map(|u| (u.title, u.description, u.html))
-        .unwrap_or((None, None, None));
+      let (embed_title, embed_description, embed_video_url) = metadata_res
+        .map(|u| (u.title, u.description, u.embed_video_url))
+        .unwrap_or_default();
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
@@ -195,8 +194,8 @@ impl ApubObject for ApubPost {
         stickied: page.stickied,
         embed_title,
         embed_description,
-        embed_html,
-        thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
+        embed_video_url,
+        thumbnail_url,
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
       }

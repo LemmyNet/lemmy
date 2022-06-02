@@ -251,7 +251,7 @@ impl DeleteableOrRemoveable for Post {
     self.body = None;
     self.embed_title = None;
     self.embed_description = None;
-    self.embed_html = None;
+    self.embed_video_url = None;
     self.thumbnail_url = None;
 
     self
@@ -316,7 +316,7 @@ mod tests {
       updated: None,
       embed_title: None,
       embed_description: None,
-      embed_html: None,
+      embed_video_url: None,
       thumbnail_url: None,
       ap_id: inserted_post.ap_id.to_owned(),
       local: true,

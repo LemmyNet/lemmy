@@ -357,7 +357,7 @@ table! {
         stickied -> Bool,
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
-        embed_html -> Nullable<Text>,
+        embed_video_url -> Nullable<Text>,
         thumbnail_url -> Nullable<Text>,
         ap_id -> Varchar,
         local -> Bool,
