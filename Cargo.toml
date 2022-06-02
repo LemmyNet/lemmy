@@ -23,8 +23,6 @@ members = [
     "crates/api",
     "crates/api_crud",
     "crates/api_common",
-    "crates/activitypub_federation",
-    "crates/activitypub_federation_derive",
     "crates/apub",
     "crates/utils",
     "crates/db_schema",
@@ -39,12 +37,12 @@ members = [
 lemmy_api = { version = "=0.16.4-rc.11", path = "./crates/api" }
 lemmy_api_crud = { version = "=0.16.4-rc.11", path = "./crates/api_crud" }
 lemmy_apub = { version = "=0.16.4-rc.11", path = "./crates/apub" }
-activitypub_federation = { version = "=0.16.4-rc.11", path = "./crates/activitypub_federation" }
 lemmy_utils = { version = "=0.16.4-rc.11", path = "./crates/utils" }
 lemmy_db_schema = { version = "=0.16.4-rc.11", path = "./crates/db_schema" }
 lemmy_api_common = { version = "=0.16.4-rc.11", path = "crates/api_common" }
 lemmy_websocket = { version = "=0.16.4-rc.11", path = "./crates/websocket" }
 lemmy_routes = { version = "=0.16.4-rc.11", path = "./crates/routes" }
+activitypub_federation = "0.1.0"
 diesel = "1.4.8"
 diesel_migrations = "1.4.0"
 serde = { version = "1.0.136", features = ["derive"] }

@@ -4,11 +4,11 @@ version = 3
 
 [[package]]
 name = "activitypub_federation"
-version = "0.16.4-rc.11"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78b34a144dc98c419543690aa8f182d8675ebe0610775982b8fdee84a00f70fe"
 dependencies = [
  "activitypub_federation_derive",
- "activitystreams-kinds",
- "actix-rt",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -16,32 +16,30 @@ dependencies = [
  "base64",
  "chrono",
  "derive_builder 0.11.2",
- "env_logger",
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
  "once_cell",
  "openssl",
- "rand 0.8.5",
  "reqwest",
  "reqwest-middleware",
  "serde",
  "serde_json",
  "sha2",
  "thiserror",
- "tokio",
  "tracing",
  "url",
 ]
 
 [[package]]
 name = "activitypub_federation_derive"
-version = "0.16.4-rc.11"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a2aaf58676b669d3b0dedf6bbb44fa518b5a6657b2959561d77899c668dec2a"
 dependencies = [
  "proc-macro2 1.0.39",
  "quote 1.0.18",
  "syn 1.0.95",
- "trybuild",
 ]
 
 [[package]]
@@ -1118,12 +1116,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dissimilar"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31ad93652f40969dead8d4bf897a41e9462095152eb21c56e5830537e41179dd"
-
-[[package]]
 name = "doku"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1238,15 +1230,6 @@ name = "entities"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5320ae4c3782150d900b79807611a59a99fc9a1d61d686faafc24b93fc8d7ca"
-
-[[package]]
-name = "env_logger"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b2cf0344971ee6c64c31be0d530793fba457d322dfec2810c453d0ef228f9c3"
-dependencies = [
- "log",
-]
 
 [[package]]
 name = "event-listener"
@@ -1478,12 +1461,6 @@ dependencies = [
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
 ]
-
-[[package]]
-name = "glob"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "h2"
@@ -3789,15 +3766,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "termcolor"
-version = "1.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
-dependencies = [
- "winapi-util",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3978,15 +3946,6 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "toml"
-version = "0.5.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31142970826733df8241ef35dc040ef98c679ab14d7c3e54d827099b3acecaa"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -4191,22 +4150,6 @@ name = "try-lock"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
-
-[[package]]
-name = "trybuild"
-version = "1.0.57"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ae8c4cee9b97b861a6e3be1d5acb6f50a86bbb68b1f3a896db8342fb6d0f94c"
-dependencies = [
- "dissimilar",
- "glob",
- "once_cell",
- "serde",
- "serde_derive",
- "serde_json",
- "termcolor",
- "toml",
-]
 
 [[package]]
 name = "twoway"
