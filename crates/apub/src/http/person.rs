@@ -6,7 +6,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use activitypub_federation::{context::WithContext, traits::ApubObject};
+use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};

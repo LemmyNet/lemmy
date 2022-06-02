@@ -1,7 +1,6 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{
-  inbox::ActorPublicKey,
-  signatures::PublicKey,
+  core::{inbox::ActorPublicKey, signatures::PublicKey},
   InstanceSettingsBuilder,
   LocalInstance,
 };

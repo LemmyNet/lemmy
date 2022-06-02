@@ -8,10 +8,9 @@ use crate::{
   protocol::{objects::Endpoints, ImageObject, Source},
 };
 use activitypub_federation::{
-  deser::deserialize_skip_error,
-  object_id::ObjectId,
-  signatures::PublicKey,
-  verify::verify_domains_match,
+  core::{object_id::ObjectId, signatures::PublicKey},
+  deser::helpers::deserialize_skip_error,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};

@@ -6,9 +6,9 @@ use crate::{
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitypub_federation::{
-  object_id::ObjectId,
+  core::object_id::ObjectId,
   traits::ApubObject,
-  verify::verify_domains_match,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;

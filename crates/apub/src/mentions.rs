@@ -3,7 +3,7 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   ActorType,
 };
-use activitypub_federation::object_id::ObjectId;
+use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::link::MentionType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{

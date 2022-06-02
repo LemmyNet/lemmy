@@ -11,7 +11,7 @@ use crate::{
 use activitypub_federation::{
   data::Data,
   traits::{ActivityHandler, ApubObject},
-  verify::verify_domains_match,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;

@@ -6,11 +6,13 @@ use crate::{
   objects::note::MyPost,
 };
 use activitypub_federation::{
-  activity_queue::SendActivity,
-  context::WithContext,
-  inbox::ActorPublicKey,
-  object_id::ObjectId,
-  signatures::{Keypair, PublicKey},
+  core::{
+    activity_queue::SendActivity,
+    inbox::ActorPublicKey,
+    object_id::ObjectId,
+    signatures::{Keypair, PublicKey},
+  },
+  deser::context::WithContext,
   traits::ApubObject,
   LocalInstance,
 };

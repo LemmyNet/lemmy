@@ -1,4 +1,4 @@
-use crate::{data::Data, deser::deserialize_one_or_many, traits::ActivityHandler};
+use crate::{data::Data, deser::helpers::deserialize_one_or_many, traits::ActivityHandler};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::str::FromStr;

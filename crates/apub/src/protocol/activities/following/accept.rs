@@ -2,7 +2,7 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{activities::following::follow::FollowCommunity, Unparsed},
 };
-use activitypub_federation::object_id::ObjectId;
+use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::activity::AcceptType;
 use serde::{Deserialize, Serialize};
 use url::Url;

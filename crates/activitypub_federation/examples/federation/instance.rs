@@ -7,11 +7,9 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  context::WithContext,
+  core::{inbox::receive_activity, object_id::ObjectId, signatures::generate_actor_keypair},
   data::Data,
-  inbox::receive_activity,
-  object_id::ObjectId,
-  signatures::generate_actor_keypair,
+  deser::context::WithContext,
   traits::ApubObject,
   InstanceSettingsBuilder,
   LocalInstance,

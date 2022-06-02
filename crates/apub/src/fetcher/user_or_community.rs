@@ -2,7 +2,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
 };
-use activitypub_federation::{inbox::ActorPublicKey, traits::ApubObject};
+use activitypub_federation::{core::inbox::ActorPublicKey, traits::ApubObject};
 use chrono::NaiveDateTime;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

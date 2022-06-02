@@ -1,5 +1,5 @@
 use crate::Perform;
-use activitypub_federation::object_id::ObjectId;
+use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},

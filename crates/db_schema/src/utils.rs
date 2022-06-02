@@ -1,5 +1,5 @@
 use crate::newtypes::DbUrl;
-use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,

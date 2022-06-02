@@ -1,5 +1,5 @@
 use crate::{objects::person::ApubPerson, protocol::Unparsed};
-use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
+use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::RemoveType;
 use serde::{Deserialize, Serialize};
 use url::Url;

@@ -13,8 +13,8 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
+  core::object_id::ObjectId,
   data::Data,
-  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};

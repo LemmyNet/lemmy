@@ -4,7 +4,7 @@ use crate::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::objects::{group::Group, note::Note, page::Page, person::Person},
 };
-use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

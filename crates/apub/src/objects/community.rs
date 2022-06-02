@@ -12,7 +12,10 @@ use crate::{
   },
   ActorType,
 };
-use activitypub_federation::{inbox::ActorPublicKey, object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{
+  core::{inbox::ActorPublicKey, object_id::ObjectId},
+  traits::ApubObject,
+};
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;

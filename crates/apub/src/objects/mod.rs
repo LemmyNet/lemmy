@@ -1,5 +1,5 @@
 use crate::protocol::Source;
-use activitypub_federation::values::MediaTypeMarkdownOrHtml;
+use activitypub_federation::deser::values::MediaTypeMarkdownOrHtml;
 use anyhow::anyhow;
 use html2md::parse_html;
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};

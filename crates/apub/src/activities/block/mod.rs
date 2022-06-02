@@ -3,7 +3,7 @@ use crate::{
   protocol::objects::{group::Group, instance::Instance},
   ActorType,
 };
-use activitypub_federation::{object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::site::Site, utils::DbPool};

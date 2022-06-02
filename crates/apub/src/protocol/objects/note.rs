@@ -6,9 +6,11 @@ use crate::{
   protocol::Source,
 };
 use activitypub_federation::{
-  deser::{deserialize_one_or_many, deserialize_skip_error},
-  object_id::ObjectId,
-  values::MediaTypeMarkdownOrHtml,
+  core::object_id::ObjectId,
+  deser::{
+    helpers::{deserialize_one_or_many, deserialize_skip_error},
+    values::MediaTypeMarkdownOrHtml,
+  },
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};

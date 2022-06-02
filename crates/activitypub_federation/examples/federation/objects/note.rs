@@ -1,7 +1,7 @@
 use crate::{generate_object_id, instance::InstanceHandle, objects::person::MyUser};
 use activitypub_federation::{
-  deser::deserialize_one_or_many,
-  object_id::ObjectId,
+  core::object_id::ObjectId,
+  deser::helpers::deserialize_one_or_many,
   traits::ApubObject,
 };
 use activitystreams_kinds::{object::NoteType, public};

@@ -1,5 +1,5 @@
 use crate::{
-  signatures::{sign_request, PublicKey},
+  core::signatures::{sign_request, PublicKey},
   Error,
   LocalInstance,
   APUB_JSON_CONTENT_TYPE,

@@ -13,10 +13,10 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
+  core::object_id::ObjectId,
   data::Data,
-  object_id::ObjectId,
   traits::ActivityHandler,
-  verify::verify_domains_match,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::utils::blocking;

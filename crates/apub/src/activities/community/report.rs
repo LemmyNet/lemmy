@@ -6,7 +6,7 @@ use crate::{
   ActorType,
   PostOrComment,
 };
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse, utils::blocking};
 use lemmy_db_schema::{

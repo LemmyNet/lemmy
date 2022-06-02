@@ -5,11 +5,13 @@ use crate::{
   protocol::{ImageObject, Source},
 };
 use activitypub_federation::{
+  core::object_id::ObjectId,
   data::Data,
-  deser::{deserialize_one_or_many, deserialize_skip_error},
-  object_id::ObjectId,
+  deser::{
+    helpers::{deserialize_one_or_many, deserialize_skip_error},
+    values::MediaTypeMarkdownOrHtml,
+  },
   traits::{ActivityHandler, ApubObject},
-  values::MediaTypeMarkdownOrHtml,
 };
 use activitystreams_kinds::link::LinkType;
 use chrono::{DateTime, FixedOffset};

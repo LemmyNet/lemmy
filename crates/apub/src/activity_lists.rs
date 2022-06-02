@@ -29,9 +29,9 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  context::WithContext,
+  core::object_id::ObjectId,
   data::Data,
-  object_id::ObjectId,
+  deser::context::WithContext,
   traits::{activity_handler, ActivityHandler},
 };
 use lemmy_utils::error::LemmyError;

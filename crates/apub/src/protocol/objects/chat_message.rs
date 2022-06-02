@@ -3,9 +3,11 @@ use crate::{
   protocol::Source,
 };
 use activitypub_federation::{
-  deser::{deserialize_one, deserialize_skip_error},
-  object_id::ObjectId,
-  values::MediaTypeHtml,
+  core::object_id::ObjectId,
+  deser::{
+    helpers::{deserialize_one, deserialize_skip_error},
+    values::MediaTypeHtml,
+  },
 };
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};

@@ -13,10 +13,10 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  object_id::ObjectId,
+  core::object_id::ObjectId,
+  deser::values::MediaTypeMarkdownOrHtml,
   traits::ApubObject,
-  values::MediaTypeMarkdownOrHtml,
-  verify::verify_domains_match,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;

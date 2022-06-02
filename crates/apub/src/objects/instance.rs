@@ -10,11 +10,10 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
-  inbox::ActorPublicKey,
-  object_id::ObjectId,
+  core::{inbox::ActorPublicKey, object_id::ObjectId},
+  deser::values::MediaTypeHtml,
   traits::ApubObject,
-  values::MediaTypeHtml,
-  verify::verify_domains_match,
+  utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;

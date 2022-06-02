@@ -9,7 +9,7 @@ use crate::{
   },
   ActorType,
 };
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::{activity::AnnounceType, public};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;

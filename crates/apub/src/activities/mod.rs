@@ -7,9 +7,8 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  activity_queue::SendActivity,
-  context::WithContext,
-  object_id::ObjectId,
+  core::{activity_queue::SendActivity, object_id::ObjectId},
+  deser::context::WithContext,
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;

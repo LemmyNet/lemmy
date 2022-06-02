@@ -1,5 +1,5 @@
 use crate::PerformCrud;
-use activitypub_federation::signatures::generate_actor_keypair;
+use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, Register},

@@ -5,10 +5,10 @@ use crate::{
   protocol::activities::deletion::delete_user::DeleteUser,
 };
 use activitypub_federation::{
+  core::object_id::ObjectId,
   data::Data,
-  object_id::ObjectId,
   traits::ActivityHandler,
-  verify::verify_urls_match,
+  utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
 use lemmy_api_common::utils::{blocking, delete_user_account};

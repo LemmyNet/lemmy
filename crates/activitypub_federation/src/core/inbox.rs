@@ -1,9 +1,8 @@
 use crate::{
+  core::{object_id::ObjectId, signatures::verify_signature},
   data::Data,
-  object_id::ObjectId,
-  signatures::verify_signature,
   traits::{ActivityHandler, ApubObject},
-  verify::verify_domains_match,
+  utils::verify_domains_match,
   Error,
   LocalInstance,
 };

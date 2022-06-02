@@ -8,10 +8,10 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
+  core::object_id::ObjectId,
   data::Data,
-  object_id::ObjectId,
   traits::{ActivityHandler, ApubObject},
-  verify::verify_domains_match,
+  utils::verify_domains_match,
 };
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::person::Person, traits::Crud};

@@ -3,7 +3,7 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{IdOrNestedObject, Unparsed},
 };
-use activitypub_federation::{deser::deserialize_one_or_many, object_id::ObjectId};
+use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::AnnounceType;
 use serde::{Deserialize, Serialize};
 use url::Url;

@@ -190,7 +190,7 @@ where
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::object_id::should_refetch_object;
+  use crate::core::object_id::should_refetch_object;
   use anyhow::Error;
 
   #[derive(Debug)]

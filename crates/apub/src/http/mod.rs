@@ -6,9 +6,9 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  context::WithContext,
+  core::inbox::{receive_activity, ActorPublicKey},
   data::Data,
-  inbox::{receive_activity, ActorPublicKey},
+  deser::context::WithContext,
   traits::{ActivityHandler, ApubObject},
   APUB_JSON_CONTENT_TYPE,
 };

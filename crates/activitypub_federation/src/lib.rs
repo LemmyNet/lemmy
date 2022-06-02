@@ -1,21 +1,15 @@
-use crate::activity_queue::create_activity_queue;
+use crate::core::activity_queue::create_activity_queue;
 use background_jobs::Manager;
 use derive_builder::Builder;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use url::Url;
 
-pub mod activity_queue;
-pub mod context;
+pub mod core;
 pub mod data;
 pub mod deser;
-pub mod inbox;
-pub mod object_id;
-pub mod signatures;
 pub mod traits;
 pub mod utils;
-pub mod values;
-pub mod verify;
 
 /// Mime type for Activitypub, used for `Accept` and `Content-Type` HTTP headers
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";

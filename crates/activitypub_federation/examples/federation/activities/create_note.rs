@@ -4,9 +4,9 @@ use crate::{
   MyPost,
 };
 use activitypub_federation::{
+  core::object_id::ObjectId,
   data::Data,
-  deser::deserialize_one_or_many,
-  object_id::ObjectId,
+  deser::helpers::deserialize_one_or_many,
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::activity::CreateType;

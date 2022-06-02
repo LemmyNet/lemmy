@@ -11,7 +11,11 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::collections::group_followers::GroupFollowers,
 };
-use activitypub_federation::{context::WithContext, object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  deser::context::WithContext,
+  traits::ApubObject,
+};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};

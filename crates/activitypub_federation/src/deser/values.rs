@@ -14,7 +14,7 @@
 //! ```
 //! use serde_json::from_str;
 //! use serde::{Deserialize, Serialize};
-//! use activitypub_federation::values::MediaTypeMarkdown;
+//! use activitypub_federation::deser::values::MediaTypeMarkdown;
 //!
 //! #[derive(Deserialize, Serialize)]
 //! struct MyObject {
@@ -50,6 +50,7 @@ pub enum MediaTypeHtml {
   #[serde(rename = "text/html")]
   Html,
 }
+
 /// Media type which allows both markdown and HTML.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum MediaTypeMarkdownOrHtml {

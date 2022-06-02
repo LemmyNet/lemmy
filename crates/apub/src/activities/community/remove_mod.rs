@@ -18,7 +18,7 @@ use crate::{
   protocol::activities::community::remove_mod::RemoveMod,
   ActorType,
 };
-use activitypub_federation::{data::Data, object_id::ObjectId, traits::ActivityHandler};
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::{activity::RemoveType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
