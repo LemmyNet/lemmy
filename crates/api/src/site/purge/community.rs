@@ -33,33 +33,33 @@ impl Perform for PurgeCommunity {
     is_admin(&local_user_view)?;
 
     let community_id = data.community_id;
-    if data.remove_images {
-      // Read the community to get its images
-      let community = blocking(context.pool(), move |conn| {
-        Community::read(conn, community_id)
-      })
-      .await??;
 
-      if let Some(banner) = community.banner {
-        purge_image_from_pictrs(context.client(), &context.settings(), &banner)
-          .await
-          .ok();
-      }
+    // Read the community to get its images
+    let community = blocking(context.pool(), move |conn| {
+      Community::read(conn, community_id)
+    })
+    .await??;
 
-      if let Some(icon) = community.icon {
-        purge_image_from_pictrs(context.client(), &context.settings(), &icon)
-          .await
-          .ok();
-      }
-
-      purge_image_posts_for_community(
-        community_id,
-        context.pool(),
-        &context.settings(),
-        context.client(),
-      )
-      .await?;
+    if let Some(banner) = community.banner {
+      purge_image_from_pictrs(context.client(), &context.settings(), &banner)
+        .await
+        .ok();
     }
+
+    if let Some(icon) = community.icon {
+      purge_image_from_pictrs(context.client(), &context.settings(), &icon)
+        .await
+        .ok();
+    }
+
+    purge_image_posts_for_community(
+      community_id,
+      context.pool(),
+      &context.settings(),
+      context.client(),
+    )
+    .await?;
+
     blocking(context.pool(), move |conn| {
       Community::delete(conn, community_id)
     })

@@ -205,7 +205,6 @@ pub struct FederatedInstances {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PurgePerson {
   pub person_id: PersonId,
-  pub remove_images: bool,
   pub reason: Option<String>,
   pub auth: String,
 }
@@ -213,7 +212,6 @@ pub struct PurgePerson {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
-  pub remove_images: bool,
   pub reason: Option<String>,
   pub auth: String,
 }

@@ -32,31 +32,29 @@ impl Perform for PurgePerson {
     // Only let admins purge an item
     is_admin(&local_user_view)?;
 
+    // Read the person to get their images
     let person_id = data.person_id;
-    if data.remove_images {
-      // Read the person to get their images
-      let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
+    let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
 
-      if let Some(banner) = person.banner {
-        purge_image_from_pictrs(context.client(), &context.settings(), &banner)
-          .await
-          .ok();
-      }
-
-      if let Some(avatar) = person.avatar {
-        purge_image_from_pictrs(context.client(), &context.settings(), &avatar)
-          .await
-          .ok();
-      }
-
-      purge_image_posts_for_person(
-        person_id,
-        context.pool(),
-        &context.settings(),
-        context.client(),
-      )
-      .await?;
+    if let Some(banner) = person.banner {
+      purge_image_from_pictrs(context.client(), &context.settings(), &banner)
+        .await
+        .ok();
     }
+
+    if let Some(avatar) = person.avatar {
+      purge_image_from_pictrs(context.client(), &context.settings(), &avatar)
+        .await
+        .ok();
+    }
+
+    purge_image_posts_for_person(
+      person_id,
+      context.pool(),
+      &context.settings(),
+      context.client(),
+    )
+    .await?;
 
     blocking(context.pool(), move |conn| Person::delete(conn, person_id)).await??;
 
