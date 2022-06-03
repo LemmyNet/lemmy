@@ -109,15 +109,7 @@ impl Perform for GetModlog {
       })
       .await??
     } else {
-      (
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-      )
+      Default::default()
     };
 
     // Return the jwt

@@ -570,7 +570,6 @@ pub async fn remove_user_data(
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
-
   // Purge user images
   let person = blocking(pool, move |conn| Person::read(conn, banned_person_id)).await??;
   if let Some(avatar) = person.avatar {

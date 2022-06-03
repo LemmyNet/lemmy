@@ -10,15 +10,8 @@ use actix_web::{
   HttpRequest,
   HttpResponse,
 };
-use anyhow::anyhow;
 use futures::stream::{Stream, StreamExt};
-use lemmy_utils::{
-  claims::Claims,
-  rate_limit::RateLimit,
-  settings::structs::{PictrsConfig, Settings},
-  LemmyError,
-  REQWEST_TIMEOUT,
-};
+use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
@@ -57,9 +50,11 @@ struct PictrsParams {
 }
 
 #[derive(Deserialize)]
-struct PictrsPurgeParams {
-  file: Option<String>,
-  alias: Option<String>,
+enum PictrsPurgeParams {
+  #[serde(rename = "file")]
+  File(String),
+  #[serde(rename = "alias")]
+  Alias(String),
 }
 
 fn adapt_request(
@@ -101,7 +96,7 @@ async fn upload(
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
-  let pictrs_config = pictrs_config(context.settings())?;
+  let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}/image", pictrs_config.url);
 
   let mut client_req = adapt_request(&req, &client, image_url);
@@ -132,7 +127,7 @@ async fn full_res(
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
-  let pictrs_config = pictrs_config(context.settings())?;
+  let pictrs_config = context.settings().pictrs_config()?;
   let url = if params.format.is_none() && params.thumbnail.is_none() {
     format!("{}/image/original/{}", pictrs_config.url, name,)
   } else {
@@ -191,7 +186,7 @@ async fn delete(
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
 
-  let pictrs_config = pictrs_config(context.settings())?;
+  let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}/image/delete/{}/{}", pictrs_config.url, &token, &file);
 
   let mut client_req = adapt_request(&req, &client, url);
@@ -211,15 +206,12 @@ async fn purge(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let purge_string = if let Some(file) = params.file {
-    format!("file={}", file)
-  } else if let Some(alias) = params.alias {
-    format!("alias={}", alias)
-  } else {
-    return Ok(HttpResponse::NotFound().finish());
+  let purge_string = match params {
+    PictrsPurgeParams::File(f) => format!("file={}", f),
+    PictrsPurgeParams::Alias(a) => format!("alias={}", a),
   };
 
-  let pictrs_config = pictrs_config(context.settings())?;
+  let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}/internal/purge?{}", pictrs_config.url, &purge_string);
 
   let mut client_req = adapt_request(&req, &client, url);
@@ -234,12 +226,6 @@ async fn purge(
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
-}
-
-fn pictrs_config(settings: Settings) -> Result<PictrsConfig, LemmyError> {
-  settings
-    .pictrs_config
-    .ok_or_else(|| anyhow!("images_disabled").into())
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
