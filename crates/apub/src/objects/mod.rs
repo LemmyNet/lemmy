@@ -55,6 +55,7 @@ pub(crate) fn verify_is_remote_object(id: &Url) -> Result<(), LemmyError> {
 #[cfg(test)]
 pub(crate) mod tests {
   use actix::Actor;
+  use anyhow::anyhow;
   use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
@@ -71,9 +72,25 @@ pub(crate) mod tests {
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use parking_lot::Mutex;
-  use reqwest::Client;
-  use reqwest_middleware::ClientBuilder;
+  use reqwest::{Client, Request, Response};
+  use reqwest_middleware::{ClientBuilder, Middleware, Next};
   use std::sync::Arc;
+  use task_local_extensions::Extensions;
+
+  struct BlockedMiddleware;
+
+  /// A reqwest middleware which blocks all requests
+  #[async_trait::async_trait]
+  impl Middleware for BlockedMiddleware {
+    async fn handle(
+      &self,
+      _req: Request,
+      _extensions: &mut Extensions,
+      _next: Next<'_>,
+    ) -> reqwest_middleware::Result<Response> {
+      Err(anyhow!("Network requests not allowed").into())
+    }
+  }
 
   // TODO: would be nice if we didnt have to use a full context for tests.
   pub(crate) fn init_context() -> LemmyContext {
@@ -89,7 +106,7 @@ pub(crate) mod tests {
       .build()
       .unwrap();
 
-    let client = ClientBuilder::new(client).build();
+    let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
     let secret = Secret {
       id: 0,
       jwt_secret: "".to_string(),
