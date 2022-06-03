@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

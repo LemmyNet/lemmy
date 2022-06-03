@@ -1,25 +1,36 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
+  local_instance,
   objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
 };
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::ActivityHandler,
+  utils::verify_urls_match,
+};
 use activitystreams_kinds::{activity::DeleteType, public};
 use lemmy_api_common::utils::{blocking, delete_user_account};
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::ActivityHandler,
-  verify::verify_urls_match,
-};
 use lemmy_db_schema::source::site::Site;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox
 /// (cause instance actor doesn't have shared inbox).
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for DeleteUser {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   async fn verify(
     &self,
@@ -39,7 +50,7 @@ impl ActivityHandler for DeleteUser {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     delete_user_account(
       actor.id,

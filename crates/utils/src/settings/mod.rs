@@ -1,7 +1,7 @@
 use crate::{
+  error::LemmyError,
   location_info,
   settings::structs::{PictrsConfig, Settings},
-  LemmyError,
 };
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;

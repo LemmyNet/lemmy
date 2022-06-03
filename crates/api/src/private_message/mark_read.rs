@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]

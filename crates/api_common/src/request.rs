@@ -1,6 +1,12 @@
 use crate::post::SiteMetadata;
 use encoding::{all::encodings, DecoderTrap};
-use lemmy_utils::{settings::structs::Settings, version::VERSION, LemmyError, REQWEST_TIMEOUT};
+use lemmy_db_schema::newtypes::DbUrl;
+use lemmy_utils::{
+  error::LemmyError,
+  settings::structs::Settings,
+  version::VERSION,
+  REQWEST_TIMEOUT,
+};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -15,11 +21,7 @@ pub async fn fetch_site_metadata(
   url: &Url,
 ) -> Result<SiteMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
-  let response = client
-    .get(url.as_str())
-    .timeout(REQWEST_TIMEOUT)
-    .send()
-    .await?;
+  let response = client.get(url.as_str()).send().await?;
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
@@ -81,16 +83,17 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
     .images
     .get(0)
     .and_then(|ogo| Url::parse(&ogo.url).ok());
-
-  let title = og_title.or(page_title);
-  let description = og_description.or(page_description);
-  let image = og_image;
+  let og_embed_url = page
+    .opengraph
+    .videos
+    .first()
+    .and_then(|v| Url::parse(&v.url).ok());
 
   Ok(SiteMetadata {
-    title,
-    description,
-    image,
-    html: None,
+    title: og_title.or(page_title),
+    description: og_description.or(page_description),
+    image: og_image.map(Into::into),
+    embed_video_url: og_embed_url.map(Into::into),
   })
 }
 
@@ -186,7 +189,7 @@ pub async fn fetch_site_data(
   client: &ClientWithMiddleware,
   settings: &Settings,
   url: Option<&Url>,
-) -> (Option<SiteMetadata>, Option<Url>) {
+) -> (Option<SiteMetadata>, Option<DbUrl>) {
   match &url {
     Some(url) => {
       // Fetch metadata
@@ -226,7 +229,7 @@ pub async fn fetch_site_data(
         .ok()
         .flatten();
 
-      (metadata_option, pictrs_thumbnail)
+      (metadata_option, pictrs_thumbnail.map(Into::into))
     }
     None => (None, None),
   }
@@ -234,11 +237,7 @@ pub async fn fetch_site_data(
 
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
-  let response = client
-    .get(url.as_str())
-    .timeout(REQWEST_TIMEOUT)
-    .send()
-    .await?;
+  let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
     .get("Content-Type")
@@ -286,8 +285,9 @@ mod tests {
         image: Some(
           Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
             .unwrap()
+            .into()
         ),
-        html: None,
+        embed_video_url: None,
       },
       sample_res
     );

@@ -8,6 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{
     comment::ApubComment,
     community::ApubCommunity,
@@ -16,14 +17,15 @@ use crate::{
     private_message::ApubPrivateMessage,
   },
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  traits::ApubObject,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::{
     comment::Comment,
@@ -34,7 +36,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{
   send::{
     send_comment_ws_message_simple,
@@ -236,7 +238,7 @@ async fn receive_delete_action(
     DeletableObjects::Community(community) => {
       if community.local {
         let mod_: Person = actor
-          .dereference(context, context.client(), request_counter)
+          .dereference::<LemmyError>(context, local_instance(context), request_counter)
           .await?
           .deref()
           .clone();

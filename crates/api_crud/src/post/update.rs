@@ -19,9 +19,9 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs_opt, clean_optional_text, clean_url_params, is_valid_post_title},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
@@ -69,11 +69,11 @@ impl PerformCrud for EditPost {
 
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
-    let (metadata_res, pictrs_thumbnail) =
+    let (metadata_res, thumbnail_url) =
       fetch_site_data(context.client(), &context.settings(), data_url).await;
-    let (embed_title, embed_description, embed_html) = metadata_res
-      .map(|u| (u.title, u.description, u.html))
-      .unwrap_or((None, None, None));
+    let (embed_title, embed_description, embed_video_url) = metadata_res
+      .map(|u| (u.title, u.description, u.embed_video_url))
+      .unwrap_or_default();
 
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
@@ -85,8 +85,8 @@ impl PerformCrud for EditPost {
       updated: Some(naive_now()),
       embed_title,
       embed_description,
-      embed_html,
-      thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
+      embed_video_url,
+      thumbnail_url,
       ..PostForm::default()
     };
 

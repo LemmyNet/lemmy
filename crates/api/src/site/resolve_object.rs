@@ -9,7 +9,7 @@ use lemmy_apub::fetcher::search::{search_by_apub_id, SearchableObjects};
 use lemmy_db_schema::{newtypes::PersonId, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonViewSafe};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

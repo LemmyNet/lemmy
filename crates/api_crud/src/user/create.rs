@@ -1,4 +1,5 @@
 use crate::PerformCrud;
+use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, Register},
@@ -33,11 +34,10 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
-  apub::generate_actor_keypair,
   claims::Claims,
+  error::LemmyError,
   utils::{check_slurs, is_valid_actor_name},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
 

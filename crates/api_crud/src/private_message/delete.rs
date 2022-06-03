@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::activities::deletion::send_apub_delete_private_message;
 use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]

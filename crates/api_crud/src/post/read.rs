@@ -7,7 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::GetPostUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
