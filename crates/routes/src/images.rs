@@ -11,7 +11,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit};
+use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
@@ -65,7 +65,9 @@ fn adapt_request(
   // remove accept-encoding header so that pictrs doesnt compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
-  let client_request = client.request(request.method().clone(), url);
+  let client_request = client
+    .request(request.method().clone(), url)
+    .timeout(REQWEST_TIMEOUT);
 
   request
     .headers()
