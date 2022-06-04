@@ -15,7 +15,7 @@ doctest = false
 [dependencies]
 regex = "1.5.5"
 chrono = { version = "0.4.19", features = ["serde", "clock"], default-features = false }
-lettre = "0.10.0-rc.6"
+lettre = "0.10.0-rc.7"
 tracing = "0.1.32"
 tracing-error = "0.2.0"
 itertools = "0.10.3"
