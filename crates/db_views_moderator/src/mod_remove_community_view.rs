@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   utils::limit_and_offset,
 };
 
-type ModRemoveCommunityTuple = (ModRemoveCommunity, PersonSafe, CommunitySafe);
+type ModRemoveCommunityTuple = (ModRemoveCommunity, Option<PersonSafe>, CommunitySafe);
 
 impl ModRemoveCommunityView {
   pub fn list(
@@ -20,13 +20,21 @@ impl ModRemoveCommunityView {
     mod_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
+    hide_mod_names: bool,
   ) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = mod_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !hide_mod_names;
+    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
+
+    let admin_names_join = mod_remove_community::mod_person_id
+      .eq(person::id)
+      .and(show_mod_names_expr.or(person::id.eq(admin_person_id_join)));
     let mut query = mod_remove_community::table
-      .inner_join(person::table)
+      .left_join(person::table.on(admin_names_join))
       .inner_join(community::table)
       .select((
         mod_remove_community::all_columns,
-        Person::safe_columns_tuple(),
+        Person::safe_columns_tuple().nullable(),
         Community::safe_columns_tuple(),
       ))
       .into_boxed();
@@ -43,7 +51,8 @@ impl ModRemoveCommunityView {
       .order_by(mod_remove_community::when_.desc())
       .load::<ModRemoveCommunityTuple>(conn)?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    let results = Self::from_tuple_to_vec(res);
+    Ok(results)
   }
 }
 

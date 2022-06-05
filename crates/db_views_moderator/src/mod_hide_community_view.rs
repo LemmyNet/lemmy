@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   utils::limit_and_offset,
 };
 
-type ModHideCommunityViewTuple = (ModHideCommunity, PersonSafe, CommunitySafe);
+type ModHideCommunityViewTuple = (ModHideCommunity, Option<PersonSafe>, CommunitySafe);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
@@ -22,13 +22,21 @@ impl ModHideCommunityView {
     admin_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
+    hide_mod_names: bool,
   ) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = admin_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !hide_mod_names;
+    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
+
+    let admin_names_join = mod_hide_community::mod_person_id
+      .eq(person::id)
+      .and(show_mod_names_expr.or(person::id.eq(admin_person_id_join)));
     let mut query = mod_hide_community::table
-      .inner_join(person::table)
+      .left_join(person::table.on(admin_names_join))
       .inner_join(community::table.on(mod_hide_community::community_id.eq(community::id)))
       .select((
         mod_hide_community::all_columns,
-        Person::safe_columns_tuple(),
+        Person::safe_columns_tuple().nullable(),
         Community::safe_columns_tuple(),
       ))
       .into_boxed();
@@ -49,7 +57,8 @@ impl ModHideCommunityView {
       .order_by(mod_hide_community::when_.desc())
       .load::<ModHideCommunityViewTuple>(conn)?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    let results = Self::from_tuple_to_vec(res);
+    Ok(results)
   }
 }
 

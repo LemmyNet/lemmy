@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 
 type ModBanFromCommunityViewTuple = (
   ModBanFromCommunity,
-  PersonSafe,
+  Option<PersonSafe>,
   CommunitySafe,
   PersonSafeAlias1,
 );
@@ -24,18 +24,27 @@ impl ModBanFromCommunityView {
     conn: &PgConnection,
     community_id: Option<CommunityId>,
     mod_person_id: Option<PersonId>,
+    other_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
+    hide_mod_names: bool,
   ) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = mod_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !hide_mod_names;
+    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
+
+    let admin_names_join = mod_ban_from_community::mod_person_id
+      .eq(person::id)
+      .and(show_mod_names_expr.or(person::id.eq(admin_person_id_join)));
     let mut query = mod_ban_from_community::table
-      .inner_join(person::table.on(mod_ban_from_community::mod_person_id.eq(person::id)))
+      .left_join(person::table.on(admin_names_join))
       .inner_join(community::table)
       .inner_join(
         person_alias_1::table.on(mod_ban_from_community::other_person_id.eq(person_alias_1::id)),
       )
       .select((
         mod_ban_from_community::all_columns,
-        Person::safe_columns_tuple(),
+        Person::safe_columns_tuple().nullable(),
         Community::safe_columns_tuple(),
         PersonAlias1::safe_columns_tuple(),
       ))
@@ -49,6 +58,10 @@ impl ModBanFromCommunityView {
       query = query.filter(mod_ban_from_community::community_id.eq(community_id));
     };
 
+    if let Some(other_person_id) = other_person_id {
+      query = query.filter(mod_ban_from_community::other_person_id.eq(other_person_id));
+    };
+
     let (limit, offset) = limit_and_offset(page, limit)?;
 
     let res = query
@@ -57,7 +70,8 @@ impl ModBanFromCommunityView {
       .order_by(mod_ban_from_community::when_.desc())
       .load::<ModBanFromCommunityViewTuple>(conn)?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    let results = Self::from_tuple_to_vec(res);
+    Ok(results)
   }
 }
 

@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   utils::limit_and_offset,
 };
 
-type AdminPurgeCommentViewTuple = (AdminPurgeComment, PersonSafe, Post);
+type AdminPurgeCommentViewTuple = (AdminPurgeComment, Option<PersonSafe>, Post);
 
 impl AdminPurgeCommentView {
   pub fn list(
@@ -20,13 +20,22 @@ impl AdminPurgeCommentView {
     admin_person_id: Option<PersonId>,
     page: Option<i64>,
     limit: Option<i64>,
+    hide_mod_names: bool,
   ) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = admin_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !hide_mod_names;
+    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
+
+    let admin_names_join = admin_purge_comment::admin_person_id
+      .eq(person::id)
+      .and(show_mod_names_expr.or(person::id.eq(admin_person_id_join)));
+
     let mut query = admin_purge_comment::table
-      .inner_join(person::table.on(admin_purge_comment::admin_person_id.eq(person::id)))
+      .left_join(person::table.on(admin_names_join))
       .inner_join(post::table)
       .select((
         admin_purge_comment::all_columns,
-        Person::safe_columns_tuple(),
+        Person::safe_columns_tuple().nullable(),
         post::all_columns,
       ))
       .into_boxed();
@@ -43,7 +52,8 @@ impl AdminPurgeCommentView {
       .order_by(admin_purge_comment::when_.desc())
       .load::<AdminPurgeCommentViewTuple>(conn)?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    let results = Self::from_tuple_to_vec(res);
+    Ok(results)
   }
 }
 
