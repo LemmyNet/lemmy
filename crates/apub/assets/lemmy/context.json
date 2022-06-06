@@ -8,7 +8,7 @@
     "commentsEnabled": "pt:commentsEnabled",
     "sensitive": "as:sensitive",
     "matrixUserId": {
-      "@type": "sc:Text",
+      "@type": "xsd:string",
       "@id": "lemmy:matrixUserId"
     },
     "moderators": {
@@ -16,7 +16,7 @@
       "@id": "lemmy:moderators"
     },
     "stickied": {
-      "@type": "sc:Boolean",
+      "@type": "xsd:boolean",
       "@id": "lemmy:stickied"
     }
   }
