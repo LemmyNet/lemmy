@@ -8,7 +8,7 @@ use crate::{
 use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::UndoType;
@@ -39,8 +39,8 @@ impl UndoFollowCommunity {
       )?,
       unparsed: Default::default(),
     };
-    let inbox = vec![community.shared_inbox_or_inbox_url()];
-    send_lemmy_activity(context, &undo, &undo.id, actor, inbox, true).await
+    let inbox = vec![community.shared_inbox_or_inbox()];
+    send_lemmy_activity(context, undo, actor, inbox, true).await
   }
 }
 
@@ -77,12 +77,12 @@ impl ActivityHandler for UndoFollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let community_follower_form = CommunityFollowerForm {

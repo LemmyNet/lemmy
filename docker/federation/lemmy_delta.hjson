@@ -18,6 +18,7 @@
   federation: {
     enabled: true
     allowed_instances: ["lemmy-beta"]
+    debug: true
   }
   captcha: {
     enabled: false

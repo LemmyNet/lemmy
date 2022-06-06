@@ -17,7 +17,7 @@ use crate::{
 use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, Actor, ApubObject},
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
@@ -86,13 +86,13 @@ impl CreateOrUpdateComment {
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t
-        .dereference::<LemmyError>(context, local_instance(context), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?;
-      inboxes.push(person.shared_inbox_or_inbox_url());
+      inboxes.push(person.shared_inbox_or_inbox());
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_activity_in_community(activity, &id, actor, &community, inboxes, context).await
+    send_activity_in_community(activity, actor, &community, inboxes, context).await
   }
 }
 

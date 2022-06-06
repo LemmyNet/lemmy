@@ -6,7 +6,11 @@ use crate::{
   ActorType,
   PostOrComment,
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+};
 use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse, utils::blocking};
 use lemmy_db_schema::{
@@ -30,9 +34,7 @@ impl Report {
     reason: String,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = community_id
-      .dereference_local::<LemmyError>(context)
-      .await?;
+    let community = community_id.dereference_local(context).await?;
     let kind = FlagType::Flag;
     let id = generate_activity_id(
       kind.clone(),
@@ -40,22 +42,16 @@ impl Report {
     )?;
     let report = Report {
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(community.actor_id()),
+      to: [ObjectId::new(community.actor_id())],
       object: object_id,
       summary: reason,
       kind,
       id: id.clone(),
       unparsed: Default::default(),
     };
-    send_lemmy_activity(
-      context,
-      &report,
-      &id,
-      actor,
-      vec![community.shared_inbox_or_inbox_url()],
-      false,
-    )
-    .await
+
+    let inbox = vec![community.shared_inbox_or_inbox()];
+    send_lemmy_activity(context, report, actor, inbox, false).await
   }
 }
 
@@ -78,9 +74,8 @@ impl ActivityHandler for Report {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self
-      .to
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+    let community = self.to[0]
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -94,11 +89,11 @@ impl ActivityHandler for Report {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?
     {
       PostOrComment::Post(post) => {

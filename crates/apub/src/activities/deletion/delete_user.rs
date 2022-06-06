@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
   local_instance,
-  objects::person::ApubPerson,
+  objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
 };
 use activitypub_federation::{
@@ -11,8 +11,7 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::utils::{blocking, delete_user_account};
-use lemmy_db_schema::source::site::Site;
+use lemmy_api_common::utils::delete_user_account;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -50,7 +49,7 @@ impl ActivityHandler for DeleteUser {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     delete_user_account(actor.id, context.pool()).await?;
     Ok(())
@@ -74,12 +73,8 @@ impl DeleteUser {
       cc: vec![],
     };
 
-    let remote_sites = blocking(context.pool(), Site::read_remote_sites).await??;
-    let inboxes = remote_sites
-      .into_iter()
-      .map(|s| s.inbox_url.into())
-      .collect();
-    send_lemmy_activity(context, &delete, &id, actor, inboxes, true).await?;
+    let inboxes = remote_instance_inboxes(context.pool()).await?;
+    send_lemmy_activity(context, delete, actor, inboxes, true).await?;
     Ok(())
   }
 }

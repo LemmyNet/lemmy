@@ -10,7 +10,11 @@ use crate::{
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
   ActorType,
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+};
 use activitystreams_kinds::activity::FollowType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -56,8 +60,8 @@ impl FollowCommunity {
     .await?;
 
     let follow = FollowCommunity::new(actor, community, context)?;
-    let inbox = vec![community.inbox_url.clone().into()];
-    send_lemmy_activity(context, &follow, &follow.id, actor, inbox, true).await
+    let inbox = vec![community.shared_inbox_or_inbox()];
+    send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }
 
@@ -83,7 +87,7 @@ impl ActivityHandler for FollowCommunity {
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -97,11 +101,11 @@ impl ActivityHandler for FollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,

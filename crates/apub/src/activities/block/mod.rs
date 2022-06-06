@@ -1,5 +1,5 @@
 use crate::{
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite},
   protocol::objects::{group::Group, instance::Instance},
   ActorType,
 };
@@ -123,17 +123,4 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>
       .collect(),
     SiteOrCommunity::Community(c) => vec![c.actor_id()],
   })
-}
-
-async fn generate_instance_inboxes(
-  blocked_user: &ApubPerson,
-  pool: &DbPool,
-) -> Result<Vec<Url>, LemmyError> {
-  let mut inboxes: Vec<Url> = blocking(pool, Site::read_remote_sites)
-    .await??
-    .into_iter()
-    .map(|s| s.inbox_url.into())
-    .collect();
-  inboxes.push(blocked_user.shared_inbox_or_inbox_url());
-  Ok(inboxes)
 }

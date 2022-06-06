@@ -135,6 +135,10 @@ pub struct FederationConfig {
   /// increase it.
   #[default(64)]
   pub worker_count: u64,
+  /// Use federation debug mode. Allows connecting to http and localhost urls. Also sends outgoing
+  /// activities synchronously for easier testing. Do not use in production.
+  #[default(false)]
+  pub debug: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
