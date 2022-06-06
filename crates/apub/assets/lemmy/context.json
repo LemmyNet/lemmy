@@ -1,19 +1,23 @@
 [
   "https://www.w3.org/ns/activitystreams",
   {
-    "stickied": "as:stickied",
-    "pt": "https://join-lemmy.org#",
-    "sc": "http://schema.org#",
-    "matrixUserId": {
-      "type": "sc:Text",
-      "id": "as:alsoKnownAs"
-    },
+    "pt": "https://joinpeertube.org/ns#",
+    "lemmy": "https://join-lemmy.org/ns#",
+    "sc": "http://schema.org/",
     "sensitive": "as:sensitive",
-    "comments_enabled": {
-      "type": "sc:Boolean",
-      "id": "pt:commentsEnabled"
+    "stickied": {
+      "@type": "sc:Boolean",
+      "@id": "lemmy:stickied"
     },
-    "moderators": "as:moderators"
+    "matrixUserId": {
+      "@type": "sc:Text",
+      "@id": "lemmy:matrixUserId"
+    },
+    "commentsEnabled": "pt:commentsEnabled",
+    "moderators": {
+      "@type": "@id",
+      "@id": "lemmy:moderators"
+    }
   },
   "https://w3id.org/security/v1"
 ]
