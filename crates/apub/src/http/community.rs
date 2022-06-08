@@ -86,7 +86,7 @@ pub(crate) async fn get_apub_community_outbox(
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
   let outbox: ApubCommunityOutbox = id
-    .dereference::<LemmyError>(&outbox_data, local_instance(&context), &mut 0)
+    .dereference(&outbox_data, local_instance(&context), &mut 0)
     .await?;
   Ok(create_apub_response(&outbox.into_apub(&outbox_data).await?))
 }
@@ -104,7 +104,7 @@ pub(crate) async fn get_apub_community_moderators(
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community, context.get_ref().clone());
   let moderators: ApubCommunityModerators = id
-    .dereference::<LemmyError>(&outbox_data, local_instance(&context), &mut 0)
+    .dereference(&outbox_data, local_instance(&context), &mut 0)
     .await?;
   Ok(create_apub_response(
     &moderators.into_apub(&outbox_data).await?,

@@ -152,7 +152,7 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .creator()?
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
@@ -215,7 +215,7 @@ impl ApubObject for ApubPost {
 
     // read existing, local post if any (for generating mod log)
     let old_post = ObjectId::<ApubPost>::new(page.id.clone())
-      .dereference_local::<LemmyError>(context)
+      .dereference_local(context)
       .await;
 
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;

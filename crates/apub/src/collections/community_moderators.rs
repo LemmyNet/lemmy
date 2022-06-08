@@ -112,7 +112,7 @@ impl ApubObject for ApubCommunityModerators {
     for mod_id in apub.ordered_items {
       let mod_id = ObjectId::new(mod_id);
       let mod_user: ApubPerson = mod_id
-        .dereference::<LemmyError>(&data.1, local_instance(&data.1), request_counter)
+        .dereference(&data.1, local_instance(&data.1), request_counter)
         .await?;
 
       if !current_moderators

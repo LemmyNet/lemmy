@@ -61,7 +61,7 @@ impl UndoVote {
       unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
@@ -99,12 +99,12 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

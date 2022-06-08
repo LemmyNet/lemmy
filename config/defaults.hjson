@@ -66,6 +66,9 @@
     # see information. If running number is consistently close to the worker_count, you should
     # increase it.
     worker_count: 64
+    # Use federation debug mode. Allows connecting to http and localhost urls. Also sends outgoing
+    # activities synchronously for easier testing. Do not use in production.
+    debug: false
   }
   captcha: {
     # Whether captcha is required for signup

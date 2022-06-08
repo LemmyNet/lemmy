@@ -1,6 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{
-  core::{inbox::ActorPublicKey, signatures::PublicKey},
+  core::signatures::PublicKey,
+  traits::{Actor, ApubObject},
   InstanceSettingsBuilder,
   LocalInstance,
 };
@@ -10,7 +11,6 @@ use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool
 use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
-use std::env;
 use url::{ParseError, Url};
 
 pub mod activities;
@@ -33,7 +33,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
     let settings = InstanceSettingsBuilder::default()
       .http_fetch_retry_limit(context.settings().http_fetch_retry_limit)
       .worker_count(context.settings().federation.worker_count)
-      .testing_send_sync(env::var("APUB_TESTING_SEND_SYNC").is_ok())
+      .debug(context.settings().federation.debug)
       .verify_url_function(|url| check_apub_id_valid(url, &Settings::get()))
       .build()
       .expect("configure federation");
@@ -204,18 +204,10 @@ async fn insert_activity(
 
 /// Common methods provided by ActivityPub actors (community and person). Not all methods are
 /// implemented by all actors.
-pub trait ActorType: ActorPublicKey {
+pub trait ActorType: Actor + ApubObject {
   fn actor_id(&self) -> Url;
 
   fn private_key(&self) -> Option<String>;
-
-  fn inbox_url(&self) -> Url;
-
-  fn shared_inbox_url(&self) -> Option<Url>;
-
-  fn shared_inbox_or_inbox_url(&self) -> Url {
-    self.shared_inbox_url().unwrap_or_else(|| self.inbox_url())
-  }
 
   fn get_public_key(&self) -> PublicKey {
     PublicKey::new_main_key(self.actor_id(), self.public_key().to_string())

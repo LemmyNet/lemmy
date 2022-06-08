@@ -13,8 +13,8 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
-  core::{inbox::ActorPublicKey, object_id::ObjectId},
-  traits::ApubObject,
+  core::object_id::ObjectId,
+  traits::{Actor, ApubObject},
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
@@ -182,19 +182,19 @@ impl ActorType for ApubPerson {
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
+}
 
-  fn inbox_url(&self) -> Url {
+impl Actor for ApubPerson {
+  fn public_key(&self) -> &str {
+    &self.public_key
+  }
+
+  fn inbox(&self) -> Url {
     self.inbox_url.clone().into()
   }
 
-  fn shared_inbox_url(&self) -> Option<Url> {
+  fn shared_inbox(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(|s| s.into())
-  }
-}
-
-impl ActorPublicKey for ApubPerson {
-  fn public_key(&self) -> &str {
-    &self.public_key
   }
 }
 

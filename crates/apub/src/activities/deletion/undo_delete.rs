@@ -23,7 +23,6 @@ use lemmy_db_schema::{
       ModRemovePost,
       ModRemovePostForm,
     },
-    person::Person,
     post::Post,
   },
   traits::Crud,
@@ -76,7 +75,7 @@ impl ActivityHandler for UndoDelete {
       UndoDelete::receive_undo_remove_action(
         &self
           .actor
-          .dereference::<LemmyError>(context, local_instance(context), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await?,
         self.object.object.id(),
         context,
@@ -98,7 +97,7 @@ impl ActivityHandler for UndoDelete {
 impl UndoDelete {
   #[tracing::instrument(skip_all)]
   pub(in crate::activities::deletion) fn new(
-    actor: &Person,
+    actor: &ApubPerson,
     object: DeletableObjects,
     to: Url,
     community: Option<&Community>,

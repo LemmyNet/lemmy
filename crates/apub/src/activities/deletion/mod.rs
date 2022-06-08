@@ -21,7 +21,7 @@ use crate::{
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
-  traits::ApubObject,
+  traits::{Actor, ApubObject},
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
@@ -65,22 +65,15 @@ pub async fn send_apub_delete_in_community(
   deleted: bool,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  let (id, activity) = if deleted {
+  let actor = ApubPerson::from(actor);
+  let activity = if deleted {
     let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
-    (delete.id.clone(), AnnouncableActivities::Delete(delete))
+    AnnouncableActivities::Delete(delete)
   } else {
     let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
-    (undo.id.clone(), AnnouncableActivities::UndoDelete(undo))
+    AnnouncableActivities::UndoDelete(undo)
   };
-  send_activity_in_community(
-    activity,
-    &id,
-    &ApubPerson::from(actor),
-    &community.into(),
-    vec![],
-    context,
-  )
-  .await
+  send_activity_in_community(activity, &actor, &community.into(), vec![], context).await
 }
 
 #[tracing::instrument(skip_all)]
@@ -97,15 +90,13 @@ pub async fn send_apub_delete_private_message(
       .into();
 
   let deletable = DeletableObjects::PrivateMessage(Box::new(pm.into()));
-  let inbox = vec![recipient.shared_inbox_or_inbox_url()];
+  let inbox = vec![recipient.shared_inbox_or_inbox()];
   if deleted {
     let delete = Delete::new(actor, deletable, recipient.actor_id(), None, None, context)?;
-    let id = delete.id.clone();
-    send_lemmy_activity(context, &delete, &id, actor, inbox, true).await?;
+    send_lemmy_activity(context, delete, actor, inbox, true).await?;
   } else {
     let undo = UndoDelete::new(actor, deletable, recipient.actor_id(), None, None, context)?;
-    let id = undo.id.clone();
-    send_lemmy_activity(context, &undo, &id, actor, inbox, true).await?;
+    send_lemmy_activity(context, undo, actor, inbox, true).await?;
   };
   Ok(())
 }
@@ -238,7 +229,7 @@ async fn receive_delete_action(
     DeletableObjects::Community(community) => {
       if community.local {
         let mod_: Person = actor
-          .dereference::<LemmyError>(context, local_instance(context), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await?
           .deref()
           .clone();

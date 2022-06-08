@@ -7,10 +7,10 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  core::inbox::{receive_activity, ActorPublicKey},
+  core::inbox::receive_activity,
   data::Data,
   deser::context::WithContext,
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, Actor, ApubObject},
   APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -42,7 +42,7 @@ pub async fn shared_inbox(
   receive_lemmy_activity::<SharedInboxActivities, UserOrCommunity>(request, payload, context).await
 }
 
-pub async fn receive_lemmy_activity<Activity, Actor>(
+pub async fn receive_lemmy_activity<Activity, ActorT>(
   request: HttpRequest,
   payload: String,
   context: web::Data<LemmyContext>,
@@ -52,8 +52,8 @@ where
     + DeserializeOwned
     + Send
     + 'static,
-  Actor: ApubObject<DataType = LemmyContext, Error = LemmyError> + ActorPublicKey + Send + 'static,
-  for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
+  ActorT: ApubObject<DataType = LemmyContext, Error = LemmyError> + Actor + Send + 'static,
+  for<'de2> <ActorT as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   let activity_value: Value = serde_json::from_str(&payload)?;
   let activity: Activity = serde_json::from_value(activity_value.clone())?;
@@ -67,7 +67,7 @@ where
 
   static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
   let data = DATA.get_or_init(|| Data::new(context.get_ref().clone()));
-  receive_activity::<Activity, Actor, LemmyContext, LemmyError>(
+  receive_activity::<Activity, ActorT, LemmyContext>(
     request,
     activity,
     local_instance(&context),

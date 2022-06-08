@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    block::{generate_cc, generate_instance_inboxes, SiteOrCommunity},
+    block::{generate_cc, SiteOrCommunity},
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     send_lemmy_activity,
@@ -8,14 +8,14 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   local_instance,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   ActorType,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
   utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
@@ -57,15 +57,15 @@ impl UndoBlockUser {
       unparsed: Default::default(),
     };
 
-    let inboxes = vec![user.shared_inbox_or_inbox_url()];
+    let mut inboxes = vec![user.shared_inbox_or_inbox()];
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = generate_instance_inboxes(user, context.pool()).await?;
-        send_lemmy_activity(context, &undo, &id, mod_, inboxes, false).await
+        inboxes.append(&mut remote_instance_inboxes(context.pool()).await?);
+        send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::UndoBlockUser(undo);
-        send_activity_in_community(activity, &id, mod_, c, inboxes, context).await
+        send_activity_in_community(activity, mod_, c, inboxes, context).await
       }
     }
   }
@@ -106,17 +106,17 @@ impl ActivityHandler for UndoBlockUser {
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
-      .dereference::<LemmyError>(context, instance, request_counter)
+      .dereference(context, instance, request_counter)
       .await?;
     let blocked_person = self
       .object
       .object
-      .dereference::<LemmyError>(context, instance, request_counter)
+      .dereference(context, instance, request_counter)
       .await?;
     match self
       .object
       .target
-      .dereference::<LemmyError>(context, instance, request_counter)
+      .dereference(context, instance, request_counter)
       .await?
     {
       SiteOrCommunity::Site(_site) => {

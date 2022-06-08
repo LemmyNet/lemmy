@@ -60,10 +60,9 @@ impl Vote {
     .await??
     .into();
     let vote = Vote::new(object, actor, &community, kind, context)?;
-    let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
-    send_activity_in_community(activity, &vote_id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
@@ -103,11 +102,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
@@ -126,7 +125,7 @@ impl GetCommunity for Vote {
   ) -> Result<ApubCommunity, LemmyError> {
     let object = self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,

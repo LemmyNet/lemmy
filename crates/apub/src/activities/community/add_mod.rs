@@ -18,7 +18,11 @@ use crate::{
   protocol::activities::community::add_mod::AddMod,
   ActorType,
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+};
 use activitystreams_kinds::{activity::AddType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -56,8 +60,8 @@ impl AddMod {
     };
 
     let activity = AnnouncableActivities::AddMod(add);
-    let inboxes = vec![added_mod.shared_inbox_or_inbox_url()];
-    send_activity_in_community(activity, &id, actor, community, inboxes, context).await
+    let inboxes = vec![added_mod.shared_inbox_or_inbox()];
+    send_activity_in_community(activity, actor, community, inboxes, context).await
   }
 }
 
@@ -104,7 +108,7 @@ impl ActivityHandler for AddMod {
     let community = self.get_community(context, request_counter).await?;
     let new_mod = self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
@@ -127,7 +131,7 @@ impl ActivityHandler for AddMod {
       // write mod log
       let actor = self
         .actor
-        .dereference::<LemmyError>(context, local_instance(context), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?;
       let form = ModAddCommunityForm {
         mod_person_id: actor.id,
