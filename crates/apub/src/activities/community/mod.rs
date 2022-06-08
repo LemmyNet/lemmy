@@ -6,7 +6,7 @@ use crate::{
   protocol::activities::community::announce::AnnounceActivity,
   ActorType,
 };
-use activitypub_federation::core::object_id::ObjectId;
+use activitypub_federation::{core::object_id::ObjectId, traits::Actor};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -18,16 +18,18 @@ pub mod report;
 pub mod update;
 
 #[tracing::instrument(skip_all)]
-pub(crate) async fn send_activity_in_community<T: ActorType>(
+pub(crate) async fn send_activity_in_community<ActorT>(
   activity: AnnouncableActivities,
-  activity_id: &Url,
-  actor: &T,
+  actor: &ActorT,
   community: &ApubCommunity,
   mut inboxes: Vec<Url>,
   context: &LemmyContext,
-) -> Result<(), LemmyError> {
-  inboxes.push(community.shared_inbox_or_inbox_url());
-  send_lemmy_activity(context, &activity, activity_id, actor, inboxes, false).await?;
+) -> Result<(), LemmyError>
+where
+  ActorT: Actor + ActorType,
+{
+  inboxes.push(community.shared_inbox_or_inbox());
+  send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
 
   if community.local {
     AnnounceActivity::send(activity, community, context).await?;
@@ -44,6 +46,6 @@ async fn get_community_from_moderators_url(
 ) -> Result<ApubCommunity, LemmyError> {
   let community_id = Url::parse(&moderators.to_string().replace("/moderators", ""))?;
   ObjectId::new(community_id)
-    .dereference::<LemmyError>(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await
 }

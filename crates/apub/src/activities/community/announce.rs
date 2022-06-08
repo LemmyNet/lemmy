@@ -53,15 +53,7 @@ impl AnnounceActivity {
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
     let inboxes = community.get_follower_inboxes(context).await?;
-    send_lemmy_activity(
-      context,
-      &announce,
-      &announce.id,
-      community,
-      inboxes.clone(),
-      false,
-    )
-    .await?;
+    send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
     // Pleroma and Mastodon can't handle activities like Announce/Create/Page. So for
     // compatibility, we also send Announce/Page so that they can follow Lemmy communities.
@@ -71,15 +63,7 @@ impl AnnounceActivity {
       _ => return Ok(()),
     };
     let announce_compat = AnnounceActivity::new(object, community, context)?;
-    send_lemmy_activity(
-      context,
-      &announce_compat,
-      &announce_compat.id,
-      community,
-      inboxes,
-      false,
-    )
-    .await?;
+    send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;
     Ok(())
   }
 }

@@ -10,16 +10,16 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
-  core::{inbox::ActorPublicKey, object_id::ObjectId},
+  core::object_id::ObjectId,
   deser::values::MediaTypeHtml,
-  traits::ApubObject,
+  traits::{Actor, ApubObject},
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::site::{Site, SiteForm},
-  utils::naive_now,
+  utils::{naive_now, DbPool},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -147,19 +147,15 @@ impl ActorType for ApubSite {
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
-
-  fn inbox_url(&self) -> Url {
-    self.inbox_url.clone().into()
-  }
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    None
-  }
 }
 
-impl ActorPublicKey for ApubSite {
+impl Actor for ApubSite {
   fn public_key(&self) -> &str {
     &self.public_key
+  }
+
+  fn inbox(&self) -> Url {
+    self.inbox_url.clone().into()
   }
 }
 
@@ -181,11 +177,21 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
   // try to fetch the instance actor (to make things like instance rules available)
   let instance_id = instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
-    .dereference::<LemmyError>(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await;
   if let Err(e) = site {
     debug!("Failed to dereference site for {}: {}", instance_id, e);
   }
+}
+
+pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+  Ok(
+    blocking(pool, Site::read_remote_sites)
+      .await??
+      .into_iter()
+      .map(|s| ApubSite::from(s).shared_inbox_or_inbox())
+      .collect(),
+  )
 }
 
 #[cfg(test)]

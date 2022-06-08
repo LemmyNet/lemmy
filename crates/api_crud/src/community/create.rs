@@ -76,9 +76,7 @@ impl PerformCrud for CreateCommunity {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let community_actor_id_wrapped = ObjectId::<ApubCommunity>::new(community_actor_id.clone());
-    let community_dupe = community_actor_id_wrapped
-      .dereference_local::<LemmyError>(context)
-      .await;
+    let community_dupe = community_actor_id_wrapped.dereference_local(context).await;
     if community_dupe.is_ok() {
       return Err(LemmyError::from_message("community_already_exists"));
     }

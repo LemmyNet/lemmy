@@ -18,7 +18,11 @@ use crate::{
   protocol::activities::community::remove_mod::RemoveMod,
   ActorType,
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+};
 use activitystreams_kinds::{activity::RemoveType, public};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -56,8 +60,8 @@ impl RemoveMod {
     };
 
     let activity = AnnouncableActivities::RemoveMod(remove);
-    let inboxes = vec![removed_mod.shared_inbox_or_inbox_url()];
-    send_activity_in_community(activity, &id, actor, community, inboxes, context).await
+    let inboxes = vec![removed_mod.shared_inbox_or_inbox()];
+    send_activity_in_community(activity, actor, community, inboxes, context).await
   }
 }
 
@@ -104,7 +108,7 @@ impl ActivityHandler for RemoveMod {
     let community = self.get_community(context, request_counter).await?;
     let remove_mod = self
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let form = CommunityModeratorForm {
@@ -119,7 +123,7 @@ impl ActivityHandler for RemoveMod {
     // write mod log
     let actor = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let form = ModAddCommunityForm {
       mod_person_id: actor.id,
