@@ -1,23 +1,21 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
+  local_instance,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
-  protocol::{
-    objects::{note::Note, tombstone::Tombstone},
-    Source,
-  },
+  protocol::{objects::note::Note, Source},
   PostOrComment,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  deser::values::MediaTypeMarkdownOrHtml,
+  traits::ApubObject,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::{object::NoteType, public};
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::ApubObject,
-  values::MediaTypeMarkdownOrHtml,
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentForm},
@@ -28,8 +26,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{convert_datetime, markdown_to_html, remove_slurs},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -56,7 +54,7 @@ impl ApubObject for ApubComment {
   type DataType = LemmyContext;
   type ApubType = Note;
   type DbType = Comment;
-  type TombstoneType = Tombstone;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -128,10 +126,6 @@ impl ApubObject for ApubComment {
     Ok(note)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(self.ap_id.clone().into()))
-  }
-
   #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
@@ -148,7 +142,7 @@ impl ApubObject for ApubComment {
       Community::read(conn, community_id)
     })
     .await??;
-    check_is_apub_id_valid(note.id.inner(), community.local, &context.settings())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), community.local, &context.settings())?;
     verify_is_remote_object(note.id.inner())?;
     verify_person_in_community(
       &note.attributed_to,
@@ -174,7 +168,7 @@ impl ApubObject for ApubComment {
   ) -> Result<ApubComment, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, context.client(), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
 

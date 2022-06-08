@@ -1,27 +1,24 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
+  local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
-    objects::{
-      page::{Attachment, AttributedTo, Page, PageType},
-      tombstone::Tombstone,
-    },
+    objects::page::{Attachment, AttributedTo, Page, PageType},
     ImageObject,
     Source,
   },
 };
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  deser::values::MediaTypeMarkdownOrHtml,
+  traits::ApubObject,
+  utils::verify_domains_match,
+};
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{request::fetch_site_data, utils::blocking};
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::ApubObject,
-  values::MediaTypeMarkdownOrHtml,
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
-  self,
   source::{
     community::Community,
     moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
@@ -29,10 +26,11 @@ use lemmy_db_schema::{
     post::{Post, PostForm},
   },
   traits::Crud,
+  {self},
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -59,7 +57,7 @@ impl ApubObject for ApubPost {
   type DataType = LemmyContext;
   type ApubType = Page;
   type DbType = Post;
-  type TombstoneType = Tombstone;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -123,10 +121,6 @@ impl ApubObject for ApubPost {
     Ok(page)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    Ok(Tombstone::new(self.ap_id.clone().into()))
-  }
-
   #[tracing::instrument(skip_all)]
   async fn verify(
     page: &Page,
@@ -142,7 +136,7 @@ impl ApubObject for ApubPost {
     };
 
     let community = page.extract_community(context, request_counter).await?;
-    check_is_apub_id_valid(page.id.inner(), community.local, &context.settings())?;
+    check_apub_id_valid_with_strictness(page.id.inner(), community.local, &context.settings())?;
     verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
@@ -158,7 +152,7 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .creator()?
-      .dereference(context, context.client(), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
@@ -173,15 +167,14 @@ impl ApubObject for ApubPost {
         // url sent by lemmy (old)
         page.url
       };
-      let thumbnail_url: Option<Url> = page.image.map(|i| i.url);
-      let (metadata_res, pictrs_thumbnail) = if let Some(url) = &url {
+      let (metadata_res, thumbnail_url) = if let Some(url) = &url {
         fetch_site_data(context.client(), &context.settings(), Some(url)).await
       } else {
-        (None, thumbnail_url)
+        (None, page.image.map(|i| i.url.into()))
       };
-      let (embed_title, embed_description, embed_html) = metadata_res
-        .map(|u| (u.title, u.description, u.html))
-        .unwrap_or((None, None, None));
+      let (embed_title, embed_description, embed_video_url) = metadata_res
+        .map(|u| (u.title, u.description, u.embed_video_url))
+        .unwrap_or_default();
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
@@ -201,8 +194,8 @@ impl ApubObject for ApubPost {
         stickied: page.stickied,
         embed_title,
         embed_description,
-        embed_html,
-        thumbnail_url: pictrs_thumbnail.map(|u| u.into()),
+        embed_video_url,
+        thumbnail_url,
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
       }
@@ -222,7 +215,7 @@ impl ApubObject for ApubPost {
 
     // read existing, local post if any (for generating mod log)
     let old_post = ObjectId::<ApubPost>::new(page.id.clone())
-      .dereference_local(context)
+      .dereference_local::<LemmyError>(context)
       .await;
 
     let post = blocking(context.pool(), move |conn| Post::upsert(conn, &form)).await??;

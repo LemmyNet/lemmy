@@ -1,5 +1,5 @@
 use console_subscriber::ConsoleLayer;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use opentelemetry::{
   sdk::{propagation::TraceContextPropagator, Resource},
   KeyValue,

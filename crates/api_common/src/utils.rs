@@ -29,9 +29,9 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   claims::Claims,
   email::{send_email, translations::Lang},
+  error::LemmyError,
   settings::structs::Settings,
   utils::generate_random_string,
-  LemmyError,
 };
 use rosetta_i18n::{Language, LanguageId};
 use std::str::FromStr;

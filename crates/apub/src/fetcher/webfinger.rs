@@ -1,11 +1,9 @@
+use crate::{local_instance, ActorType};
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-};
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::{request::retry, LemmyError};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -34,7 +32,7 @@ pub(crate) async fn webfinger_resolve_actor<Kind>(
   request_counter: &mut i32,
 ) -> Result<DbUrl, LemmyError>
 where
-  Kind: ApubObject<DataType = LemmyContext> + ActorType + Send + 'static,
+  Kind: ApubObject<DataType = LemmyContext, Error = LemmyError> + ActorType + Send + 'static,
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   let protocol = context.settings().get_protocol_string();
@@ -53,7 +51,7 @@ where
     return Err(LemmyError::from_message("Request retry limit reached"));
   }
 
-  let response = retry(|| context.client().get(&fetch_url).send()).await?;
+  let response = context.client().get(&fetch_url).send().await?;
 
   let res: WebfingerResponse = response.json().await.map_err(LemmyError::from)?;
 
@@ -71,7 +69,7 @@ where
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)
-      .dereference(context, context.client(), request_counter)
+      .dereference::<LemmyError>(context, local_instance(context), request_counter)
       .await;
     if object.is_ok() {
       return object.map(|o| o.actor_id().into());

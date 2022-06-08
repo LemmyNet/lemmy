@@ -1,11 +1,12 @@
 use crate::{
   fetcher::webfinger::webfinger_resolve_actor,
+  local_instance,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::objects::{group::Group, note::Note, page::Page, person::Person},
 };
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
@@ -23,10 +24,11 @@ pub async fn search_by_apub_id(
   context: &LemmyContext,
 ) -> Result<SearchableObjects, LemmyError> {
   let request_counter = &mut 0;
+  let instance = local_instance(context);
   match Url::parse(query) {
     Ok(url) => {
       ObjectId::new(url)
-        .dereference(context, context.client(), request_counter)
+        .dereference::<LemmyError>(context, instance, request_counter)
         .await
     }
     Err(_) => {
@@ -37,7 +39,7 @@ pub async fn search_by_apub_id(
             webfinger_resolve_actor::<ApubPerson>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Person(
             ObjectId::new(id)
-              .dereference(context, context.client(), request_counter)
+              .dereference::<LemmyError>(context, instance, request_counter)
               .await?,
           ))
         }
@@ -46,7 +48,7 @@ pub async fn search_by_apub_id(
             webfinger_resolve_actor::<ApubCommunity>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Community(
             ObjectId::new(id)
-              .dereference(context, context.client(), request_counter)
+              .dereference::<LemmyError>(context, instance, request_counter)
               .await?,
           ))
         }
@@ -79,7 +81,7 @@ impl ApubObject for SearchableObjects {
   type DataType = LemmyContext;
   type ApubType = SearchableApubTypes;
   type DbType = ();
-  type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     match self {
@@ -130,10 +132,6 @@ impl ApubObject for SearchableObjects {
   }
 
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
-    unimplemented!()
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
     unimplemented!()
   }
 

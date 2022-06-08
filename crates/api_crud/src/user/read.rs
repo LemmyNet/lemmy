@@ -13,7 +13,7 @@ use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson}
 use lemmy_db_schema::source::person::Person;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

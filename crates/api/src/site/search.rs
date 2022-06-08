@@ -16,7 +16,7 @@ use lemmy_db_views_actor::{
   community_view::CommunityQueryBuilder,
   person_view::PersonQueryBuilder,
 };
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

@@ -2,8 +2,11 @@ use crate::{
   objects::instance::ApubSite,
   protocol::{ImageObject, Source},
 };
+use activitypub_federation::{
+  core::{object_id::ObjectId, signatures::PublicKey},
+  deser::{helpers::deserialize_skip_error, values::MediaTypeHtml},
+};
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, values::MediaTypeHtml};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -30,7 +33,7 @@ pub struct Instance {
 
   // sidebar
   pub(crate) content: Option<String>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   // short instance description
   pub(crate) summary: Option<String>,

@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_server"
-version = "0.16.3"
+version = "0.16.5"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -23,8 +23,6 @@ members = [
     "crates/api",
     "crates/api_crud",
     "crates/api_common",
-    "crates/apub_lib",
-    "crates/apub_lib_derive",
     "crates/apub",
     "crates/utils",
     "crates/db_schema",
@@ -36,15 +34,15 @@ members = [
 ]
 
 [dependencies]
-lemmy_api = { version = "=0.16.3", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.16.3", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.16.3", path = "./crates/apub" }
-lemmy_apub_lib = { version = "=0.16.3", path = "./crates/apub_lib" }
-lemmy_utils = { version = "=0.16.3", path = "./crates/utils" }
-lemmy_db_schema = { version = "=0.16.3", path = "./crates/db_schema" }
-lemmy_api_common = { version = "=0.16.3", path = "crates/api_common" }
-lemmy_websocket = { version = "=0.16.3", path = "./crates/websocket" }
-lemmy_routes = { version = "=0.16.3", path = "./crates/routes" }
+lemmy_api = { version = "=0.16.5", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.16.5", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.16.5", path = "./crates/apub" }
+lemmy_utils = { version = "=0.16.5", path = "./crates/utils" }
+lemmy_db_schema = { version = "=0.16.5", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.16.5", path = "crates/api_common" }
+lemmy_websocket = { version = "=0.16.5", path = "./crates/websocket" }
+lemmy_routes = { version = "=0.16.5", path = "./crates/routes" }
+activitypub_federation = "0.1.0"
 diesel = "1.4.8"
 diesel_migrations = "1.4.0"
 serde = { version = "1.0.136", features = ["derive"] }
@@ -62,6 +60,7 @@ reqwest-tracing = "0.2.1"
 clokwerk = "0.3.5"
 doku = "0.11.0"
 parking_lot = "0.12.0"
+reqwest-retry = "0.1.5"
 console-subscriber = { version = "0.1.3", optional = true }
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"], optional = true }
 opentelemetry-otlp = { version = "0.10.0", optional = true }

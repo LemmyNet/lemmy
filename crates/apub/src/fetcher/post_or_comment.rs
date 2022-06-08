@@ -2,9 +2,9 @@ use crate::{
   objects::{comment::ApubComment, post::ApubPost},
   protocol::objects::{note::Note, page::Page},
 };
+use activitypub_federation::traits::ApubObject;
 use chrono::NaiveDateTime;
-use lemmy_apub_lib::traits::ApubObject;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
@@ -27,7 +27,7 @@ impl ApubObject for PostOrComment {
   type DataType = LemmyContext;
   type ApubType = PageOrNote;
   type DbType = ();
-  type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -57,10 +57,6 @@ impl ApubObject for PostOrComment {
   }
 
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
-    unimplemented!()
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
     unimplemented!()
   }
 

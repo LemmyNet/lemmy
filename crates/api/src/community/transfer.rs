@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
-use lemmy_utils::{location_info, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, location_info, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 // TODO: we dont do anything for federation here, it should be updated the next time the community

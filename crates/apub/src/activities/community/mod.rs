@@ -1,11 +1,13 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::community::ApubCommunity,
   protocol::activities::community::announce::AnnounceActivity,
+  ActorType,
 };
-use lemmy_apub_lib::{object_id::ObjectId, traits::ActorType};
-use lemmy_utils::LemmyError;
+use activitypub_federation::core::object_id::ObjectId;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -42,6 +44,6 @@ async fn get_community_from_moderators_url(
 ) -> Result<ApubCommunity, LemmyError> {
   let community_id = Url::parse(&moderators.to_string().replace("/moderators", ""))?;
   ObjectId::new(community_id)
-    .dereference(context, context.client(), request_counter)
+    .dereference::<LemmyError>(context, local_instance(context), request_counter)
     .await
 }

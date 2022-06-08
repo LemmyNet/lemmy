@@ -261,7 +261,7 @@ test('Remove a post from admin and community on same instance', async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  // let alphaPost = await getPost(alpha, postRes.post_view.post.id);
+  let alphaPost = await getPost(alpha, postRes.post_view.post.id);
   // expect(alphaPost.post_view.post.removed).toBe(true); // TODO this shouldn't be commented
   // assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
@@ -290,17 +290,17 @@ test('Enforce site ban for federated user', async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
   expect(alphaUserJwt).toBeDefined();
-  let alphaUser: API = {
+  let alpha_user: API = {
       client: alpha.client,
       auth: alphaUserJwt.jwt,
   };
-  let alphaUserActorId = (await getSite(alphaUser)).my_user.local_user_view.person.actor_id;
+  let alphaUserActorId = (await getSite(alpha_user)).my_user.local_user_view.person.actor_id;
   expect(alphaUserActorId).toBeDefined();
-  let alphaPerson = (await resolvePerson(alphaUser, alphaUserActorId)).person;
+  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId)).person;
   expect(alphaPerson).toBeDefined();
 
   // alpha makes post in beta community, it federates to beta instance
-  let postRes1 = await createPost(alphaUser, betaCommunity.community.id);
+  let postRes1 = await createPost(alpha_user, betaCommunity.community.id);
   let searchBeta1 = await searchPostLocal(beta, postRes1.post_view.post);
   expect(searchBeta1.posts[0]).toBeDefined();
 
@@ -321,7 +321,7 @@ test('Enforce site ban for federated user', async () => {
   expect(unBanAlpha.banned).toBe(false);
 
   // alpha makes new post in beta community, it federates
-  let postRes2 = await createPost(alphaUser, betaCommunity.community.id);
+  let postRes2 = await createPost(alpha_user, betaCommunity.community.id);
   let searchBeta3 = await searchPostLocal(beta, postRes2.post_view.post);
   expect(searchBeta3.posts[0]).toBeDefined();
 

@@ -1,4 +1,5 @@
 use crate::newtypes::DbUrl;
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
@@ -8,8 +9,7 @@ use diesel::{
   Connection,
   PgConnection,
 };
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{env, env::VarError, io::Write};

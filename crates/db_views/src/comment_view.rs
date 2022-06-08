@@ -673,7 +673,7 @@ mod tests {
         nsfw: false,
         embed_title: None,
         embed_description: None,
-        embed_html: None,
+        embed_video_url: None,
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,

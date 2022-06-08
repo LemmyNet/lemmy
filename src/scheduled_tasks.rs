@@ -3,7 +3,7 @@ use clokwerk::{Scheduler, TimeUnits};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_db_schema::{source::activity::Activity, utils::DbPool};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use std::{thread, time::Duration};
 use tracing::info;
 

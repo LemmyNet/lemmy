@@ -14,7 +14,7 @@ use lemmy_api_common::{
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

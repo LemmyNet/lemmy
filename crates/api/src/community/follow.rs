@@ -1,7 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  community::{FollowCommunity, FollowCommunityResponse},
+  community::{CommunityResponse, FollowCommunity},
   utils::{
     blocking,
     check_community_ban,
@@ -20,20 +20,20 @@ use lemmy_db_schema::{
   source::community::{Community, CommunityFollower, CommunityFollowerForm},
   traits::{Crud, Followable},
 };
-use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for FollowCommunity {
-  type Response = FollowCommunityResponse;
+  type Response = CommunityResponse;
 
   #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
@@ -47,7 +47,7 @@ impl Perform for FollowCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
-      pending: false, // Don't worry, this form isn't used for remote follows
+      pending: false,
     };
 
     if community.local {
@@ -82,14 +82,18 @@ impl Perform for FollowCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_follower_view = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::read(conn, community_id, person_id)
+    let mut community_view = blocking(context.pool(), move |conn| {
+      CommunityView::read(conn, community_id, Some(person_id))
     })
-    .await?
-    .ok();
+    .await??;
 
-    Ok(Self::Response {
-      community_follower_view,
-    })
+    // TODO: this needs to return a "pending" state, until Accept is received from the remote server
+    // For now, just assume that remote follows are accepted.
+    // Otherwise, the subscribed will be null
+    if !community.local {
+      community_view.subscribed = data.follow;
+    }
+
+    Ok(CommunityResponse { community_view })
   }
 }
