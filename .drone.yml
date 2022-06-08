@@ -22,13 +22,6 @@ steps:
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
 
-  - name: check with different features
-    image: clux/muslrust:1.59.0
-    commands:
-      - cargo install cargo-workspaces
-      - cargo workspaces exec cargo check --no-default-features
-      - cargo workspaces exec cargo check --all-features
-
   - name: cargo clippy
     image: clux/muslrust:1.59.0
     commands:
@@ -53,6 +46,13 @@ steps:
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
+
+  - name: check with different features
+    image: clux/muslrust:1.59.0
+    commands:
+      - cargo install cargo-workspaces
+      - cargo workspaces exec cargo check --no-default-features
+      - cargo workspaces exec cargo check --all-features
 
   - name: cargo build
     image: clux/muslrust:1.59.0
