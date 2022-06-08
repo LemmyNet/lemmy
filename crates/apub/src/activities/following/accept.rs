@@ -7,7 +7,7 @@ use crate::{
 use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::AcceptType;
@@ -24,14 +24,11 @@ impl AcceptFollowCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = follow
-      .object
-      .dereference_local::<LemmyError>(context)
-      .await?;
+    let community = follow.object.dereference_local(context).await?;
     let person = follow
       .actor
       .clone()
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let accept = AcceptFollowCommunity {
       actor: ObjectId::new(community.actor_id()),
@@ -43,8 +40,8 @@ impl AcceptFollowCommunity {
       )?,
       unparsed: Default::default(),
     };
-    let inbox = vec![person.inbox_url()];
-    send_lemmy_activity(context, &accept, &accept.id, &community, inbox, true).await
+    let inbox = vec![person.shared_inbox_or_inbox()];
+    send_lemmy_activity(context, accept, &community, inbox, true).await
   }
 }
 
@@ -81,12 +78,12 @@ impl ActivityHandler for AcceptFollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     // This will throw an error if no follow was requested
     blocking(context.pool(), move |conn| {

@@ -56,7 +56,7 @@ impl Note {
     let parent = Box::pin(
       self
         .in_reply_to
-        .dereference::<LemmyError>(context, local_instance(context), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?,
     );
     match parent.deref() {

@@ -2,7 +2,6 @@ use crate::{
   activities::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_is_public,
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
   },
@@ -62,7 +61,7 @@ impl UndoVote {
       unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
@@ -85,7 +84,6 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &self.cc)?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
@@ -101,12 +99,12 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
       .object
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

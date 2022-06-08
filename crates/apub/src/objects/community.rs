@@ -13,8 +13,8 @@ use crate::{
   ActorType,
 };
 use activitypub_federation::{
-  core::{inbox::ActorPublicKey, object_id::ObjectId},
-  traits::ApubObject,
+  core::object_id::ObjectId,
+  traits::{Actor, ApubObject},
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
@@ -139,14 +139,14 @@ impl ApubObject for ApubCommunity {
 
     group
       .outbox
-      .dereference::<LemmyError>(&outbox_data, local_instance(context), request_counter)
+      .dereference(&outbox_data, local_instance(context), request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = &group.moderators {
       moderators
-        .dereference::<LemmyError>(&outbox_data, local_instance(context), request_counter)
+        .dereference(&outbox_data, local_instance(context), request_counter)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();
@@ -158,26 +158,26 @@ impl ApubObject for ApubCommunity {
   }
 }
 
+impl Actor for ApubCommunity {
+  fn public_key(&self) -> &str {
+    &self.public_key
+  }
+
+  fn inbox(&self) -> Url {
+    self.inbox_url.clone().into()
+  }
+
+  fn shared_inbox(&self) -> Option<Url> {
+    self.shared_inbox_url.clone().map(|s| s.into())
+  }
+}
+
 impl ActorType for ApubCommunity {
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
   }
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
-  }
-
-  fn inbox_url(&self) -> Url {
-    self.inbox_url.clone().into()
-  }
-
-  fn shared_inbox_url(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into())
-  }
-}
-
-impl ActorPublicKey for ApubCommunity {
-  fn public_key(&self) -> &str {
-    &self.public_key
   }
 }
 

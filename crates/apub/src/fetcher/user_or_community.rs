@@ -2,7 +2,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
 };
-use activitypub_federation::{core::inbox::ActorPublicKey, traits::ApubObject};
+use activitypub_federation::traits::{Actor, ApubObject};
 use chrono::NaiveDateTime;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -102,11 +102,15 @@ impl ApubObject for UserOrCommunity {
   }
 }
 
-impl ActorPublicKey for UserOrCommunity {
+impl Actor for UserOrCommunity {
   fn public_key(&self) -> &str {
     match self {
       UserOrCommunity::User(p) => p.public_key(),
       UserOrCommunity::Community(p) => p.public_key(),
     }
+  }
+
+  fn inbox(&self) -> Url {
+    unimplemented!()
   }
 }

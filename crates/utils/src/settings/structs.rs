@@ -135,6 +135,10 @@ pub struct FederationConfig {
   /// increase it.
   #[default(64)]
   pub worker_count: u64,
+  /// Use federation debug mode. Allows connecting to http and localhost urls. Also sends outgoing
+  /// activities synchronously for easier testing. Do not use in production.
+  #[default(false)]
+  pub debug: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -183,40 +187,13 @@ pub struct SetupConfig {
   #[doku(example = "admin")]
   pub admin_username: String,
   /// Password for the admin user. It must be at least 10 characters.
-  #[doku(example = "my_passwd_longer_than_ten_characters")]
+  #[doku(example = "tf6HHDS4RolWfFhk4Rq9")]
   pub admin_password: String,
   /// Name of the site (can be changed later)
   #[doku(example = "My Lemmy Instance")]
   pub site_name: String,
   /// Email for the admin user (optional, can be omitted and set later through the website)
+  #[doku(example = "user@example.com")]
   #[default(None)]
   pub admin_email: Option<String>,
-  #[default(None)]
-  pub sidebar: Option<String>,
-  #[default(None)]
-  pub description: Option<String>,
-  #[default(None)]
-  pub icon: Option<String>,
-  #[default(None)]
-  pub banner: Option<String>,
-  #[default(None)]
-  pub enable_downvotes: Option<bool>,
-  #[default(None)]
-  pub open_registration: Option<bool>,
-  #[default(None)]
-  pub enable_nsfw: Option<bool>,
-  #[default(None)]
-  pub community_creation_admin_only: Option<bool>,
-  #[default(None)]
-  pub require_email_verification: Option<bool>,
-  #[default(None)]
-  pub require_application: Option<bool>,
-  #[default(None)]
-  pub application_question: Option<String>,
-  #[default(None)]
-  pub private_instance: Option<bool>,
-  #[default(None)]
-  pub default_theme: Option<String>,
-  #[default(None)]
-  pub default_post_listing_type: Option<String>,
 }

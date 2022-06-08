@@ -10,7 +10,7 @@ use crate::{
 use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, Actor, ApubObject},
   utils::verify_domains_match,
 };
 use lemmy_api_common::utils::blocking;
@@ -40,13 +40,13 @@ impl CreateOrUpdatePrivateMessage {
     let create_or_update = CreateOrUpdatePrivateMessage {
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
-      to: ObjectId::new(recipient.actor_id()),
+      to: [ObjectId::new(recipient.actor_id())],
       object: private_message.into_apub(context).await?,
       kind,
       unparsed: Default::default(),
     };
-    let inbox = vec![recipient.shared_inbox_or_inbox_url()];
-    send_lemmy_activity(context, &create_or_update, &id, actor, inbox, true).await
+    let inbox = vec![recipient.shared_inbox_or_inbox()];
+    send_lemmy_activity(context, create_or_update, actor, inbox, true).await
   }
 }
 
@@ -71,7 +71,7 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-    verify_domains_match(self.to.inner(), self.object.to.inner())?;
+    verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
     ApubPrivateMessage::verify(&self.object, self.actor.inner(), context, request_counter).await?;
     Ok(())
   }

@@ -7,8 +7,9 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  core::{activity_queue::SendActivity, object_id::ObjectId},
+  core::{activity_queue::send_activity, object_id::ObjectId},
   deser::context::WithContext,
+  traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
@@ -39,7 +40,7 @@ async fn verify_person(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference::<LemmyError>(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
   if person.banned {
     let err = anyhow!("Person {} is banned", person_id);
@@ -58,7 +59,7 @@ pub(crate) async fn verify_person_in_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference::<LemmyError>(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
@@ -91,7 +92,7 @@ pub(crate) async fn verify_mod_action(
 ) -> Result<(), LemmyError> {
   if community.local {
     let actor = mod_id
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     // Note: this will also return true for admins in addition to mods, but as we dont know about
@@ -166,42 +167,31 @@ where
 }
 
 #[tracing::instrument(skip_all)]
-async fn send_lemmy_activity<T: Serialize>(
+async fn send_lemmy_activity<Activity, ActorT>(
   context: &LemmyContext,
-  activity: &T,
-  activity_id: &Url,
-  actor: &dyn ActorType,
-  inboxes: Vec<Url>,
+  activity: Activity,
+  actor: &ActorT,
+  inbox: Vec<Url>,
   sensitive: bool,
-) -> Result<(), LemmyError> {
-  if !context.settings().federation.enabled || inboxes.is_empty() {
-    return Ok(());
-  }
+) -> Result<(), LemmyError>
+where
+  Activity: ActivityHandler + Serialize,
+  ActorT: Actor + ActorType,
+  Activity: ActivityHandler<Error = LemmyError>,
+{
+  info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
-  info!("Sending activity {}", activity_id.to_string());
-
-  // Don't send anything to ourselves
-  // TODO: this should be a debug assert
-  let hostname = context.settings().get_hostname_without_port()?;
-  let inboxes: Vec<Url> = inboxes
-    .into_iter()
-    .filter(|i| i.domain().expect("valid inbox url") != hostname)
-    .collect();
-
-  let serialised_activity = serde_json::to_string(&activity)?;
-
   let object_value = serde_json::to_value(&activity)?;
-  insert_activity(activity_id, object_value, true, sensitive, context.pool()).await?;
+  insert_activity(activity.id(), object_value, true, sensitive, context.pool()).await?;
 
-  SendActivity {
-    activity_id: activity_id.clone(),
-    actor_public_key: actor.get_public_key(),
-    actor_private_key: actor.private_key().expect("actor has private key"),
-    inboxes,
-    activity: serialised_activity,
-  }
-  .send(local_instance(context))
+  send_activity(
+    activity,
+    actor.get_public_key(),
+    actor.private_key().expect("actor has private key"),
+    inbox,
+    local_instance(context),
+  )
   .await?;
 
   Ok(())

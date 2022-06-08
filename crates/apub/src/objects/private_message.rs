@@ -90,7 +90,7 @@ impl ApubObject for ApubPrivateMessage {
       r#type: ChatMessageType::ChatMessage,
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: ObjectId::new(creator.actor_id),
-      to: ObjectId::new(recipient.actor_id),
+      to: [ObjectId::new(recipient.actor_id)],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
@@ -112,7 +112,7 @@ impl ApubObject for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, &Settings::get())?;
     let person = note
       .attributed_to
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
@@ -128,11 +128,10 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
-    let recipient = note
-      .to
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+    let recipient = note.to[0]
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let form = PrivateMessageForm {

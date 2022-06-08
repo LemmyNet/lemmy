@@ -49,7 +49,7 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
-    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
@@ -139,7 +139,7 @@ impl GetCommunity for UpdateCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let cid = ObjectId::new(self.object.id.clone());
     cid
-      .dereference::<LemmyError>(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await
   }
 }

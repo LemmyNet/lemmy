@@ -66,6 +66,9 @@
     # see information. If running number is consistently close to the worker_count, you should
     # increase it.
     worker_count: 64
+    # Use federation debug mode. Allows connecting to http and localhost urls. Also sends outgoing
+    # activities synchronously for easier testing. Do not use in production.
+    debug: false
   }
   captcha: {
     # Whether captcha is required for signup
@@ -91,25 +94,11 @@
     # Username for the admin user
     admin_username: "admin"
     # Password for the admin user. It must be at least 10 characters.
-    admin_password: "my_passwd_longer_than_ten_characters"
+    admin_password: "tf6HHDS4RolWfFhk4Rq9"
     # Name of the site (can be changed later)
     site_name: "My Lemmy Instance"
     # Email for the admin user (optional, can be omitted and set later through the website)
-    admin_email: "string"
-    sidebar: "string"
-    description: "string"
-    icon: "string"
-    banner: "string"
-    enable_downvotes: true
-    open_registration: true
-    enable_nsfw: true
-    community_creation_admin_only: true
-    require_email_verification: true
-    require_application: true
-    application_question: "string"
-    private_instance: true
-    default_theme: "string"
-    default_post_listing_type: "string"
+    admin_email: "user@example.com"
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"

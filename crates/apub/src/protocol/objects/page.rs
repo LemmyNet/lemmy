@@ -93,7 +93,7 @@ impl Page {
   /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
   pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
     let old_post = ObjectId::<ApubPost>::new(self.id.clone())
-      .dereference_local::<LemmyError>(context)
+      .dereference_local(context)
       .await;
 
     let stickied_changed = Page::is_stickied_changed(&old_post, &self.stickied);
@@ -139,7 +139,7 @@ impl Page {
           if let Some(cid) = iter.next() {
             let cid = ObjectId::new(cid.clone());
             if let Ok(c) = cid
-              .dereference::<LemmyError>(context, local_instance(context), request_counter)
+              .dereference(context, local_instance(context), request_counter)
               .await
             {
               break Ok(c);
@@ -154,7 +154,7 @@ impl Page {
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
           .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
-          .dereference::<LemmyError>(context, local_instance(context), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await
       }
     }

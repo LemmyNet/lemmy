@@ -29,6 +29,8 @@
     ·
     <a href="https://join-lemmy.org/docs/en/index.html">Documentation</a>
     ·
+    <a href="https://matrix.to/#/#lemmy-space:matrix.org">Matrix Chat</a>
+    ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
