@@ -3,7 +3,6 @@ use crate::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     verify_activity,
-    verify_is_public,
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
   },
@@ -74,7 +73,6 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &self.cc)?;
     verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
