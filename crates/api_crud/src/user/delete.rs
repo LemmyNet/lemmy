@@ -33,7 +33,13 @@ impl PerformCrud for DeleteAccount {
       return Err(LemmyError::from_message("password_incorrect"));
     }
 
-    delete_user_account(local_user_view.person.id, context.pool()).await?;
+    delete_user_account(
+      local_user_view.person.id,
+      context.pool(),
+      &context.settings(),
+      context.client(),
+    )
+    .await?;
     DeleteUser::send(&local_user_view.person.into(), context).await?;
 
     Ok(DeleteAccountResponse {})

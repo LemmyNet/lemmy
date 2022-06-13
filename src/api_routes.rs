@@ -232,6 +232,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/registration_application/approve",
             web::put().to(route_post::<ApproveRegistrationApplication>),
           ),
+      )
+      .service(
+        web::scope("/admin/purge")
+          .wrap(rate_limit.message())
+          .route("/person", web::post().to(route_post::<PurgePerson>))
+          .route("/community", web::post().to(route_post::<PurgeCommunity>))
+          .route("/post", web::post().to(route_post::<PurgePost>))
+          .route("/comment", web::post().to(route_post::<PurgeComment>)),
       ),
   );
 }

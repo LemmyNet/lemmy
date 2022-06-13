@@ -104,6 +104,16 @@ pub async fn match_websocket_operation(
     UserOperation::SaveSiteConfig => {
       do_websocket_operation::<SaveSiteConfig>(context, id, op, data).await
     }
+    UserOperation::PurgePerson => {
+      do_websocket_operation::<PurgePerson>(context, id, op, data).await
+    }
+    UserOperation::PurgeCommunity => {
+      do_websocket_operation::<PurgeCommunity>(context, id, op, data).await
+    }
+    UserOperation::PurgePost => do_websocket_operation::<PurgePost>(context, id, op, data).await,
+    UserOperation::PurgeComment => {
+      do_websocket_operation::<PurgeComment>(context, id, op, data).await
+    }
     UserOperation::Search => do_websocket_operation::<Search>(context, id, op, data).await,
     UserOperation::ResolveObject => {
       do_websocket_operation::<ResolveObject>(context, id, op, data).await

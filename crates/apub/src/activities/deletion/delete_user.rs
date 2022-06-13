@@ -51,7 +51,13 @@ impl ActivityHandler for DeleteUser {
       .actor
       .dereference(context, local_instance(context), request_counter)
       .await?;
-    delete_user_account(actor.id, context.pool()).await?;
+    delete_user_account(
+      actor.id,
+      context.pool(),
+      &context.settings(),
+      context.client(),
+    )
+    .await?;
     Ok(())
   }
 }

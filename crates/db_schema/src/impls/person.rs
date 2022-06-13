@@ -228,6 +228,8 @@ impl Person {
     diesel::update(person.find(person_id))
       .set((
         display_name.eq::<Option<String>>(None),
+        avatar.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
         bio.eq::<Option<String>>(None),
         matrix_user_id.eq::<Option<String>>(None),
         deleted.eq(true),
@@ -263,6 +265,15 @@ impl Person {
   pub fn leave_admin(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(admin.eq(false))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn remove_avatar_and_banner(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+    diesel::update(person.find(person_id))
+      .set((
+        avatar.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
+      ))
       .get_result::<Self>(conn)
   }
 }

@@ -1,7 +1,12 @@
 use crate::post::SiteMetadata;
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::{error::LemmyError, settings::structs::Settings, version::VERSION};
+use lemmy_utils::{
+  error::LemmyError,
+  settings::structs::Settings,
+  version::VERSION,
+  REQWEST_TIMEOUT,
+};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -105,32 +110,75 @@ pub(crate) struct PictrsFile {
   delete_token: String,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct PictrsPurgeResponse {
+  msg: String,
+}
+
 #[tracing::instrument(skip_all)]
 pub(crate) async fn fetch_pictrs(
   client: &ClientWithMiddleware,
   settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
-  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
-    is_image_content_type(client, image_url).await?;
+  let pictrs_config = settings.pictrs_config()?;
+  is_image_content_type(client, image_url).await?;
 
-    let fetch_url = format!(
-      "{}/image/download?url={}",
-      pictrs_url,
-      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
-    );
+  let fetch_url = format!(
+    "{}/image/download?url={}",
+    pictrs_config.url,
+    utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
+  );
 
-    let response = client.get(&fetch_url).send().await?;
+  let response = client
+    .get(&fetch_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?;
 
-    let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
+  let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
 
-    if response.msg == "ok" {
-      Ok(response)
-    } else {
-      Err(LemmyError::from_message(&response.msg))
-    }
+  if response.msg == "ok" {
+    Ok(response)
   } else {
-    Err(LemmyError::from_message("pictrs_url not set up in config"))
+    Err(LemmyError::from_message(&response.msg))
+  }
+}
+
+/// Purges an image from pictrs
+/// Note: This should often be coerced from a Result to .ok() in order to fail softly, because:
+/// - It might fail due to image being not local
+/// - It might not be an image
+/// - Pictrs might not be set up
+pub async fn purge_image_from_pictrs(
+  client: &ClientWithMiddleware,
+  settings: &Settings,
+  image_url: &Url,
+) -> Result<(), LemmyError> {
+  let pictrs_config = settings.pictrs_config()?;
+  is_image_content_type(client, image_url).await?;
+
+  let alias = image_url
+    .path_segments()
+    .ok_or_else(|| LemmyError::from_message("Image URL missing path segments"))?
+    .next_back()
+    .ok_or_else(|| LemmyError::from_message("Image URL missing last path segment"))?;
+
+  let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
+
+  let response = client
+    .post(&purge_url)
+    .timeout(REQWEST_TIMEOUT)
+    .header("x-api-token", pictrs_config.api_key)
+    .send()
+    .await?;
+
+  let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
+
+  if response.msg == "ok" {
+    Ok(())
+  } else {
+    Err(LemmyError::from_message(&response.msg))
   }
 }
 

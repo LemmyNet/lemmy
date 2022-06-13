@@ -70,6 +70,13 @@
     # activities synchronously for easier testing. Do not use in production.
     debug: false
   }
+  # Pictrs image server configuration.
+  pictrs_config: {
+    # Address where pictrs is available (for image hosting)
+    url: "string"
+    # Set a custom pictrs API key. ( Required for deleting images )
+    api_key: "string"
+  }
   captcha: {
     # Whether captcha is required for signup
     enabled: false
@@ -108,8 +115,7 @@
   port: 8536
   # Whether the site is available over TLS. Needs to be true for federation to work.
   tls_enabled: true
-  # Address where pictrs is available (for image hosting)
-  pictrs_url: "http://localhost:8080"
+  # A regex list of slurs to block / hide
   slur_filter: "(\bThis\b)|(\bis\b)|(\bsample\b)"
   # Maximum length of local community and user names
   actor_name_max_length: 20

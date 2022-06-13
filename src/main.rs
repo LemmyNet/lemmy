@@ -99,7 +99,7 @@ async fn main() -> Result<(), LemmyError> {
     settings.bind, settings.port
   );
 
-  let client = Client::builder()
+  let reqwest_client = Client::builder()
     .user_agent(build_user_agent(&settings))
     .timeout(REQWEST_TIMEOUT)
     .build()?;
@@ -111,9 +111,14 @@ async fn main() -> Result<(), LemmyError> {
     backoff_exponent: 2,
   };
 
-  let client = ClientBuilder::new(client)
+  let client = ClientBuilder::new(reqwest_client.clone())
     .with(TracingMiddleware)
     .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+    .build();
+
+  // Pictrs cannot use the retry middleware
+  let pictrs_client = ClientBuilder::new(reqwest_client.clone())
+    .with(TracingMiddleware)
     .build();
 
   check_private_instance_and_federation_enabled(&pool, &settings).await?;
@@ -149,7 +154,7 @@ async fn main() -> Result<(), LemmyError> {
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, client.clone(), &rate_limiter))
+      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limiter))
       .configure(nodeinfo::config)
       .configure(|cfg| webfinger::config(cfg, &settings))
   })

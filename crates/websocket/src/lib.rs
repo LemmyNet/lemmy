@@ -142,6 +142,10 @@ pub enum UserOperation {
   GetSiteMetadata,
   BlockCommunity,
   BlockPerson,
+  PurgePerson,
+  PurgeCommunity,
+  PurgePost,
+  PurgeComment,
 }
 
 #[derive(EnumString, Display, Debug, Clone)]
