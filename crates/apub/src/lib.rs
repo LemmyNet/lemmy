@@ -31,7 +31,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
   static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::new();
   LOCAL_INSTANCE.get_or_init(|| {
     let settings = InstanceSettingsBuilder::default()
-      .http_fetch_retry_limit(context.settings().http_fetch_retry_limit)
+      .http_fetch_retry_limit(context.settings().federation.http_fetch_retry_limit)
       .worker_count(context.settings().federation.worker_count)
       .debug(context.settings().federation.debug)
       .verify_url_function(|url| check_apub_id_valid(url, &Settings::get()))

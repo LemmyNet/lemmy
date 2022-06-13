@@ -46,9 +46,6 @@ pub struct Settings {
   /// Maximum length of local community and user names
   #[default(20)]
   pub actor_name_max_length: usize,
-  /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
-  #[default(25)]
-  pub http_fetch_retry_limit: i32,
 
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
@@ -142,6 +139,9 @@ pub struct FederationConfig {
   /// (meaning remote communities will show content from arbitrary instances).
   #[default(true)]
   pub strict_allowlist: bool,
+  /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
+  #[default(25)]
+  pub http_fetch_retry_limit: i32,
   /// Number of workers for sending outgoing activities. Search logs for "Activity queue stats" to
   /// see information. If "running" number is consistently close to the worker_count, you should
   /// increase it.

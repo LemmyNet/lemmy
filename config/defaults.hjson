@@ -62,6 +62,8 @@
     # use allowlist only for remote communities, and posts/comments in local communities
     # (meaning remote communities will show content from arbitrary instances).
     strict_allowlist: true
+    # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
+    http_fetch_retry_limit: 25
     # Number of workers for sending outgoing activities. Search logs for Activity queue stats to
     # see information. If running number is consistently close to the worker_count, you should
     # increase it.
@@ -119,6 +121,4 @@
   slur_filter: "(\bThis\b)|(\bis\b)|(\bsample\b)"
   # Maximum length of local community and user names
   actor_name_max_length: 20
-  # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
-  http_fetch_retry_limit: 25
 }
