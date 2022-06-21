@@ -22,7 +22,6 @@ serde = { version = "1.0.136", features = ["derive"] }
 url = { version = "2.2.2", features = ["serde"] }
 strum =  "0.24.0"
 strum_macros = "0.24.0"
-iso639-1 = { git = "https://github.com/Nutomic/iso639.git", branch = "add-strum", features = ["strum"] }
 serde_json = { version = "1.0.79", features = ["preserve_order"], optional = true }
 activitypub_federation = { version = "0.2.0", optional = true }
 lemmy_utils = { version = "=0.16.5", path = "../utils", optional = true }

@@ -5,6 +5,7 @@ pub mod comment_report;
 pub mod community;
 pub mod community_block;
 pub mod email_verification;
+pub mod language;
 pub mod local_user;
 pub mod moderator;
 pub mod password_reset_request;

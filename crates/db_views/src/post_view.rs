@@ -497,6 +497,7 @@ mod tests {
   use diesel::PgConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
+    newtypes::LanguageIdentifier,
     source::{
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -511,7 +512,6 @@ mod tests {
     SubscribedType,
   };
   use serial_test::serial;
-  use lemmy_db_schema::newtypes::LanguageIdentifier;
 
   struct Data {
     inserted_person: Person,
@@ -835,23 +835,17 @@ mod tests {
     let data = init_data(&conn);
 
     let mut read_post_listing_french = PostQueryBuilder::create(&conn)
-        .listing_type(ListingType::Community)
-        .sort(SortType::New)
-        .community_id(data.inserted_community.id);
+      .listing_type(ListingType::Community)
+      .sort(SortType::New)
+      .community_id(data.inserted_community.id);
     let fr = LanguageIdentifier::new("fr");
     read_post_listing_french.languages = Some(vec![fr]);
     let read_post_listing_french = read_post_listing_french.list().unwrap();
 
     let expected_post_listing = expected_post_listing(&data, &conn);
 
-    assert_eq!(
-      1,
-      read_post_listing_french.len()
-    );
-    assert_eq!(
-      expected_post_listing,
-      read_post_listing_french[0]
-    );
+    assert_eq!(1, read_post_listing_french.len());
+    assert_eq!(expected_post_listing, read_post_listing_french[0]);
 
     cleanup(data, &conn);
   }

@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, DbUrl, LanguageIdentifier, PersonId, PostId};
+use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
@@ -27,7 +27,7 @@ pub struct Post {
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: DbUrl,
   pub local: bool,
-  pub language: LanguageIdentifier,
+  pub language: LanguageId,
 }
 
 #[derive(Default)]
@@ -52,7 +52,7 @@ pub struct PostForm {
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
-  pub language: Option<LanguageIdentifier>,
+  pub language: Option<LanguageId>,
 }
 
 #[derive(PartialEq, Debug)]

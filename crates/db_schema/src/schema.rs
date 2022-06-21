@@ -649,6 +649,14 @@ table! {
     }
 }
 
+table! {
+    language (id) {
+        id -> Int4,
+        code -> Text,
+        name -> Text,
+    }
+}
+
 joinable!(comment_alias_1 -> person_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(person_mention -> person_alias_1 (recipient_id));
@@ -770,5 +778,6 @@ allow_tables_to_appear_in_same_query!(
   admin_purge_person,
   admin_purge_post,
   email_verification,
-  registration_application
+  registration_application,
+  language
 );
