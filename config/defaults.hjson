@@ -62,6 +62,8 @@
     # use allowlist only for remote communities, and posts/comments in local communities
     # (meaning remote communities will show content from arbitrary instances).
     strict_allowlist: true
+    # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
+    http_fetch_retry_limit: 25
     # Number of workers for sending outgoing activities. Search logs for Activity queue stats to
     # see information. If running number is consistently close to the worker_count, you should
     # increase it.
@@ -69,6 +71,13 @@
     # Use federation debug mode. Allows connecting to http and localhost urls. Also sends outgoing
     # activities synchronously for easier testing. Do not use in production.
     debug: false
+  }
+  # Pictrs image server configuration.
+  pictrs_config: {
+    # Address where pictrs is available (for image hosting)
+    url: "string"
+    # Set a custom pictrs API key. ( Required for deleting images )
+    api_key: "string"
   }
   captcha: {
     # Whether captcha is required for signup
@@ -108,11 +117,8 @@
   port: 8536
   # Whether the site is available over TLS. Needs to be true for federation to work.
   tls_enabled: true
-  # Address where pictrs is available (for image hosting)
-  pictrs_url: "http://localhost:8080"
+  # A regex list of slurs to block / hide
   slur_filter: "(\bThis\b)|(\bis\b)|(\bsample\b)"
   # Maximum length of local community and user names
   actor_name_max_length: 20
-  # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
-  http_fetch_retry_limit: 25
 }

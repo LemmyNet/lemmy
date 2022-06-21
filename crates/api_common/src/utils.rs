@@ -1,4 +1,4 @@
-use crate::{sensitive::Sensitive, site::FederatedInstances};
+use crate::{request::purge_image_from_pictrs, sensitive::Sensitive, site::FederatedInstances};
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
@@ -33,6 +33,7 @@ use lemmy_utils::{
   settings::structs::Settings,
   utils::generate_random_string,
 };
+use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
 use std::str::FromStr;
 use tracing::warn;
@@ -507,12 +508,97 @@ pub async fn check_private_instance_and_federation_enabled(
   Ok(())
 }
 
-pub async fn remove_user_data(banned_person_id: PersonId, pool: &DbPool) -> Result<(), LemmyError> {
+pub async fn purge_image_posts_for_person(
+  banned_person_id: PersonId,
+  pool: &DbPool,
+  settings: &Settings,
+  client: &ClientWithMiddleware,
+) -> Result<(), LemmyError> {
+  let posts = blocking(pool, move |conn: &'_ _| {
+    Post::fetch_pictrs_posts_for_creator(conn, banned_person_id)
+  })
+  .await??;
+  for post in posts {
+    if let Some(url) = post.url {
+      purge_image_from_pictrs(client, settings, &url).await.ok();
+    }
+    if let Some(thumbnail_url) = post.thumbnail_url {
+      purge_image_from_pictrs(client, settings, &thumbnail_url)
+        .await
+        .ok();
+    }
+  }
+
+  blocking(pool, move |conn| {
+    Post::remove_pictrs_post_images_and_thumbnails_for_creator(conn, banned_person_id)
+  })
+  .await??;
+
+  Ok(())
+}
+
+pub async fn purge_image_posts_for_community(
+  banned_community_id: CommunityId,
+  pool: &DbPool,
+  settings: &Settings,
+  client: &ClientWithMiddleware,
+) -> Result<(), LemmyError> {
+  let posts = blocking(pool, move |conn: &'_ _| {
+    Post::fetch_pictrs_posts_for_community(conn, banned_community_id)
+  })
+  .await??;
+  for post in posts {
+    if let Some(url) = post.url {
+      purge_image_from_pictrs(client, settings, &url).await.ok();
+    }
+    if let Some(thumbnail_url) = post.thumbnail_url {
+      purge_image_from_pictrs(client, settings, &thumbnail_url)
+        .await
+        .ok();
+    }
+  }
+
+  blocking(pool, move |conn| {
+    Post::remove_pictrs_post_images_and_thumbnails_for_community(conn, banned_community_id)
+  })
+  .await??;
+
+  Ok(())
+}
+
+pub async fn remove_user_data(
+  banned_person_id: PersonId,
+  pool: &DbPool,
+  settings: &Settings,
+  client: &ClientWithMiddleware,
+) -> Result<(), LemmyError> {
+  // Purge user images
+  let person = blocking(pool, move |conn| Person::read(conn, banned_person_id)).await??;
+  if let Some(avatar) = person.avatar {
+    purge_image_from_pictrs(client, settings, &avatar)
+      .await
+      .ok();
+  }
+  if let Some(banner) = person.banner {
+    purge_image_from_pictrs(client, settings, &banner)
+      .await
+      .ok();
+  }
+
+  // Update the fields to None
+  blocking(pool, move |conn| {
+    Person::remove_avatar_and_banner(conn, banned_person_id)
+  })
+  .await??;
+
   // Posts
   blocking(pool, move |conn: &'_ _| {
     Post::update_removed_for_creator(conn, banned_person_id, None, true)
   })
   .await??;
+
+  // Purge image posts
+  purge_image_posts_for_person(banned_person_id, pool, settings, client).await?;
 
   // Communities
   // Remove all communities where they're the top mod
@@ -529,8 +615,24 @@ pub async fn remove_user_data(banned_person_id: PersonId, pool: &DbPool) -> Resu
     .collect();
 
   for first_mod_community in banned_user_first_communities {
+    let community_id = first_mod_community.community.id;
     blocking(pool, move |conn: &'_ _| {
-      Community::update_removed(conn, first_mod_community.community.id, true)
+      Community::update_removed(conn, community_id, true)
+    })
+    .await??;
+
+    // Delete the community images
+    if let Some(icon) = first_mod_community.community.icon {
+      purge_image_from_pictrs(client, settings, &icon).await.ok();
+    }
+    if let Some(banner) = first_mod_community.community.banner {
+      purge_image_from_pictrs(client, settings, &banner)
+        .await
+        .ok();
+    }
+    // Update the fields to None
+    blocking(pool, move |conn| {
+      Community::remove_avatar_and_banner(conn, community_id)
     })
     .await??;
   }
@@ -577,7 +679,26 @@ pub async fn remove_user_data_in_community(
   Ok(())
 }
 
-pub async fn delete_user_account(person_id: PersonId, pool: &DbPool) -> Result<(), LemmyError> {
+pub async fn delete_user_account(
+  person_id: PersonId,
+  pool: &DbPool,
+  settings: &Settings,
+  client: &ClientWithMiddleware,
+) -> Result<(), LemmyError> {
+  // Delete their images
+  let person = blocking(pool, move |conn| Person::read(conn, person_id)).await??;
+  if let Some(avatar) = person.avatar {
+    purge_image_from_pictrs(client, settings, &avatar)
+      .await
+      .ok();
+  }
+  if let Some(banner) = person.banner {
+    purge_image_from_pictrs(client, settings, &banner)
+      .await
+      .ok();
+  }
+  // No need to update avatar and banner, those are handled in Person::delete_account
+
   // Comments
   let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
   blocking(pool, permadelete)
@@ -589,6 +710,9 @@ pub async fn delete_user_account(person_id: PersonId, pool: &DbPool) -> Result<(
   blocking(pool, permadelete)
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
+
+  // Purge image posts
+  purge_image_posts_for_person(person_id, pool, settings, client).await?;
 
   blocking(pool, move |conn| Person::delete_account(conn, person_id)).await??;
 

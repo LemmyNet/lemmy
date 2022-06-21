@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommentId, CommunityId, PersonId, PostId},
   ListingType,
   SearchType,
   SortType,
@@ -21,6 +21,10 @@ use lemmy_db_views_actor::structs::{
   PersonViewSafe,
 };
 use lemmy_db_views_moderator::structs::{
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
   ModAddCommunityView,
   ModAddView,
   ModBanFromCommunityView,
@@ -93,6 +97,10 @@ pub struct GetModlogResponse {
   pub added_to_community: Vec<ModAddCommunityView>,
   pub transferred_to_community: Vec<ModTransferCommunityView>,
   pub added: Vec<ModAddView>,
+  pub admin_purged_persons: Vec<AdminPurgePersonView>,
+  pub admin_purged_communities: Vec<AdminPurgeCommunityView>,
+  pub admin_purged_posts: Vec<AdminPurgePostView>,
+  pub admin_purged_comments: Vec<AdminPurgeCommentView>,
   pub hidden_communities: Vec<ModHideCommunityView>,
 }
 
@@ -192,6 +200,39 @@ pub struct FederatedInstances {
   pub linked: Vec<String>,
   pub allowed: Option<Vec<String>>,
   pub blocked: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PurgePerson {
+  pub person_id: PersonId,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PurgeCommunity {
+  pub community_id: CommunityId,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PurgePost {
+  pub post_id: PostId,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PurgeComment {
+  pub comment_id: CommentId,
+  pub reason: Option<String>,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PurgeItemResponse {
+  pub success: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
 use crate::schema::{
+  admin_purge_comment,
+  admin_purge_community,
+  admin_purge_person,
+  admin_purge_post,
   mod_add,
   mod_add_community,
   mod_ban,
@@ -246,4 +250,76 @@ pub struct ModAddForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub removed: Option<bool>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_person")]
+pub struct AdminPurgePerson {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_person")]
+pub struct AdminPurgePersonForm {
+  pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_community")]
+pub struct AdminPurgeCommunity {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_community")]
+pub struct AdminPurgeCommunityForm {
+  pub admin_person_id: PersonId,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_post")]
+pub struct AdminPurgePost {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub community_id: CommunityId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_post")]
+pub struct AdminPurgePostForm {
+  pub admin_person_id: PersonId,
+  pub community_id: CommunityId,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_comment")]
+pub struct AdminPurgeComment {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub post_id: PostId,
+  pub reason: Option<String>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "admin_purge_comment")]
+pub struct AdminPurgeCommentForm {
+  pub admin_person_id: PersonId,
+  pub post_id: PostId,
+  pub reason: Option<String>,
 }

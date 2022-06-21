@@ -47,7 +47,7 @@ where
   debug!("Fetching webfinger url: {}", &fetch_url);
 
   *request_counter += 1;
-  if *request_counter > context.settings().http_fetch_retry_limit {
+  if *request_counter > context.settings().federation.http_fetch_retry_limit {
     return Err(LemmyError::from_message("Request retry limit reached"));
   }
 

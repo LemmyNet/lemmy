@@ -14,6 +14,9 @@ pub struct Settings {
   /// Settings related to activitypub federation
   #[default(FederationConfig::default())]
   pub federation: FederationConfig,
+  /// Pictrs image server configuration.
+  #[default(None)]
+  pub(crate) pictrs_config: Option<PictrsConfig>,
   #[default(CaptchaConfig::default())]
   pub captcha: CaptchaConfig,
   /// Email sending configuration. All options except login/password are mandatory
@@ -36,24 +39,30 @@ pub struct Settings {
   /// Whether the site is available over TLS. Needs to be true for federation to work.
   #[default(true)]
   pub tls_enabled: bool,
-  /// Address where pictrs is available (for image hosting)
-  #[default(None)]
-  #[doku(example = "http://localhost:8080")]
-  pub pictrs_url: Option<String>,
   #[default(None)]
   #[doku(example = "(\\bThis\\b)|(\\bis\\b)|(\\bsample\\b)")]
+  /// A regex list of slurs to block / hide
   pub slur_filter: Option<String>,
   /// Maximum length of local community and user names
   #[default(20)]
   pub actor_name_max_length: usize,
-  /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
-  #[default(25)]
-  pub http_fetch_retry_limit: i32,
 
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(default)]
+pub struct PictrsConfig {
+  /// Address where pictrs is available (for image hosting)
+  #[default("http://pictrs:8080")]
+  pub url: String,
+
+  /// Set a custom pictrs API key. ( Required for deleting images )
+  #[default("API_KEY")]
+  pub api_key: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -130,6 +139,9 @@ pub struct FederationConfig {
   /// (meaning remote communities will show content from arbitrary instances).
   #[default(true)]
   pub strict_allowlist: bool,
+  /// Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
+  #[default(25)]
+  pub http_fetch_retry_limit: i32,
   /// Number of workers for sending outgoing activities. Search logs for "Activity queue stats" to
   /// see information. If "running" number is consistently close to the worker_count, you should
   /// increase it.
