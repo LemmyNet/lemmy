@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
-use lemmy_utils::{utils::naive_from_unix, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
@@ -49,7 +49,13 @@ impl Perform for BanPerson {
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
     if remove_data {
-      remove_user_data(person.id, context.pool()).await?;
+      remove_user_data(
+        person.id,
+        context.pool(),
+        &context.settings(),
+        context.client(),
+      )
+      .await?;
     }
 
     // Mod tables

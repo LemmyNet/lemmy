@@ -1,15 +1,22 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
+  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::Source,
 };
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  deser::{
+    helpers::{deserialize_one_or_many, deserialize_skip_error},
+    values::MediaTypeMarkdownOrHtml,
+  },
+};
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, values::MediaTypeMarkdownOrHtml};
 use lemmy_db_schema::{newtypes::CommentId, source::post::Post, traits::Crud};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -23,15 +30,15 @@ pub struct Note {
   pub(crate) r#type: NoteType,
   pub(crate) id: ObjectId<ApubComment>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many", default)]
+  #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: String,
   pub(crate) in_reply_to: ObjectId<PostOrComment>,
 
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
@@ -49,7 +56,7 @@ impl Note {
     let parent = Box::pin(
       self
         .in_reply_to
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?,
     );
     match parent.deref() {

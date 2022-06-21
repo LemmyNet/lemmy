@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;

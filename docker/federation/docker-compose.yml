@@ -28,7 +28,7 @@ services:
       - ./volumes/pictrs_alpha:/mnt
 
   lemmy-alpha-ui:
-    image: dessalines/lemmy-ui:0.16.3
+    image: dessalines/lemmy-ui:0.16.5
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
       - LEMMY_EXTERNAL_HOST=localhost:8541
@@ -40,7 +40,6 @@ services:
     volumes:
       - ./lemmy_alpha.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -57,7 +56,7 @@ services:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
 
   lemmy-beta-ui:
-    image: dessalines/lemmy-ui:0.16.3
+    image: dessalines/lemmy-ui:0.16.5
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-beta:8551
       - LEMMY_EXTERNAL_HOST=localhost:8551
@@ -69,7 +68,6 @@ services:
     volumes:
       - ./lemmy_beta.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -86,7 +84,7 @@ services:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
 
   lemmy-gamma-ui:
-    image: dessalines/lemmy-ui:0.16.3
+    image: dessalines/lemmy-ui:0.16.5
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-gamma:8561
       - LEMMY_EXTERNAL_HOST=localhost:8561
@@ -98,7 +96,6 @@ services:
     volumes:
       - ./lemmy_gamma.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -116,7 +113,7 @@ services:
 
   # An instance with only an allowlist for beta
   lemmy-delta-ui:
-    image: dessalines/lemmy-ui:0.16.3
+    image: dessalines/lemmy-ui:0.16.5
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-delta:8571
       - LEMMY_EXTERNAL_HOST=localhost:8571
@@ -128,7 +125,6 @@ services:
     volumes:
       - ./lemmy_delta.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -146,7 +142,7 @@ services:
 
   # An instance who has a blocklist, with lemmy-alpha blocked
   lemmy-epsilon-ui:
-    image: dessalines/lemmy-ui:0.16.3
+    image: dessalines/lemmy-ui:0.16.5
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-epsilon:8581
       - LEMMY_EXTERNAL_HOST=localhost:8581
@@ -158,7 +154,6 @@ services:
     volumes:
       - ./lemmy_epsilon.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:

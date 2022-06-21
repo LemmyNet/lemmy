@@ -1,24 +1,25 @@
 use crate::{
-  check_is_apub_id_valid,
-  context::WithContext,
   generate_moderators_url,
   insert_activity,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
+  ActorType,
+  CONTEXT,
+};
+use activitypub_federation::{
+  core::{activity_queue::send_activity, object_id::ObjectId},
+  deser::context::WithContext,
+  traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  activity_queue::send_activity,
-  object_id::ObjectId,
-  traits::ActorType,
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
+use std::ops::Deref;
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -39,7 +40,7 @@ async fn verify_person(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
   if person.banned {
     let err = anyhow!("Person {} is banned", person_id);
@@ -58,7 +59,7 @@ pub(crate) async fn verify_person_in_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
@@ -71,12 +72,6 @@ pub(crate) async fn verify_person_in_community(
     return Err(LemmyError::from_message("Person is banned from community"));
   }
 
-  Ok(())
-}
-
-fn verify_activity(id: &Url, actor: &Url, settings: &Settings) -> Result<(), LemmyError> {
-  check_is_apub_id_valid(actor, false, settings)?;
-  verify_domains_match(id, actor)?;
   Ok(())
 }
 
@@ -97,7 +92,7 @@ pub(crate) async fn verify_mod_action(
 ) -> Result<(), LemmyError> {
   if community.local {
     let actor = mod_id
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     // Note: this will also return true for admins in addition to mods, but as we dont know about
@@ -172,41 +167,32 @@ where
 }
 
 #[tracing::instrument(skip_all)]
-async fn send_lemmy_activity<T: Serialize>(
+async fn send_lemmy_activity<Activity, ActorT>(
   context: &LemmyContext,
-  activity: &T,
-  activity_id: &Url,
-  actor: &dyn ActorType,
-  inboxes: Vec<Url>,
+  activity: Activity,
+  actor: &ActorT,
+  inbox: Vec<Url>,
   sensitive: bool,
-) -> Result<(), LemmyError> {
-  if !context.settings().federation.enabled || inboxes.is_empty() {
-    return Ok(());
-  }
-  let activity = WithContext::new(activity);
-
-  info!("Sending activity {}", activity_id.to_string());
-
-  // Don't send anything to ourselves
-  // TODO: this should be a debug assert
-  let hostname = context.settings().get_hostname_without_port()?;
-  let inboxes: Vec<&Url> = inboxes
-    .iter()
-    .filter(|i| i.domain().expect("valid inbox url") != hostname)
-    .collect();
-
-  let serialised_activity = serde_json::to_string(&activity)?;
+) -> Result<(), LemmyError>
+where
+  Activity: ActivityHandler + Serialize,
+  ActorT: Actor + ActorType,
+  Activity: ActivityHandler<Error = LemmyError>,
+{
+  info!("Sending activity {}", activity.id().to_string());
+  let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
   let object_value = serde_json::to_value(&activity)?;
-  insert_activity(activity_id, object_value, true, sensitive, context.pool()).await?;
+  insert_activity(activity.id(), object_value, true, sensitive, context.pool()).await?;
 
   send_activity(
-    activity_id,
-    actor,
-    inboxes,
-    serialised_activity,
-    context.client(),
-    context.activity_queue(),
+    activity,
+    actor.get_public_key(),
+    actor.private_key().expect("actor has private key"),
+    inbox,
+    local_instance(context),
   )
-  .await
+  .await?;
+
+  Ok(())
 }

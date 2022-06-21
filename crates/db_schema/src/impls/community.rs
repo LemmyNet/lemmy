@@ -139,6 +139,19 @@ impl Community {
       .set(community_form)
       .get_result::<Self>(conn)
   }
+
+  pub fn remove_avatar_and_banner(
+    conn: &PgConnection,
+    community_id: CommunityId,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set((
+        icon.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
+      ))
+      .get_result::<Self>(conn)
+  }
 }
 
 impl Joinable for CommunityModerator {
@@ -241,7 +254,7 @@ impl CommunityFollower {
   pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
     match follower {
       Some(f) => {
-        if f.pending {
+        if f.pending.unwrap_or(false) {
           SubscribedType::Pending
         } else {
           SubscribedType::Subscribed
@@ -407,7 +420,7 @@ mod tests {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      pending: Some(false),
       published: inserted_community_follower.published,
     };
 

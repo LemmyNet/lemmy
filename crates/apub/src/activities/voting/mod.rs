@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   },
   traits::Likeable,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_post_ws_message},
   LemmyContext,

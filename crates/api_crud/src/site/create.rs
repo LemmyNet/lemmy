@@ -1,4 +1,5 @@
 use crate::PerformCrud;
+use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{CreateSite, SiteResponse},
@@ -13,11 +14,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  apub::generate_actor_keypair,
+  error::LemmyError,
   settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use url::Url;

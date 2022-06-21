@@ -1,4 +1,8 @@
-use crate::{location_info, settings::structs::Settings, LemmyError};
+use crate::{
+  error::LemmyError,
+  location_info,
+  settings::structs::{PictrsConfig, Settings},
+};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
@@ -115,5 +119,12 @@ impl Settings {
         .build()
         .expect("compile regex")
     })
+  }
+
+  pub fn pictrs_config(&self) -> Result<PictrsConfig, LemmyError> {
+    self
+      .pictrs_config
+      .to_owned()
+      .ok_or_else(|| anyhow!("images_disabled").into())
   }
 }

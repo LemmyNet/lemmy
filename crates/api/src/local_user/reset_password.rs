@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, send_password_reset_email},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

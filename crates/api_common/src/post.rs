@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PostId, PostReportId},
+  newtypes::{CommunityId, DbUrl, PostId, PostReportId},
   ListingType,
   SortType,
 };
@@ -166,6 +166,6 @@ pub struct GetSiteMetadataResponse {
 pub struct SiteMetadata {
   pub title: Option<String>,
   pub description: Option<String>,
-  pub(crate) image: Option<Url>,
-  pub html: Option<String>,
+  pub(crate) image: Option<DbUrl>,
+  pub embed_video_url: Option<DbUrl>,
 }

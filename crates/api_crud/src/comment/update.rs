@@ -16,9 +16,9 @@ use lemmy_apub::protocol::activities::{
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
+  error::LemmyError,
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::{
   send::{send_comment_ws_message, send_local_notifs},

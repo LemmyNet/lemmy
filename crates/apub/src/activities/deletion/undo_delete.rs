@@ -3,14 +3,14 @@ use crate::{
     community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
-    verify_activity,
   },
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::{
     comment::Comment,
@@ -23,12 +23,11 @@ use lemmy_db_schema::{
       ModRemovePost,
       ModRemovePostForm,
     },
-    person::Person,
     post::Post,
   },
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
   LemmyContext,
@@ -39,6 +38,15 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoDelete {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -46,7 +54,6 @@ impl ActivityHandler for UndoDelete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     self.object.verify(context, request_counter).await?;
     verify_delete_activity(
       &self.object,
@@ -68,7 +75,7 @@ impl ActivityHandler for UndoDelete {
       UndoDelete::receive_undo_remove_action(
         &self
           .actor
-          .dereference(context, context.client(), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await?,
         self.object.object.id(),
         context,
@@ -90,7 +97,7 @@ impl ActivityHandler for UndoDelete {
 impl UndoDelete {
   #[tracing::instrument(skip_all)]
   pub(in crate::activities::deletion) fn new(
-    actor: &Person,
+    actor: &ApubPerson,
     object: DeletableObjects,
     to: Url,
     community: Option<&Community>,

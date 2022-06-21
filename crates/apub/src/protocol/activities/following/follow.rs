@@ -2,8 +2,8 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::Unparsed,
 };
+use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::activity::FollowType;
-use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

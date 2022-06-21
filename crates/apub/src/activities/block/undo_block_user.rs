@@ -1,24 +1,25 @@
 use crate::{
   activities::{
-    block::{generate_cc, generate_instance_inboxes, SiteOrCommunity},
+    block::{generate_cc, SiteOrCommunity},
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     send_lemmy_activity,
-    verify_activity,
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  local_instance,
+  objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -27,8 +28,9 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud},
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl UndoBlockUser {
   #[tracing::instrument(skip_all)]
@@ -55,15 +57,15 @@ impl UndoBlockUser {
       unparsed: Default::default(),
     };
 
-    let inboxes = vec![user.shared_inbox_or_inbox_url()];
+    let mut inboxes = vec![user.shared_inbox_or_inbox()];
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = generate_instance_inboxes(user, context.pool()).await?;
-        send_lemmy_activity(context, &undo, &id, mod_, inboxes, false).await
+        inboxes.append(&mut remote_instance_inboxes(context.pool()).await?);
+        send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::UndoBlockUser(undo);
-        send_activity_in_community(activity, &id, mod_, c, inboxes, context).await
+        send_activity_in_community(activity, mod_, c, inboxes, context).await
       }
     }
   }
@@ -72,6 +74,15 @@ impl UndoBlockUser {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoBlockUser {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -80,7 +91,6 @@ impl ActivityHandler for UndoBlockUser {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
     Ok(())
@@ -92,20 +102,21 @@ impl ActivityHandler for UndoBlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let instance = local_instance(context);
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, instance, request_counter)
       .await?;
     let blocked_person = self
       .object
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, instance, request_counter)
       .await?;
     match self
       .object
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, instance, request_counter)
       .await?
     {
       SiteOrCommunity::Site(_site) => {

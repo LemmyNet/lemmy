@@ -3,8 +3,8 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{IdOrNestedObject, Unparsed},
 };
+use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::AnnounceType;
-use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -12,10 +12,10 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct AnnounceActivity {
   pub(crate) actor: ObjectId<ApubCommunity>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   pub(crate) object: IdOrNestedObject<AnnouncableActivities>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: AnnounceType,

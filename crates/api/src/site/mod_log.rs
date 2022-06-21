@@ -5,6 +5,10 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_db_views_moderator::structs::{
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
   ModAddCommunityView,
   ModAddView,
   ModBanFromCommunityView,
@@ -17,7 +21,7 @@ use lemmy_db_views_moderator::structs::{
   ModStickyPostView,
   ModTransferCommunityView,
 };
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -83,17 +87,29 @@ impl Perform for GetModlog {
     .await??;
 
     // These arrays are only for the full modlog, when a community isn't given
-    let (removed_communities, banned, added) = if data.community_id.is_none() {
+    let (
+      removed_communities,
+      banned,
+      added,
+      admin_purged_persons,
+      admin_purged_communities,
+      admin_purged_posts,
+      admin_purged_comments,
+    ) = if data.community_id.is_none() {
       blocking(context.pool(), move |conn| {
         Ok((
           ModRemoveCommunityView::list(conn, mod_person_id, page, limit)?,
           ModBanView::list(conn, mod_person_id, page, limit)?,
           ModAddView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgePersonView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgeCommunityView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgePostView::list(conn, mod_person_id, page, limit)?,
+          AdminPurgeCommentView::list(conn, mod_person_id, page, limit)?,
         )) as Result<_, LemmyError>
       })
       .await??
     } else {
-      (Vec::new(), Vec::new(), Vec::new())
+      Default::default()
     };
 
     // Return the jwt
@@ -108,6 +124,10 @@ impl Perform for GetModlog {
       added_to_community,
       added,
       transferred_to_community,
+      admin_purged_persons,
+      admin_purged_communities,
+      admin_purged_posts,
+      admin_purged_comments,
       hidden_communities,
     })
   }

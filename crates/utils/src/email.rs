@@ -1,4 +1,4 @@
-use crate::{settings::structs::Settings, LemmyError};
+use crate::{error::LemmyError, settings::structs::Settings};
 use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},

@@ -3,8 +3,8 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::Unparsed,
 };
+use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one};
 use activitystreams_kinds::activity::FlagType;
-use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -12,7 +12,7 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Report {
   pub(crate) actor: ObjectId<ApubPerson>,
-  #[serde(deserialize_with = "crate::deserialize_one")]
+  #[serde(deserialize_with = "deserialize_one")]
   pub(crate) to: [ObjectId<ApubCommunity>; 1],
   pub(crate) object: ObjectId<PostOrComment>,
   pub(crate) summary: String,

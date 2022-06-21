@@ -1,23 +1,20 @@
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_activity, verify_is_public},
+  activities::{generate_activity_id, send_lemmy_activity, verify_is_public},
   activity_lists::AnnouncableActivities,
-  http::ActivityCommonFields,
   insert_activity,
   objects::community::ApubCommunity,
   protocol::{
     activities::{community::announce::AnnounceActivity, CreateOrUpdateType},
     IdOrNestedObject,
   },
+  ActorType,
 };
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::{activity::AnnounceType, public};
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use tracing::debug;
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 pub(crate) trait GetCommunity {
@@ -56,15 +53,7 @@ impl AnnounceActivity {
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
     let inboxes = community.get_follower_inboxes(context).await?;
-    send_lemmy_activity(
-      context,
-      &announce,
-      &announce.id,
-      community,
-      inboxes.clone(),
-      false,
-    )
-    .await?;
+    send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
     // Pleroma and Mastodon can't handle activities like Announce/Create/Page. So for
     // compatibility, we also send Announce/Page so that they can follow Lemmy communities.
@@ -74,15 +63,7 @@ impl AnnounceActivity {
       _ => return Ok(()),
     };
     let announce_compat = AnnounceActivity::new(object, community, context)?;
-    send_lemmy_activity(
-      context,
-      &announce_compat,
-      &announce_compat.id,
-      community,
-      inboxes,
-      false,
-    )
-    .await?;
+    send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;
     Ok(())
   }
 }
@@ -90,15 +71,23 @@ impl AnnounceActivity {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AnnounceActivity {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
-    context: &Data<LemmyContext>,
+    _context: &Data<LemmyContext>,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     Ok(())
   }
 
@@ -118,14 +107,12 @@ impl ActivityHandler for AnnounceActivity {
       AnnouncableActivities::Page(_) => {}
       _ => {
         let object_value = serde_json::to_value(&object)?;
-        let object_data: ActivityCommonFields = serde_json::from_value(object_value.to_owned())?;
-
         let insert =
-          insert_activity(&object_data.id, object_value, false, true, context.pool()).await?;
+          insert_activity(object.id(), object_value, false, true, context.pool()).await?;
         if !insert {
           debug!(
             "Received duplicate activity in announce {}",
-            object_data.id.to_string()
+            object.id().to_string()
           );
           return Ok(());
         }

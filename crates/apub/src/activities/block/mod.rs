@@ -1,15 +1,13 @@
 use crate::{
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite},
   protocol::objects::{group::Group, instance::Instance},
+  ActorType,
 };
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-};
 use lemmy_db_schema::{source::site::Site, utils::DbPool};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
@@ -35,7 +33,7 @@ impl ApubObject for SiteOrCommunity {
   type DataType = LemmyContext;
   type ApubType = InstanceOrGroup;
   type DbType = ();
-  type TombstoneType = ();
+  type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -67,10 +65,6 @@ impl ApubObject for SiteOrCommunity {
   }
 
   async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
-    unimplemented!()
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
     unimplemented!()
   }
 
@@ -129,17 +123,4 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>
       .collect(),
     SiteOrCommunity::Community(c) => vec![c.actor_id()],
   })
-}
-
-async fn generate_instance_inboxes(
-  blocked_user: &ApubPerson,
-  pool: &DbPool,
-) -> Result<Vec<Url>, LemmyError> {
-  let mut inboxes: Vec<Url> = blocking(pool, Site::read_remote_sites)
-    .await??
-    .into_iter()
-    .map(|s| s.inbox_url.into())
-    .collect();
-  inboxes.push(blocked_user.shared_inbox_or_inbox_url());
-  Ok(inboxes)
 }

@@ -6,7 +6,6 @@ use crate::{
       send_activity_in_community,
     },
     generate_activity_id,
-    verify_activity,
     verify_add_remove_moderator_target,
     verify_is_public,
     verify_mod_action,
@@ -14,16 +13,18 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   generate_moderators_url,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::add_mod::AddMod,
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::AddType, public};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-};
 use lemmy_db_schema::{
   source::{
     community::{CommunityModerator, CommunityModeratorForm},
@@ -31,8 +32,9 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl AddMod {
   #[tracing::instrument(skip_all)]
@@ -58,14 +60,23 @@ impl AddMod {
     };
 
     let activity = AnnouncableActivities::AddMod(add);
-    let inboxes = vec![added_mod.shared_inbox_or_inbox_url()];
-    send_activity_in_community(activity, &id, actor, community, inboxes, context).await
+    let inboxes = vec![added_mod.shared_inbox_or_inbox()];
+    send_activity_in_community(activity, actor, community, inboxes, context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for AddMod {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -74,7 +85,6 @@ impl ActivityHandler for AddMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(
@@ -98,7 +108,7 @@ impl ActivityHandler for AddMod {
     let community = self.get_community(context, request_counter).await?;
     let new_mod = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
@@ -121,7 +131,7 @@ impl ActivityHandler for AddMod {
       // write mod log
       let actor = self
         .actor
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?;
       let form = ModAddCommunityForm {
         mod_person_id: actor.id,

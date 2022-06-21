@@ -2,26 +2,28 @@ use crate::{
   activities::{
     generate_activity_id,
     send_lemmy_activity,
-    verify_activity,
     verify_person,
     verify_person_in_community,
   },
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FollowType;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-};
 use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
   traits::Followable,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl FollowCommunity {
   pub(in crate::activities::following) fn new(
@@ -58,14 +60,23 @@ impl FollowCommunity {
     .await?;
 
     let follow = FollowCommunity::new(actor, community, context)?;
-    let inbox = vec![community.inbox_url.clone().into()];
-    send_lemmy_activity(context, &follow, &follow.id, actor, inbox, true).await
+    let inbox = vec![community.shared_inbox_or_inbox()];
+    send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for FollowCommunity {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -73,11 +84,10 @@ impl ActivityHandler for FollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -91,11 +101,11 @@ impl ActivityHandler for FollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,

@@ -4,23 +4,24 @@ use crate::{
     community::{announce::GetCommunity, send_activity_in_community},
     create_or_update::get_comment_notif_recipients,
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor, ApubObject},
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::{blocking, check_post_deleted_or_removed};
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType, ApubObject},
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},
@@ -29,8 +30,9 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
 
 impl CreateOrUpdateComment {
   #[tracing::instrument(skip(comment, actor, kind, context))]
@@ -84,19 +86,28 @@ impl CreateOrUpdateComment {
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t
-        .dereference(context, context.client(), request_counter)
+        .dereference(context, local_instance(context), request_counter)
         .await?;
-      inboxes.push(person.shared_inbox_or_inbox_url());
+      inboxes.push(person.shared_inbox_or_inbox());
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_activity_in_community(activity, &id, actor, &community, inboxes, context).await
+    send_activity_in_community(activity, actor, &community, inboxes, context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdateComment {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -108,7 +119,6 @@ impl ActivityHandler for CreateOrUpdateComment {
     let post = self.object.get_parents(context, request_counter).await?.0;
     let community = self.get_community(context, request_counter).await?;
 
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;

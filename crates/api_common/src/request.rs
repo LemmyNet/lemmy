@@ -1,6 +1,12 @@
 use crate::post::SiteMetadata;
 use encoding::{all::encodings, DecoderTrap};
-use lemmy_utils::{settings::structs::Settings, version::VERSION, LemmyError, REQWEST_TIMEOUT};
+use lemmy_db_schema::newtypes::DbUrl;
+use lemmy_utils::{
+  error::LemmyError,
+  settings::structs::Settings,
+  version::VERSION,
+  REQWEST_TIMEOUT,
+};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -15,11 +21,7 @@ pub async fn fetch_site_metadata(
   url: &Url,
 ) -> Result<SiteMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
-  let response = client
-    .get(url.as_str())
-    .timeout(REQWEST_TIMEOUT)
-    .send()
-    .await?;
+  let response = client.get(url.as_str()).send().await?;
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
@@ -81,16 +83,17 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
     .images
     .get(0)
     .and_then(|ogo| Url::parse(&ogo.url).ok());
-
-  let title = og_title.or(page_title);
-  let description = og_description.or(page_description);
-  let image = og_image;
+  let og_embed_url = page
+    .opengraph
+    .videos
+    .first()
+    .and_then(|v| Url::parse(&v.url).ok());
 
   Ok(SiteMetadata {
-    title,
-    description,
-    image,
-    html: None,
+    title: og_title.or(page_title),
+    description: og_description.or(page_description),
+    image: og_image.map(Into::into),
+    embed_video_url: og_embed_url.map(Into::into),
   })
 }
 
@@ -107,36 +110,75 @@ pub(crate) struct PictrsFile {
   delete_token: String,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct PictrsPurgeResponse {
+  msg: String,
+}
+
 #[tracing::instrument(skip_all)]
 pub(crate) async fn fetch_pictrs(
   client: &ClientWithMiddleware,
   settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
-  if let Some(pictrs_url) = settings.pictrs_url.to_owned() {
-    is_image_content_type(client, image_url).await?;
+  let pictrs_config = settings.pictrs_config()?;
+  is_image_content_type(client, image_url).await?;
 
-    let fetch_url = format!(
-      "{}/image/download?url={}",
-      pictrs_url,
-      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
-    );
+  let fetch_url = format!(
+    "{}/image/download?url={}",
+    pictrs_config.url,
+    utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
+  );
 
-    let response = client
-      .get(&fetch_url)
-      .timeout(REQWEST_TIMEOUT)
-      .send()
-      .await?;
+  let response = client
+    .get(&fetch_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?;
 
-    let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
+  let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
 
-    if response.msg == "ok" {
-      Ok(response)
-    } else {
-      Err(LemmyError::from_message(&response.msg))
-    }
+  if response.msg == "ok" {
+    Ok(response)
   } else {
-    Err(LemmyError::from_message("pictrs_url not set up in config"))
+    Err(LemmyError::from_message(&response.msg))
+  }
+}
+
+/// Purges an image from pictrs
+/// Note: This should often be coerced from a Result to .ok() in order to fail softly, because:
+/// - It might fail due to image being not local
+/// - It might not be an image
+/// - Pictrs might not be set up
+pub async fn purge_image_from_pictrs(
+  client: &ClientWithMiddleware,
+  settings: &Settings,
+  image_url: &Url,
+) -> Result<(), LemmyError> {
+  let pictrs_config = settings.pictrs_config()?;
+  is_image_content_type(client, image_url).await?;
+
+  let alias = image_url
+    .path_segments()
+    .ok_or_else(|| LemmyError::from_message("Image URL missing path segments"))?
+    .next_back()
+    .ok_or_else(|| LemmyError::from_message("Image URL missing last path segment"))?;
+
+  let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
+
+  let response = client
+    .post(&purge_url)
+    .timeout(REQWEST_TIMEOUT)
+    .header("x-api-token", pictrs_config.api_key)
+    .send()
+    .await?;
+
+  let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
+
+  if response.msg == "ok" {
+    Ok(())
+  } else {
+    Err(LemmyError::from_message(&response.msg))
   }
 }
 
@@ -147,7 +189,7 @@ pub async fn fetch_site_data(
   client: &ClientWithMiddleware,
   settings: &Settings,
   url: Option<&Url>,
-) -> (Option<SiteMetadata>, Option<Url>) {
+) -> (Option<SiteMetadata>, Option<DbUrl>) {
   match &url {
     Some(url) => {
       // Fetch metadata
@@ -187,7 +229,7 @@ pub async fn fetch_site_data(
         .ok()
         .flatten();
 
-      (metadata_option, pictrs_thumbnail)
+      (metadata_option, pictrs_thumbnail.map(Into::into))
     }
     None => (None, None),
   }
@@ -195,11 +237,7 @@ pub async fn fetch_site_data(
 
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
-  let response = client
-    .get(url.as_str())
-    .timeout(REQWEST_TIMEOUT)
-    .send()
-    .await?;
+  let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
     .get("Content-Type")
@@ -247,8 +285,9 @@ mod tests {
         image: Some(
           Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
             .unwrap()
+            .into()
         ),
-        html: None,
+        embed_video_url: None,
       },
       sample_res
     );

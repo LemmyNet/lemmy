@@ -1,4 +1,12 @@
 #[cfg(feature = "full")]
+pub mod admin_purge_comment_view;
+#[cfg(feature = "full")]
+pub mod admin_purge_community_view;
+#[cfg(feature = "full")]
+pub mod admin_purge_person_view;
+#[cfg(feature = "full")]
+pub mod admin_purge_post_view;
+#[cfg(feature = "full")]
 pub mod mod_add_community_view;
 #[cfg(feature = "full")]
 pub mod mod_add_view;

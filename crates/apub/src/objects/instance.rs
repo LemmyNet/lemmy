@@ -1,27 +1,29 @@
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
+  local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::instance::{Instance, InstanceType},
     ImageObject,
     Source,
   },
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  deser::values::MediaTypeHtml,
+  traits::{Actor, ApubObject},
+  utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-  values::MediaTypeHtml,
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::site::{Site, SiteForm},
-  utils::naive_now,
+  utils::{naive_now, DbPool},
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -49,7 +51,7 @@ impl ApubObject for ApubSite {
   type DataType = LemmyContext;
   type ApubType = Instance;
   type DbType = Site;
-  type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -87,15 +89,11 @@ impl ApubObject for ApubSite {
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
       outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
-      public_key: self.get_public_key()?,
+      public_key: self.get_public_key(),
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
     };
     Ok(instance)
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
@@ -105,7 +103,7 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    check_is_apub_id_valid(apub.id.inner(), true, &data.settings())?;
+    check_apub_id_valid_with_strictness(apub.id.inner(), true, &data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
     let slur_regex = &data.settings().slur_regex();
@@ -146,19 +144,18 @@ impl ActorType for ApubSite {
   fn actor_id(&self) -> Url {
     self.actor_id.to_owned().into()
   }
-  fn public_key(&self) -> String {
-    self.public_key.to_owned()
-  }
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
+}
 
-  fn inbox_url(&self) -> Url {
-    self.inbox_url.clone().into()
+impl Actor for ApubSite {
+  fn public_key(&self) -> &str {
+    &self.public_key
   }
 
-  fn shared_inbox_url(&self) -> Option<Url> {
-    None
+  fn inbox(&self) -> Url {
+    self.inbox_url.clone().into()
   }
 }
 
@@ -180,11 +177,21 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
   // try to fetch the instance actor (to make things like instance rules available)
   let instance_id = instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await;
   if let Err(e) = site {
     debug!("Failed to dereference site for {}: {}", instance_id, e);
   }
+}
+
+pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+  Ok(
+    blocking(pool, Site::read_remote_sites)
+      .await??
+      .into_iter()
+      .map(|s| ApubSite::from(s).shared_inbox_or_inbox())
+      .collect(),
+  )
 }
 
 #[cfg(test)]

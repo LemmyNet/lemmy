@@ -1,7 +1,7 @@
 use actix_web::{web, web::Data};
 use captcha::Captcha;
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
@@ -103,6 +103,16 @@ pub async fn match_websocket_operation(
     }
     UserOperation::SaveSiteConfig => {
       do_websocket_operation::<SaveSiteConfig>(context, id, op, data).await
+    }
+    UserOperation::PurgePerson => {
+      do_websocket_operation::<PurgePerson>(context, id, op, data).await
+    }
+    UserOperation::PurgeCommunity => {
+      do_websocket_operation::<PurgeCommunity>(context, id, op, data).await
+    }
+    UserOperation::PurgePost => do_websocket_operation::<PurgePost>(context, id, op, data).await,
+    UserOperation::PurgeComment => {
+      do_websocket_operation::<PurgeComment>(context, id, op, data).await
     }
     UserOperation::Search => do_websocket_operation::<Search>(context, id, op, data).await,
     UserOperation::ResolveObject => {

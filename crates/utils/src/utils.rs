@@ -1,4 +1,4 @@
-use crate::{IpAddr, LemmyError};
+use crate::{error::LemmyError, IpAddr};
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;

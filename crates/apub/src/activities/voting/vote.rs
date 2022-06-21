@@ -2,31 +2,28 @@ use crate::{
   activities::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
-    verify_is_public,
     verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::vote::{Vote, VoteType},
+  ActorType,
   PostOrComment,
 };
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, post::Post, site::Site},
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 /// Vote has as:Public value in cc field, unlike other activities. This indicates to other software
 /// (like GNU social, or presumably Mastodon), that the like actor should not be disclosed.
@@ -63,16 +60,24 @@ impl Vote {
     .await??
     .into();
     let vote = Vote::new(object, actor, &community, kind, context)?;
-    let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
-    send_activity_in_community(activity, &vote_id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Vote {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -80,8 +85,6 @@ impl ActivityHandler for Vote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     let site = blocking(context.pool(), Site::read_local_site).await??;
@@ -99,11 +102,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
@@ -122,7 +125,7 @@ impl GetCommunity for Vote {
   ) -> Result<ApubCommunity, LemmyError> {
     let object = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,

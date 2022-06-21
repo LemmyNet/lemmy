@@ -28,7 +28,7 @@ services:
       - otel
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.16.3
+    image: dessalines/lemmy-ui:0.16.5
     restart: always
     environment:
       - LEMMY_INTERNAL_HOST=lemmy:8536
@@ -56,8 +56,10 @@ services:
     user: 991:991
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137
+      - PICTRS__API_KEY=API_KEY
     ports:
       - "6670:6669"
+      - "8080:8080"
     volumes:
       - ./volumes/pictrs:/mnt
     restart: always
