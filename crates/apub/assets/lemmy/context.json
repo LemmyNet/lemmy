@@ -1,5 +1,5 @@
 [
-  "https://www.w3.org/ns/activitystreams",
+  "https://www.w3.org/ns/activitystreams#",
   "https://w3id.org/security/v1",
   {
     "lemmy": "https://join-lemmy.org/ns#",
