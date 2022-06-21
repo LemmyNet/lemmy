@@ -414,14 +414,6 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(comment::creator_id.eq(creator_id));
     };
 
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
-      query = query.filter(community::actor_id.eq(community_actor_id))
-    }
-
     if let Some(post_id) = self.post_id {
       query = query.filter(comment::post_id.eq(post_id));
     };
@@ -449,9 +441,21 @@ impl<'a> CommentQueryBuilder<'a> {
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
-        ListingType::Community => {}
-      };
-    }
+        ListingType::Community => {
+          if self.community_actor_id.is_none() && self.community_id.is_none() {
+            return Err(NotFound);
+          } else {
+            if let Some(community_id) = self.community_id {
+              query = query.filter(post::community_id.eq(community_id));
+            }
+
+            if let Some(community_actor_id) = self.community_actor_id {
+              query = query.filter(community::actor_id.eq(community_actor_id))
+            }
+          }
+        }
+      }
+    };
 
     if self.saved_only.unwrap_or(false) {
       query = query.filter(comment_saved::id.is_not_null());
@@ -489,7 +493,7 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(person_block::person_id.is_null());
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     // Note: deleted and removed comments are done on the front side
     let res = query

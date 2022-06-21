@@ -242,7 +242,7 @@ impl<'a> CommunityQueryBuilder<'a> {
       }
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     let res = query
       .limit(limit)
       .offset(offset)

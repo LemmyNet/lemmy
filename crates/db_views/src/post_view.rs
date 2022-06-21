@@ -358,19 +358,23 @@ impl<'a> PostQueryBuilder<'a> {
           )
         }
         ListingType::Community => {
-          if let Some(community_id) = self.community_id {
-            query = query
-              .filter(post::community_id.eq(community_id))
-              .then_order_by(post_aggregates::stickied.desc());
+          if self.community_actor_id.is_none() && self.community_id.is_none() {
+            return Err(NotFound);
+          } else {
+            if let Some(community_id) = self.community_id {
+              query = query
+                .filter(post::community_id.eq(community_id))
+                .then_order_by(post_aggregates::stickied.desc());
+            }
+
+            if let Some(community_actor_id) = self.community_actor_id {
+              query = query
+                .filter(community::actor_id.eq(community_actor_id))
+                .then_order_by(post_aggregates::stickied.desc());
+            }
           }
         }
       }
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
-      query = query
-        .filter(community::actor_id.eq(community_actor_id))
-        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -455,7 +459,7 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(post_aggregates::published.desc()),
     };
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .limit(limit)

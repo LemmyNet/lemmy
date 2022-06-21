@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Readable},
-  utils::{DbPool, FETCH_LIMIT_MAX},
+  utils::DbPool,
   ListingType,
 };
 use lemmy_db_views::{
@@ -730,34 +730,4 @@ pub async fn listing_type_with_site_default(
       ListingType::from_str(&site.default_post_listing_type)?
     }
   })
-}
-
-/// Check to make sure a community_id or community_name is given for community listings
-pub fn check_missing_community_id(
-  listing_type: ListingType,
-  community_name: &Option<String>,
-  community_id: Option<CommunityId>,
-) -> Result<(), LemmyError> {
-  if listing_type == ListingType::Community && community_name.is_none() && community_id.is_none() {
-    Err(LemmyError::from_message("no_id_given"))
-  } else {
-    Ok(())
-  }
-}
-
-/// Check to make sure the page and limit are within correct limits
-pub fn check_page_and_limit(page: Option<i64>, limit: Option<i64>) -> Result<(), LemmyError> {
-  if let Some(page) = page {
-    if page < 1 {
-      return Err(LemmyError::from_message("page_outside_bounds"));
-    }
-  }
-
-  if let Some(limit) = limit {
-    if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
-      return Err(LemmyError::from_message("limit_outside_bounds"));
-    }
-  }
-
-  Ok(())
 }

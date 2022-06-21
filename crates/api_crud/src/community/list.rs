@@ -2,12 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
-  utils::{
-    blocking,
-    check_page_and_limit,
-    check_private_instance,
-    get_local_user_view_from_jwt_opt,
-  },
+  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views_actor::community_view::CommunityQueryBuilder;
@@ -43,8 +38,6 @@ impl PerformCrud for ListCommunities {
     let listing_type = data.type_;
     let page = data.page;
     let limit = data.limit;
-
-    check_page_and_limit(page, limit)?;
 
     let mut communities = blocking(context.pool(), move |conn| {
       CommunityQueryBuilder::create(conn)

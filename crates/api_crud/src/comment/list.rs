@@ -4,8 +4,6 @@ use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   utils::{
     blocking,
-    check_missing_community_id,
-    check_page_and_limit,
     check_private_instance,
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
@@ -43,8 +41,6 @@ impl PerformCrud for GetComments {
     let community_id = data.community_id;
     let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
 
-    check_missing_community_id(listing_type, &data.community_name, data.community_id)?;
-
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
         .await
@@ -57,8 +53,6 @@ impl PerformCrud for GetComments {
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
-
-    check_page_and_limit(page, limit)?;
 
     let mut comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)

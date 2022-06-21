@@ -49,7 +49,7 @@ impl ModBanFromCommunityView {
       query = query.filter(mod_ban_from_community::community_id.eq(community_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let res = query
       .limit(limit)

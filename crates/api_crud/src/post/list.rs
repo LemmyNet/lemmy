@@ -4,8 +4,6 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::{
     blocking,
-    check_missing_community_id,
-    check_page_and_limit,
     check_private_instance,
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
@@ -49,12 +47,8 @@ impl PerformCrud for GetPosts {
     let sort = data.sort;
     let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
 
-    check_missing_community_id(listing_type, &data.community_name, data.community_id)?;
-
     let page = data.page;
     let limit = data.limit;
-
-    check_page_and_limit(page, limit)?;
 
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
