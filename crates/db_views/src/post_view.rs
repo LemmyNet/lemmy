@@ -2,7 +2,7 @@ use crate::structs::{LocalUserView, PostView};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::{CommunityId, DbUrl, LanguageIdentifier, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -165,7 +165,7 @@ pub struct PostQueryBuilder<'a> {
   show_bot_accounts: Option<bool>,
   show_read_posts: Option<bool>,
   saved_only: Option<bool>,
-  languages: Option<Vec<LanguageIdentifier>>,
+  languages: Option<Vec<LanguageId>>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -497,7 +497,7 @@ mod tests {
   use diesel::PgConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
-    newtypes::LanguageIdentifier,
+    newtypes::LanguageId,
     source::{
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -562,7 +562,7 @@ mod tests {
       name: "blocked_person_post".to_string(),
       creator_id: inserted_blocked_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageIdentifier::new("en")),
+      language: Some(LanguageId(1)),
       ..PostForm::default()
     };
 
@@ -581,7 +581,7 @@ mod tests {
       name: post_name,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageIdentifier::new("fr")),
+      language: Some(LanguageId(2)),
       ..PostForm::default()
     };
 
@@ -643,7 +643,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
-        language: LanguageIdentifier::new("fr"),
+        language: LanguageId(2),
       },
       my_vote: None,
       creator: PersonSafe {
@@ -838,7 +838,7 @@ mod tests {
       .listing_type(ListingType::Community)
       .sort(SortType::New)
       .community_id(data.inserted_community.id);
-    let fr = LanguageIdentifier::new("fr");
+    let fr = LanguageId(2);
     read_post_listing_french.languages = Some(vec![fr]);
     let read_post_listing_french = read_post_listing_french.list().unwrap();
 

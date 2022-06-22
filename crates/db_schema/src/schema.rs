@@ -162,7 +162,7 @@ table! {
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
-        discussion_languages -> Array<Text>,
+        discussion_languages -> Array<Int4>,
     }
 }
 
@@ -362,7 +362,7 @@ table! {
         thumbnail_url -> Nullable<Text>,
         ap_id -> Varchar,
         local -> Bool,
-        language -> Varchar,
+        language -> Int4,
     }
 }
 

@@ -5,8 +5,9 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
-  newtypes::LanguageIdentifier,
+  newtypes::LanguageId,
   source::{
+    language::Language,
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
     site::Site,
@@ -118,16 +119,25 @@ impl Perform for SaveUserSettings {
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
-    let mut discussion_languages: Vec<LanguageIdentifier> = data
-      .discussion_languages
-      .clone()
-      .into_iter()
-      .flatten()
-      .map(|l| LanguageIdentifier::new(&l))
-      .collect();
-    if discussion_languages.is_empty() {
-      discussion_languages = LanguageIdentifier::all_languages()
-    }
+    let discussion_languages: Option<Vec<LanguageId>> =
+      if let Some(discussion_languages) = data.discussion_languages.clone() {
+        if discussion_languages.len() > 5 {
+          return Err(LemmyError::from_message("max_languages_is_five"));
+        }
+
+        let mut language_ids = vec![];
+        for l in discussion_languages {
+          language_ids.push(
+            blocking(context.pool(), move |conn| {
+              Language::read_id_from_code(conn, l)
+            })
+            .await??,
+          );
+        }
+        Some(language_ids)
+      } else {
+        None
+      };
 
     let local_user_form = LocalUserForm {
       person_id: Some(person_id),
@@ -146,7 +156,7 @@ impl Perform for SaveUserSettings {
       send_notifications_to_email: data.send_notifications_to_email,
       email_verified: None,
       accepted_application: None,
-      discussion_languages: Some(discussion_languages),
+      discussion_languages,
     };
 
     let local_user_res = blocking(context.pool(), move |conn| {

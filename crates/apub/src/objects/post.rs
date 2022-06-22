@@ -4,7 +4,7 @@ use crate::{
   local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
-    objects::page::{Attachment, AttributedTo, Language, Page, PageType},
+    objects::page::{Attachment, AttributedTo, LanguageTag, Page, PageType},
     ImageObject,
     Source,
   },
@@ -20,9 +20,9 @@ use chrono::NaiveDateTime;
 use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_db_schema::{
   self,
-  newtypes::LanguageIdentifier,
   source::{
     community::Community,
+    language::Language,
     moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
     person::Person,
     post::{Post, PostForm},
@@ -99,6 +99,11 @@ impl ApubObject for ApubPost {
       Community::read(conn, community_id)
     })
     .await??;
+    let language = self.language;
+    let language = blocking(context.pool(), move |conn| {
+      Language::read_from_id(conn, language)
+    })
+    .await??;
 
     let page = Page {
       kind: PageType::Page,
@@ -116,7 +121,7 @@ impl ApubObject for ApubPost {
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
-      language: Language::new(self.language.clone()),
+      language: LanguageTag::new(language),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
     };
@@ -180,9 +185,11 @@ impl ApubObject for ApubPost {
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
-      let language = page
-        .language
-        .map(|l| LanguageIdentifier::new(&l.identifier));
+      let language = page.language.map(|l| l.identifier);
+      let language = blocking(context.pool(), move |conn| {
+        Language::read_id_from_code_opt(conn, language)
+      })
+      .await??;
 
       PostForm {
         name: page.name.clone(),

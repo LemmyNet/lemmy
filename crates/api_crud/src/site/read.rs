@@ -5,6 +5,7 @@ use lemmy_api_common::{
   site::{CreateSite, GetSite, GetSiteResponse, MyUserInfo},
   utils::{blocking, build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
+use lemmy_db_schema::source::language::Language;
 use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
@@ -123,6 +124,8 @@ impl PerformCrud for GetSite {
     let federated_instances =
       build_federated_instances(context.pool(), &context.settings()).await?;
 
+    let all_languages = blocking(context.pool(), Language::read_all).await??;
+
     Ok(GetSiteResponse {
       site_view,
       admins,
@@ -130,6 +133,7 @@ impl PerformCrud for GetSite {
       version: version::VERSION.to_string(),
       my_user,
       federated_instances,
+      all_languages,
     })
   }
 }
