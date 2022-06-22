@@ -6,7 +6,6 @@ use lemmy_api_common::{
   utils::{blocking, honeypot_check, password_length_check, send_verification_email},
 };
 use lemmy_apub::{
-  generate_followers_url,
   generate_inbox_url,
   generate_local_apub_endpoint,
   generate_shared_inbox_url,
@@ -14,22 +13,13 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
-  newtypes::CommunityId,
   source::{
-    community::{
-      Community,
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityForm,
-      CommunityModerator,
-      CommunityModeratorForm,
-    },
     local_user::{LocalUser, LocalUserForm},
     person::{Person, PersonForm},
     registration_application::{RegistrationApplication, RegistrationApplicationForm},
     site::Site,
   },
-  traits::{Crud, Followable, Joinable},
+  traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
@@ -190,67 +180,6 @@ impl PerformCrud for Register {
         RegistrationApplication::create(conn, &form)
       })
       .await??;
-    }
-
-    let main_community_keypair = generate_actor_keypair()?;
-
-    // Create the main community if it doesn't exist
-    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let main_community = match blocking(context.pool(), move |conn| {
-      Community::read(conn, CommunityId(2))
-    })
-    .await?
-    {
-      Ok(c) => c,
-      Err(_e) => {
-        let default_community_name = "main";
-        let actor_id = generate_local_apub_endpoint(
-          EndpointType::Community,
-          default_community_name,
-          &protocol_and_hostname,
-        )?;
-        let community_form = CommunityForm {
-          name: default_community_name.to_string(),
-          title: "The Default Community".to_string(),
-          description: Some("The Default Community".to_string()),
-          actor_id: Some(actor_id.to_owned()),
-          private_key: Some(Some(main_community_keypair.private_key)),
-          public_key: main_community_keypair.public_key,
-          followers_url: Some(generate_followers_url(&actor_id)?),
-          inbox_url: Some(generate_inbox_url(&actor_id)?),
-          shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
-          ..CommunityForm::default()
-        };
-        blocking(context.pool(), move |conn| {
-          Community::create(conn, &community_form)
-        })
-        .await??
-      }
-    };
-
-    // Sign them up for main community no matter what
-    let community_follower_form = CommunityFollowerForm {
-      community_id: main_community.id,
-      person_id: inserted_person.id,
-      pending: false,
-    };
-
-    let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
-    blocking(context.pool(), follow)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
-
-    // If its an admin, add them as a mod and follower to main
-    if no_admins {
-      let community_moderator_form = CommunityModeratorForm {
-        community_id: main_community.id,
-        person_id: inserted_person.id,
-      };
-
-      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
-      blocking(context.pool(), join)
-        .await?
-        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }
 
     let mut login_response = LoginResponse {
