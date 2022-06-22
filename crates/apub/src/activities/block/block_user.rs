@@ -184,7 +184,7 @@ impl ActivityHandler for BlockUser {
           remove_user_data(
             blocked_person.id,
             context.pool(),
-            &context.settings(),
+            context.settings(),
             context.client(),
           )
           .await?;

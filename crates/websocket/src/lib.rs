@@ -47,8 +47,7 @@ impl LemmyContext {
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client
   }
-  pub fn settings(&self) -> Settings {
-    // TODO hacky solution to be able to hotload the settings.
+  pub fn settings(&self) -> &'static Settings {
     Settings::get()
   }
   pub fn secret(&self) -> &Secret {
@@ -133,8 +132,6 @@ pub enum UserOperation {
   PasswordChange,
   MarkPrivateMessageAsRead,
   UserJoin,
-  GetSiteConfig,
-  SaveSiteConfig,
   PostJoin,
   CommunityJoin,
   ModJoin,

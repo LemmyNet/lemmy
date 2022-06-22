@@ -136,7 +136,7 @@ impl ApubObject for ApubPost {
     };
 
     let community = page.extract_community(context, request_counter).await?;
-    check_apub_id_valid_with_strictness(page.id.inner(), community.local, &context.settings())?;
+    check_apub_id_valid_with_strictness(page.id.inner(), community.local, context.settings())?;
     verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
@@ -168,7 +168,7 @@ impl ApubObject for ApubPost {
         page.url
       };
       let (metadata_res, thumbnail_url) = if let Some(url) = &url {
-        fetch_site_data(context.client(), &context.settings(), Some(url)).await
+        fetch_site_data(context.client(), context.settings(), Some(url)).await
       } else {
         (None, page.image.map(|i| i.url.into()))
       };

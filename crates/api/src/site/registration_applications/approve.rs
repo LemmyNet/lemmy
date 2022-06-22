@@ -66,7 +66,7 @@ impl Perform for ApproveRegistrationApplication {
       .await??;
 
       if approved_local_user_view.local_user.email.is_some() {
-        send_application_approved_email(&approved_local_user_view, &context.settings())?;
+        send_application_approved_email(&approved_local_user_view, context.settings())?;
       }
     }
 

@@ -63,7 +63,7 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    check_apub_id_valid_with_strictness(self.id.inner(), true, &context.settings())?;
+    check_apub_id_valid_with_strictness(self.id.inner(), true, context.settings())?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
     let slur_regex = &context.settings().slur_regex();

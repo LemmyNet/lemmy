@@ -206,9 +206,7 @@ impl ApubCommunity {
       .unique()
       .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
-      .filter(|inbox| {
-        check_apub_id_valid_with_strictness(inbox, false, &context.settings()).is_ok()
-      })
+      .filter(|inbox| check_apub_id_valid_with_strictness(inbox, false, context.settings()).is_ok())
       .collect();
 
     Ok(inboxes)

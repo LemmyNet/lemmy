@@ -109,7 +109,7 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    check_apub_id_valid_with_strictness(note.id.inner(), false, &Settings::get())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), false, Settings::get())?;
     let person = note
       .attributed_to
       .dereference(context, local_instance(context), request_counter)

@@ -211,13 +211,8 @@ impl PerformCrud for Register {
           .email
           .clone()
           .expect("email was provided");
-        send_verification_email(
-          &local_user_view,
-          &email,
-          context.pool(),
-          &context.settings(),
-        )
-        .await?;
+        send_verification_email(&local_user_view, &email, context.pool(), context.settings())
+          .await?;
         login_response.verify_email_sent = true;
       }
 

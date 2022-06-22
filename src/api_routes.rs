@@ -18,9 +18,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("", web::get().to(route_get_crud::<GetSite>))
           // Admin Actions
           .route("", web::post().to(route_post_crud::<CreateSite>))
-          .route("", web::put().to(route_post_crud::<EditSite>))
-          .route("/config", web::get().to(route_get::<GetSiteConfig>))
-          .route("/config", web::put().to(route_post::<SaveSiteConfig>)),
+          .route("", web::put().to(route_post_crud::<EditSite>)),
       )
       .service(
         web::resource("/modlog")

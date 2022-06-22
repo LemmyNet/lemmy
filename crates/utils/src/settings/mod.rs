@@ -5,23 +5,21 @@ use crate::{
 };
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
-use std::{env, fs, io::Error, sync::RwLock};
+use std::{env, fs, io::Error};
 
 pub mod structs;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-static SETTINGS: Lazy<RwLock<Settings>> =
-  Lazy::new(|| RwLock::new(Settings::init().expect("Failed to load settings file")));
-static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(&format!(
+lazy_static! {
+  static ref SETTINGS: Settings = Settings::init().expect("Failed to load settings file");
+  static ref WEBFINGER_REGEX: Regex = Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
     Settings::get().hostname
   ))
-  .expect("compile webfinger regex")
-});
+  .expect("compile webfinger regex");
+}
 
 impl Settings {
   /// Reads config from configuration file.
@@ -41,8 +39,8 @@ impl Settings {
   }
 
   /// Returns the config as a struct.
-  pub fn get() -> Self {
-    SETTINGS.read().expect("read config").to_owned()
+  pub fn get() -> &'static Self {
+    &SETTINGS
   }
 
   pub fn get_database_url(&self) -> String {
@@ -89,23 +87,6 @@ impl Settings {
         .context(location_info!())?
         .to_string(),
     )
-  }
-
-  pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
-    // check that the config is valid
-    from_str::<Settings>(data)?;
-
-    fs::write(Settings::get_config_location(), data)?;
-
-    // Reload the new settings
-    // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
-    let mut new_settings = SETTINGS.write().expect("write config");
-    *new_settings = match Settings::init() {
-      Ok(c) => c,
-      Err(e) => panic!("{}", e),
-    };
-
-    Ok(Self::read_config_file()?)
   }
 
   pub fn webfinger_regex(&self) -> Regex {

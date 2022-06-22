@@ -34,11 +34,11 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .http_fetch_retry_limit(context.settings().federation.http_fetch_retry_limit)
       .worker_count(context.settings().federation.worker_count)
       .debug(context.settings().federation.debug)
-      .verify_url_function(|url| check_apub_id_valid(url, &Settings::get()))
+      .verify_url_function(|url| check_apub_id_valid(url, Settings::get()))
       .build()
       .expect("configure federation");
     LocalInstance::new(
-      context.settings().hostname,
+      context.settings().hostname.to_owned(),
       context.client().clone(),
       settings,
     )

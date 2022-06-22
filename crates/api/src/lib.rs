@@ -98,12 +98,6 @@ pub async fn match_websocket_operation(
 
     // Site ops
     UserOperation::GetModlog => do_websocket_operation::<GetModlog>(context, id, op, data).await,
-    UserOperation::GetSiteConfig => {
-      do_websocket_operation::<GetSiteConfig>(context, id, op, data).await
-    }
-    UserOperation::SaveSiteConfig => {
-      do_websocket_operation::<SaveSiteConfig>(context, id, op, data).await
-    }
     UserOperation::PurgePerson => {
       do_websocket_operation::<PurgePerson>(context, id, op, data).await
     }
