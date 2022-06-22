@@ -43,8 +43,8 @@ pub(crate) fn read_from_string_or_source_opt(
 /// wrapped in Announce. If we simply receive this like any other federated object, overwrite the
 /// existing, local Post. In particular, it will set the field local = false, so that the object
 /// can't be fetched from the Activitypub HTTP endpoint anymore (which only serves local objects).
-pub(crate) fn verify_is_remote_object(id: &Url) -> Result<(), LemmyError> {
-  let local_domain = Settings::get().get_hostname_without_port()?;
+pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(), LemmyError> {
+  let local_domain = settings.get_hostname_without_port()?;
   if id.domain() == Some(&local_domain) {
     Err(anyhow!("cant accept local object from remote instance").into())
   } else {
@@ -68,7 +68,7 @@ pub(crate) mod tests {
   use lemmy_utils::{
     error::LemmyError,
     rate_limit::{rate_limiter::RateLimiter, RateLimit},
-    settings::structs::Settings,
+    settings::SETTINGS,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use parking_lot::Mutex;
@@ -96,7 +96,7 @@ pub(crate) mod tests {
   pub(crate) fn init_context() -> LemmyContext {
     // call this to run migrations
     establish_unpooled_connection();
-    let settings = Settings::init().unwrap();
+    let settings = SETTINGS.to_owned();
     let rate_limiter = RateLimit {
       rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
       rate_limit_config: settings.rate_limit.to_owned().unwrap_or_default(),

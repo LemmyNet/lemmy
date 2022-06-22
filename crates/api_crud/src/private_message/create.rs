@@ -119,7 +119,7 @@ impl PerformCrud for CreatePrivateMessage {
           &content_slurs_removed,
           &local_recipient.person.name,
         ),
-        &context.settings(),
+        context.settings(),
       );
     }
 

@@ -29,7 +29,7 @@ impl Perform for PasswordReset {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
 
     // Email the pure token to the user.
-    send_password_reset_email(&local_user_view, context.pool(), &context.settings()).await?;
+    send_password_reset_email(&local_user_view, context.pool(), context.settings()).await?;
     Ok(PasswordResetResponse {})
   }
 }

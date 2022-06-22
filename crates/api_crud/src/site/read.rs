@@ -120,8 +120,7 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances =
-      build_federated_instances(context.pool(), &context.settings()).await?;
+    let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
 
     Ok(GetSiteResponse {
       site_view,

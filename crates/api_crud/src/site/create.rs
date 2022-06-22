@@ -15,7 +15,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  settings::structs::Settings,
   utils::{check_slurs, check_slurs_opt},
   ConnectionId,
 };
@@ -57,7 +56,7 @@ impl PerformCrud for CreateSite {
       site_description_length_check(desc)?;
     }
 
-    let actor_id: DbUrl = Url::parse(&Settings::get().get_protocol_and_hostname())?.into();
+    let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
     let keypair = generate_actor_keypair()?;
     let site_form = SiteForm {

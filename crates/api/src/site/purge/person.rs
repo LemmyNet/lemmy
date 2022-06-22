@@ -37,13 +37,13 @@ impl Perform for PurgePerson {
     let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
 
     if let Some(banner) = person.banner {
-      purge_image_from_pictrs(context.client(), &context.settings(), &banner)
+      purge_image_from_pictrs(context.client(), context.settings(), &banner)
         .await
         .ok();
     }
 
     if let Some(avatar) = person.avatar {
-      purge_image_from_pictrs(context.client(), &context.settings(), &avatar)
+      purge_image_from_pictrs(context.client(), context.settings(), &avatar)
         .await
         .ok();
     }
@@ -51,7 +51,7 @@ impl Perform for PurgePerson {
     purge_image_posts_for_person(
       person_id,
       context.pool(),
-      &context.settings(),
+      context.settings(),
       context.client(),
     )
     .await?;

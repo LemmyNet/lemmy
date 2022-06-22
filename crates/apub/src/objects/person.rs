@@ -120,7 +120,7 @@ impl ApubObject for ApubPerson {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_domains_match(person.id.inner(), expected_domain)?;
-    check_apub_id_valid_with_strictness(person.id.inner(), false, &context.settings())?;
+    check_apub_id_valid_with_strictness(person.id.inner(), false, context.settings())?;
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;

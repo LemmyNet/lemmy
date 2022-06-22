@@ -19,6 +19,7 @@ use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{request::fetch_site_data, utils::blocking};
 use lemmy_db_schema::{
+  self,
   source::{
     community::Community,
     moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
@@ -26,7 +27,6 @@ use lemmy_db_schema::{
     post::{Post, PostForm},
   },
   traits::Crud,
-  {self},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -132,11 +132,11 @@ impl ApubObject for ApubPost {
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
-      verify_is_remote_object(page.id.inner())?;
+      verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
     let community = page.extract_community(context, request_counter).await?;
-    check_apub_id_valid_with_strictness(page.id.inner(), community.local, &context.settings())?;
+    check_apub_id_valid_with_strictness(page.id.inner(), community.local, context.settings())?;
     verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
     check_slurs(&page.name, &context.settings().slur_regex())?;
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
@@ -168,7 +168,7 @@ impl ApubObject for ApubPost {
         page.url
       };
       let (metadata_res, thumbnail_url) = if let Some(url) = &url {
-        fetch_site_data(context.client(), &context.settings(), Some(url)).await
+        fetch_site_data(context.client(), context.settings(), Some(url)).await
       } else {
         (None, page.image.map(|i| i.url.into()))
       };
