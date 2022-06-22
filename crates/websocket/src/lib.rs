@@ -4,7 +4,10 @@ extern crate strum_macros;
 use crate::chat_server::ChatServer;
 use actix::Addr;
 use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::{
+  error::LemmyError,
+  settings::{structs::Settings, SETTINGS},
+};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 
@@ -48,7 +51,7 @@ impl LemmyContext {
     &self.client
   }
   pub fn settings(&self) -> &'static Settings {
-    Settings::get()
+    &SETTINGS
   }
   pub fn secret(&self) -> &Secret {
     &self.secret

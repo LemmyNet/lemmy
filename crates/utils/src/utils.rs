@@ -2,24 +2,26 @@ use crate::{error::LemmyError, IpAddr};
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::Regex;
 use url::Url;
 
-lazy_static! {
-static ref MENTIONS_REGEX: Regex =
-  Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex");
-static ref VALID_ACTOR_NAME_REGEX: Regex =
-  Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex");
-static ref VALID_POST_TITLE_REGEX: Regex =
-  Regex::new(r".*\S{3,}.*").expect("compile regex");
-static ref VALID_MATRIX_ID_REGEX: Regex=
-  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex");
+static MENTIONS_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex")
+});
+static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
+static VALID_POST_TITLE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r".*\S{3,}.*").expect("compile regex"));
+static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
+});
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-static ref CLEAN_URL_PARAMS_REGEX: Regex=
+static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$")
-    .expect("compile regex");
-}
+    .expect("compile regex")
+});
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
   NaiveDateTime::from_timestamp(time, 0)

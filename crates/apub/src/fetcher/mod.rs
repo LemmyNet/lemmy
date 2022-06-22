@@ -3,7 +3,7 @@ use activitypub_federation::traits::ApubObject;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::traits::ApubActor;
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 pub mod post_or_comment;
@@ -35,7 +35,7 @@ where
       .collect_tuple()
       .expect("invalid query");
     let name = name.to_string();
-    let domain = format!("{}://{}", Settings::get().get_protocol_string(), domain);
+    let domain = format!("{}://{}", context.settings().get_protocol_string(), domain);
     let actor = blocking(context.pool(), move |conn| {
       DbActor::read_from_name_and_domain(conn, &name, &domain)
     })

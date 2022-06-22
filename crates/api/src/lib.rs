@@ -220,13 +220,13 @@ mod tests {
     traits::Crud,
     utils::establish_unpooled_connection,
   };
-  use lemmy_utils::{claims::Claims, settings::structs::Settings};
+  use lemmy_utils::{claims::Claims, settings::SETTINGS};
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {
     let conn = establish_unpooled_connection();
     let secret = Secret::init(&conn).unwrap();
-    let settings = Settings::init().unwrap();
+    let settings = &SETTINGS.to_owned();
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),

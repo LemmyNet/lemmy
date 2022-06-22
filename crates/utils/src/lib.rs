@@ -2,8 +2,6 @@
 extern crate strum_macros;
 #[macro_use]
 extern crate smart_default;
-#[macro_use]
-extern crate lazy_static;
 
 pub mod apub;
 pub mod email;

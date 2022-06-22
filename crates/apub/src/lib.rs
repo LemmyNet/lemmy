@@ -8,7 +8,11 @@ use activitypub_federation::{
 use anyhow::Context;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
-use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
+use lemmy_utils::{
+  error::LemmyError,
+  location_info,
+  settings::{structs::Settings, SETTINGS},
+};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
 use url::{ParseError, Url};
@@ -34,7 +38,9 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .http_fetch_retry_limit(context.settings().federation.http_fetch_retry_limit)
       .worker_count(context.settings().federation.worker_count)
       .debug(context.settings().federation.debug)
-      .verify_url_function(|url| check_apub_id_valid(url, Settings::get()))
+      // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
+      // without the value getting captured.
+      .verify_url_function(|url| check_apub_id_valid(url, &SETTINGS.to_owned()))
       .build()
       .expect("configure federation");
     LocalInstance::new(

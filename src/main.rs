@@ -26,7 +26,7 @@ use lemmy_server::{
 use lemmy_utils::{
   error::LemmyError,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  settings::structs::Settings,
+  settings::{structs::Settings, SETTINGS},
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use parking_lot::Mutex;
@@ -54,7 +54,7 @@ async fn main() -> Result<(), LemmyError> {
     return Ok(());
   }
 
-  let settings = Settings::init().expect("Couldn't initialize settings.");
+  let settings = SETTINGS.to_owned();
 
   init_logging(settings.opentelemetry_url.as_deref())?;
 

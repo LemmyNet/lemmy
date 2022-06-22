@@ -24,7 +24,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  settings::structs::Settings,
   utils::{convert_datetime, markdown_to_html},
 };
 use lemmy_websocket::LemmyContext;
@@ -109,7 +108,7 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    check_apub_id_valid_with_strictness(note.id.inner(), false, Settings::get())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), false, context.settings())?;
     let person = note
       .attributed_to
       .dereference(context, local_instance(context), request_counter)

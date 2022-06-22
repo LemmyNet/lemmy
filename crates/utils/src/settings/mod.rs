@@ -5,6 +5,7 @@ use crate::{
 };
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
+use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use std::{env, fs, io::Error};
 
@@ -12,14 +13,15 @@ pub mod structs;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-lazy_static! {
-  static ref SETTINGS: Settings = Settings::init().expect("Failed to load settings file");
-  static ref WEBFINGER_REGEX: Regex = Regex::new(&format!(
+pub static SETTINGS: Lazy<Settings> =
+  Lazy::new(|| Settings::init().expect("Failed to load settings file"));
+static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
-    Settings::get().hostname
+    SETTINGS.hostname
   ))
-  .expect("compile webfinger regex");
-}
+  .expect("compile webfinger regex")
+});
 
 impl Settings {
   /// Reads config from configuration file.
@@ -27,7 +29,7 @@ impl Settings {
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
   /// Warning: Only call this once.
-  pub fn init() -> Result<Self, LemmyError> {
+  pub(crate) fn init() -> Result<Self, LemmyError> {
     // Read the config file
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
@@ -36,11 +38,6 @@ impl Settings {
     }
 
     Ok(config)
-  }
-
-  /// Returns the config as a struct.
-  pub fn get() -> &'static Self {
-    &SETTINGS
   }
 
   pub fn get_database_url(&self) -> String {
