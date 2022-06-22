@@ -243,13 +243,16 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn set_params_for_user(mut self, user: &Option<LocalUserView>) -> Self {
-    self.my_person_id = user.to_owned().map(|l| l.person.id);
-    self.show_nsfw = user.as_ref().map(|t| t.local_user.show_nsfw);
-    self.show_bot_accounts = user.as_ref().map(|t| t.local_user.show_bot_accounts);
-    self.show_read_posts = user.as_ref().map(|t| t.local_user.show_read_posts);
-    self.languages = user
-      .as_ref()
-      .map(|l| l.local_user.discussion_languages.clone());
+    if let Some(user) = user {
+      self.my_person_id = Some(user.person.id);
+      self.show_nsfw = Some(user.local_user.show_nsfw);
+      self.show_bot_accounts = Some(user.local_user.show_bot_accounts);
+      self.show_read_posts = Some(user.local_user.show_read_posts);
+      // if user has no languages set, then dont filter by language
+      if !user.local_user.discussion_languages.is_empty() {
+        self.languages = Some(user.local_user.discussion_languages.clone());
+      }
+    }
     self
   }
 
