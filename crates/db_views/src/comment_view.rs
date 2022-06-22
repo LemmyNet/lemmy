@@ -64,7 +64,7 @@ impl CommentView {
       community,
       counts,
       creator_banned_from_community,
-      subscribed,
+      follower,
       saved,
       creator_blocked,
       comment_like,
@@ -149,7 +149,7 @@ impl CommentView {
       community,
       counts,
       creator_banned_from_community: creator_banned_from_community.is_some(),
-      subscribed: subscribed.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&follower),
       saved: saved.is_some(),
       creator_blocked: creator_blocked.is_some(),
       my_vote,
@@ -518,7 +518,7 @@ impl ViewToVec for CommentView {
         community: a.5.to_owned(),
         counts: a.6.to_owned(),
         creator_banned_from_community: a.7.is_some(),
-        subscribed: a.8.is_some(),
+        subscribed: CommunityFollower::to_subscribed_type(&a.8),
         saved: a.9.is_some(),
         creator_blocked: a.10.is_some(),
         my_vote: a.11,
@@ -535,6 +535,7 @@ mod tests {
     source::{comment::*, community::*, person::*, person_block::PersonBlockForm, post::*},
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
+    SubscribedType,
   };
   use serial_test::serial;
 
@@ -623,7 +624,7 @@ mod tests {
     let expected_comment_view_no_person = CommentView {
       creator_banned_from_community: false,
       my_vote: None,
-      subscribed: false,
+      subscribed: SubscribedType::NotSubscribed,
       saved: false,
       creator_blocked: false,
       comment: Comment {

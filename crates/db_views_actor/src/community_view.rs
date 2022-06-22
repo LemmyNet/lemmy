@@ -57,7 +57,7 @@ impl CommunityView {
 
     Ok(CommunityView {
       community,
-      subscribed: follower.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&follower),
       blocked: blocked.is_some(),
       counts,
     })
@@ -262,7 +262,7 @@ impl ViewToVec for CommunityView {
       .map(|a| Self {
         community: a.0.to_owned(),
         counts: a.1.to_owned(),
-        subscribed: a.2.is_some(),
+        subscribed: CommunityFollower::to_subscribed_type(&a.2),
         blocked: a.3.is_some(),
       })
       .collect::<Vec<Self>>()

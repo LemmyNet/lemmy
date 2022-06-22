@@ -13,6 +13,7 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
   utils::{functions::lower, naive_now},
+  SubscribedType,
 };
 use diesel::{
   dsl::*,
@@ -246,6 +247,22 @@ impl Bannable for CommunityPersonBan {
         .filter(person_id.eq(community_person_ban_form.person_id)),
     )
     .execute(conn)
+  }
+}
+
+impl CommunityFollower {
+  pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
+    match follower {
+      Some(f) => {
+        if f.pending.unwrap_or(false) {
+          SubscribedType::Pending
+        } else {
+          SubscribedType::Subscribed
+        }
+      }
+      // If the row doesn't exist, the person isn't a follower.
+      None => SubscribedType::NotSubscribed,
+    }
   }
 }
 

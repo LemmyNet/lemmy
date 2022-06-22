@@ -82,18 +82,11 @@ impl Perform for FollowCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let mut community_view = blocking(context.pool(), move |conn| {
+    let community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(person_id))
     })
     .await??;
 
-    // TODO: this needs to return a "pending" state, until Accept is received from the remote server
-    // For now, just assume that remote follows are accepted.
-    // Otherwise, the subscribed will be null
-    if !community.local {
-      community_view.subscribed = data.follow;
-    }
-
-    Ok(CommunityResponse { community_view })
+    Ok(Self::Response { community_view })
   }
 }
