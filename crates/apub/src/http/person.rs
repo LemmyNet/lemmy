@@ -28,7 +28,7 @@ pub(crate) async fn get_apub_person_http(
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = blocking(context.pool(), move |conn| {
-    Person::read_from_name(conn, &user_name)
+    Person::read_from_name(conn, &user_name, true)
   })
   .await??
   .into();
@@ -60,7 +60,7 @@ pub(crate) async fn get_apub_person_outbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let person = blocking(context.pool(), move |conn| {
-    Person::read_from_name(conn, &info.user_name)
+    Person::read_from_name(conn, &info.user_name, false)
   })
   .await??;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();

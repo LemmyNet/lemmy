@@ -35,7 +35,7 @@ pub(crate) async fn get_apub_community_http(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
+    Community::read_from_name(conn, &info.community_name, true)
   })
   .await??
   .into();
@@ -66,7 +66,7 @@ pub(crate) async fn get_apub_community_followers(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
+    Community::read_from_name(conn, &info.community_name, false)
   })
   .await??;
   let followers = GroupFollowers::new(community, &context).await?;
@@ -80,7 +80,7 @@ pub(crate) async fn get_apub_community_outbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
+    Community::read_from_name(conn, &info.community_name, false)
   })
   .await??;
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
@@ -97,7 +97,7 @@ pub(crate) async fn get_apub_community_moderators(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &info.community_name)
+    Community::read_from_name(conn, &info.community_name, false)
   })
   .await??
   .into();

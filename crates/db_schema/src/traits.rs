@@ -168,7 +168,13 @@ pub trait ApubActor {
   fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error>
   where
     Self: Sized;
-  fn read_from_name(conn: &PgConnection, actor_name: &str) -> Result<Self, Error>
+  /// - actor_name is the name of the community or user to read.
+  /// - include_deleted, if true, will return communities or users that were deleted/removed
+  fn read_from_name(
+    conn: &PgConnection,
+    actor_name: &str,
+    include_deleted: bool,
+  ) -> Result<Self, Error>
   where
     Self: Sized;
   fn read_from_name_and_domain(
