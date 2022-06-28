@@ -23,9 +23,8 @@ steps:
       - /root/.cargo/bin/cargo fmt -- --check
 
   - name: cargo clippy
-    image: clux/muslrust:1.60.0
+    image: clux/muslrust:1.61.0
     commands:
-      - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace -- -D clippy::unwrap_used
 
