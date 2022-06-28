@@ -142,8 +142,8 @@ impl ApubObject for ApubComment {
       Community::read(conn, community_id)
     })
     .await??;
-    check_apub_id_valid_with_strictness(note.id.inner(), community.local, &context.settings())?;
-    verify_is_remote_object(note.id.inner())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), community.local, context.settings())?;
+    verify_is_remote_object(note.id.inner(), context.settings())?;
     verify_person_in_community(
       &note.attributed_to,
       &community.into(),

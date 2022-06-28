@@ -180,22 +180,6 @@ pub struct LeaveAdmin {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetSiteConfig {
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetSiteConfigResponse {
-  pub config_hjson: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SaveSiteConfig {
-  pub config_hjson: String,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FederatedInstances {
   pub linked: Vec<String>,
   pub allowed: Option<Vec<String>>,

@@ -49,7 +49,7 @@ impl Perform for VerifyEmail {
     })
     .await??;
 
-    send_email_verification_success(&local_user_view, &context.settings())?;
+    send_email_verification_success(&local_user_view, context.settings())?;
 
     blocking(context.pool(), move |conn| {
       EmailVerification::delete_old_tokens_for_local_user(conn, local_user_id)

@@ -98,12 +98,6 @@ pub async fn match_websocket_operation(
 
     // Site ops
     UserOperation::GetModlog => do_websocket_operation::<GetModlog>(context, id, op, data).await,
-    UserOperation::GetSiteConfig => {
-      do_websocket_operation::<GetSiteConfig>(context, id, op, data).await
-    }
-    UserOperation::SaveSiteConfig => {
-      do_websocket_operation::<SaveSiteConfig>(context, id, op, data).await
-    }
     UserOperation::PurgePerson => {
       do_websocket_operation::<PurgePerson>(context, id, op, data).await
     }
@@ -226,13 +220,13 @@ mod tests {
     traits::Crud,
     utils::establish_unpooled_connection,
   };
-  use lemmy_utils::{claims::Claims, settings::structs::Settings};
+  use lemmy_utils::{claims::Claims, settings::SETTINGS};
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {
     let conn = establish_unpooled_connection();
     let secret = Secret::init(&conn).unwrap();
-    let settings = Settings::init().unwrap();
+    let settings = &SETTINGS.to_owned();
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),

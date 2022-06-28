@@ -36,7 +36,7 @@ impl PerformCrud for DeleteAccount {
     delete_user_account(
       local_user_view.person.id,
       context.pool(),
-      &context.settings(),
+      context.settings(),
       context.client(),
     )
     .await?;

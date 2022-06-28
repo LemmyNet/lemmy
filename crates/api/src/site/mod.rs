@@ -1,4 +1,3 @@
-mod config;
 mod leave_admin;
 mod mod_log;
 mod purge;
