@@ -310,14 +310,14 @@ impl ApubActor for Person {
     from_name: &str,
     include_deleted: bool,
   ) -> Result<Person, Error> {
-    let q = person
+    let mut q = person
+      .into_boxed()
       .filter(local.eq(true))
       .filter(lower(name).eq(lower(from_name)));
-    if include_deleted {
-      q.first::<Self>(conn)
-    } else {
-      q.filter(deleted.eq(false)).first::<Self>(conn)
+    if !include_deleted {
+      q = q.filter(deleted.eq(false))
     }
+    q.first::<Self>(conn)
   }
 
   fn read_from_name_and_domain(

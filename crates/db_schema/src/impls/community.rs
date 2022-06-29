@@ -338,16 +338,14 @@ impl ApubActor for Community {
     include_deleted: bool,
   ) -> Result<Community, Error> {
     use crate::schema::community::dsl::*;
-    let q = community
+    let mut q = community
+      .into_boxed()
       .filter(local.eq(true))
       .filter(lower(name).eq(lower(community_name)));
-    if include_deleted {
-      q.first::<Self>(conn)
-    } else {
-      q.filter(deleted.eq(false))
-        .filter(removed.eq(false))
-        .first::<Self>(conn)
+    if !include_deleted {
+      q = q.filter(deleted.eq(false)).filter(removed.eq(false));
     }
+    q.first::<Self>(conn)
   }
 
   fn read_from_name_and_domain(
