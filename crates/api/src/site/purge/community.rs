@@ -41,13 +41,13 @@ impl Perform for PurgeCommunity {
     .await??;
 
     if let Some(banner) = community.banner {
-      purge_image_from_pictrs(context.client(), &context.settings(), &banner)
+      purge_image_from_pictrs(context.client(), context.settings(), &banner)
         .await
         .ok();
     }
 
     if let Some(icon) = community.icon {
-      purge_image_from_pictrs(context.client(), &context.settings(), &icon)
+      purge_image_from_pictrs(context.client(), context.settings(), &icon)
         .await
         .ok();
     }
@@ -55,7 +55,7 @@ impl Perform for PurgeCommunity {
     purge_image_posts_for_community(
       community_id,
       context.pool(),
-      &context.settings(),
+      context.settings(),
       context.client(),
     )
     .await?;

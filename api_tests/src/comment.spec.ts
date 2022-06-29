@@ -290,7 +290,8 @@ test('Comment Search', async () => {
 
 test('A and G subscribe to B (center) A posts, G mentions B, it gets announced to A', async () => {
   // Create a local post
-  let alphaPost = await createPost(alpha, 2);
+  let alphaCommunity = await createCommunity(alpha, "main");
+  let alphaPost = await createPost(alpha, alphaCommunity.community_view.community.id);
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it

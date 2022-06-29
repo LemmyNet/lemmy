@@ -8,7 +8,7 @@ use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::source::site::Site;
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -24,10 +24,12 @@ pub(crate) async fn get_apub_site_http(
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) async fn get_apub_site_outbox() -> Result<HttpResponse, LemmyError> {
+pub(crate) async fn get_apub_site_outbox(
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, LemmyError> {
   let outbox_id = format!(
     "{}/site_outbox",
-    Settings::get().get_protocol_and_hostname()
+    context.settings().get_protocol_and_hostname()
   );
   let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?).await?;
   Ok(create_apub_response(&outbox))

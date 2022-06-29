@@ -262,15 +262,15 @@ pub fn build_user_agent(settings: &Settings) -> String {
 #[cfg(test)]
 mod tests {
   use crate::request::{build_user_agent, fetch_site_metadata, SiteMetadata};
-  use lemmy_utils::settings::structs::Settings;
+  use lemmy_utils::settings::SETTINGS;
   use url::Url;
 
   // These helped with testing
   #[actix_rt::test]
   async fn test_site_metadata() {
-    let settings = Settings::init().unwrap();
+    let settings = &SETTINGS.to_owned();
     let client = reqwest::Client::builder()
-      .user_agent(build_user_agent(&settings))
+      .user_agent(build_user_agent(settings))
       .build()
       .unwrap()
       .into();

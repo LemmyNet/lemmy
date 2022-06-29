@@ -103,7 +103,7 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    check_apub_id_valid_with_strictness(apub.id.inner(), true, &data.settings())?;
+    check_apub_id_valid_with_strictness(apub.id.inner(), true, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
     let slur_regex = &data.settings().slur_regex();

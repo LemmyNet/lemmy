@@ -139,6 +139,10 @@ export async function setupLogins() {
   await gamma.client.editSite({ require_application: false, auth: gamma.auth});
   await delta.client.editSite({ require_application: false, auth: delta.auth});
   await epsilon.client.editSite({ require_application: false, auth: epsilon.auth});
+
+  // Create the main beta community, follow it
+  await createCommunity(beta, "main");
+  await followBeta(beta);
 }
 
 export async function createPost(

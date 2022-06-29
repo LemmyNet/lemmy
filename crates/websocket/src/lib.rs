@@ -4,7 +4,10 @@ extern crate strum_macros;
 use crate::chat_server::ChatServer;
 use actix::Addr;
 use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::{
+  error::LemmyError,
+  settings::{structs::Settings, SETTINGS},
+};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 
@@ -47,9 +50,8 @@ impl LemmyContext {
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client
   }
-  pub fn settings(&self) -> Settings {
-    // TODO hacky solution to be able to hotload the settings.
-    Settings::get()
+  pub fn settings(&self) -> &'static Settings {
+    &SETTINGS
   }
   pub fn secret(&self) -> &Secret {
     &self.secret
@@ -133,8 +135,6 @@ pub enum UserOperation {
   PasswordChange,
   MarkPrivateMessageAsRead,
   UserJoin,
-  GetSiteConfig,
-  SaveSiteConfig,
   PostJoin,
   CommunityJoin,
   ModJoin,

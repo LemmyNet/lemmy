@@ -17,7 +17,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let captcha_settings = context.settings().captcha;
+    let captcha_settings = &context.settings().captcha;
 
     if !captcha_settings.enabled {
       return Ok(GetCaptchaResponse { ok: None });

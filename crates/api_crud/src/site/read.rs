@@ -121,8 +121,7 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances =
-      build_federated_instances(context.pool(), &context.settings()).await?;
+    let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
 
     let all_languages = blocking(context.pool(), Language::read_all).await??;
 

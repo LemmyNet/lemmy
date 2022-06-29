@@ -7,6 +7,7 @@ import {
   followCommunity,
   unfollowRemotes,
   getSite,
+  delay,
 } from './shared';
 
 beforeAll(async () => {
@@ -25,6 +26,9 @@ test('Follow federated community', async () => {
     betaCommunity.community.id
   );
 
+  // Wait for it to accept on the alpha side ( follows are async )
+  await delay();
+
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
   expect(follow.community_view.community.name).toBe('main');
@@ -36,6 +40,7 @@ test('Follow federated community', async () => {
     c => c.community.local == false
   ).community.id;
   expect(remoteCommunityId).toBeDefined();
+  expect(site.my_user.follows.length).toBe(1);
 
   // Test an unfollow
   let unfollow = await followCommunity(alpha, false, remoteCommunityId);
@@ -43,5 +48,5 @@ test('Follow federated community', async () => {
 
   // Make sure you are unsubbed locally
   let siteUnfollowCheck = await getSite(alpha);
-  expect(siteUnfollowCheck.my_user.follows.length).toBeGreaterThanOrEqual(1);
+  expect(siteUnfollowCheck.my_user.follows.length).toBe(0);
 });

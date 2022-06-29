@@ -217,7 +217,7 @@ pub async fn send_local_notifs(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
           &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
-          &context.settings(),
+          context.settings(),
         )
       }
     }
@@ -252,7 +252,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
                 &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
-                &context.settings(),
+                context.settings(),
               )
             }
           }
@@ -282,7 +282,7 @@ pub async fn send_local_notifs(
               &parent_user_view,
               &lang.notification_post_reply_subject(&person.name),
               &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
-              &context.settings(),
+              context.settings(),
             )
           }
         }
