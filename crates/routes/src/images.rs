@@ -11,7 +11,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
+use lemmy_utils::{claims::Claims, error::LemmyError, rate_limit::RateLimit, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
@@ -221,7 +221,10 @@ async fn purge(
   }
 
   // Add the API token, X-Api-Token header
-  client_req = client_req.header("x-api-token", pictrs_config.api_key);
+  let pictrs_api_key = pictrs_config
+    .api_key
+    .ok_or_else(|| LemmyError::from_message("pictrs_api_key_not_provided"))?;
+  client_req = client_req.header("x-api-token", pictrs_api_key);
 
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 

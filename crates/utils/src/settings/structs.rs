@@ -1,6 +1,7 @@
 use doku::Document;
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr};
+use url::Url;
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
@@ -51,6 +52,11 @@ pub struct Settings {
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<String>,
+
+  /// For migration from Lemmy 0.16 and earlier, which use this field instead of PictrsConfig struct
+  #[default(None)]
+  #[doku(skip)]
+  pub pictrs_url: Option<Url>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -58,11 +64,12 @@ pub struct Settings {
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
   #[default("http://pictrs:8080")]
+  #[doku(example = "http://pictrs:8080")]
   pub url: String,
 
   /// Set a custom pictrs API key. ( Required for deleting images )
-  #[default("API_KEY")]
-  pub api_key: String,
+  #[default(None)]
+  pub api_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

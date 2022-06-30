@@ -37,6 +37,10 @@ impl Settings {
       return Err(anyhow!("Hostname variable is not set!").into());
     }
 
+    if config.pictrs_config.is_none() && config.pictrs_url.is_some() {
+      return Err(anyhow!("Move config value pictrs_url to pictrs_config.url").into());
+    }
+
     Ok(config)
   }
 
