@@ -65,7 +65,7 @@ pub struct Settings {
 #[serde(default)]
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
-  #[default(Url::parse("http://pictrs:8080").unwrap())]
+  #[default(Url::parse("http://pictrs:8080").expect("parse pictrs url"))]
   #[doku(example = "Url::parse(\"http://pictrs:8080\").unwrap()")]
   pub url: Url,
 
