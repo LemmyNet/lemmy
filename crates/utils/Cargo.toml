@@ -38,7 +38,7 @@ http = "0.2.6"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
 jsonwebtoken = "8.0.1"
-doku = "0.11.0"
+doku = { git = "https://github.com/anixe/doku", features = ["url-2"] }
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 html2text = "0.3.1"
 rosetta-i18n = "0.1.2"

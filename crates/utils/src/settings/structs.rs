@@ -51,7 +51,7 @@ pub struct Settings {
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
   #[doku(skip)]
-  pub opentelemetry_url: Option<String>,
+  pub opentelemetry_url: Option<Url>,
 
   /// For migration from Lemmy 0.16 and earlier, which use this field instead of PictrsConfig struct
   #[default(None)]
@@ -63,9 +63,9 @@ pub struct Settings {
 #[serde(default)]
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
-  #[default("http://pictrs:8080")]
-  #[doku(example = "http://pictrs:8080")]
-  pub url: String,
+  #[default(Url::parse("http://pictrs:8080").unwrap())]
+  #[doku(example = "Url::parse(\"http://pictrs:8080\").unwrap()")]
+  pub url: Url,
 
   /// Set a custom pictrs API key. ( Required for deleting images )
   #[default(None)]
