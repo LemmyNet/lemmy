@@ -46,13 +46,13 @@ async fn get_webfinger_response(
 
   let name_ = name.clone();
   let user_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Person::read_from_name(conn, &name_)
+    Person::read_from_name(conn, &name_, false)
   })
   .await?
   .ok()
   .map(|c| c.actor_id.into());
   let community_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &name)
+    Community::read_from_name(conn, &name, false)
   })
   .await?
   .ok()

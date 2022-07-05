@@ -294,12 +294,19 @@ impl ApubActor for Person {
     )
   }
 
-  fn read_from_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
-    person
-      .filter(deleted.eq(false))
+  fn read_from_name(
+    conn: &PgConnection,
+    from_name: &str,
+    include_deleted: bool,
+  ) -> Result<Person, Error> {
+    let mut q = person
+      .into_boxed()
       .filter(local.eq(true))
-      .filter(lower(name).eq(lower(from_name)))
-      .first::<Person>(conn)
+      .filter(lower(name).eq(lower(from_name)));
+    if !include_deleted {
+      q = q.filter(deleted.eq(false))
+    }
+    q.first::<Self>(conn)
   }
 
   fn read_from_name_and_domain(

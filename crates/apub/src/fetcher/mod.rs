@@ -55,7 +55,7 @@ where
     let identifier = identifier.to_string();
     Ok(
       blocking(context.pool(), move |conn| {
-        DbActor::read_from_name(conn, &identifier)
+        DbActor::read_from_name(conn, &identifier, false)
       })
       .await??,
     )
