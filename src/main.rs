@@ -29,12 +29,16 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
-use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
+use std::{
+  env,
+  sync::{Arc, Mutex},
+  thread,
+  time::Duration,
+};
 use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
