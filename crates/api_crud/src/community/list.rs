@@ -38,7 +38,6 @@ impl PerformCrud for ListCommunities {
     let listing_type = data.type_;
     let page = data.page;
     let limit = data.limit;
-
     let mut communities = blocking(context.pool(), move |conn| {
       CommunityQueryBuilder::create(conn)
         .listing_type(listing_type)

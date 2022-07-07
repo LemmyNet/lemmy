@@ -31,7 +31,6 @@ impl Perform for ListPostReports {
 
     let page = data.page;
     let limit = data.limit;
-
     let post_reports = blocking(context.pool(), move |conn| {
       PostReportQueryBuilder::create(conn, person_id, admin)
         .community_id(community_id)

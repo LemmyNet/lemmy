@@ -58,6 +58,12 @@ pub fn limit_and_offset(
   Ok((limit, offset))
 }
 
+pub fn limit_and_offset_unlimited(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
+  let limit = limit.unwrap_or(FETCH_LIMIT_DEFAULT);
+  let offset = limit * (page.unwrap_or(1) - 1);
+  (limit, offset)
+}
+
 pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }

@@ -55,7 +55,6 @@ impl Perform for Search {
     let sort = data.sort;
     let listing_type = data.listing_type;
     let search_type = data.type_.unwrap_or(SearchType::All);
-    let creator_id = data.creator_id;
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
@@ -65,7 +64,7 @@ impl Perform for Search {
     } else {
       None
     };
-
+    let creator_id = data.creator_id;
     match search_type {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {

@@ -27,7 +27,6 @@ impl PerformCrud for GetPrivateMessages {
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-
     let mut messages = blocking(context.pool(), move |conn| {
       PrivateMessageQueryBuilder::create(conn, person_id)
         .page(page)

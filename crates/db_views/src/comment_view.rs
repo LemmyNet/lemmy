@@ -26,7 +26,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset_unlimited},
   ListingType,
   SortType,
 };
@@ -493,7 +493,8 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(person_block::person_id.is_null());
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
+    // Don't use the regular error-checking one, many more comments must ofter be fetched.
+    let (limit, offset) = limit_and_offset_unlimited(self.page, self.limit);
 
     // Note: deleted and removed comments are done on the front side
     let res = query

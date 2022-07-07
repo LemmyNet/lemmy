@@ -31,7 +31,6 @@ impl Perform for ListCommentReports {
 
     let page = data.page;
     let limit = data.limit;
-
     let comment_reports = blocking(context.pool(), move |conn| {
       CommentReportQueryBuilder::create(conn, person_id, admin)
         .community_id(community_id)
