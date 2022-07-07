@@ -1,5 +1,10 @@
 use crate::structs::PostView;
-use diesel::{dsl::*, pg::Pg, result::Error, *};
+use diesel::{
+  dsl::*,
+  pg::Pg,
+  result::{Error, Error::QueryBuilderError},
+  *,
+};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
@@ -359,7 +364,7 @@ impl<'a> PostQueryBuilder<'a> {
         }
         ListingType::Community => {
           if self.community_actor_id.is_none() && self.community_id.is_none() {
-            return Err(NotFound);
+            return Err(QueryBuilderError("No community actor or id given".into()));
           } else {
             if let Some(community_id) = self.community_id {
               query = query

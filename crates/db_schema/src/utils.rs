@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
-  result::Error::NotFound,
+  result::Error::QueryBuilderError,
   serialize::{Output, ToSql},
   sql_types::Text,
   Connection,
@@ -37,7 +37,7 @@ pub fn limit_and_offset(
   let page = match page {
     Some(page) => {
       if page < 1 {
-        return Err(NotFound);
+        return Err(QueryBuilderError("Page is < 1".into()));
       } else {
         page
       }
@@ -47,7 +47,9 @@ pub fn limit_and_offset(
   let limit = match limit {
     Some(limit) => {
       if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
-        return Err(NotFound);
+        return Err(QueryBuilderError(
+          format!("Fetch limit is > {}", FETCH_LIMIT_MAX).into(),
+        ));
       } else {
         limit
       }

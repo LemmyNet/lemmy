@@ -1,5 +1,9 @@
 use crate::structs::CommentView;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::*,
+  result::{Error, Error::QueryBuilderError},
+  *,
+};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
@@ -443,7 +447,7 @@ impl<'a> CommentQueryBuilder<'a> {
         }
         ListingType::Community => {
           if self.community_actor_id.is_none() && self.community_id.is_none() {
-            return Err(NotFound);
+            return Err(QueryBuilderError("No community actor or id given".into()));
           } else {
             if let Some(community_id) = self.community_id {
               query = query.filter(post::community_id.eq(community_id));
