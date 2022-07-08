@@ -181,7 +181,7 @@ fn get_feed_user(
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(conn)?;
-  let person = Person::read_from_name(conn, user_name)?;
+  let person = Person::read_from_name(conn, user_name, false)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)
@@ -210,7 +210,7 @@ fn get_feed_community(
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(conn)?;
-  let community = Community::read_from_name(conn, community_name)?;
+  let community = Community::read_from_name(conn, community_name, false)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::Community)

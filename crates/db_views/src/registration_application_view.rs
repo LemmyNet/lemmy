@@ -134,7 +134,7 @@ impl<'a> RegistrationApplicationQueryBuilder<'a> {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .limit(limit)

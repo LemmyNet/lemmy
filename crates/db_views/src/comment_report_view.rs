@@ -256,7 +256,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .order_by(comment_report::published.desc())

@@ -2,18 +2,18 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{
+    blocking,
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+    listing_type_with_site_default,
+  },
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{
-  source::{community::Community, site::Site},
-  traits::DeleteableOrRemoveable,
-  ListingType,
-};
+use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
 use lemmy_db_views::post_view::PostQueryBuilder;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPosts {
@@ -35,13 +35,8 @@ impl PerformCrud for GetPosts {
     let is_logged_in = local_user_view.is_some();
 
     let sort = data.sort;
-    let listing_type: ListingType = match data.type_ {
-      Some(l) => l,
-      None => {
-        let site = blocking(context.pool(), Site::read_local_site).await??;
-        ListingType::from_str(&site.default_post_listing_type)?
-      }
-    };
+    let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
+
     let page = data.page;
     let limit = data.limit;
     let community_id = data.community_id;

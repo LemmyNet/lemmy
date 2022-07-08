@@ -35,7 +35,7 @@ impl AdminPurgeCommentView {
       query = query.filter(admin_purge_comment::admin_person_id.eq(admin_person_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let res = query
       .limit(limit)

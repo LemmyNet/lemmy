@@ -34,7 +34,7 @@ impl ModAddView {
       query = query.filter(mod_add::mod_person_id.eq(mod_person_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let res = query
       .limit(limit)

@@ -15,6 +15,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Readable},
   utils::DbPool,
+  ListingType,
 };
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
@@ -34,6 +35,7 @@ use lemmy_utils::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
+use std::str::FromStr;
 use tracing::warn;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
@@ -715,4 +717,17 @@ pub async fn delete_user_account(
   blocking(pool, move |conn| Person::delete_account(conn, person_id)).await??;
 
   Ok(())
+}
+
+pub async fn listing_type_with_site_default(
+  listing_type: Option<ListingType>,
+  pool: &DbPool,
+) -> Result<ListingType, LemmyError> {
+  Ok(match listing_type {
+    Some(l) => l,
+    None => {
+      let site = blocking(pool, Site::read_local_site).await??;
+      ListingType::from_str(&site.default_post_listing_type)?
+    }
+  })
 }

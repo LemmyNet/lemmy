@@ -29,7 +29,7 @@ steps:
     commands:
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
-      - cargo clippy --workspace -- -D clippy::unwrap_used
+      - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
 
   - name: cargo test
     image: clux/muslrust:1.57.0
