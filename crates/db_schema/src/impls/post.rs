@@ -11,7 +11,7 @@ use crate::{
     PostSavedForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
-  utils::naive_now,
+  utils::{naive_now, FETCH_LIMIT_MAX},
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
 use url::Url;
@@ -54,7 +54,7 @@ impl Post {
       .filter(removed.eq(false))
       .then_order_by(published.desc())
       .then_order_by(stickied.desc())
-      .limit(20)
+      .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
   }
 

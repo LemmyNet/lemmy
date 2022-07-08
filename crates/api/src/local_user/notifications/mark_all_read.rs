@@ -34,7 +34,7 @@ impl Perform for MarkAllAsRead {
         .recipient_id(person_id)
         .unread_only(true)
         .page(1)
-        .limit(999)
+        .limit(std::i64::MAX)
         .list()
     })
     .await??;

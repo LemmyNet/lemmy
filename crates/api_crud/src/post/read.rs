@@ -50,7 +50,7 @@ impl PerformCrud for GetPost {
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
         .post_id(id)
-        .limit(9999)
+        .limit(std::i64::MAX)
         .list()
     })
     .await??;

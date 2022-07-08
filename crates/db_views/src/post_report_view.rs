@@ -241,7 +241,7 @@ impl<'a> PostReportQueryBuilder<'a> {
       query = query.filter(post_report::resolved.eq(false));
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .order_by(post_report::published.desc())

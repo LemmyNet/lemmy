@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  result::Error::QueryBuilderError,
   serialize::{Output, ToSql},
   sql_types::Text,
   Connection,
@@ -14,6 +15,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{env, env::VarError, io::Write};
 use url::Url;
+
+const FETCH_LIMIT_DEFAULT: i64 = 10;
+pub const FETCH_LIMIT_MAX: i64 = 50;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
@@ -26,10 +30,39 @@ pub fn fuzzy_search(q: &str) -> String {
   format!("%{}%", replaced)
 }
 
-pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
-  let page = page.unwrap_or(1);
-  let limit = limit.unwrap_or(10);
+pub fn limit_and_offset(
+  page: Option<i64>,
+  limit: Option<i64>,
+) -> Result<(i64, i64), diesel::result::Error> {
+  let page = match page {
+    Some(page) => {
+      if page < 1 {
+        return Err(QueryBuilderError("Page is < 1".into()));
+      } else {
+        page
+      }
+    }
+    None => 1,
+  };
+  let limit = match limit {
+    Some(limit) => {
+      if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
+        return Err(QueryBuilderError(
+          format!("Fetch limit is > {}", FETCH_LIMIT_MAX).into(),
+        ));
+      } else {
+        limit
+      }
+    }
+    None => FETCH_LIMIT_DEFAULT,
+  };
   let offset = limit * (page - 1);
+  Ok((limit, offset))
+}
+
+pub fn limit_and_offset_unlimited(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
+  let limit = limit.unwrap_or(FETCH_LIMIT_DEFAULT);
+  let offset = limit * (page.unwrap_or(1) - 1);
   (limit, offset)
 }
 

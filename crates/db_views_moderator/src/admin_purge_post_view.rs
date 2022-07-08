@@ -35,7 +35,7 @@ impl AdminPurgePostView {
       query = query.filter(admin_purge_post::admin_person_id.eq(admin_person_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let res = query
       .limit(limit)
