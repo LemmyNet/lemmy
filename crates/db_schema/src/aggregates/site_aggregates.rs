@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::{aggregates::structs::SiteAggregates, schema::site_aggregates};
 use diesel::{result::Error, *};
 

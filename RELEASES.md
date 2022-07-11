@@ -1,3 +1,13 @@
+<!-- 
+SPDX-FileCopyrightText: 2019 Felix Ableitner <me@nutomic.com>
+SPDX-FileCopyrightText: 2019 Lemmy
+
+SPDX-License-Identifier: AGPL-3.0-only
+
+Lemmy
+-->
+
+
 #  Lemmy v0.16.4 Release : Peertube federation, Rust API and other improvements (2022-05-27)
 
 ## What is Lemmy?

@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 set -e
 
 # Set the database variable to the default first.

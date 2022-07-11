@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::objects::person::ApubPerson;
 use activitystreams_kinds::collection::OrderedCollectionType;
 use lemmy_apub_lib::object_id::ObjectId;

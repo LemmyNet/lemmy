@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- User aggregates
 drop table user_aggregates;
 drop trigger user_aggregates_user on user_;

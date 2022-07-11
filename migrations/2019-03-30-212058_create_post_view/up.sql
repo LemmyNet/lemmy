@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
 -- Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
 create or replace function hot_rank(
   score numeric,

@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
 -- This adds on conflict do nothing triggers to all the insert_intos
 -- Github issue: https://github.com/LemmyNet/lemmy/issues/1179
 

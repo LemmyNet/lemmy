@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- post_saved
 alter table post_saved rename column person_id to user_id;
 alter table post_saved rename constraint post_saved_post_id_person_id_key to post_saved_post_id_user_id_key;

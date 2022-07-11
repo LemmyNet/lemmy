@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- The published and updated columns on the aggregates tables are using now(), 
 -- when they should use the correct published or updated columns
 -- This is mainly a problem with federated posts being fetched

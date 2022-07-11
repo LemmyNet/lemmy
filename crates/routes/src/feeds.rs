@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};

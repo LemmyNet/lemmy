@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
 -- use defaults from db for local user init
 alter table local_user alter column theme set default 'browser';
 alter table local_user alter column default_listing_type set default 2;

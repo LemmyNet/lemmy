@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- First rename current newest comment time to newest_comment_time_necro
 -- necro means that time is limited to 2 days, whereas newest_comment_time ignores that.
 alter table post_aggregates rename column newest_comment_time to newest_comment_time_necro;

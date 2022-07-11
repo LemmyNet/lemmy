@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Add unique ap_id for private_message, comment, and post
 
 -- Need to delete the possible dupes for ones that don't start with the fake one

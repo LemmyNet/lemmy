@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},

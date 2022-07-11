@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use activitystreams_kinds::object::ImageType;
 use lemmy_apub_lib::{utils::fetch_object_http, values::MediaTypeMarkdown};
 use lemmy_db_schema::newtypes::DbUrl;

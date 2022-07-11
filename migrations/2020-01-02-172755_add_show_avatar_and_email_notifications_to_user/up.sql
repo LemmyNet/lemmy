@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Add columns
 alter table user_ add column show_avatars boolean default true not null;
 alter table user_ add column send_notifications_to_email boolean default false not null;

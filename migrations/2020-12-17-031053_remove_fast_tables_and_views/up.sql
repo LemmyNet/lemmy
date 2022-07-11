@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Drop triggers
 drop trigger if exists refresh_comment on comment;
 drop trigger if exists refresh_comment_like on comment_like;

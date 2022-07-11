@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 create or replace function community_aggregates_activity(i text)
 returns table(count_ bigint, community_id_ integer)
 language plpgsql

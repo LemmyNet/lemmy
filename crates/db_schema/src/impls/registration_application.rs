@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::{newtypes::LocalUserId, source::registration_application::*, traits::Crud};
 use diesel::{insert_into, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 

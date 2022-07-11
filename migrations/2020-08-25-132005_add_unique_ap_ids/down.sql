@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Drop the uniques
 alter table private_message drop constraint idx_private_message_ap_id;
 alter table post drop constraint idx_post_ap_id;

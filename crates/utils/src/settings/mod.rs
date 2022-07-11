@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::{location_info, settings::structs::Settings, LemmyError};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;

@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 create view mod_remove_post_view as 
 select mrp.*,
 (select name from user_ u where mrp.mod_user_id = u.id) as mod_user_name,

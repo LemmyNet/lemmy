@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 alter table private_message
 add column ap_id character varying(255) not null default 'http://fake.com', -- This needs to be checked and updated in code, building from the site url if local
 add column local boolean not null default true

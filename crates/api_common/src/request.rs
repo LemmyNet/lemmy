@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::post::SiteMetadata;
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_utils::{settings::structs::Settings, version::VERSION, LemmyError, REQWEST_TIMEOUT};

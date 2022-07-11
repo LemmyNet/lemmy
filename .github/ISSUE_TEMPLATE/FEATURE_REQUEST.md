@@ -1,3 +1,13 @@
+<!-- 
+SPDX-FileCopyrightText: 2019 Felix Ableitner <me@nutomic.com>
+SPDX-FileCopyrightText: 2019 Lemmy
+
+SPDX-License-Identifier: AGPL-3.0-only
+
+Lemmy
+-->
+
+
 ---
 name: "\U0001F680 Feature request"
 about: Suggest an idea for improving Lemmy

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 ARG RUST_BUILDER_IMAGE=clux/muslrust:1.59.0
 
 FROM $RUST_BUILDER_IMAGE as chef

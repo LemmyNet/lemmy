@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Go through all the tables joins, optimize every view, CTE, etc.
 create index idx_post_creator on post (creator_id);
 create index idx_post_community on post (community_id);

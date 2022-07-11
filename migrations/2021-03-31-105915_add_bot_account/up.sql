@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Add the bot_account column to the person table
 drop view person_alias_1, person_alias_2;
 alter table person add column bot_account boolean not null default false;

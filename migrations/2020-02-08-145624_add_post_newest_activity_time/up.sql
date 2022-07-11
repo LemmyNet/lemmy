@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Adds a newest_activity_time for the post_views, in order to sort by newest comment
 drop view post_view;
 drop view post_mview;

@@ -1,3 +1,13 @@
+<!-- 
+SPDX-FileCopyrightText: 2019 Felix Ableitner <me@nutomic.com>
+SPDX-FileCopyrightText: 2019 Lemmy
+
+SPDX-License-Identifier: AGPL-3.0-only
+
+Lemmy
+-->
+
+
 ---
 name: "\U0001F41E Bug Report"
 about: Create a report to help us improve Lemmy

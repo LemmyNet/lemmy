@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 drop trigger if exists community_aggregates_post_count on post;
 drop trigger if exists community_aggregates_comment_count on comment;
 drop trigger if exists site_aggregates_comment_insert on comment;

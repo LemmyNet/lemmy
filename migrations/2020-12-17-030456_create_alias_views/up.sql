@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 -- Some view that act as aliases 
 -- unfortunately necessary, since diesel doesn't have self joins
 -- or alias support yet

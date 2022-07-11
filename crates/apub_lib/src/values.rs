@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! The enums here serve to limit a json string value to a single, hardcoded value which can be
 //! verified at compilation time. When using it as the type of a struct field, the struct can only
 //! be constructed or deserialized if the field has the exact same value.
