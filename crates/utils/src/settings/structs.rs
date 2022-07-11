@@ -54,11 +54,6 @@ pub struct Settings {
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<Url>,
-
-  /// For migration from Lemmy 0.16 and earlier, which use this field instead of PictrsConfig struct
-  #[default(None)]
-  #[doku(skip)]
-  pub pictrs_url: Option<Url>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
