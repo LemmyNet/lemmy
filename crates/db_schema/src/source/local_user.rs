@@ -1,4 +1,4 @@
-use crate::newtypes::{LanguageId, LocalUserId, PersonId};
+use crate::newtypes::{LocalUserId, PersonId};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
@@ -26,7 +26,6 @@ pub struct LocalUser {
   pub show_new_post_notifs: bool,
   pub email_verified: bool,
   pub accepted_application: bool,
-  pub discussion_languages: Vec<LanguageId>,
 }
 
 // TODO redo these, check table defaults
@@ -50,7 +49,6 @@ pub struct LocalUserForm {
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
-  pub discussion_languages: Option<Vec<LanguageId>>,
 }
 
 /// A local user view that removes password encrypted
@@ -75,5 +73,4 @@ pub struct LocalUserSettings {
   pub show_new_post_notifs: bool,
   pub email_verified: bool,
   pub accepted_application: bool,
-  pub discussion_languages: Vec<LanguageId>,
 }

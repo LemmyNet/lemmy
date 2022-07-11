@@ -99,7 +99,7 @@ impl ApubObject for ApubPost {
       Community::read(conn, community_id)
     })
     .await??;
-    let language = self.language;
+    let language = self.language_id;
     let language = blocking(context.pool(), move |conn| {
       Language::read_from_id(conn, language)
     })
@@ -210,7 +210,7 @@ impl ApubObject for ApubPost {
         thumbnail_url,
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
-        language,
+        language_id: language,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else

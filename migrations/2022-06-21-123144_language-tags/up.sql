@@ -3,11 +3,15 @@ create table language (
   code varchar(3),
   name text
 );
+create table local_user_language (
+  id serial primary key,
+  local_user_id int references local_user on update cascade on delete cascade not null,
+  language_id int references language_id on update cascade on delete cascade not null,
+);
 
 alter table local_user rename column lang to interface_language;
-alter table local_user add column discussion_languages integer[] not null default '{}';
 
-alter table post add column language integer not null default 0;
+alter table post add column language_id integer not null default 0;
 
 insert into language(id, code, name) values (0, 'und', 'Undetermined');
 insert into language(code, name) values ('aa', 'Afaraf');

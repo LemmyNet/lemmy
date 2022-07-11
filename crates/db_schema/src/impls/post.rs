@@ -385,7 +385,7 @@ mod tests {
       thumbnail_url: None,
       ap_id: inserted_post.ap_id.to_owned(),
       local: true,
-      language: Default::default(),
+      language_id: Default::default(),
     };
 
     // Post Like

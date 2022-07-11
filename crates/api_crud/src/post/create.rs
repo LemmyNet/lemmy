@@ -123,7 +123,7 @@ impl PerformCrud for CreatePost {
       embed_description,
       embed_video_url,
       thumbnail_url,
-      language,
+      language_id: language,
       ..PostForm::default()
     };
 

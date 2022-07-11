@@ -27,7 +27,7 @@ pub struct Post {
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: DbUrl,
   pub local: bool,
-  pub language: LanguageId,
+  pub language_id: LanguageId,
 }
 
 #[derive(Default)]
@@ -52,7 +52,7 @@ pub struct PostForm {
   pub thumbnail_url: Option<DbUrl>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
-  pub language: Option<LanguageId>,
+  pub language_id: Option<LanguageId>,
 }
 
 #[derive(PartialEq, Debug)]

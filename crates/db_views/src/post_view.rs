@@ -13,6 +13,7 @@ use lemmy_db_schema::{
     community_block,
     community_follower,
     community_person_ban,
+    local_user_language,
     person,
     person_block,
     post,
@@ -67,6 +68,7 @@ impl PostView {
       read,
       creator_blocked,
       post_like,
+      local_user_language,
     ) = post::table
       .find(post_id)
       .inner_join(person::table)
@@ -119,6 +121,7 @@ impl PostView {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
+      .inner_join(local_user_language::table)
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -130,6 +133,7 @@ impl PostView {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
+        local_user_language::all_columns,
       ))
       .first::<PostViewTuple>(conn)?;
 
@@ -416,7 +420,7 @@ impl<'a> PostQueryBuilder<'a> {
     }
 
     if let Some(languages) = self.languages {
-      query = query.filter(post::language.eq(any(languages)))
+      // TODO
     }
 
     // Don't show blocked communities or persons
@@ -574,7 +578,7 @@ mod tests {
       name: "blocked_person_post".to_string(),
       creator_id: inserted_blocked_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageId(1)),
+      language_id: Some(LanguageId(1)),
       ..PostForm::default()
     };
 
@@ -593,7 +597,7 @@ mod tests {
       name: post_name,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
-      language: Some(LanguageId(2)),
+      language_id: Some(LanguageId(2)),
       ..PostForm::default()
     };
 
@@ -655,7 +659,7 @@ mod tests {
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
-        language: LanguageId(2),
+        language_id: LanguageId(2),
       },
       my_vote: None,
       creator: PersonSafe {

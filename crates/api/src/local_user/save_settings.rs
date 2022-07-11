@@ -121,10 +121,6 @@ impl Perform for SaveUserSettings {
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
     let discussion_languages: Option<Vec<LanguageId>> =
       if let Some(discussion_languages) = data.discussion_languages.clone() {
-        if discussion_languages.len() > 5 {
-          return Err(LemmyError::from_message("max_languages_is_five"));
-        }
-
         let mut language_ids = vec![];
         for l in discussion_languages {
           language_ids.push(
