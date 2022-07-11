@@ -60,7 +60,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let settings = SETTINGS.to_owned();
 
-  init_logging(settings.opentelemetry_url.as_deref())?;
+  init_logging(&settings.opentelemetry_url)?;
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {

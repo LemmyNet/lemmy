@@ -166,10 +166,13 @@ pub async fn purge_image_from_pictrs(
 
   let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
 
+  let pictrs_api_key = pictrs_config
+    .api_key
+    .ok_or_else(|| LemmyError::from_message("pictrs_api_key_not_provided"))?;
   let response = client
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
-    .header("x-api-token", pictrs_config.api_key)
+    .header("x-api-token", pictrs_api_key)
     .send()
     .await?;
 

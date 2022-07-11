@@ -1119,18 +1119,18 @@ dependencies = [
 [[package]]
 name = "doku"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7669ad18bd53786107832ce23c4cd1d859d3fe2ed6393ebcc0def93f15e5fa3"
+source = "git+https://github.com/anixe/doku#10a0339a82be92b5f160aac325d11c9c2ef875e1"
 dependencies = [
  "doku-derive",
  "serde",
+ "serde_json",
+ "url",
 ]
 
 [[package]]
 name = "doku-derive"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "603fe9f91b4d0e11036df029aeaeffa90b8f97e700104d5d24abb053bf9ba858"
+source = "git+https://github.com/anixe/doku#10a0339a82be92b5f160aac325d11c9c2ef875e1"
 dependencies = [
  "darling 0.13.1",
  "proc-macro2 1.0.39",
@@ -2075,6 +2075,7 @@ dependencies = [
  "lemmy_websocket",
  "opentelemetry 0.17.0",
  "opentelemetry-otlp",
+ "parking_lot 0.12.0",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
