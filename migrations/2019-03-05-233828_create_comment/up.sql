@@ -1,3 +1,8 @@
+-- SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+
 create table comment (
   id serial primary key,
   creator_id int references user_ on update cascade on delete cascade not null,
