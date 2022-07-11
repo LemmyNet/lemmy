@@ -88,7 +88,7 @@ impl Group {
       local: Some(false),
       private_key: None,
       hidden: Some(false),
-      public_key: self.public_key.public_key_pem,
+      public_key: Some(self.public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.icon.map(|i| i.url.into())),
       banner: Some(self.image.map(|i| i.url.into())),

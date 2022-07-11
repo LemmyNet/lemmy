@@ -187,6 +187,7 @@ mod tests {
     let timmy_person_form = PersonForm {
       name: "timmy_rav".into(),
       admin: Some(true),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -202,6 +203,7 @@ mod tests {
 
     let sara_person_form = PersonForm {
       name: "sara_rav".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -228,6 +230,7 @@ mod tests {
 
     let jess_person_form = PersonForm {
       name: "jess_rav".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
