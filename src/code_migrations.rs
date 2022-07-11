@@ -24,6 +24,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
+use std::default::Default;
 use tracing::info;
 use url::Url;
 
@@ -39,6 +40,7 @@ pub fn run_advanced_migrations(
   post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
   apub_columns_2021_02_02(conn)?;
   instance_actor_2022_01_28(conn, protocol_and_hostname)?;
+  regenerate_public_keys_2022_07_05(conn)?;
 
   Ok(())
 }
@@ -68,7 +70,7 @@ fn user_updates_2020_04_02(
         protocol_and_hostname,
       )?),
       private_key: Some(Some(keypair.private_key)),
-      public_key: keypair.public_key,
+      public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
       ..PersonForm::default()
     };
@@ -111,7 +113,7 @@ fn community_updates_2020_04_02(
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),
       private_key: Some(Some(keypair.private_key)),
-      public_key: keypair.public_key,
+      public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
       icon: Some(ccommunity.icon.to_owned()),
       banner: Some(ccommunity.banner.to_owned()),
@@ -293,6 +295,10 @@ fn instance_actor_2022_01_28(
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
   if let Ok(site) = Site::read_local_site(conn) {
+    // if site already has public key, we dont need to do anything here
+    if !site.public_key.is_empty() {
+      return Ok(());
+    }
     let key_pair = generate_actor_keypair()?;
     let actor_id = Url::parse(protocol_and_hostname)?;
     let site_form = SiteForm {
@@ -305,6 +311,63 @@ fn instance_actor_2022_01_28(
       ..Default::default()
     };
     Site::update(conn, site.id, &site_form)?;
+  }
+  Ok(())
+}
+
+/// Fix for bug #2347, which can result in community/person public keys being overwritten with
+/// empty string when the database value is updated. We go through all actors, and if the public
+/// key field is empty, generate a new keypair. It would be possible to regenerate only the pubkey,
+/// but thats more complicated and has no benefit, as federation is already broken for these actors.
+/// https://github.com/LemmyNet/lemmy/issues/2347
+fn regenerate_public_keys_2022_07_05(conn: &PgConnection) -> Result<(), LemmyError> {
+  info!("Running regenerate_public_keys_2022_07_05");
+
+  {
+    // update communities with empty pubkey
+    use lemmy_db_schema::schema::community::dsl::*;
+    let communities: Vec<Community> = community
+      .filter(local.eq(true))
+      .filter(public_key.eq(""))
+      .load::<Community>(conn)?;
+    for community_ in communities {
+      info!(
+        "local community {} has empty public key field, regenerating key",
+        community_.name
+      );
+      let key_pair = generate_actor_keypair()?;
+      let form = CommunityForm {
+        name: community_.name,
+        title: community_.title,
+        public_key: Some(key_pair.public_key),
+        private_key: Some(Some(key_pair.private_key)),
+        ..Default::default()
+      };
+      Community::update(conn, community_.id, &form)?;
+    }
+  }
+
+  {
+    // update persons with empty pubkey
+    use lemmy_db_schema::schema::person::dsl::*;
+    let persons = person
+      .filter(local.eq(true))
+      .filter(public_key.eq(""))
+      .load::<Person>(conn)?;
+    for person_ in persons {
+      info!(
+        "local user {} has empty public key field, regenerating key",
+        person_.name
+      );
+      let key_pair = generate_actor_keypair()?;
+      let form = PersonForm {
+        name: person_.name,
+        public_key: Some(key_pair.public_key),
+        private_key: Some(Some(key_pair.private_key)),
+        ..Default::default()
+      };
+      Person::update(conn, person_.id, &form)?;
+    }
   }
   Ok(())
 }

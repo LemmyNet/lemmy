@@ -226,6 +226,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 

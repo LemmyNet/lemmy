@@ -87,7 +87,7 @@ impl Perform for SaveUserSettings {
     let default_listing_type = data.default_listing_type;
     let default_sort_type = data.default_sort_type;
     let password_encrypted = local_user_view.local_user.password_encrypted;
-    let public_key = local_user_view.person.public_key;
+    let public_key = Some(local_user_view.person.public_key);
 
     let person_form = PersonForm {
       name: local_user_view.person.name,

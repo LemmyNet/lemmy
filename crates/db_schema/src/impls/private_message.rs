@@ -151,6 +151,7 @@ mod tests {
 
     let creator_form = PersonForm {
       name: "creator_pm".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -158,6 +159,7 @@ mod tests {
 
     let recipient_form = PersonForm {
       name: "recipient_pm".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 

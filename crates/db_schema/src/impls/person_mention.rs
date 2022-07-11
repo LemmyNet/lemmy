@@ -97,6 +97,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "terrylake".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -104,6 +105,7 @@ mod tests {
 
     let recipient_form = PersonForm {
       name: "terrylakes recipient".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -112,6 +114,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community lake".to_string(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 

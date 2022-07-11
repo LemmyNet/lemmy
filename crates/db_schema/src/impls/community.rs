@@ -347,6 +347,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "bobbee".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -355,7 +356,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "TIL".into(),
       title: "nada".to_owned(),
-      public_key: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -374,7 +375,7 @@ mod tests {
       actor_id: inserted_community.actor_id.to_owned(),
       local: true,
       private_key: None,
-      public_key: "nada".to_owned(),
+      public_key: "pubkey".to_owned(),
       last_refreshed_at: inserted_community.published,
       icon: None,
       banner: None,
