@@ -3,23 +3,57 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::fetcher::post_or_comment::PostOrComment;
-use anyhow::{anyhow, Context};
+use activitypub_federation::{
+  core::signatures::PublicKey,
+  traits::{Actor, ApubObject},
+  InstanceSettingsBuilder,
+  LocalInstance,
+};
+use anyhow::Context;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
-use serde::{Deserialize, Deserializer};
-use std::net::IpAddr;
+use lemmy_utils::{
+  error::LemmyError,
+  location_info,
+  settings::{structs::Settings, SETTINGS},
+};
+use lemmy_websocket::LemmyContext;
+use once_cell::sync::{Lazy, OnceCell};
 use url::{ParseError, Url};
 
 pub mod activities;
 pub(crate) mod activity_lists;
 pub(crate) mod collections;
-mod context;
 pub mod fetcher;
 pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
+
+static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
+  serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
+});
+
+// TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
+fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
+  static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::new();
+  LOCAL_INSTANCE.get_or_init(|| {
+    let settings = InstanceSettingsBuilder::default()
+      .http_fetch_retry_limit(context.settings().federation.http_fetch_retry_limit)
+      .worker_count(context.settings().federation.worker_count)
+      .debug(context.settings().federation.debug)
+      // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
+      // without the value getting captured.
+      .verify_url_function(|url| check_apub_id_valid(url, &SETTINGS.to_owned()))
+      .build()
+      .expect("configure federation");
+    LocalInstance::new(
+      context.settings().hostname.to_owned(),
+      context.client().clone(),
+      settings,
+    )
+  })
+}
 
 /// Checks if the ID is allowed for sending or receiving.
 ///
@@ -32,117 +66,69 @@ pub mod protocol;
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
 #[tracing::instrument(skip(settings))]
-pub(crate) fn check_is_apub_id_valid(
-  apub_id: &Url,
-  use_strict_allowlist: bool,
-  settings: &Settings,
-) -> Result<(), LemmyError> {
-  let domain = apub_id.domain().context(location_info!())?.to_string();
-  let local_instance = settings.get_hostname_without_port()?;
-
-  if !settings.federation.enabled {
-    return if domain == local_instance {
-      Ok(())
-    } else {
-      let err = anyhow!(
-        "Trying to connect with {}, but federation is disabled",
-        domain
-      );
-      Err(LemmyError::from_error_message(err, "federation_disabled"))
-    };
+fn check_apub_id_valid(apub_id: &Url, settings: &Settings) -> Result<(), &'static str> {
+  let domain = apub_id.domain().expect("apud id has domain").to_string();
+  let local_instance = settings
+    .get_hostname_without_port()
+    .expect("local hostname is valid");
+  if domain == local_instance {
+    return Ok(());
   }
 
-  let host = apub_id.host_str().context(location_info!())?;
-  let host_as_ip = host.parse::<IpAddr>();
-  if host == "localhost" || host_as_ip.is_ok() {
-    let err = anyhow!("invalid hostname {}: {}", host, apub_id);
-    return Err(LemmyError::from_error_message(err, "invalid_hostname"));
+  if !settings.federation.enabled {
+    return Err("Federation disabled");
   }
 
   if apub_id.scheme() != settings.get_protocol_string() {
-    let err = anyhow!("invalid apub id scheme {}: {}", apub_id.scheme(), apub_id);
-    return Err(LemmyError::from_error_message(err, "invalid_scheme"));
+    return Err("Invalid protocol scheme");
   }
 
-  // TODO: might be good to put the part above in one method, and below in another
-  //       (which only gets called in apub::objects)
-  //        -> no that doesnt make sense, we still need the code below for blocklist and strict allowlist
   if let Some(blocked) = settings.to_owned().federation.blocked_instances {
     if blocked.contains(&domain) {
-      let err = anyhow!("{} is in federation blocklist", domain);
-      return Err(LemmyError::from_error_message(err, "federation_blocked"));
+      return Err("Domain is blocked");
     }
   }
 
-  if let Some(mut allowed) = settings.to_owned().federation.allowed_instances {
-    // Only check allowlist if this is a community, or strict allowlist is enabled.
-    let strict_allowlist = settings.to_owned().federation.strict_allowlist;
-    if use_strict_allowlist || strict_allowlist {
-      // need to allow this explicitly because apub receive might contain objects from our local
-      // instance.
-      allowed.push(local_instance);
-
-      if !allowed.contains(&domain) {
-        let err = anyhow!("{} not in federation allowlist", domain);
-        return Err(LemmyError::from_error_message(
-          err,
-          "federation_not_allowed",
-        ));
-      }
+  if let Some(allowed) = settings.to_owned().federation.allowed_instances {
+    if !allowed.contains(&domain) {
+      return Err("Domain is not in allowlist");
     }
   }
 
   Ok(())
 }
 
-pub(crate) fn deserialize_one_or_many<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
-where
-  T: Deserialize<'de>,
-  D: Deserializer<'de>,
-{
-  #[derive(Deserialize)]
-  #[serde(untagged)]
-  enum OneOrMany<T> {
-    One(T),
-    Many(Vec<T>),
+#[tracing::instrument(skip(settings))]
+pub(crate) fn check_apub_id_valid_with_strictness(
+  apub_id: &Url,
+  is_strict: bool,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  check_apub_id_valid(apub_id, settings).map_err(LemmyError::from_message)?;
+  let domain = apub_id.domain().expect("apud id has domain").to_string();
+  let local_instance = settings
+    .get_hostname_without_port()
+    .expect("local hostname is valid");
+  if domain == local_instance {
+    return Ok(());
   }
 
-  let result: OneOrMany<T> = Deserialize::deserialize(deserializer)?;
-  Ok(match result {
-    OneOrMany::Many(list) => list,
-    OneOrMany::One(value) => vec![value],
-  })
-}
+  if let Some(mut allowed) = settings.to_owned().federation.allowed_instances {
+    // Only check allowlist if this is a community, or strict allowlist is enabled.
+    let strict_allowlist = settings.to_owned().federation.strict_allowlist;
+    if is_strict || strict_allowlist {
+      // need to allow this explicitly because apub receive might contain objects from our local
+      // instance.
+      allowed.push(local_instance);
 
-pub(crate) fn deserialize_one<'de, T, D>(deserializer: D) -> Result<[T; 1], D::Error>
-where
-  T: Deserialize<'de>,
-  D: Deserializer<'de>,
-{
-  #[derive(Deserialize)]
-  #[serde(untagged)]
-  enum MaybeArray<T> {
-    Simple(T),
-    Array([T; 1]),
+      if !allowed.contains(&domain) {
+        return Err(LemmyError::from_message(
+          "Federation forbidden by strict allowlist",
+        ));
+      }
+    }
   }
-
-  let result: MaybeArray<T> = Deserialize::deserialize(deserializer)?;
-  Ok(match result {
-    MaybeArray::Simple(value) => [value],
-    MaybeArray::Array(value) => value,
-  })
-}
-
-pub(crate) fn deserialize_skip_error<'de, T, D>(deserializer: D) -> Result<T, D::Error>
-where
-  T: Deserialize<'de> + Default,
-  D: Deserializer<'de>,
-{
-  let result = Deserialize::deserialize(deserializer);
-  Ok(match result {
-    Ok(o) => o,
-    Err(_) => Default::default(),
-  })
+  Ok(())
 }
 
 pub enum EndpointType {
@@ -224,4 +210,16 @@ async fn insert_activity(
     })
     .await??,
   )
+}
+
+/// Common methods provided by ActivityPub actors (community and person). Not all methods are
+/// implemented by all actors.
+pub trait ActorType: Actor + ApubObject {
+  fn actor_id(&self) -> Url;
+
+  fn private_key(&self) -> Option<String>;
+
+  fn get_public_key(&self) -> PublicKey {
+    PublicKey::new_main_key(self.actor_id(), self.public_key().to_string())
+  }
 }

@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
-use lemmy_utils::{utils::naive_from_unix, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]

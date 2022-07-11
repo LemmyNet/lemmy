@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   utils::diesel_option_overwrite,
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -70,7 +70,7 @@ impl Perform for ApproveRegistrationApplication {
       .await??;
 
       if approved_local_user_view.local_user.email.is_some() {
-        send_application_approved_email(&approved_local_user_view, &context.settings())?;
+        send_application_approved_email(&approved_local_user_view, context.settings())?;
       }
     }
 

@@ -67,7 +67,7 @@ impl PersonMentionView {
       recipient,
       counts,
       creator_banned_from_community,
-      subscribed,
+      follower,
       saved,
       creator_blocked,
       my_vote,
@@ -144,7 +144,7 @@ impl PersonMentionView {
       recipient,
       counts,
       creator_banned_from_community: creator_banned_from_community.is_some(),
-      subscribed: subscribed.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&follower),
       saved: saved.is_some(),
       creator_blocked: creator_blocked.is_some(),
       my_vote,
@@ -315,7 +315,7 @@ impl<'a> PersonMentionQueryBuilder<'a> {
         .order_by(comment_aggregates::score.desc()),
     };
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     let res = query
       .limit(limit)
@@ -340,7 +340,7 @@ impl ViewToVec for PersonMentionView {
         recipient: a.5.to_owned(),
         counts: a.6.to_owned(),
         creator_banned_from_community: a.7.is_some(),
-        subscribed: a.8.is_some(),
+        subscribed: CommunityFollower::to_subscribed_type(&a.8),
         saved: a.9.is_some(),
         creator_blocked: a.10.is_some(),
         my_vote: a.11,

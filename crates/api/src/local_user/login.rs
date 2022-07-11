@@ -11,7 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::site::Site;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{claims::Claims, ConnectionId, LemmyError};
+use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

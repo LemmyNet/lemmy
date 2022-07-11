@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]

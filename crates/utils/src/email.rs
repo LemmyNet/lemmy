@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 // SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::{settings::structs::Settings, LemmyError};
+=======
+use crate::{error::LemmyError, settings::structs::Settings};
+>>>>>>> 67a34adf4b0a0ff974915a7fbbb08e24c4df3147
 use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},

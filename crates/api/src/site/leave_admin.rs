@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
-use lemmy_utils::{version, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, version, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -61,8 +61,7 @@ impl Perform for LeaveAdmin {
     let site_view = blocking(context.pool(), SiteView::read_local).await??;
     let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
-    let federated_instances =
-      build_federated_instances(context.pool(), &context.settings()).await?;
+    let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
 
     Ok(GetSiteResponse {
       site_view: Some(site_view),

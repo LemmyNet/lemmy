@@ -4,7 +4,7 @@
 
 use actix_web::{web, web::Data};
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperationCrud};
 use serde::Deserialize;
 

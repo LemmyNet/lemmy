@@ -1,15 +1,16 @@
+<<<<<<< HEAD
 // SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+=======
+use crate::{local_instance, ActorType};
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+>>>>>>> 67a34adf4b0a0ff974915a7fbbb08e24c4df3147
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-};
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::{request::retry, LemmyError};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -38,7 +39,7 @@ pub(crate) async fn webfinger_resolve_actor<Kind>(
   request_counter: &mut i32,
 ) -> Result<DbUrl, LemmyError>
 where
-  Kind: ApubObject<DataType = LemmyContext> + ActorType + Send + 'static,
+  Kind: ApubObject<DataType = LemmyContext, Error = LemmyError> + ActorType + Send + 'static,
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   let protocol = context.settings().get_protocol_string();
@@ -53,11 +54,11 @@ where
   debug!("Fetching webfinger url: {}", &fetch_url);
 
   *request_counter += 1;
-  if *request_counter > context.settings().http_fetch_retry_limit {
+  if *request_counter > context.settings().federation.http_fetch_retry_limit {
     return Err(LemmyError::from_message("Request retry limit reached"));
   }
 
-  let response = retry(|| context.client().get(&fetch_url).send()).await?;
+  let response = context.client().get(&fetch_url).send().await?;
 
   let res: WebfingerResponse = response.json().await.map_err(LemmyError::from)?;
 
@@ -75,7 +76,7 @@ where
     .collect();
   for l in links {
     let object = ObjectId::<Kind>::new(l)
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await;
     if object.is_ok() {
       return object.map(|o| o.actor_id().into());

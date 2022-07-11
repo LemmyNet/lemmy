@@ -6,8 +6,8 @@ use crate::{
   objects::person::ApubPerson,
   protocol::{objects::group::Group, Unparsed},
 };
+use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::UpdateType;
-use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -17,11 +17,11 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCommunity {
   pub(crate) actor: ObjectId<ApubPerson>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
   // TODO: would be nice to use a separate struct here, which only contains the fields updated here
   pub(crate) object: Box<Group>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: UpdateType,

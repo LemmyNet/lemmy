@@ -8,7 +8,7 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse};
 use lemmy_db_schema::utils::naive_now;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::CaptchaItem, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
@@ -21,7 +21,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let captcha_settings = context.settings().captcha;
+    let captcha_settings = &context.settings().captcha;
 
     if !captcha_settings.enabled {
       return Ok(GetCaptchaResponse { ok: None });

@@ -5,19 +5,24 @@
 use crate::{
   collections::CommunityContext,
   generate_moderators_url,
+  local_instance,
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  traits::ApubObject,
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{object_id::ObjectId, traits::ApubObject, verify::verify_domains_match};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -26,8 +31,8 @@ pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityModerators {
   type DataType = CommunityContext;
-  type TombstoneType = ();
   type ApubType = GroupModerators;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -68,10 +73,6 @@ impl ApubObject for ApubCommunityModerators {
       id: generate_moderators_url(&data.0.actor_id)?.into(),
       ordered_items,
     })
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
@@ -115,7 +116,7 @@ impl ApubObject for ApubCommunityModerators {
     for mod_id in apub.ordered_items {
       let mod_id = ObjectId::new(mod_id);
       let mod_user: ApubPerson = mod_id
-        .dereference(&data.1, data.1.client(), request_counter)
+        .dereference(&data.1, local_instance(&data.1), request_counter)
         .await?;
 
       if !current_moderators

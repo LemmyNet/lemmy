@@ -143,6 +143,10 @@ export async function setupLogins() {
   await gamma.client.editSite({ require_application: false, auth: gamma.auth});
   await delta.client.editSite({ require_application: false, auth: delta.auth});
   await epsilon.client.editSite({ require_application: false, auth: epsilon.auth});
+
+  // Create the main beta community, follow it
+  await createCommunity(beta, "main");
+  await followBeta(beta);
 }
 
 export async function createPost(
@@ -302,7 +306,7 @@ export async function banPersonFromSite(
   api: API,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_data: boolean
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
@@ -562,7 +566,7 @@ export async function saveUserSettings(
 }
 
 export async function deleteUser(
-  api: API,
+  api: API
 ): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     auth: api.auth,
@@ -586,7 +590,6 @@ export async function listPrivateMessages(
   let form: GetPrivateMessages = {
     auth: api.auth,
     unread_only: false,
-    limit: 999,
   };
   return api.client.getPrivateMessages(form);
 }
@@ -617,7 +620,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 export async function reportPost(
   api: API,
   post_id: number,
-  reason: string,
+  reason: string
 ): Promise<PostReportResponse> {
   let form: CreatePostReport = {
     post_id,
@@ -637,7 +640,7 @@ export async function listPostReports(api: API): Promise<ListPostReportsResponse
 export async function reportComment(
   api: API,
   comment_id: number,
-  reason: string,
+  reason: string
 ): Promise<CommentReportResponse> {
   let form: CreateCommentReport = {
     comment_id,

@@ -11,7 +11,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::GetPostUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
@@ -54,7 +54,7 @@ impl PerformCrud for GetPost {
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
         .post_id(id)
-        .limit(9999)
+        .limit(std::i64::MAX)
         .list()
     })
     .await??;

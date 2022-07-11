@@ -23,7 +23,7 @@ use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQueryBuilder,
   structs::PersonMentionView,
 };
-use lemmy_utils::{claims::Claims, utils::markdown_to_html, LemmyError};
+use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::Lazy;
 use rss::{
@@ -36,6 +36,8 @@ use rss::{
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
 use strum::ParseError;
+
+const RSS_FETCH_LIMIT: i64 = 20;
 
 #[derive(Deserialize)]
 struct Params {
@@ -95,6 +97,7 @@ async fn get_feed_data(
     PostQueryBuilder::create(conn)
       .listing_type(listing_type)
       .sort(sort_type)
+      .limit(RSS_FETCH_LIMIT)
       .list()
   })
   .await??;
@@ -182,12 +185,13 @@ fn get_feed_user(
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(conn)?;
-  let person = Person::read_from_name(conn, user_name)?;
+  let person = Person::read_from_name(conn, user_name, false)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::All)
     .sort(*sort_type)
     .creator_id(person.id)
+    .limit(RSS_FETCH_LIMIT)
     .list()?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -210,12 +214,13 @@ fn get_feed_community(
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(conn)?;
-  let community = Community::read_from_name(conn, community_name)?;
+  let community = Community::read_from_name(conn, community_name, false)?;
 
   let posts = PostQueryBuilder::create(conn)
     .listing_type(ListingType::Community)
     .sort(*sort_type)
     .community_id(community.id)
+    .limit(RSS_FETCH_LIMIT)
     .list()?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -252,6 +257,7 @@ fn get_feed_front(
     .show_bot_accounts(local_user.show_bot_accounts)
     .show_read_posts(local_user.show_read_posts)
     .sort(*sort_type)
+    .limit(RSS_FETCH_LIMIT)
     .list()?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -290,12 +296,14 @@ fn get_feed_inbox(
     .my_person_id(person_id)
     .show_bot_accounts(show_bot_accounts)
     .sort(sort)
+    .limit(RSS_FETCH_LIMIT)
     .list()?;
 
   let mentions = PersonMentionQueryBuilder::create(conn)
     .recipient_id(person_id)
     .my_person_id(person_id)
     .sort(sort)
+    .limit(RSS_FETCH_LIMIT)
     .list()?;
 
   let items = create_reply_and_mention_items(replies, mentions, protocol_and_hostname)?;

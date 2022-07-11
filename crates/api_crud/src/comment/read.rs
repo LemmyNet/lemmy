@@ -9,7 +9,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

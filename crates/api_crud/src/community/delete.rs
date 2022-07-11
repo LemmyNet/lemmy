@@ -11,7 +11,7 @@ use lemmy_api_common::{
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Blockable,
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -43,6 +43,15 @@ impl Perform for BlockPerson {
       target_id,
     };
 
+    let target_person_view = blocking(context.pool(), move |conn| {
+      PersonViewSafe::read(conn, target_id)
+    })
+    .await??;
+
+    if target_person_view.person.admin {
+      return Err(LemmyError::from_message("cant_block_admin"));
+    }
+
     if data.block {
       let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
       blocking(context.pool(), block)
@@ -55,13 +64,8 @@ impl Perform for BlockPerson {
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }
 
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, target_id)
-    })
-    .await??;
-
     let res = BlockPersonResponse {
-      person_view,
+      person_view: target_person_view,
       blocked: data.block,
     };
 

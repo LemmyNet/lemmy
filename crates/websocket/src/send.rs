@@ -23,10 +23,11 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{Crud, DeleteableOrRemoveable},
+  SubscribedType,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView, PrivateMessageView};
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{utils::MentionData, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::MentionData, ConnectionId};
 
 #[tracing::instrument(skip_all)]
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(
@@ -119,7 +120,7 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
 
   // Strip out the person id and subscribed when sending to others
   let mut res_mut = res.clone();
-  res_mut.community_view.subscribed = false;
+  res_mut.community_view.subscribed = SubscribedType::NotSubscribed;
 
   context.chat_server().do_send(SendCommunityRoomMessage {
     op,
@@ -220,7 +221,7 @@ pub async fn send_local_notifs(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
           &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
-          &context.settings(),
+          context.settings(),
         )
       }
     }
@@ -255,7 +256,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
                 &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
-                &context.settings(),
+                context.settings(),
               )
             }
           }
@@ -285,7 +286,7 @@ pub async fn send_local_notifs(
               &parent_user_view,
               &lang.notification_post_reply_subject(&person.name),
               &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
-              &context.settings(),
+              context.settings(),
             )
           }
         }

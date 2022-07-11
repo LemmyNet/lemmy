@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::objects::person::ApubPerson;
+use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::collection::OrderedCollectionType;
-use lemmy_apub_lib::object_id::ObjectId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

@@ -19,9 +19,9 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   claims::Claims,
+  error::LemmyError,
   utils::{is_valid_display_name, is_valid_matrix_id},
   ConnectionId,
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 
@@ -52,7 +52,7 @@ impl Perform for SaveUserSettings {
       let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
       // Only send the verification email if there was an email change
       if previous_email.ne(email) {
-        send_verification_email(&local_user_view, email, context.pool(), &context.settings())
+        send_verification_email(&local_user_view, email, context.pool(), context.settings())
           .await?;
       }
     }

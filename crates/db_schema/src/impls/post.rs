@@ -15,9 +15,9 @@ use crate::{
     PostSavedForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
-  utils::naive_now,
+  utils::{naive_now, FETCH_LIMIT_MAX},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
 use url::Url;
 
 impl Crud for Post {
@@ -58,7 +58,7 @@ impl Post {
       .filter(removed.eq(false))
       .then_order_by(published.desc())
       .then_order_by(stickied.desc())
-      .limit(20)
+      .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
   }
 
@@ -178,6 +178,71 @@ impl Post {
         .map(Into::into),
     )
   }
+
+  pub fn fetch_pictrs_posts_for_creator(
+    conn: &PgConnection,
+    for_creator_id: PersonId,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::post::dsl::*;
+    let pictrs_search = "%pictrs/image%";
+
+    post
+      .filter(creator_id.eq(for_creator_id))
+      .filter(url.like(pictrs_search))
+      .load::<Self>(conn)
+  }
+
+  /// Sets the url and thumbnails fields to None
+  pub fn remove_pictrs_post_images_and_thumbnails_for_creator(
+    conn: &PgConnection,
+    for_creator_id: PersonId,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::post::dsl::*;
+    let pictrs_search = "%pictrs/image%";
+
+    diesel::update(
+      post
+        .filter(creator_id.eq(for_creator_id))
+        .filter(url.like(pictrs_search)),
+    )
+    .set((
+      url.eq::<Option<String>>(None),
+      thumbnail_url.eq::<Option<String>>(None),
+    ))
+    .get_results::<Self>(conn)
+  }
+
+  pub fn fetch_pictrs_posts_for_community(
+    conn: &PgConnection,
+    for_community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::post::dsl::*;
+    let pictrs_search = "%pictrs/image%";
+    post
+      .filter(community_id.eq(for_community_id))
+      .filter(url.like(pictrs_search))
+      .load::<Self>(conn)
+  }
+
+  /// Sets the url and thumbnails fields to None
+  pub fn remove_pictrs_post_images_and_thumbnails_for_community(
+    conn: &PgConnection,
+    for_community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::post::dsl::*;
+    let pictrs_search = "%pictrs/image%";
+
+    diesel::update(
+      post
+        .filter(community_id.eq(for_community_id))
+        .filter(url.like(pictrs_search)),
+    )
+    .set((
+      url.eq::<Option<String>>(None),
+      thumbnail_url.eq::<Option<String>>(None),
+    ))
+    .get_results::<Self>(conn)
+  }
 }
 
 impl Likeable for PostLike {
@@ -255,7 +320,7 @@ impl DeleteableOrRemoveable for Post {
     self.body = None;
     self.embed_title = None;
     self.embed_description = None;
-    self.embed_html = None;
+    self.embed_video_url = None;
     self.thumbnail_url = None;
 
     self
@@ -320,7 +385,7 @@ mod tests {
       updated: None,
       embed_title: None,
       embed_description: None,
-      embed_html: None,
+      embed_video_url: None,
       thumbnail_url: None,
       ap_id: inserted_post.ap_id.to_owned(),
       local: true,

@@ -3,19 +3,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::Perform;
+use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{CreatePostReport, PostReportResponse},
   utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::report::Report;
-use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
 };
 use lemmy_db_views::structs::{PostReportView, PostView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a post report and notifies the moderators of the community

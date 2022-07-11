@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{
   send::{send_comment_ws_message, send_local_notifs},
   LemmyContext,

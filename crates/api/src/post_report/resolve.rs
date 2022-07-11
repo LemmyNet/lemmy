@@ -10,7 +10,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views::structs::PostReportView;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Resolves or unresolves a post report and notifies the moderators of the community

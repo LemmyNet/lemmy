@@ -22,9 +22,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("", web::get().to(route_get_crud::<GetSite>))
           // Admin Actions
           .route("", web::post().to(route_post_crud::<CreateSite>))
-          .route("", web::put().to(route_post_crud::<EditSite>))
-          .route("/config", web::get().to(route_get::<GetSiteConfig>))
-          .route("/config", web::put().to(route_post::<SaveSiteConfig>)),
+          .route("", web::put().to(route_post_crud::<EditSite>)),
       )
       .service(
         web::resource("/modlog")
@@ -236,6 +234,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/registration_application/approve",
             web::put().to(route_post::<ApproveRegistrationApplication>),
           ),
+      )
+      .service(
+        web::scope("/admin/purge")
+          .wrap(rate_limit.message())
+          .route("/person", web::post().to(route_post::<PurgePerson>))
+          .route("/community", web::post().to(route_post::<PurgeCommunity>))
+          .route("/post", web::post().to(route_post::<PurgePost>))
+          .route("/comment", web::post().to(route_post::<PurgeComment>)),
       ),
   );
 }

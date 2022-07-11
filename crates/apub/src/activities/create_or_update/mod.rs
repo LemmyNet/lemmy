@@ -1,16 +1,20 @@
+<<<<<<< HEAD
 // SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::objects::person::ApubPerson;
+=======
+use crate::{local_instance, objects::person::ApubPerson};
+use activitypub_federation::core::object_id::ObjectId;
+>>>>>>> 67a34adf4b0a0ff974915a7fbbb08e24c4df3147
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::object_id::ObjectId;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{utils::scrape_text_for_mentions, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::scrape_text_for_mentions};
 use lemmy_websocket::{send::send_local_notifs, LemmyContext};
 
 pub mod comment;
@@ -28,7 +32,7 @@ async fn get_comment_notif_recipients(
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
   let actor = actor
-    .dereference(context, context.client(), request_counter)
+    .dereference(context, local_instance(context), request_counter)
     .await?;
 
   // Note:

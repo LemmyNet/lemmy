@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{location_info, settings::structs::Settings, LemmyError};
+use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
@@ -50,13 +50,13 @@ async fn get_webfinger_response(
 
   let name_ = name.clone();
   let user_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Person::read_from_name(conn, &name_)
+    Person::read_from_name(conn, &name_, false)
   })
   .await?
   .ok()
   .map(|c| c.actor_id.into());
   let community_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &name)
+    Community::read_from_name(conn, &name, false)
   })
   .await?
   .ok()

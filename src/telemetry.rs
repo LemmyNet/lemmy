@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use console_subscriber::ConsoleLayer;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use opentelemetry::{
   sdk::{propagation::TraceContextPropagator, Resource},
   KeyValue,

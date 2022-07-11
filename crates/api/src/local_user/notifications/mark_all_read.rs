@@ -14,7 +14,7 @@ use lemmy_db_schema::source::{
   private_message::PrivateMessage,
 };
 use lemmy_db_views::comment_view::CommentQueryBuilder;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -38,7 +38,7 @@ impl Perform for MarkAllAsRead {
         .recipient_id(person_id)
         .unread_only(true)
         .page(1)
-        .limit(999)
+        .limit(std::i64::MAX)
         .list()
     })
     .await??;

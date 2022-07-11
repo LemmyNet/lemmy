@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use activitystreams_kinds::collection::OrderedCollectionType;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

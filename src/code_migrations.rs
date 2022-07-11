@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // This is for db migrations that require code
+use activitypub_federation::core::signatures::generate_actor_keypair;
 use diesel::{
   sql_types::{Nullable, Text},
   *,
@@ -27,7 +28,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::{apub::generate_actor_keypair, LemmyError};
+use lemmy_utils::error::LemmyError;
 use tracing::info;
 use url::Url;
 

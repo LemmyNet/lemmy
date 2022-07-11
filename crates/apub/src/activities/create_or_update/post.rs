@@ -7,7 +7,6 @@ use crate::{
     check_community_deleted_or_removed,
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
@@ -15,15 +14,16 @@ use crate::{
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, ApubObject},
+  utils::{verify_domains_match, verify_urls_match},
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType, ApubObject},
-  verify::{verify_domains_match, verify_urls_match},
-};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -31,8 +31,9 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
 
 impl CreateOrUpdatePost {
   pub(crate) async fn new(
@@ -72,15 +73,23 @@ impl CreateOrUpdatePost {
     .into();
 
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
-    let id = create_or_update.id.clone();
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
-    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for CreateOrUpdatePost {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -89,7 +98,6 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;

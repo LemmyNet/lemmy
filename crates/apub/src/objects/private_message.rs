@@ -3,20 +3,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::{
+  check_apub_id_valid_with_strictness,
+  local_instance,
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
     Source,
   },
 };
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  deser::values::MediaTypeHtml,
+  traits::ApubObject,
+  utils::verify_domains_match,
+};
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::ApubObject,
-  values::MediaTypeHtml,
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::{
     person::Person,
@@ -25,8 +27,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{convert_datetime, markdown_to_html},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -53,7 +55,7 @@ impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
   type ApubType = ChatMessage;
   type DbType = PrivateMessage;
-  type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -101,10 +103,6 @@ impl ApubObject for ApubPrivateMessage {
     Ok(note)
   }
 
-  fn to_tombstone(&self) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
   #[tracing::instrument(skip_all)]
   async fn verify(
     note: &ChatMessage,
@@ -114,9 +112,10 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    check_apub_id_valid_with_strictness(note.id.inner(), false, context.settings())?;
     let person = note
       .attributed_to
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
@@ -132,10 +131,10 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note
       .attributed_to
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let recipient = note.to[0]
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
 
     let form = PrivateMessageForm {

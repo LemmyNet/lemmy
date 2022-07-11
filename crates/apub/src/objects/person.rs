@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   generate_outbox_url,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -14,22 +14,23 @@ use crate::{
     ImageObject,
     Source,
   },
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  traits::{Actor, ApubObject},
+  utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  object_id::ObjectId,
-  traits::{ActorType, ApubObject},
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::person::{Person as DbPerson, PersonForm},
   traits::ApubActor,
   utils::naive_now,
 };
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -56,7 +57,7 @@ impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
   type DbType = DbPerson;
-  type TombstoneType = ();
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     Some(self.last_refreshed_at)
@@ -108,15 +109,11 @@ impl ApubObject for ApubPerson {
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
-      public_key: self.get_public_key()?,
+      public_key: self.get_public_key(),
       updated: self.updated.map(convert_datetime),
       inbox: self.inbox_url.clone().into(),
     };
     Ok(person)
-  }
-
-  fn to_tombstone(&self) -> Result<(), LemmyError> {
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
@@ -127,7 +124,7 @@ impl ApubObject for ApubPerson {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_domains_match(person.id.inner(), expected_domain)?;
-    check_is_apub_id_valid(person.id.inner(), false, &context.settings())?;
+    check_apub_id_valid_with_strictness(person.id.inner(), false, context.settings())?;
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs(&person.preferred_username, slur_regex)?;
@@ -186,19 +183,21 @@ impl ActorType for ApubPerson {
     self.actor_id.to_owned().into()
   }
 
-  fn public_key(&self) -> String {
-    self.public_key.to_owned()
-  }
-
   fn private_key(&self) -> Option<String> {
     self.private_key.to_owned()
   }
+}
 
-  fn inbox_url(&self) -> Url {
+impl Actor for ApubPerson {
+  fn public_key(&self) -> &str {
+    &self.public_key
+  }
+
+  fn inbox(&self) -> Url {
     self.inbox_url.clone().into()
   }
 
-  fn shared_inbox_url(&self) -> Option<Url> {
+  fn shared_inbox(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(|s| s.into())
   }
 }

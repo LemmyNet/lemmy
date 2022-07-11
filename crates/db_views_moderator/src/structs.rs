@@ -6,6 +6,10 @@ use lemmy_db_schema::source::{
   comment::Comment,
   community::CommunitySafe,
   moderator::{
+    AdminPurgeComment,
+    AdminPurgeCommunity,
+    AdminPurgePerson,
+    AdminPurgePost,
     ModAdd,
     ModAddCommunity,
     ModBan,
@@ -107,4 +111,30 @@ pub struct ModTransferCommunityView {
   pub moderator: PersonSafe,
   pub community: CommunitySafe,
   pub modded_person: PersonSafeAlias1,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AdminPurgeCommentView {
+  pub admin_purge_comment: AdminPurgeComment,
+  pub admin: PersonSafe,
+  pub post: Post,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AdminPurgeCommunityView {
+  pub admin_purge_community: AdminPurgeCommunity,
+  pub admin: PersonSafe,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AdminPurgePersonView {
+  pub admin_purge_person: AdminPurgePerson,
+  pub admin: PersonSafe,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AdminPurgePostView {
+  pub admin_purge_post: AdminPurgePost,
+  pub admin: PersonSafe,
+  pub community: CommunitySafe,
 }

@@ -16,7 +16,7 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:0.16.5
+    image: dessalines/lemmy:0.16.4
     ports:
       - "127.0.0.1:8536:8536"
       - "127.0.0.1:6669:6669"

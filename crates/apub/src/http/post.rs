@@ -6,12 +6,12 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
   objects::post::ApubPost,
 };
+use activitypub_federation::traits::ApubObject;
 use actix_web::{web, HttpResponse};
 use diesel::result::Error::NotFound;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::{newtypes::PostId, source::post::Post, traits::Crud};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
@@ -37,6 +37,6 @@ pub(crate) async fn get_apub_post(
   if !post.deleted {
     Ok(create_apub_response(&post.into_apub(&context).await?))
   } else {
-    Ok(create_apub_tombstone_response(&post.to_tombstone()?))
+    Ok(create_apub_tombstone_response(post.ap_id.clone()))
   }
 }

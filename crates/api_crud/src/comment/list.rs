@@ -6,12 +6,17 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{
+    blocking,
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+    listing_type_with_site_default,
+  },
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -37,6 +42,8 @@ impl PerformCrud for GetComments {
     let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = data.community_id;
+    let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
+
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context)
         .await
@@ -46,7 +53,6 @@ impl PerformCrud for GetComments {
       None
     };
     let sort = data.sort;
-    let listing_type = data.type_;
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;

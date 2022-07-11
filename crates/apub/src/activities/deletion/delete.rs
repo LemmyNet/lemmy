@@ -7,19 +7,15 @@ use crate::{
     community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
-    verify_activity,
   },
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{
-    activities::deletion::delete::Delete,
-    objects::tombstone::Tombstone,
-    IdOrNestedObject,
-  },
+  protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
+use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{data::Data, object_id::ObjectId, traits::ActivityHandler};
 use lemmy_db_schema::{
   source::{
     comment::Comment,
@@ -32,12 +28,11 @@ use lemmy_db_schema::{
       ModRemovePost,
       ModRemovePostForm,
     },
-    person::Person,
     post::Post,
   },
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
   LemmyContext,
@@ -48,6 +43,15 @@ use url::Url;
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for Delete {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -55,7 +59,6 @@ impl ActivityHandler for Delete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     verify_delete_activity(self, self.summary.is_some(), context, request_counter).await?;
     Ok(())
   }
@@ -77,7 +80,7 @@ impl ActivityHandler for Delete {
       receive_remove_action(
         &self
           .actor
-          .dereference(context, context.client(), request_counter)
+          .dereference(context, local_instance(context), request_counter)
           .await?,
         self.object.id(),
         reason,
@@ -99,7 +102,7 @@ impl ActivityHandler for Delete {
 
 impl Delete {
   pub(in crate::activities::deletion) fn new(
-    actor: &Person,
+    actor: &ApubPerson,
     object: DeletableObjects,
     to: Url,
     community: Option<&Community>,
@@ -114,10 +117,7 @@ impl Delete {
     Ok(Delete {
       actor: ObjectId::new(actor.actor_id.clone()),
       to: vec![to],
-      object: IdOrNestedObject::NestedObject(Tombstone {
-        id: object.id(),
-        kind: Default::default(),
-      }),
+      object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
       summary,

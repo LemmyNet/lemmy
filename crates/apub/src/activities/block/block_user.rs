@@ -4,29 +4,30 @@
 
 use crate::{
   activities::{
-    block::{generate_cc, generate_instance_inboxes, SiteOrCommunity},
+    block::{generate_cc, SiteOrCommunity},
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
     send_lemmy_activity,
-    verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  local_instance,
+  objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+  utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::{blocking, remove_user_data, remove_user_data_in_community};
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::{
   source::{
     community::{
@@ -40,8 +41,9 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{settings::structs::Settings, utils::convert_datetime, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::convert_datetime};
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl BlockUser {
   pub(in crate::activities::block) async fn new(
@@ -91,17 +93,16 @@ impl BlockUser {
       context,
     )
     .await?;
-    let block_id = block.id.clone();
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = generate_instance_inboxes(user, context.pool()).await?;
-        send_lemmy_activity(context, &block, &block_id, mod_, inboxes, false).await
+        let inboxes = remote_instance_inboxes(context.pool()).await?;
+        send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::BlockUser(block);
-        let inboxes = vec![user.shared_inbox_or_inbox_url()];
-        send_activity_in_community(activity, &block_id, mod_, c, inboxes, context).await
+        let inboxes = vec![user.shared_inbox_or_inbox()];
+        send_activity_in_community(activity, mod_, c, inboxes, context).await
       }
     }
   }
@@ -110,6 +111,15 @@ impl BlockUser {
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for BlockUser {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -118,15 +128,14 @@ impl ActivityHandler for BlockUser {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     match self
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?
     {
       SiteOrCommunity::Site(site) => {
         let domain = self.object.inner().domain().expect("url needs domain");
-        if Settings::get().hostname == domain {
+        if context.settings().hostname == domain {
           return Err(
             anyhow!("Site bans from remote instance can't affect user's home instance").into(),
           );
@@ -159,15 +168,15 @@ impl ActivityHandler for BlockUser {
     let expires = self.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let blocked_person = self
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let target = self
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match target {
       SiteOrCommunity::Site(_site) => {
@@ -176,7 +185,13 @@ impl ActivityHandler for BlockUser {
         })
         .await??;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(blocked_person.id, context.pool()).await?;
+          remove_user_data(
+            blocked_person.id,
+            context.pool(),
+            context.settings(),
+            context.client(),
+          )
+          .await?;
         }
 
         // write mod log
@@ -246,7 +261,7 @@ impl GetCommunity for BlockUser {
   ) -> Result<ApubCommunity, LemmyError> {
     let target = self
       .target
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match target {
       SiteOrCommunity::Community(c) => Ok(c),

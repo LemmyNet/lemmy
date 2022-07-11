@@ -17,7 +17,7 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonViewSafe,
 };
-use lemmy_utils::{version, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, version, ConnectionId};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 use tracing::info;
 
@@ -58,21 +58,8 @@ impl PerformCrud for GetSite {
 
           let create_site = CreateSite {
             name: setup.site_name.to_owned(),
-            sidebar: setup.sidebar.to_owned(),
-            description: setup.description.to_owned(),
-            icon: setup.icon.to_owned(),
-            banner: setup.banner.to_owned(),
-            enable_downvotes: setup.enable_downvotes,
-            open_registration: setup.open_registration,
-            enable_nsfw: setup.enable_nsfw,
-            community_creation_admin_only: setup.community_creation_admin_only,
-            require_email_verification: setup.require_email_verification,
-            require_application: setup.require_application,
-            application_question: setup.application_question.to_owned(),
-            private_instance: setup.private_instance,
-            default_theme: setup.default_theme.to_owned(),
-            default_post_listing_type: setup.default_post_listing_type.to_owned(),
             auth: admin_jwt,
+            ..CreateSite::default()
           };
           create_site.perform(context, websocket_id).await?;
           info!("Site {} created", setup.site_name);
@@ -137,8 +124,7 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances =
-      build_federated_instances(context.pool(), &context.settings()).await?;
+    let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
 
     Ok(GetSiteResponse {
       site_view,

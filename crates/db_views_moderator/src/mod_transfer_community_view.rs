@@ -53,7 +53,7 @@ impl ModTransferCommunityView {
       query = query.filter(mod_transfer_community::community_id.eq(community_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let (limit, offset) = limit_and_offset(page, limit)?;
 
     let res = query
       .limit(limit)

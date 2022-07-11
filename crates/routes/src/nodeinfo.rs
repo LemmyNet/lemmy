@@ -6,7 +6,7 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{version, LemmyError};
+use lemmy_utils::{error::LemmyError, version};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;

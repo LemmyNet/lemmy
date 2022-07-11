@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::{
-  check_is_apub_id_valid,
+  check_apub_id_valid_with_strictness,
   collections::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
@@ -11,13 +11,17 @@ use crate::{
   objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{objects::Endpoints, ImageObject, Source},
 };
+use activitypub_federation::{
+  core::{object_id::ObjectId, signatures::PublicKey},
+  deser::helpers::deserialize_skip_error,
+  utils::verify_domains_match,
+};
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_apub_lib::{object_id::ObjectId, signatures::PublicKey, verify::verify_domains_match};
 use lemmy_db_schema::{source::community::CommunityForm, utils::naive_now};
 use lemmy_utils::{
+  error::LemmyError,
   utils::{check_slurs, check_slurs_opt},
-  LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -40,7 +44,7 @@ pub struct Group {
   /// title
   pub(crate) name: Option<String>,
   pub(crate) summary: Option<String>,
-  #[serde(deserialize_with = "crate::deserialize_skip_error", default)]
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   pub(crate) icon: Option<ImageObject>,
   /// banner
@@ -63,7 +67,7 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    check_is_apub_id_valid(self.id.inner(), true, &context.settings())?;
+    check_apub_id_valid_with_strictness(self.id.inner(), true, context.settings())?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
     let slur_regex = &context.settings().slur_regex();

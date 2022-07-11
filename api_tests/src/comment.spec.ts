@@ -174,10 +174,10 @@ test('Remove a comment from admin and community on the same instance', async () 
 });
 
 test('Remove a comment from admin and community on different instance', async () => {
-  let alphaUser = await registerUser(alpha);
+  let alpha_user = await registerUser(alpha);
   let newAlphaApi: API = {
     client: alpha.client,
-    auth: alphaUser.jwt,
+    auth: alpha_user.jwt,
   };
 
   // New alpha user creates a community, post, and comment.
@@ -294,7 +294,8 @@ test('Comment Search', async () => {
 
 test('A and G subscribe to B (center) A posts, G mentions B, it gets announced to A', async () => {
   // Create a local post
-  let alphaPost = await createPost(alpha, 2);
+  let alphaCommunity = await createCommunity(alpha, "main");
+  let alphaPost = await createPost(alpha, alphaCommunity.community_view.community.id);
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it

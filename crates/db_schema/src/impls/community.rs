@@ -17,6 +17,7 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
   utils::{functions::lower, naive_now},
+  SubscribedType,
 };
 use diesel::{
   dsl::*,
@@ -142,6 +143,19 @@ impl Community {
       .set(community_form)
       .get_result::<Self>(conn)
   }
+
+  pub fn remove_avatar_and_banner(
+    conn: &PgConnection,
+    community_id: CommunityId,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set((
+        icon.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
+      ))
+      .get_result::<Self>(conn)
+  }
 }
 
 impl Joinable for CommunityModerator {
@@ -240,6 +254,22 @@ impl Bannable for CommunityPersonBan {
   }
 }
 
+impl CommunityFollower {
+  pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
+    match follower {
+      Some(f) => {
+        if f.pending.unwrap_or(false) {
+          SubscribedType::Pending
+        } else {
+          SubscribedType::Subscribed
+        }
+      }
+      // If the row doesn't exist, the person isn't a follower.
+      None => SubscribedType::NotSubscribed,
+    }
+  }
+}
+
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
   fn follow(
@@ -306,12 +336,20 @@ impl ApubActor for Community {
     )
   }
 
-  fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Community, Error> {
+  fn read_from_name(
+    conn: &PgConnection,
+    community_name: &str,
+    include_deleted: bool,
+  ) -> Result<Community, Error> {
     use crate::schema::community::dsl::*;
-    community
+    let mut q = community
+      .into_boxed()
       .filter(local.eq(true))
-      .filter(lower(name).eq(lower(community_name)))
-      .first::<Self>(conn)
+      .filter(lower(name).eq(lower(community_name)));
+    if !include_deleted {
+      q = q.filter(deleted.eq(false)).filter(removed.eq(false));
+    }
+    q.first::<Self>(conn)
   }
 
   fn read_from_name_and_domain(

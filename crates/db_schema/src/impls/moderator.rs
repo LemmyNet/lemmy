@@ -267,6 +267,98 @@ impl Crud for ModAdd {
   }
 }
 
+impl Crud for AdminPurgePerson {
+  type Form = AdminPurgePersonForm;
+  type IdType = i32;
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::admin_purge_person::dsl::*;
+    admin_purge_person.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_person::dsl::*;
+    insert_into(admin_purge_person)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_person::dsl::*;
+    diesel::update(admin_purge_person.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
+impl Crud for AdminPurgeCommunity {
+  type Form = AdminPurgeCommunityForm;
+  type IdType = i32;
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::admin_purge_community::dsl::*;
+    admin_purge_community.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_community::dsl::*;
+    insert_into(admin_purge_community)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_community::dsl::*;
+    diesel::update(admin_purge_community.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
+impl Crud for AdminPurgePost {
+  type Form = AdminPurgePostForm;
+  type IdType = i32;
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::admin_purge_post::dsl::*;
+    admin_purge_post.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_post::dsl::*;
+    insert_into(admin_purge_post)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_post::dsl::*;
+    diesel::update(admin_purge_post.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
+impl Crud for AdminPurgeComment {
+  type Form = AdminPurgeCommentForm;
+  type IdType = i32;
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::admin_purge_comment::dsl::*;
+    admin_purge_comment.find(from_id).first::<Self>(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_comment::dsl::*;
+    insert_into(admin_purge_comment)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+    use crate::schema::admin_purge_comment::dsl::*;
+    diesel::update(admin_purge_comment.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{

@@ -6,30 +6,31 @@ use crate::{
   activities::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
-    verify_is_public,
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::{
     undo_vote::UndoVote,
     vote::{Vote, VoteType},
   },
+  ActorType,
   PostOrComment,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::ActivityHandler,
+  utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType},
-  verify::verify_urls_match,
-};
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 impl UndoVote {
   /// UndoVote has as:Public value in cc field, unlike other activities. This indicates to other
@@ -64,13 +65,22 @@ impl UndoVote {
       unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UndoVote {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -78,8 +88,6 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
@@ -95,12 +103,12 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     let object = self
       .object
       .object
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

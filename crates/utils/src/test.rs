@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::{
-  settings::structs::Settings,
+  settings::SETTINGS,
   utils::{
     is_valid_actor_name,
     is_valid_display_name,
@@ -28,7 +28,7 @@ fn test_mentions_regex() {
 
 #[test]
 fn test_valid_actor_name() {
-  let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
+  let actor_name_max_length = SETTINGS.actor_name_max_length;
   assert!(is_valid_actor_name("Hello_98", actor_name_max_length));
   assert!(is_valid_actor_name("ten", actor_name_max_length));
   assert!(!is_valid_actor_name("Hello-98", actor_name_max_length));
@@ -38,7 +38,7 @@ fn test_valid_actor_name() {
 
 #[test]
 fn test_valid_display_name() {
-  let actor_name_max_length = Settings::init().unwrap().actor_name_max_length;
+  let actor_name_max_length = SETTINGS.actor_name_max_length;
   assert!(is_valid_display_name("hello @there", actor_name_max_length));
   assert!(!is_valid_display_name(
     "@hello there",
@@ -69,7 +69,7 @@ fn test_valid_matrix_id() {
 
 #[test]
 fn test_slur_filter() {
-  let slur_regex = Settings::init().unwrap().slur_regex();
+  let slur_regex = SETTINGS.slur_regex();
   let test =
       "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
   let slur_free = "No slurs here";

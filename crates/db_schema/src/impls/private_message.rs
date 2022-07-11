@@ -9,7 +9,7 @@ use crate::{
   utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 impl Crud for PrivateMessage {

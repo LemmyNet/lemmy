@@ -7,7 +7,7 @@ use activitystreams_kinds::collection::CollectionType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;

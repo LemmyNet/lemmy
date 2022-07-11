@@ -27,7 +27,7 @@ impl Tombstone {
 }
 
 impl Id for Tombstone {
-  fn id(&self) -> &Url {
+  fn object_id(&self) -> &Url {
     &self.id
   }
 }

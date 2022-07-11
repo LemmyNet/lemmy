@@ -12,7 +12,6 @@ use crate::{
 };
 use actix::prelude::*;
 use anyhow::Context as acontext;
-use background_jobs::QueueHandle;
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
@@ -23,12 +22,12 @@ use lemmy_db_schema::{
   source::secret::Secret,
 };
 use lemmy_utils::{
+  error::LemmyError,
   location_info,
   rate_limit::RateLimit,
   settings::structs::Settings,
   ConnectionId,
   IpAddr,
-  LemmyError,
 };
 use rand::rngs::ThreadRng;
 use reqwest_middleware::ClientWithMiddleware;
@@ -95,8 +94,6 @@ pub struct ChatServer {
 
   /// An HTTP Client
   client: ClientWithMiddleware,
-
-  activity_queue: QueueHandle,
 }
 
 pub struct SessionInfo {
@@ -115,7 +112,6 @@ impl ChatServer {
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
     client: ClientWithMiddleware,
-    activity_queue: QueueHandle,
     settings: Settings,
     secret: Secret,
   ) -> ChatServer {
@@ -132,7 +128,6 @@ impl ChatServer {
       message_handler,
       message_handler_crud,
       client,
-      activity_queue,
       settings,
       secret,
     }
@@ -469,7 +464,6 @@ impl ChatServer {
       pool: self.pool.clone(),
       chat_server: ctx.address(),
       client: self.client.to_owned(),
-      activity_queue: self.activity_queue.to_owned(),
       settings: self.settings.to_owned(),
       secret: self.secret.to_owned(),
     };
@@ -489,7 +483,7 @@ impl ChatServer {
           UserOperationCrud::CreatePost => rate_limiter.post().check(ip),
           UserOperationCrud::CreateCommunity => rate_limiter.register().check(ip),
           UserOperationCrud::CreateComment => rate_limiter.comment().check(ip),
-          _ => true,
+          _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
         (passed, fut)
@@ -498,7 +492,7 @@ impl ChatServer {
         let passed = match user_operation {
           UserOperation::GetCaptcha => rate_limiter.post().check(ip),
           UserOperation::Search => rate_limiter.search().check(ip),
-          _ => true,
+          _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler)(context, msg.id, user_operation, data);
         (passed, fut)

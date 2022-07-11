@@ -18,7 +18,6 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance_and_federation_enabled},
 };
 use lemmy_api_crud::match_websocket_operation_crud;
-use lemmy_apub_lib::activity_queue::create_activity_queue;
 use lemmy_db_schema::{source::secret::Secret, utils::get_database_url_from_env};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
@@ -29,20 +28,23 @@ use lemmy_server::{
   scheduled_tasks,
 };
 use lemmy_utils::{
+  error::LemmyError,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  settings::structs::Settings,
-  LemmyError,
-  REQWEST_TIMEOUT,
+  settings::{structs::Settings, SETTINGS},
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread};
+use std::{env, sync::Arc, thread, time::Duration};
 use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
+
+/// Max timeout for http requests
+pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
@@ -56,7 +58,7 @@ async fn main() -> Result<(), LemmyError> {
     return Ok(());
   }
 
-  let settings = Settings::init().expect("Couldn't initialize settings.");
+  let settings = SETTINGS.to_owned();
 
   init_logging(settings.opentelemetry_url.as_deref())?;
 
@@ -101,16 +103,27 @@ async fn main() -> Result<(), LemmyError> {
     settings.bind, settings.port
   );
 
-  let client = Client::builder()
+  let reqwest_client = Client::builder()
     .user_agent(build_user_agent(&settings))
     .timeout(REQWEST_TIMEOUT)
     .build()?;
 
-  let client = ClientBuilder::new(client).with(TracingMiddleware).build();
+  let retry_policy = ExponentialBackoff {
+    max_n_retries: 3,
+    max_retry_interval: REQWEST_TIMEOUT,
+    min_retry_interval: Duration::from_millis(100),
+    backoff_exponent: 2,
+  };
 
-  let queue_manager = create_activity_queue(client.clone(), settings.federation.worker_count);
+  let client = ClientBuilder::new(reqwest_client.clone())
+    .with(TracingMiddleware)
+    .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+    .build();
 
-  let activity_queue = queue_manager.queue_handle().clone();
+  // Pictrs cannot use the retry middleware
+  let pictrs_client = ClientBuilder::new(reqwest_client.clone())
+    .with(TracingMiddleware)
+    .build();
 
   check_private_instance_and_federation_enabled(&pool, &settings).await?;
 
@@ -120,7 +133,6 @@ async fn main() -> Result<(), LemmyError> {
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     client.clone(),
-    activity_queue.clone(),
     settings.clone(),
     secret.clone(),
   )
@@ -133,7 +145,6 @@ async fn main() -> Result<(), LemmyError> {
       pool.clone(),
       chat_server.to_owned(),
       client.clone(),
-      activity_queue.to_owned(),
       settings.to_owned(),
       secret.to_owned(),
     );
@@ -147,15 +158,13 @@ async fn main() -> Result<(), LemmyError> {
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
       .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, client.clone(), &rate_limiter))
+      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limiter))
       .configure(nodeinfo::config)
       .configure(|cfg| webfinger::config(cfg, &settings))
   })
   .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
-
-  drop(queue_manager);
 
   Ok(())
 }

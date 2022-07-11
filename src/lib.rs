@@ -11,7 +11,7 @@ pub mod scheduled_tasks;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use tracing::subscriber::set_global_default;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;

@@ -44,7 +44,6 @@ services:
     volumes:
       - ./lemmy_alpha.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -73,7 +72,6 @@ services:
     volumes:
       - ./lemmy_beta.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -102,7 +100,6 @@ services:
     volumes:
       - ./lemmy_gamma.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -132,7 +129,6 @@ services:
     volumes:
       - ./lemmy_delta.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
@@ -162,7 +158,6 @@ services:
     volumes:
       - ./lemmy_epsilon.hjson:/config/config.hjson
     environment:
-      - APUB_TESTING_SEND_SYNC
       - RUST_BACKTRACE=1
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:

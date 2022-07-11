@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite_to_url, naive_now},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]

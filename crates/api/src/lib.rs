@@ -5,7 +5,7 @@
 use actix_web::{web, web::Data};
 use captcha::Captcha;
 use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
@@ -102,11 +102,15 @@ pub async fn match_websocket_operation(
 
     // Site ops
     UserOperation::GetModlog => do_websocket_operation::<GetModlog>(context, id, op, data).await,
-    UserOperation::GetSiteConfig => {
-      do_websocket_operation::<GetSiteConfig>(context, id, op, data).await
+    UserOperation::PurgePerson => {
+      do_websocket_operation::<PurgePerson>(context, id, op, data).await
     }
-    UserOperation::SaveSiteConfig => {
-      do_websocket_operation::<SaveSiteConfig>(context, id, op, data).await
+    UserOperation::PurgeCommunity => {
+      do_websocket_operation::<PurgeCommunity>(context, id, op, data).await
+    }
+    UserOperation::PurgePost => do_websocket_operation::<PurgePost>(context, id, op, data).await,
+    UserOperation::PurgeComment => {
+      do_websocket_operation::<PurgeComment>(context, id, op, data).await
     }
     UserOperation::Search => do_websocket_operation::<Search>(context, id, op, data).await,
     UserOperation::ResolveObject => {
@@ -220,13 +224,13 @@ mod tests {
     traits::Crud,
     utils::establish_unpooled_connection,
   };
-  use lemmy_utils::{claims::Claims, settings::structs::Settings};
+  use lemmy_utils::{claims::Claims, settings::SETTINGS};
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {
     let conn = establish_unpooled_connection();
     let secret = Secret::init(&conn).unwrap();
-    let settings = Settings::init().unwrap();
+    let settings = &SETTINGS.to_owned();
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),

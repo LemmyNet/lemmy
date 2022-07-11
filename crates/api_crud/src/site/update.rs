@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{utils::check_slurs_opt, ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperationCrud};
 use std::{default::Default, str::FromStr};
 

@@ -232,6 +232,8 @@ impl Person {
     diesel::update(person.find(person_id))
       .set((
         display_name.eq::<Option<String>>(None),
+        avatar.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
         bio.eq::<Option<String>>(None),
         matrix_user_id.eq::<Option<String>>(None),
         deleted.eq(true),
@@ -269,6 +271,15 @@ impl Person {
       .set(admin.eq(false))
       .get_result::<Self>(conn)
   }
+
+  pub fn remove_avatar_and_banner(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+    diesel::update(person.find(person_id))
+      .set((
+        avatar.eq::<Option<String>>(None),
+        banner.eq::<Option<String>>(None),
+      ))
+      .get_result::<Self>(conn)
+  }
 }
 
 impl PersonSafe {
@@ -298,12 +309,19 @@ impl ApubActor for Person {
     )
   }
 
-  fn read_from_name(conn: &PgConnection, from_name: &str) -> Result<Person, Error> {
-    person
-      .filter(deleted.eq(false))
+  fn read_from_name(
+    conn: &PgConnection,
+    from_name: &str,
+    include_deleted: bool,
+  ) -> Result<Person, Error> {
+    let mut q = person
+      .into_boxed()
       .filter(local.eq(true))
-      .filter(lower(name).eq(lower(from_name)))
-      .first::<Person>(conn)
+      .filter(lower(name).eq(lower(from_name)));
+    if !include_deleted {
+      q = q.filter(deleted.eq(false))
+    }
+    q.first::<Self>(conn)
   }
 
   fn read_from_name_and_domain(

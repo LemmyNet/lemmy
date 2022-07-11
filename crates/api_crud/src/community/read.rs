@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   traits::DeleteableOrRemoveable,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
@@ -34,6 +34,10 @@ impl PerformCrud for GetCommunity {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+
+    if data.name.is_none() && data.id.is_none() {
+      return Err(LemmyError::from_message("no_id_given"));
+    }
 
     check_private_instance(&local_user_view, context.pool()).await?;
 

@@ -10,7 +10,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::site::Site;
 use lemmy_db_views::registration_application_view::RegistrationApplicationQueryBuilder;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 /// Lists registration applications, filterable by undenied only.

@@ -10,7 +10,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQueryBuilder;
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]

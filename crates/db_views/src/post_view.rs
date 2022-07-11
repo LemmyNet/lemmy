@@ -3,7 +3,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::structs::PostView;
-use diesel::{dsl::*, pg::Pg, result::Error, *};
+use diesel::{
+  dsl::*,
+  pg::Pg,
+  result::{Error, Error::QueryBuilderError},
+  *,
+};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
@@ -146,7 +151,7 @@ impl PostView {
       community,
       creator_banned_from_community: creator_banned_from_community.is_some(),
       counts,
-      subscribed: follower.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&follower),
       saved: saved.is_some(),
       read: read.is_some(),
       creator_blocked: creator_blocked.is_some(),
@@ -362,19 +367,23 @@ impl<'a> PostQueryBuilder<'a> {
           )
         }
         ListingType::Community => {
-          if let Some(community_id) = self.community_id {
-            query = query
-              .filter(post::community_id.eq(community_id))
-              .then_order_by(post_aggregates::stickied.desc());
+          if self.community_actor_id.is_none() && self.community_id.is_none() {
+            return Err(QueryBuilderError("No community actor or id given".into()));
+          } else {
+            if let Some(community_id) = self.community_id {
+              query = query
+                .filter(post::community_id.eq(community_id))
+                .then_order_by(post_aggregates::stickied.desc());
+            }
+
+            if let Some(community_actor_id) = self.community_actor_id {
+              query = query
+                .filter(community::actor_id.eq(community_actor_id))
+                .then_order_by(post_aggregates::stickied.desc());
+            }
           }
         }
       }
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
-      query = query
-        .filter(community::actor_id.eq(community_actor_id))
-        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -459,7 +468,7 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(post_aggregates::published.desc()),
     };
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .limit(limit)
@@ -488,7 +497,7 @@ impl ViewToVec for PostView {
         community: a.2.to_owned(),
         creator_banned_from_community: a.3.is_some(),
         counts: a.4.to_owned(),
-        subscribed: a.5.is_some(),
+        subscribed: CommunityFollower::to_subscribed_type(&a.5),
         saved: a.6.is_some(),
         read: a.7.is_some(),
         creator_blocked: a.8.is_some(),
@@ -514,6 +523,7 @@ mod tests {
     utils::establish_unpooled_connection,
     ListingType,
     SortType,
+    SubscribedType,
   };
   use serial_test::serial;
 
@@ -650,7 +660,7 @@ mod tests {
         nsfw: false,
         embed_title: None,
         embed_description: None,
-        embed_html: None,
+        embed_video_url: None,
         thumbnail_url: None,
         ap_id: inserted_post.ap_id.to_owned(),
         local: true,
@@ -706,7 +716,7 @@ mod tests {
         newest_comment_time_necro: inserted_post.published,
         newest_comment_time: inserted_post.published,
       },
-      subscribed: false,
+      subscribed: SubscribedType::NotSubscribed,
       read: false,
       saved: false,
       creator_blocked: false,

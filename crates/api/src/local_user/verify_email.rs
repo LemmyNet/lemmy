@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -53,7 +53,7 @@ impl Perform for VerifyEmail {
     })
     .await??;
 
-    send_email_verification_success(&local_user_view, &context.settings())?;
+    send_email_verification_success(&local_user_view, context.settings())?;
 
     blocking(context.pool(), move |conn| {
       EmailVerification::delete_old_tokens_for_local_user(conn, local_user_id)

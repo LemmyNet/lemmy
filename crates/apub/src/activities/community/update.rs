@@ -6,28 +6,30 @@ use crate::{
   activities::{
     community::{announce::GetCommunity, send_activity_in_community},
     generate_activity_id,
-    verify_activity,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
+  ActorType,
+};
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  object_id::ObjectId,
-  traits::{ActivityHandler, ActorType, ApubObject},
-};
 use lemmy_db_schema::{
   source::community::{Community, CommunityForm},
   traits::Crud,
 };
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
+use url::Url;
 
 impl UpdateCommunity {
   #[tracing::instrument(skip_all)]
@@ -51,13 +53,22 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
-    send_activity_in_community(activity, &id, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
 impl ActivityHandler for UpdateCommunity {
   type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    self.actor.inner()
+  }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
@@ -66,7 +77,6 @@ impl ActivityHandler for UpdateCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    verify_activity(&self.id, self.actor.inner(), &context.settings())?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(
@@ -133,7 +143,7 @@ impl GetCommunity for UpdateCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let cid = ObjectId::new(self.object.id.clone());
     cid
-      .dereference(context, context.client(), request_counter)
+      .dereference(context, local_instance(context), request_counter)
       .await
   }
 }

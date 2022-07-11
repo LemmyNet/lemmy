@@ -1,13 +1,17 @@
+<<<<<<< HEAD
 // SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::fetcher::webfinger::webfinger_resolve_actor;
+=======
+use crate::{fetcher::webfinger::webfinger_resolve_actor, ActorType};
+use activitypub_federation::traits::ApubObject;
+>>>>>>> 67a34adf4b0a0ff974915a7fbbb08e24c4df3147
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::{ActorType, ApubObject};
 use lemmy_db_schema::traits::ApubActor;
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 pub mod post_or_comment;
@@ -24,8 +28,11 @@ pub async fn resolve_actor_identifier<Actor, DbActor>(
   context: &LemmyContext,
 ) -> Result<DbActor, LemmyError>
 where
-  Actor:
-    ApubObject<DataType = LemmyContext> + ApubObject<DbType = DbActor> + ActorType + Send + 'static,
+  Actor: ApubObject<DataType = LemmyContext, Error = LemmyError>
+    + ApubObject<DbType = DbActor>
+    + ActorType
+    + Send
+    + 'static,
   for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
 {
@@ -36,7 +43,7 @@ where
       .collect_tuple()
       .expect("invalid query");
     let name = name.to_string();
-    let domain = format!("{}://{}", Settings::get().get_protocol_string(), domain);
+    let domain = format!("{}://{}", context.settings().get_protocol_string(), domain);
     let actor = blocking(context.pool(), move |conn| {
       DbActor::read_from_name_and_domain(conn, &name, &domain)
     })
@@ -59,7 +66,7 @@ where
     let identifier = identifier.to_string();
     Ok(
       blocking(context.pool(), move |conn| {
-        DbActor::read_from_name(conn, &identifier)
+        DbActor::read_from_name(conn, &identifier, false)
       })
       .await??,
     )

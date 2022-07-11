@@ -4,18 +4,16 @@
 
 use crate::{
   activity_lists::SiteInboxActivities,
-  context::WithContext,
-  http::{create_apub_response, payload_to_string, receive_activity, ActivityCommonFields},
-  objects::instance::ApubSite,
+  http::{create_apub_response, receive_lemmy_activity},
+  objects::{instance::ApubSite, person::ApubPerson},
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use actix_web::{web, web::Payload, HttpRequest, HttpResponse};
+use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
+use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::traits::ApubObject;
 use lemmy_db_schema::source::site::Site;
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
-use tracing::info;
 use url::Url;
 
 pub(crate) async fn get_apub_site_http(
@@ -30,10 +28,12 @@ pub(crate) async fn get_apub_site_http(
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) async fn get_apub_site_outbox() -> Result<HttpResponse, LemmyError> {
+pub(crate) async fn get_apub_site_outbox(
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, LemmyError> {
   let outbox_id = format!(
     "{}/site_outbox",
-    Settings::get().get_protocol_and_hostname()
+    context.settings().get_protocol_and_hostname()
   );
   let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?).await?;
   Ok(create_apub_response(&outbox))
@@ -42,12 +42,9 @@ pub(crate) async fn get_apub_site_outbox() -> Result<HttpResponse, LemmyError> {
 #[tracing::instrument(skip_all)]
 pub async fn get_apub_site_inbox(
   request: HttpRequest,
-  payload: Payload,
+  payload: String,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let unparsed = payload_to_string(payload).await?;
-  info!("Received site inbox activity {}", unparsed);
-  let activity_data: ActivityCommonFields = serde_json::from_str(&unparsed)?;
-  let activity = serde_json::from_str::<WithContext<SiteInboxActivities>>(&unparsed)?;
-  receive_activity(request, activity.inner(), activity_data, &context).await
+  receive_lemmy_activity::<WithContext<SiteInboxActivities>, ApubPerson>(request, payload, context)
+    .await
 }

@@ -11,7 +11,6 @@ import {
   saveUserSettings,
   getSite,
   createPost,
-  gamma,
   resolveCommunity,
   createComment,
   resolveBetaCommunity,

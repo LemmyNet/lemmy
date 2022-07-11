@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   source::post::{Post, PostLike, PostLikeForm},
   traits::{Crud, Likeable},
 };
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]

@@ -361,7 +361,7 @@ table! {
         stickied -> Bool,
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
-        embed_html -> Nullable<Text>,
+        embed_video_url -> Nullable<Text>,
         thumbnail_url -> Nullable<Text>,
         ap_id -> Varchar,
         local -> Bool,
@@ -582,12 +582,50 @@ table! {
 }
 
 table! {
+  admin_purge_comment (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    post_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
+  }
+}
+
+table! {
   email_verification (id) {
     id -> Int4,
     local_user_id -> Int4,
     email -> Text,
     verification_token -> Varchar,
     published -> Timestamp,
+  }
+}
+
+table! {
+  admin_purge_community (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
+  }
+}
+
+table! {
+  admin_purge_person (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
+  }
+}
+
+table! {
+  admin_purge_post (id) {
+    id -> Int4,
+    admin_person_id -> Int4,
+    community_id -> Int4,
+    reason -> Nullable<Text>,
+    when_ -> Timestamp,
   }
 }
 
@@ -679,6 +717,13 @@ joinable!(registration_application -> person (admin_id));
 joinable!(mod_hide_community -> person (mod_person_id));
 joinable!(mod_hide_community -> community (community_id));
 
+joinable!(admin_purge_comment -> person (admin_person_id));
+joinable!(admin_purge_comment -> post (post_id));
+joinable!(admin_purge_community -> person (admin_person_id));
+joinable!(admin_purge_person -> person (admin_person_id));
+joinable!(admin_purge_post -> community (community_id));
+joinable!(admin_purge_post -> person (admin_person_id));
+
 allow_tables_to_appear_in_same_query!(
   activity,
   comment,
@@ -722,6 +767,10 @@ allow_tables_to_appear_in_same_query!(
   comment_alias_1,
   person_alias_1,
   person_alias_2,
+  admin_purge_comment,
+  admin_purge_community,
+  admin_purge_person,
+  admin_purge_post,
   email_verification,
   registration_application
 );

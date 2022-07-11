@@ -12,17 +12,17 @@ use crate::{
     collections::group_outbox::GroupOutbox,
   },
 };
+use activitypub_federation::{
+  data::Data,
+  traits::{ActivityHandler, ApubObject},
+  utils::verify_domains_match,
+};
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use futures::future::join_all;
 use lemmy_api_common::utils::blocking;
-use lemmy_apub_lib::{
-  data::Data,
-  traits::{ActivityHandler, ApubObject},
-  verify::verify_domains_match,
-};
 use lemmy_db_schema::source::post::Post;
-use lemmy_utils::LemmyError;
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -31,8 +31,8 @@ pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 #[async_trait::async_trait(?Send)]
 impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
-  type TombstoneType = ();
   type ApubType = GroupOutbox;
+  type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -80,11 +80,6 @@ impl ApubObject for ApubCommunityOutbox {
       total_items: ordered_items.len() as i32,
       ordered_items,
     })
-  }
-
-  fn to_tombstone(&self) -> Result<Self::TombstoneType, LemmyError> {
-    // no tombstone for this, there is only a tombstone for the community
-    unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]

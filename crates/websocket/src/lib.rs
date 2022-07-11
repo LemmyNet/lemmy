@@ -7,9 +7,11 @@ extern crate strum_macros;
 
 use crate::chat_server::ChatServer;
 use actix::Addr;
-use background_jobs::QueueHandle;
 use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
-use lemmy_utils::{settings::structs::Settings, LemmyError};
+use lemmy_utils::{
+  error::LemmyError,
+  settings::{structs::Settings, SETTINGS},
+};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 
@@ -23,7 +25,6 @@ pub struct LemmyContext {
   pool: DbPool,
   chat_server: Addr<ChatServer>,
   client: ClientWithMiddleware,
-  activity_queue: QueueHandle,
   settings: Settings,
   secret: Secret,
 }
@@ -33,7 +34,6 @@ impl LemmyContext {
     pool: DbPool,
     chat_server: Addr<ChatServer>,
     client: ClientWithMiddleware,
-    activity_queue: QueueHandle,
     settings: Settings,
     secret: Secret,
   ) -> LemmyContext {
@@ -41,7 +41,6 @@ impl LemmyContext {
       pool,
       chat_server,
       client,
-      activity_queue,
       settings,
       secret,
     }
@@ -55,12 +54,8 @@ impl LemmyContext {
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client
   }
-  pub fn activity_queue(&self) -> &QueueHandle {
-    &self.activity_queue
-  }
-  pub fn settings(&self) -> Settings {
-    // TODO hacky solution to be able to hotload the settings.
-    Settings::get()
+  pub fn settings(&self) -> &'static Settings {
+    &SETTINGS
   }
   pub fn secret(&self) -> &Secret {
     &self.secret
@@ -73,7 +68,6 @@ impl Clone for LemmyContext {
       pool: self.pool.clone(),
       chat_server: self.chat_server.clone(),
       client: self.client.clone(),
-      activity_queue: self.activity_queue.clone(),
       settings: self.settings.clone(),
       secret: self.secret.clone(),
     }
@@ -145,8 +139,6 @@ pub enum UserOperation {
   PasswordChange,
   MarkPrivateMessageAsRead,
   UserJoin,
-  GetSiteConfig,
-  SaveSiteConfig,
   PostJoin,
   CommunityJoin,
   ModJoin,
@@ -154,6 +146,10 @@ pub enum UserOperation {
   GetSiteMetadata,
   BlockCommunity,
   BlockPerson,
+  PurgePerson,
+  PurgeCommunity,
+  PurgePost,
+  PurgeComment,
 }
 
 #[derive(EnumString, Display, Debug, Clone)]

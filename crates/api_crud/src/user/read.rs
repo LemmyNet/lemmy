@@ -12,7 +12,7 @@ use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson}
 use lemmy_db_schema::source::person::Person;
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
-use lemmy_utils::{ConnectionId, LemmyError};
+use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -26,6 +26,12 @@ impl PerformCrud for GetPersonDetails {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let data: &GetPersonDetails = self;
+
+    // Check to make sure a person name or an id is given
+    if data.username.is_none() && data.person_id.is_none() {
+      return Err(LemmyError::from_message("no_id_given"));
+    }
+
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
