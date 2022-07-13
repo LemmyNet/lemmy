@@ -514,14 +514,14 @@ impl ViewToVec for CommentView {
   type DbTuple = CommentViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        comment: a.0.to_owned(),
-        creator: a.1.to_owned(),
-        recipient: a.3.to_owned(),
-        post: a.4.to_owned(),
-        community: a.5.to_owned(),
-        counts: a.6.to_owned(),
+        comment: a.0,
+        creator: a.1,
+        recipient: a.3,
+        post: a.4,
+        community: a.5,
+        counts: a.6,
         creator_banned_from_community: a.7.is_some(),
         subscribed: CommunityFollower::to_subscribed_type(&a.8),
         saved: a.9.is_some(),

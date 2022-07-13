@@ -130,11 +130,11 @@ impl ViewToVec for PrivateMessageView {
   type DbTuple = PrivateMessageViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        private_message: a.0.to_owned(),
-        creator: a.1.to_owned(),
-        recipient: a.2.to_owned(),
+        private_message: a.0,
+        creator: a.1,
+        recipient: a.2,
       })
       .collect::<Vec<Self>>()
   }

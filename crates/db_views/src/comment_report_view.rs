@@ -286,18 +286,18 @@ impl ViewToVec for CommentReportView {
   type DbTuple = CommentReportViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        comment_report: a.0.to_owned(),
-        comment: a.1.to_owned(),
-        post: a.2.to_owned(),
-        community: a.3.to_owned(),
-        creator: a.4.to_owned(),
-        comment_creator: a.5.to_owned(),
-        counts: a.6.to_owned(),
+        comment_report: a.0,
+        comment: a.1,
+        post: a.2,
+        community: a.3,
+        creator: a.4,
+        comment_creator: a.5,
+        counts: a.6,
         creator_banned_from_community: a.7.is_some(),
         my_vote: a.8,
-        resolver: a.9.to_owned(),
+        resolver: a.9,
       })
       .collect::<Vec<Self>>()
   }

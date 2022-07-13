@@ -71,14 +71,14 @@ impl ViewToVec for ModRemoveCommentView {
   type DbTuple = ModRemoveCommentViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        mod_remove_comment: a.0.to_owned(),
-        moderator: a.1.to_owned(),
-        comment: a.2.to_owned(),
-        commenter: a.3.to_owned(),
-        post: a.4.to_owned(),
-        community: a.5.to_owned(),
+        mod_remove_comment: a.0,
+        moderator: a.1,
+        comment: a.2,
+        commenter: a.3,
+        post: a.4,
+        community: a.5,
       })
       .collect::<Vec<Self>>()
   }
