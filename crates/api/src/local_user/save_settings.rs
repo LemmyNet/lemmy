@@ -152,7 +152,6 @@ impl Perform for SaveUserSettings {
       send_notifications_to_email: data.send_notifications_to_email,
       email_verified: None,
       accepted_application: None,
-      discussion_languages,
     };
 
     let local_user_res = blocking(context.pool(), move |conn| {

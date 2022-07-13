@@ -24,6 +24,7 @@ use lemmy_db_schema::{
   },
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    language::Language,
     person::{Person, PersonSafe},
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
@@ -46,6 +47,7 @@ type PostViewTuple = (
   Option<PostRead>,
   Option<PersonBlock>,
   Option<i16>,
+  Language,
 );
 
 impl PostView {
@@ -257,10 +259,7 @@ impl<'a> PostQueryBuilder<'a> {
       self.show_nsfw = Some(user.local_user.show_nsfw);
       self.show_bot_accounts = Some(user.local_user.show_bot_accounts);
       self.show_read_posts = Some(user.local_user.show_read_posts);
-      // if user has no languages set, then dont filter by language
-      if !user.local_user.discussion_languages.is_empty() {
-        self.languages = Some(user.local_user.discussion_languages.clone());
-      }
+      //TODO: add local user discussion languages (need to store them in LocalUserView?)
     }
     self
   }

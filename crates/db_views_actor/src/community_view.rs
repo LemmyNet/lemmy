@@ -258,10 +258,10 @@ impl ViewToVec for CommunityView {
   type DbTuple = CommunityViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        community: a.0.to_owned(),
-        counts: a.1.to_owned(),
+        community: a.0,
+        counts: a.1,
         subscribed: CommunityFollower::to_subscribed_type(&a.2),
         blocked: a.3.is_some(),
       })

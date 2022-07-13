@@ -162,7 +162,6 @@ table! {
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
-        discussion_languages -> Array<Int4>,
     }
 }
 

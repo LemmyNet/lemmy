@@ -3,6 +3,8 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::CommunitySafe,
+    language::Language,
+    local_user::LocalUserSettings,
     person::{PersonSafe, PersonSafeAlias1},
     person_mention::PersonMention,
     post::Post,
@@ -69,4 +71,10 @@ pub struct PersonMentionView {
 pub struct PersonViewSafe {
   pub person: PersonSafe,
   pub counts: PersonAggregates,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LocalUserDiscussionLanguageView {
+  pub local_user: LocalUserSettings,
+  pub language: Language,
 }

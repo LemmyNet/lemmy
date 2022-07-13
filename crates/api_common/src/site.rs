@@ -174,6 +174,7 @@ pub struct MyUserInfo {
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,
   pub person_blocks: Vec<PersonBlockView>,
+  pub discussion_languages: Vec<Language>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

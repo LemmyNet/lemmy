@@ -9,7 +9,7 @@ pub struct Login {
   pub password: Sensitive<String>,
 }
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId},
+  newtypes::{CommunityId, LanguageId, PersonId, PersonMentionId, PrivateMessageId},
   SortType,
 };
 
@@ -63,7 +63,7 @@ pub struct SaveUserSettings {
   pub show_bot_accounts: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
-  pub discussion_languages: Option<Vec<String>>,
+  pub discussion_languages: Option<Vec<LanguageId>>,
   pub auth: Sensitive<String>,
 }
 
