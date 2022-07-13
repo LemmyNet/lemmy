@@ -118,7 +118,7 @@ impl PerformCrud for Register {
       name: data.username.to_owned(),
       actor_id: Some(actor_id.clone()),
       private_key: Some(Some(actor_keypair.private_key)),
-      public_key: actor_keypair.public_key,
+      public_key: Some(actor_keypair.public_key),
       inbox_url: Some(generate_inbox_url(&actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&actor_id)?)),
       admin: Some(no_admins),

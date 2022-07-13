@@ -172,7 +172,7 @@ pub struct PersonForm {
   pub bio: Option<Option<String>>,
   pub local: Option<bool>,
   pub private_key: Option<Option<String>>,
-  pub public_key: String,
+  pub public_key: Option<String>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
   pub banner: Option<Option<DbUrl>>,
   pub deleted: Option<bool>,

@@ -59,7 +59,7 @@ reqwest = { version = "0.11.10", features = ["json"] }
 reqwest-middleware = "0.1.5"
 reqwest-tracing = "0.2.1"
 clokwerk = "0.3.5"
-doku = "0.11.0"
+doku = { git = "https://github.com/anixe/doku", features = ["url-2"] }
 parking_lot = "0.12.0"
 reqwest-retry = "0.1.5"
 console-subscriber = { version = "0.1.3", optional = true }

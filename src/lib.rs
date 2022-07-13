@@ -11,8 +11,9 @@ use tracing::subscriber::set_global_default;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
+use url::Url;
 
-pub fn init_logging(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
+pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
   LogTracer::init()?;
 
   let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
@@ -30,7 +31,7 @@ pub fn init_logging(opentelemetry_url: Option<&str>) -> Result<(), LemmyError> {
 
   if let Some(_url) = opentelemetry_url {
     #[cfg(feature = "console")]
-    crate::telemetry::init_tracing(_url, subscriber, targets)?;
+    telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
     #[cfg(not(feature = "console"))]
     tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
   } else {

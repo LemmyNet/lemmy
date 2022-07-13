@@ -97,6 +97,7 @@ mod tests {
 
     let creator_form = PersonForm {
       name: "activity_creator_pm".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 

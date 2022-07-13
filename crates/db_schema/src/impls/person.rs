@@ -343,7 +343,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "holly".into(),
-      public_key: "nada".to_owned(),
+      public_key: Some("nada".to_owned()),
       ..PersonForm::default()
     };
 

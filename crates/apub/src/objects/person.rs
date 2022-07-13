@@ -156,7 +156,7 @@ impl ApubObject for ApubPerson {
       admin: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
-      public_key: person.public_key.public_key_pem,
+      public_key: Some(person.public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(person.inbox.into()),
       shared_inbox_url: Some(person.endpoints.map(|e| e.shared_inbox.into())),

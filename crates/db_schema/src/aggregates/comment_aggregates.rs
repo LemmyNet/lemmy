@@ -35,6 +35,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "thommy_comment_agg".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -42,6 +43,7 @@ mod tests {
 
     let another_person = PersonForm {
       name: "jerry_comment_agg".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -50,6 +52,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "TIL_comment_agg".into(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 

@@ -169,6 +169,7 @@ mod tests {
 
     let old_mod = PersonForm {
       name: "holly".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
     let old_mod = Person::create(&context.pool().get().unwrap(), &old_mod).unwrap();

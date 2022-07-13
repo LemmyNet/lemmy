@@ -187,6 +187,7 @@ mod tests {
     let timmy_person_form = PersonForm {
       name: "timmy_rav".into(),
       admin: Some(true),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -202,6 +203,7 @@ mod tests {
 
     let sara_person_form = PersonForm {
       name: "sara_rav".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -228,6 +230,7 @@ mod tests {
 
     let jess_person_form = PersonForm {
       name: "jess_rav".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -272,7 +275,6 @@ mod tests {
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
-        discussion_languages: inserted_sara_local_user.discussion_languages,
       },
       creator: PersonSafe {
         id: inserted_sara_person.id,
