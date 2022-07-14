@@ -17,7 +17,7 @@ pub struct Settings {
   pub federation: FederationConfig,
   /// Pictrs image server configuration.
   #[default(Some(Default::default()))]
-  pub(crate) pictrs_config: Option<PictrsConfig>,
+  pub(crate) pictrs: Option<PictrsConfig>,
   #[default(Default::default())]
   pub captcha: CaptchaConfig,
   /// Email sending configuration. All options except login/password are mandatory
@@ -61,7 +61,7 @@ pub struct Settings {
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
   #[default(Url::parse("http://pictrs:8080").expect("parse pictrs url"))]
-  #[doku(example = "Url::parse(\"http://pictrs:8080\").unwrap()")]
+  #[doku(example = "http://pictrs:8080")]
   pub url: Url,
 
   /// Set a custom pictrs API key. ( Required for deleting images )

@@ -101,7 +101,7 @@ impl Settings {
 
   pub fn pictrs_config(&self) -> Result<PictrsConfig, LemmyError> {
     self
-      .pictrs_config
+      .pictrs
       .to_owned()
       .ok_or_else(|| anyhow!("images_disabled").into())
   }
