@@ -2,6 +2,7 @@ use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, CommunityAggregates, PersonAggregates},
   source::{
     comment::Comment,
+    comment_reply::CommentReply,
     community::CommunitySafe,
     person::{PersonSafe, PersonSafeAlias1},
     person_mention::PersonMention,
@@ -52,6 +53,22 @@ pub struct PersonBlockView {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
+  pub comment: Comment,
+  pub creator: PersonSafe,
+  pub post: Post,
+  pub community: CommunitySafe,
+  pub recipient: PersonSafeAlias1,
+  pub counts: CommentAggregates,
+  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
+  pub subscribed: SubscribedType,          // Left join to CommunityFollower
+  pub saved: bool,                         // Left join to CommentSaved
+  pub creator_blocked: bool,               // Left join to PersonBlock
+  pub my_vote: Option<i16>,                // Left join to CommentLike
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct CommentReplyView {
+  pub comment_reply: CommentReply,
   pub comment: Comment,
   pub creator: PersonSafe,
   pub post: Post,

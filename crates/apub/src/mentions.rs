@@ -104,7 +104,7 @@ async fn get_comment_parent_creator(
   pool: &DbPool,
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
-  let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
+  let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {
     let parent_comment =
       blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
     parent_comment.creator_id

@@ -71,17 +71,23 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let mut inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    inserted_comment = Comment::update_ltree_path(&conn, inserted_comment.id, None).unwrap();
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      parent_id: Some(inserted_comment.id),
       ..CommentForm::default()
     };
 
-    let _inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    Comment::update_ltree_path(
+      &conn,
+      inserted_child_comment.id,
+      Some(inserted_comment.to_owned()),
+    )
+    .unwrap();
 
     let comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,

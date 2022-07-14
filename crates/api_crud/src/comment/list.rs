@@ -5,7 +5,10 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
+use lemmy_db_schema::{
+  source::{comment::Comment, community::Community},
+  traits::{Crud, DeleteableOrRemoveable},
+};
 use lemmy_db_views::comment_view::CommentQueryBuilder;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -46,6 +49,21 @@ impl PerformCrud for GetComments {
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
+    let parent_id = data.parent_id;
+
+    // If a parent_id is given, fetch the comment to get the path
+    // let parent_path = parent_id.map(|id| blocking(context.pool(), move |conn| Comment::read(conn, id)).await??);
+    let parent_path = if let Some(parent_id) = parent_id {
+      Some(
+        blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
+          .await??
+          .path,
+      )
+    } else {
+      None
+    };
+
+    let post_id = data.post_id;
     let mut comments = blocking(context.pool(), move |conn| {
       CommentQueryBuilder::create(conn)
         .listing_type(listing_type)
@@ -53,6 +71,8 @@ impl PerformCrud for GetComments {
         .saved_only(saved_only)
         .community_id(community_id)
         .community_actor_id(community_actor_id)
+        .parent_path(parent_path)
+        .post_id(post_id)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
         .page(page)

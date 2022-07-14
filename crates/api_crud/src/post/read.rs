@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read},
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
-use lemmy_db_views::{comment_view::CommentQueryBuilder, structs::PostView};
+use lemmy_db_views::structs::PostView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::GetPostUsersOnline, LemmyContext};
@@ -27,9 +27,6 @@ impl PerformCrud for GetPost {
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let show_bot_accounts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_bot_accounts);
     let person_id = local_user_view.map(|u| u.person.id);
 
     let id = data.id;
@@ -43,17 +40,6 @@ impl PerformCrud for GetPost {
     if let Some(person_id) = person_id {
       mark_post_as_read(person_id, id, context.pool()).await?;
     }
-
-    let id = data.id;
-    let mut comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
-        .post_id(id)
-        .limit(9999)
-        .list()
-    })
-    .await??;
 
     // Necessary for the sidebar
     let community_id = post_view.community.id;
@@ -69,12 +55,6 @@ impl PerformCrud for GetPost {
         post_view.post = post_view.post.blank_out_deleted_or_removed_info();
       }
 
-      for cv in comments
-        .iter_mut()
-        .filter(|cv| cv.comment.deleted || cv.comment.removed)
-      {
-        cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
-      }
       if community_view.community.deleted || community_view.community.removed {
         community_view.community = community_view.community.blank_out_deleted_or_removed_info();
       }
@@ -95,7 +75,6 @@ impl PerformCrud for GetPost {
     Ok(GetPostResponse {
       post_view,
       community_view,
-      comments,
       moderators,
       online,
     })

@@ -4,8 +4,8 @@ use lemmy_api_common::{
   person::{GetUnreadCount, GetUnreadCountResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_views::structs::{CommentView, PrivateMessageView};
-use lemmy_db_views_actor::structs::PersonMentionView;
+use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views_actor::structs::{CommentReplyView, PersonMentionView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -26,7 +26,7 @@ impl Perform for GetUnreadCount {
     let person_id = local_user_view.person.id;
 
     let replies = blocking(context.pool(), move |conn| {
-      CommentView::get_unread_replies(conn, person_id)
+      CommentReplyView::get_unread_replies(conn, person_id)
     })
     .await??;
 

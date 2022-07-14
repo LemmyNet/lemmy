@@ -11,13 +11,13 @@ use lemmy_db_schema::{
   SortType,
 };
 use lemmy_db_views::{
-  comment_view::CommentQueryBuilder,
   post_view::PostQueryBuilder,
-  structs::{CommentView, PostView, SiteView},
+  structs::{PostView, SiteView},
 };
 use lemmy_db_views_actor::{
+  comment_reply_view::CommentReplyQueryBuilder,
   person_mention_view::PersonMentionQueryBuilder,
-  structs::PersonMentionView,
+  structs::{CommentReplyView, PersonMentionView},
 };
 use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
 use lemmy_websocket::LemmyContext;
@@ -287,7 +287,7 @@ fn get_feed_inbox(
 
   let sort = SortType::New;
 
-  let replies = CommentQueryBuilder::create(conn)
+  let replies = CommentReplyQueryBuilder::create(conn)
     .recipient_id(person_id)
     .my_person_id(person_id)
     .show_bot_accounts(show_bot_accounts)
@@ -298,6 +298,7 @@ fn get_feed_inbox(
   let mentions = PersonMentionQueryBuilder::create(conn)
     .recipient_id(person_id)
     .my_person_id(person_id)
+    .show_bot_accounts(show_bot_accounts)
     .sort(sort)
     .limit(RSS_FETCH_LIMIT)
     .list()?;
@@ -320,7 +321,7 @@ fn get_feed_inbox(
 
 #[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
-  replies: Vec<CommentView>,
+  replies: Vec<CommentReplyView>,
   mentions: Vec<PersonMentionView>,
   protocol_and_hostname: &str,
 ) -> Result<Vec<Item>, LemmyError> {

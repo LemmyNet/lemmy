@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use lemmy_db_views::structs::{CommentView, PostReportView, PostView};
+use lemmy_db_views::structs::{PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -35,7 +35,6 @@ pub struct GetPost {
 pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
-  pub comments: Vec<CommentView>,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
 }

@@ -1,6 +1,11 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_views::structs::{CommentView, PostView, PrivateMessageView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonMentionView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{
+  CommentReplyView,
+  CommunityModeratorView,
+  PersonMentionView,
+  PersonViewSafe,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -105,7 +110,7 @@ pub struct GetPersonDetailsResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetRepliesResponse {
-  pub replies: Vec<CommentView>,
+  pub replies: Vec<CommentReplyView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -34,7 +34,6 @@ pub struct CommentReportView {
 pub struct CommentView {
   pub comment: Comment,
   pub creator: PersonSafe,
-  pub recipient: Option<PersonSafeAlias1>, // Left joins to comment and person
   pub post: Post,
   pub community: CommunitySafe,
   pub counts: CommentAggregates,

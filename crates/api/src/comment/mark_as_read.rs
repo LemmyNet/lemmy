@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, MarkCommentAsRead},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_db_schema::source::comment_reply::CommentReply;
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -24,20 +24,21 @@ impl Perform for MarkCommentAsRead {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
+    let comment_reply = blocking(context.pool(), move |conn| {
+      CommentReply::read_by_comment(conn, comment_id)
     })
     .await??;
+    let recipient_id = comment_reply.recipient_id;
 
     // Verify that only the recipient can mark as read
-    if local_user_view.person.id != orig_comment.get_recipient_id() {
+    if local_user_view.person.id != recipient_id {
       return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
     // Do the mark as read
     let read = data.read;
     blocking(context.pool(), move |conn| {
-      Comment::update_read(conn, comment_id, read)
+      CommentReply::update_read(conn, comment_reply.id, read)
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;

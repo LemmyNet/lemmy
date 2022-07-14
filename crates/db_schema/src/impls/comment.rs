@@ -12,6 +12,7 @@ use crate::{
   utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
+use diesel_ltree::Ltree;
 use url::Url;
 
 impl Comment {
@@ -24,6 +25,29 @@ impl Comment {
 
     diesel::update(comment.find(comment_id))
       .set(ap_id.eq(apub_id))
+      .get_result::<Self>(conn)
+  }
+
+  /// You must run this after every comment insert
+  pub fn update_ltree_path(
+    conn: &PgConnection,
+    comment_id: CommentId,
+    parent: Option<Comment>,
+  ) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+
+    let full_path = if let Some(parent) = parent {
+      // The previous parent will already have 0 in it
+      format!("{}.{}", parent.path.0, comment_id)
+    } else {
+      // '0' is always the first path, append to that
+      format!("{}.{}", 0, comment_id)
+    };
+
+    let ltree = Ltree(full_path);
+
+    diesel::update(comment.find(comment_id))
+      .set(path.eq(ltree))
       .get_result::<Self>(conn)
   }
 
@@ -74,17 +98,6 @@ impl Comment {
       .get_results::<Self>(conn)
   }
 
-  pub fn update_read(
-    conn: &PgConnection,
-    comment_id: CommentId,
-    new_read: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set(read.eq(new_read))
-      .get_result::<Self>(conn)
-  }
-
   pub fn update_content(
     conn: &PgConnection,
     comment_id: CommentId,
@@ -115,6 +128,19 @@ impl Comment {
         .ok()
         .map(Into::into),
     )
+  }
+
+  pub fn parent_comment_id(&self) -> Option<CommentId> {
+    let mut ltree_split: Vec<&str> = self.path.0.split('.').collect();
+    ltree_split.remove(0); // The first is always 0
+    if ltree_split.len() > 1 {
+      ltree_split[ltree_split.len() - 2]
+        .parse::<i32>()
+        .map(CommentId)
+        .ok() // TODO test
+    } else {
+      None
+    }
   }
 }
 
@@ -218,6 +244,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::establish_unpooled_connection,
   };
+  use diesel_ltree::Ltree;
   use serial_test::serial;
 
   #[test]
@@ -256,7 +283,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let mut inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    inserted_comment = Comment::update_ltree_path(&conn, inserted_comment.id, None).unwrap();
 
     let expected_comment = Comment {
       id: inserted_comment.id,
@@ -265,8 +293,7 @@ mod tests {
       post_id: inserted_post.id,
       removed: false,
       deleted: false,
-      read: false,
-      parent_id: None,
+      path: Ltree(format!("0.{}", inserted_comment.id)),
       published: inserted_comment.published,
       updated: None,
       ap_id: inserted_comment.ap_id.to_owned(),
@@ -277,11 +304,17 @@ mod tests {
       content: "A child comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      parent_id: Some(inserted_comment.id),
+      // path: Some(text2ltree(inserted_comment.id),
       ..CommentForm::default()
     };
 
-    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let mut inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    inserted_child_comment = Comment::update_ltree_path(
+      &conn,
+      inserted_child_comment.id,
+      Some(inserted_comment.to_owned()),
+    )
+    .unwrap();
 
     // Comment Like
     let comment_like_form = CommentLikeForm {
@@ -333,8 +366,8 @@ mod tests {
     assert_eq!(expected_comment_like, inserted_comment_like);
     assert_eq!(expected_comment_saved, inserted_comment_saved);
     assert_eq!(
-      expected_comment.id,
-      inserted_child_comment.parent_id.unwrap()
+      format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
+      inserted_child_comment.path.0,
     );
     assert_eq!(1, like_removed);
     assert_eq!(1, saved_removed);

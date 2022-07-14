@@ -81,6 +81,8 @@ pub struct GetComments {
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
+  pub post_id: Option<PostId>,
+  pub parent_id: Option<CommentId>,
   pub saved_only: Option<bool>,
   pub auth: Option<Sensitive<String>>,
 }
