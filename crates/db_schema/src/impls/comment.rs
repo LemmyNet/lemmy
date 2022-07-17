@@ -28,6 +28,11 @@ impl Comment {
       .get_result::<Self>(conn)
   }
 
+  // The child_count query for reference:
+  // select c.id, c.path, count(c2.id) as child_count from comment c
+  // left join comment c2 on c2.path <@ c.path and c2.path != c.path
+  // group by c.id
+
   /// You must run this after every comment insert
   pub fn update_ltree_path(
     conn: &PgConnection,
@@ -36,7 +41,7 @@ impl Comment {
   ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
 
-    let full_path = if let Some(parent) = parent {
+    let full_path = if let Some(parent) = &parent {
       // The previous parent will already have 0 in it
       format!("{}.{}", parent.path.0, comment_id)
     } else {
@@ -46,9 +51,33 @@ impl Comment {
 
     let ltree = Ltree(full_path);
 
-    diesel::update(comment.find(comment_id))
+    let res = diesel::update(comment.find(comment_id))
       .set(path.eq(ltree))
-      .get_result::<Self>(conn)
+      .get_result::<Self>(conn);
+
+    // Update the child count for the parent comment_aggregates
+    // You could do this with a trigger, but since you have to do this manually anyway,
+    // you can just have it here
+    if let Some(parent) = &parent {
+      let update_child_count = format!(
+        "
+update comment_aggregates ca set child_count = c.child_count
+from (
+  select c.id, c.path, count(c2.id) as child_count from comment c
+  left join comment c2 on c2.path <@ c.path and c2.path != c.path
+  where c.id = {}
+  group by c.id
+) as c
+where ca.comment_id = c.id",
+        parent.id
+      );
+
+      sql_query(update_child_count)
+        .execute(conn)
+        .expect("update comment_parent child_count");
+    }
+
+    res
   }
 
   pub fn permadelete_for_creator(

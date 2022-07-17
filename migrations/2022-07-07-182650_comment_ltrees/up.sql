@@ -34,6 +34,7 @@ alter table comment drop column read;
 create extension ltree;
 
 alter table comment add column path ltree not null default '0';
+alter table comment_aggregates add column child_count integer not null default 0;
 
 -- The ltree path column should be the comment_id parent paths, separated by dots. 
 -- Stackoverflow: building an ltree from a parent_id hierarchical tree:
@@ -64,6 +65,15 @@ update comment c
 set path = ct.ltree_path
 from comment_temp ct
 where c.id = ct.id;
+
+-- Update the child counts
+update comment_aggregates ca set child_count = c2.child_count
+from (
+  select c.id, c.path, count(c2.id) as child_count from comment c
+  left join comment c2 on c2.path <@ c.path and c2.path != c.path
+  group by c.id
+) as c2
+where ca.comment_id = c2.id;
 
 -- Create the index
 create index idx_path_gist on comment using gist (path);

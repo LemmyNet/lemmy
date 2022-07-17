@@ -9,6 +9,7 @@ create index idx_comment_parent on comment (parent_id);
 update comment set parent_id = cast(ltree2text(nullif(subpath(nullif(subpath(path, 0, -1), '0'), -1), '0')) as INTEGER);
 
 alter table comment drop column path;
+alter table comment_aggregates drop column child_count;
 
 drop extension ltree;
 
