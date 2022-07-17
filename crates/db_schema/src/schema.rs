@@ -37,6 +37,7 @@ table! {
         upvotes -> Int8,
         downvotes -> Int8,
         published -> Timestamp,
+        child_count ->  Int4,
     }
 }
 

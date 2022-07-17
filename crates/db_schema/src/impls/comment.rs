@@ -59,22 +59,24 @@ impl Comment {
     // You could do this with a trigger, but since you have to do this manually anyway,
     // you can just have it here
     if let Some(parent) = &parent {
-      let update_child_count = format!(
+      // You have to update counts for all parents, not just the immediate one
+      // TODO if the performance of this is terrible, it might be better to do this as part of a
+      // scheduled query... although the counts would often be wrong.
+      let top_parent = format!("0.{}", parent.path.0.split('.').collect::<Vec<&str>>()[1]);
+      let update_child_count_stmt = format!(
         "
 update comment_aggregates ca set child_count = c.child_count
 from (
   select c.id, c.path, count(c2.id) as child_count from comment c
-  left join comment c2 on c2.path <@ c.path and c2.path != c.path
-  where c.id = {}
+  join comment c2 on c2.path <@ c.path and c2.path != c.path
+  and c.path <@ '{}'
   group by c.id
 ) as c
 where ca.comment_id = c.id",
-        parent.id
+        top_parent
       );
 
-      sql_query(update_child_count)
-        .execute(conn)
-        .expect("update comment_parent child_count");
+      sql_query(update_child_count_stmt).execute(conn)?;
     }
 
     res

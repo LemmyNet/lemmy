@@ -672,6 +672,7 @@ mod tests {
         upvotes: 1,
         downvotes: 0,
         published: agg.published,
+        child_count: 4,
       },
     };
 

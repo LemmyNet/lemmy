@@ -468,6 +468,7 @@ mod tests {
         upvotes: 0,
         downvotes: 0,
         published: agg.published,
+        child_count: 0,
       },
       my_vote: None,
       resolver: None,
