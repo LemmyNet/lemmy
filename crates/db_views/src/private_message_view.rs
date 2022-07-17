@@ -107,7 +107,7 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
       )
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .filter(private_message::deleted.eq(false))

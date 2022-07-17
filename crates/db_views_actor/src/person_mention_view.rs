@@ -322,7 +322,7 @@ impl<'a> PersonMentionQueryBuilder<'a> {
         .order_by(comment_aggregates::score.desc()),
     };
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     let res = query
       .limit(limit)

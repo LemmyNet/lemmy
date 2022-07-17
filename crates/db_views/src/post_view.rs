@@ -1,5 +1,10 @@
 use crate::structs::PostView;
-use diesel::{dsl::*, pg::Pg, result::Error, *};
+use diesel::{
+  dsl::*,
+  pg::Pg,
+  result::{Error, Error::QueryBuilderError},
+  *,
+};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
@@ -358,19 +363,23 @@ impl<'a> PostQueryBuilder<'a> {
           )
         }
         ListingType::Community => {
-          if let Some(community_id) = self.community_id {
-            query = query
-              .filter(post::community_id.eq(community_id))
-              .then_order_by(post_aggregates::stickied.desc());
+          if self.community_actor_id.is_none() && self.community_id.is_none() {
+            return Err(QueryBuilderError("No community actor or id given".into()));
+          } else {
+            if let Some(community_id) = self.community_id {
+              query = query
+                .filter(post::community_id.eq(community_id))
+                .then_order_by(post_aggregates::stickied.desc());
+            }
+
+            if let Some(community_actor_id) = self.community_actor_id {
+              query = query
+                .filter(community::actor_id.eq(community_actor_id))
+                .then_order_by(post_aggregates::stickied.desc());
+            }
           }
         }
       }
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
-      query = query
-        .filter(community::actor_id.eq(community_actor_id))
-        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -455,7 +464,7 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(post_aggregates::published.desc()),
     };
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .limit(limit)
@@ -526,6 +535,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: person_name.to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -534,6 +544,7 @@ mod tests {
     let new_bot = PersonForm {
       name: person_name.to_owned(),
       bot_account: Some(true),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -542,6 +553,7 @@ mod tests {
     let new_community = CommunityForm {
       name: community_name.to_owned(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -550,6 +562,7 @@ mod tests {
     // Test a person block, make sure the post query doesn't include their post
     let blocked_person = PersonForm {
       name: person_name.to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 

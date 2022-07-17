@@ -93,7 +93,7 @@ impl PerformCrud for CreateCommunity {
       nsfw: data.nsfw,
       actor_id: Some(community_actor_id.to_owned()),
       private_key: Some(Some(keypair.private_key)),
-      public_key: keypair.public_key,
+      public_key: Some(keypair.public_key),
       followers_url: Some(generate_followers_url(&community_actor_id)?),
       inbox_url: Some(generate_inbox_url(&community_actor_id)?),
       shared_inbox_url: Some(Some(generate_shared_inbox_url(&community_actor_id)?)),

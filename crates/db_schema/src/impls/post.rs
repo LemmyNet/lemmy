@@ -11,7 +11,7 @@ use crate::{
     PostSavedForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
-  utils::naive_now,
+  utils::{naive_now, FETCH_LIMIT_MAX},
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
 use url::Url;
@@ -54,7 +54,7 @@ impl Post {
       .filter(removed.eq(false))
       .then_order_by(published.desc())
       .then_order_by(stickied.desc())
-      .limit(20)
+      .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
   }
 
@@ -343,6 +343,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "jim".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -351,6 +352,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community_3".to_string(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 

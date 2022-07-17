@@ -27,8 +27,7 @@ pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_l
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
     .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
-    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)))
-    .service(web::resource("/pictrs/internal/purge").route(web::post().to(purge)));
+    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -194,34 +193,6 @@ async fn delete(
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
   }
-
-  let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
-
-  Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
-}
-
-async fn purge(
-  web::Query(params): web::Query<PictrsPurgeParams>,
-  req: HttpRequest,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
-) -> Result<HttpResponse, Error> {
-  let purge_string = match params {
-    PictrsPurgeParams::File(f) => format!("file={}", f),
-    PictrsPurgeParams::Alias(a) => format!("alias={}", a),
-  };
-
-  let pictrs_config = context.settings().pictrs_config()?;
-  let url = format!("{}/internal/purge?{}", pictrs_config.url, &purge_string);
-
-  let mut client_req = adapt_request(&req, &client, url);
-
-  if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string())
-  }
-
-  // Add the API token, X-Api-Token header
-  client_req = client_req.header("x-api-token", pictrs_config.api_key);
 
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 

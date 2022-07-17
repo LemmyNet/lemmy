@@ -22,6 +22,12 @@ impl PerformCrud for GetPersonDetails {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let data: &GetPersonDetails = self;
+
+    // Check to make sure a person name or an id is given
+    if data.username.is_none() && data.person_id.is_none() {
+      return Err(LemmyError::from_message("no_id_given"));
+    }
+
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;

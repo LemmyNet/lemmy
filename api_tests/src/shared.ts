@@ -586,7 +586,6 @@ export async function listPrivateMessages(
   let form: GetPrivateMessages = {
     auth: api.auth,
     unread_only: false,
-    limit: 999,
   };
   return api.client.getPrivateMessages(form);
 }

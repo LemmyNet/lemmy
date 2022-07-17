@@ -29,12 +29,16 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
-use parking_lot::Mutex;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
+use std::{
+  env,
+  sync::{Arc, Mutex},
+  thread,
+  time::Duration,
+};
 use tracing_actix_web::TracingLogger;
 
 embed_migrations!();
@@ -56,7 +60,7 @@ async fn main() -> Result<(), LemmyError> {
 
   let settings = SETTINGS.to_owned();
 
-  init_logging(settings.opentelemetry_url.as_deref())?;
+  init_logging(&settings.opentelemetry_url)?;
 
   // Set up the r2d2 connection pool
   let db_url = match get_database_url_from_env() {

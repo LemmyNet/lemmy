@@ -256,7 +256,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query
       .order_by(comment_report::published.desc())
@@ -321,6 +321,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "timmy_crv".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -328,6 +329,7 @@ mod tests {
 
     let new_person_2 = PersonForm {
       name: "sara_crv".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -336,6 +338,7 @@ mod tests {
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonForm {
       name: "jessica_crv".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -344,6 +347,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community crv".to_string(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 

@@ -71,10 +71,9 @@ pub(crate) mod tests {
     settings::SETTINGS,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
-  use parking_lot::Mutex;
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
-  use std::sync::Arc;
+  use std::sync::{Arc, Mutex};
   use task_local_extensions::Extensions;
 
   struct BlockedMiddleware;
