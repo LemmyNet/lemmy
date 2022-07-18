@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_routes"
-version = "0.16.5"
+version = "0.16.6-rc.1"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -11,13 +11,13 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.5", path = "../utils" }
-lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
-lemmy_db_views = { version = "=0.16.5", path = "../db_views" }
-lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema" }
-lemmy_api_common = { version = "=0.16.5", path = "../api_common" }
-lemmy_apub = { version = "=0.16.5", path = "../apub" }
+lemmy_utils = { version = "=0.16.6-rc.1", path = "../utils" }
+lemmy_websocket = { version = "=0.16.6-rc.1", path = "../websocket" }
+lemmy_db_views = { version = "=0.16.6-rc.1", path = "../db_views" }
+lemmy_db_views_actor = { version = "=0.16.6-rc.1", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.16.6-rc.1", path = "../db_schema" }
+lemmy_api_common = { version = "=0.16.6-rc.1", path = "../api_common" }
+lemmy_apub = { version = "=0.16.6-rc.1", path = "../apub" }
 diesel = "1.4.8"
 actix-web = { version = "4.0.1", default-features = false, features = ["rustls"] }
 anyhow = "1.0.56"
