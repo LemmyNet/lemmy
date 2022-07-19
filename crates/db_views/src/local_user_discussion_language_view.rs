@@ -34,4 +34,11 @@ impl LocalUserDiscussionLanguageView {
         .collect::<Vec<Self>>(),
     )
   }
+
+  pub fn read_languages(
+    conn: &PgConnection,
+    local_user_id: LocalUserId,
+  ) -> Result<Vec<Language>, Error> {
+    Self::read(conn, local_user_id).map(|r| r.into_iter().map(|a| a.language).collect())
+  }
 }

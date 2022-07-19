@@ -4,6 +4,7 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_report::CommentReport,
     community::CommunitySafe,
+    language::Language,
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
@@ -84,6 +85,7 @@ pub struct PostView {
   pub read: bool,                 // Left join to PostRead
   pub creator_blocked: bool,      // Left join to PersonBlock
   pub my_vote: Option<i16>,       // Left join to PostLike
+  pub language: Language,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -105,4 +107,10 @@ pub struct RegistrationApplicationView {
 pub struct SiteView {
   pub site: Site,
   pub counts: SiteAggregates,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LocalUserDiscussionLanguageView {
+  pub local_user: LocalUserSettings,
+  pub language: Language,
 }

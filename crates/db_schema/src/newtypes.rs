@@ -72,6 +72,10 @@ pub struct PostReportId(i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 pub struct LanguageId(pub i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+pub struct LocalUserLanguageId(pub i32);
+
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]

@@ -9,8 +9,6 @@ pub mod community_person_ban_view;
 #[cfg(feature = "full")]
 pub mod community_view;
 #[cfg(feature = "full")]
-pub mod local_user_discusion_language_view;
-#[cfg(feature = "full")]
 pub mod person_block_view;
 #[cfg(feature = "full")]
 pub mod person_mention_view;

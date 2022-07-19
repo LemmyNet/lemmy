@@ -12,14 +12,14 @@ impl Language {
     language.filter(id.eq(id_)).first::<Self>(conn)
   }
 
-  pub fn read_id_from_code(conn: &PgConnection, code_: String) -> Result<LanguageId, Error> {
+  pub fn read_id_from_code(conn: &PgConnection, code_: &str) -> Result<LanguageId, Error> {
     use crate::schema::language::dsl::*;
     Ok(language.filter(code.eq(code_)).first::<Self>(conn)?.id)
   }
 
   pub fn read_id_from_code_opt(
     conn: &PgConnection,
-    code_: Option<String>,
+    code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
       Ok(Some(Language::read_id_from_code(conn, code_)?))

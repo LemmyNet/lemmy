@@ -187,7 +187,7 @@ impl ApubObject for ApubPost {
           .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
       let language = page.language.map(|l| l.identifier);
       let language = blocking(context.pool(), move |conn| {
-        Language::read_id_from_code_opt(conn, language)
+        Language::read_id_from_code_opt(conn, language.as_deref())
       })
       .await??;
 

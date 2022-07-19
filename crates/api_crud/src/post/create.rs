@@ -92,25 +92,15 @@ impl PerformCrud for CreatePost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (u.title, u.description, u.embed_video_url))
       .unwrap_or_default();
-    let language = data.language.clone();
-    let mut language = blocking(context.pool(), move |conn| {
-      Language::read_id_from_code_opt(conn, language)
-    })
-    .await??;
-    // if user only speaks one language, use that as post language. otherwise, set it as "undetermined"
-    if language.is_none() {
-      let user_langs = local_user_view.local_user.discussion_languages;
-      language = if user_langs.len() == 1 {
-        Some(user_langs[0])
-      } else {
-        Some(
-          blocking(context.pool(), move |conn| {
-            Language::read_undetermined(conn)
-          })
-          .await??,
-        )
-      };
-    };
+
+    let language_id = Some(
+      data.language_id.unwrap_or(
+        blocking(context.pool(), move |conn| {
+          Language::read_undetermined(conn)
+        })
+        .await??,
+      ),
+    );
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
@@ -123,7 +113,7 @@ impl PerformCrud for CreatePost {
       embed_description,
       embed_video_url,
       thumbnail_url,
-      language_id: language,
+      language_id,
       ..PostForm::default()
     };
 
