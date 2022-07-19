@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_api_common"
-version = "0.16.6-rc.3"
+version = "0.16.6"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -18,11 +18,11 @@ full = ["diesel", "tracing", "rosetta-i18n", "chrono", "actix-web", "lemmy_utils
     "percent-encoding", "encoding", "reqwest-middleware", "webpage"]
 
 [dependencies]
-lemmy_db_views = { version = "=0.16.6-rc.3", path = "../db_views" }
-lemmy_db_views_moderator = { version = "=0.16.6-rc.3", path = "../db_views_moderator" }
-lemmy_db_views_actor = { version = "=0.16.6-rc.3", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.16.6-rc.3", path = "../db_schema", default-features = false }
-lemmy_utils = { version = "=0.16.6-rc.3", path = "../utils", optional = true }
+lemmy_db_views = { version = "=0.16.6", path = "../db_views" }
+lemmy_db_views_moderator = { version = "=0.16.6", path = "../db_views_moderator" }
+lemmy_db_views_actor = { version = "=0.16.6", path = "../db_views_actor" }
+lemmy_db_schema = { version = "=0.16.6", path = "../db_schema", default-features = false }
+lemmy_utils = { version = "=0.16.6", path = "../utils", optional = true }
 serde = { version = "1.0.136", features = ["derive"] }
 url = "2.2.2"
 actix-web = { version = "4.0.1", default-features = false, features = ["cookies"], optional = true }

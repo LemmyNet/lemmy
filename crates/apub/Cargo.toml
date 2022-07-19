@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_apub"
-version = "0.16.6-rc.3"
+version = "0.16.6"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -13,13 +13,13 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.6-rc.3", path = "../utils" }
-lemmy_apub_lib = { version = "=0.16.6-rc.3", path = "../apub_lib" }
-lemmy_db_schema = { version = "=0.16.6-rc.3", path = "../db_schema", features = ["full"] }
-lemmy_db_views = { version = "=0.16.6-rc.3", path = "../db_views", features = ["full"] }
-lemmy_db_views_actor = { version = "=0.16.6-rc.3", path = "../db_views_actor", features = ["full"] }
-lemmy_api_common = { version = "=0.16.6-rc.3", path = "../api_common", features = ["full"] }
-lemmy_websocket = { version = "=0.16.6-rc.3", path = "../websocket" }
+lemmy_utils = { version = "=0.16.6", path = "../utils" }
+lemmy_apub_lib = { version = "=0.16.6", path = "../apub_lib" }
+lemmy_db_schema = { version = "=0.16.6", path = "../db_schema", features = ["full"] }
+lemmy_db_views = { version = "=0.16.6", path = "../db_views", features = ["full"] }
+lemmy_db_views_actor = { version = "=0.16.6", path = "../db_views_actor", features = ["full"] }
+lemmy_api_common = { version = "=0.16.6", path = "../api_common", features = ["full"] }
+lemmy_websocket = { version = "=0.16.6", path = "../websocket" }
 diesel = "1.4.8"
 activitystreams-kinds = "0.2.1"
 chrono = { version = "0.4.19", features = ["serde"], default-features = false }
