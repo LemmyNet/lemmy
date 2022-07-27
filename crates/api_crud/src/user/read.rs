@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
-use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -88,7 +88,7 @@ impl PerformCrud for GetPersonDetails {
       let mut comments_query = CommentQueryBuilder::create(conn)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
-        .sort(sort)
+        .sort(sort.map(post_to_comment_sort_type))
         .saved_only(saved_only)
         .community_id(community_id)
         .page(page)

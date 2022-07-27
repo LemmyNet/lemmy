@@ -4,7 +4,7 @@ use diesel::{
   result::{Error, Error::QueryBuilderError},
   *,
 };
-use diesel_ltree::{Ltree, LtreeExtensions};
+use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
@@ -30,8 +30,8 @@ use lemmy_db_schema::{
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset_unlimited},
+  CommentSortType,
   ListingType,
-  SortType,
 };
 
 type CommentViewTuple = (
@@ -153,7 +153,7 @@ impl CommentView {
 pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
-  sort: Option<SortType>,
+  sort: Option<CommentSortType>,
   community_id: Option<CommunityId>,
   community_actor_id: Option<DbUrl>,
   post_id: Option<PostId>,
@@ -165,6 +165,7 @@ pub struct CommentQueryBuilder<'a> {
   show_bot_accounts: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
+  max_depth: Option<i32>,
 }
 
 impl<'a> CommentQueryBuilder<'a> {
@@ -184,6 +185,7 @@ impl<'a> CommentQueryBuilder<'a> {
       show_bot_accounts: None,
       page: None,
       limit: None,
+      max_depth: None,
     }
   }
 
@@ -192,7 +194,7 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
+  pub fn sort<T: MaybeOptional<CommentSortType>>(mut self, sort: T) -> Self {
     self.sort = sort.get_optional();
     self
   }
@@ -249,6 +251,11 @@ impl<'a> CommentQueryBuilder<'a> {
 
   pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
     self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn max_depth<T: MaybeOptional<i32>>(mut self, max_depth: T) -> Self {
+    self.max_depth = max_depth.get_optional();
     self
   }
 
@@ -332,7 +339,7 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(comment::post_id.eq(post_id));
     };
 
-    if let Some(parent_path) = self.parent_path {
+    if let Some(parent_path) = self.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
     };
 
@@ -383,36 +390,47 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    query = match self.sort.unwrap_or(SortType::New) {
-      SortType::Hot | SortType::Active => query
-        .order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
-        .then_order_by(comment_aggregates::published.desc()),
-      SortType::New | SortType::MostComments | SortType::NewComments => {
-        query.order_by(comment::published.desc())
-      }
-      SortType::TopAll => query.order_by(comment_aggregates::score.desc()),
-      SortType::TopYear => query
-        .filter(comment::published.gt(now - 1.years()))
-        .order_by(comment_aggregates::score.desc()),
-      SortType::TopMonth => query
-        .filter(comment::published.gt(now - 1.months()))
-        .order_by(comment_aggregates::score.desc()),
-      SortType::TopWeek => query
-        .filter(comment::published.gt(now - 1.weeks()))
-        .order_by(comment_aggregates::score.desc()),
-      SortType::TopDay => query
-        .filter(comment::published.gt(now - 1.days()))
-        .order_by(comment_aggregates::score.desc()),
-    };
-
     // Don't show blocked communities or persons
     if self.my_person_id.is_some() {
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
     }
 
-    // Don't use the regular error-checking one, many more comments must ofter be fetched.
-    let (limit, offset) = limit_and_offset_unlimited(self.page, self.limit);
+    // A Max depth given means its a tree fetch
+    let (limit, offset) = if let Some(max_depth) = self.max_depth {
+      let depth_limit = if let Some(parent_path) = self.parent_path.as_ref() {
+        parent_path.0.split('.').count() as i32 + max_depth
+        // Add one because of root "0"
+      } else {
+        max_depth + 1
+      };
+
+      query = query.filter(nlevel(comment::path).le(depth_limit));
+
+      // Always order by the parent path first
+      query = query.order_by(subpath(comment::path, 0, -1));
+
+      // TODO limit question. Limiting does not work for comment threads ATM, only max_depth
+      // For now, don't do any limiting for tree fetches
+      // https://stackoverflow.com/questions/72983614/postgres-ltree-how-to-limit-the-max-number-of-children-at-any-given-level
+
+      // Don't use the regular error-checking one, many more comments must ofter be fetched.
+      // This does not work for comment trees, and the limit should be manually set to a high number
+      //
+      // If a max depth is given, then you know its a tree fetch, and limits should be ignored
+      (i64::MAX, 0)
+    } else {
+      limit_and_offset_unlimited(self.page, self.limit)
+    };
+
+    query = match self.sort.unwrap_or(CommentSortType::Hot) {
+      CommentSortType::Hot => query
+        .then_order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
+        .then_order_by(comment_aggregates::published.desc()),
+      CommentSortType::New => query.then_order_by(comment::published.desc()),
+      CommentSortType::Old => query.then_order_by(comment::published.asc()),
+      CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
+    };
 
     // Note: deleted and removed comments are done on the front side
     let res = query
@@ -502,6 +520,8 @@ mod tests {
     //    1      2
     //    \
     //  3  4
+    //     \
+    //     5
     let comment_form_0 = CommentForm {
       content: "Comment 0".into(),
       creator_id: inserted_person.id,
@@ -520,12 +540,9 @@ mod tests {
     };
 
     let mut inserted_comment_1 = Comment::create(&conn, &comment_form_1).unwrap();
-    inserted_comment_1 = Comment::update_ltree_path(
-      &conn,
-      inserted_comment_1.id,
-      Some(inserted_comment_0.to_owned()),
-    )
-    .unwrap();
+    inserted_comment_1 =
+      Comment::update_ltree_path(&conn, inserted_comment_1.id, Some(&inserted_comment_0.path))
+        .unwrap();
 
     let comment_form_2 = CommentForm {
       content: "Comment 2".into(),
@@ -535,12 +552,9 @@ mod tests {
     };
 
     let mut inserted_comment_2 = Comment::create(&conn, &comment_form_2).unwrap();
-    inserted_comment_2 = Comment::update_ltree_path(
-      &conn,
-      inserted_comment_2.id,
-      Some(inserted_comment_0.to_owned()),
-    )
-    .unwrap();
+    inserted_comment_2 =
+      Comment::update_ltree_path(&conn, inserted_comment_2.id, Some(&inserted_comment_0.path))
+        .unwrap();
 
     let comment_form_3 = CommentForm {
       content: "Comment 3".into(),
@@ -553,7 +567,7 @@ mod tests {
     _inserted_comment_3 = Comment::update_ltree_path(
       &conn,
       _inserted_comment_3.id,
-      Some(inserted_comment_1.to_owned()),
+      Some(&inserted_comment_1.path),
     )
     .unwrap();
 
@@ -564,11 +578,23 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut _inserted_comment_4 = Comment::create(&conn, &comment_form_4).unwrap();
-    _inserted_comment_4 = Comment::update_ltree_path(
+    let mut inserted_comment_4 = Comment::create(&conn, &comment_form_4).unwrap();
+    inserted_comment_4 =
+      Comment::update_ltree_path(&conn, inserted_comment_4.id, Some(&inserted_comment_1.path))
+        .unwrap();
+
+    let comment_form_5 = CommentForm {
+      content: "Comment 5".into(),
+      creator_id: inserted_person.id,
+      post_id: inserted_post.id,
+      ..CommentForm::default()
+    };
+
+    let mut _inserted_comment_5 = Comment::create(&conn, &comment_form_5).unwrap();
+    _inserted_comment_5 = Comment::update_ltree_path(
       &conn,
-      _inserted_comment_4.id,
-      Some(inserted_comment_1.to_owned()),
+      _inserted_comment_5.id,
+      Some(&inserted_comment_4.path),
     )
     .unwrap();
 
@@ -684,28 +710,42 @@ mod tests {
         upvotes: 1,
         downvotes: 0,
         published: agg.published,
-        child_count: 4,
+        child_count: 5,
       },
     };
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
     expected_comment_view_with_person.my_vote = Some(1);
 
-    let mut read_comment_views_no_person = CommentQueryBuilder::create(&conn)
+    let read_comment_views_no_person = CommentQueryBuilder::create(&conn)
       .post_id(inserted_post.id)
       .list()
       .unwrap();
-    read_comment_views_no_person.reverse();
 
-    let mut read_comment_views_with_person = CommentQueryBuilder::create(&conn)
+    assert_eq!(
+      expected_comment_view_no_person,
+      read_comment_views_no_person[0]
+    );
+
+    let read_comment_views_with_person = CommentQueryBuilder::create(&conn)
       .post_id(inserted_post.id)
       .my_person_id(inserted_person.id)
       .list()
       .unwrap();
-    read_comment_views_with_person.reverse();
+
+    assert_eq!(
+      expected_comment_view_with_person,
+      read_comment_views_with_person[0]
+    );
+
+    // Make sure its 1, not showing the blocked comment
+    assert_eq!(5, read_comment_views_with_person.len());
 
     let read_comment_from_blocked_person =
       CommentView::read(&conn, inserted_comment_1.id, Some(inserted_person.id)).unwrap();
+
+    // Make sure block set the creator blocked
+    assert!(read_comment_from_blocked_person.creator_blocked);
 
     let top_path = inserted_comment_0.path;
     let read_comment_views_top_path = CommentQueryBuilder::create(&conn)
@@ -721,30 +761,9 @@ mod tests {
       .list()
       .unwrap();
 
-    let like_removed =
-      CommentLike::remove(&conn, inserted_person.id, inserted_comment_0.id).unwrap();
-    let num_deleted = Comment::delete(&conn, inserted_comment_0.id).unwrap();
-    Comment::delete(&conn, inserted_comment_1.id).unwrap();
-    Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
-    Person::delete(&conn, inserted_person_2.id).unwrap();
-
-    // Make sure its 1, not showing the blocked comment
-    assert_eq!(4, read_comment_views_with_person.len());
-
-    assert_eq!(
-      expected_comment_view_no_person,
-      read_comment_views_no_person[0]
-    );
-    assert_eq!(
-      expected_comment_view_with_person,
-      read_comment_views_with_person[0]
-    );
-
     // Make sure the comment parent-limited fetch is correct
-    assert_eq!(5, read_comment_views_top_path.len());
-    assert_eq!(3, read_comment_views_child_path.len());
+    assert_eq!(6, read_comment_views_top_path.len());
+    assert_eq!(4, read_comment_views_child_path.len());
 
     // Make sure it contains the parent, but not the comment from the other tree
     let child_comments = read_comment_views_child_path
@@ -754,10 +773,46 @@ mod tests {
     assert!(child_comments.contains(&inserted_comment_1));
     assert!(!child_comments.contains(&inserted_comment_2));
 
-    // Make sure block set the creator blocked
-    assert!(read_comment_from_blocked_person.creator_blocked);
+    let read_comment_views_top_max_depth = CommentQueryBuilder::create(&conn)
+      .post_id(inserted_post.id)
+      .max_depth(1)
+      .list()
+      .unwrap();
 
-    assert_eq!(1, num_deleted);
-    assert_eq!(1, like_removed);
+    // Make sure a depth limited one only has the top comment
+    assert_eq!(
+      expected_comment_view_no_person,
+      read_comment_views_top_max_depth[0]
+    );
+    assert_eq!(1, read_comment_views_top_max_depth.len());
+
+    let child_path = inserted_comment_1.to_owned().path;
+    let read_comment_views_parent_max_depth = CommentQueryBuilder::create(&conn)
+      .post_id(inserted_post.id)
+      .parent_path(child_path)
+      .max_depth(1)
+      .sort(CommentSortType::New)
+      .list()
+      .unwrap();
+
+    // Make sure a depth limited one, and given child comment 1, has 3
+    assert!(read_comment_views_parent_max_depth[2]
+      .comment
+      .content
+      .eq("Comment 3"));
+    assert_eq!(3, read_comment_views_parent_max_depth.len());
+
+    // Delete everything
+    // let like_removed =
+    //   CommentLike::remove(&conn, inserted_person.id, inserted_comment_0.id).unwrap();
+    // let num_deleted = Comment::delete(&conn, inserted_comment_0.id).unwrap();
+    // Comment::delete(&conn, inserted_comment_1.id).unwrap();
+    // Post::delete(&conn, inserted_post.id).unwrap();
+    // Community::delete(&conn, inserted_community.id).unwrap();
+    // Person::delete(&conn, inserted_person.id).unwrap();
+    // Person::delete(&conn, inserted_person_2.id).unwrap();
+
+    // assert_eq!(1, num_deleted);
+    // assert_eq!(1, like_removed);
   }
 }

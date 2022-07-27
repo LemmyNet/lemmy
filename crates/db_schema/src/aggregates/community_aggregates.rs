@@ -121,7 +121,7 @@ mod tests {
     Comment::update_ltree_path(
       &conn,
       inserted_child_comment.id,
-      Some(inserted_comment.to_owned()),
+      Some(&inserted_comment.path),
     )
     .unwrap();
 

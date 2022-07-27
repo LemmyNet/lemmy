@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PostId, PostReportId},
+  newtypes::{CommentId, CommunityId, DbUrl, PostId, PostReportId},
   ListingType,
   SortType,
 };
@@ -27,7 +27,8 @@ pub struct PostResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPost {
-  pub id: PostId,
+  pub id: Option<PostId>,
+  pub comment_id: Option<CommentId>,
   pub auth: Option<Sensitive<String>>,
 }
 

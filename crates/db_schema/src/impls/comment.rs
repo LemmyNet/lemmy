@@ -37,19 +37,18 @@ impl Comment {
   pub fn update_ltree_path(
     conn: &PgConnection,
     comment_id: CommentId,
-    parent: Option<Comment>,
+    parent_path: Option<&Ltree>,
   ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
 
-    let full_path = if let Some(parent) = &parent {
+    let ltree = Ltree(if let Some(parent_path) = parent_path {
       // The previous parent will already have 0 in it
-      format!("{}.{}", parent.path.0, comment_id)
+      // Append this comment id
+      format!("{}.{}", parent_path.0, comment_id)
     } else {
       // '0' is always the first path, append to that
       format!("{}.{}", 0, comment_id)
-    };
-
-    let ltree = Ltree(full_path);
+    });
 
     let res = diesel::update(comment.find(comment_id))
       .set(path.eq(ltree))
@@ -58,11 +57,11 @@ impl Comment {
     // Update the child count for the parent comment_aggregates
     // You could do this with a trigger, but since you have to do this manually anyway,
     // you can just have it here
-    if let Some(parent) = &parent {
+    if let Some(parent_path) = parent_path {
       // You have to update counts for all parents, not just the immediate one
       // TODO if the performance of this is terrible, it might be better to do this as part of a
       // scheduled query... although the counts would often be wrong.
-      let top_parent = format!("0.{}", parent.path.0.split('.').collect::<Vec<&str>>()[1]);
+      let top_parent = format!("0.{}", parent_path.0.split('.').collect::<Vec<&str>>()[1]);
       let update_child_count_stmt = format!(
         "
 update comment_aggregates ca set child_count = c.child_count
@@ -345,7 +344,7 @@ mod tests {
     inserted_child_comment = Comment::update_ltree_path(
       &conn,
       inserted_child_comment.id,
-      Some(inserted_comment.to_owned()),
+      Some(&inserted_comment.path),
     )
     .unwrap();
 

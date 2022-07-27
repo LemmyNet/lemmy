@@ -101,7 +101,7 @@ mod tests {
     Comment::update_ltree_path(
       &conn,
       inserted_child_comment.id,
-      Some(inserted_comment.to_owned()),
+      Some(&inserted_comment.path),
     )
     .unwrap();
 
@@ -138,12 +138,8 @@ mod tests {
     let mut new_parent_comment = Comment::create(&conn, &comment_form).unwrap();
     new_parent_comment = Comment::update_ltree_path(&conn, new_parent_comment.id, None).unwrap();
     let new_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
-    Comment::update_ltree_path(
-      &conn,
-      new_child_comment.id,
-      Some(new_parent_comment.to_owned()),
-    )
-    .unwrap();
+    Comment::update_ltree_path(&conn, new_child_comment.id, Some(&new_parent_comment.path))
+      .unwrap();
     comment_like.comment_id = new_parent_comment.id;
     CommentLike::like(&conn, &comment_like).unwrap();
     let after_comment_add = PersonAggregates::read(&conn, inserted_person.id).unwrap();

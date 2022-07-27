@@ -4,7 +4,10 @@ use lemmy_api_common::{
   post::{GetPost, GetPostResponse},
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read},
 };
-use lemmy_db_schema::traits::DeleteableOrRemoveable;
+use lemmy_db_schema::{
+  source::comment::Comment,
+  traits::{Crud, DeleteableOrRemoveable},
+};
 use lemmy_db_views::structs::PostView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -29,19 +32,31 @@ impl PerformCrud for GetPost {
 
     let person_id = local_user_view.map(|u| u.person.id);
 
-    let id = data.id;
+    // I'd prefer fetching the post_view by a comment join, but it adds a lot of boilerplate
+    let post_id = if let Some(id) = data.id {
+      id
+    } else if let Some(comment_id) = data.comment_id {
+      blocking(context.pool(), move |conn| Comment::read(conn, comment_id))
+        .await?
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?
+        .post_id
+    } else {
+      Err(LemmyError::from_message("couldnt_find_post"))?
+    };
+
     let mut post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, id, person_id)
+      PostView::read(conn, post_id, person_id)
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
 
     // Mark the post as read
+    let post_id = post_view.post.id;
     if let Some(person_id) = person_id {
-      mark_post_as_read(person_id, id, context.pool()).await?;
+      mark_post_as_read(person_id, post_id, context.pool()).await?;
     }
 
-    // Necessary for the sidebar
+    // Necessary for the sidebar subscribed
     let community_id = post_view.community.id;
     let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, person_id)
@@ -67,7 +82,7 @@ impl PerformCrud for GetPost {
 
     let online = context
       .chat_server()
-      .send(GetPostUsersOnline { post_id: data.id })
+      .send(GetPostUsersOnline { post_id })
       .await
       .unwrap_or(1);
 

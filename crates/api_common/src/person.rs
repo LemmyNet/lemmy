@@ -14,7 +14,8 @@ pub struct Login {
   pub password: Sensitive<String>,
 }
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId, PersonMentionId, PrivateMessageId},
+  newtypes::{CommentReplyId, CommunityId, PersonId, PersonMentionId, PrivateMessageId},
+  CommentSortType,
   SortType,
 };
 
@@ -176,7 +177,7 @@ pub struct BlockPersonResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetReplies {
-  pub sort: Option<SortType>,
+  pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
@@ -185,7 +186,7 @@ pub struct GetReplies {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPersonMentions {
-  pub sort: Option<SortType>,
+  pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
@@ -202,6 +203,18 @@ pub struct MarkPersonMentionAsRead {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonMentionResponse {
   pub person_mention_view: PersonMentionView,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct MarkCommentReplyAsRead {
+  pub comment_reply_id: CommentReplyId,
+  pub read: bool,
+  pub auth: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CommentReplyResponse {
+  pub comment_reply_view: CommentReplyView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

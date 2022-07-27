@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
+  CommentSortType,
   ListingType,
   SortType,
 };
@@ -285,7 +286,7 @@ fn get_feed_inbox(
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
 
-  let sort = SortType::New;
+  let sort = CommentSortType::New;
 
   let replies = CommentReplyQueryBuilder::create(conn)
     .recipient_id(person_id)

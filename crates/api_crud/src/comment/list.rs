@@ -52,13 +52,13 @@ impl PerformCrud for GetComments {
       None
     };
     let sort = data.sort;
+    let max_depth = data.max_depth;
     let saved_only = data.saved_only;
     let page = data.page;
     let limit = data.limit;
     let parent_id = data.parent_id;
 
     // If a parent_id is given, fetch the comment to get the path
-    // let parent_path = parent_id.map(|id| blocking(context.pool(), move |conn| Comment::read(conn, id)).await??);
     let parent_path = if let Some(parent_id) = parent_id {
       Some(
         blocking(context.pool(), move |conn| Comment::read(conn, parent_id))
@@ -74,6 +74,7 @@ impl PerformCrud for GetComments {
       CommentQueryBuilder::create(conn)
         .listing_type(listing_type)
         .sort(sort)
+        .max_depth(max_depth)
         .saved_only(saved_only)
         .community_id(community_id)
         .community_actor_id(community_actor_id)

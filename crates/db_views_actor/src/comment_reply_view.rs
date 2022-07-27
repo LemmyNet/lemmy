@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
   utils::{functions::hot_rank, limit_and_offset},
-  SortType,
+  CommentSortType,
 };
 
 type CommentReplyViewTuple = (
@@ -163,7 +163,7 @@ pub struct CommentReplyQueryBuilder<'a> {
   conn: &'a PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
-  sort: Option<SortType>,
+  sort: Option<CommentSortType>,
   unread_only: Option<bool>,
   show_bot_accounts: Option<bool>,
   page: Option<i64>,
@@ -184,7 +184,7 @@ impl<'a> CommentReplyQueryBuilder<'a> {
     }
   }
 
-  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
+  pub fn sort<T: MaybeOptional<CommentSortType>>(mut self, sort: T) -> Self {
     self.sort = sort.get_optional();
     self
   }
@@ -300,26 +300,13 @@ impl<'a> CommentReplyQueryBuilder<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::Hot | SortType::Active => query
-        .order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
+    query = match self.sort.unwrap_or(CommentSortType::Hot) {
+      CommentSortType::Hot => query
+        .then_order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
         .then_order_by(comment_aggregates::published.desc()),
-      SortType::New | SortType::MostComments | SortType::NewComments => {
-        query.order_by(comment::published.desc())
-      }
-      SortType::TopAll => query.order_by(comment_aggregates::score.desc()),
-      SortType::TopYear => query
-        .filter(comment::published.gt(now - 1.years()))
-        .order_by(comment_aggregates::score.desc()),
-      SortType::TopMonth => query
-        .filter(comment::published.gt(now - 1.months()))
-        .order_by(comment_aggregates::score.desc()),
-      SortType::TopWeek => query
-        .filter(comment::published.gt(now - 1.weeks()))
-        .order_by(comment_aggregates::score.desc()),
-      SortType::TopDay => query
-        .filter(comment::published.gt(now - 1.days()))
-        .order_by(comment_aggregates::score.desc()),
+      CommentSortType::New => query.then_order_by(comment::published.desc()),
+      CommentSortType::Old => query.then_order_by(comment::published.asc()),
+      CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
