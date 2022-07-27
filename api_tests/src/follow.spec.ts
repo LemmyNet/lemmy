@@ -26,13 +26,10 @@ test('Follow federated community', async () => {
     betaCommunity.community.id
   );
 
-  // Wait for it to accept on the alpha side ( follows are async )
-  await delay();
-
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
   expect(follow.community_view.community.name).toBe('main');
-  expect(follow.community_view.subscribed).toBe(SubscribedType.Pending);
+  expect(follow.community_view.subscribed).toBe(SubscribedType.Subscribed);
 
   // Check it from local
   let site = await getSite(alpha);

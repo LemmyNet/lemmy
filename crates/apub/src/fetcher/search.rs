@@ -32,9 +32,11 @@ pub async fn search_by_apub_id(
         .await
     }
     Err(_) => {
-      let (kind, identifier) = query.split_at(1);
+      let mut chars = query.chars();
+      let kind = chars.next();
+      let identifier = chars.as_str();
       match kind {
-        "@" => {
+        Some('@') => {
           let id =
             webfinger_resolve_actor::<ApubPerson>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Person(
@@ -43,7 +45,7 @@ pub async fn search_by_apub_id(
               .await?,
           ))
         }
-        "!" => {
+        Some('!') => {
           let id =
             webfinger_resolve_actor::<ApubCommunity>(identifier, context, request_counter).await?;
           Ok(SearchableObjects::Community(
