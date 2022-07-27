@@ -803,16 +803,16 @@ mod tests {
     assert_eq!(3, read_comment_views_parent_max_depth.len());
 
     // Delete everything
-    // let like_removed =
-    //   CommentLike::remove(&conn, inserted_person.id, inserted_comment_0.id).unwrap();
-    // let num_deleted = Comment::delete(&conn, inserted_comment_0.id).unwrap();
-    // Comment::delete(&conn, inserted_comment_1.id).unwrap();
-    // Post::delete(&conn, inserted_post.id).unwrap();
-    // Community::delete(&conn, inserted_community.id).unwrap();
-    // Person::delete(&conn, inserted_person.id).unwrap();
-    // Person::delete(&conn, inserted_person_2.id).unwrap();
+    let like_removed =
+      CommentLike::remove(&conn, inserted_person.id, inserted_comment_0.id).unwrap();
+    let num_deleted = Comment::delete(&conn, inserted_comment_0.id).unwrap();
+    Comment::delete(&conn, inserted_comment_1.id).unwrap();
+    Post::delete(&conn, inserted_post.id).unwrap();
+    Community::delete(&conn, inserted_community.id).unwrap();
+    Person::delete(&conn, inserted_person.id).unwrap();
+    Person::delete(&conn, inserted_person_2.id).unwrap();
 
-    // assert_eq!(1, num_deleted);
-    // assert_eq!(1, like_removed);
+    assert_eq!(1, num_deleted);
+    assert_eq!(1, like_removed);
   }
 }
