@@ -786,7 +786,7 @@ mod tests {
     );
     assert_eq!(1, read_comment_views_top_max_depth.len());
 
-    let child_path = inserted_comment_1.to_owned().path;
+    let child_path = inserted_comment_1.path;
     let read_comment_views_parent_max_depth = CommentQueryBuilder::create(&conn)
       .post_id(inserted_post.id)
       .parent_path(child_path)
