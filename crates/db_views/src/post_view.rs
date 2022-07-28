@@ -577,13 +577,17 @@ mod tests {
     let french_id = Language::read_id_from_code(conn, "fr").unwrap();
 
     // Insert french
-    let new_local_user_language = LocalUserLanguageForm {
+    let new_local_user_language = vec![LocalUserLanguageForm {
       local_user_id: inserted_local_user.id,
       language_id: french_id,
-    };
+    }];
 
-    let _inserted_local_user_language =
-      LocalUserLanguage::create(conn, &new_local_user_language).unwrap();
+    let _inserted_local_user_language = LocalUserLanguage::update_user_languages(
+      conn,
+      new_local_user_language,
+      inserted_local_user.id,
+    )
+    .unwrap();
 
     let new_bot = PersonForm {
       name: person_name.to_owned(),

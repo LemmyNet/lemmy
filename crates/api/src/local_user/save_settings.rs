@@ -120,23 +120,17 @@ impl Perform for SaveUserSettings {
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      // Clear the currents
+      let discussion_languages: Vec<LocalUserLanguageForm> = discussion_languages
+        .into_iter()
+        .map(|lang| LocalUserLanguageForm {
+          local_user_id,
+          language_id: lang,
+        })
+        .collect();
       blocking(context.pool(), move |conn| {
-        LocalUserLanguage::clear_all_for_local_user(conn, local_user_id)
+        LocalUserLanguage::update_user_languages(conn, discussion_languages, local_user_id)
       })
       .await??;
-
-      for language_id in discussion_languages {
-        let form = LocalUserLanguageForm {
-          local_user_id,
-          language_id,
-        };
-
-        blocking(context.pool(), move |conn| {
-          LocalUserLanguage::create(conn, &form)
-        })
-        .await??;
-      }
     }
 
     let local_user_form = LocalUserForm {
