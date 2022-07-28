@@ -120,7 +120,6 @@ impl Perform for SaveUserSettings {
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-
       // Clear the currents
       blocking(context.pool(), move |conn| {
         LocalUserLanguage::clear_all_for_local_user(conn, local_user_id)
