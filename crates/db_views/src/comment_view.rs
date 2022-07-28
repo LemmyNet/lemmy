@@ -228,7 +228,7 @@ impl<'a> CommentQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
     CommentQueryBuilder {
       conn,
-      listing_type: None,
+      listing_type: Some(ListingType::All),
       sort: None,
       community_id: None,
       community_actor_id: None,

@@ -173,7 +173,7 @@ impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
     PostQueryBuilder {
       conn,
-      listing_type: None,
+      listing_type: Some(ListingType::All),
       sort: None,
       creator_id: None,
       community_id: None,
@@ -507,7 +507,6 @@ mod tests {
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
-    ListingType,
     SortType,
     SubscribedType,
   };
@@ -611,7 +610,6 @@ mod tests {
     };
 
     let read_post_listings_with_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::All)
       .sort(SortType::New)
       .show_bot_accounts(false)
       .community_id(inserted_community.id)
@@ -620,7 +618,6 @@ mod tests {
       .unwrap();
 
     let read_post_listings_no_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::All)
       .sort(SortType::New)
       .community_id(inserted_community.id)
       .list()
@@ -720,7 +717,6 @@ mod tests {
     CommunityBlock::block(&conn, &community_block).unwrap();
 
     let read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::All)
       .sort(SortType::New)
       .show_bot_accounts(false)
       .community_id(inserted_community.id)
