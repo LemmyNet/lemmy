@@ -39,7 +39,7 @@ where
   let (_, domain) = identifier
     .splitn(2, '@')
     .collect_tuple()
-    .expect("invalid query");
+    .ok_or_else(|| LemmyError::from_message("Invalid webfinger query, missing domain"))?;
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}",
     protocol, domain, identifier
