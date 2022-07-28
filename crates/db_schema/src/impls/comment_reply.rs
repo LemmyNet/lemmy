@@ -132,7 +132,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let comment_reply_form = CommentReplyForm {
       recipient_id: inserted_recipient.id,

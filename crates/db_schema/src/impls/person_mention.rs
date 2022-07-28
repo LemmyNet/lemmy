@@ -136,7 +136,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let person_mention_form = PersonMentionForm {
       recipient_id: inserted_recipient.id,

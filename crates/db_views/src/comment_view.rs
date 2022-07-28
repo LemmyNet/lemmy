@@ -529,8 +529,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut inserted_comment_0 = Comment::create(&conn, &comment_form_0).unwrap();
-    inserted_comment_0 = Comment::update_ltree_path(&conn, inserted_comment_0.id, None).unwrap();
+    let inserted_comment_0 = Comment::create(&conn, &comment_form_0, None).unwrap();
 
     let comment_form_1 = CommentForm {
       content: "Comment 1, A test blocked comment".into(),
@@ -539,10 +538,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut inserted_comment_1 = Comment::create(&conn, &comment_form_1).unwrap();
-    inserted_comment_1 =
-      Comment::update_ltree_path(&conn, inserted_comment_1.id, Some(&inserted_comment_0.path))
-        .unwrap();
+    let inserted_comment_1 =
+      Comment::create(&conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
 
     let comment_form_2 = CommentForm {
       content: "Comment 2".into(),
@@ -551,10 +548,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut inserted_comment_2 = Comment::create(&conn, &comment_form_2).unwrap();
-    inserted_comment_2 =
-      Comment::update_ltree_path(&conn, inserted_comment_2.id, Some(&inserted_comment_0.path))
-        .unwrap();
+    let inserted_comment_2 =
+      Comment::create(&conn, &comment_form_2, Some(&inserted_comment_0.path)).unwrap();
 
     let comment_form_3 = CommentForm {
       content: "Comment 3".into(),
@@ -563,13 +558,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut _inserted_comment_3 = Comment::create(&conn, &comment_form_3).unwrap();
-    _inserted_comment_3 = Comment::update_ltree_path(
-      &conn,
-      _inserted_comment_3.id,
-      Some(&inserted_comment_1.path),
-    )
-    .unwrap();
+    let _inserted_comment_3 =
+      Comment::create(&conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
 
     let comment_form_4 = CommentForm {
       content: "Comment 4".into(),
@@ -578,10 +568,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut inserted_comment_4 = Comment::create(&conn, &comment_form_4).unwrap();
-    inserted_comment_4 =
-      Comment::update_ltree_path(&conn, inserted_comment_4.id, Some(&inserted_comment_1.path))
-        .unwrap();
+    let inserted_comment_4 =
+      Comment::create(&conn, &comment_form_4, Some(&inserted_comment_1.path)).unwrap();
 
     let comment_form_5 = CommentForm {
       content: "Comment 5".into(),
@@ -590,13 +578,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut _inserted_comment_5 = Comment::create(&conn, &comment_form_5).unwrap();
-    _inserted_comment_5 = Comment::update_ltree_path(
-      &conn,
-      _inserted_comment_5.id,
-      Some(&inserted_comment_4.path),
-    )
-    .unwrap();
+    let _inserted_comment_5 =
+      Comment::create(&conn, &comment_form_5, Some(&inserted_comment_4.path)).unwrap();
 
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: inserted_person.id,

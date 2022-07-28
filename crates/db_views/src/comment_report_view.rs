@@ -377,7 +377,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     // sara reports
     let sara_report_form = CommentReportForm {

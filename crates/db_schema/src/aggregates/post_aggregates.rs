@@ -70,8 +70,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut inserted_comment = Comment::create(&conn, &comment_form).unwrap();
-    inserted_comment = Comment::update_ltree_path(&conn, inserted_comment.id, None).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
@@ -80,13 +79,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
-    Comment::update_ltree_path(
-      &conn,
-      inserted_child_comment.id,
-      Some(&inserted_comment.path),
-    )
-    .unwrap();
+    let inserted_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
 
     let post_like = PostLikeForm {
       post_id: inserted_post.id,

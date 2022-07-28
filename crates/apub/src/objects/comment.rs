@@ -186,11 +186,9 @@ impl ApubObject for ApubComment {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    // TODO Nutomic is this correct?
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let mut comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
-    comment = blocking(context.pool(), move |conn| {
-      Comment::update_ltree_path(conn, comment.id, parent_comment_path.as_ref())
+    let comment = blocking(context.pool(), move |conn| {
+      Comment::create(conn, &form, parent_comment_path.as_ref())
     })
     .await??;
     Ok(comment.into())

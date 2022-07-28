@@ -93,16 +93,9 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let comment_form2 = comment_form.clone();
-    let mut inserted_comment = blocking(context.pool(), move |conn| {
-      Comment::create(conn, &comment_form2)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
-
-    // Update the ltree
     let parent_path = parent_opt.to_owned().map(|t| t.path);
-    inserted_comment = blocking(context.pool(), move |conn| {
-      Comment::update_ltree_path(conn, inserted_comment.id, parent_path.as_ref())
+    let inserted_comment = blocking(context.pool(), move |conn| {
+      Comment::create(conn, &comment_form2, parent_path.as_ref())
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;

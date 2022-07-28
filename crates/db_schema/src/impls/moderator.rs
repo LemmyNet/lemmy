@@ -411,7 +411,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     // Now the actual tests
 

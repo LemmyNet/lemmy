@@ -78,8 +78,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let mut inserted_comment = Comment::create(&conn, &comment_form).unwrap();
-    inserted_comment = Comment::update_ltree_path(&conn, inserted_comment.id, None).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
@@ -97,13 +96,8 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
-    Comment::update_ltree_path(
-      &conn,
-      inserted_child_comment.id,
-      Some(&inserted_comment.path),
-    )
-    .unwrap();
+    let inserted_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
 
     let child_comment_like = CommentLikeForm {
       comment_id: inserted_child_comment.id,
@@ -135,11 +129,9 @@ mod tests {
     assert_eq!(0, after_parent_comment_delete.comment_score);
 
     // Add in the two comments again, then delete the post.
-    let mut new_parent_comment = Comment::create(&conn, &comment_form).unwrap();
-    new_parent_comment = Comment::update_ltree_path(&conn, new_parent_comment.id, None).unwrap();
-    let new_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
-    Comment::update_ltree_path(&conn, new_child_comment.id, Some(&new_parent_comment.path))
-      .unwrap();
+    let new_parent_comment = Comment::create(&conn, &comment_form, None).unwrap();
+    let _new_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&new_parent_comment.path)).unwrap();
     comment_like.comment_id = new_parent_comment.id;
     CommentLike::like(&conn, &comment_like).unwrap();
     let after_comment_add = PersonAggregates::read(&conn, inserted_person.id).unwrap();
