@@ -8,7 +8,7 @@ use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubComm
 use lemmy_db_schema::{
   source::community::Community,
   traits::DeleteableOrRemoveable,
-  CommentSortType,
+  utils::post_to_comment_sort_type,
   SearchType,
 };
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
@@ -93,7 +93,7 @@ impl Perform for Search {
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
-            .sort(CommentSortType::New)
+            .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)
@@ -160,7 +160,7 @@ impl Perform for Search {
 
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
-            .sort(CommentSortType::New)
+            .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)

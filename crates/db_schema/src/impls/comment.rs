@@ -167,7 +167,7 @@ where ca.comment_id = c.id",
       ltree_split[ltree_split.len() - 2]
         .parse::<i32>()
         .map(CommentId)
-        .ok() // TODO test
+        .ok()
     } else {
       None
     }
