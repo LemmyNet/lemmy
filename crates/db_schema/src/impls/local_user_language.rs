@@ -1,4 +1,8 @@
-use crate::{newtypes::LocalUserLanguageId, source::local_user_language::*, traits::Crud};
+use crate::{
+  newtypes::{LocalUserId, LocalUserLanguageId},
+  source::local_user_language::*,
+  traits::Crud,
+};
 use diesel::{result::Error, PgConnection, RunQueryDsl, *};
 
 impl Crud for LocalUserLanguage {
@@ -33,5 +37,15 @@ impl Crud for LocalUserLanguage {
     diesel::update(local_user_language.find(local_user_language_id))
       .set(local_user_language_form)
       .get_result::<Self>(conn)
+  }
+}
+
+impl LocalUserLanguage {
+  pub fn clear_all_for_local_user(
+    conn: &PgConnection,
+    for_local_user_id: LocalUserId,
+  ) -> Result<usize, Error> {
+    use crate::schema::local_user_language::dsl::*;
+    diesel::delete(local_user_language.filter(local_user_id.eq(for_local_user_id))).execute(conn)
   }
 }
