@@ -5,10 +5,9 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
-  newtypes::LanguageId,
   source::{
-    language::Language,
     local_user::{LocalUser, LocalUserForm},
+    local_user_language::{LocalUserLanguage, LocalUserLanguageForm},
     person::{Person, PersonForm},
     site::Site,
   },
@@ -119,21 +118,26 @@ impl Perform for SaveUserSettings {
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
-    let discussion_languages: Option<Vec<LanguageId>> =
-      if let Some(discussion_languages) = data.discussion_languages.clone() {
-        let mut language_ids = vec![];
-        for l in discussion_languages {
-          language_ids.push(
-            blocking(context.pool(), move |conn| {
-              Language::read_id_from_code(conn, l)
-            })
-            .await??,
-          );
-        }
-        Some(language_ids)
-      } else {
-        None
-      };
+
+    if let Some(discussion_languages) = data.discussion_languages.clone() {
+      // Clear the currents
+      blocking(context.pool(), move |conn| {
+        LocalUserLanguage::clear_all_for_local_user(conn, local_user_id)
+      })
+      .await??;
+
+      for language_id in discussion_languages {
+        let form = LocalUserLanguageForm {
+          local_user_id,
+          language_id,
+        };
+
+        blocking(context.pool(), move |conn| {
+          LocalUserLanguage::create(conn, &form)
+        })
+        .await??;
+      }
+    }
 
     let local_user_form = LocalUserForm {
       person_id: Some(person_id),

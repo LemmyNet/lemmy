@@ -77,11 +77,15 @@ impl PerformCrud for EditPost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (u.title, u.description, u.embed_video_url))
       .unwrap_or_default();
-    let language = data.language.clone();
-    let language = blocking(context.pool(), move |conn| {
-      Language::read_id_from_code_opt(conn, language)
-    })
-    .await??;
+
+    let language_id = Some(
+      data.language_id.unwrap_or(
+        blocking(context.pool(), move |conn| {
+          Language::read_undetermined(conn)
+        })
+        .await??,
+      ),
+    );
 
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
@@ -95,7 +99,7 @@ impl PerformCrud for EditPost {
       embed_description,
       embed_video_url,
       thumbnail_url,
-      language_id: language,
+      language_id,
       ..PostForm::default()
     };
 
