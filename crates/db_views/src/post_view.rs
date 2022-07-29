@@ -1,10 +1,5 @@
 use crate::structs::PostView;
-use diesel::{
-  dsl::*,
-  pg::Pg,
-  result::{Error, Error::QueryBuilderError},
-  *,
-};
+use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
@@ -178,7 +173,7 @@ impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
     PostQueryBuilder {
       conn,
-      listing_type: None,
+      listing_type: Some(ListingType::All),
       sort: None,
       creator_id: None,
       community_id: None,
@@ -362,24 +357,19 @@ impl<'a> PostQueryBuilder<'a> {
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
-        ListingType::Community => {
-          if self.community_actor_id.is_none() && self.community_id.is_none() {
-            return Err(QueryBuilderError("No community actor or id given".into()));
-          } else {
-            if let Some(community_id) = self.community_id {
-              query = query
-                .filter(post::community_id.eq(community_id))
-                .then_order_by(post_aggregates::stickied.desc());
-            }
-
-            if let Some(community_actor_id) = self.community_actor_id {
-              query = query
-                .filter(community::actor_id.eq(community_actor_id))
-                .then_order_by(post_aggregates::stickied.desc());
-            }
-          }
-        }
       }
+    }
+
+    if let Some(community_id) = self.community_id {
+      query = query
+        .filter(post::community_id.eq(community_id))
+        .then_order_by(post_aggregates::stickied.desc());
+    }
+
+    if let Some(community_actor_id) = self.community_actor_id {
+      query = query
+        .filter(community::actor_id.eq(community_actor_id))
+        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -518,7 +508,6 @@ mod tests {
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
-    ListingType,
     SortType,
     SubscribedType,
   };
@@ -622,7 +611,6 @@ mod tests {
     };
 
     let read_post_listings_with_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
       .sort(SortType::New)
       .show_bot_accounts(false)
       .community_id(inserted_community.id)
@@ -631,7 +619,6 @@ mod tests {
       .unwrap();
 
     let read_post_listings_no_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
       .sort(SortType::New)
       .community_id(inserted_community.id)
       .list()
@@ -731,7 +718,6 @@ mod tests {
     CommunityBlock::block(&conn, &community_block).unwrap();
 
     let read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
       .sort(SortType::New)
       .show_bot_accounts(false)
       .community_id(inserted_community.id)

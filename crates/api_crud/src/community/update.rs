@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   source::community::{Community, CommunityForm},
   traits::Crud,
-  utils::{diesel_option_overwrite_to_url, naive_now},
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
@@ -31,6 +31,7 @@ impl PerformCrud for EditCommunity {
 
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
+    let description = diesel_option_overwrite(&data.description);
 
     check_slurs_opt(&data.title, &context.settings().slur_regex())?;
     check_slurs_opt(&data.description, &context.settings().slur_regex())?;
@@ -55,7 +56,7 @@ impl PerformCrud for EditCommunity {
     let community_form = CommunityForm {
       name: read_community.name,
       title: data.title.to_owned().unwrap_or(read_community.title),
-      description: data.description.to_owned(),
+      description,
       icon,
       banner,
       nsfw: data.nsfw,

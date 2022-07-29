@@ -78,7 +78,11 @@ impl Group {
     CommunityForm {
       name: self.preferred_username.clone(),
       title: self.name.unwrap_or(self.preferred_username),
-      description: read_from_string_or_source_opt(&self.summary, &None, &self.source),
+      description: Some(read_from_string_or_source_opt(
+        &self.summary,
+        &None,
+        &self.source,
+      )),
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),

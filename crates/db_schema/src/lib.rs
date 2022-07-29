@@ -53,7 +53,6 @@ pub enum ListingType {
   All,
   Local,
   Subscribed,
-  Community,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]

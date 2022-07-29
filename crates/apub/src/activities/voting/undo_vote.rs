@@ -46,14 +46,13 @@ impl UndoVote {
     .await??
     .into();
 
-    let object = Vote::new(object, actor, &community, kind.clone(), context)?;
+    let object = Vote::new(object, actor, kind.clone(), context)?;
     let id = generate_activity_id(
       UndoType::Undo,
       &context.settings().get_protocol_and_hostname(),
     )?;
     let undo_vote = UndoVote {
       actor: ObjectId::new(actor.actor_id()),
-      to: vec![community.actor_id()],
       object,
       cc: vec![public()],
       kind: UndoType::Undo,
