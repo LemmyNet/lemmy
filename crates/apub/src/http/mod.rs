@@ -56,6 +56,7 @@ where
   for<'de2> <ActorT as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   let activity_value: Value = serde_json::from_str(&payload)?;
+  debug!("Received activity {:#}", payload.as_str());
   let activity: Activity = serde_json::from_value(activity_value.clone())?;
   // Log the activity, so we avoid receiving and parsing it twice.
   let insert = insert_activity(activity.id(), activity_value, false, true, context.pool()).await?;

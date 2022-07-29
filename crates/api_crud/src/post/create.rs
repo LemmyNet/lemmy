@@ -25,17 +25,12 @@ use lemmy_db_schema::{
     post::{Post, PostForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
+  utils::diesel_option_overwrite,
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{
-    check_slurs,
-    check_slurs_opt,
-    clean_optional_text,
-    clean_url_params,
-    is_valid_post_title,
-  },
+  utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
   ConnectionId,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
@@ -62,6 +57,10 @@ impl PerformCrud for CreatePost {
     check_slurs_opt(&data.body, slur_regex)?;
     honeypot_check(&data.honeypot)?;
 
+    let data_url = data.url.as_ref();
+    let url = Some(data_url.map(clean_url_params).map(Into::into)); // TODO no good way to handle a "clear"
+    let body = diesel_option_overwrite(&data.body);
+
     if !is_valid_post_title(&data.name) {
       return Err(LemmyError::from_message("invalid_post_title"));
     }
@@ -86,11 +85,10 @@ impl PerformCrud for CreatePost {
     }
 
     // Fetch post links and pictrs cached image
-    let data_url = data.url.as_ref();
     let (metadata_res, thumbnail_url) =
       fetch_site_data(context.client(), context.settings(), data_url).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
-      .map(|u| (u.title, u.description, u.embed_video_url))
+      .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
     let language_id = Some(
@@ -104,16 +102,16 @@ impl PerformCrud for CreatePost {
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
-      url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
-      body: clean_optional_text(&data.body),
+      url,
+      body,
       community_id: data.community_id,
       creator_id: local_user_view.person.id,
       nsfw: data.nsfw,
       embed_title,
       embed_description,
       embed_video_url,
-      thumbnail_url,
       language_id,
+      thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };
 

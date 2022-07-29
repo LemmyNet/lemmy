@@ -213,7 +213,6 @@ fn get_feed_community(
   let community = Community::read_from_name(conn, community_name, false)?;
 
   let posts = PostQueryBuilder::create(conn)
-    .listing_type(ListingType::Community)
     .sort(*sort_type)
     .community_id(community.id)
     .limit(RSS_FETCH_LIMIT)

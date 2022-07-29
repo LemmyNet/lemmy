@@ -180,11 +180,11 @@ impl ApubObject for ApubPost {
         (None, page.image.map(|i| i.url.into()))
       };
       let (embed_title, embed_description, embed_video_url) = metadata_res
-        .map(|u| (u.title, u.description, u.embed_video_url))
+        .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
         .unwrap_or_default();
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
-          .map(|s| remove_slurs(&s, &context.settings().slur_regex()));
+          .map(|s| Some(remove_slurs(&s, &context.settings().slur_regex())));
       let language = page.language.map(|l| l.identifier);
       let language = blocking(context.pool(), move |conn| {
         Language::read_id_from_code_opt(conn, language.as_deref())
@@ -193,7 +193,7 @@ impl ApubObject for ApubPost {
 
       PostForm {
         name: page.name.clone(),
-        url: url.map(Into::into),
+        url: Some(url.map(Into::into)),
         body: body_slurs_removed,
         creator_id: creator.id,
         community_id: community.id,
@@ -207,7 +207,7 @@ impl ApubObject for ApubPost {
         embed_title,
         embed_description,
         embed_video_url,
-        thumbnail_url,
+        thumbnail_url: Some(thumbnail_url),
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
         language_id: language,

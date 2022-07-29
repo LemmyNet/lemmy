@@ -42,7 +42,7 @@ impl Perform for HideCommunity {
     let community_form = CommunityForm {
       name: read_community.name,
       title: read_community.title,
-      description: read_community.description.to_owned(),
+      description: Some(read_community.description.to_owned()),
       hidden: Some(data.hidden),
       updated: Some(naive_now()),
       ..CommunityForm::default()

@@ -1,0 +1,12 @@
+{
+  "@context":"https://www.w3.org/ns/activitystreams",
+  "id":"https://mastodon.madrid/users/felix#likes/212341/undo",
+  "type":"Undo",
+  "actor":"https://mastodon.madrid/users/felix",
+  "object": {
+    "id":"https://mastodon.madrid/users/felix#likes/212341",
+    "type":"Like",
+    "actor":"https://mastodon.madrid/users/felix",
+    "object":"https://ds9.lemmy.ml/post/147"
+  }
+}

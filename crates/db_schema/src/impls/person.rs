@@ -1,7 +1,7 @@
 use crate::{
   newtypes::{DbUrl, PersonId},
   schema::person::dsl::*,
-  source::person::{Person, PersonForm, PersonSafe},
+  source::person::{Person, PersonForm},
   traits::{ApubActor, Crud},
   utils::{functions::lower, naive_now},
 };
@@ -258,10 +258,6 @@ impl Person {
       .get_result::<Self>(conn)
   }
 
-  pub fn is_banned(&self) -> bool {
-    is_banned(self.banned, self.ban_expires)
-  }
-
   pub fn leave_admin(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(admin.eq(false))
@@ -278,13 +274,7 @@ impl Person {
   }
 }
 
-impl PersonSafe {
-  pub fn is_banned(&self) -> bool {
-    is_banned(self.banned, self.ban_expires)
-  }
-}
-
-fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
+pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
   if let Some(expires) = expires {
     banned_ && expires.gt(&naive_now())
   } else {
