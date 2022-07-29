@@ -109,7 +109,7 @@ fn community_updates_2020_04_02(
     let form = CommunityForm {
       name: ccommunity.name.to_owned(),
       title: ccommunity.title.to_owned(),
-      description: ccommunity.description.to_owned(),
+      description: Some(ccommunity.description.to_owned()),
       hidden: Some(false),
       actor_id: Some(community_actor_id.to_owned()),
       local: Some(ccommunity.local),

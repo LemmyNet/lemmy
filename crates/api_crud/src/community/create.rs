@@ -26,7 +26,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Followable, Joinable},
-  utils::diesel_option_overwrite_to_url,
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
@@ -60,6 +60,7 @@ impl PerformCrud for CreateCommunity {
     // Check to make sure the icon and banners are urls
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
+    let description = diesel_option_overwrite(&data.description);
 
     check_slurs(&data.name, &context.settings().slur_regex())?;
     check_slurs(&data.title, &context.settings().slur_regex())?;
@@ -87,7 +88,7 @@ impl PerformCrud for CreateCommunity {
     let community_form = CommunityForm {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
-      description: data.description.to_owned(),
+      description,
       icon,
       banner,
       nsfw: data.nsfw,
