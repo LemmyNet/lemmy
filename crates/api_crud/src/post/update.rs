@@ -42,7 +42,10 @@ impl PerformCrud for EditPost {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let data_url = data.url.as_ref();
-    let url = Some(data_url.map(clean_url_params).map(Into::into)); // TODO no good way to handle a "clear"
+
+    // TODO No good way to handle a clear.
+    // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
+    let url = Some(data_url.map(clean_url_params).map(Into::into));
     let body = diesel_option_overwrite(&data.body);
 
     let slur_regex = &context.settings().slur_regex();
