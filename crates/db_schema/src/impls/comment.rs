@@ -191,6 +191,7 @@ impl Crud for Comment {
     diesel::delete(comment.find(comment_id)).execute(conn)
   }
 
+  /// This is unimplemented, use [[Comment::create]]
   fn create(_conn: &PgConnection, _comment_form: &CommentForm) -> Result<Self, Error> {
     unimplemented!();
   }

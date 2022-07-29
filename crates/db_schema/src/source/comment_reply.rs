@@ -8,6 +8,7 @@ use crate::schema::comment_reply;
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", belongs_to(crate::source::comment::Comment))]
 #[cfg_attr(feature = "full", table_name = "comment_reply")]
+/// This table keeps a list of replies to comments and posts.
 pub struct CommentReply {
   pub id: CommentReplyId,
   pub recipient_id: PersonId,
