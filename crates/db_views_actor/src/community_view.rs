@@ -107,7 +107,7 @@ impl<'a> CommunityQueryBuilder<'a> {
     CommunityQueryBuilder {
       conn,
       my_person_id: None,
-      listing_type: None,
+      listing_type: Some(ListingType::All),
       sort: None,
       show_nsfw: None,
       search_term: None,
