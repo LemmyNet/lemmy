@@ -14,8 +14,6 @@ use url::Url;
 #[serde(rename_all = "camelCase")]
 pub struct Vote {
   pub(crate) actor: ObjectId<ApubPerson>,
-  #[serde(deserialize_with = "crate::deserialize_one_or_many")]
-  pub(crate) to: Vec<Url>,
   pub(crate) object: ObjectId<PostOrComment>,
   #[serde(deserialize_with = "crate::deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
