@@ -241,34 +241,36 @@ pub async fn send_local_notifs(
 
     // Don't send a notif to yourself
     if parent_comment.creator_id != person.id && !creator_blocked {
-      let parent_user_view = blocking(context.pool(), move |conn| {
+      let user_view = blocking(context.pool(), move |conn| {
         LocalUserView::read_person(conn, parent_creator_id)
       })
-      .await??;
-      recipient_ids.push(parent_user_view.local_user.id);
+      .await?;
+      if let Ok(parent_user_view) = user_view {
+        recipient_ids.push(parent_user_view.local_user.id);
 
-      let comment_reply_form = CommentReplyForm {
-        recipient_id: parent_user_view.person.id,
-        comment_id: comment.id,
-        read: None,
-      };
+        let comment_reply_form = CommentReplyForm {
+          recipient_id: parent_user_view.person.id,
+          comment_id: comment.id,
+          read: None,
+        };
 
-      // Allow this to fail softly, since comment edits might re-update or replace it
-      // Let the uniqueness handle this fail
-      blocking(context.pool(), move |conn| {
-        CommentReply::create(conn, &comment_reply_form)
-      })
-      .await?
-      .ok();
+        // Allow this to fail softly, since comment edits might re-update or replace it
+        // Let the uniqueness handle this fail
+        blocking(context.pool(), move |conn| {
+          CommentReply::create(conn, &comment_reply_form)
+        })
+        .await?
+        .ok();
 
-      if do_send_email {
-        let lang = get_user_lang(&parent_user_view);
-        send_email_to_user(
-          &parent_user_view,
-          &lang.notification_comment_reply_subject(&person.name),
-          &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
-          context.settings(),
-        )
+        if do_send_email {
+          let lang = get_user_lang(&parent_user_view);
+          send_email_to_user(
+            &parent_user_view,
+            &lang.notification_comment_reply_subject(&person.name),
+            &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
+            context.settings(),
+          )
+        }
       }
     }
   } else {
@@ -280,34 +282,36 @@ pub async fn send_local_notifs(
 
     if post.creator_id != person.id && !creator_blocked {
       let creator_id = post.creator_id;
-      let parent_user_view = blocking(context.pool(), move |conn| {
+      let parent_user = blocking(context.pool(), move |conn| {
         LocalUserView::read_person(conn, creator_id)
       })
-      .await??;
-      recipient_ids.push(parent_user_view.local_user.id);
+      .await?;
+      if let Ok(parent_user_view) = parent_user {
+        recipient_ids.push(parent_user_view.local_user.id);
 
-      let comment_reply_form = CommentReplyForm {
-        recipient_id: parent_user_view.person.id,
-        comment_id: comment.id,
-        read: None,
-      };
+        let comment_reply_form = CommentReplyForm {
+          recipient_id: parent_user_view.person.id,
+          comment_id: comment.id,
+          read: None,
+        };
 
-      // Allow this to fail softly, since comment edits might re-update or replace it
-      // Let the uniqueness handle this fail
-      blocking(context.pool(), move |conn| {
-        CommentReply::create(conn, &comment_reply_form)
-      })
-      .await?
-      .ok();
+        // Allow this to fail softly, since comment edits might re-update or replace it
+        // Let the uniqueness handle this fail
+        blocking(context.pool(), move |conn| {
+          CommentReply::create(conn, &comment_reply_form)
+        })
+        .await?
+        .ok();
 
-      if do_send_email {
-        let lang = get_user_lang(&parent_user_view);
-        send_email_to_user(
-          &parent_user_view,
-          &lang.notification_post_reply_subject(&person.name),
-          &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
-          context.settings(),
-        )
+        if do_send_email {
+          let lang = get_user_lang(&parent_user_view);
+          send_email_to_user(
+            &parent_user_view,
+            &lang.notification_post_reply_subject(&person.name),
+            &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
+            context.settings(),
+          )
+        }
       }
     }
   }
