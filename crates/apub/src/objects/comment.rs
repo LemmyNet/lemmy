@@ -98,7 +98,7 @@ impl ApubObject for ApubComment {
     })
     .await??;
 
-    let in_reply_to = if let Some(comment_id) = self.parent_id {
+    let in_reply_to = if let Some(comment_id) = self.parent_comment_id() {
       let parent_comment =
         blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
       ObjectId::<PostOrComment>::new(parent_comment.ap_id)
@@ -170,7 +170,7 @@ impl ApubObject for ApubComment {
       .attributed_to
       .dereference(context, local_instance(context), request_counter)
       .await?;
-    let (post, parent_comment_id) = note.get_parents(context, request_counter).await?;
+    let (post, parent_comment) = note.get_parents(context, request_counter).await?;
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
     let content_slurs_removed = remove_slurs(&content, &context.settings().slur_regex());
@@ -178,17 +178,19 @@ impl ApubObject for ApubComment {
     let form = CommentForm {
       creator_id: creator.id,
       post_id: post.id,
-      parent_id: parent_comment_id,
       content: content_slurs_removed,
       removed: None,
-      read: None,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let comment = blocking(context.pool(), move |conn| Comment::upsert(conn, &form)).await??;
+    let parent_comment_path = parent_comment.map(|t| t.0.path);
+    let comment = blocking(context.pool(), move |conn| {
+      Comment::create(conn, &form, parent_comment_path.as_ref())
+    })
+    .await??;
     Ok(comment.into())
   }
 }

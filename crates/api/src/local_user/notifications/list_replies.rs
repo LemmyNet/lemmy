@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::{GetReplies, GetRepliesResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_views::comment_view::CommentQueryBuilder;
+use lemmy_db_views_actor::comment_reply_view::CommentReplyQueryBuilder;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -30,12 +30,12 @@ impl Perform for GetReplies {
     let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
 
     let replies = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
+      CommentReplyQueryBuilder::create(conn)
+        .recipient_id(person_id)
+        .my_person_id(person_id)
         .sort(sort)
         .unread_only(unread_only)
-        .recipient_id(person_id)
         .show_bot_accounts(show_bot_accounts)
-        .my_person_id(person_id)
         .page(page)
         .limit(limit)
         .list()

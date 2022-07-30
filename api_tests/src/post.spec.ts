@@ -1,4 +1,6 @@
 jest.setTimeout(120000);
+import {None} from '@sniptt/monads';
+import { PostView, CommunityView } from 'lemmy-js-client';
 import {
   alpha,
   beta,
@@ -32,13 +34,12 @@ import {
   getSite,
   unfollows
 } from './shared';
-import { PostView, CommunityView } from 'lemmy-js-client';
 
 let betaCommunity: CommunityView;
 
 beforeAll(async () => {
   await setupLogins();
-  betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  betaCommunity = (await resolveBetaCommunity(alpha)).community.unwrap();
   expect(betaCommunity).toBeDefined();
   await unfollows();
 });
@@ -50,12 +51,12 @@ afterAll(async () => {
 function assertPostFederation(postOne: PostView, postTwo: PostView) {
   expect(postOne.post.ap_id).toBe(postTwo.post.ap_id);
   expect(postOne.post.name).toBe(postTwo.post.name);
-  expect(postOne.post.body).toBe(postTwo.post.body);
-  expect(postOne.post.url).toBe(postTwo.post.url);
+  expect(postOne.post.body.unwrapOr("none")).toBe(postTwo.post.body.unwrapOr("none"));
+  expect(postOne.post.url.unwrapOr("none")).toBe(postTwo.post.url.unwrapOr("none"));
   expect(postOne.post.nsfw).toBe(postTwo.post.nsfw);
-  expect(postOne.post.embed_title).toBe(postTwo.post.embed_title);
-  expect(postOne.post.embed_description).toBe(postTwo.post.embed_description);
-  expect(postOne.post.embed_html).toBe(postTwo.post.embed_html);
+  expect(postOne.post.embed_title.unwrapOr("none")).toBe(postTwo.post.embed_title.unwrapOr("none"));
+  expect(postOne.post.embed_description.unwrapOr("none")).toBe(postTwo.post.embed_description.unwrapOr("none"));
+  expect(postOne.post.embed_html.unwrapOr("none")).toBe(postTwo.post.embed_html.unwrapOr("none"));
   expect(postOne.post.published).toBe(postTwo.post.published);
   expect(postOne.community.actor_id).toBe(postTwo.community.actor_id);
   expect(postOne.post.locked).toBe(postTwo.post.locked);
@@ -71,7 +72,7 @@ test('Create a post', async () => {
   expect(postRes.post_view.counts.score).toBe(1);
 
   // Make sure that post is liked on beta
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
 
   expect(betaPost).toBeDefined();
   expect(betaPost.community.local).toBe(true);
@@ -81,16 +82,16 @@ test('Create a post', async () => {
 
   // Delta only follows beta, so it should not see an alpha ap_id
   let deltaPost = (await resolvePost(delta, postRes.post_view.post)).post;
-  expect(deltaPost).toBeUndefined();
+  expect(deltaPost.isNone()).toBe(true)
 
   // Epsilon has alpha blocked, it should not see the alpha post
   let epsilonPost = (await resolvePost(epsilon, postRes.post_view.post)).post;
-  expect(epsilonPost).toBeUndefined();
+  expect(epsilonPost.isNone()).toBe(true);
 });
 
 test('Create a post in a non-existent community', async () => {
-  let postRes = await createPost(alpha, -2);
-  expect(postRes).toStrictEqual({ error: 'couldnt_find_community' });
+  let postRes = await createPost(alpha, -2) as any;
+  expect(postRes.error).toBe('couldnt_find_community');
 });
 
 test('Unlike a post', async () => {
@@ -103,7 +104,7 @@ test('Unlike a post', async () => {
   expect(unlike2.post_view.counts.score).toBe(0);
 
   // Make sure that post is unliked on beta
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost).toBeDefined();
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
@@ -121,26 +122,26 @@ test('Update a post', async () => {
   expect(updatedPost.post_view.creator.local).toBe(true);
 
   // Make sure that post is updated on beta
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
   expect(betaPost.post.name).toBe(updatedName);
   assertPostFederation(betaPost, updatedPost.post_view);
 
   // Make sure lemmy beta cannot update the post
-  let updatedPostBeta = await editPost(beta, betaPost.post);
-  expect(updatedPostBeta).toStrictEqual({ error: 'no_post_edit_allowed' });
+  let updatedPostBeta = await editPost(beta, betaPost.post) as any;
+  expect(updatedPostBeta.error).toBe('no_post_edit_allowed');
 });
 
 test('Sticky a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
-  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   let stickiedPostRes = await stickyPost(beta, true, betaPost1.post);
   expect(stickiedPostRes.post_view.post.stickied).toBe(true);
 
   // Make sure that post is stickied on beta
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
   expect(betaPost.post.stickied).toBe(true);
@@ -150,15 +151,15 @@ test('Sticky a post', async () => {
   expect(unstickiedPost.post_view.post.stickied).toBe(false);
 
   // Make sure that post is unstickied on beta
-  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost2.community.local).toBe(true);
   expect(betaPost2.creator.local).toBe(false);
   expect(betaPost2.post.stickied).toBe(false);
 
   // Make sure that gamma cannot sticky the post on beta
-  let gammaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  let gammaPost = (await resolvePost(gamma, postRes.post_view.post)).post.unwrap();
   let gammaTrySticky = await stickyPost(gamma, true, gammaPost.post);
-  let betaPost3 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost3 = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(gammaTrySticky.post_view.post.stickied).toBe(true);
   expect(betaPost3.post.stickied).toBe(false);
 });
@@ -168,7 +169,7 @@ test('Lock a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
   // Lock the post
-  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   let lockedPostRes = await lockPost(beta, true, betaPost1.post);
   expect(lockedPostRes.post_view.post.locked).toBe(true);
 
@@ -178,7 +179,7 @@ test('Lock a post', async () => {
   expect(alphaPost1.post.locked).toBe(true);
 
   // Try to make a new comment there, on alpha
-  let comment: any = await createComment(alpha, alphaPost1.post.id);
+  let comment: any = await createComment(alpha, alphaPost1.post.id, None);
   expect(comment['error']).toBe('locked');
 
   // Unlock a post
@@ -193,7 +194,7 @@ test('Lock a post', async () => {
   expect(alphaPost2.post.locked).toBe(false);
 
   // Try to create a new comment, on alpha
-  let commentAlpha = await createComment(alpha, alphaPost1.post.id);
+  let commentAlpha = await createComment(alpha, alphaPost1.post.id, None);
   expect(commentAlpha).toBeDefined();
 });
 
@@ -208,32 +209,32 @@ test('Delete a post', async () => {
   // Make sure lemmy beta sees post is deleted
   let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   // This will be undefined because of the tombstone
-  expect(betaPost).toBeUndefined();
+  expect(betaPost.isNone()).toBe(true);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
   expect(undeletedPost.post_view.post.deleted).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
-  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost2.post.deleted).toBe(false);
   assertPostFederation(betaPost2, undeletedPost.post_view);
 
   // Make sure lemmy beta cannot delete the post
-  let deletedPostBeta = await deletePost(beta, true, betaPost2.post);
-  expect(deletedPostBeta).toStrictEqual({ error: 'no_post_edit_allowed' });
+  let deletedPostBeta = await deletePost(beta, true, betaPost2.post) as any;
+  expect(deletedPostBeta.error).toStrictEqual('no_post_edit_allowed');
 });
 
 test('Remove a post from admin and community on different instance', async () => {
   let postRes = await createPost(gamma, betaCommunity.community.id);
 
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post.unwrap();
   let removedPost = await removePost(alpha, true, alphaPost.post);
   expect(removedPost.post_view.post.removed).toBe(true);
   expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is NOT removed
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost.post.removed).toBe(false);
 
   // Undelete
@@ -241,7 +242,7 @@ test('Remove a post from admin and community on different instance', async () =>
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
-  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost2.post.removed).toBe(false);
   assertPostFederation(betaPost2, undeletedPost.post_view);
 });
@@ -261,7 +262,7 @@ test('Remove a post from admin and community on same instance', async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  let alphaPost = await getPost(alpha, postRes.post_view.post.id);
+  // let alphaPost = await getPost(alpha, postRes.post_view.post.id);
   // expect(alphaPost.post_view.post.removed).toBe(true); // TODO this shouldn't be commented
   // assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
@@ -281,8 +282,7 @@ test('Search for a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
-
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post.unwrap();
   expect(betaPost.post.name).toBeDefined();
 });
 
@@ -294,9 +294,9 @@ test('Enforce site ban for federated user', async () => {
       client: alpha.client,
       auth: alphaUserJwt.jwt,
   };
-  let alphaUserActorId = (await getSite(alpha_user)).my_user.local_user_view.person.actor_id;
+  let alphaUserActorId = (await getSite(alpha_user)).my_user.unwrap().local_user_view.person.actor_id;
   expect(alphaUserActorId).toBeDefined();
-  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId)).person;
+  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId)).person.unwrap();
   expect(alphaPerson).toBeDefined();
 
   // alpha makes post in beta community, it federates to beta instance
@@ -310,7 +310,7 @@ test('Enforce site ban for federated user', async () => {
 
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await resolvePerson(beta, alphaUserActorId);
-  expect(alphaUserOnBeta1.person.person.banned).toBe(true);
+  expect(alphaUserOnBeta1.person.unwrap().person.banned).toBe(true);
 
   // existing alpha post should be removed on beta
   let searchBeta2 = await searchPostLocal(beta, postRes1.post_view.post);
@@ -326,12 +326,12 @@ test('Enforce site ban for federated user', async () => {
   expect(searchBeta3.posts[0]).toBeDefined();
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId)
-  expect(alphaUserOnBeta2.person.person.banned).toBe(false);
+  expect(alphaUserOnBeta2.person.unwrap().person.banned).toBe(false);
 });
 
 test('Enforce community ban for federated user', async () => {
   let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
-  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person;
+  let alphaPerson = (await resolvePerson(beta, alphaShortname)).person.unwrap();
   expect(alphaPerson).toBeDefined();
 
   // make a post in beta, it goes through
@@ -376,16 +376,16 @@ test('A and G subscribe to B (center) A posts, it gets announced to G', async ()
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post.unwrap();
   expect(betaPost.post.name).toBeDefined();
 });
 
 test('Report a post', async () => {
-  let betaCommunity = (await resolveBetaCommunity(beta)).community;
+  let betaCommunity = (await resolveBetaCommunity(beta)).community.unwrap();
   let postRes = await createPost(beta, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post.unwrap();
   let alphaReport = (await reportPost(alpha, alphaPost.post.id, randomString(10)))
         .post_report_view.post_report;
 
@@ -393,7 +393,7 @@ test('Report a post', async () => {
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_post_name).toBe(alphaReport.original_post_name);
-  expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
-  expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
+  expect(betaReport.original_post_url.unwrapOr("none")).toBe(alphaReport.original_post_url.unwrapOr("none"));
+  expect(betaReport.original_post_body.unwrapOr("none")).toBe(alphaReport.original_post_body.unwrapOr("none"));
   expect(betaReport.reason).toBe(alphaReport.reason);
 });

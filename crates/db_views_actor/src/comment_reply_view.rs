@@ -1,12 +1,13 @@
-use crate::structs::PersonMentionView;
+use crate::structs::CommentReplyView;
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  newtypes::{PersonId, PersonMentionId},
+  newtypes::{CommentReplyId, PersonId},
   schema::{
     comment,
     comment_aggregates,
     comment_like,
+    comment_reply,
     comment_saved,
     community,
     community_follower,
@@ -14,15 +15,14 @@ use lemmy_db_schema::{
     person,
     person_alias_1,
     person_block,
-    person_mention,
     post,
   },
   source::{
     comment::{Comment, CommentSaved},
+    comment_reply::CommentReply,
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     person_block::PersonBlock,
-    person_mention::PersonMention,
     post::Post,
   },
   traits::{MaybeOptional, ToSafe, ViewToVec},
@@ -30,8 +30,8 @@ use lemmy_db_schema::{
   CommentSortType,
 };
 
-type PersonMentionViewTuple = (
-  PersonMention,
+type CommentReplyViewTuple = (
+  CommentReply,
   Comment,
   PersonSafe,
   Post,
@@ -45,17 +45,17 @@ type PersonMentionViewTuple = (
   Option<i16>,
 );
 
-impl PersonMentionView {
+impl CommentReplyView {
   pub fn read(
     conn: &PgConnection,
-    person_mention_id: PersonMentionId,
+    comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let (
-      person_mention,
+      comment_reply,
       comment,
       creator,
       post,
@@ -67,8 +67,8 @@ impl PersonMentionView {
       saved,
       creator_blocked,
       my_vote,
-    ) = person_mention::table
-      .find(person_mention_id)
+    ) = comment_reply::table
+      .find(comment_reply_id)
       .inner_join(comment::table)
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
@@ -116,7 +116,7 @@ impl PersonMentionView {
         ),
       )
       .select((
-        person_mention::all_columns,
+        comment_reply::all_columns,
         comment::all_columns,
         Person::safe_columns_tuple(),
         post::all_columns,
@@ -129,10 +129,10 @@ impl PersonMentionView {
         person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<PersonMentionViewTuple>(conn)?;
+      .first::<CommentReplyViewTuple>(conn)?;
 
-    Ok(PersonMentionView {
-      person_mention,
+    Ok(CommentReplyView {
+      comment_reply,
       comment,
       creator,
       post,
@@ -147,19 +147,19 @@ impl PersonMentionView {
     })
   }
 
-  /// Gets the number of unread mentions
-  pub fn get_unread_mentions(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  /// Gets the number of unread replies
+  pub fn get_unread_replies(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
 
-    person_mention::table
-      .filter(person_mention::recipient_id.eq(my_person_id))
-      .filter(person_mention::read.eq(false))
-      .select(count(person_mention::id))
+    comment_reply::table
+      .filter(comment_reply::recipient_id.eq(my_person_id))
+      .filter(comment_reply::read.eq(false))
+      .select(count(comment_reply::id))
       .first::<i64>(conn)
   }
 }
 
-pub struct PersonMentionQueryBuilder<'a> {
+pub struct CommentReplyQueryBuilder<'a> {
   conn: &'a PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
@@ -170,9 +170,9 @@ pub struct PersonMentionQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PersonMentionQueryBuilder<'a> {
+impl<'a> CommentReplyQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    PersonMentionQueryBuilder {
+    CommentReplyQueryBuilder {
       conn,
       my_person_id: None,
       recipient_id: None,
@@ -219,13 +219,13 @@ impl<'a> PersonMentionQueryBuilder<'a> {
     self
   }
 
-  pub fn list(self) -> Result<Vec<PersonMentionView>, Error> {
+  pub fn list(self) -> Result<Vec<CommentReplyView>, Error> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
     let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
-    let mut query = person_mention::table
+    let mut query = comment_reply::table
       .inner_join(comment::table)
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
@@ -273,7 +273,7 @@ impl<'a> PersonMentionQueryBuilder<'a> {
         ),
       )
       .select((
-        person_mention::all_columns,
+        comment_reply::all_columns,
         comment::all_columns,
         Person::safe_columns_tuple(),
         post::all_columns,
@@ -289,11 +289,11 @@ impl<'a> PersonMentionQueryBuilder<'a> {
       .into_boxed();
 
     if let Some(recipient_id) = self.recipient_id {
-      query = query.filter(person_mention::recipient_id.eq(recipient_id));
+      query = query.filter(comment_reply::recipient_id.eq(recipient_id));
     }
 
     if self.unread_only.unwrap_or(false) {
-      query = query.filter(person_mention::read.eq(false));
+      query = query.filter(comment_reply::read.eq(false));
     }
 
     if !self.show_bot_accounts.unwrap_or(true) {
@@ -314,25 +314,25 @@ impl<'a> PersonMentionQueryBuilder<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<PersonMentionViewTuple>(self.conn)?;
+      .load::<CommentReplyViewTuple>(self.conn)?;
 
-    Ok(PersonMentionView::from_tuple_to_vec(res))
+    Ok(CommentReplyView::from_tuple_to_vec(res))
   }
 }
 
-impl ViewToVec for PersonMentionView {
-  type DbTuple = PersonMentionViewTuple;
+impl ViewToVec for CommentReplyView {
+  type DbTuple = CommentReplyViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        person_mention: a.0.to_owned(),
-        comment: a.1.to_owned(),
-        creator: a.2.to_owned(),
-        post: a.3.to_owned(),
-        community: a.4.to_owned(),
-        recipient: a.5.to_owned(),
-        counts: a.6.to_owned(),
+        comment_reply: a.0,
+        comment: a.1,
+        creator: a.2,
+        post: a.3,
+        community: a.4,
+        recipient: a.5,
+        counts: a.6,
         creator_banned_from_community: a.7.is_some(),
         subscribed: CommunityFollower::to_subscribed_type(&a.8),
         saved: a.9.is_some(),

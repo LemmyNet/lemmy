@@ -13,7 +13,10 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  source::comment::{CommentLike, CommentLikeForm},
+  source::{
+    comment::{CommentLike, CommentLikeForm},
+    comment_reply::CommentReply,
+  },
   traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
@@ -53,14 +56,20 @@ impl Perform for CreateCommentLike {
     )
     .await?;
 
-    // Add parent user to recipients
-    let recipient_id = orig_comment.get_recipient_id();
-    if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
+    // Add parent poster or commenter to recipients
+    let comment_reply = blocking(context.pool(), move |conn| {
+      CommentReply::read_by_comment(conn, comment_id)
     })
-    .await?
-    {
-      recipient_ids.push(local_recipient.local_user.id);
+    .await?;
+    if let Ok(reply) = comment_reply {
+      let recipient_id = reply.recipient_id;
+      if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
+        LocalUserView::read_person(conn, recipient_id)
+      })
+      .await?
+      {
+        recipient_ids.push(local_recipient.local_user.id);
+      }
     }
 
     let like_form = CommentLikeForm {

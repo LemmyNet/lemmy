@@ -78,7 +78,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
@@ -89,15 +89,15 @@ mod tests {
 
     let _inserted_comment_like = CommentLike::like(&conn, &comment_like).unwrap();
 
-    let mut child_comment_form = CommentForm {
+    let child_comment_form = CommentForm {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      parent_id: Some(inserted_comment.id),
       ..CommentForm::default()
     };
 
-    let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let inserted_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
 
     let child_comment_like = CommentLikeForm {
       comment_id: inserted_child_comment.id,
@@ -123,14 +123,15 @@ mod tests {
 
     // Remove a parent comment (the scores should also be removed)
     Comment::delete(&conn, inserted_comment.id).unwrap();
+    Comment::delete(&conn, inserted_child_comment.id).unwrap();
     let after_parent_comment_delete = PersonAggregates::read(&conn, inserted_person.id).unwrap();
     assert_eq!(0, after_parent_comment_delete.comment_count);
     assert_eq!(0, after_parent_comment_delete.comment_score);
 
     // Add in the two comments again, then delete the post.
-    let new_parent_comment = Comment::create(&conn, &comment_form).unwrap();
-    child_comment_form.parent_id = Some(new_parent_comment.id);
-    Comment::create(&conn, &child_comment_form).unwrap();
+    let new_parent_comment = Comment::create(&conn, &comment_form, None).unwrap();
+    let _new_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&new_parent_comment.path)).unwrap();
     comment_like.comment_id = new_parent_comment.id;
     CommentLike::like(&conn, &comment_like).unwrap();
     let after_comment_add = PersonAggregates::read(&conn, inserted_person.id).unwrap();

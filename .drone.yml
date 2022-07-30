@@ -155,7 +155,7 @@ steps:
 
 services:
   - name: database
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password

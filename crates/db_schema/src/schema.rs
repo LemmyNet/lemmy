@@ -11,19 +11,21 @@ table! {
 }
 
 table! {
+  use diesel_ltree::sql_types::Ltree;
+  use diesel::sql_types::*;
+
     comment (id) {
         id -> Int4,
         creator_id -> Int4,
         post_id -> Int4,
-        parent_id -> Nullable<Int4>,
         content -> Text,
         removed -> Bool,
-        read -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         ap_id -> Varchar,
         local -> Bool,
+        path -> Ltree,
     }
 }
 
@@ -35,6 +37,7 @@ table! {
         upvotes -> Int8,
         downvotes -> Int8,
         published -> Timestamp,
+        child_count ->  Int4,
     }
 }
 
@@ -341,6 +344,16 @@ table! {
 }
 
 table! {
+    comment_reply (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Int4,
+        read -> Bool,
+        published -> Timestamp,
+    }
+}
+
+table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
@@ -502,23 +515,6 @@ table! {
 
 // These are necessary since diesel doesn't have self joins / aliases
 table! {
-    comment_alias_1 (id) {
-        id -> Int4,
-        creator_id -> Int4,
-        post_id -> Int4,
-        parent_id -> Nullable<Int4>,
-        content -> Text,
-        removed -> Bool,
-        read -> Bool,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
-        deleted -> Bool,
-        ap_id -> Varchar,
-        local -> Bool,
-    }
-}
-
-table! {
     person_alias_1 (id) {
         id -> Int4,
         name -> Varchar,
@@ -647,9 +643,8 @@ table! {
     }
 }
 
-joinable!(comment_alias_1 -> person_alias_1 (creator_id));
-joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(person_mention -> person_alias_1 (recipient_id));
+joinable!(comment_reply -> person_alias_1 (recipient_id));
 joinable!(post -> person_alias_1 (creator_id));
 joinable!(comment -> person_alias_1 (creator_id));
 
@@ -696,6 +691,8 @@ joinable!(person_aggregates -> person (person_id));
 joinable!(person_ban -> person (person_id));
 joinable!(person_mention -> comment (comment_id));
 joinable!(person_mention -> person (recipient_id));
+joinable!(comment_reply -> comment (comment_id));
+joinable!(comment_reply -> person (recipient_id));
 joinable!(post -> community (community_id));
 joinable!(post -> person (creator_id));
 joinable!(post_aggregates -> post (post_id));
@@ -751,6 +748,7 @@ allow_tables_to_appear_in_same_query!(
   person_ban,
   person_block,
   person_mention,
+  comment_reply,
   post,
   post_aggregates,
   post_like,
@@ -760,7 +758,6 @@ allow_tables_to_appear_in_same_query!(
   private_message,
   site,
   site_aggregates,
-  comment_alias_1,
   person_alias_1,
   person_alias_2,
   admin_purge_comment,

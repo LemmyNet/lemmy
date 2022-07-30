@@ -20,6 +20,7 @@ pub struct CommentAggregates {
   pub upvotes: i64,
   pub downvotes: i64,
   pub published: chrono::NaiveDateTime,
+  pub child_count: i32,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
