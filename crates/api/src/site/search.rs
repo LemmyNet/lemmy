@@ -5,7 +5,12 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable, SearchType};
+use lemmy_db_schema::{
+  source::community::Community,
+  traits::DeleteableOrRemoveable,
+  utils::post_to_comment_sort_type,
+  SearchType,
+};
 use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
 use lemmy_db_views_actor::{
   community_view::CommunityQueryBuilder,
@@ -81,7 +86,7 @@ impl Perform for Search {
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
-            .sort(sort)
+            .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)
@@ -145,7 +150,7 @@ impl Perform for Search {
 
         comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
-            .sort(sort)
+            .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
             .search_term(q)
             .show_bot_accounts(show_bot_accounts)

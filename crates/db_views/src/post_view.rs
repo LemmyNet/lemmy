@@ -1,10 +1,5 @@
 use crate::structs::{LocalUserView, PostView};
-use diesel::{
-  dsl::*,
-  pg::Pg,
-  result::{Error},
-  *,
-};
+use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -449,6 +444,7 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
+      SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
       SortType::MostComments => query
         .then_order_by(post_aggregates::comments.desc())

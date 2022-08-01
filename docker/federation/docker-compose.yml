@@ -47,7 +47,7 @@ services:
     ports: 
       - "8541:8541"
   postgres_alpha:
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
@@ -75,7 +75,7 @@ services:
     ports: 
       - "8551:8551"
   postgres_beta:
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
@@ -103,7 +103,7 @@ services:
     ports: 
       - "8561:8561"
   postgres_gamma:
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
@@ -132,7 +132,7 @@ services:
     ports: 
       - "8571:8571"
   postgres_delta:
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
@@ -161,7 +161,7 @@ services:
     ports: 
       - "8581:8581"
   postgres_epsilon:
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password

@@ -10,3 +10,4 @@ export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 export LEMMY_CONFIG_LOCATION=../../config/config.hjson
 RUST_BACKTRACE=1 \
   cargo test --workspace --no-fail-fast
+# Add this to do printlns: -- --nocapture

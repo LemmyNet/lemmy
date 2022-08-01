@@ -1,3 +1,4 @@
+use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -76,11 +77,20 @@ pub struct LanguageId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 pub struct LocalUserLanguageId(pub i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+pub struct CommentReplyId(i32);
+
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
 #[cfg_attr(feature = "full", sql_type = "diesel::sql_types::Text")]
 pub struct DbUrl(pub(crate) Url);
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Ltree")]
+/// Do remote derivation for the Ltree struct
+pub struct LtreeDef(pub String);
 
 impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

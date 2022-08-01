@@ -12,14 +12,17 @@
     "api-test": "jest -i follow.spec.ts && jest -i src/post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts"
   },
   "devDependencies": {
+    "@sniptt/monads": "^0.5.10",
     "@types/jest": "^26.0.23",
-    "eslint": "^7.30.0",
-    "eslint-plugin-jane": "^9.0.3",
+    "class-transformer": "^0.5.1",
+    "eslint": "^8.20.0",
+    "eslint-plugin-jane": "^11.2.2",
     "jest": "^27.0.6",
-    "lemmy-js-client": "0.17.0-rc.11",
+    "lemmy-js-client": "0.17.0-rc.37",
     "node-fetch": "^2.6.1",
-    "prettier": "^2.3.2",
+    "prettier": "^2.7.1",
+    "reflect-metadata": "^0.1.13",
     "ts-jest": "^27.0.3",
-    "typescript": "^4.3.5"
+    "typescript": "^4.6.4"
   }
 }

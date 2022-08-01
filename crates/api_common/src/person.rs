@@ -1,6 +1,11 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_views::structs::{CommentView, PostView, PrivateMessageView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonMentionView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{
+  CommentReplyView,
+  CommunityModeratorView,
+  PersonMentionView,
+  PersonViewSafe,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -9,7 +14,15 @@ pub struct Login {
   pub password: Sensitive<String>,
 }
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PersonId, PersonMentionId, PrivateMessageId},
+  newtypes::{
+    CommentReplyId,
+    CommunityId,
+    LanguageId,
+    PersonId,
+    PersonMentionId,
+    PrivateMessageId,
+  },
+  CommentSortType,
   SortType,
 };
 
@@ -106,7 +119,7 @@ pub struct GetPersonDetailsResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetRepliesResponse {
-  pub replies: Vec<CommentView>,
+  pub replies: Vec<CommentReplyView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -172,7 +185,7 @@ pub struct BlockPersonResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetReplies {
-  pub sort: Option<SortType>,
+  pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
@@ -181,7 +194,7 @@ pub struct GetReplies {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPersonMentions {
-  pub sort: Option<SortType>,
+  pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
@@ -198,6 +211,18 @@ pub struct MarkPersonMentionAsRead {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonMentionResponse {
   pub person_mention_view: PersonMentionView,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct MarkCommentReplyAsRead {
+  pub comment_reply_id: CommentReplyId,
+  pub read: bool,
+  pub auth: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CommentReplyResponse {
+  pub comment_reply_view: CommentReplyView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

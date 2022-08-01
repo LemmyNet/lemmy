@@ -1,50 +1,50 @@
 use crate::{
-  newtypes::{CommentId, PersonId, PersonMentionId},
-  source::person_mention::*,
+  newtypes::{CommentId, CommentReplyId, PersonId},
+  source::comment_reply::*,
   traits::Crud,
 };
 use diesel::{dsl::*, result::Error, *};
 
-impl Crud for PersonMention {
-  type Form = PersonMentionForm;
-  type IdType = PersonMentionId;
-  fn read(conn: &PgConnection, person_mention_id: PersonMentionId) -> Result<Self, Error> {
-    use crate::schema::person_mention::dsl::*;
-    person_mention.find(person_mention_id).first::<Self>(conn)
+impl Crud for CommentReply {
+  type Form = CommentReplyForm;
+  type IdType = CommentReplyId;
+  fn read(conn: &PgConnection, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
+    use crate::schema::comment_reply::dsl::*;
+    comment_reply.find(comment_reply_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, person_mention_form: &PersonMentionForm) -> Result<Self, Error> {
-    use crate::schema::person_mention::dsl::*;
+  fn create(conn: &PgConnection, comment_reply_form: &CommentReplyForm) -> Result<Self, Error> {
+    use crate::schema::comment_reply::dsl::*;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
-    insert_into(person_mention)
-      .values(person_mention_form)
+    insert_into(comment_reply)
+      .values(comment_reply_form)
       .on_conflict((recipient_id, comment_id))
       .do_update()
-      .set(person_mention_form)
+      .set(comment_reply_form)
       .get_result::<Self>(conn)
   }
 
   fn update(
     conn: &PgConnection,
-    person_mention_id: PersonMentionId,
-    person_mention_form: &PersonMentionForm,
+    comment_reply_id: CommentReplyId,
+    comment_reply_form: &CommentReplyForm,
   ) -> Result<Self, Error> {
-    use crate::schema::person_mention::dsl::*;
-    diesel::update(person_mention.find(person_mention_id))
-      .set(person_mention_form)
+    use crate::schema::comment_reply::dsl::*;
+    diesel::update(comment_reply.find(comment_reply_id))
+      .set(comment_reply_form)
       .get_result::<Self>(conn)
   }
 }
 
-impl PersonMention {
+impl CommentReply {
   pub fn update_read(
     conn: &PgConnection,
-    person_mention_id: PersonMentionId,
+    comment_reply_id: CommentReplyId,
     new_read: bool,
-  ) -> Result<PersonMention, Error> {
-    use crate::schema::person_mention::dsl::*;
-    diesel::update(person_mention.find(person_mention_id))
+  ) -> Result<CommentReply, Error> {
+    use crate::schema::comment_reply::dsl::*;
+    diesel::update(comment_reply.find(comment_reply_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
@@ -52,25 +52,21 @@ impl PersonMention {
   pub fn mark_all_as_read(
     conn: &PgConnection,
     for_recipient_id: PersonId,
-  ) -> Result<Vec<PersonMention>, Error> {
-    use crate::schema::person_mention::dsl::*;
+  ) -> Result<Vec<CommentReply>, Error> {
+    use crate::schema::comment_reply::dsl::*;
     diesel::update(
-      person_mention
+      comment_reply
         .filter(recipient_id.eq(for_recipient_id))
         .filter(read.eq(false)),
     )
     .set(read.eq(true))
     .get_results::<Self>(conn)
   }
-  pub fn read_by_comment_and_person(
-    conn: &PgConnection,
-    for_comment_id: CommentId,
-    for_recipient_id: PersonId,
-  ) -> Result<Self, Error> {
-    use crate::schema::person_mention::dsl::*;
-    person_mention
+
+  pub fn read_by_comment(conn: &PgConnection, for_comment_id: CommentId) -> Result<Self, Error> {
+    use crate::schema::comment_reply::dsl::*;
+    comment_reply
       .filter(comment_id.eq(for_comment_id))
-      .filter(recipient_id.eq(for_recipient_id))
       .first::<Self>(conn)
   }
 }
@@ -80,9 +76,9 @@ mod tests {
   use crate::{
     source::{
       comment::*,
+      comment_reply::*,
       community::{Community, CommunityForm},
       person::*,
-      person_mention::*,
       post::*,
     },
     traits::Crud,
@@ -138,33 +134,33 @@ mod tests {
 
     let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
-    let person_mention_form = PersonMentionForm {
+    let comment_reply_form = CommentReplyForm {
       recipient_id: inserted_recipient.id,
       comment_id: inserted_comment.id,
       read: None,
     };
 
-    let inserted_mention = PersonMention::create(&conn, &person_mention_form).unwrap();
+    let inserted_reply = CommentReply::create(&conn, &comment_reply_form).unwrap();
 
-    let expected_mention = PersonMention {
-      id: inserted_mention.id,
-      recipient_id: inserted_mention.recipient_id,
-      comment_id: inserted_mention.comment_id,
+    let expected_reply = CommentReply {
+      id: inserted_reply.id,
+      recipient_id: inserted_reply.recipient_id,
+      comment_id: inserted_reply.comment_id,
       read: false,
-      published: inserted_mention.published,
+      published: inserted_reply.published,
     };
 
-    let read_mention = PersonMention::read(&conn, inserted_mention.id).unwrap();
-    let updated_mention =
-      PersonMention::update(&conn, inserted_mention.id, &person_mention_form).unwrap();
+    let read_reply = CommentReply::read(&conn, inserted_reply.id).unwrap();
+    let updated_reply =
+      CommentReply::update(&conn, inserted_reply.id, &comment_reply_form).unwrap();
     Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
     Person::delete(&conn, inserted_person.id).unwrap();
     Person::delete(&conn, inserted_recipient.id).unwrap();
 
-    assert_eq!(expected_mention, read_mention);
-    assert_eq!(expected_mention, inserted_mention);
-    assert_eq!(expected_mention, updated_mention);
+    assert_eq!(expected_reply, read_reply);
+    assert_eq!(expected_reply, inserted_reply);
+    assert_eq!(expected_reply, updated_reply);
   }
 }

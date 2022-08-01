@@ -1,4 +1,6 @@
 #[cfg(feature = "full")]
+pub mod comment_reply_view;
+#[cfg(feature = "full")]
 pub mod community_block_view;
 #[cfg(feature = "full")]
 pub mod community_follower_view;

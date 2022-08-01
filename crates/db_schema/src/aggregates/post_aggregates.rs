@@ -70,17 +70,17 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      parent_id: Some(inserted_comment.id),
       ..CommentForm::default()
     };
 
-    let _inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let inserted_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
 
     let post_like = PostLikeForm {
       post_id: inserted_post.id,
@@ -113,8 +113,9 @@ mod tests {
     assert_eq!(1, post_aggs_after_dislike.upvotes);
     assert_eq!(1, post_aggs_after_dislike.downvotes);
 
-    // Remove the parent comment
+    // Remove the comments
     Comment::delete(&conn, inserted_comment.id).unwrap();
+    Comment::delete(&conn, inserted_child_comment.id).unwrap();
     let after_comment_delete = PostAggregates::read(&conn, inserted_post.id).unwrap();
     assert_eq!(0, after_comment_delete.comments);
     assert_eq!(0, after_comment_delete.score);
