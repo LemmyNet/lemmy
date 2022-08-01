@@ -512,7 +512,10 @@ impl ViewToVec for PostView {
 
 #[cfg(test)]
 mod tests {
-  use crate::post_view::{PostQueryBuilder, PostView};
+  use crate::{
+    post_view::{PostQueryBuilder, PostView},
+    structs::LocalUserView,
+  };
   use diesel::PgConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
@@ -536,7 +539,6 @@ mod tests {
 
   struct Data {
     inserted_person: Person,
-    inserted_local_user: LocalUser,
     inserted_blocked_person: Person,
     inserted_bot: Person,
     inserted_community: Community,
@@ -556,28 +558,6 @@ mod tests {
     };
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
-
-    let new_local_user = LocalUserForm {
-      person_id: Some(inserted_person.id),
-      password_encrypted: Some("".to_string()),
-      ..LocalUserForm::default()
-    };
-
-    let inserted_local_user = LocalUser::create(conn, &new_local_user).unwrap();
-    let french_id = Language::read_id_from_code(conn, "fr").unwrap();
-
-    // Insert french
-    let new_local_user_language = vec![LocalUserLanguageForm {
-      local_user_id: inserted_local_user.id,
-      language_id: french_id,
-    }];
-
-    let _inserted_local_user_language = LocalUserLanguage::update_user_languages(
-      conn,
-      new_local_user_language,
-      inserted_local_user.id,
-    )
-    .unwrap();
 
     let new_bot = PersonForm {
       name: person_name.to_owned(),
@@ -646,7 +626,6 @@ mod tests {
 
     Data {
       inserted_person,
-      inserted_local_user,
       inserted_blocked_person,
       inserted_bot,
       inserted_community,
@@ -763,12 +742,12 @@ mod tests {
     let conn = establish_unpooled_connection();
     let data = init_data(&conn);
 
-    let mut read_post_listings_with_person = PostQueryBuilder::create(&conn)
+    let mut read_post_listings = PostQueryBuilder::create(&conn)
       .sort(SortType::New)
       .community_id(data.inserted_community.id);
-    read_post_listings_with_person.show_bot_accounts = Some(false);
-    read_post_listings_with_person.my_person_id = Some(data.inserted_person.id);
-    let read_post_listing_multiple_with_person = read_post_listings_with_person.list().unwrap();
+    read_post_listings.show_bot_accounts = Some(false);
+    read_post_listings.my_person_id = Some(data.inserted_person.id);
+    let read_post_listing = read_post_listings.list().unwrap();
 
     let read_post_listing_single_with_person =
       PostView::read(&conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
@@ -776,17 +755,23 @@ mod tests {
     let mut expected_post_listing_with_user = expected_post_listing(&data, &conn);
 
     // Should be only one person, IE the bot post, and blocked should be missing
-    assert_eq!(1, read_post_listing_multiple_with_person.len());
+    assert_eq!(1, read_post_listing.len());
 
-    assert_eq!(
-      expected_post_listing_with_user,
-      read_post_listing_multiple_with_person[0]
-    );
+    assert_eq!(expected_post_listing_with_user, read_post_listing[0]);
     expected_post_listing_with_user.my_vote = Some(0);
     assert_eq!(
       expected_post_listing_with_user,
       read_post_listing_single_with_person
     );
+
+    let mut read_post_listings_with_bots = PostQueryBuilder::create(&conn)
+      .sort(SortType::New)
+      .community_id(data.inserted_community.id);
+    read_post_listings_with_bots.show_bot_accounts = Some(true);
+    read_post_listings_with_bots.my_person_id = Some(data.inserted_person.id);
+    let post_listings_with_bots = read_post_listings_with_bots.list().unwrap();
+    // should include bot post which has "undetermined" language
+    assert_eq!(2, post_listings_with_bots.len());
 
     cleanup(data, &conn);
   }
@@ -881,30 +866,92 @@ mod tests {
 
   #[test]
   #[serial]
-  fn post_listing_language() {
+  fn post_listing_person_language() {
     let conn = establish_unpooled_connection();
     let data = init_data(&conn);
 
-    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
+    let spanish_id = Language::read_id_from_code(&conn, "es").unwrap();
+    let post_spanish = PostForm {
+      name: "asffgdsc".to_string(),
+      creator_id: data.inserted_person.id,
+      community_id: data.inserted_community.id,
+      language_id: Some(spanish_id),
+      ..PostForm::default()
+    };
+
+    Post::create(&conn, &post_spanish).unwrap();
+
+    let my_person_form = PersonForm {
+      name: "Reverie Toiba".to_string(),
+      public_key: Some("pubkey".to_string()),
+      ..PersonForm::default()
+    };
+    let my_person = Person::create(&conn, &my_person_form).unwrap();
+    let local_user_form = LocalUserForm {
+      person_id: Some(my_person.id),
+      password_encrypted: Some("".to_string()),
+      show_bot_accounts: Some(true),
+      ..Default::default()
+    };
+    let local_user = LocalUser::create(&conn, &local_user_form).unwrap();
+    let local_user = LocalUserView::read(&conn, local_user.id).unwrap();
+    let local_user_id = local_user.local_user.id;
+
+    let post_listings_all = PostQueryBuilder::create(&conn)
       .sort(SortType::New)
-      .community_id(data.inserted_community.id)
+      .set_params_for_user(&Some(local_user.clone()))
       .list()
       .unwrap();
 
-    let fr = LanguageId(47);
+    // no language filters specified, all posts should be returned
+    assert_eq!(4, post_listings_all.len());
 
-    assert_eq!(3, read_post_listings_no_user.len());
-    assert_eq!(fr, read_post_listings_no_user[1].post.language_id);
+    let french_id = Language::read_id_from_code(&conn, "fr").unwrap();
+    let language_form_fr = LocalUserLanguageForm {
+      local_user_id,
+      language_id: french_id,
+    };
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      vec![language_form_fr.clone()],
+      local_user_id,
+    )
+    .unwrap();
 
-    let mut read_post_listings_with_user = PostQueryBuilder::create(&conn)
+    let post_listing_french = PostQueryBuilder::create(&conn)
       .sort(SortType::New)
-      .community_id(data.inserted_community.id);
-    read_post_listings_with_user.my_local_user_id = Some(data.inserted_local_user.id);
+      .set_params_for_user(&Some(local_user.clone()))
+      .list()
+      .unwrap();
 
-    let read_post_listings_with_user = read_post_listings_with_user.list().unwrap();
+    // only one french language post should be returned
+    assert_eq!(1, post_listing_french.len());
+    assert_eq!(french_id, post_listing_french[0].post.language_id);
 
-    assert_eq!(1, read_post_listings_with_user.len());
-    assert_eq!(fr, read_post_listings_with_user[0].post.language_id);
+    let undetermined_id = Language::read_id_from_code(&conn, "und").unwrap();
+    let language_form_und = LocalUserLanguageForm {
+      local_user_id,
+      language_id: undetermined_id,
+    };
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      vec![language_form_fr, language_form_und],
+      local_user_id,
+    )
+    .unwrap();
+    let post_listings_french_und = PostQueryBuilder::create(&conn)
+      .sort(SortType::New)
+      .set_params_for_user(&Some(local_user))
+      .list()
+      .unwrap();
+
+    // french post and undetermined language post should be returned
+    assert_eq!(2, post_listings_french_und.len());
+    assert_eq!(
+      undetermined_id,
+      post_listings_french_und[0].post.language_id
+    );
+    assert_eq!(french_id, post_listings_french_und[1].post.language_id);
 
     cleanup(data, &conn);
   }

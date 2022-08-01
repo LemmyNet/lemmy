@@ -14,6 +14,7 @@ pub struct LocalUserLanguage {
   pub language_id: LanguageId,
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", table_name = "local_user_language")]
 pub struct LocalUserLanguageForm {
