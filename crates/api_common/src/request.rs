@@ -125,7 +125,7 @@ pub(crate) async fn fetch_pictrs(
   is_image_content_type(client, image_url).await?;
 
   let fetch_url = format!(
-    "{}/image/download?url={}",
+    "{}image/download?url={}",
     pictrs_config.url,
     utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
   );

@@ -96,7 +96,7 @@ async fn upload(
   };
 
   let pictrs_config = context.settings().pictrs_config()?;
-  let image_url = format!("{}/image", pictrs_config.url);
+  let image_url = format!("{}image", pictrs_config.url);
 
   let mut client_req = adapt_request(&req, &client, image_url);
 
@@ -128,13 +128,13 @@ async fn full_res(
   // If there are no query params, the URL is original
   let pictrs_config = context.settings().pictrs_config()?;
   let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}/image/original/{}", pictrs_config.url, name,)
+    format!("{}image/original/{}", pictrs_config.url, name,)
   } else {
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
     let mut url = format!(
-      "{}/image/process.{}?src={}",
+      "{}image/process.{}?src={}",
       pictrs_config.url, format, name,
     );
 
@@ -186,7 +186,7 @@ async fn delete(
   let (token, file) = components.into_inner();
 
   let pictrs_config = context.settings().pictrs_config()?;
-  let url = format!("{}/image/delete/{}/{}", pictrs_config.url, &token, &file);
+  let url = format!("{}image/delete/{}/{}", pictrs_config.url, &token, &file);
 
   let mut client_req = adapt_request(&req, &client, url);
 
