@@ -65,12 +65,12 @@ impl ViewToVec for ModTransferCommunityView {
   type DbTuple = ModTransferCommunityViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        mod_transfer_community: a.0.to_owned(),
-        moderator: a.1.to_owned(),
-        community: a.2.to_owned(),
-        modded_person: a.3.to_owned(),
+        mod_transfer_community: a.0,
+        moderator: a.1,
+        community: a.2,
+        modded_person: a.3,
       })
       .collect::<Vec<Self>>()
   }

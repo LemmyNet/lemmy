@@ -7,9 +7,10 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
     registration_application::RegistrationApplication,
   },
-  traits::{MaybeOptional, ToSafe, ToSafeSettings, ViewToVec},
+  traits::{ToSafe, ToSafeSettings, ViewToVec},
   utils::limit_and_offset,
 };
+use typed_builder::TypedBuilder;
 
 type RegistrationApplicationViewTuple = (
   RegistrationApplication,
@@ -70,7 +71,10 @@ impl RegistrationApplicationView {
   }
 }
 
-pub struct RegistrationApplicationQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct RegistrationApplicationQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   unread_only: Option<bool>,
   verified_email_only: Option<bool>,
@@ -78,37 +82,7 @@ pub struct RegistrationApplicationQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> RegistrationApplicationQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    RegistrationApplicationQueryBuilder {
-      conn,
-      unread_only: None,
-      verified_email_only: None,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn unread_only<T: MaybeOptional<bool>>(mut self, unread_only: T) -> Self {
-    self.unread_only = unread_only.get_optional();
-    self
-  }
-
-  pub fn verified_email_only<T: MaybeOptional<bool>>(mut self, verified_email_only: T) -> Self {
-    self.verified_email_only = verified_email_only.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
+impl<'a> RegistrationApplicationQuery<'a> {
   pub fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
@@ -151,12 +125,12 @@ impl ViewToVec for RegistrationApplicationView {
   type DbTuple = RegistrationApplicationViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        registration_application: a.0.to_owned(),
-        creator_local_user: a.1.to_owned(),
-        creator: a.2.to_owned(),
-        admin: a.3.to_owned(),
+        registration_application: a.0,
+        creator_local_user: a.1,
+        creator: a.2,
+        admin: a.3,
       })
       .collect::<Vec<Self>>()
   }
@@ -165,7 +139,7 @@ impl ViewToVec for RegistrationApplicationView {
 #[cfg(test)]
 mod tests {
   use crate::registration_application_view::{
-    RegistrationApplicationQueryBuilder,
+    RegistrationApplicationQuery,
     RegistrationApplicationView,
   };
   use lemmy_db_schema::{
@@ -302,8 +276,10 @@ mod tests {
     assert_eq!(read_sara_app_view, expected_sara_app_view);
 
     // Do a batch read of the applications
-    let apps = RegistrationApplicationQueryBuilder::create(&conn)
-      .unread_only(true)
+    let apps = RegistrationApplicationQuery::builder()
+      .conn(&conn)
+      .unread_only(Some(true))
+      .build()
       .list()
       .unwrap();
 
@@ -369,8 +345,10 @@ mod tests {
 
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
-    let apps_after_resolve = RegistrationApplicationQueryBuilder::create(&conn)
-      .unread_only(true)
+    let apps_after_resolve = RegistrationApplicationQuery::builder()
+      .conn(&conn)
+      .unread_only(Some(true))
+      .build()
       .list()
       .unwrap();
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
@@ -381,7 +359,9 @@ mod tests {
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
-    let all_apps = RegistrationApplicationQueryBuilder::create(&conn)
+    let all_apps = RegistrationApplicationQuery::builder()
+      .conn(&conn)
+      .build()
       .list()
       .unwrap();
     assert_eq!(all_apps.len(), 2);

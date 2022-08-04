@@ -2020,6 +2020,7 @@ dependencies = [
  "serde",
  "serial_test",
  "tracing",
+ "typed-builder",
 ]
 
 [[package]]
@@ -2029,6 +2030,7 @@ dependencies = [
  "diesel",
  "lemmy_db_schema",
  "serde",
+ "typed-builder",
 ]
 
 [[package]]
@@ -4200,6 +4202,17 @@ name = "typed-arena"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9b2228007eba4120145f785df0f6c92ea538f5a3635a612ecf4e334c8c1446d"
+
+[[package]]
+name = "typed-builder"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89851716b67b937e393b3daa8423e67ddfc4bbbf1654bcf05488e95e0828db0c"
+dependencies = [
+ "proc-macro2 1.0.39",
+ "quote 1.0.18",
+ "syn 1.0.96",
+]
 
 [[package]]
 name = "typenum"

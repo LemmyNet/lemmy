@@ -25,10 +25,11 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::Post,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, limit_and_offset},
   CommentSortType,
 };
+use typed_builder::TypedBuilder;
 
 type CommentReplyViewTuple = (
   CommentReply,
@@ -159,7 +160,10 @@ impl CommentReplyView {
   }
 }
 
-pub struct CommentReplyQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct CommentReplyQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
@@ -170,55 +174,7 @@ pub struct CommentReplyQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> CommentReplyQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    CommentReplyQueryBuilder {
-      conn,
-      my_person_id: None,
-      recipient_id: None,
-      sort: None,
-      unread_only: None,
-      show_bot_accounts: None,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn sort<T: MaybeOptional<CommentSortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn unread_only<T: MaybeOptional<bool>>(mut self, unread_only: T) -> Self {
-    self.unread_only = unread_only.get_optional();
-    self
-  }
-
-  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
-    self.show_bot_accounts = show_bot_accounts.get_optional();
-    self
-  }
-
-  pub fn recipient_id<T: MaybeOptional<PersonId>>(mut self, recipient_id: T) -> Self {
-    self.recipient_id = recipient_id.get_optional();
-    self
-  }
-
-  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
-    self.my_person_id = my_person_id.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
+impl<'a> CommentReplyQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentReplyView>, Error> {
     use diesel::dsl::*;
 
