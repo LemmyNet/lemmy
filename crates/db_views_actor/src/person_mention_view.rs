@@ -280,15 +280,15 @@ impl ViewToVec for PersonMentionView {
   type DbTuple = PersonMentionViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        person_mention: a.0.to_owned(),
-        comment: a.1.to_owned(),
-        creator: a.2.to_owned(),
-        post: a.3.to_owned(),
-        community: a.4.to_owned(),
-        recipient: a.5.to_owned(),
-        counts: a.6.to_owned(),
+        person_mention: a.0,
+        comment: a.1,
+        creator: a.2,
+        post: a.3,
+        community: a.4,
+        recipient: a.5,
+        counts: a.6,
         creator_banned_from_community: a.7.is_some(),
         subscribed: CommunityFollower::to_subscribed_type(&a.8),
         saved: a.9.is_some(),

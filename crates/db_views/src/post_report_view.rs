@@ -245,17 +245,17 @@ impl ViewToVec for PostReportView {
   type DbTuple = PostReportViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        post_report: a.0.to_owned(),
-        post: a.1.to_owned(),
-        community: a.2.to_owned(),
-        creator: a.3.to_owned(),
-        post_creator: a.4.to_owned(),
+        post_report: a.0,
+        post: a.1,
+        community: a.2,
+        creator: a.3,
+        post_creator: a.4,
         creator_banned_from_community: a.5.is_some(),
         my_vote: a.6,
-        counts: a.7.to_owned(),
-        resolver: a.8.to_owned(),
+        counts: a.7,
+        resolver: a.8,
       })
       .collect::<Vec<Self>>()
   }

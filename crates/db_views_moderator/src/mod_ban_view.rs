@@ -50,11 +50,11 @@ impl ViewToVec for ModBanView {
   type DbTuple = ModBanViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        mod_ban: a.0.to_owned(),
-        moderator: a.1.to_owned(),
-        banned_person: a.2.to_owned(),
+        mod_ban: a.0,
+        moderator: a.1,
+        banned_person: a.2,
       })
       .collect::<Vec<Self>>()
   }

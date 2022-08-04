@@ -391,13 +391,13 @@ impl ViewToVec for PostView {
   type DbTuple = PostViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        post: a.0.to_owned(),
-        creator: a.1.to_owned(),
-        community: a.2.to_owned(),
+        post: a.0,
+        creator: a.1,
+        community: a.2,
         creator_banned_from_community: a.3.is_some(),
-        counts: a.4.to_owned(),
+        counts: a.4,
         subscribed: CommunityFollower::to_subscribed_type(&a.5),
         saved: a.6.is_some(),
         read: a.7.is_some(),

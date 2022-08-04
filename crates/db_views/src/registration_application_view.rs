@@ -125,12 +125,12 @@ impl ViewToVec for RegistrationApplicationView {
   type DbTuple = RegistrationApplicationViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        registration_application: a.0.to_owned(),
-        creator_local_user: a.1.to_owned(),
-        creator: a.2.to_owned(),
-        admin: a.3.to_owned(),
+        registration_application: a.0,
+        creator_local_user: a.1,
+        creator: a.2,
+        admin: a.3,
       })
       .collect::<Vec<Self>>()
   }
