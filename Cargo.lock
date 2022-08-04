@@ -2030,6 +2030,7 @@ dependencies = [
  "diesel",
  "lemmy_db_schema",
  "serde",
+ "typed-builder",
 ]
 
 [[package]]

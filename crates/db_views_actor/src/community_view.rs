@@ -8,11 +8,12 @@ use lemmy_db_schema::{
     community::{Community, CommunityFollower, CommunitySafe},
     community_block::CommunityBlock,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
+use typed_builder::TypedBuilder;
 
 type CommunityViewTuple = (
   CommunitySafe,
@@ -91,7 +92,10 @@ impl CommunityView {
   }
 }
 
-pub struct CommunityQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct CommunityQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
@@ -102,55 +106,7 @@ pub struct CommunityQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> CommunityQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    CommunityQueryBuilder {
-      conn,
-      my_person_id: None,
-      listing_type: Some(ListingType::All),
-      sort: None,
-      show_nsfw: None,
-      search_term: None,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
-    self.listing_type = listing_type.get_optional();
-    self
-  }
-
-  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn show_nsfw<T: MaybeOptional<bool>>(mut self, show_nsfw: T) -> Self {
-    self.show_nsfw = show_nsfw.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
-    self.my_person_id = my_person_id.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
+impl<'a> CommunityQuery<'a> {
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
     // The left join below will return None in this case
     let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));

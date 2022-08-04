@@ -130,22 +130,6 @@ pub trait DeleteableOrRemoveable {
   fn blank_out_deleted_or_removed_info(self) -> Self;
 }
 
-pub trait MaybeOptional<T> {
-  fn get_optional(self) -> Option<T>;
-}
-
-impl<T> MaybeOptional<T> for T {
-  fn get_optional(self) -> Option<T> {
-    Some(self)
-  }
-}
-
-impl<T> MaybeOptional<T> for Option<T> {
-  fn get_optional(self) -> Option<T> {
-    self
-  }
-}
-
 pub trait ToSafe {
   type SafeColumns;
   fn safe_columns_tuple() -> Self::SafeColumns;

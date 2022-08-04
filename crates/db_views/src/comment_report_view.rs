@@ -23,9 +23,10 @@ use lemmy_db_schema::{
     person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::limit_and_offset,
 };
+use typed_builder::TypedBuilder;
 
 type CommentReportViewTuple = (
   CommentReport,
@@ -159,9 +160,14 @@ impl CommentReportView {
   }
 }
 
-pub struct CommentReportQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct CommentReportQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
+  #[builder(!default)]
   my_person_id: PersonId,
+  #[builder(!default)]
   admin: bool,
   community_id: Option<CommunityId>,
   page: Option<i64>,
@@ -169,39 +175,7 @@ pub struct CommentReportQueryBuilder<'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a> CommentReportQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, my_person_id: PersonId, admin: bool) -> Self {
-    CommentReportQueryBuilder {
-      conn,
-      my_person_id,
-      admin,
-      community_id: None,
-      page: None,
-      limit: None,
-      unresolved_only: Some(true),
-    }
-  }
-
-  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
-    self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn unresolved_only<T: MaybeOptional<bool>>(mut self, unresolved_only: T) -> Self {
-    self.unresolved_only = unresolved_only.get_optional();
-    self
-  }
-
+impl<'a> CommentReportQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentReportView>, Error> {
     let mut query = comment_report::table
       .inner_join(comment::table)
@@ -286,18 +260,18 @@ impl ViewToVec for CommentReportView {
   type DbTuple = CommentReportViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        comment_report: a.0.to_owned(),
-        comment: a.1.to_owned(),
-        post: a.2.to_owned(),
-        community: a.3.to_owned(),
-        creator: a.4.to_owned(),
-        comment_creator: a.5.to_owned(),
-        counts: a.6.to_owned(),
+        comment_report: a.0,
+        comment: a.1,
+        post: a.2,
+        community: a.3,
+        creator: a.4,
+        comment_creator: a.5,
+        counts: a.6,
         creator_banned_from_community: a.7.is_some(),
         my_vote: a.8,
-        resolver: a.9.to_owned(),
+        resolver: a.9,
       })
       .collect::<Vec<Self>>()
   }
@@ -305,7 +279,7 @@ impl ViewToVec for CommentReportView {
 
 #[cfg(test)]
 mod tests {
-  use crate::comment_report_view::{CommentReportQueryBuilder, CommentReportView};
+  use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
     source::{comment::*, comment_report::*, community::*, person::*, post::*},
@@ -504,7 +478,11 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = CommentReportQueryBuilder::create(&conn, inserted_timmy.id, false)
+    let reports = CommentReportQuery::builder()
+      .conn(&conn)
+      .my_person_id(inserted_timmy.id)
+      .admin(false)
+      .build()
       .list()
       .unwrap();
 
@@ -566,7 +544,11 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = CommentReportQueryBuilder::create(&conn, inserted_timmy.id, false)
+    let reports_after_resolve = CommentReportQuery::builder()
+      .conn(&conn)
+      .my_person_id(inserted_timmy.id)
+      .admin(false)
+      .build()
       .list()
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);

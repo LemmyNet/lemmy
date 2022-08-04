@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::source::site::Site;
-use lemmy_db_views::registration_application_view::RegistrationApplicationQueryBuilder;
+use lemmy_db_views::registration_application_view::RegistrationApplicationQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -34,11 +34,13 @@ impl Perform for ListRegistrationApplications {
     let page = data.page;
     let limit = data.limit;
     let registration_applications = blocking(context.pool(), move |conn| {
-      RegistrationApplicationQueryBuilder::create(conn)
+      RegistrationApplicationQuery::builder()
+        .conn(conn)
         .unread_only(unread_only)
-        .verified_email_only(verified_email_only)
+        .verified_email_only(Some(verified_email_only))
         .page(page)
         .limit(limit)
+        .build()
         .list()
     })
     .await??;

@@ -49,14 +49,14 @@ impl PrivateMessageView {
 }
 
 #[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
 pub struct PrivateMessageQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
+  #[builder(!default)]
   recipient_id: PersonId,
-  #[builder(default)]
   unread_only: Option<bool>,
-  #[builder(default)]
   page: Option<i64>,
-  #[builder(default)]
   limit: Option<i64>,
 }
 

@@ -24,11 +24,12 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::Post,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset_unlimited},
   CommentSortType,
   ListingType,
 };
+use typed_builder::TypedBuilder;
 
 type CommentViewTuple = (
   Comment,
@@ -146,7 +147,10 @@ impl CommentView {
   }
 }
 
-pub struct CommentQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct CommentQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
@@ -164,97 +168,7 @@ pub struct CommentQueryBuilder<'a> {
   max_depth: Option<i32>,
 }
 
-impl<'a> CommentQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    CommentQueryBuilder {
-      conn,
-      listing_type: Some(ListingType::All),
-      sort: None,
-      community_id: None,
-      community_actor_id: None,
-      post_id: None,
-      parent_path: None,
-      creator_id: None,
-      my_person_id: None,
-      search_term: None,
-      saved_only: None,
-      show_bot_accounts: None,
-      page: None,
-      limit: None,
-      max_depth: None,
-    }
-  }
-
-  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
-    self.listing_type = listing_type.get_optional();
-    self
-  }
-
-  pub fn sort<T: MaybeOptional<CommentSortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn post_id<T: MaybeOptional<PostId>>(mut self, post_id: T) -> Self {
-    self.post_id = post_id.get_optional();
-    self
-  }
-
-  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
-    self.creator_id = creator_id.get_optional();
-    self
-  }
-
-  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
-    self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
-    self.my_person_id = my_person_id.get_optional();
-    self
-  }
-
-  pub fn community_actor_id<T: MaybeOptional<DbUrl>>(mut self, community_actor_id: T) -> Self {
-    self.community_actor_id = community_actor_id.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn saved_only<T: MaybeOptional<bool>>(mut self, saved_only: T) -> Self {
-    self.saved_only = saved_only.get_optional();
-    self
-  }
-
-  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
-    self.show_bot_accounts = show_bot_accounts.get_optional();
-    self
-  }
-
-  pub fn parent_path<T: MaybeOptional<Ltree>>(mut self, parent_path: T) -> Self {
-    self.parent_path = parent_path.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn max_depth<T: MaybeOptional<i32>>(mut self, max_depth: T) -> Self {
-    self.max_depth = max_depth.get_optional();
-    self
-  }
-
+impl<'a> CommentQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentView>, Error> {
     use diesel::dsl::*;
 
@@ -691,8 +605,10 @@ mod tests {
     let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
     expected_comment_view_with_person.my_vote = Some(1);
 
-    let read_comment_views_no_person = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
+    let read_comment_views_no_person = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(inserted_post.id))
+      .build()
       .list()
       .unwrap();
 
@@ -701,9 +617,11 @@ mod tests {
       read_comment_views_no_person[0]
     );
 
-    let read_comment_views_with_person = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .my_person_id(inserted_person.id)
+    let read_comment_views_with_person = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(inserted_post.id))
+      .my_person_id(Some(inserted_person.id))
+      .build()
       .list()
       .unwrap();
 
@@ -722,16 +640,20 @@ mod tests {
     assert!(read_comment_from_blocked_person.creator_blocked);
 
     let top_path = inserted_comment_0.path;
-    let read_comment_views_top_path = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .parent_path(top_path)
+    let read_comment_views_top_path = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(inserted_post.id))
+      .parent_path(Some(top_path))
+      .build()
       .list()
       .unwrap();
 
     let child_path = inserted_comment_1.to_owned().path;
-    let read_comment_views_child_path = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .parent_path(child_path)
+    let read_comment_views_child_path = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(inserted_post.id))
+      .parent_path(Some(child_path))
+      .build()
       .list()
       .unwrap();
 
@@ -747,9 +669,11 @@ mod tests {
     assert!(child_comments.contains(&inserted_comment_1));
     assert!(!child_comments.contains(&inserted_comment_2));
 
-    let read_comment_views_top_max_depth = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .max_depth(1)
+    let read_comment_views_top_max_depth = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(inserted_post.id))
+      .max_depth(Some(1))
+      .build()
       .list()
       .unwrap();
 
@@ -761,11 +685,13 @@ mod tests {
     assert_eq!(1, read_comment_views_top_max_depth.len());
 
     let child_path = inserted_comment_1.path;
-    let read_comment_views_parent_max_depth = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .parent_path(child_path)
-      .max_depth(1)
-      .sort(CommentSortType::New)
+    let read_comment_views_parent_max_depth = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(inserted_post.id))
+      .parent_path(Some(child_path))
+      .max_depth(Some(1))
+      .sort(Some(CommentSortType::New))
+      .build()
       .list()
       .unwrap();
 

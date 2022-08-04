@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community},
   traits::{Crud, DeleteableOrRemoveable},
 };
-use lemmy_db_views::comment_view::CommentQueryBuilder;
+use lemmy_db_views::comment_view::CommentQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -71,8 +71,9 @@ impl PerformCrud for GetComments {
 
     let post_id = data.post_id;
     let mut comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .listing_type(listing_type)
+      CommentQuery::builder()
+        .conn(conn)
+        .listing_type(Some(listing_type))
         .sort(sort)
         .max_depth(max_depth)
         .saved_only(saved_only)
@@ -84,6 +85,7 @@ impl PerformCrud for GetComments {
         .show_bot_accounts(show_bot_accounts)
         .page(page)
         .limit(limit)
+        .build()
         .list()
     })
     .await?
