@@ -2,19 +2,20 @@
 set -e
 
 ## This script upgrades the postgres from version 12 to 14
+echo "Do not stop in the middle of this upgrade, wait until you see the message: Upgrade complete."
 
-## Make sure everything is started
-sudo docker-compose start
+## Make sure postgres is started
+sudo docker-compose up -d postgres
+sleep 20s
 
 # Export the DB
 echo "Exporting the Database to 12_14.dump.sql ..."
 sudo docker-compose exec -T postgres pg_dumpall -c -U lemmy > 12_14_dump.sql
 echo "Done."
 
-# Stop everything
-sudo docker-compose stop
-
-sleep 10s
+# Stop postgres
+sudo docker-compose stop postgres
+sleep 20s
 
 # Delete the folder
 echo "Removing the old postgres folder"
@@ -52,3 +53,4 @@ sudo docker-compose up -d
 
 # Delete the DB Dump? Probably safe to keep it
 echo "A copy of your old database is at 12_14.dump.sql . You can delete this file if the upgrade went smoothly."
+echo "Upgrade complete."
