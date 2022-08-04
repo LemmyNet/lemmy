@@ -226,7 +226,7 @@ impl<'a> CommentReportQuery<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if self.unresolved_only.unwrap_or(false) {
+    if self.unresolved_only.unwrap_or(true) {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
@@ -552,6 +552,7 @@ mod tests {
       .list()
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
+    assert_eq!(reports_after_resolve.len(), 1);
 
     // Make sure the counts are correct
     let report_count_after_resolved =
