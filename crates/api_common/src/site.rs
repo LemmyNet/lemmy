@@ -121,6 +121,7 @@ pub struct CreateSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<String>,
+  pub application_email_admins: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
@@ -142,6 +143,7 @@ pub struct EditSite {
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<String>,
   pub legal_information: Option<String>,
+  pub application_email_admins: Option<bool>,
   pub auth: Sensitive<String>,
 }
 

@@ -3,7 +3,13 @@ use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, Register},
-  utils::{blocking, honeypot_check, password_length_check, send_verification_email},
+  utils::{
+    blocking,
+    honeypot_check,
+    password_length_check,
+    send_new_applicant_email_to_admins,
+    send_verification_email,
+  },
 };
 use lemmy_apub::{
   generate_inbox_url,
@@ -47,7 +53,8 @@ impl PerformCrud for Register {
     let (mut email_verification, mut require_application) = (false, false);
 
     // Make sure site has open registration
-    if let Ok(site) = blocking(context.pool(), Site::read_local_site).await? {
+    let site = blocking(context.pool(), Site::read_local_site).await?;
+    if let Ok(site) = &site {
       if !site.open_registration {
         return Err(LemmyError::from_message("registration_closed"));
       }
@@ -180,6 +187,12 @@ impl PerformCrud for Register {
         RegistrationApplication::create(conn, &form)
       })
       .await??;
+    }
+
+    // Email the admins
+    if site.map(|s| s.application_email_admins).unwrap_or(false) {
+      send_new_applicant_email_to_admins(&data.username, context.pool(), context.settings())
+        .await?;
     }
 
     let mut login_response = LoginResponse {
