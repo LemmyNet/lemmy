@@ -121,6 +121,7 @@ impl ApubObject for ApubComment {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       tag: maa.tags,
+      distinguished: Some(self.distinguished),
     };
 
     Ok(note)
@@ -184,7 +185,7 @@ impl ApubObject for ApubComment {
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,
       ap_id: Some(note.id.into()),
-      distinguished: None, // TODO how to do this?
+      distinguished: note.distinguished,
       local: Some(false),
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);

@@ -16,6 +16,7 @@
       "@type": "@id",
       "@id": "lemmy:moderators"
     },
-    "expires": "as:endTime"
+    "expires": "as:endTime",
+    "distinguished": "lemmy:distinguished"
   }
 ]
