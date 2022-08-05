@@ -7,6 +7,7 @@ use lemmy_api_common::{
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
     get_local_user_view_from_jwt,
+    is_mod_or_admin,
   },
 };
 use lemmy_apub::protocol::activities::{
@@ -47,6 +48,7 @@ impl PerformCrud for EditComment {
       CommentView::read(conn, comment_id, None)
     })
     .await??;
+    let mut updated_comment = orig_comment.comment.clone();
 
     // TODO is this necessary? It should really only need to check on create
     check_community_ban(
@@ -63,15 +65,32 @@ impl PerformCrud for EditComment {
       return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
-    // Do the update
-    let content_slurs_removed =
-      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
-    let comment_id = data.comment_id;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_content(conn, comment_id, &content_slurs_removed)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    if let Some(distinguished) = data.distinguished {
+      // Verify that only a mod or admin can distinguish a comment
+      is_mod_or_admin(
+        context.pool(),
+        local_user_view.person.id,
+        orig_comment.community.id,
+      )
+      .await?;
+
+      updated_comment = blocking(context.pool(), move |conn| {
+        Comment::update_distinguished(conn, comment_id, distinguished)
+      })
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    }
+
+    // Update the Content
+    if let Some(content) = &data.content {
+      let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
+      let comment_id = data.comment_id;
+      updated_comment = blocking(context.pool(), move |conn| {
+        Comment::update_content(conn, comment_id, &content_slurs_removed)
+      })
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    };
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();

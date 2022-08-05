@@ -531,6 +531,7 @@ mod tests {
         ap_id: inserted_comment_0.ap_id,
         updated: None,
         local: true,
+        distinguished: false,
         path: top_path,
       },
       creator: PersonSafe {

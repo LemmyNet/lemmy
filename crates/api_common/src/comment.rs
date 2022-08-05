@@ -24,8 +24,9 @@ pub struct GetComment {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditComment {
-  pub content: String,
   pub comment_id: CommentId,
+  pub content: Option<String>,
+  pub distinguished: Option<bool>,
   pub form_id: Option<String>,
   pub auth: Sensitive<String>,
 }

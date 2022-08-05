@@ -184,6 +184,7 @@ impl ApubObject for ApubComment {
       updated: note.updated.map(|u| u.naive_local()),
       deleted: None,
       ap_id: Some(note.id.into()),
+      distinguished: None, // TODO how to do this?
       local: Some(false),
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);

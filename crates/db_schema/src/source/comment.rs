@@ -22,6 +22,7 @@ pub struct Comment {
   pub local: bool,
   #[serde(with = "LtreeDef")]
   pub path: Ltree,
+  pub distinguished: bool,
 }
 
 #[derive(Clone, Default)]
@@ -37,6 +38,7 @@ pub struct CommentForm {
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
+  pub distinguished: Option<bool>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

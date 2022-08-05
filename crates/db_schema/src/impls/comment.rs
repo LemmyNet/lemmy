@@ -86,6 +86,17 @@ impl Comment {
       .get_result::<Self>(conn)
   }
 
+  pub fn update_distinguished(
+    conn: &PgConnection,
+    comment_id: CommentId,
+    new_distinguished: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((distinguished.eq(new_distinguished), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
   pub fn create(
     conn: &PgConnection,
     comment_form: &CommentForm,
@@ -330,6 +341,7 @@ mod tests {
       published: inserted_comment.published,
       updated: None,
       ap_id: inserted_comment.ap_id.to_owned(),
+      distinguished: false,
       local: true,
     };
 
