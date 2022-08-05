@@ -33,11 +33,13 @@ impl Vote {
   pub(in crate::activities::voting) fn new(
     object: &PostOrComment,
     actor: &ApubPerson,
+    community: &ApubCommunity,
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: ObjectId::new(actor.actor_id()),
+      to: vec![community.actor_id()],
       object: ObjectId::new(object.ap_id()),
       cc: vec![public()],
       kind: kind.clone(),
@@ -59,7 +61,7 @@ impl Vote {
     })
     .await??
     .into();
-    let vote = Vote::new(object, actor, kind, context)?;
+    let vote = Vote::new(object, actor, &community, kind, context)?;
     let vote_id = vote.id.clone();
 
     let activity = AnnouncableActivities::Vote(vote);
