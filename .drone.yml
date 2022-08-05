@@ -10,7 +10,7 @@ steps:
 
   # use minimum supported rust version for most steps
   - name: prepare repo
-    image: clux/muslrust:1.57.0
+    image: clux/muslrust:stable
     user: root
     commands:
       - git fetch --tags
@@ -25,14 +25,14 @@ steps:
 
   # latest rust for clippy to get extra checks
   - name: cargo clippy
-    image: rust:1.61-buster
+    image: rust:1-buster
     commands:
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: clux/muslrust:1.57.0
+    image: clux/muslrust:stable
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -44,20 +44,20 @@ steps:
       - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
-    image: clux/muslrust:1.57.0
+    image: clux/muslrust:stable
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: check with different features
-    image: clux/muslrust:1.57.0
+    image: clux/muslrust:stable
     commands:
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
       - cargo workspaces exec cargo check --all-features
 
   - name: cargo build
-    image: clux/muslrust:1.57.0
+    image: clux/muslrust:stable
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
@@ -171,7 +171,7 @@ platform:
 steps:
 
   - name: prepare repo
-    image: rust:1.57-slim
+    image: rust:1-slim
     user: root
     commands:
       - chown 1000:1000 . -R
