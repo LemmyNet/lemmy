@@ -6,6 +6,7 @@ use crate::schema::{
   comment_aggregates,
   community_aggregates,
   person_aggregates,
+  person_post_aggregates,
   post_aggregates,
   site_aggregates,
 };
@@ -65,6 +66,27 @@ pub struct PostAggregates {
   pub published: chrono::NaiveDateTime,
   pub newest_comment_time_necro: chrono::NaiveDateTime, // A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time: chrono::NaiveDateTime,
+}
+
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", table_name = "person_post_aggregates")]
+pub struct PersonPostAggregates {
+  pub id: i32,
+  pub person_id: PersonId,
+  pub post_id: PostId,
+  pub read_comments: i64,
+  pub published: chrono::NaiveDateTime,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", table_name = "person_post_aggregates")]
+pub struct PersonPostAggregatesForm {
+  pub person_id: PersonId,
+  pub post_id: PostId,
+  pub read_comments: i64,
+  pub published: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]

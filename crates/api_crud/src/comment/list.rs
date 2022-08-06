@@ -11,6 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
+  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::{comment::Comment, community::Community},
   traits::{Crud, DeleteableOrRemoveable},
 };
@@ -90,6 +91,26 @@ impl PerformCrud for GetComments {
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_comments"))?;
+
+    // If getting the comments for a post, insert into PersonPostAggregates
+    // to update the read_comments count
+    let read_comments = comments.len() as i64;
+    if let Some(post_id) = post_id {
+      if let Some(person_id) = local_user_view.map(|l| l.person.id) {
+        if parent_path.is_none() {
+          let person_post_agg_form = PersonPostAggregatesForm {
+            person_id,
+            post_id,
+            read_comments,
+            ..PersonPostAggregatesForm::default()
+          };
+          blocking(context.pool(), move |conn| {
+            PersonPostAggregates::upsert(&conn, &person_post_agg_form)
+          })
+          .await?;
+        }
+      }
+    }
 
     // Blank out deleted or removed info
     for cv in comments

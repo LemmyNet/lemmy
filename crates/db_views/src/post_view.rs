@@ -10,6 +10,7 @@ use lemmy_db_schema::{
     community_person_ban,
     person,
     person_block,
+    person_post_aggregates,
     post,
     post_aggregates,
     post_like,
@@ -41,7 +42,10 @@ type PostViewTuple = (
   Option<PostRead>,
   Option<PersonBlock>,
   Option<i16>,
+  i64,
 );
+
+sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
 impl PostView {
   pub fn read(
@@ -63,6 +67,7 @@ impl PostView {
       read,
       creator_blocked,
       post_like,
+      unread_comments,
     ) = post::table
       .find(post_id)
       .inner_join(person::table)
@@ -115,6 +120,13 @@ impl PostView {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        person_post_aggregates::table.on(
+          post::id
+            .eq(person_post_aggregates::post_id)
+            .and(person_post_aggregates::person_id.eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -126,6 +138,10 @@ impl PostView {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
+        coalesce(
+          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
+          post_aggregates::comments,
+        ),
       ))
       .first::<PostViewTuple>(conn)?;
 
@@ -148,6 +164,7 @@ impl PostView {
       read: read.is_some(),
       creator_blocked: creator_blocked.is_some(),
       my_vote,
+      unread_comments,
     })
   }
 }
@@ -238,6 +255,13 @@ impl<'a> PostQuery<'a> {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        person_post_aggregates::table.on(
+          post::id
+            .eq(person_post_aggregates::post_id)
+            .and(person_post_aggregates::person_id.eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -249,6 +273,10 @@ impl<'a> PostQuery<'a> {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
+        coalesce(
+          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
+          post_aggregates::comments,
+        ),
       ))
       .into_boxed();
 
@@ -403,6 +431,7 @@ impl ViewToVec for PostView {
         read: a.7.is_some(),
         creator_blocked: a.8.is_some(),
         my_vote: a.9,
+        unread_comments: a.10,
       })
       .collect::<Vec<Self>>()
   }
@@ -412,8 +441,9 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::post_view::{PostQuery, PostView};
   use lemmy_db_schema::{
-    aggregates::structs::PostAggregates,
+    aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm, PostAggregates},
     source::{
+      comment::{Comment, CommentForm},
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
       person::*,
@@ -524,7 +554,7 @@ mod tests {
       score: 1,
     };
 
-    let read_post_listings_with_person = PostQuery::builder()
+    let read_post_listings_with_user = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
       .show_bot_accounts(Some(false))
@@ -543,7 +573,7 @@ mod tests {
       .unwrap();
 
     let read_post_listing_no_person = PostView::read(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_person =
+    let read_post_listing_with_user =
       PostView::read(&conn, inserted_post.id, Some(inserted_person.id)).unwrap();
 
     let agg = PostAggregates::read(&conn, inserted_post.id).unwrap();
@@ -572,6 +602,7 @@ mod tests {
         local: true,
       },
       my_vote: None,
+      unread_comments: 0,
       creator: PersonSafe {
         id: inserted_person.id,
         name: person_name,
@@ -649,6 +680,47 @@ mod tests {
     let mut expected_post_listing_with_user = expected_post_listing_no_person.to_owned();
     expected_post_listing_with_user.my_vote = Some(1);
 
+    // Try to insert a comment
+    let comment_form_0 = CommentForm {
+      content: "Comment 0".into(),
+      creator_id: inserted_person.id,
+      post_id: inserted_post.id,
+      ..CommentForm::default()
+    };
+
+    let inserted_comment_0 = Comment::create(&conn, &comment_form_0, None).unwrap();
+
+    // Make sure there is 1 unread comment
+    let mut expected_post_listing_with_user_and_comment =
+      expected_post_listing_with_user.to_owned();
+    expected_post_listing_with_user_and_comment.unread_comments = 1;
+    expected_post_listing_with_user_and_comment.counts.comments = 1;
+    expected_post_listing_with_user_and_comment
+      .counts
+      .newest_comment_time = inserted_comment_0.published;
+
+    let read_post_listing_with_user_and_comment =
+      PostView::read(&conn, inserted_post.id, Some(inserted_person.id)).unwrap();
+
+    let person_post_agg_form = PersonPostAggregatesForm {
+      person_id: inserted_person.id,
+      post_id: inserted_post.id,
+      read_comments: read_post_listing_with_user_and_comment.counts.comments,
+      ..PersonPostAggregatesForm::default()
+    };
+
+    PersonPostAggregates::upsert(&conn, &person_post_agg_form).unwrap();
+
+    // Make sure after the PersonPostAggregates update, that there are zero unread comments
+    let mut expected_post_listing_with_user_and_comment_after_mark_read =
+      expected_post_listing_with_user_and_comment.to_owned();
+    expected_post_listing_with_user_and_comment_after_mark_read.unread_comments = 0;
+    expected_post_listing_with_user_and_comment_after_mark_read
+      .counts
+      .comments = 1;
+    let read_post_listing_with_user_and_comment_after_mark_read =
+      PostView::read(&conn, inserted_post.id, Some(inserted_person.id)).unwrap();
+
     let like_removed = PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
     PersonBlock::unblock(&conn, &person_block).unwrap();
@@ -661,15 +733,22 @@ mod tests {
     // The with user
     assert_eq!(
       expected_post_listing_with_user,
-      read_post_listings_with_person[0]
+      read_post_listings_with_user[0]
     );
+    assert_eq!(expected_post_listing_with_user, read_post_listing_with_user);
+
     assert_eq!(
-      expected_post_listing_with_user,
-      read_post_listing_with_person
+      expected_post_listing_with_user_and_comment,
+      read_post_listing_with_user_and_comment,
+    );
+
+    assert_eq!(
+      expected_post_listing_with_user_and_comment_after_mark_read,
+      read_post_listing_with_user_and_comment_after_mark_read,
     );
 
     // Should be only one person, IE the bot post, and blocked should be missing
-    assert_eq!(1, read_post_listings_with_person.len());
+    assert_eq!(1, read_post_listings_with_user.len());
 
     // Without the user
     assert_eq!(
