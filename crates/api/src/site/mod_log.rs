@@ -80,12 +80,12 @@ impl Perform for GetModlog {
     };
     let other_person_id = data.other_person_id;
     let params = ModlogListParams {
-      community_id: community_id,
-      mod_person_id: mod_person_id,
-      other_person_id: other_person_id,
+      community_id,
+      mod_person_id,
+      other_person_id,
       page: data.page,
       limit: data.limit,
-      hide_modlog_names: hide_modlog_names,
+      hide_modlog_names,
     };
     let removed_posts = match type_ {
       All | ModRemovePost => {
