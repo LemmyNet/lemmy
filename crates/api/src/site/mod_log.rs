@@ -158,15 +158,11 @@ impl Perform for GetModlog {
     };
 
     let hidden_communities = match type_ {
-      All | ModHideCommunity => {
-        if other_person_id.is_none() {
-          blocking(context.pool(), move |conn| {
-            ModHideCommunityView::list(conn, params)
-          })
-          .await??
-        } else {
-          Default::default()
-        }
+      All | ModHideCommunity if other_person_id.is_none() => {
+        blocking(context.pool(), move |conn| {
+          ModHideCommunityView::list(conn, params)
+        })
+        .await??
       }
       _ => Default::default(),
     };
@@ -192,58 +188,33 @@ impl Perform for GetModlog {
             _ => Default::default(),
           },
           match type_ {
-            All | ModRemoveCommunity => {
-              if other_person_id.is_none() {
-                ModRemoveCommunityView::list(conn, params)?
-              } else {
-                Default::default()
-              }
+            All | ModRemoveCommunity if other_person_id.is_none() => {
+              ModRemoveCommunityView::list(conn, params)?
             }
-
             _ => Default::default(),
           },
           match type_ {
-            All | AdminPurgePerson => {
-              if other_person_id.is_none() {
-                AdminPurgePersonView::list(conn, params)?
-              } else {
-                Default::default()
-              }
+            All | AdminPurgePerson if other_person_id.is_none() => {
+              AdminPurgePersonView::list(conn, params)?
             }
-
             _ => Default::default(),
           },
           match type_ {
-            All | AdminPurgeCommunity => {
-              if other_person_id.is_none() {
-                AdminPurgeCommunityView::list(conn, params)?
-              } else {
-                Default::default()
-              }
+            All | AdminPurgeCommunity if other_person_id.is_none() => {
+              AdminPurgeCommunityView::list(conn, params)?
             }
-
             _ => Default::default(),
           },
           match type_ {
-            All | AdminPurgePost => {
-              if other_person_id.is_none() {
-                AdminPurgePostView::list(conn, params)?
-              } else {
-                Default::default()
-              }
+            All | AdminPurgePost if other_person_id.is_none() => {
+              AdminPurgePostView::list(conn, params)?
             }
-
             _ => Default::default(),
           },
           match type_ {
-            All | AdminPurgeComment => {
-              if other_person_id.is_none() {
-                AdminPurgeCommentView::list(conn, params)?
-              } else {
-                Default::default()
-              }
+            All | AdminPurgeComment if other_person_id.is_none() => {
+              AdminPurgeCommentView::list(conn, params)?
             }
-
             _ => Default::default(),
           },
         )) as Result<_, LemmyError>
