@@ -1,25 +1,28 @@
-use lemmy_db_schema::source::{
-  comment::Comment,
-  community::CommunitySafe,
-  moderator::{
-    AdminPurgeComment,
-    AdminPurgeCommunity,
-    AdminPurgePerson,
-    AdminPurgePost,
-    ModAdd,
-    ModAddCommunity,
-    ModBan,
-    ModBanFromCommunity,
-    ModHideCommunity,
-    ModLockPost,
-    ModRemoveComment,
-    ModRemoveCommunity,
-    ModRemovePost,
-    ModStickyPost,
-    ModTransferCommunity,
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PersonId},
+  source::{
+    comment::Comment,
+    community::CommunitySafe,
+    moderator::{
+      AdminPurgeComment,
+      AdminPurgeCommunity,
+      AdminPurgePerson,
+      AdminPurgePost,
+      ModAdd,
+      ModAddCommunity,
+      ModBan,
+      ModBanFromCommunity,
+      ModHideCommunity,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemoveCommunity,
+      ModRemovePost,
+      ModStickyPost,
+      ModTransferCommunity,
+    },
+    person::{PersonSafe, PersonSafeAlias1},
+    post::Post,
   },
-  person::{PersonSafe, PersonSafeAlias1},
-  post::Post,
 };
 use serde::{Deserialize, Serialize};
 
@@ -133,4 +136,14 @@ pub struct AdminPurgePostView {
   pub admin_purge_post: AdminPurgePost,
   pub admin: Option<PersonSafe>,
   pub community: CommunitySafe,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub struct ModlogListParams {
+  pub community_id: Option<CommunityId>,
+  pub mod_person_id: Option<PersonId>,
+  pub other_person_id: Option<PersonId>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub hide_modlog_names: bool,
 }

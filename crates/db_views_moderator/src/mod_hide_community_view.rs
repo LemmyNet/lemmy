@@ -1,4 +1,4 @@
-use crate::structs::ModHideCommunityView;
+use crate::structs::{ModHideCommunityView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -16,16 +16,9 @@ type ModHideCommunityViewTuple = (ModHideCommunity, Option<PersonSafe>, Communit
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
-  pub fn list(
-    conn: &PgConnection,
-    community_id: Option<CommunityId>,
-    admin_id: Option<PersonId>,
-    page: Option<i64>,
-    limit: Option<i64>,
-    hide_mod_names: bool,
-  ) -> Result<Vec<Self>, Error> {
-    let admin_person_id_join = admin_id.unwrap_or(PersonId(-1));
-    let show_mod_names = !hide_mod_names;
+  pub fn list(conn: &PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
 
     let admin_names_join = mod_hide_community::mod_person_id
@@ -41,15 +34,15 @@ impl ModHideCommunityView {
       ))
       .into_boxed();
 
-    if let Some(community_id) = community_id {
+    if let Some(community_id) = params.community_id {
       query = query.filter(mod_hide_community::community_id.eq(community_id));
     };
 
-    if let Some(admin_id) = admin_id {
+    if let Some(admin_id) = params.mod_person_id {
       query = query.filter(mod_hide_community::mod_person_id.eq(admin_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     let res = query
       .limit(limit)

@@ -1,4 +1,4 @@
-use crate::structs::AdminPurgePostView;
+use crate::structs::{AdminPurgePostView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -15,15 +15,9 @@ use lemmy_db_schema::{
 type AdminPurgePostViewTuple = (AdminPurgePost, Option<PersonSafe>, CommunitySafe);
 
 impl AdminPurgePostView {
-  pub fn list(
-    conn: &PgConnection,
-    admin_person_id: Option<PersonId>,
-    page: Option<i64>,
-    limit: Option<i64>,
-    hide_mod_names: bool,
-  ) -> Result<Vec<Self>, Error> {
-    let admin_person_id_join = admin_person_id.unwrap_or(PersonId(-1));
-    let show_mod_names = !hide_mod_names;
+  pub fn list(conn: &PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
 
     let admin_names_join = admin_purge_post::admin_person_id
@@ -39,11 +33,11 @@ impl AdminPurgePostView {
       ))
       .into_boxed();
 
-    if let Some(admin_person_id) = admin_person_id {
+    if let Some(admin_person_id) = params.mod_person_id {
       query = query.filter(admin_purge_post::admin_person_id.eq(admin_person_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     let res = query
       .limit(limit)

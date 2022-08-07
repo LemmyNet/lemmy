@@ -31,9 +31,11 @@ use lemmy_db_views_moderator::structs::{
   ModRemovePostView,
   ModStickyPostView,
   ModTransferCommunityView,
+  ModlogListParams,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
+use ModlogActionType::*;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetModlog {
@@ -53,7 +55,7 @@ impl Perform for GetModlog {
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let type_ = data.type_.unwrap_or(ModlogActionType::All);
+    let type_ = data.type_.unwrap_or(All);
     let community_id = data.community_id;
 
     let site = blocking(context.pool(), Site::read_local_site).await??;
@@ -77,20 +79,18 @@ impl Perform for GetModlog {
       data.mod_person_id
     };
     let other_person_id = data.other_person_id;
-    let page = data.page;
-    let limit = data.limit;
+    let params = ModlogListParams {
+      community_id: community_id,
+      mod_person_id: mod_person_id,
+      other_person_id: other_person_id,
+      page: data.page,
+      limit: data.limit,
+      hide_modlog_names: hide_modlog_names,
+    };
     let removed_posts = match type_ {
-      ModlogActionType::All | ModlogActionType::ModRemovePost => {
+      All | ModRemovePost => {
         blocking(context.pool(), move |conn| {
-          ModRemovePostView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModRemovePostView::list(conn, params)
         })
         .await??
       }
@@ -98,17 +98,9 @@ impl Perform for GetModlog {
     };
 
     let locked_posts = match type_ {
-      ModlogActionType::All | ModlogActionType::ModLockPost => {
+      All | ModLockPost => {
         blocking(context.pool(), move |conn| {
-          ModLockPostView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModLockPostView::list(conn, params)
         })
         .await??
       }
@@ -116,17 +108,9 @@ impl Perform for GetModlog {
     };
 
     let stickied_posts = match type_ {
-      ModlogActionType::All | ModlogActionType::ModStickyPost => {
+      All | ModStickyPost => {
         blocking(context.pool(), move |conn| {
-          ModStickyPostView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModStickyPostView::list(conn, params)
         })
         .await??
       }
@@ -134,17 +118,9 @@ impl Perform for GetModlog {
     };
 
     let removed_comments = match type_ {
-      ModlogActionType::All | ModlogActionType::ModRemoveComment => {
+      All | ModRemoveComment => {
         blocking(context.pool(), move |conn| {
-          ModRemoveCommentView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModRemoveCommentView::list(conn, params)
         })
         .await??
       }
@@ -152,17 +128,9 @@ impl Perform for GetModlog {
     };
 
     let banned_from_community = match type_ {
-      ModlogActionType::All | ModlogActionType::ModBanFromCommunity => {
+      All | ModBanFromCommunity => {
         blocking(context.pool(), move |conn| {
-          ModBanFromCommunityView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModBanFromCommunityView::list(conn, params)
         })
         .await??
       }
@@ -170,17 +138,9 @@ impl Perform for GetModlog {
     };
 
     let added_to_community = match type_ {
-      ModlogActionType::All | ModlogActionType::ModAddCommunity => {
+      All | ModAddCommunity => {
         blocking(context.pool(), move |conn| {
-          ModAddCommunityView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModAddCommunityView::list(conn, params)
         })
         .await??
       }
@@ -188,17 +148,9 @@ impl Perform for GetModlog {
     };
 
     let transferred_to_community = match type_ {
-      ModlogActionType::All | ModlogActionType::ModTransferCommunity => {
+      All | ModTransferCommunity => {
         blocking(context.pool(), move |conn| {
-          ModTransferCommunityView::list(
-            conn,
-            community_id,
-            mod_person_id,
-            other_person_id,
-            page,
-            limit,
-            hide_modlog_names,
-          )
+          ModTransferCommunityView::list(conn, params)
         })
         .await??
       }
@@ -206,17 +158,10 @@ impl Perform for GetModlog {
     };
 
     let hidden_communities = match type_ {
-      ModlogActionType::All | ModlogActionType::ModHideCommunity => {
+      All | ModHideCommunity => {
         if other_person_id.is_none() {
           blocking(context.pool(), move |conn| {
-            ModHideCommunityView::list(
-              conn,
-              community_id,
-              mod_person_id,
-              page,
-              limit,
-              hide_modlog_names,
-            )
+            ModHideCommunityView::list(conn, params)
           })
           .await??
         } else {
@@ -239,31 +184,17 @@ impl Perform for GetModlog {
       blocking(context.pool(), move |conn| {
         Ok((
           match type_ {
-            ModlogActionType::All | ModlogActionType::ModBan => ModBanView::list(
-              conn,
-              mod_person_id,
-              other_person_id,
-              page,
-              limit,
-              hide_modlog_names,
-            )?,
+            All | ModBan => ModBanView::list(conn, params)?,
             _ => Default::default(),
           },
           match type_ {
-            ModlogActionType::All | ModlogActionType::ModAdd => ModAddView::list(
-              conn,
-              mod_person_id,
-              other_person_id,
-              page,
-              limit,
-              hide_modlog_names,
-            )?,
+            All | ModAdd => ModAddView::list(conn, params)?,
             _ => Default::default(),
           },
           match type_ {
-            ModlogActionType::All | ModlogActionType::ModRemoveCommunity => {
+            All | ModRemoveCommunity => {
               if other_person_id.is_none() {
-                ModRemoveCommunityView::list(conn, mod_person_id, page, limit, hide_modlog_names)?
+                ModRemoveCommunityView::list(conn, params)?
               } else {
                 Default::default()
               }
@@ -272,9 +203,9 @@ impl Perform for GetModlog {
             _ => Default::default(),
           },
           match type_ {
-            ModlogActionType::All | ModlogActionType::AdminPurgePerson => {
+            All | AdminPurgePerson => {
               if other_person_id.is_none() {
-                AdminPurgePersonView::list(conn, mod_person_id, page, limit, hide_modlog_names)?
+                AdminPurgePersonView::list(conn, params)?
               } else {
                 Default::default()
               }
@@ -283,9 +214,9 @@ impl Perform for GetModlog {
             _ => Default::default(),
           },
           match type_ {
-            ModlogActionType::All | ModlogActionType::AdminPurgeCommunity => {
+            All | AdminPurgeCommunity => {
               if other_person_id.is_none() {
-                AdminPurgeCommunityView::list(conn, mod_person_id, page, limit, hide_modlog_names)?
+                AdminPurgeCommunityView::list(conn, params)?
               } else {
                 Default::default()
               }
@@ -294,9 +225,9 @@ impl Perform for GetModlog {
             _ => Default::default(),
           },
           match type_ {
-            ModlogActionType::All | ModlogActionType::AdminPurgePost => {
+            All | AdminPurgePost => {
               if other_person_id.is_none() {
-                AdminPurgePostView::list(conn, mod_person_id, page, limit, hide_modlog_names)?
+                AdminPurgePostView::list(conn, params)?
               } else {
                 Default::default()
               }
@@ -305,9 +236,9 @@ impl Perform for GetModlog {
             _ => Default::default(),
           },
           match type_ {
-            ModlogActionType::All | ModlogActionType::AdminPurgeComment => {
+            All | AdminPurgeComment => {
               if other_person_id.is_none() {
-                AdminPurgeCommentView::list(conn, mod_person_id, page, limit, hide_modlog_names)?
+                AdminPurgeCommentView::list(conn, params)?
               } else {
                 Default::default()
               }
