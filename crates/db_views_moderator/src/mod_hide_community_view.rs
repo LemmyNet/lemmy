@@ -1,7 +1,7 @@
 use crate::structs::{ModHideCommunityView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::PersonId,
   schema::{community, mod_hide_community, person},
   source::{
     community::{Community, CommunitySafe},

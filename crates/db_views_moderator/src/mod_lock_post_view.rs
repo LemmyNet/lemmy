@@ -1,7 +1,7 @@
 use crate::structs::{ModLockPostView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::PersonId,
   schema::{community, mod_lock_post, person, person_alias_1, post},
   source::{
     community::{Community, CommunitySafe},

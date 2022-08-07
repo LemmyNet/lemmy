@@ -1,7 +1,7 @@
 use crate::structs::{ModRemoveCommentView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::PersonId,
   schema::{comment, community, mod_remove_comment, person, person_alias_1, post},
   source::{
     comment::Comment,
