@@ -39,7 +39,7 @@ impl PerformCrud for GetComments {
     let show_bot_accounts = local_user_view
       .as_ref()
       .map(|t| t.local_user.show_bot_accounts);
-    let person_id = local_user_view.map(|u| u.person.id);
+    let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
     let community_id = data.community_id;
     let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
@@ -70,6 +70,7 @@ impl PerformCrud for GetComments {
       None
     };
 
+    let parent_path_cloned = parent_path.to_owned();
     let post_id = data.post_id;
     let mut comments = blocking(context.pool(), move |conn| {
       CommentQuery::builder()
@@ -80,7 +81,7 @@ impl PerformCrud for GetComments {
         .saved_only(saved_only)
         .community_id(community_id)
         .community_actor_id(community_actor_id)
-        .parent_path(parent_path)
+        .parent_path(parent_path_cloned)
         .post_id(post_id)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
@@ -96,7 +97,7 @@ impl PerformCrud for GetComments {
     // to update the read_comments count
     let read_comments = comments.len() as i64;
     if let Some(post_id) = post_id {
-      if let Some(person_id) = local_user_view.map(|l| l.person.id) {
+      if let Some(person_id) = person_id {
         if parent_path.is_none() {
           let person_post_agg_form = PersonPostAggregatesForm {
             person_id,
@@ -105,9 +106,10 @@ impl PerformCrud for GetComments {
             ..PersonPostAggregatesForm::default()
           };
           blocking(context.pool(), move |conn| {
-            PersonPostAggregates::upsert(&conn, &person_post_agg_form)
+            PersonPostAggregates::upsert(conn, &person_post_agg_form)
           })
-          .await?;
+          .await?
+          .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_comments"))?;
         }
       }
     }
