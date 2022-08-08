@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 // SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
+=======
+use diesel_ltree::Ltree;
+>>>>>>> 2f9d8776acdf326fdb6c57c8dec9ee4f75386017
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -72,11 +76,20 @@ pub struct CommentReportId(i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 pub struct PostReportId(i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+pub struct CommentReplyId(i32);
+
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
 #[cfg_attr(feature = "full", sql_type = "diesel::sql_types::Text")]
 pub struct DbUrl(pub(crate) Url);
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Ltree")]
+/// Do remote derivation for the Ltree struct
+pub struct LtreeDef(pub String);
 
 impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

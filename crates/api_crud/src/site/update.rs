@@ -44,6 +44,7 @@ impl PerformCrud for EditSite {
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
     let application_question = diesel_option_overwrite(&data.application_question);
+    let legal_information = diesel_option_overwrite(&data.legal_information);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
 
@@ -88,7 +89,7 @@ impl PerformCrud for EditSite {
       private_instance: data.private_instance,
       default_theme: data.default_theme.clone(),
       default_post_listing_type: data.default_post_listing_type.clone(),
-      legal_information: data.legal_information.clone(),
+      legal_information,
       ..SiteForm::default()
     };
 

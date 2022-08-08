@@ -376,6 +376,7 @@ mod tests {
 
     let new_mod = PersonForm {
       name: "the mod".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -383,6 +384,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "jim2".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -391,6 +393,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "mod_community".to_string(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -412,7 +415,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     // Now the actual tests
 

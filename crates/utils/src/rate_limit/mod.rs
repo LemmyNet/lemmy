@@ -8,13 +8,12 @@ use actix_web::{
   HttpResponse,
 };
 use futures::future::{ok, Ready};
-use parking_lot::Mutex;
 use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
   future::Future,
   pin::Pin,
   rc::Rc,
-  sync::Arc,
+  sync::{Arc, Mutex},
   task::{Context, Poll},
 };
 
@@ -89,7 +88,7 @@ impl RateLimited {
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
       RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
     };
-    let mut limiter = self.rate_limiter.lock();
+    let mut limiter = self.rate_limiter.lock().expect("mutex poison error");
 
     limiter.check_rate_limit_full(self.type_, &ip_addr, kind, interval)
   }

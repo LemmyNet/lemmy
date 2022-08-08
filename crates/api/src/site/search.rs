@@ -9,12 +9,14 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable, SearchType};
-use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
-use lemmy_db_views_actor::{
-  community_view::CommunityQueryBuilder,
-  person_view::PersonQueryBuilder,
+use lemmy_db_schema::{
+  source::community::Community,
+  traits::DeleteableOrRemoveable,
+  utils::post_to_comment_sort_type,
+  SearchType,
 };
+use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
+use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -72,7 +74,8 @@ impl Perform for Search {
     match search_type {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
+          PostQuery::builder()
+            .conn(conn)
             .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
@@ -82,19 +85,21 @@ impl Perform for Search {
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)
             .my_person_id(person_id)
-            .search_term(q)
+            .search_term(Some(q))
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;
       }
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(conn)
-            .sort(sort)
+          CommentQuery::builder()
+            .conn(conn)
+            .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
-            .search_term(q)
+            .search_term(Some(q))
             .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
@@ -102,30 +107,35 @@ impl Perform for Search {
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;
       }
       SearchType::Communities => {
         communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn)
+          CommunityQuery::builder()
+            .conn(conn)
             .sort(sort)
             .listing_type(listing_type)
-            .search_term(q)
+            .search_term(Some(q))
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;
       }
       SearchType::Users => {
         users = blocking(context.pool(), move |conn| {
-          PersonQueryBuilder::create(conn)
+          PersonQuery::builder()
+            .conn(conn)
             .sort(sort)
-            .search_term(q)
+            .search_term(Some(q))
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;
@@ -137,7 +147,8 @@ impl Perform for Search {
         let community_actor_id_2 = community_actor_id.to_owned();
 
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
+          PostQuery::builder()
+            .conn(conn)
             .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
@@ -147,9 +158,10 @@ impl Perform for Search {
             .community_actor_id(community_actor_id_2)
             .creator_id(creator_id)
             .my_person_id(person_id)
-            .search_term(q)
+            .search_term(Some(q))
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;
@@ -158,10 +170,11 @@ impl Perform for Search {
         let community_actor_id = community_actor_id.to_owned();
 
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(conn)
-            .sort(sort)
+          CommentQuery::builder()
+            .conn(conn)
+            .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
-            .search_term(q)
+            .search_term(Some(q))
             .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
@@ -169,6 +182,7 @@ impl Perform for Search {
             .my_person_id(person_id)
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;
@@ -179,13 +193,15 @@ impl Perform for Search {
           vec![]
         } else {
           blocking(context.pool(), move |conn| {
-            CommunityQueryBuilder::create(conn)
+            CommunityQuery::builder()
+              .conn(conn)
               .sort(sort)
               .listing_type(listing_type)
-              .search_term(q)
+              .search_term(Some(q))
               .my_person_id(person_id)
               .page(page)
               .limit(limit)
+              .build()
               .list()
           })
           .await??
@@ -197,11 +213,13 @@ impl Perform for Search {
           vec![]
         } else {
           blocking(context.pool(), move |conn| {
-            PersonQueryBuilder::create(conn)
+            PersonQuery::builder()
+              .conn(conn)
               .sort(sort)
-              .search_term(q)
+              .search_term(Some(q))
               .page(page)
               .limit(limit)
+              .build()
               .list()
           })
           .await??
@@ -209,7 +227,8 @@ impl Perform for Search {
       }
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
+          PostQuery::builder()
+            .conn(conn)
             .sort(sort)
             .show_nsfw(show_nsfw)
             .show_bot_accounts(show_bot_accounts)
@@ -219,9 +238,10 @@ impl Perform for Search {
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)
-            .url_search(q)
+            .url_search(Some(q))
             .page(page)
             .limit(limit)
+            .build()
             .list()
         })
         .await??;

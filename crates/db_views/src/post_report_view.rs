@@ -25,9 +25,10 @@ use lemmy_db_schema::{
     post::Post,
     post_report::PostReport,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::limit_and_offset,
 };
+use typed_builder::TypedBuilder;
 
 type PostReportViewTuple = (
   PostReport,
@@ -152,9 +153,14 @@ impl PostReportView {
   }
 }
 
-pub struct PostReportQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct PostReportQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
+  #[builder(!default)]
   my_person_id: PersonId,
+  #[builder(!default)]
   admin: bool,
   community_id: Option<CommunityId>,
   page: Option<i64>,
@@ -162,39 +168,7 @@ pub struct PostReportQueryBuilder<'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a> PostReportQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, my_person_id: PersonId, admin: bool) -> Self {
-    PostReportQueryBuilder {
-      conn,
-      my_person_id,
-      admin,
-      community_id: None,
-      page: None,
-      limit: None,
-      unresolved_only: Some(true),
-    }
-  }
-
-  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
-    self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn unresolved_only<T: MaybeOptional<bool>>(mut self, unresolved_only: T) -> Self {
-    self.unresolved_only = unresolved_only.get_optional();
-    self
-  }
-
+impl<'a> PostReportQuery<'a> {
   pub fn list(self) -> Result<Vec<PostReportView>, Error> {
     let mut query = post_report::table
       .inner_join(post::table)
@@ -241,7 +215,7 @@ impl<'a> PostReportQueryBuilder<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if self.unresolved_only.unwrap_or(false) {
+    if self.unresolved_only.unwrap_or(true) {
       query = query.filter(post_report::resolved.eq(false));
     }
 
@@ -275,17 +249,17 @@ impl ViewToVec for PostReportView {
   type DbTuple = PostReportViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        post_report: a.0.to_owned(),
-        post: a.1.to_owned(),
-        community: a.2.to_owned(),
-        creator: a.3.to_owned(),
-        post_creator: a.4.to_owned(),
+        post_report: a.0,
+        post: a.1,
+        community: a.2,
+        creator: a.3,
+        post_creator: a.4,
         creator_banned_from_community: a.5.is_some(),
         my_vote: a.6,
-        counts: a.7.to_owned(),
-        resolver: a.8.to_owned(),
+        counts: a.7,
+        resolver: a.8,
       })
       .collect::<Vec<Self>>()
   }
@@ -293,7 +267,7 @@ impl ViewToVec for PostReportView {
 
 #[cfg(test)]
 mod tests {
-  use crate::post_report_view::{PostReportQueryBuilder, PostReportView};
+  use crate::post_report_view::{PostReportQuery, PostReportView};
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
@@ -314,6 +288,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "timmy_prv".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -321,6 +296,7 @@ mod tests {
 
     let new_person_2 = PersonForm {
       name: "sara_prv".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -329,6 +305,7 @@ mod tests {
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonForm {
       name: "jessica_prv".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -337,6 +314,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "test community prv".to_string(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -491,7 +469,11 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = PostReportQueryBuilder::create(&conn, inserted_timmy.id, false)
+    let reports = PostReportQuery::builder()
+      .conn(&conn)
+      .my_person_id(inserted_timmy.id)
+      .admin(false)
+      .build()
       .list()
       .unwrap();
 
@@ -551,7 +533,11 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = PostReportQueryBuilder::create(&conn, inserted_timmy.id, false)
+    let reports_after_resolve = PostReportQuery::builder()
+      .conn(&conn)
+      .my_person_id(inserted_timmy.id)
+      .admin(false)
+      .build()
       .list()
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);

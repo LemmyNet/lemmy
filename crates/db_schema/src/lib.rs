@@ -34,6 +34,7 @@ pub enum SortType {
   Active,
   Hot,
   New,
+  Old,
   TopDay,
   TopWeek,
   TopMonth,
@@ -43,12 +44,19 @@ pub enum SortType {
   NewComments,
 }
 
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum CommentSortType {
+  Hot,
+  Top,
+  New,
+  Old,
+}
+
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum ListingType {
   All,
   Local,
   Subscribed,
-  Community,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]

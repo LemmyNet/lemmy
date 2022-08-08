@@ -11,17 +11,18 @@ use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
+  CommentSortType,
   ListingType,
   SortType,
 };
 use lemmy_db_views::{
-  comment_view::CommentQueryBuilder,
-  post_view::PostQueryBuilder,
-  structs::{CommentView, PostView, SiteView},
+  post_view::PostQuery,
+  structs::{PostView, SiteView},
 };
 use lemmy_db_views_actor::{
-  person_mention_view::PersonMentionQueryBuilder,
-  structs::PersonMentionView,
+  comment_reply_view::CommentReplyQuery,
+  person_mention_view::PersonMentionQuery,
+  structs::{CommentReplyView, PersonMentionView},
 };
 use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
 use lemmy_websocket::LemmyContext;
@@ -94,10 +95,12 @@ async fn get_feed_data(
   let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
   let posts = blocking(context.pool(), move |conn| {
-    PostQueryBuilder::create(conn)
-      .listing_type(listing_type)
-      .sort(sort_type)
-      .limit(RSS_FETCH_LIMIT)
+    PostQuery::builder()
+      .conn(conn)
+      .listing_type(Some(listing_type))
+      .sort(Some(sort_type))
+      .limit(Some(RSS_FETCH_LIMIT))
+      .build()
       .list()
   })
   .await??;
@@ -187,11 +190,13 @@ fn get_feed_user(
   let site_view = SiteView::read_local(conn)?;
   let person = Person::read_from_name(conn, user_name, false)?;
 
-  let posts = PostQueryBuilder::create(conn)
-    .listing_type(ListingType::All)
-    .sort(*sort_type)
-    .creator_id(person.id)
-    .limit(RSS_FETCH_LIMIT)
+  let posts = PostQuery::builder()
+    .conn(conn)
+    .listing_type(Some(ListingType::All))
+    .sort(Some(*sort_type))
+    .creator_id(Some(person.id))
+    .limit(Some(RSS_FETCH_LIMIT))
+    .build()
     .list()?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -216,11 +221,12 @@ fn get_feed_community(
   let site_view = SiteView::read_local(conn)?;
   let community = Community::read_from_name(conn, community_name, false)?;
 
-  let posts = PostQueryBuilder::create(conn)
-    .listing_type(ListingType::Community)
-    .sort(*sort_type)
-    .community_id(community.id)
-    .limit(RSS_FETCH_LIMIT)
+  let posts = PostQuery::builder()
+    .conn(conn)
+    .sort(Some(*sort_type))
+    .community_id(Some(community.id))
+    .limit(Some(RSS_FETCH_LIMIT))
+    .build()
     .list()?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -251,13 +257,15 @@ fn get_feed_front(
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
   let local_user = LocalUser::read(conn, local_user_id)?;
 
-  let posts = PostQueryBuilder::create(conn)
-    .listing_type(ListingType::Subscribed)
-    .my_person_id(local_user.person_id)
-    .show_bot_accounts(local_user.show_bot_accounts)
-    .show_read_posts(local_user.show_read_posts)
-    .sort(*sort_type)
-    .limit(RSS_FETCH_LIMIT)
+  let posts = PostQuery::builder()
+    .conn(conn)
+    .listing_type(Some(ListingType::Subscribed))
+    .my_person_id(Some(local_user.person_id))
+    .show_bot_accounts(Some(local_user.show_bot_accounts))
+    .show_read_posts(Some(local_user.show_read_posts))
+    .sort(Some(*sort_type))
+    .limit(Some(RSS_FETCH_LIMIT))
+    .build()
     .list()?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -289,21 +297,26 @@ fn get_feed_inbox(
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
 
-  let sort = SortType::New;
+  let sort = CommentSortType::New;
 
-  let replies = CommentQueryBuilder::create(conn)
-    .recipient_id(person_id)
-    .my_person_id(person_id)
-    .show_bot_accounts(show_bot_accounts)
-    .sort(sort)
-    .limit(RSS_FETCH_LIMIT)
+  let replies = CommentReplyQuery::builder()
+    .conn(conn)
+    .recipient_id(Some(person_id))
+    .my_person_id(Some(person_id))
+    .show_bot_accounts(Some(show_bot_accounts))
+    .sort(Some(sort))
+    .limit(Some(RSS_FETCH_LIMIT))
+    .build()
     .list()?;
 
-  let mentions = PersonMentionQueryBuilder::create(conn)
-    .recipient_id(person_id)
-    .my_person_id(person_id)
-    .sort(sort)
-    .limit(RSS_FETCH_LIMIT)
+  let mentions = PersonMentionQuery::builder()
+    .conn(conn)
+    .recipient_id(Some(person_id))
+    .my_person_id(Some(person_id))
+    .show_bot_accounts(Some(show_bot_accounts))
+    .sort(Some(sort))
+    .limit(Some(RSS_FETCH_LIMIT))
+    .build()
     .list()?;
 
   let items = create_reply_and_mention_items(replies, mentions, protocol_and_hostname)?;
@@ -324,7 +337,7 @@ fn get_feed_inbox(
 
 #[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
-  replies: Vec<CommentView>,
+  replies: Vec<CommentReplyView>,
   mentions: Vec<PersonMentionView>,
   protocol_and_hostname: &str,
 ) -> Result<Vec<Item>, LemmyError> {

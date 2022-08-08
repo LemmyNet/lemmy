@@ -99,7 +99,6 @@ where
 pub enum UserOperation {
   Login,
   GetCaptcha,
-  MarkCommentAsRead,
   SaveComment,
   CreateCommentLike,
   CreateCommentReport,
@@ -120,6 +119,7 @@ pub enum UserOperation {
   GetReplies,
   GetPersonMentions,
   MarkPersonMentionAsRead,
+  MarkCommentReplyAsRead,
   GetModlog,
   BanFromCommunity,
   AddModToCommunity,

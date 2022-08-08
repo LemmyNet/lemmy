@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 jest.setTimeout(120000);
+import { CommunityView } from 'lemmy-js-client';
+
 import {
   alpha,
   beta,
@@ -14,7 +16,6 @@ import {
   getCommunity,
   followCommunity,
 } from './shared';
-import { CommunityView } from 'lemmy-js-client';
 
 beforeAll(async () => {
   await setupLogins();
@@ -27,11 +28,11 @@ function assertCommunityFederation(
   expect(communityOne.community.actor_id).toBe(communityTwo.community.actor_id);
   expect(communityOne.community.name).toBe(communityTwo.community.name);
   expect(communityOne.community.title).toBe(communityTwo.community.title);
-  expect(communityOne.community.description).toBe(
-    communityTwo.community.description
+  expect(communityOne.community.description.unwrapOr("none")).toBe(
+    communityTwo.community.description.unwrapOr("none")
   );
-  expect(communityOne.community.icon).toBe(communityTwo.community.icon);
-  expect(communityOne.community.banner).toBe(communityTwo.community.banner);
+  expect(communityOne.community.icon.unwrapOr("none")).toBe(communityTwo.community.icon.unwrapOr("none"));
+  expect(communityOne.community.banner.unwrapOr("none")).toBe(communityTwo.community.banner.unwrapOr("none"));
   expect(communityOne.community.published).toBe(
     communityTwo.community.published
   );
@@ -51,7 +52,7 @@ test('Create community', async () => {
 
   // Cache the community on beta, make sure it has the other fields
   let searchShort = `!${prevName}@lemmy-alpha:8541`;
-  let betaCommunity = (await resolveCommunity(beta, searchShort)).community;
+  let betaCommunity = (await resolveCommunity(beta, searchShort)).community.unwrap();
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
@@ -60,7 +61,7 @@ test('Delete community', async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community.unwrap();
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
   // Follow the community from alpha
@@ -111,7 +112,7 @@ test('Remove community', async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community.unwrap();
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
   // Follow the community from alpha
@@ -162,6 +163,6 @@ test('Search for beta community', async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
 
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community.unwrap();
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 });

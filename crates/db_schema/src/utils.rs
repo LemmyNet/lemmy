@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 // SPDX-FileCopyrightText: 2019-2022 2019 Felix Ableitner, <me@nutomic.com> et al.
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::newtypes::DbUrl;
+=======
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
+>>>>>>> 2f9d8776acdf326fdb6c57c8dec9ee4f75386017
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use diesel::{
@@ -120,6 +124,19 @@ pub fn establish_unpooled_connection() -> PgConnection {
 
 pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
+}
+
+pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
+  match sort {
+    SortType::Active | SortType::Hot => CommentSortType::Hot,
+    SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
+    SortType::Old => CommentSortType::Old,
+    SortType::TopDay
+    | SortType::TopAll
+    | SortType::TopWeek
+    | SortType::TopYear
+    | SortType::TopMonth => CommentSortType::Top,
+  }
 }
 
 static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {

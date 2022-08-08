@@ -64,5 +64,5 @@ pub struct SiteForm {
   pub public_key: Option<String>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<String>,
-  pub legal_information: Option<String>,
+  pub legal_information: Option<Option<String>>,
 }

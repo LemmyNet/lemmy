@@ -34,6 +34,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "thommy_site_agg".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -41,6 +42,7 @@ mod tests {
 
     let site_form = SiteForm {
       name: "test_site".into(),
+      public_key: Some("pubkey".to_string()),
       ..Default::default()
     };
 
@@ -49,6 +51,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "TIL_site_agg".into(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -73,17 +76,17 @@ mod tests {
     };
 
     // Insert two of those comments
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      parent_id: Some(inserted_comment.id),
       ..CommentForm::default()
     };
 
-    let _inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let _inserted_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
 
     let site_aggregates_before_delete = SiteAggregates::read(&conn).unwrap();
 

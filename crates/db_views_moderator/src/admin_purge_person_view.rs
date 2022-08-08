@@ -52,10 +52,10 @@ impl ViewToVec for AdminPurgePersonView {
   type DbTuple = AdminPurgePersonViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        admin_purge_person: a.0.to_owned(),
-        admin: a.1.to_owned(),
+        admin_purge_person: a.0,
+        admin: a.1,
       })
       .collect::<Vec<Self>>()
   }

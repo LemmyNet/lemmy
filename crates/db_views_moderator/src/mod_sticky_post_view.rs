@@ -63,12 +63,12 @@ impl ViewToVec for ModStickyPostView {
   type DbTuple = ModStickyPostViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        mod_sticky_post: a.0.to_owned(),
-        moderator: a.1.to_owned(),
-        post: a.2.to_owned(),
-        community: a.3.to_owned(),
+        mod_sticky_post: a.0,
+        moderator: a.1,
+        post: a.2,
+        community: a.3,
       })
       .collect::<Vec<Self>>()
   }

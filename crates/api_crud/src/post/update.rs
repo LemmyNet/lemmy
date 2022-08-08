@@ -20,11 +20,11 @@ use lemmy_apub::protocol::activities::{
 use lemmy_db_schema::{
   source::post::{Post, PostForm},
   traits::Crud,
-  utils::naive_now,
+  utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs_opt, clean_optional_text, clean_url_params, is_valid_post_title},
+  utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
   ConnectionId,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
@@ -44,6 +44,13 @@ impl PerformCrud for EditPost {
     let data: &EditPost = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+
+    let data_url = data.url.as_ref();
+
+    // TODO No good way to handle a clear.
+    // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
+    let url = Some(data_url.map(clean_url_params).map(Into::into));
+    let body = diesel_option_overwrite(&data.body);
 
     let slur_regex = &context.settings().slur_regex();
     check_slurs_opt(&data.name, slur_regex)?;
@@ -76,21 +83,21 @@ impl PerformCrud for EditPost {
     let (metadata_res, thumbnail_url) =
       fetch_site_data(context.client(), context.settings(), data_url).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
-      .map(|u| (u.title, u.description, u.embed_video_url))
+      .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
       community_id: orig_post.community_id,
       name: data.name.to_owned().unwrap_or(orig_post.name),
-      url: data_url.map(|u| clean_url_params(u.to_owned()).into()),
-      body: clean_optional_text(&data.body),
+      url,
+      body,
       nsfw: data.nsfw,
       updated: Some(naive_now()),
       embed_title,
       embed_description,
       embed_video_url,
-      thumbnail_url,
+      thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };
 

@@ -82,7 +82,11 @@ impl Group {
     CommunityForm {
       name: self.preferred_username.clone(),
       title: self.name.unwrap_or(self.preferred_username),
-      description: read_from_string_or_source_opt(&self.summary, &None, &self.source),
+      description: Some(read_from_string_or_source_opt(
+        &self.summary,
+        &None,
+        &self.source,
+      )),
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),
@@ -92,7 +96,7 @@ impl Group {
       local: Some(false),
       private_key: None,
       hidden: Some(false),
-      public_key: self.public_key.public_key_pem,
+      public_key: Some(self.public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.icon.map(|i| i.url.into())),
       banner: Some(self.image.map(|i| i.url.into())),

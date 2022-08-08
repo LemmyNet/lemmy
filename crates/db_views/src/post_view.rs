@@ -3,12 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::structs::PostView;
-use diesel::{
-  dsl::*,
-  pg::Pg,
-  result::{Error, Error::QueryBuilderError},
-  *,
-};
+use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
@@ -31,12 +26,13 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
 use tracing::debug;
+use typed_builder::TypedBuilder;
 
 type PostViewTuple = (
   Post,
@@ -160,7 +156,10 @@ impl PostView {
   }
 }
 
-pub struct PostQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct PostQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
@@ -178,97 +177,7 @@ pub struct PostQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PostQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    PostQueryBuilder {
-      conn,
-      listing_type: None,
-      sort: None,
-      creator_id: None,
-      community_id: None,
-      community_actor_id: None,
-      my_person_id: None,
-      search_term: None,
-      url_search: None,
-      show_nsfw: None,
-      show_bot_accounts: None,
-      show_read_posts: None,
-      saved_only: None,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
-    self.listing_type = listing_type.get_optional();
-    self
-  }
-
-  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
-    self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
-    self.my_person_id = my_person_id.get_optional();
-    self
-  }
-
-  pub fn community_actor_id<T: MaybeOptional<DbUrl>>(mut self, community_actor_id: T) -> Self {
-    self.community_actor_id = community_actor_id.get_optional();
-    self
-  }
-
-  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
-    self.creator_id = creator_id.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
-    self.url_search = url_search.get_optional();
-    self
-  }
-
-  pub fn show_nsfw<T: MaybeOptional<bool>>(mut self, show_nsfw: T) -> Self {
-    self.show_nsfw = show_nsfw.get_optional();
-    self
-  }
-
-  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
-    self.show_bot_accounts = show_bot_accounts.get_optional();
-    self
-  }
-
-  pub fn show_read_posts<T: MaybeOptional<bool>>(mut self, show_read_posts: T) -> Self {
-    self.show_read_posts = show_read_posts.get_optional();
-    self
-  }
-
-  pub fn saved_only<T: MaybeOptional<bool>>(mut self, saved_only: T) -> Self {
-    self.saved_only = saved_only.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
+impl<'a> PostQuery<'a> {
   pub fn list(self) -> Result<Vec<PostView>, Error> {
     use diesel::dsl::*;
 
@@ -366,24 +275,19 @@ impl<'a> PostQueryBuilder<'a> {
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
-        ListingType::Community => {
-          if self.community_actor_id.is_none() && self.community_id.is_none() {
-            return Err(QueryBuilderError("No community actor or id given".into()));
-          } else {
-            if let Some(community_id) = self.community_id {
-              query = query
-                .filter(post::community_id.eq(community_id))
-                .then_order_by(post_aggregates::stickied.desc());
-            }
-
-            if let Some(community_actor_id) = self.community_actor_id {
-              query = query
-                .filter(community::actor_id.eq(community_actor_id))
-                .then_order_by(post_aggregates::stickied.desc());
-            }
-          }
-        }
       }
+    }
+
+    if let Some(community_id) = self.community_id {
+      query = query
+        .filter(post::community_id.eq(community_id))
+        .then_order_by(post_aggregates::stickied.desc());
+    }
+
+    if let Some(community_actor_id) = self.community_actor_id {
+      query = query
+        .filter(community::actor_id.eq(community_actor_id))
+        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -443,6 +347,7 @@ impl<'a> PostQueryBuilder<'a> {
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
+      SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
       SortType::MostComments => query
         .then_order_by(post_aggregates::comments.desc())
@@ -490,13 +395,13 @@ impl ViewToVec for PostView {
   type DbTuple = PostViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        post: a.0.to_owned(),
-        creator: a.1.to_owned(),
-        community: a.2.to_owned(),
+        post: a.0,
+        creator: a.1,
+        community: a.2,
         creator_banned_from_community: a.3.is_some(),
-        counts: a.4.to_owned(),
+        counts: a.4,
         subscribed: CommunityFollower::to_subscribed_type(&a.5),
         saved: a.6.is_some(),
         read: a.7.is_some(),
@@ -509,7 +414,7 @@ impl ViewToVec for PostView {
 
 #[cfg(test)]
 mod tests {
-  use crate::post_view::{PostQueryBuilder, PostView};
+  use crate::post_view::{PostQuery, PostView};
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
@@ -521,7 +426,6 @@ mod tests {
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
-    ListingType,
     SortType,
     SubscribedType,
   };
@@ -539,6 +443,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: person_name.to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -547,6 +452,7 @@ mod tests {
     let new_bot = PersonForm {
       name: person_name.to_owned(),
       bot_account: Some(true),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -555,6 +461,7 @@ mod tests {
     let new_community = CommunityForm {
       name: community_name.to_owned(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -563,6 +470,7 @@ mod tests {
     // Test a person block, make sure the post query doesn't include their post
     let blocked_person = PersonForm {
       name: person_name.to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -620,19 +528,21 @@ mod tests {
       score: 1,
     };
 
-    let read_post_listings_with_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(SortType::New)
-      .show_bot_accounts(false)
-      .community_id(inserted_community.id)
-      .my_person_id(inserted_person.id)
+    let read_post_listings_with_person = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .show_bot_accounts(Some(false))
+      .community_id(Some(inserted_community.id))
+      .my_person_id(Some(inserted_person.id))
+      .build()
       .list()
       .unwrap();
 
-    let read_post_listings_no_person = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(SortType::New)
-      .community_id(inserted_community.id)
+    let read_post_listings_no_person = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .community_id(Some(inserted_community.id))
+      .build()
       .list()
       .unwrap();
 
@@ -729,12 +639,13 @@ mod tests {
     };
     CommunityBlock::block(&conn, &community_block).unwrap();
 
-    let read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(SortType::New)
-      .show_bot_accounts(false)
-      .community_id(inserted_community.id)
-      .my_person_id(inserted_person.id)
+    let read_post_listings_with_person_after_block = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .show_bot_accounts(Some(false))
+      .community_id(Some(inserted_community.id))
+      .my_person_id(Some(inserted_person.id))
+      .build()
       .list()
       .unwrap();
 

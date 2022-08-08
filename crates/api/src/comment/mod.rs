@@ -3,5 +3,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 mod like;
-mod mark_as_read;
 mod save;

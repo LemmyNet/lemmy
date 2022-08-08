@@ -173,29 +173,17 @@ pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
   )
 }
 
-pub fn clean_url_params(mut url: Url) -> Url {
+pub fn clean_url_params(url: &Url) -> Url {
+  let mut url_out = url.to_owned();
   if url.query().is_some() {
     let new_query = url
       .query_pairs()
       .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(&q.0))
       .map(|q| format!("{}={}", q.0, q.1))
       .join("&");
-    url.set_query(Some(&new_query));
+    url_out.set_query(Some(&new_query));
   }
-  url
-}
-
-pub fn clean_optional_text(text: &Option<String>) -> Option<String> {
-  if let Some(text) = text {
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-      None
-    } else {
-      Some(trimmed.to_owned())
-    }
-  } else {
-    None
-  }
+  url_out
 }
 
 #[cfg(test)]
@@ -206,12 +194,12 @@ mod tests {
   #[test]
   fn test_clean_url_params() {
     let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&username=randomuser&id=123").unwrap();
-    let cleaned = clean_url_params(url);
+    let cleaned = clean_url_params(&url);
     let expected = Url::parse("https://example.com/path/123?username=randomuser&id=123").unwrap();
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123").unwrap();
-    let cleaned = clean_url_params(url.clone());
+    let cleaned = clean_url_params(&url);
     assert_eq!(url.to_string(), cleaned.to_string());
   }
 

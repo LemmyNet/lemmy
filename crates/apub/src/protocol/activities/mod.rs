@@ -49,6 +49,8 @@ mod tests {
     test_json::<Delete>("assets/mastodon/activities/delete.json").unwrap();
     test_json::<FollowCommunity>("assets/mastodon/activities/follow.json").unwrap();
     test_json::<UndoFollowCommunity>("assets/mastodon/activities/undo_follow.json").unwrap();
+    test_json::<Vote>("assets/mastodon/activities/like_page.json").unwrap();
+    test_json::<UndoVote>("assets/mastodon/activities/undo_like_page.json").unwrap();
   }
 
   #[test]

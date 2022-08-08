@@ -6,8 +6,13 @@
 use crate::{sensitive::Sensitive, site::FederatedInstances};
 =======
 use crate::{request::purge_image_from_pictrs, sensitive::Sensitive, site::FederatedInstances};
+<<<<<<< HEAD
 >>>>>>> 67a34adf4b0a0ff974915a7fbbb08e24c4df3147
+=======
+use chrono::NaiveDateTime;
+>>>>>>> 2f9d8776acdf326fdb6c57c8dec9ee4f75386017
 use lemmy_db_schema::{
+  impls::person::is_banned,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
     comment::Comment,
@@ -26,7 +31,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::{
-  comment_view::CommentQueryBuilder,
+  comment_view::CommentQuery,
   structs::{LocalUserSettingsView, LocalUserView},
 };
 use lemmy_db_views_actor::structs::{
@@ -137,15 +142,11 @@ pub async fn get_local_user_view_from_jwt(
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view =
     blocking(pool, move |conn| LocalUserView::read(conn, local_user_id)).await??;
-  // Check for a site ban
-  if local_user_view.person.is_banned() {
-    return Err(LemmyError::from_message("site_ban"));
-  }
-
-  // Check for user deletion
-  if local_user_view.person.deleted {
-    return Err(LemmyError::from_message("deleted"));
-  }
+  check_user_valid(
+    local_user_view.person.banned,
+    local_user_view.person.ban_expires,
+    local_user_view.person.deleted,
+  )?;
 
   check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
 
@@ -154,7 +155,7 @@ pub async fn get_local_user_view_from_jwt(
 
 /// Checks if user's token was issued before user's password reset.
 pub fn check_validator_time(
-  validator_time: &chrono::NaiveDateTime,
+  validator_time: &NaiveDateTime,
   claims: &Claims,
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
@@ -178,41 +179,50 @@ pub async fn get_local_user_view_from_jwt_opt(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_local_user_settings_view_from_jwt(
-  jwt: &Sensitive<String>,
-  pool: &DbPool,
-  secret: &Secret,
-) -> Result<LocalUserSettingsView, LemmyError> {
-  let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
-    .map_err(|e| e.with_message("not_logged_in"))?
-    .claims;
-  let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = blocking(pool, move |conn| {
-    LocalUserSettingsView::read(conn, local_user_id)
-  })
-  .await??;
-  // Check for a site ban
-  if local_user_view.person.is_banned() {
-    return Err(LemmyError::from_message("site_ban"));
-  }
-
-  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-  Ok(local_user_view)
-}
-
-#[tracing::instrument(skip_all)]
 pub async fn get_local_user_settings_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
   secret: &Secret,
 ) -> Result<Option<LocalUserSettingsView>, LemmyError> {
   match jwt {
-    Some(jwt) => Ok(Some(
-      get_local_user_settings_view_from_jwt(jwt, pool, secret).await?,
-    )),
+    Some(jwt) => {
+      let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
+        .map_err(|e| e.with_message("not_logged_in"))?
+        .claims;
+      let local_user_id = LocalUserId(claims.sub);
+      let local_user_view = blocking(pool, move |conn| {
+        LocalUserSettingsView::read(conn, local_user_id)
+      })
+      .await??;
+      check_user_valid(
+        local_user_view.person.banned,
+        local_user_view.person.ban_expires,
+        local_user_view.person.deleted,
+      )?;
+
+      check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
+
+      Ok(Some(local_user_view))
+    }
     None => Ok(None),
   }
+}
+pub fn check_user_valid(
+  banned: bool,
+  ban_expires: Option<NaiveDateTime>,
+  deleted: bool,
+) -> Result<(), LemmyError> {
+  // Check for a site ban
+  if is_banned(banned, ban_expires) {
+    return Err(LemmyError::from_message("site_ban"));
+  }
+
+  // check for account deletion
+  if deleted {
+    return Err(LemmyError::from_message("deleted"));
+  }
+
+  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -668,10 +678,12 @@ pub async fn remove_user_data_in_community(
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
   let comments = blocking(pool, move |conn| {
-    CommentQueryBuilder::create(conn)
-      .creator_id(banned_person_id)
-      .community_id(community_id)
-      .limit(std::i64::MAX)
+    CommentQuery::builder()
+      .conn(conn)
+      .creator_id(Some(banned_person_id))
+      .community_id(Some(community_id))
+      .limit(Some(i64::MAX))
+      .build()
       .list()
   })
   .await??;

@@ -5,29 +5,32 @@
 use doku::Document;
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr};
+use url::Url;
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct Settings {
   /// settings related to the postgresql database
-  #[serde(default)]
+  #[default(Default::default())]
   pub database: DatabaseConfig,
-  #[default(Some(RateLimitConfig::default()))]
   /// rate limits for various user actions, by user ip
+  #[default(Some(Default::default()))]
   pub rate_limit: Option<RateLimitConfig>,
   /// Settings related to activitypub federation
-  #[default(FederationConfig::default())]
+  #[default(Default::default())]
   pub federation: FederationConfig,
   /// Pictrs image server configuration.
-  #[default(None)]
-  pub(crate) pictrs_config: Option<PictrsConfig>,
-  #[default(CaptchaConfig::default())]
+  #[default(Some(Default::default()))]
+  pub(crate) pictrs: Option<PictrsConfig>,
+  #[default(Default::default())]
   pub captcha: CaptchaConfig,
   /// Email sending configuration. All options except login/password are mandatory
   #[default(None)]
+  #[doku(example = "Some(Default::default())")]
   pub email: Option<EmailConfig>,
   /// Parameters for automatic configuration of new instance (only used at first start)
   #[default(None)]
+  #[doku(example = "Some(Default::default())")]
   pub setup: Option<SetupConfig>,
   /// the domain name of your instance (mandatory)
   #[default("unset")]
@@ -54,19 +57,20 @@ pub struct Settings {
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
   #[default(None)]
   #[doku(skip)]
-  pub opentelemetry_url: Option<String>,
+  pub opentelemetry_url: Option<Url>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
-  #[default("http://pictrs:8080")]
-  pub url: String,
+  #[default(Url::parse("http://pictrs:8080").expect("parse pictrs url"))]
+  #[doku(example = "http://pictrs:8080")]
+  pub url: Url,
 
   /// Set a custom pictrs API key. ( Required for deleting images )
-  #[default("API_KEY")]
-  pub api_key: String,
+  #[default(None)]
+  pub api_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

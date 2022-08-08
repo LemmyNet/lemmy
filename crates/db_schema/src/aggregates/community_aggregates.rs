@@ -39,6 +39,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "thommy_community_agg".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -46,6 +47,7 @@ mod tests {
 
     let another_person = PersonForm {
       name: "jerry_community_agg".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 
@@ -54,6 +56,7 @@ mod tests {
     let new_community = CommunityForm {
       name: "TIL_community_agg".into(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -62,6 +65,7 @@ mod tests {
     let another_community = CommunityForm {
       name: "TIL_community_agg_2".into(),
       title: "nada".to_owned(),
+      public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
     };
 
@@ -107,17 +111,17 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
 
     let child_comment_form = CommentForm {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
-      parent_id: Some(inserted_comment.id),
       ..CommentForm::default()
     };
 
-    let _inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
+    let _inserted_child_comment =
+      Comment::create(&conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
 
     let community_aggregates_before_delete =
       CommunityAggregates::read(&conn, inserted_community.id).unwrap();

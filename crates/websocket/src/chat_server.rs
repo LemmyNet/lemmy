@@ -444,7 +444,7 @@ impl ChatServer {
 
   fn sendit(&self, message: &str, id: ConnectionId) {
     if let Some(info) = self.sessions.get(&id) {
-      let _ = info.addr.do_send(WsMessage(message.to_owned()));
+      info.addr.do_send(WsMessage(message.to_owned()));
     }
   }
 

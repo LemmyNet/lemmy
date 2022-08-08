@@ -45,7 +45,7 @@ steps:
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends postgresql-client
-      - cargo test --workspace --no-fail-fast
+      - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
     image: clux/muslrust:1.57.0
@@ -159,7 +159,7 @@ steps:
 
 services:
   - name: database
-    image: postgres:12-alpine
+    image: postgres:14-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password

@@ -64,6 +64,9 @@ pub async fn match_websocket_operation(
     UserOperation::MarkPersonMentionAsRead => {
       do_websocket_operation::<MarkPersonMentionAsRead>(context, id, op, data).await
     }
+    UserOperation::MarkCommentReplyAsRead => {
+      do_websocket_operation::<MarkCommentReplyAsRead>(context, id, op, data).await
+    }
     UserOperation::MarkAllAsRead => {
       do_websocket_operation::<MarkAllAsRead>(context, id, op, data).await
     }
@@ -159,9 +162,6 @@ pub async fn match_websocket_operation(
     }
 
     // Comment ops
-    UserOperation::MarkCommentAsRead => {
-      do_websocket_operation::<MarkCommentAsRead>(context, id, op, data).await
-    }
     UserOperation::SaveComment => {
       do_websocket_operation::<SaveComment>(context, id, op, data).await
     }
@@ -234,6 +234,7 @@ mod tests {
 
     let new_person = PersonForm {
       name: "Gerry9812".into(),
+      public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
 

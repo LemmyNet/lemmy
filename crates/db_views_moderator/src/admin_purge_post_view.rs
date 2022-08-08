@@ -55,11 +55,11 @@ impl ViewToVec for AdminPurgePostView {
   type DbTuple = AdminPurgePostViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        admin_purge_post: a.0.to_owned(),
-        admin: a.1.to_owned(),
-        community: a.2.to_owned(),
+        admin_purge_post: a.0,
+        admin: a.1,
+        community: a.2,
       })
       .collect::<Vec<Self>>()
   }
