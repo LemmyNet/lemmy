@@ -15,6 +15,7 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
     local_user::{LocalUser, LocalUserForm},
+    local_user_language::LocalUserLanguage,
     person::{Person, PersonForm},
     registration_application::{RegistrationApplication, RegistrationApplicationForm},
     site::Site,
@@ -167,10 +168,17 @@ impl PerformCrud for Register {
       }
     };
 
+    // Update the users languages to all by default
+    let local_user_id = inserted_local_user.id;
+    blocking(context.pool(), move |conn| {
+      LocalUserLanguage::update_user_languages(conn, None, local_user_id)
+    })
+    .await??;
+
     if require_application {
       // Create the registration application
       let form = RegistrationApplicationForm {
-        local_user_id: Some(inserted_local_user.id),
+        local_user_id: Some(local_user_id),
         // We already made sure answer was not null above
         answer: data.answer.to_owned(),
         ..RegistrationApplicationForm::default()
