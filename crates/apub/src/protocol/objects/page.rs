@@ -13,7 +13,7 @@ use activitypub_federation::{
   },
   traits::{ActivityHandler, ApubObject},
 };
-use activitystreams_kinds::link::LinkType;
+use activitystreams_kinds::{link::LinkType, object::ImageType};
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use lemmy_db_schema::newtypes::DbUrl;
@@ -66,9 +66,24 @@ pub struct Page {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Attachment {
+pub(crate) struct Link {
   pub(crate) href: Url,
   pub(crate) r#type: LinkType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Image {
+  #[serde(rename = "type")]
+  pub(crate) kind: ImageType,
+  pub(crate) url: Url,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub(crate) enum Attachment {
+  Link(Link),
+  Image(Image),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -174,10 +189,10 @@ impl Page {
 
 impl Attachment {
   pub(crate) fn new(url: DbUrl) -> Attachment {
-    Attachment {
+    Attachment::Link(Link {
       href: url.into(),
       r#type: Default::default(),
-    }
+    })
   }
 }
 
