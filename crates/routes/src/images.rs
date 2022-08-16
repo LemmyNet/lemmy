@@ -133,10 +133,7 @@ async fn full_res(
     // Use jpg as a default when none is given
     let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
-    let mut url = format!(
-      "{}image/process.{}?src={}",
-      pictrs_config.url, format, name,
-    );
+    let mut url = format!("{}image/process.{}?src={}", pictrs_config.url, format, name,);
 
     if let Some(size) = params.thumbnail {
       url = format!("{}&thumbnail={}", url, size,);
