@@ -70,6 +70,7 @@ async fn main() -> Result<(), LemmyError> {
   let manager = ConnectionManager::<PgConnection>::new(&db_url);
   let pool = Pool::builder()
     .max_size(settings.database.pool_size)
+    .min_idle(Some(1))
     .build(manager)
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 

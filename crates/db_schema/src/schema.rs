@@ -477,6 +477,7 @@ table! {
         default_theme -> Text,
         default_post_listing_type -> Text,
         legal_information -> Nullable<Text>,
+        hide_modlog_mod_names -> Bool,
     }
 }
 
