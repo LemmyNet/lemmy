@@ -6,7 +6,7 @@ use crate::{
   },
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::utils::{blocking, check_person_block};
 use lemmy_apub_lib::{
   object_id::ObjectId,
   traits::ApubObject,
@@ -133,6 +133,7 @@ impl ApubObject for ApubPrivateMessage {
     let recipient = note.to[0]
       .dereference(context, context.client(), request_counter)
       .await?;
+    check_person_block(creator.id, recipient.id, context.pool()).await?;
 
     let form = PrivateMessageForm {
       creator_id: creator.id,
