@@ -14,7 +14,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::utils::{blocking, check_person_block};
 use lemmy_db_schema::{
   source::{
     person::Person,
@@ -132,6 +132,7 @@ impl ApubObject for ApubPrivateMessage {
     let recipient = note.to[0]
       .dereference(context, local_instance(context), request_counter)
       .await?;
+    check_person_block(creator.id, recipient.id, context.pool()).await?;
 
     let form = PrivateMessageForm {
       creator_id: creator.id,
