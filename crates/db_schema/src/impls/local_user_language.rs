@@ -15,9 +15,6 @@ impl LocalUserLanguage {
   ) -> Result<(), Error> {
     use crate::schema::local_user_language::dsl::*;
 
-    // Clear the current user languages
-    delete(local_user_language.filter(local_user_id.eq(for_local_user_id))).execute(conn)?;
-
     // If no language is given, read all languages
     let lang_ids = language_ids.unwrap_or(
       Language::read_all(conn)?
@@ -26,15 +23,20 @@ impl LocalUserLanguage {
         .collect(),
     );
 
-    for l in lang_ids {
-      let form = LocalUserLanguageForm {
-        local_user_id: for_local_user_id,
-        language_id: l,
-      };
-      insert_into(local_user_language)
-        .values(form)
-        .get_result::<Self>(conn)?;
-    }
-    Ok(())
+    conn.build_transaction().read_write().run(|| {
+      // Clear the current user languages
+      delete(local_user_language.filter(local_user_id.eq(for_local_user_id))).execute(conn)?;
+
+      for l in lang_ids {
+        let form = LocalUserLanguageForm {
+          local_user_id: for_local_user_id,
+          language_id: l,
+        };
+        insert_into(local_user_language)
+          .values(form)
+          .get_result::<Self>(conn)?;
+      }
+      Ok(())
+    })
   }
 }
