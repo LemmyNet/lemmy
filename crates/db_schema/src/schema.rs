@@ -26,6 +26,7 @@ table! {
         ap_id -> Varchar,
         local -> Bool,
         path -> Ltree,
+        distinguished -> Bool,
     }
 }
 

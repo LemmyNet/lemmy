@@ -44,6 +44,8 @@ pub struct Note {
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
   pub(crate) tag: Vec<MentionOrValue>,
+  // lemmy extension
+  pub(crate) distinguished: Option<bool>,
 }
 
 impl Note {
