@@ -1,4 +1,4 @@
-use crate::structs::{LocalUserView, PostView};
+use crate::structs::PostView;
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
@@ -25,12 +25,13 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
 use tracing::debug;
+use typed_builder::TypedBuilder;
 
 type PostViewTuple = (
   Post,
@@ -158,7 +159,10 @@ impl PostView {
   }
 }
 
-pub struct PostQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct PostQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
@@ -177,89 +181,7 @@ pub struct PostQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PostQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    PostQueryBuilder {
-      conn,
-      listing_type: Some(ListingType::All),
-      sort: None,
-      creator_id: None,
-      community_id: None,
-      community_actor_id: None,
-      my_person_id: None,
-      my_local_user_id: None,
-      search_term: None,
-      url_search: None,
-      show_nsfw: None,
-      show_bot_accounts: None,
-      show_read_posts: None,
-      saved_only: None,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
-    self.listing_type = listing_type.get_optional();
-    self
-  }
-
-  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
-    self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn community_actor_id<T: MaybeOptional<DbUrl>>(mut self, community_actor_id: T) -> Self {
-    self.community_actor_id = community_actor_id.get_optional();
-    self
-  }
-
-  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
-    self.creator_id = creator_id.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
-    self.url_search = url_search.get_optional();
-    self
-  }
-
-  pub fn saved_only<T: MaybeOptional<bool>>(mut self, saved_only: T) -> Self {
-    self.saved_only = saved_only.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn set_params_for_user(mut self, user: &Option<LocalUserView>) -> Self {
-    if let Some(user) = user {
-      self.my_person_id = Some(user.person.id);
-      self.my_local_user_id = Some(user.local_user.id);
-      self.show_nsfw = Some(user.local_user.show_nsfw);
-      self.show_bot_accounts = Some(user.local_user.show_bot_accounts);
-      self.show_read_posts = Some(user.local_user.show_read_posts);
-    }
-    self
-  }
-
+impl<'a> PostQuery<'a> {
   pub fn list(self) -> Result<Vec<PostView>, Error> {
     use diesel::dsl::*;
 
@@ -513,8 +435,8 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post_view::{PostQueryBuilder, PostView},
-    structs::LocalUserView,
+    post_view::{PostQuery, PostView},
+    structs::LocalUserDiscussionLanguageView,
   };
   use diesel::PgConnection;
   use lemmy_db_schema::{
@@ -547,9 +469,6 @@ mod tests {
 
   fn init_data(conn: &PgConnection) -> Data {
     let person_name = "tegan".to_string();
-    let community_name = "test_community_3".to_string();
-    let post_name = "test post 3".to_string();
-    let bot_post_name = "test bot post".to_string();
 
     let new_person = PersonForm {
       name: person_name.to_owned(),
@@ -560,7 +479,7 @@ mod tests {
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let new_bot = PersonForm {
-      name: person_name.to_owned(),
+      name: "mybot".to_string(),
       bot_account: Some(true),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
@@ -569,7 +488,7 @@ mod tests {
     let inserted_bot = Person::create(conn, &new_bot).unwrap();
 
     let new_community = CommunityForm {
-      name: community_name,
+      name: "test_community_3".to_string(),
       title: "nada".to_owned(),
       public_key: Some("pubkey".to_string()),
       ..CommunityForm::default()
@@ -606,7 +525,7 @@ mod tests {
 
     // A sample post
     let new_post = PostForm {
-      name: post_name,
+      name: "test post 3".to_string(),
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
       language_id: Some(LanguageId(47)),
@@ -616,7 +535,7 @@ mod tests {
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
     let new_bot_post = PostForm {
-      name: bot_post_name,
+      name: "test bot post".to_string(),
       creator_id: inserted_bot.id,
       community_id: inserted_community.id,
       ..PostForm::default()
@@ -742,14 +661,17 @@ mod tests {
     let conn = establish_unpooled_connection();
     let data = init_data(&conn);
 
-    let mut read_post_listings = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .community_id(data.inserted_community.id);
-    read_post_listings.show_bot_accounts = Some(false);
-    read_post_listings.my_person_id = Some(data.inserted_person.id);
-    let read_post_listing = read_post_listings.list().unwrap();
+    let read_post_listing = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .community_id(Some(data.inserted_community.id))
+      .show_bot_accounts(Some(false))
+      .my_person_id(Some(data.inserted_person.id))
+      .build()
+      .list()
+      .unwrap();
 
-    let read_post_listing_single_with_person =
+    let post_listing_single_with_person =
       PostView::read(&conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
 
     let mut expected_post_listing_with_user = expected_post_listing(&data, &conn);
@@ -761,15 +683,18 @@ mod tests {
     expected_post_listing_with_user.my_vote = Some(0);
     assert_eq!(
       expected_post_listing_with_user,
-      read_post_listing_single_with_person
+      post_listing_single_with_person
     );
 
-    let mut read_post_listings_with_bots = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .community_id(data.inserted_community.id);
-    read_post_listings_with_bots.show_bot_accounts = Some(true);
-    read_post_listings_with_bots.my_person_id = Some(data.inserted_person.id);
-    let post_listings_with_bots = read_post_listings_with_bots.list().unwrap();
+    let post_listings_with_bots = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .community_id(Some(data.inserted_community.id))
+      .show_bot_accounts(Some(true))
+      .my_person_id(Some(data.inserted_person.id))
+      .build()
+      .list()
+      .unwrap();
     // should include bot post which has "undetermined" language
     assert_eq!(2, post_listings_with_bots.len());
 
@@ -782,9 +707,11 @@ mod tests {
     let conn = establish_unpooled_connection();
     let data = init_data(&conn);
 
-    let read_post_listing_multiple_no_person = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .community_id(data.inserted_community.id)
+    let read_post_listing_multiple_no_person = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .community_id(Some(data.inserted_community.id))
+      .build()
       .list()
       .unwrap();
 
@@ -820,14 +747,15 @@ mod tests {
     };
     CommunityBlock::block(&conn, &community_block).unwrap();
 
-    let mut read_post_listings_with_person_after_block = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .community_id(data.inserted_community.id);
-    read_post_listings_with_person_after_block.show_bot_accounts = Some(true);
-    read_post_listings_with_person_after_block.my_person_id = Some(data.inserted_person.id);
-    let read_post_listings_with_person_after_block =
-      read_post_listings_with_person_after_block.list().unwrap();
-
+    let read_post_listings_with_person_after_block = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .community_id(Some(data.inserted_community.id))
+      .show_bot_accounts(Some(true))
+      .my_person_id(Some(data.inserted_person.id))
+      .build()
+      .list()
+      .unwrap();
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
@@ -890,19 +818,19 @@ mod tests {
     let local_user_form = LocalUserForm {
       person_id: Some(my_person.id),
       password_encrypted: Some("".to_string()),
-      show_bot_accounts: Some(true),
       ..Default::default()
     };
     let local_user = LocalUser::create(&conn, &local_user_form).unwrap();
-    let local_user = LocalUserView::read(&conn, local_user.id).unwrap();
-    let local_user_id = local_user.local_user.id;
 
     // Update the users languages to all
-    LocalUserLanguage::update_user_languages(&conn, None, local_user_id).unwrap();
+    LocalUserLanguage::update_user_languages(&conn, None, local_user.id).unwrap();
 
-    let post_listings_all = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .set_params_for_user(&Some(local_user.clone()))
+    let post_listings_all = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .show_bot_accounts(Some(true))
+      .my_person_id(Some(my_person.id))
+      .build()
       .list()
       .unwrap();
 
@@ -910,11 +838,16 @@ mod tests {
     assert_eq!(4, post_listings_all.len());
 
     let french_id = Language::read_id_from_code(&conn, "fr").unwrap();
-    LocalUserLanguage::update_user_languages(&conn, Some(vec![french_id]), local_user_id).unwrap();
+    LocalUserLanguage::update_user_languages(&conn, Some(vec![french_id]), local_user.id).unwrap();
+    let langs = LocalUserDiscussionLanguageView::read_languages(&conn, local_user.id).unwrap();
+    dbg!(&langs);
 
-    let post_listing_french = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .set_params_for_user(&Some(local_user.clone()))
+    let post_listing_french = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .show_bot_accounts(Some(true))
+      .my_person_id(Some(my_person.id))
+      .build()
       .list()
       .unwrap();
 
@@ -926,12 +859,15 @@ mod tests {
     LocalUserLanguage::update_user_languages(
       &conn,
       Some(vec![french_id, undetermined_id]),
-      local_user_id,
+      local_user.id,
     )
     .unwrap();
-    let post_listings_french_und = PostQueryBuilder::create(&conn)
-      .sort(SortType::New)
-      .set_params_for_user(&Some(local_user))
+    let post_listings_french_und = PostQuery::builder()
+      .conn(&conn)
+      .sort(Some(SortType::New))
+      .show_bot_accounts(Some(true))
+      .my_person_id(Some(my_person.id))
+      .build()
       .list()
       .unwrap();
 

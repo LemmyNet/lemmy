@@ -1,7 +1,7 @@
-use crate::structs::ModHideCommunityView;
+use crate::structs::{ModHideCommunityView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::PersonId,
   schema::{community, mod_hide_community, person},
   source::{
     community::{Community, CommunitySafe},
@@ -12,36 +12,37 @@ use lemmy_db_schema::{
   utils::limit_and_offset,
 };
 
-type ModHideCommunityViewTuple = (ModHideCommunity, PersonSafe, CommunitySafe);
+type ModHideCommunityViewTuple = (ModHideCommunity, Option<PersonSafe>, CommunitySafe);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
-  pub fn list(
-    conn: &PgConnection,
-    community_id: Option<CommunityId>,
-    admin_id: Option<PersonId>,
-    page: Option<i64>,
-    limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !params.hide_modlog_names;
+    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
+
+    let admin_names_join = mod_hide_community::mod_person_id
+      .eq(person::id)
+      .and(show_mod_names_expr.or(person::id.eq(admin_person_id_join)));
     let mut query = mod_hide_community::table
-      .inner_join(person::table)
+      .left_join(person::table.on(admin_names_join))
       .inner_join(community::table.on(mod_hide_community::community_id.eq(community::id)))
       .select((
         mod_hide_community::all_columns,
-        Person::safe_columns_tuple(),
+        Person::safe_columns_tuple().nullable(),
         Community::safe_columns_tuple(),
       ))
       .into_boxed();
 
-    if let Some(community_id) = community_id {
+    if let Some(community_id) = params.community_id {
       query = query.filter(mod_hide_community::community_id.eq(community_id));
     };
 
-    if let Some(admin_id) = admin_id {
+    if let Some(admin_id) = params.mod_person_id {
       query = query.filter(mod_hide_community::mod_person_id.eq(admin_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     let res = query
       .limit(limit)
@@ -49,7 +50,8 @@ impl ModHideCommunityView {
       .order_by(mod_hide_community::when_.desc())
       .load::<ModHideCommunityViewTuple>(conn)?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    let results = Self::from_tuple_to_vec(res);
+    Ok(results)
   }
 }
 

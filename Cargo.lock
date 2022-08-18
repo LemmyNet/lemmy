@@ -1128,8 +1128,9 @@ dependencies = [
 
 [[package]]
 name = "doku"
-version = "0.11.0"
-source = "git+https://github.com/anixe/doku#10a0339a82be92b5f160aac325d11c9c2ef875e1"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6e0b8876b34b3a2504166bac1a5a8cb7ad65dc854e7a70b1114c055df1efc04"
 dependencies = [
  "doku-derive",
  "serde",
@@ -1139,8 +1140,9 @@ dependencies = [
 
 [[package]]
 name = "doku-derive"
-version = "0.11.0"
-source = "git+https://github.com/anixe/doku#10a0339a82be92b5f160aac325d11c9c2ef875e1"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6430bef5fcbfa22f3c431f05a14254d45f41ab634cabe09fad82e98d4f9fdc8b"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2 1.0.40",
@@ -2018,6 +2020,7 @@ dependencies = [
  "serde",
  "serial_test",
  "tracing",
+ "typed-builder",
 ]
 
 [[package]]
@@ -2027,6 +2030,7 @@ dependencies = [
  "diesel",
  "lemmy_db_schema",
  "serde",
+ "typed-builder",
 ]
 
 [[package]]
@@ -4198,6 +4202,17 @@ name = "typed-arena"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9b2228007eba4120145f785df0f6c92ea538f5a3635a612ecf4e334c8c1446d"
+
+[[package]]
+name = "typed-builder"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89851716b67b937e393b3daa8423e67ddfc4bbbf1654bcf05488e95e0828db0c"
+dependencies = [
+ "proc-macro2 1.0.40",
+ "quote 1.0.20",
+ "syn 1.0.98",
+]
 
 [[package]]
 name = "typenum"

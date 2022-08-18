@@ -13,7 +13,10 @@ use lemmy_db_schema::{
 type LocalUserDiscussionLanguageViewTuple = (LocalUserSettings, Language);
 
 impl LocalUserDiscussionLanguageView {
-  pub fn read(conn: &PgConnection, local_user_id: LocalUserId) -> Result<Vec<Self>, Error> {
+  pub fn read_languages(
+    conn: &PgConnection,
+    local_user_id: LocalUserId,
+  ) -> Result<Vec<Language>, Error> {
     let res = local_user_language::table
       .inner_join(local_user::table)
       .inner_join(language::table)
@@ -24,21 +27,6 @@ impl LocalUserDiscussionLanguageView {
       .filter(local_user::id.eq(local_user_id))
       .load::<LocalUserDiscussionLanguageViewTuple>(conn)?;
 
-    Ok(
-      res
-        .into_iter()
-        .map(|a| Self {
-          local_user: a.0,
-          language: a.1,
-        })
-        .collect::<Vec<Self>>(),
-    )
-  }
-
-  pub fn read_languages(
-    conn: &PgConnection,
-    local_user_id: LocalUserId,
-  ) -> Result<Vec<Language>, Error> {
-    Self::read(conn, local_user_id).map(|r| r.into_iter().map(|a| a.language).collect())
+    Ok(res.into_iter().map(|a| a.1).collect::<Vec<Language>>())
   }
 }

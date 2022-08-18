@@ -165,8 +165,11 @@ impl ApubObject for ApubPost {
 
     let form = if !page.is_mod_action(context).await? {
       let url = if let Some(attachment) = page.attachment.first() {
-        // url as sent by Lemmy (new)
-        Some(attachment.href.clone())
+        Some(match attachment {
+          // url as sent by Lemmy (new)
+          Attachment::Link(link) => link.href.clone(),
+          Attachment::Image(image) => image.url.clone(),
+        })
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())

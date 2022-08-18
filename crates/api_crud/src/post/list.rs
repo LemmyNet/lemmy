@@ -11,7 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
-use lemmy_db_views::post_view::PostQueryBuilder;
+use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -51,15 +51,16 @@ impl PerformCrud for GetPosts {
     let saved_only = data.saved_only;
 
     let mut posts = blocking(context.pool(), move |conn| {
-      PostQueryBuilder::create(conn)
-        .listing_type(listing_type)
-        .set_params_for_user(&local_user_view)
+      PostQuery::builder()
+        .conn(conn)
+        .listing_type(Some(listing_type))
         .sort(sort)
         .community_id(community_id)
         .community_actor_id(community_actor_id)
         .saved_only(saved_only)
         .page(page)
         .limit(limit)
+        .build()
         .list()
     })
     .await?

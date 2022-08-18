@@ -71,3 +71,23 @@ pub enum SubscribedType {
   NotSubscribed,
   Pending,
 }
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+pub enum ModlogActionType {
+  All,
+  ModRemovePost,
+  ModLockPost,
+  ModStickyPost,
+  ModRemoveComment,
+  ModRemoveCommunity,
+  ModBanFromCommunity,
+  ModAddCommunity,
+  ModTransferCommunity,
+  ModAdd,
+  ModBan,
+  ModHideCommunity,
+  AdminPurgePerson,
+  AdminPurgeCommunity,
+  AdminPurgePost,
+  AdminPurgeComment,
+}

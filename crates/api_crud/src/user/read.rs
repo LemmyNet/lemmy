@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
 use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
-use lemmy_db_views::{comment_view::CommentQueryBuilder, post_view::PostQueryBuilder};
+use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -68,8 +68,8 @@ impl PerformCrud for GetPersonDetails {
     let community_id = data.community_id;
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
-      let mut posts_query = PostQueryBuilder::create(conn)
-        .set_params_for_user(&local_user_view)
+      let posts_query = PostQuery::builder()
+        .conn(conn)
         .sort(sort)
         .saved_only(saved_only)
         .community_id(community_id)
@@ -77,7 +77,8 @@ impl PerformCrud for GetPersonDetails {
         .limit(limit);
 
       let person_id = local_user_view.map(|uv| uv.person.id);
-      let mut comments_query = CommentQueryBuilder::create(conn)
+      let comments_query = CommentQuery::builder()
+        .conn(conn)
         .my_person_id(person_id)
         .show_bot_accounts(show_bot_accounts)
         .sort(sort.map(post_to_comment_sort_type))
@@ -88,13 +89,20 @@ impl PerformCrud for GetPersonDetails {
 
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only.unwrap_or(false) {
-        posts_query = posts_query.creator_id(person_details_id);
-        comments_query = comments_query.creator_id(person_details_id);
-      }
-
-      let posts = posts_query.list()?;
-      let comments = comments_query.list()?;
+      let (posts, comments) = if !saved_only.unwrap_or(false) {
+        (
+          posts_query
+            .creator_id(Some(person_details_id))
+            .build()
+            .list()?,
+          comments_query
+            .creator_id(Some(person_details_id))
+            .build()
+            .list()?,
+        )
+      } else {
+        (posts_query.build().list()?, comments_query.build().list()?)
+      };
 
       Ok((posts, comments)) as Result<_, LemmyError>
     })
