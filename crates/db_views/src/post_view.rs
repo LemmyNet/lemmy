@@ -434,10 +434,7 @@ impl ViewToVec for PostView {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    post_view::{PostQuery, PostView},
-    structs::LocalUserDiscussionLanguageView,
-  };
+  use crate::post_view::{PostQuery, PostView};
   use diesel::PgConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
@@ -830,6 +827,7 @@ mod tests {
       .sort(Some(SortType::New))
       .show_bot_accounts(Some(true))
       .my_person_id(Some(my_person.id))
+      .my_local_user_id(Some(local_user.id))
       .build()
       .list()
       .unwrap();
@@ -839,14 +837,13 @@ mod tests {
 
     let french_id = Language::read_id_from_code(&conn, "fr").unwrap();
     LocalUserLanguage::update_user_languages(&conn, Some(vec![french_id]), local_user.id).unwrap();
-    let langs = LocalUserDiscussionLanguageView::read_languages(&conn, local_user.id).unwrap();
-    dbg!(&langs);
 
     let post_listing_french = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
       .show_bot_accounts(Some(true))
       .my_person_id(Some(my_person.id))
+      .my_local_user_id(Some(local_user.id))
       .build()
       .list()
       .unwrap();
@@ -867,6 +864,7 @@ mod tests {
       .sort(Some(SortType::New))
       .show_bot_accounts(Some(true))
       .my_person_id(Some(my_person.id))
+      .my_local_user_id(Some(local_user.id))
       .build()
       .list()
       .unwrap();
