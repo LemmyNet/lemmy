@@ -6,6 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    language::Language,
     moderator::{ModAdd, ModAddForm},
     person::Person,
   },
@@ -59,6 +60,8 @@ impl Perform for LeaveAdmin {
 
     let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
 
+    let all_languages = blocking(context.pool(), Language::read_all).await??;
+
     Ok(GetSiteResponse {
       site_view: Some(site_view),
       admins,
@@ -66,6 +69,7 @@ impl Perform for LeaveAdmin {
       version: version::VERSION.to_string(),
       my_user: None,
       federated_instances,
+      all_languages,
     })
   }
 }

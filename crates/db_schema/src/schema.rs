@@ -156,7 +156,7 @@ table! {
         theme -> Varchar,
         default_sort_type -> Int2,
         default_listing_type -> Int2,
-        lang -> Varchar,
+        interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
         validator_time -> Timestamp,
@@ -375,6 +375,7 @@ table! {
         thumbnail_url -> Nullable<Text>,
         ap_id -> Varchar,
         local -> Bool,
+        language_id -> Int4,
     }
 }
 
@@ -645,6 +646,22 @@ table! {
     }
 }
 
+table! {
+    language (id) {
+        id -> Int4,
+        code -> Text,
+        name -> Text,
+    }
+}
+
+table! {
+    local_user_language(id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        language_id -> Int4,
+    }
+}
+
 joinable!(person_mention -> person_alias_1 (recipient_id));
 joinable!(comment_reply -> person_alias_1 (recipient_id));
 joinable!(post -> person_alias_1 (creator_id));
@@ -711,6 +728,9 @@ joinable!(registration_application -> local_user (local_user_id));
 joinable!(registration_application -> person (admin_id));
 joinable!(mod_hide_community -> person (mod_person_id));
 joinable!(mod_hide_community -> community (community_id));
+joinable!(post -> language (language_id));
+joinable!(local_user_language -> language (language_id));
+joinable!(local_user_language -> local_user (local_user_id));
 
 joinable!(admin_purge_comment -> person (admin_person_id));
 joinable!(admin_purge_comment -> post (post_id));
@@ -767,5 +787,7 @@ allow_tables_to_appear_in_same_query!(
   admin_purge_person,
   admin_purge_post,
   email_verification,
-  registration_application
+  registration_application,
+  language,
+  local_user_language
 );

@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, PostId, PostReportId},
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
   SortType,
 };
@@ -17,6 +17,7 @@ pub struct CreatePost {
   pub body: Option<String>,
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
+  pub language_id: Option<LanguageId>,
   pub auth: Sensitive<String>,
 }
 
@@ -71,6 +72,7 @@ pub struct EditPost {
   pub url: Option<Url>,
   pub body: Option<String>,
   pub nsfw: Option<bool>,
+  pub language_id: Option<LanguageId>,
   pub auth: Sensitive<String>,
 }
 

@@ -34,13 +34,9 @@ impl PerformCrud for GetPersonDetails {
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
     let show_bot_accounts = local_user_view
       .as_ref()
       .map(|t| t.local_user.show_bot_accounts);
-    let show_read_posts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_read_posts);
 
     let person_details_id = match data.person_id {
       Some(id) => id,
@@ -57,8 +53,6 @@ impl PerformCrud for GetPersonDetails {
         }
       }
     };
-
-    let person_id = local_user_view.map(|uv| uv.person.id);
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
@@ -77,15 +71,12 @@ impl PerformCrud for GetPersonDetails {
       let posts_query = PostQuery::builder()
         .conn(conn)
         .sort(sort)
-        .show_nsfw(show_nsfw)
-        .show_bot_accounts(show_bot_accounts)
-        .show_read_posts(show_read_posts)
         .saved_only(saved_only)
         .community_id(community_id)
-        .my_person_id(person_id)
         .page(page)
         .limit(limit);
 
+      let person_id = local_user_view.map(|uv| uv.person.id);
       let comments_query = CommentQuery::builder()
         .conn(conn)
         .my_person_id(person_id)
