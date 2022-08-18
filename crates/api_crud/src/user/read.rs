@@ -31,12 +31,7 @@ impl PerformCrud for GetPersonDetails {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-
     check_private_instance(&local_user_view, context.pool()).await?;
-
-    let show_bot_accounts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_bot_accounts);
 
     let person_details_id = match data.person_id {
       Some(id) => id,
@@ -76,11 +71,10 @@ impl PerformCrud for GetPersonDetails {
         .page(page)
         .limit(limit);
 
-      let person_id = local_user_view.map(|uv| uv.person.id);
+      let local_user = local_user_view.map(|l| l.local_user);
       let comments_query = CommentQuery::builder()
         .conn(conn)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
+        .local_user(local_user.as_ref())
         .sort(sort.map(post_to_comment_sort_type))
         .saved_only(saved_only)
         .community_id(community_id)

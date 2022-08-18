@@ -21,6 +21,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
     language::Language,
+    local_user::LocalUser,
     person::{Person, PersonSafe},
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
@@ -169,13 +170,9 @@ pub struct PostQuery<'a> {
   creator_id: Option<PersonId>,
   community_id: Option<CommunityId>,
   community_actor_id: Option<DbUrl>,
-  my_person_id: Option<PersonId>,
-  my_local_user_id: Option<LocalUserId>,
+  local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   url_search: Option<String>,
-  show_nsfw: Option<bool>,
-  show_bot_accounts: Option<bool>,
-  show_read_posts: Option<bool>,
   saved_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -186,8 +183,8 @@ impl<'a> PostQuery<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = self.my_local_user_id.unwrap_or(LocalUserId(-1));
+    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
+    let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
 
     let mut query = post::table
       .inner_join(person::table)
@@ -322,13 +319,13 @@ impl<'a> PostQuery<'a> {
       query = query.filter(post::creator_id.eq(creator_id));
     }
 
-    if !self.show_nsfw.unwrap_or(false) {
+    if !self.local_user.map(|l| l.show_nsfw).unwrap_or(false) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !self.show_bot_accounts.unwrap_or(true) {
+    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -337,17 +334,15 @@ impl<'a> PostQuery<'a> {
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !self.show_read_posts.unwrap_or(true) {
+    else if !self.local_user.map(|l| l.show_read_posts).unwrap_or(true) {
       query = query.filter(post_read::id.is_null());
     }
 
-    // Filter out the rows with missing languages
-    if self.my_local_user_id.is_some() {
+    if self.local_user.is_some() {
+      // Filter out the rows with missing languages
       query = query.filter(local_user_language::id.is_not_null());
-    }
 
-    // Don't show blocked communities or persons
-    if self.my_person_id.is_some() {
+      // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
     }
@@ -458,6 +453,7 @@ mod tests {
 
   struct Data {
     inserted_person: Person,
+    inserted_local_user: LocalUser,
     inserted_blocked_person: Person,
     inserted_bot: Person,
     inserted_community: Community,
@@ -474,6 +470,15 @@ mod tests {
     };
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
+
+    let local_user_form = LocalUserForm {
+      person_id: Some(inserted_person.id),
+      password_encrypted: Some("".to_string()),
+      ..Default::default()
+    };
+    let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
+    // update user languages to all
+    LocalUserLanguage::update_user_languages(conn, None, inserted_local_user.id).unwrap();
 
     let new_bot = PersonForm {
       name: "mybot".to_string(),
@@ -542,6 +547,7 @@ mod tests {
 
     Data {
       inserted_person,
+      inserted_local_user,
       inserted_blocked_person,
       inserted_bot,
       inserted_community,
@@ -658,12 +664,18 @@ mod tests {
     let conn = establish_unpooled_connection();
     let data = init_data(&conn);
 
+    let local_user_form = LocalUserForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
+    let inserted_local_user =
+      LocalUser::update(&conn, data.inserted_local_user.id, &local_user_form).unwrap();
+
     let read_post_listing = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .show_bot_accounts(Some(false))
-      .my_person_id(Some(data.inserted_person.id))
+      .local_user(Some(&inserted_local_user))
       .build()
       .list()
       .unwrap();
@@ -683,12 +695,18 @@ mod tests {
       post_listing_single_with_person
     );
 
+    let local_user_form = LocalUserForm {
+      show_bot_accounts: Some(true),
+      ..Default::default()
+    };
+    let inserted_local_user =
+      LocalUser::update(&conn, data.inserted_local_user.id, &local_user_form).unwrap();
+
     let post_listings_with_bots = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .show_bot_accounts(Some(true))
-      .my_person_id(Some(data.inserted_person.id))
+      .local_user(Some(&inserted_local_user))
       .build()
       .list()
       .unwrap();
@@ -748,8 +766,7 @@ mod tests {
       .conn(&conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .show_bot_accounts(Some(true))
-      .my_person_id(Some(data.inserted_person.id))
+      .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
       .unwrap();
@@ -806,44 +823,29 @@ mod tests {
 
     Post::create(&conn, &post_spanish).unwrap();
 
-    let my_person_form = PersonForm {
-      name: "Reverie Toiba".to_string(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
-    let my_person = Person::create(&conn, &my_person_form).unwrap();
-    let local_user_form = LocalUserForm {
-      person_id: Some(my_person.id),
-      password_encrypted: Some("".to_string()),
-      ..Default::default()
-    };
-    let local_user = LocalUser::create(&conn, &local_user_form).unwrap();
-
-    // Update the users languages to all
-    LocalUserLanguage::update_user_languages(&conn, None, local_user.id).unwrap();
-
     let post_listings_all = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
-      .show_bot_accounts(Some(true))
-      .my_person_id(Some(my_person.id))
-      .my_local_user_id(Some(local_user.id))
+      .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
       .unwrap();
 
     // no language filters specified, all posts should be returned
-    assert_eq!(4, post_listings_all.len());
+    assert_eq!(3, post_listings_all.len());
 
     let french_id = Language::read_id_from_code(&conn, "fr").unwrap();
-    LocalUserLanguage::update_user_languages(&conn, Some(vec![french_id]), local_user.id).unwrap();
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      Some(vec![french_id]),
+      data.inserted_local_user.id,
+    )
+    .unwrap();
 
     let post_listing_french = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
-      .show_bot_accounts(Some(true))
-      .my_person_id(Some(my_person.id))
-      .my_local_user_id(Some(local_user.id))
+      .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
       .unwrap();
@@ -856,15 +858,13 @@ mod tests {
     LocalUserLanguage::update_user_languages(
       &conn,
       Some(vec![french_id, undetermined_id]),
-      local_user.id,
+      data.inserted_local_user.id,
     )
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
       .conn(&conn)
       .sort(Some(SortType::New))
-      .show_bot_accounts(Some(true))
-      .my_person_id(Some(my_person.id))
-      .my_local_user_id(Some(local_user.id))
+      .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
       .unwrap();
