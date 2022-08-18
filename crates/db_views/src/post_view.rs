@@ -525,7 +525,7 @@ mod tests {
       community_block::{CommunityBlock, CommunityBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserForm},
-      local_user_language::{LocalUserLanguage, LocalUserLanguageForm},
+      local_user_language::LocalUserLanguage,
       person::*,
       person_block::{PersonBlock, PersonBlockForm},
       post::*,
@@ -897,6 +897,9 @@ mod tests {
     let local_user = LocalUserView::read(&conn, local_user.id).unwrap();
     let local_user_id = local_user.local_user.id;
 
+    // Update the users languages to all
+    LocalUserLanguage::update_user_languages(&conn, None, local_user_id).unwrap();
+
     let post_listings_all = PostQueryBuilder::create(&conn)
       .sort(SortType::New)
       .set_params_for_user(&Some(local_user.clone()))
@@ -907,16 +910,7 @@ mod tests {
     assert_eq!(4, post_listings_all.len());
 
     let french_id = Language::read_id_from_code(&conn, "fr").unwrap();
-    let language_form_fr = LocalUserLanguageForm {
-      local_user_id,
-      language_id: french_id,
-    };
-    LocalUserLanguage::update_user_languages(
-      &conn,
-      vec![language_form_fr.clone()],
-      local_user_id,
-    )
-    .unwrap();
+    LocalUserLanguage::update_user_languages(&conn, Some(vec![french_id]), local_user_id).unwrap();
 
     let post_listing_french = PostQueryBuilder::create(&conn)
       .sort(SortType::New)
@@ -929,13 +923,9 @@ mod tests {
     assert_eq!(french_id, post_listing_french[0].post.language_id);
 
     let undetermined_id = Language::read_id_from_code(&conn, "und").unwrap();
-    let language_form_und = LocalUserLanguageForm {
-      local_user_id,
-      language_id: undetermined_id,
-    };
     LocalUserLanguage::update_user_languages(
       &conn,
-      vec![language_form_fr, language_form_und],
+      Some(vec![french_id, undetermined_id]),
       local_user_id,
     )
     .unwrap();

@@ -40,7 +40,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .debug(context.settings().federation.debug)
       // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
       // without the value getting captured.
-      .verify_url_function(|url| check_apub_id_valid(url, &SETTINGS.to_owned()))
+      .verify_url_function(|url| check_apub_id_valid(url, &SETTINGS))
       .build()
       .expect("configure federation");
     LocalInstance::new(
