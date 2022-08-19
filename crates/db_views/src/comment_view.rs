@@ -20,6 +20,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentSaved},
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    local_user::LocalUser,
     person::{Person, PersonSafe},
     person_block::PersonBlock,
     post::Post,
@@ -159,10 +160,9 @@ pub struct CommentQuery<'a> {
   post_id: Option<PostId>,
   parent_path: Option<Ltree>,
   creator_id: Option<PersonId>,
-  my_person_id: Option<PersonId>,
+  local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   saved_only: Option<bool>,
-  show_bot_accounts: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
   max_depth: Option<i32>,
@@ -173,7 +173,7 @@ impl<'a> CommentQuery<'a> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
 
     let mut query = comment::table
       .inner_join(person::table)
@@ -291,12 +291,12 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment_saved::id.is_not_null());
     }
 
-    if !self.show_bot_accounts.unwrap_or(true) {
+    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
       query = query.filter(person::bot_account.eq(false));
     };
 
     // Don't show blocked communities or persons
-    if self.my_person_id.is_some() {
+    if self.local_user.is_some() {
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
     }
@@ -373,7 +373,14 @@ mod tests {
   use crate::comment_view::*;
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
-    source::{comment::*, community::*, person::*, person_block::PersonBlockForm, post::*},
+    source::{
+      comment::*,
+      community::*,
+      local_user::LocalUserForm,
+      person::*,
+      person_block::PersonBlockForm,
+      post::*,
+    },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
     SubscribedType,
@@ -390,15 +397,19 @@ mod tests {
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-
     let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let local_user_form = LocalUserForm {
+      person_id: Some(inserted_person.id),
+      password_encrypted: Some("".to_string()),
+      ..Default::default()
+    };
+    let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();
 
     let new_person_2 = PersonForm {
       name: "sara".into(),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-
     let inserted_person_2 = Person::create(&conn, &new_person_2).unwrap();
 
     let new_community = CommunityForm {
@@ -622,7 +633,7 @@ mod tests {
     let read_comment_views_with_person = CommentQuery::builder()
       .conn(&conn)
       .post_id(Some(inserted_post.id))
-      .my_person_id(Some(inserted_person.id))
+      .local_user(Some(&inserted_local_user))
       .build()
       .list()
       .unwrap();
