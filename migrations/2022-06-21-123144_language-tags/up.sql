@@ -12,9 +12,8 @@ create table local_user_language (
 
 alter table local_user rename column lang to interface_language;
 
-alter table post add column language_id integer references language not null default 0;
-
 insert into language(id, code, name) values (0, 'und', 'Undetermined');
+alter table post add column language_id integer references language not null default 0;
 insert into language(code, name) values ('aa', 'Afaraf');
 insert into language(code, name) values ('ab', 'аҧсуа бызшәа');
 insert into language(code, name) values ('ae', 'avesta');

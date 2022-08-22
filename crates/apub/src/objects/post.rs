@@ -4,7 +4,10 @@ use crate::{
   local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
-    objects::page::{Attachment, AttributedTo, LanguageTag, Page, PageType},
+    objects::{
+      page::{Attachment, AttributedTo, Page, PageType},
+      LanguageTag,
+    },
     ImageObject,
     Source,
   },

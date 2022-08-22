@@ -555,109 +555,6 @@ mod tests {
     }
   }
 
-  fn cleanup(data: Data, conn: &PgConnection) {
-    let num_deleted = Post::delete(conn, data.inserted_post.id).unwrap();
-    Community::delete(conn, data.inserted_community.id).unwrap();
-    Person::delete(conn, data.inserted_person.id).unwrap();
-    Person::delete(conn, data.inserted_bot.id).unwrap();
-    Person::delete(conn, data.inserted_blocked_person.id).unwrap();
-    assert_eq!(1, num_deleted);
-  }
-
-  fn expected_post_listing(data: &Data, conn: &PgConnection) -> PostView {
-    let (inserted_person, inserted_community, inserted_post) = (
-      &data.inserted_person,
-      &data.inserted_community,
-      &data.inserted_post,
-    );
-    let agg = PostAggregates::read(conn, inserted_post.id).unwrap();
-
-    PostView {
-      post: Post {
-        id: inserted_post.id,
-        name: inserted_post.name.clone(),
-        creator_id: inserted_person.id,
-        url: None,
-        body: None,
-        published: inserted_post.published,
-        updated: None,
-        community_id: inserted_community.id,
-        removed: false,
-        deleted: false,
-        locked: false,
-        stickied: false,
-        nsfw: false,
-        embed_title: None,
-        embed_description: None,
-        embed_video_url: None,
-        thumbnail_url: None,
-        ap_id: inserted_post.ap_id.to_owned(),
-        local: true,
-        language_id: LanguageId(47),
-      },
-      my_vote: None,
-      creator: PersonSafe {
-        id: inserted_person.id,
-        name: inserted_person.name.clone(),
-        display_name: None,
-        published: inserted_person.published,
-        avatar: None,
-        actor_id: inserted_person.actor_id.to_owned(),
-        local: true,
-        admin: false,
-        bot_account: false,
-        banned: false,
-        deleted: false,
-        bio: None,
-        banner: None,
-        updated: None,
-        inbox_url: inserted_person.inbox_url.to_owned(),
-        shared_inbox_url: None,
-        matrix_user_id: None,
-        ban_expires: None,
-      },
-      creator_banned_from_community: false,
-      community: CommunitySafe {
-        id: inserted_community.id,
-        name: inserted_community.name.clone(),
-        icon: None,
-        removed: false,
-        deleted: false,
-        nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
-        local: true,
-        title: "nada".to_owned(),
-        description: None,
-        updated: None,
-        banner: None,
-        hidden: false,
-        posting_restricted_to_mods: false,
-        published: inserted_community.published,
-      },
-      counts: PostAggregates {
-        id: agg.id,
-        post_id: inserted_post.id,
-        comments: 0,
-        score: 0,
-        upvotes: 0,
-        downvotes: 0,
-        stickied: false,
-        published: agg.published,
-        newest_comment_time_necro: inserted_post.published,
-        newest_comment_time: inserted_post.published,
-      },
-      subscribed: SubscribedType::NotSubscribed,
-      read: false,
-      saved: false,
-      creator_blocked: false,
-      language: Language {
-        id: LanguageId(47),
-        code: "fr".to_string(),
-        name: "Français".to_string(),
-      },
-    }
-  }
-
   #[test]
   #[serial]
   fn post_listing_with_person() {
@@ -683,7 +580,7 @@ mod tests {
     let post_listing_single_with_person =
       PostView::read(&conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
 
-    let mut expected_post_listing_with_user = expected_post_listing(&data, &conn);
+    let mut expected_post_listing_with_user = expected_post_view(&data, &conn);
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(1, read_post_listing.len());
@@ -733,7 +630,7 @@ mod tests {
     let read_post_listing_single_no_person =
       PostView::read(&conn, data.inserted_post.id, None).unwrap();
 
-    let expected_post_listing_no_person = expected_post_listing(&data, &conn);
+    let expected_post_listing_no_person = expected_post_view(&data, &conn);
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(3, read_post_listing_multiple_no_person.len());
@@ -878,5 +775,108 @@ mod tests {
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
 
     cleanup(data, &conn);
+  }
+
+  fn cleanup(data: Data, conn: &PgConnection) {
+    let num_deleted = Post::delete(conn, data.inserted_post.id).unwrap();
+    Community::delete(conn, data.inserted_community.id).unwrap();
+    Person::delete(conn, data.inserted_person.id).unwrap();
+    Person::delete(conn, data.inserted_bot.id).unwrap();
+    Person::delete(conn, data.inserted_blocked_person.id).unwrap();
+    assert_eq!(1, num_deleted);
+  }
+
+  fn expected_post_view(data: &Data, conn: &PgConnection) -> PostView {
+    let (inserted_person, inserted_community, inserted_post) = (
+      &data.inserted_person,
+      &data.inserted_community,
+      &data.inserted_post,
+    );
+    let agg = PostAggregates::read(conn, inserted_post.id).unwrap();
+
+    PostView {
+      post: Post {
+        id: inserted_post.id,
+        name: inserted_post.name.clone(),
+        creator_id: inserted_person.id,
+        url: None,
+        body: None,
+        published: inserted_post.published,
+        updated: None,
+        community_id: inserted_community.id,
+        removed: false,
+        deleted: false,
+        locked: false,
+        stickied: false,
+        nsfw: false,
+        embed_title: None,
+        embed_description: None,
+        embed_video_url: None,
+        thumbnail_url: None,
+        ap_id: inserted_post.ap_id.to_owned(),
+        local: true,
+        language_id: LanguageId(47),
+      },
+      my_vote: None,
+      creator: PersonSafe {
+        id: inserted_person.id,
+        name: inserted_person.name.clone(),
+        display_name: None,
+        published: inserted_person.published,
+        avatar: None,
+        actor_id: inserted_person.actor_id.to_owned(),
+        local: true,
+        admin: false,
+        bot_account: false,
+        banned: false,
+        deleted: false,
+        bio: None,
+        banner: None,
+        updated: None,
+        inbox_url: inserted_person.inbox_url.to_owned(),
+        shared_inbox_url: None,
+        matrix_user_id: None,
+        ban_expires: None,
+      },
+      creator_banned_from_community: false,
+      community: CommunitySafe {
+        id: inserted_community.id,
+        name: inserted_community.name.clone(),
+        icon: None,
+        removed: false,
+        deleted: false,
+        nsfw: false,
+        actor_id: inserted_community.actor_id.to_owned(),
+        local: true,
+        title: "nada".to_owned(),
+        description: None,
+        updated: None,
+        banner: None,
+        hidden: false,
+        posting_restricted_to_mods: false,
+        published: inserted_community.published,
+      },
+      counts: PostAggregates {
+        id: agg.id,
+        post_id: inserted_post.id,
+        comments: 0,
+        score: 0,
+        upvotes: 0,
+        downvotes: 0,
+        stickied: false,
+        published: agg.published,
+        newest_comment_time_necro: inserted_post.published,
+        newest_comment_time: inserted_post.published,
+      },
+      subscribed: SubscribedType::NotSubscribed,
+      read: false,
+      saved: false,
+      creator_blocked: false,
+      language: Language {
+        id: LanguageId(47),
+        code: "fr".to_string(),
+        name: "Français".to_string(),
+      },
+    }
   }
 }

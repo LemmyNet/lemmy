@@ -27,6 +27,7 @@ table! {
         local -> Bool,
         path -> Ltree,
         distinguished -> Bool,
+        language_id -> Int4,
     }
 }
 
@@ -729,6 +730,7 @@ joinable!(registration_application -> person (admin_id));
 joinable!(mod_hide_community -> person (mod_person_id));
 joinable!(mod_hide_community -> community (community_id));
 joinable!(post -> language (language_id));
+joinable!(comment -> language (language_id));
 joinable!(local_user_language -> language (language_id));
 joinable!(local_user_language -> local_user (local_user_id));
 

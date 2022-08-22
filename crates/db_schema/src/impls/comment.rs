@@ -278,6 +278,7 @@ impl DeleteableOrRemoveable for Comment {
 #[cfg(test)]
 mod tests {
   use crate::{
+    newtypes::LanguageId,
     source::{
       comment::*,
       community::{Community, CommunityForm},
@@ -343,6 +344,7 @@ mod tests {
       ap_id: inserted_comment.ap_id.to_owned(),
       distinguished: false,
       local: true,
+      language_id: LanguageId::default(),
     };
 
     let child_comment_form = CommentForm {
