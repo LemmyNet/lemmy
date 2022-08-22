@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, DbUrl, LtreeDef, PersonId, PostId};
+use crate::newtypes::{CommentId, DbUrl, LanguageId, LtreeDef, PersonId, PostId};
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +23,7 @@ pub struct Comment {
   #[serde(with = "LtreeDef")]
   pub path: Ltree,
   pub distinguished: bool,
+  pub language_id: LanguageId,
 }
 
 #[derive(Clone, Default)]
@@ -39,6 +40,7 @@ pub struct CommentForm {
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub distinguished: Option<bool>,
+  pub language_id: Option<LanguageId>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
