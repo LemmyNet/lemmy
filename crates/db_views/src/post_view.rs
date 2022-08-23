@@ -477,8 +477,6 @@ mod tests {
       ..Default::default()
     };
     let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
-    // update user languages to all
-    LocalUserLanguage::update_user_languages(conn, None, inserted_local_user.id).unwrap();
 
     let new_bot = PersonForm {
       name: "mybot".to_string(),

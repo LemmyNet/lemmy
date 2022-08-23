@@ -5,8 +5,18 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   schema::{
-    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
-    community_follower, community_person_ban, language, local_user_language, person, person_block,
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_saved,
+    community,
+    community_block,
+    community_follower,
+    community_person_ban,
+    language,
+    local_user_language,
+    person,
+    person_block,
     post,
   },
   source::{
@@ -19,7 +29,8 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset_unlimited},
-  CommentSortType, ListingType,
+  CommentSortType,
+  ListingType,
 };
 use typed_builder::TypedBuilder;
 
@@ -378,8 +389,12 @@ mod tests {
     aggregates::structs::CommentAggregates,
     newtypes::LanguageId,
     source::{
-      comment::*, community::*, local_user::LocalUserForm, person::*,
-      person_block::PersonBlockForm, post::*,
+      comment::*,
+      community::*,
+      local_user::LocalUserForm,
+      person::*,
+      person_block::PersonBlockForm,
+      post::*,
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
@@ -519,6 +534,15 @@ mod tests {
     };
     assert_eq!(expected_block, inserted_block);
 
+    let comment_like_form = CommentLikeForm {
+      comment_id: inserted_comment_0.id,
+      post_id: inserted_post.id,
+      person_id: inserted_person.id,
+      score: 1,
+    };
+
+    let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
+
     Data {
       inserted_comment_0,
       inserted_comment_1,
@@ -536,15 +560,6 @@ mod tests {
   fn test_crud() {
     let conn = establish_unpooled_connection();
     let data = init_data(&conn);
-
-    let comment_like_form = CommentLikeForm {
-      comment_id: data.inserted_comment_0.id,
-      post_id: data.inserted_post.id,
-      person_id: data.inserted_person.id,
-      score: 1,
-    };
-
-    let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
 
     let expected_comment_view_no_person = expected_comment_view(&data, &conn);
 
