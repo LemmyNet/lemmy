@@ -90,7 +90,6 @@ impl PerformCrud for CreatePost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
-
     let language_id = Some(
       data.language_id.unwrap_or(
         blocking(context.pool(), move |conn| {

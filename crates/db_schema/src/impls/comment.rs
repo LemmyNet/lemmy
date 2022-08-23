@@ -75,28 +75,6 @@ impl Comment {
       .get_results::<Self>(conn)
   }
 
-  pub fn update_content(
-    conn: &PgConnection,
-    comment_id: CommentId,
-    new_content: &str,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((content.eq(new_content), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_distinguished(
-    conn: &PgConnection,
-    comment_id: CommentId,
-    new_distinguished: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((distinguished.eq(new_distinguished), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
   pub fn create(
     conn: &PgConnection,
     comment_form: &CommentForm,

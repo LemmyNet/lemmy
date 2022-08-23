@@ -1,3 +1,4 @@
+use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{EditPost, PostResponse},
@@ -14,10 +15,7 @@ use lemmy_apub::protocol::activities::{
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
-  source::{
-    language::Language,
-    post::{Post, PostForm},
-  },
+  source::post::{Post, PostForm},
   traits::Crud,
   utils::{diesel_option_overwrite, naive_now},
 };
@@ -27,8 +25,6 @@ use lemmy_utils::{
   ConnectionId,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-
-use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {
@@ -85,15 +81,6 @@ impl PerformCrud for EditPost {
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
-    let language_id = Some(
-      data.language_id.unwrap_or(
-        blocking(context.pool(), move |conn| {
-          Language::read_undetermined(conn)
-        })
-        .await??,
-      ),
-    );
-
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
       community_id: orig_post.community_id,
@@ -105,7 +92,7 @@ impl PerformCrud for EditPost {
       embed_title,
       embed_description,
       embed_video_url,
-      language_id,
+      language_id: data.language_id,
       thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };
