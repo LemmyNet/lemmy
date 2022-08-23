@@ -81,7 +81,7 @@ impl PerformCrud for EditComment {
     let content_slurs_removed = data
       .content
       .as_ref()
-      .map(|c| remove_slurs(&c, &context.settings().slur_regex()));
+      .map(|c| remove_slurs(c, &context.settings().slur_regex()));
     let comment_id = data.comment_id;
     let form = CommentForm {
       creator_id: orig_comment.comment.creator_id,

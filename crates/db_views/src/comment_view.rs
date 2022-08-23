@@ -421,20 +421,20 @@ mod tests {
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
     let local_user_form = LocalUserForm {
       person_id: Some(inserted_person.id),
       password_encrypted: Some("".to_string()),
       ..Default::default()
     };
-    let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();
+    let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
 
     let new_person_2 = PersonForm {
       name: "sara".into(),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-    let inserted_person_2 = Person::create(&conn, &new_person_2).unwrap();
+    let inserted_person_2 = Person::create(conn, &new_person_2).unwrap();
 
     let new_community = CommunityForm {
       name: "test community 5".to_string(),
@@ -443,7 +443,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post 2".into(),
@@ -452,7 +452,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(conn, &new_post).unwrap();
 
     // Create a comment tree with this hierarchy
     //       0
@@ -469,7 +469,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment_0 = Comment::create(&conn, &comment_form_0, None).unwrap();
+    let inserted_comment_0 = Comment::create(conn, &comment_form_0, None).unwrap();
 
     let comment_form_1 = CommentForm {
       content: "Comment 1, A test blocked comment".into(),
@@ -479,9 +479,9 @@ mod tests {
     };
 
     let inserted_comment_1 =
-      Comment::create(&conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
+      Comment::create(conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
 
-    let finnish_id = Language::read_id_from_code(&conn, "fi").unwrap();
+    let finnish_id = Language::read_id_from_code(conn, "fi").unwrap();
     let comment_form_2 = CommentForm {
       content: "Comment 2".into(),
       creator_id: inserted_person.id,
@@ -491,7 +491,7 @@ mod tests {
     };
 
     let inserted_comment_2 =
-      Comment::create(&conn, &comment_form_2, Some(&inserted_comment_0.path)).unwrap();
+      Comment::create(conn, &comment_form_2, Some(&inserted_comment_0.path)).unwrap();
 
     let comment_form_3 = CommentForm {
       content: "Comment 3".into(),
@@ -501,9 +501,9 @@ mod tests {
     };
 
     let _inserted_comment_3 =
-      Comment::create(&conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
+      Comment::create(conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
 
-    let polish_id = Language::read_id_from_code(&conn, "pl").unwrap();
+    let polish_id = Language::read_id_from_code(conn, "pl").unwrap();
     let comment_form_4 = CommentForm {
       content: "Comment 4".into(),
       creator_id: inserted_person.id,
@@ -513,7 +513,7 @@ mod tests {
     };
 
     let inserted_comment_4 =
-      Comment::create(&conn, &comment_form_4, Some(&inserted_comment_1.path)).unwrap();
+      Comment::create(conn, &comment_form_4, Some(&inserted_comment_1.path)).unwrap();
 
     let comment_form_5 = CommentForm {
       content: "Comment 5".into(),
@@ -523,14 +523,14 @@ mod tests {
     };
 
     let _inserted_comment_5 =
-      Comment::create(&conn, &comment_form_5, Some(&inserted_comment_4.path)).unwrap();
+      Comment::create(conn, &comment_form_5, Some(&inserted_comment_4.path)).unwrap();
 
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: inserted_person.id,
       target_id: inserted_person_2.id,
     };
 
-    let inserted_block = PersonBlock::block(&conn, &timmy_blocks_sara_form).unwrap();
+    let inserted_block = PersonBlock::block(conn, &timmy_blocks_sara_form).unwrap();
 
     let expected_block = PersonBlock {
       id: inserted_block.id,
@@ -547,7 +547,7 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
+    let _inserted_comment_like = CommentLike::like(conn, &comment_like_form).unwrap();
 
     Data {
       inserted_comment_0,
@@ -742,17 +742,17 @@ mod tests {
   }
 
   fn cleanup(data: Data, conn: &PgConnection) {
-    CommentLike::remove(&conn, data.inserted_person.id, data.inserted_comment_0.id).unwrap();
-    Comment::delete(&conn, data.inserted_comment_0.id).unwrap();
-    Comment::delete(&conn, data.inserted_comment_1.id).unwrap();
-    Post::delete(&conn, data.inserted_post.id).unwrap();
-    Community::delete(&conn, data.inserted_community.id).unwrap();
-    Person::delete(&conn, data.inserted_person.id).unwrap();
-    Person::delete(&conn, data.inserted_person_2.id).unwrap();
+    CommentLike::remove(conn, data.inserted_person.id, data.inserted_comment_0.id).unwrap();
+    Comment::delete(conn, data.inserted_comment_0.id).unwrap();
+    Comment::delete(conn, data.inserted_comment_1.id).unwrap();
+    Post::delete(conn, data.inserted_post.id).unwrap();
+    Community::delete(conn, data.inserted_community.id).unwrap();
+    Person::delete(conn, data.inserted_person.id).unwrap();
+    Person::delete(conn, data.inserted_person_2.id).unwrap();
   }
 
   fn expected_comment_view(data: &Data, conn: &PgConnection) -> CommentView {
-    let agg = CommentAggregates::read(&conn, data.inserted_comment_0.id).unwrap();
+    let agg = CommentAggregates::read(conn, data.inserted_comment_0.id).unwrap();
     CommentView {
       creator_banned_from_community: false,
       my_vote: None,
