@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommentReportId, CommunityId, LocalUserId, PostId},
+  newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
   CommentSortType,
   ListingType,
 };
@@ -12,6 +12,7 @@ pub struct CreateComment {
   pub content: String,
   pub post_id: PostId,
   pub parent_id: Option<CommentId>,
+  pub language_id: Option<LanguageId>,
   pub form_id: Option<String>,
   pub auth: Sensitive<String>,
 }
@@ -27,6 +28,7 @@ pub struct EditComment {
   pub comment_id: CommentId,
   pub content: Option<String>,
   pub distinguished: Option<bool>,
+  pub language_id: Option<LanguageId>,
   pub form_id: Option<String>,
   pub auth: Sensitive<String>,
 }

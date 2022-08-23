@@ -14,7 +14,10 @@ use lemmy_apub::protocol::activities::{
   create_or_update::comment::CreateOrUpdateComment,
   CreateOrUpdateType,
 };
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_db_schema::{
+  source::comment::{Comment, CommentForm},
+  traits::Crud,
+};
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   error::LemmyError,
@@ -48,7 +51,6 @@ impl PerformCrud for EditComment {
       CommentView::read(conn, comment_id, None)
     })
     .await??;
-    let mut updated_comment = orig_comment.comment.clone();
 
     // TODO is this necessary? It should really only need to check on create
     check_community_ban(
@@ -65,7 +67,7 @@ impl PerformCrud for EditComment {
       return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
-    if let Some(distinguished) = data.distinguished {
+    if data.distinguished.is_some() {
       // Verify that only a mod or admin can distinguish a comment
       is_mod_or_admin(
         context.pool(),
@@ -73,24 +75,27 @@ impl PerformCrud for EditComment {
         orig_comment.community.id,
       )
       .await?;
-
-      updated_comment = blocking(context.pool(), move |conn| {
-        Comment::update_distinguished(conn, comment_id, distinguished)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
     }
 
     // Update the Content
-    if let Some(content) = &data.content {
-      let content_slurs_removed = remove_slurs(content, &context.settings().slur_regex());
-      let comment_id = data.comment_id;
-      updated_comment = blocking(context.pool(), move |conn| {
-        Comment::update_content(conn, comment_id, &content_slurs_removed)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    let content_slurs_removed = data
+      .content
+      .as_ref()
+      .map(|c| remove_slurs(&c, &context.settings().slur_regex()));
+    let comment_id = data.comment_id;
+    let form = CommentForm {
+      creator_id: orig_comment.comment.creator_id,
+      post_id: orig_comment.comment.post_id,
+      content: content_slurs_removed.unwrap_or(orig_comment.comment.content),
+      distinguished: data.distinguished,
+      language_id: data.language_id,
+      ..Default::default()
     };
+    let updated_comment = blocking(context.pool(), move |conn| {
+      Comment::update(conn, comment_id, &form)
+    })
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.to_owned();
