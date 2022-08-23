@@ -233,7 +233,7 @@ impl<'a> CommentQuery<'a> {
       .inner_join(language::table)
       .left_join(
         local_user_language::table.on(
-          post::language_id
+          comment::language_id
             .eq(local_user_language::language_id)
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
@@ -391,7 +391,9 @@ mod tests {
     source::{
       comment::*,
       community::*,
+      language::Language,
       local_user::LocalUserForm,
+      local_user_language::LocalUserLanguage,
       person::*,
       person_block::PersonBlockForm,
       post::*,
@@ -479,10 +481,12 @@ mod tests {
     let inserted_comment_1 =
       Comment::create(&conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
 
+    let finnish_id = Language::read_id_from_code(&conn, "fi").unwrap();
     let comment_form_2 = CommentForm {
       content: "Comment 2".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language_id: Some(finnish_id),
       ..CommentForm::default()
     };
 
@@ -499,10 +503,12 @@ mod tests {
     let _inserted_comment_3 =
       Comment::create(&conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
 
+    let polish_id = Language::read_id_from_code(&conn, "pl").unwrap();
     let comment_form_4 = CommentForm {
       content: "Comment 4".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language_id: Some(polish_id),
       ..CommentForm::default()
     };
 
@@ -675,6 +681,62 @@ mod tests {
       .content
       .eq("Comment 3"));
     assert_eq!(3, read_comment_views_parent_max_depth.len());
+
+    cleanup(data, &conn);
+  }
+
+  #[test]
+  #[serial]
+  fn test_languages() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    // by default, user has all languages enabled and should see all comments
+    // (except from blocked user)
+    let all_languages = CommentQuery::builder()
+      .conn(&conn)
+      .local_user(Some(&data.inserted_local_user))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(5, all_languages.len());
+
+    // change user lang to finnish, should only show single finnish comment
+    let finnish_id = Language::read_id_from_code(&conn, "fi").unwrap();
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      Some(vec![finnish_id]),
+      data.inserted_local_user.id,
+    )
+    .unwrap();
+    let finnish_comment = CommentQuery::builder()
+      .conn(&conn)
+      .local_user(Some(&data.inserted_local_user))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(1, finnish_comment.len());
+    assert_eq!(
+      data.inserted_comment_2.content,
+      finnish_comment[0].comment.content
+    );
+    assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
+
+    // now show all comments with undetermined language (which is the default value)
+    let undetermined_id = Language::read_id_from_code(&conn, "und").unwrap();
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      Some(vec![undetermined_id]),
+      data.inserted_local_user.id,
+    )
+    .unwrap();
+    let undetermined_comment = CommentQuery::builder()
+      .conn(&conn)
+      .local_user(Some(&data.inserted_local_user))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(3, undetermined_comment.len());
 
     cleanup(data, &conn);
   }
