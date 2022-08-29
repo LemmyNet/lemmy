@@ -190,7 +190,7 @@ pub struct RateLimitConfig {
   /// Interval length for comment limit, in seconds
   #[default(600)]
   pub comment_per_second: i32,
-  #[default(6)]
+  #[default(60)]
   pub search: i32,
   /// Interval length for search limit, in seconds
   #[default(600)]
