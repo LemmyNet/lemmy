@@ -168,13 +168,6 @@ impl PerformCrud for Register {
       }
     };
 
-    // Update the users languages to all by default
-    let local_user_id = inserted_local_user.id;
-    blocking(context.pool(), move |conn| {
-      LocalUserLanguage::update_user_languages(conn, None, local_user_id)
-    })
-    .await??;
-
     if require_application {
       // Create the registration application
       let form = RegistrationApplicationForm {
