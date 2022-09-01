@@ -15,7 +15,6 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
     local_user::{LocalUser, LocalUserForm},
-    local_user_language::LocalUserLanguage,
     person::{Person, PersonForm},
     registration_application::{RegistrationApplication, RegistrationApplicationForm},
     site::Site,
@@ -171,7 +170,7 @@ impl PerformCrud for Register {
     if require_application {
       // Create the registration application
       let form = RegistrationApplicationForm {
-        local_user_id: Some(local_user_id),
+        local_user_id: Some(inserted_local_user.id),
         // We already made sure answer was not null above
         answer: data.answer.to_owned(),
         ..RegistrationApplicationForm::default()
