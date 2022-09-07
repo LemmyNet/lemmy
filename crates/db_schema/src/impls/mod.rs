@@ -16,6 +16,7 @@ pub mod person_mention;
 pub mod post;
 pub mod post_report;
 pub mod private_message;
+pub mod private_message_report;
 pub mod registration_application;
 pub mod secret;
 pub mod site;

@@ -455,6 +455,20 @@ table! {
 }
 
 table! {
+    private_message_report (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        private_message_id -> Int4,
+        original_pm_text -> Text,
+        reason -> Text,
+        resolved -> Bool,
+        resolver_id -> Nullable<Int4>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
     site (id) {
         id -> Int4,
         name -> Varchar,
@@ -670,6 +684,7 @@ joinable!(comment -> person_alias_1 (creator_id));
 
 joinable!(post_report -> person_alias_2 (resolver_id));
 joinable!(comment_report -> person_alias_2 (resolver_id));
+joinable!(private_message_report -> person_alias_2 (resolver_id));
 
 joinable!(person_block -> person (person_id));
 joinable!(person_block -> person_alias_1 (target_id));
@@ -733,6 +748,7 @@ joinable!(post -> language (language_id));
 joinable!(comment -> language (language_id));
 joinable!(local_user_language -> language (language_id));
 joinable!(local_user_language -> local_user (local_user_id));
+joinable!(private_message_report -> private_message (private_message_id));
 
 joinable!(admin_purge_comment -> person (admin_person_id));
 joinable!(admin_purge_comment -> post (post_id));
@@ -780,6 +796,7 @@ allow_tables_to_appear_in_same_query!(
   post_report,
   post_saved,
   private_message,
+  private_message_report,
   site,
   site_aggregates,
   person_alias_1,
