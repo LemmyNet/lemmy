@@ -140,8 +140,7 @@ impl<'a> CommunityQuery<'a> {
       let searcher = fuzzy_search(&search_term);
       query = query
         .filter(community::name.ilike(searcher.to_owned()))
-        .or_filter(community::title.ilike(searcher.to_owned()))
-        .or_filter(community::description.ilike(searcher));
+        .or_filter(community::title.ilike(searcher));
     };
 
     match self.sort.unwrap_or(SortType::Hot) {
