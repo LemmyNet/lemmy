@@ -1,43 +1,21 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
   source::language::Language,
-  ListingType,
-  ModlogActionType,
-  SearchType,
-  SortType,
+  ListingType, ModlogActionType, SearchType, SortType,
 };
 use lemmy_db_views::structs::{
-  CommentView,
-  LocalUserSettingsView,
-  PostView,
-  RegistrationApplicationView,
-  SiteView,
+  CommentView, LocalUserSettingsView, PostView, RegistrationApplicationView, SiteView,
 };
 use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityView,
-  PersonBlockView,
-  PersonViewSafe,
+  CommunityBlockView, CommunityFollowerView, CommunityModeratorView, CommunityView,
+  PersonBlockView, PersonViewSafe,
 };
 use lemmy_db_views_moderator::structs::{
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModHideCommunityView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModStickyPostView,
-  ModTransferCommunityView,
+  AdminPurgeCommentView, AdminPurgeCommunityView, AdminPurgePersonView, AdminPurgePostView,
+  ModAddCommunityView, ModAddView, ModBanFromCommunityView, ModBanView, ModHideCommunityView,
+  ModLockPostView, ModRemoveCommentView, ModRemoveCommunityView, ModRemovePostView,
+  ModStickyPostView, ModTransferCommunityView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -149,8 +127,9 @@ pub struct EditSite {
   pub default_post_listing_type: Option<String>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
-  pub auth: Sensitive<String>,
   pub hide_modlog_mod_names: Option<bool>,
+  pub discussion_languages: Option<Vec<LanguageId>>,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

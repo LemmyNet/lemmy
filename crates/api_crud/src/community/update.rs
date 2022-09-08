@@ -7,7 +7,10 @@ use lemmy_api_common::{
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   newtypes::PersonId,
-  source::community::{Community, CommunityForm},
+  source::{
+    actor_language::CommunityLanguage,
+    community::{Community, CommunityForm},
+  },
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
@@ -48,6 +51,13 @@ impl PerformCrud for EditCommunity {
     }
 
     let community_id = data.community_id;
+    if let Some(discussion_languages) = data.discussion_languages.clone() {
+      blocking(context.pool(), move |conn| {
+        CommunityLanguage::update_community_languages(conn, discussion_languages, community_id)
+      })
+      .await??;
+    }
+
     let read_community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })

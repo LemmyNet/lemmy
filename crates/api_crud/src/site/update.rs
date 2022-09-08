@@ -6,6 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    actor_language::SiteLanguage,
     local_user::LocalUser,
     site::{Site, SiteForm},
   },
@@ -66,6 +67,14 @@ impl PerformCrud for EditSite {
           "invalid_default_post_listing_type",
         ));
       }
+    }
+
+    let site_id = local_site.id;
+    if let Some(discussion_languages) = data.discussion_languages.clone() {
+      blocking(context.pool(), move |conn| {
+        SiteLanguage::update_site_languages(conn, discussion_languages, site_id)
+      })
+      .await??;
     }
 
     let site_form = SiteForm {

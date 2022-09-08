@@ -1,5 +1,6 @@
 #[cfg(feature = "full")]
 pub mod activity;
+pub mod actor_language;
 pub mod comment;
 pub mod comment_reply;
 pub mod comment_report;
@@ -8,7 +9,6 @@ pub mod community_block;
 pub mod email_verification;
 pub mod language;
 pub mod local_user;
-pub mod local_user_language;
 pub mod moderator;
 pub mod password_reset_request;
 pub mod person;

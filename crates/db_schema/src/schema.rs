@@ -635,6 +635,22 @@ table! {
     }
 }
 
+table! {
+    site_language(id) {
+        id -> Int4,
+        site_id -> Int4,
+        language_id -> Int4,
+    }
+}
+
+table! {
+    community_language(id) {
+        id -> Int4,
+        community_id -> Int4,
+        language_id -> Int4,
+    }
+}
+
 joinable!(person_block -> person (person_id));
 
 joinable!(comment -> person (creator_id));
@@ -699,6 +715,10 @@ joinable!(comment -> language (language_id));
 joinable!(local_user_language -> language (language_id));
 joinable!(local_user_language -> local_user (local_user_id));
 joinable!(private_message_report -> private_message (private_message_id));
+joinable!(site_language -> language (language_id));
+joinable!(site_language -> site (site_id));
+joinable!(community_language -> language (language_id));
+joinable!(community_language -> community (community_id));
 
 joinable!(admin_purge_comment -> person (admin_person_id));
 joinable!(admin_purge_comment -> post (post_id));
@@ -757,5 +777,7 @@ allow_tables_to_appear_in_same_query!(
   email_verification,
   registration_application,
   language,
-  local_user_language
+  local_user_language,
+  site_language,
+  community_language,
 );

@@ -1,11 +1,15 @@
-use crate::{newtypes::DbUrl, source::site::*, traits::Crud};
+use crate::{
+  newtypes::{DbUrl, SiteId},
+  source::site::*,
+  traits::Crud,
+};
 use diesel::{dsl::*, result::Error, *};
 use url::Url;
 
 impl Crud for Site {
   type Form = SiteForm;
-  type IdType = i32;
-  fn read(conn: &mut PgConnection, _site_id: i32) -> Result<Self, Error> {
+  type IdType = SiteId;
+  fn read(conn: &mut PgConnection, _site_id: SiteId) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
     site.first::<Self>(conn)
   }
@@ -15,13 +19,14 @@ impl Crud for Site {
     insert_into(site).values(new_site).get_result::<Self>(conn)
   }
 
-  fn update(conn: &mut PgConnection, site_id: i32, new_site: &SiteForm) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, site_id: SiteId, new_site: &SiteForm) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
     diesel::update(site.find(site_id))
       .set(new_site)
       .get_result::<Self>(conn)
   }
-  fn delete(conn: &mut PgConnection, site_id: i32) -> Result<usize, Error> {
+
+  fn delete(conn: &mut PgConnection, site_id: SiteId) -> Result<usize, Error> {
     use crate::schema::site::dsl::*;
     diesel::delete(site.find(site_id)).execute(conn)
   }

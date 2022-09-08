@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommunityId, LanguageId, PersonId},
   source::site::Site,
   ListingType,
   SortType,
@@ -94,6 +94,7 @@ pub struct EditCommunity {
   pub banner: Option<String>,
   pub nsfw: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
+  pub discussion_languages: Option<Vec<LanguageId>>,
   pub auth: Sensitive<String>,
 }
 

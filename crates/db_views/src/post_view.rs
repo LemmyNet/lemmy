@@ -4,18 +4,8 @@ use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   schema::{
-    community,
-    community_block,
-    community_follower,
-    community_person_ban,
-    local_user_language,
-    person,
-    person_block,
-    person_post_aggregates,
-    post,
-    post_aggregates,
-    post_like,
-    post_read,
+    community, community_block, community_follower, community_person_ban, local_user_language,
+    person, person_block, person_post_aggregates, post, post_aggregates, post_like, post_read,
     post_saved,
   },
   source::{
@@ -27,8 +17,7 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
-  ListingType,
-  SortType,
+  ListingType, SortType,
 };
 use tracing::debug;
 use typed_builder::TypedBuilder;
@@ -454,19 +443,18 @@ mod tests {
     aggregates::structs::PostAggregates,
     newtypes::LanguageId,
     source::{
+      actor_language::LocalUserLanguage,
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserForm},
-      local_user_language::LocalUserLanguage,
       person::*,
       person_block::{PersonBlock, PersonBlockForm},
       post::*,
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
-    SortType,
-    SubscribedType,
+    SortType, SubscribedType,
   };
   use serial_test::serial;
 
@@ -749,12 +737,8 @@ mod tests {
     assert_eq!(3, post_listings_all.len());
 
     let french_id = Language::read_id_from_code(conn, "fr").unwrap();
-    LocalUserLanguage::update_user_languages(
-      conn,
-      Some(vec![french_id]),
-      data.inserted_local_user.id,
-    )
-    .unwrap();
+    LocalUserLanguage::update_user_languages(conn, vec![french_id], data.inserted_local_user.id)
+      .unwrap();
 
     let post_listing_french = PostQuery::builder()
       .conn(conn)
@@ -771,7 +755,7 @@ mod tests {
     let undetermined_id = Language::read_id_from_code(conn, "und").unwrap();
     LocalUserLanguage::update_user_languages(
       conn,
-      Some(vec![french_id, undetermined_id]),
+      vec![french_id, undetermined_id],
       data.inserted_local_user.id,
     )
     .unwrap();
