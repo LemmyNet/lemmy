@@ -26,7 +26,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("", web::get().to(route_get_crud::<GetSite>))
           // Admin Actions
           .route("", web::post().to(route_post_crud::<CreateSite>))
-          .route("", web::put().to(route_post_crud::<EditSite>)),
+          .route("", web::put().to(route_post_crud::<EditSite>))
+          .route("/report_count", web::get().to(route_get::<GetReportCount>))
+          .route("/report/list", web::get().to(route_get::<ListReports>)),
       )
       .service(
         web::resource("/modlog")
@@ -104,7 +106,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/report/resolve",
             web::put().to(route_post::<ResolvePostReport>),
           )
-          .route("/report/list", web::get().to(route_get::<ListPostReports>))
           .route(
             "/site_metadata",
             web::get().to(route_get::<GetSiteMetadata>),
@@ -136,10 +137,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route(
             "/report/resolve",
             web::put().to(route_post::<ResolveCommentReport>),
-          )
-          .route(
-            "/report/list",
-            web::get().to(route_get::<ListCommentReports>),
           ),
       )
       // Private Message
@@ -164,10 +161,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route(
             "/report/resolve",
             web::put().to(route_post::<ResolvePrivateMessageReport>),
-          )
-          .route(
-            "/report/list",
-            web::get().to(route_get::<ListPrivateMessageReports>),
           ),
       )
       // User
@@ -228,7 +221,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/change_password",
             web::put().to(route_post::<ChangePassword>),
           )
-          .route("/report_count", web::get().to(route_get::<GetReportCount>))
           .route("/unread_count", web::get().to(route_get::<GetUnreadCount>))
           .route("/verify_email", web::post().to(route_post::<VerifyEmail>))
           .route("/leave_admin", web::post().to(route_post::<LeaveAdmin>)),

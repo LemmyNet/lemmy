@@ -93,9 +93,6 @@ pub async fn match_websocket_operation(
     UserOperation::ChangePassword => {
       do_websocket_operation::<ChangePassword>(context, id, op, data).await
     }
-    UserOperation::GetReportCount => {
-      do_websocket_operation::<GetReportCount>(context, id, op, data).await
-    }
     UserOperation::GetUnreadCount => {
       do_websocket_operation::<GetUnreadCount>(context, id, op, data).await
     }
@@ -112,9 +109,6 @@ pub async fn match_websocket_operation(
     }
     UserOperation::ResolvePrivateMessageReport => {
       do_websocket_operation::<ResolvePrivateMessageReport>(context, id, op, data).await
-    }
-    UserOperation::ListPrivateMessageReports => {
-      do_websocket_operation::<ListPrivateMessageReports>(context, id, op, data).await
     }
 
     // Site ops
@@ -137,6 +131,12 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<TransferCommunity>(context, id, op, data).await
     }
     UserOperation::LeaveAdmin => do_websocket_operation::<LeaveAdmin>(context, id, op, data).await,
+    UserOperation::GetReportCount => {
+      do_websocket_operation::<GetReportCount>(context, id, op, data).await
+    }
+    UserOperation::ListReports => {
+      do_websocket_operation::<ListReports>(context, id, op, data).await
+    }
 
     // Community ops
     UserOperation::FollowCommunity => {
@@ -165,9 +165,6 @@ pub async fn match_websocket_operation(
     UserOperation::CreatePostReport => {
       do_websocket_operation::<CreatePostReport>(context, id, op, data).await
     }
-    UserOperation::ListPostReports => {
-      do_websocket_operation::<ListPostReports>(context, id, op, data).await
-    }
     UserOperation::ResolvePostReport => {
       do_websocket_operation::<ResolvePostReport>(context, id, op, data).await
     }
@@ -184,9 +181,6 @@ pub async fn match_websocket_operation(
     }
     UserOperation::CreateCommentReport => {
       do_websocket_operation::<CreateCommentReport>(context, id, op, data).await
-    }
-    UserOperation::ListCommentReports => {
-      do_websocket_operation::<ListCommentReports>(context, id, op, data).await
     }
     UserOperation::ResolveCommentReport => {
       do_websocket_operation::<ResolveCommentReport>(context, id, op, data).await

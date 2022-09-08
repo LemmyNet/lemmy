@@ -243,20 +243,6 @@ pub struct PasswordChangeAfterReset {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetReportCount {
-  pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetReportCountResponse {
-  pub community_id: Option<CommunityId>,
-  pub comment_reports: i64,
-  pub post_reports: i64,
-  pub private_message_reports: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetUnreadCount {
   pub auth: Sensitive<String>,
 }
