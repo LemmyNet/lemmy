@@ -6,8 +6,8 @@ use crate::{
 use lemmy_api_common::{
   comment::CommentResponse,
   community::CommunityResponse,
-  person::PrivateMessageResponse,
   post::PostResponse,
+  private_message::PrivateMessageResponse,
   utils::{blocking, check_person_block, get_interface_language, send_email_to_user},
 };
 use lemmy_db_schema::{

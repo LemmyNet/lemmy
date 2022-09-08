@@ -4,7 +4,7 @@ use lemmy_api_common::{
   person::{GetReportCount, GetReportCountResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_views::structs::{CommentReportView, PostReportView};
+use lemmy_db_views::structs::{CommentReportView, PostReportView, PrivateMessageReportView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -36,10 +36,22 @@ impl Perform for GetReportCount {
     })
     .await??;
 
+    let private_message_reports = if admin && community_id.is_none() {
+      Some(
+        blocking(context.pool(), move |conn| {
+          PrivateMessageReportView::get_report_count(conn)
+        })
+        .await??,
+      )
+    } else {
+      None
+    };
+
     let res = GetReportCountResponse {
       community_id,
       comment_reports,
       post_reports,
+      private_message_reports,
     };
 
     Ok(res)

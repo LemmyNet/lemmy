@@ -1,4 +1,4 @@
-use crate::Perform;
+use crate::{check_report_reason, Perform};
 use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
@@ -31,12 +31,7 @@ impl Perform for CreatePostReport {
 
     // check size of report and check for whitespace
     let reason = data.reason.trim();
-    if reason.is_empty() {
-      return Err(LemmyError::from_message("report_reason_required"));
-    }
-    if reason.chars().count() > 1000 {
-      return Err(LemmyError::from_message("report_too_long"));
-    }
+    check_report_reason(reason)?;
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
@@ -53,7 +48,7 @@ impl Perform for CreatePostReport {
       original_post_name: post_view.post.name,
       original_post_url: post_view.post.url,
       original_post_body: post_view.post.body,
-      reason: data.reason.to_owned(),
+      reason: reason.to_owned(),
     };
 
     let report = blocking(context.pool(), move |conn| {

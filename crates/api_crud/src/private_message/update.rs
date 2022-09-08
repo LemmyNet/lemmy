@@ -1,7 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  person::{EditPrivateMessage, PrivateMessageResponse},
+  private_message::{EditPrivateMessage, PrivateMessageResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::{
