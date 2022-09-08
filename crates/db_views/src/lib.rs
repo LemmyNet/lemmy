@@ -20,5 +20,6 @@ pub mod private_message_report_view;
 pub mod private_message_view;
 #[cfg(feature = "full")]
 pub mod registration_application_view;
+#[cfg(feature = "full")]
 pub mod site_view;
 pub mod structs;
