@@ -690,8 +690,7 @@ mod tests {
 
     // change user lang to finnish, should only show single finnish comment
     let finnish_id = Language::read_id_from_code(conn, "fi").unwrap();
-    LocalUserLanguage::update_user_languages(conn, vec![finnish_id], data.inserted_local_user.id)
-      .unwrap();
+    LocalUserLanguage::update(conn, vec![finnish_id], data.inserted_local_user.id).unwrap();
     let finnish_comment = CommentQuery::builder()
       .conn(conn)
       .local_user(Some(&data.inserted_local_user))
@@ -707,12 +706,7 @@ mod tests {
 
     // now show all comments with undetermined language (which is the default value)
     let undetermined_id = Language::read_id_from_code(conn, "und").unwrap();
-    LocalUserLanguage::update_user_languages(
-      conn,
-      vec![undetermined_id],
-      data.inserted_local_user.id,
-    )
-    .unwrap();
+    LocalUserLanguage::update(conn, vec![undetermined_id], data.inserted_local_user.id).unwrap();
     let undetermined_comment = CommentQuery::builder()
       .conn(conn)
       .local_user(Some(&data.inserted_local_user))

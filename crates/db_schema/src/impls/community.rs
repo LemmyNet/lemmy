@@ -1,15 +1,19 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  source::community::{
-    Community,
-    CommunityFollower,
-    CommunityFollowerForm,
-    CommunityForm,
-    CommunityModerator,
-    CommunityModeratorForm,
-    CommunityPersonBan,
-    CommunityPersonBanForm,
-    CommunitySafe,
+  source::{
+    actor_language::{CommunityLanguage, SiteLanguage},
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+      CommunitySafe,
+    },
+    site::Site,
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
   utils::{functions::lower, naive_now},
@@ -85,9 +89,16 @@ impl Crud for Community {
 
   fn create(conn: &mut PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
-    insert_into(community)
+    let community_ = insert_into(community)
       .values(new_community)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(conn)?;
+
+    // initialize with site languages
+    let site = Site::read_local_site(conn)?;
+    let site_languages = SiteLanguage::read(conn, site.id)?;
+    CommunityLanguage::update(conn, site_languages, community_.id)?;
+
+    Ok(community_)
   }
 
   fn update(

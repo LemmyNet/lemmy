@@ -112,7 +112,7 @@ impl PerformCrud for CreateCommunity {
     // initialize community languages by copying site languages
     blocking(context.pool(), move |conn| {
       let site_languages = SiteLanguage::read(conn, local_site.id)?;
-      CommunityLanguage::update_community_languages(conn, site_languages, inserted_community.id)
+      CommunityLanguage::update(conn, site_languages, inserted_community.id)
     })
     .await??;
 

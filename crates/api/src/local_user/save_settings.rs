@@ -121,7 +121,7 @@ impl Perform for SaveUserSettings {
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       blocking(context.pool(), move |conn| {
-        LocalUserLanguage::update_user_languages(conn, discussion_languages, local_user_id)
+        LocalUserLanguage::update(conn, discussion_languages, local_user_id)
       })
       .await??;
     }

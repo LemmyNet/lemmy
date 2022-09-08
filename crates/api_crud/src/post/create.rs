@@ -98,7 +98,7 @@ impl PerformCrud for CreatePost {
       // check if user speaks only one language, and use it in that case. otherwise lang is undetermined
       let (user_langs, undetermined_lang) = blocking(context.pool(), move |conn| {
         Ok::<(Vec<LanguageId>, LanguageId), LemmyError>((
-          LocalUserLanguage::read_user_langs(conn, local_user_view.local_user.id)?,
+          LocalUserLanguage::read(conn, local_user_view.local_user.id)?,
           Language::read_undetermined(conn)?,
         ))
       })

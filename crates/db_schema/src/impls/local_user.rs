@@ -2,8 +2,9 @@ use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::*,
   source::{
-    actor_language::LocalUserLanguage,
+    actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserForm},
+    site::Site,
   },
   traits::Crud,
   utils::naive_now,
@@ -121,8 +122,12 @@ impl Crud for LocalUser {
     let local_user_ = insert_into(local_user)
       .values(form)
       .get_result::<Self>(conn)?;
-    // initialize with all languages
-    LocalUserLanguage::update_user_languages(conn, vec![], local_user_.id)?;
+
+    // initialize with site languages
+    let site = Site::read_local_site(conn)?;
+    let site_languages = SiteLanguage::read(conn, site.id)?;
+    LocalUserLanguage::update(conn, site_languages, local_user_.id)?;
+
     Ok(local_user_)
   }
   fn update(

@@ -8,8 +8,8 @@ use diesel::{
 use lemmy_utils::error::LemmyError;
 
 impl LocalUserLanguage {
-  pub fn read_user_langs(
-    conn: &PgConnection,
+  pub fn read(
+    conn: &mut PgConnection,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::*;
@@ -23,7 +23,7 @@ impl LocalUserLanguage {
   /// Update the user's languages.
   ///
   /// If no language_id vector is given, it will show all languages
-  pub fn update_user_languages(
+  pub fn update(
     conn: &mut PgConnection,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
@@ -49,7 +49,7 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
-  pub fn read(conn: &PgConnection, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+  pub fn read(conn: &mut PgConnection, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::site_language::dsl::*;
     site_language
       .filter(site_id.eq(for_site_id))
@@ -57,7 +57,7 @@ impl SiteLanguage {
       .load(conn)
   }
 
-  pub fn update_site_languages(
+  pub fn update(
     conn: &mut PgConnection,
     language_ids: Vec<LanguageId>,
     for_site_id: SiteId,
@@ -85,7 +85,7 @@ impl SiteLanguage {
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub fn is_allowed_community_language(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_language_id: LanguageId,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
@@ -103,7 +103,7 @@ impl CommunityLanguage {
     }
   }
 
-  pub fn update_community_languages(
+  pub fn update(
     conn: &mut PgConnection,
     language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,

@@ -64,7 +64,7 @@ impl PerformCrud for EditCommunity {
         if !is_subset {
           return Err(LemmyError::from_message("language_not_allowed"));
         }
-        Ok(CommunityLanguage::update_community_languages(
+        Ok(CommunityLanguage::update(
           conn,
           discussion_languages,
           community_id,
