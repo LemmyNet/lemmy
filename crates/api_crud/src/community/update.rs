@@ -8,8 +8,9 @@ use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   newtypes::PersonId,
   source::{
-    actor_language::CommunityLanguage,
+    actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityForm},
+    site::Site,
   },
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
@@ -53,7 +54,21 @@ impl PerformCrud for EditCommunity {
     let community_id = data.community_id;
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       blocking(context.pool(), move |conn| {
-        CommunityLanguage::update_community_languages(conn, discussion_languages, community_id)
+        let local_site = Site::read_local_site(conn)?;
+        let site_languages = SiteLanguage::read(conn, local_site.id)?;
+        // check that community languages are a subset of site languages
+        // https://stackoverflow.com/a/64227550
+        let is_subset = discussion_languages
+          .iter()
+          .all(|item| site_languages.contains(item));
+        if !is_subset {
+          return Err(LemmyError::from_message("language_not_allowed"));
+        }
+        Ok(CommunityLanguage::update_community_languages(
+          conn,
+          discussion_languages,
+          community_id,
+        )?)
       })
       .await??;
     }

@@ -15,7 +15,10 @@ use lemmy_apub::protocol::activities::{
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
-  source::post::{Post, PostForm},
+  source::{
+    actor_language::CommunityLanguage,
+    post::{Post, PostForm},
+  },
   traits::Crud,
   utils::{diesel_option_overwrite, naive_now},
 };
@@ -80,6 +83,13 @@ impl PerformCrud for EditPost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
+
+    if let Some(language_id) = data.language_id {
+      blocking(context.pool(), move |conn| {
+        CommunityLanguage::is_allowed_community_language(conn, language_id, orig_post.community_id)
+      })
+      .await??;
+    }
 
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),

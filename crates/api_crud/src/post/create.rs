@@ -19,7 +19,9 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  newtypes::LanguageId,
   source::{
+    actor_language::{CommunityLanguage, LocalUserLanguage},
     community::Community,
     language::Language,
     post::{Post, PostForm, PostLike, PostLikeForm},
@@ -90,14 +92,27 @@ impl PerformCrud for CreatePost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
-    let language_id = Some(
-      data.language_id.unwrap_or(
-        blocking(context.pool(), move |conn| {
-          Language::read_undetermined(conn)
-        })
-        .await??,
-      ),
-    );
+    let language_id = if let Some(language_id) = data.language_id {
+      language_id
+    } else {
+      // check if user speaks only one language, and use it in that case. otherwise lang is undetermined
+      let (user_langs, undetermined_lang) = blocking(context.pool(), move |conn| {
+        Ok::<(Vec<LanguageId>, LanguageId), LemmyError>((
+          LocalUserLanguage::read_user_langs(conn, local_user_view.local_user.id)?,
+          Language::read_undetermined(conn)?,
+        ))
+      })
+      .await??;
+      if user_langs.len() == 1 {
+        user_langs[0]
+      } else {
+        undetermined_lang
+      }
+    };
+    blocking(context.pool(), move |conn| {
+      CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
+    })
+    .await??;
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
@@ -109,7 +124,7 @@ impl PerformCrud for CreatePost {
       embed_title,
       embed_description,
       embed_video_url,
-      language_id,
+      language_id: Some(language_id),
       thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };
