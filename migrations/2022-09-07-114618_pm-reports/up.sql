@@ -17,20 +17,17 @@ c.content as current_pm_text,
 -- report creator details
 f.actor_id as creator_actor_id,
 f.name as creator_name,
-f.preferred_username as creator_preferred_username,
 f.avatar as creator_avatar,
 f.local as creator_local,
 -- pm creator details
 u.id as pm_creator_id,
 u.actor_id as pm_creator_actor_id,
 u.name as pm_creator_name,
-u.preferred_username as comment_creator_preferred_username,
 u.avatar as pm_creator_avatar,
 u.local as pm_creator_local,
 -- resolver details
 r.actor_id as resolver_actor_id,
 r.name as resolver_name,
-r.preferred_username as resolver_preferred_username,
 r.avatar as resolver_avatar,
 r.local as resolver_local
 from private_message_report pmr

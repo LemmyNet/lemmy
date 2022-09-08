@@ -84,7 +84,9 @@ impl<'a> PrivateMessageReportQuery<'a> {
     let mut query = private_message_report::table
       .inner_join(private_message::table)
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(private_message::creator_id.eq(person_alias_1::id)))
+      .inner_join(
+        person_alias_1::table.on(private_message_report::creator_id.eq(person_alias_1::id)),
+      )
       .left_join(
         person_alias_2::table
           .on(private_message_report::resolver_id.eq(person_alias_2::id.nullable())),
@@ -133,11 +135,89 @@ impl ViewToVec for PrivateMessageReportView {
 
 #[cfg(test)]
 mod tests {
+  use crate::private_message_report_view::PrivateMessageReportQuery;
+  use lemmy_db_schema::{
+    source::{
+      person::{Person, PersonForm},
+      private_message::{PrivateMessage, PrivateMessageForm},
+      private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+    },
+    traits::{Crud, Reportable},
+    utils::establish_unpooled_connection,
+  };
   use serial_test::serial;
 
   #[test]
   #[serial]
   fn test_crud() {
-    todo!()
+    let conn = establish_unpooled_connection();
+
+    let new_person_1 = PersonForm {
+      name: "timmy_mrv".into(),
+      public_key: Some("pubkey".to_string()),
+      ..PersonForm::default()
+    };
+    let inserted_timmy = Person::create(&conn, &new_person_1).unwrap();
+
+    let new_person_2 = PersonForm {
+      name: "jessica_mrv".into(),
+      public_key: Some("pubkey".to_string()),
+      ..PersonForm::default()
+    };
+    let inserted_jessica = Person::create(&conn, &new_person_2).unwrap();
+
+    // timmy sends private message to jessica
+    let pm_form = PrivateMessageForm {
+      creator_id: inserted_timmy.id,
+      recipient_id: inserted_jessica.id,
+      content: "something offensive".to_string(),
+      ..Default::default()
+    };
+    let pm = PrivateMessage::create(&conn, &pm_form).unwrap();
+
+    // jessica reports private message
+    let pm_report_form = PrivateMessageReportForm {
+      creator_id: inserted_jessica.id,
+      original_pm_text: pm.content.clone(),
+      private_message_id: pm.id,
+      reason: "its offensive".to_string(),
+    };
+    let pm_report = PrivateMessageReport::report(&conn, &pm_report_form).unwrap();
+
+    let reports = PrivateMessageReportQuery::builder()
+      .conn(&conn)
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(1, reports.len());
+    assert!(!reports[0].private_message_report.resolved);
+    assert_eq!(inserted_timmy.name, reports[0].private_message_creator.name);
+    assert_eq!(inserted_jessica.name, reports[0].creator.name);
+    assert_eq!(pm_report.reason, reports[0].private_message_report.reason);
+    assert_eq!(pm.content, reports[0].private_message.content);
+
+    let new_person_3 = PersonForm {
+      name: "admin_mrv".into(),
+      public_key: Some("pubkey".to_string()),
+      ..PersonForm::default()
+    };
+    let inserted_admin = Person::create(&conn, &new_person_3).unwrap();
+
+    // admin resolves the report (after taking appropriate action)
+    PrivateMessageReport::resolve(&conn, pm_report.id, inserted_admin.id).unwrap();
+
+    let reports = PrivateMessageReportQuery::builder()
+      .conn(&conn)
+      .unresolved_only(Some(false))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(1, reports.len());
+    assert!(reports[0].private_message_report.resolved);
+    assert!(reports[0].resolver.is_some());
+    assert_eq!(
+      inserted_admin.name,
+      reports[0].resolver.as_ref().unwrap().name
+    );
   }
 }
