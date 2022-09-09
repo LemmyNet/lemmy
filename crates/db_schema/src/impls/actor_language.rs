@@ -1,9 +1,10 @@
 use crate::{
   newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
-  source::{actor_language::*, language::Language, site::Site},
+  source::{actor_language::*, community::Community, language::Language, site::Site},
 };
 use diesel::{
-  delete, insert_into, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl,
+  delete, dsl::*, insert_into, result::Error, select, ExpressionMethods, PgConnection, QueryDsl,
+  RunQueryDsl,
 };
 use lemmy_utils::error::LemmyError;
 
@@ -75,7 +76,7 @@ impl SiteLanguage {
       delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
 
       let lang_ids = update_languages(conn, language_ids)?;
-      for l in lang_ids {
+      for l in lang_ids.clone() {
         let form = SiteLanguageForm {
           site_id: for_site_id,
           language_id: l,
@@ -84,6 +85,9 @@ impl SiteLanguage {
           .values(form)
           .get_result::<Self>(conn)?;
       }
+
+      CommunityLanguage::limit_languages(conn, lang_ids)?;
+
       Ok(())
     })
   }
@@ -97,17 +101,43 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
     use crate::schema::community_language::dsl::*;
-    let count = community_language
-      .filter(language_id.eq(for_language_id))
-      .filter(community_id.eq(for_community_id))
-      .count()
-      .get_result::<i64>(conn)?;
+    let is_allowed = select(exists(
+      community_language
+        .filter(language_id.eq(for_language_id))
+        .filter(community_id.eq(for_community_id)),
+    ))
+    .get_result(conn)?;
 
-    if count == 1 {
+    if is_allowed {
       Ok(())
     } else {
       Err(LemmyError::from_message("language_not_allowed"))
     }
+  }
+
+  /// When site languages are updated, delete all languages of local communities which are not
+  /// also part of site languages. This is because post/comment language is only checked against
+  /// community language, and it shouldnt be possible to post content in languages which are not
+  /// allowed by local site.
+  fn limit_languages(
+    conn: &mut PgConnection,
+    site_language_ids: Vec<LanguageId>,
+  ) -> Result<(), Error> {
+    // this could be implemented using join + delete, but its not supported in diesel yet
+    // https://github.com/diesel-rs/diesel/issues/1478
+
+    use crate::schema::{community::dsl::*, community_language::dsl::*};
+    let local_communities: Vec<Community> = community.filter(local.eq(true)).load(conn)?;
+
+    for c in local_communities {
+      delete(
+        community_language
+          .filter(community_id.eq(c.id))
+          .filter(language_id.ne_all(&site_language_ids)),
+      )
+      .execute(conn)?;
+    }
+    Ok(())
   }
 
   pub fn read(

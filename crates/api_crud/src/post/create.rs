@@ -19,7 +19,7 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
-  newtypes::LanguageId,
+  newtypes::{CommunityId, LanguageId, LocalUserId},
   source::{
     actor_language::{CommunityLanguage, LocalUserLanguage},
     community::Community,
@@ -29,7 +29,6 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
   utils::{diesel_option_overwrite, DbPool},
 };
-use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
@@ -37,6 +36,7 @@ use lemmy_utils::{
   ConnectionId,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
+use std::{collections::HashSet, hash::Hash};
 use tracing::{warn, Instrument};
 use url::Url;
 use webmention::{Webmention, WebmentionError};
@@ -94,9 +94,9 @@ impl PerformCrud for CreatePost {
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
-    let language_id = data
-      .language_id
-      .unwrap_or(default_post_language(&local_user_view, context.pool()).await?);
+    let language_id = data.language_id.unwrap_or(
+      default_post_language(local_user_view.local_user.id, community_id, context.pool()).await?,
+    );
     blocking(context.pool(), move |conn| {
       CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
     })
@@ -196,22 +196,34 @@ impl PerformCrud for CreatePost {
   }
 }
 
+/// Check the intersection of user languages and community languages. If it contains only one item,
+/// use that as default language for the post. Otherwise, use "undetermined".
 async fn default_post_language(
-  local_user_view: &LocalUserView,
+  local_user_id: LocalUserId,
+  community_id: CommunityId,
   pool: &DbPool,
 ) -> Result<LanguageId, LemmyError> {
-  // check if user speaks only one language, and use it in that case. otherwise lang is undetermined
-  let local_user_id = local_user_view.local_user.id;
-  let (user_langs, undetermined_lang) = blocking(pool, move |conn| {
-    Ok::<(Vec<LanguageId>, LanguageId), LemmyError>((
+  let (user_langs, community_langs, undetermined_lang) = blocking(pool, move |conn| {
+    Ok::<(Vec<LanguageId>, Vec<LanguageId>, LanguageId), LemmyError>((
       LocalUserLanguage::read(conn, local_user_id)?,
+      CommunityLanguage::read(conn, community_id)?,
       Language::read_undetermined(conn)?,
     ))
   })
   .await??;
-  if user_langs.len() == 1 {
-    Ok(user_langs[0])
+  let common_langs = vec_intersection(user_langs, community_langs);
+  if common_langs.len() == 1 {
+    Ok(common_langs[0])
   } else {
     Ok(undetermined_lang)
   }
+}
+
+fn vec_intersection<T>(a: Vec<T>, b: Vec<T>) -> Vec<T>
+where
+  T: Eq + Hash + Clone,
+{
+  let a: HashSet<T> = a.into_iter().collect();
+  let b: HashSet<T> = b.into_iter().collect();
+  a.intersection(&b).into_iter().cloned().collect()
 }

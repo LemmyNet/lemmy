@@ -127,11 +127,10 @@ impl Crud for LocalUser {
       // if site exists, init user with site languages
       LocalUserLanguage::update(conn, langs, local_user_.id)?;
     } else {
-      // otherwise, init with all languages (this only happens for first admin
-      // user, which is created before site)
+      // otherwise, init with all languages (this only happens during tests and
+      // for first admin user, which is created before site)
       LocalUserLanguage::update(conn, vec![], local_user_.id)?;
     }
-
 
     Ok(local_user_)
   }
