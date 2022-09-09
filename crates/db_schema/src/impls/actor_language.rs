@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
-  source::{actor_language::*, language::Language},
+  source::{actor_language::*, language::Language, site::Site},
 };
 use diesel::{
   delete, insert_into, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl,
@@ -49,6 +49,13 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
+  pub fn read_local(conn: &mut PgConnection) -> Result<Vec<LanguageId>, Error> {
+    conn.build_transaction().read_write().run(|conn| {
+      let local_site = Site::read_local(conn)?;
+      SiteLanguage::read(conn, local_site.id)
+    })
+  }
+
   pub fn read(conn: &mut PgConnection, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::site_language::dsl::*;
     site_language
@@ -101,6 +108,17 @@ impl CommunityLanguage {
     } else {
       Err(LemmyError::from_message("language_not_allowed"))
     }
+  }
+
+  pub fn read(
+    conn: &mut PgConnection,
+    for_community_id: CommunityId,
+  ) -> Result<Vec<LanguageId>, Error> {
+    use crate::schema::community_language::dsl::*;
+    community_language
+      .filter(community_id.eq(for_community_id))
+      .select(language_id)
+      .load(conn)
   }
 
   pub fn update(

@@ -6,7 +6,7 @@ use crate::{
   local_instance,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
-    objects::{group::Group, Endpoints},
+    objects::{group::Group, Endpoints, LanguageTag},
     ImageObject,
     Source,
   },
@@ -20,7 +20,10 @@ use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_db_schema::{
+  source::{actor_language::CommunityLanguage, community::Community},
+  traits::ApubActor,
+};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
   error::LemmyError,
@@ -82,7 +85,14 @@ impl ApubObject for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, _context: &LemmyContext) -> Result<Group, LemmyError> {
+  async fn into_apub(self, data: &LemmyContext) -> Result<Group, LemmyError> {
+    let community_id = self.id;
+    let langs = blocking(data.pool(), move |conn| {
+      CommunityLanguage::read(conn, community_id)
+    })
+    .await??;
+    let language = LanguageTag::new_multiple(langs, data.pool()).await?;
+
     let group = Group {
       kind: GroupType::Group,
       id: ObjectId::new(self.actor_id()),
@@ -103,6 +113,7 @@ impl ApubObject for ApubCommunity {
         shared_inbox: s.into(),
       }),
       public_key: self.get_public_key(),
+      language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
@@ -128,15 +139,19 @@ impl ApubObject for ApubCommunity {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let form = Group::into_form(group.clone());
+    let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
+
+    let community: ApubCommunity = blocking(context.pool(), move |conn| {
+      let community = Community::upsert(conn, &form)?;
+      CommunityLanguage::update(conn, languages, community.id)?;
+      Ok::<Community, diesel::result::Error>(community)
+    })
+    .await??
+    .into();
+    let outbox_data = CommunityContext(community.clone(), context.clone());
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
-    let community: ApubCommunity =
-      blocking(context.pool(), move |conn| Community::upsert(conn, &form))
-        .await??
-        .into();
-    let outbox_data = CommunityContext(community.clone(), context.clone());
-
     group
       .outbox
       .dereference(&outbox_data, local_instance(context), request_counter)

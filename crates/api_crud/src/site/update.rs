@@ -36,7 +36,7 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let local_site = blocking(context.pool(), Site::read_local_site).await??;
+    let local_site = blocking(context.pool(), Site::read_local).await??;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);

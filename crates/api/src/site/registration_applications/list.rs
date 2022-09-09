@@ -27,7 +27,7 @@ impl Perform for ListRegistrationApplications {
     is_admin(&local_user_view)?;
 
     let unread_only = data.unread_only;
-    let verified_email_only = blocking(context.pool(), Site::read_local_site)
+    let verified_email_only = blocking(context.pool(), Site::read_local)
       .await??
       .require_email_verification;
 

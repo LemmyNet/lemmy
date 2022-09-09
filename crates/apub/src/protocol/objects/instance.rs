@@ -1,6 +1,6 @@
 use crate::{
   objects::instance::ApubSite,
-  protocol::{ImageObject, Source},
+  protocol::{objects::LanguageTag, ImageObject, Source},
 };
 use activitypub_federation::{
   core::{object_id::ObjectId, signatures::PublicKey},
@@ -42,6 +42,8 @@ pub struct Instance {
   pub(crate) icon: Option<ImageObject>,
   /// instance banner
   pub(crate) image: Option<ImageObject>,
+  #[serde(default)]
+  pub(crate) language: Vec<LanguageTag>,
   pub(crate) published: DateTime<FixedOffset>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
 }

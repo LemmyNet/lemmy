@@ -27,8 +27,9 @@ use lemmy_db_schema::{
     post::{Post, PostForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
-  utils::diesel_option_overwrite,
+  utils::{diesel_option_overwrite, DbPool},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
@@ -92,23 +93,10 @@ impl PerformCrud for CreatePost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
-    let language_id = if let Some(language_id) = data.language_id {
-      language_id
-    } else {
-      // check if user speaks only one language, and use it in that case. otherwise lang is undetermined
-      let (user_langs, undetermined_lang) = blocking(context.pool(), move |conn| {
-        Ok::<(Vec<LanguageId>, LanguageId), LemmyError>((
-          LocalUserLanguage::read(conn, local_user_view.local_user.id)?,
-          Language::read_undetermined(conn)?,
-        ))
-      })
-      .await??;
-      if user_langs.len() == 1 {
-        user_langs[0]
-      } else {
-        undetermined_lang
-      }
-    };
+
+    let language_id = data
+      .language_id
+      .unwrap_or(default_post_language(&local_user_view, context.pool()).await?);
     blocking(context.pool(), move |conn| {
       CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
     })
@@ -205,5 +193,25 @@ impl PerformCrud for CreatePost {
       context,
     )
     .await
+  }
+}
+
+async fn default_post_language(
+  local_user_view: &LocalUserView,
+  pool: &DbPool,
+) -> Result<LanguageId, LemmyError> {
+  // check if user speaks only one language, and use it in that case. otherwise lang is undetermined
+  let local_user_id = local_user_view.local_user.id;
+  let (user_langs, undetermined_lang) = blocking(pool, move |conn| {
+    Ok::<(Vec<LanguageId>, LanguageId), LemmyError>((
+      LocalUserLanguage::read(conn, local_user_id)?,
+      Language::read_undetermined(conn)?,
+    ))
+  })
+  .await??;
+  if user_langs.len() == 1 {
+    Ok(user_langs[0])
+  } else {
+    Ok(undetermined_lang)
   }
 }

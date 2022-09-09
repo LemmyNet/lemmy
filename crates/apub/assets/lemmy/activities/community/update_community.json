@@ -27,6 +27,16 @@
       "owner": "http://enterprise.lemmy.ml/c/main",
       "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA16Xh06V1l2yy0WAIMUTV\nnvZIuAuKDxzDQUNT+n8gmcVuvBu7tkpbPTQ3DjGB3bQfGC2ekew/yldwOXyZ7ry1\npbJSYSrCBJrAlPLs/ao3OPTqmcl3vnSWti/hqopEV+Um2t7fwpkCjVrnzVKRSlys\nihnrth64ZiwAqq2llpaXzWc1SR2URZYSdnry/4d9UNrZVkumIeg1gk9KbCAo4j/O\njsv/aBjpZcTeLmtMZf6fcrvGre9duJdx6e2Tg/YNcnSnARosqev/UwVTzzGNVWXg\n9rItaa0a0aea4se4Bn6QXvOBbcq3+OYZMR6a34hh5BTeNG8WbpwmVahS0WFUsv9G\nswIDAQAB\n-----END PUBLIC KEY-----\n"
     },
+    "language": [
+      {
+        "identifier": "fr",
+        "name": "Français"
+      },
+      {
+        "identifier": "de",
+        "name": "Deutsch"
+      }
+    ],
     "published": "2021-10-29T15:05:51.476984+00:00",
     "updated": "2021-11-01T12:23:50.151874+00:00"
   },

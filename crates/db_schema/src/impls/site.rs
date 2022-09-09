@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, SiteId},
-  source::site::*,
+  source::{actor_language::SiteLanguage, site::*},
   traits::Crud,
 };
 use diesel::{dsl::*, result::Error, *};
@@ -16,7 +16,13 @@ impl Crud for Site {
 
   fn create(conn: &mut PgConnection, new_site: &SiteForm) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
-    insert_into(site).values(new_site).get_result::<Self>(conn)
+    let site_ = insert_into(site)
+      .values(new_site)
+      .get_result::<Self>(conn)?;
+
+    // initialize with all languages
+    SiteLanguage::update(conn, vec![], site_.id)?;
+    Ok(site_)
   }
 
   fn update(conn: &mut PgConnection, site_id: SiteId, new_site: &SiteForm) -> Result<Self, Error> {
@@ -33,7 +39,7 @@ impl Crud for Site {
 }
 
 impl Site {
-  pub fn read_local_site(conn: &mut PgConnection) -> Result<Self, Error> {
+  pub fn read_local(conn: &mut PgConnection) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
     site.order_by(id).first::<Self>(conn)
   }

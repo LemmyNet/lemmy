@@ -3,7 +3,10 @@ use crate::{
   local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
-    objects::instance::{Instance, InstanceType},
+    objects::{
+      instance::{Instance, InstanceType},
+      LanguageTag,
+    },
     ImageObject,
     Source,
   },
@@ -18,7 +21,10 @@ use activitypub_federation::{
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
-  source::site::{Site, SiteForm},
+  source::{
+    actor_language::SiteLanguage,
+    site::{Site, SiteForm},
+  },
   utils::{naive_now, DbPool},
 };
 use lemmy_utils::{
@@ -76,7 +82,11 @@ impl ApubObject for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+    let site_id = self.id;
+    let langs = blocking(data.pool(), move |conn| SiteLanguage::read(conn, site_id)).await??;
+    let language = LanguageTag::new_multiple(langs, data.pool()).await?;
+
     let instance = Instance {
       kind: InstanceType::Service,
       id: ObjectId::new(self.actor_id()),
@@ -90,6 +100,7 @@ impl ApubObject for ApubSite {
       inbox: self.inbox_url.clone().into(),
       outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
       public_key: self.get_public_key(),
+      language,
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
     };
@@ -135,7 +146,14 @@ impl ApubObject for ApubSite {
       public_key: Some(apub.public_key.public_key_pem.clone()),
       ..SiteForm::default()
     };
-    let site = blocking(data.pool(), move |conn| Site::upsert(conn, &site_form)).await??;
+    let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
+
+    let site = blocking(data.pool(), move |conn| {
+      let site = Site::upsert(conn, &site_form)?;
+      SiteLanguage::update(conn, languages, site.id)?;
+      Ok::<Site, diesel::result::Error>(site)
+    })
+    .await??;
     Ok(site.into())
   }
 }

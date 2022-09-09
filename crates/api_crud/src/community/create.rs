@@ -15,7 +15,6 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
     community::{
       Community,
       CommunityFollower,
@@ -51,7 +50,7 @@ impl PerformCrud for CreateCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let local_site = blocking(context.pool(), Site::read_local_site).await??;
+    let local_site = blocking(context.pool(), Site::read_local).await??;
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(LemmyError::from_message(
         "only_admins_can_create_communities",
@@ -108,13 +107,6 @@ impl PerformCrud for CreateCommunity {
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
-
-    // initialize community languages by copying site languages
-    blocking(context.pool(), move |conn| {
-      let site_languages = SiteLanguage::read(conn, local_site.id)?;
-      CommunityLanguage::update(conn, site_languages, inserted_community.id)
-    })
-    .await??;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {

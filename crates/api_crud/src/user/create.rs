@@ -4,18 +4,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, Register},
   utils::{
-    blocking,
-    honeypot_check,
-    password_length_check,
-    send_new_applicant_email_to_admins,
+    blocking, honeypot_check, password_length_check, send_new_applicant_email_to_admins,
     send_verification_email,
   },
 };
 use lemmy_apub::{
-  generate_inbox_url,
-  generate_local_apub_endpoint,
-  generate_shared_inbox_url,
-  EndpointType,
+  generate_inbox_url, generate_local_apub_endpoint, generate_shared_inbox_url, EndpointType,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
@@ -53,7 +47,7 @@ impl PerformCrud for Register {
     let (mut email_verification, mut require_application) = (false, false);
 
     // Make sure site has open registration
-    let site = blocking(context.pool(), Site::read_local_site).await?;
+    let site = blocking(context.pool(), Site::read_local).await?;
     if let Ok(site) = &site {
       if !site.open_registration {
         return Err(LemmyError::from_message("registration_closed"));

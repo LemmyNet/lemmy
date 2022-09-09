@@ -4,7 +4,6 @@ use crate::{
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserForm},
-    site::Site,
   },
   traits::Crud,
   utils::naive_now,
@@ -124,8 +123,7 @@ impl Crud for LocalUser {
       .get_result::<Self>(conn)?;
 
     // initialize with site languages
-    let site = Site::read_local_site(conn)?;
-    let site_languages = SiteLanguage::read(conn, site.id)?;
+    let site_languages = SiteLanguage::read_local(conn)?;
     LocalUserLanguage::update(conn, site_languages, local_user_.id)?;
 
     Ok(local_user_)

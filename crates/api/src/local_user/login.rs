@@ -45,7 +45,7 @@ impl Perform for Login {
       local_user_view.person.deleted,
     )?;
 
-    let site = blocking(context.pool(), Site::read_local_site).await??;
+    let site = blocking(context.pool(), Site::read_local).await??;
     if site.require_email_verification && !local_user_view.local_user.email_verified {
       return Err(LemmyError::from_message("email_not_verified"));
     }

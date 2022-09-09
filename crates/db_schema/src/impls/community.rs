@@ -13,7 +13,6 @@ use crate::{
       CommunityPersonBanForm,
       CommunitySafe,
     },
-    site::Site,
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
   utils::{functions::lower, naive_now},
@@ -94,8 +93,7 @@ impl Crud for Community {
       .get_result::<Self>(conn)?;
 
     // initialize with site languages
-    let site = Site::read_local_site(conn)?;
-    let site_languages = SiteLanguage::read(conn, site.id)?;
+    let site_languages = SiteLanguage::read_local(conn)?;
     CommunityLanguage::update(conn, site_languages, community_.id)?;
 
     Ok(community_)
