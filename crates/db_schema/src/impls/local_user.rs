@@ -122,9 +122,16 @@ impl Crud for LocalUser {
       .values(form)
       .get_result::<Self>(conn)?;
 
-    // initialize with site languages
-    let site_languages = SiteLanguage::read_local(conn)?;
-    LocalUserLanguage::update(conn, site_languages, local_user_.id)?;
+    let site_languages = SiteLanguage::read_local(conn);
+    if let Ok(langs) = site_languages {
+      // if site exists, init user with site languages
+      LocalUserLanguage::update(conn, langs, local_user_.id)?;
+    } else {
+      // otherwise, init with all languages (this only happens for first admin
+      // user, which is created before site)
+      LocalUserLanguage::update(conn, vec![], local_user_.id)?;
+    }
+
 
     Ok(local_user_)
   }

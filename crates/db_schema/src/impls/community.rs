@@ -92,9 +92,14 @@ impl Crud for Community {
       .values(new_community)
       .get_result::<Self>(conn)?;
 
-    // initialize with site languages
-    let site_languages = SiteLanguage::read_local(conn)?;
-    CommunityLanguage::update(conn, site_languages, community_.id)?;
+    let site_languages = SiteLanguage::read_local(conn);
+    if let Ok(langs) = site_languages {
+      // if site exists, init user with site languages
+      CommunityLanguage::update(conn, langs, community_.id)?;
+    } else {
+      // otherwise, init with all languages (this only happens during tests)
+      CommunityLanguage::update(conn, vec![], community_.id)?;
+    }
 
     Ok(community_)
   }
