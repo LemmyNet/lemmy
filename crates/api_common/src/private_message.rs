@@ -67,3 +67,17 @@ pub struct ResolvePrivateMessageReport {
   pub resolved: bool,
   pub auth: Sensitive<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct ListPrivateMessageReports {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  /// Only shows the unresolved reports
+  pub unresolved_only: Option<bool>,
+  pub auth: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ListPrivateMessageReportsResponse {
+  pub private_message_reports: Vec<PrivateMessageReportView>,
+}

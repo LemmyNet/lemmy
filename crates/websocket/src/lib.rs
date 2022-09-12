@@ -99,6 +99,7 @@ pub enum UserOperation {
   CreateCommentLike,
   CreateCommentReport,
   ResolveCommentReport,
+  ListCommentReports,
   CreatePostLike,
   LockPost,
   StickyPost,
@@ -106,6 +107,7 @@ pub enum UserOperation {
   SavePost,
   CreatePostReport,
   ResolvePostReport,
+  ListPostReports,
   GetReportCount,
   GetUnreadCount,
   VerifyEmail,
@@ -134,6 +136,7 @@ pub enum UserOperation {
   MarkPrivateMessageAsRead,
   CreatePrivateMessageReport,
   ResolvePrivateMessageReport,
+  ListPrivateMessageReports,
   UserJoin,
   PostJoin,
   CommunityJoin,
@@ -146,7 +149,6 @@ pub enum UserOperation {
   PurgeCommunity,
   PurgePost,
   PurgeComment,
-  ListReports,
 }
 
 #[derive(EnumString, Display, Debug, Clone)]

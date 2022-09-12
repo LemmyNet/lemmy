@@ -8,12 +8,9 @@ use lemmy_db_schema::{
   SortType,
 };
 use lemmy_db_views::structs::{
-  CommentReportView,
   CommentView,
   LocalUserSettingsView,
-  PostReportView,
   PostView,
-  PrivateMessageReportView,
   RegistrationApplicationView,
   SiteView,
 };
@@ -265,37 +262,4 @@ pub struct GetUnreadRegistrationApplicationCount {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetUnreadRegistrationApplicationCountResponse {
   pub registration_applications: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetReportCount {
-  pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetReportCountResponse {
-  pub community_id: Option<CommunityId>,
-  pub comment_reports: i64,
-  pub post_reports: i64,
-  pub private_message_reports: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct ListReports {
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  /// Only shows the unresolved reports
-  pub unresolved_only: Option<bool>,
-  /// if no community is given, it returns reports for all communities moderated by the auth user
-  pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ListReportsResponse {
-  pub comment_reports: Vec<CommentReportView>,
-  pub post_reports: Vec<PostReportView>,
-  // only included if called by a site admin
-  pub private_message_reports: Vec<PrivateMessageReportView>,
 }

@@ -1,7 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  site::{GetReportCount, GetReportCountResponse},
+  person::{GetReportCount, GetReportCountResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_views::structs::{CommentReportView, PostReportView, PrivateMessageReportView};
@@ -17,13 +17,14 @@ impl Perform for GetReportCount {
     &self,
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  ) -> Result<GetReportCountResponse, LemmyError> {
+    let data: &GetReportCount = self;
     let local_user_view =
-      get_local_user_view_from_jwt(&self.auth, context.pool(), context.secret()).await?;
+      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let person_id = local_user_view.person.id;
     let admin = local_user_view.person.admin;
-    let community_id = self.community_id;
+    let community_id = data.community_id;
 
     let comment_reports = blocking(context.pool(), move |conn| {
       CommentReportView::get_report_count(conn, person_id, admin, community_id)

@@ -138,6 +138,22 @@ pub struct ResolvePostReport {
   pub auth: Sensitive<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct ListPostReports {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  /// Only shows the unresolved reports
+  pub unresolved_only: Option<bool>,
+  /// if no community is given, it returns reports for all communities moderated by the auth user
+  pub community_id: Option<CommunityId>,
+  pub auth: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ListPostReportsResponse {
+  pub post_reports: Vec<PostReportView>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteMetadata {
   pub url: Url,
