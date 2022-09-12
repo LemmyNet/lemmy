@@ -681,6 +681,7 @@ joinable!(person_mention -> person_alias_1 (recipient_id));
 joinable!(comment_reply -> person_alias_1 (recipient_id));
 joinable!(post -> person_alias_1 (creator_id));
 joinable!(comment -> person_alias_1 (creator_id));
+joinable!(private_message_report -> person_alias_1 (resolver_id));
 
 joinable!(post_report -> person_alias_2 (resolver_id));
 joinable!(comment_report -> person_alias_2 (resolver_id));
