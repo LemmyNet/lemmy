@@ -67,7 +67,7 @@ impl Perform for CreateCommentReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreateCommentReport,
       response: res.clone(),
-      community_id: comment_view.community.id,
+      community_id: Some(comment_view.community.id),
       websocket_id,
     });
 

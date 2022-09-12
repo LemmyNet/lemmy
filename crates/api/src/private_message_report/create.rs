@@ -13,17 +13,17 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::PrivateMessageReportView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePrivateMessageReport {
   type Response = PrivateMessageReportResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context, websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&self.auth, context.pool(), context.secret()).await?;
@@ -61,8 +61,12 @@ impl Perform for CreatePrivateMessageReport {
       private_message_report_view,
     };
 
-    // TODO: should send message about new report to admins via websocket, but there is only op
-    //       for community mods
+    context.chat_server().do_send(SendModRoomMessage {
+      op: UserOperation::CreatePrivateMessageReport,
+      response: res.clone(),
+      community_id: None,
+      websocket_id,
+    });
 
     // TODO: consider federating this
 

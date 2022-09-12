@@ -57,7 +57,7 @@ impl Perform for ResolvePostReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::ResolvePostReport,
       response: res.clone(),
-      community_id: report.community.id,
+      community_id: Some(report.community.id),
       websocket_id,
     });
 

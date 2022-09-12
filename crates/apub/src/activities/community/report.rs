@@ -119,7 +119,7 @@ impl ActivityHandler for Report {
         context.chat_server().do_send(SendModRoomMessage {
           op: UserOperation::CreateCommentReport,
           response: PostReportResponse { post_report_view },
-          community_id: post.community_id,
+          community_id: Some(post.community_id),
           websocket_id: None,
         });
       }
@@ -147,7 +147,7 @@ impl ActivityHandler for Report {
           response: CommentReportResponse {
             comment_report_view,
           },
-          community_id,
+          community_id: Some(community_id),
           websocket_id: None,
         });
       }

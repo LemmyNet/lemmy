@@ -55,6 +55,7 @@ pub struct SendUserRoomMessage<OP: ToString, Response> {
   pub websocket_id: Option<ConnectionId>,
 }
 
+/// Send message to all users viewing the given community.
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct SendCommunityRoomMessage<OP: ToString, Response> {
@@ -64,12 +65,13 @@ pub struct SendCommunityRoomMessage<OP: ToString, Response> {
   pub websocket_id: Option<ConnectionId>,
 }
 
+/// Send message to mods of a given community. Leave out community_id param to send to site admins.
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct SendModRoomMessage<Response> {
   pub op: UserOperation,
   pub response: Response,
-  pub community_id: CommunityId,
+  pub community_id: Option<CommunityId>,
   pub websocket_id: Option<ConnectionId>,
 }
 
