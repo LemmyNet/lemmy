@@ -208,21 +208,21 @@ mod tests {
   };
   use serial_test::serial;
 
-  fn test_langs1(conn: &PgConnection) -> Vec<LanguageId> {
+  fn test_langs1(conn: &mut PgConnection) -> Vec<LanguageId> {
     vec![
       Language::read_id_from_code(conn, "en").unwrap(),
       Language::read_id_from_code(conn, "fr").unwrap(),
       Language::read_id_from_code(conn, "ru").unwrap(),
     ]
   }
-  fn test_langs2(conn: &PgConnection) -> Vec<LanguageId> {
+  fn test_langs2(conn: &mut PgConnection) -> Vec<LanguageId> {
     vec![
       Language::read_id_from_code(conn, "fi").unwrap(),
       Language::read_id_from_code(conn, "se").unwrap(),
     ]
   }
 
-  fn create_test_site(conn: &PgConnection) -> Site {
+  fn create_test_site(conn: &mut PgConnection) -> Site {
     let site_form = SiteForm {
       name: "test site".to_string(),
       ..Default::default()
@@ -233,81 +233,81 @@ mod tests {
   #[test]
   #[serial]
   fn test_update_languages() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     // call with empty vec, returns all languages
-    let updated1 = update_languages(&conn, vec![]).unwrap();
+    let updated1 = update_languages(conn, vec![]).unwrap();
     assert_eq!(184, updated1.len());
 
     // call with nonempty vec, returns same vec
-    let test_langs = test_langs1(&conn);
-    let updated2 = update_languages(&conn, test_langs.clone()).unwrap();
+    let test_langs = test_langs1(conn);
+    let updated2 = update_languages(conn, test_langs.clone()).unwrap();
     assert_eq!(test_langs, updated2);
   }
 
   #[test]
   #[serial]
   fn test_site_languages() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
-    let site = create_test_site(&conn);
-    let site_languages1 = SiteLanguage::read_local(&conn).unwrap();
+    let site = create_test_site(conn);
+    let site_languages1 = SiteLanguage::read_local(conn).unwrap();
     // site is created with all languages
     assert_eq!(184, site_languages1.len());
 
-    let test_langs = test_langs1(&conn);
-    SiteLanguage::update(&conn, test_langs.clone(), site.id).unwrap();
+    let test_langs = test_langs1(conn);
+    SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
 
-    let site_languages2 = SiteLanguage::read_local(&conn).unwrap();
+    let site_languages2 = SiteLanguage::read_local(conn).unwrap();
     // after update, site only has new languages
     assert_eq!(test_langs, site_languages2);
 
-    Site::delete(&conn, site.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 
   #[test]
   #[serial]
   fn test_user_languages() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
-    let site = create_test_site(&conn);
-    let test_langs = test_langs1(&conn);
-    SiteLanguage::update(&conn, test_langs.clone(), site.id).unwrap();
+    let site = create_test_site(conn);
+    let test_langs = test_langs1(conn);
+    SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
 
     let person_form = PersonForm {
       name: "my test person".to_string(),
       public_key: Some("pubkey".to_string()),
       ..Default::default()
     };
-    let person = Person::create(&conn, &person_form).unwrap();
+    let person = Person::create(conn, &person_form).unwrap();
     let local_user_form = LocalUserForm {
       person_id: Some(person.id),
       password_encrypted: Some("my_pw".to_string()),
       ..Default::default()
     };
-    let local_user = LocalUser::create(&conn, &local_user_form).unwrap();
-    let local_user_langs1 = LocalUserLanguage::read(&conn, local_user.id).unwrap();
+    let local_user = LocalUser::create(conn, &local_user_form).unwrap();
+    let local_user_langs1 = LocalUserLanguage::read(conn, local_user.id).unwrap();
 
     // new user should be initialized with site languages
     assert_eq!(test_langs, local_user_langs1);
 
     // update user languages
-    LocalUserLanguage::update(&conn, test_langs2(&conn), local_user.id).unwrap();
-    let local_user_langs2 = LocalUserLanguage::read(&conn, local_user.id).unwrap();
+    LocalUserLanguage::update(conn, test_langs2(conn), local_user.id).unwrap();
+    let local_user_langs2 = LocalUserLanguage::read(conn, local_user.id).unwrap();
     assert_eq!(2, local_user_langs2.len());
 
-    Person::delete(&conn, person.id).unwrap();
-    LocalUser::delete(&conn, local_user.id).unwrap();
-    Site::delete(&conn, site.id).unwrap();
+    Person::delete(conn, person.id).unwrap();
+    LocalUser::delete(conn, local_user.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 
   #[test]
   #[serial]
   fn test_community_languages() {
-    let conn = establish_unpooled_connection();
-    let site = create_test_site(&conn);
-    let test_langs = test_langs1(&conn);
-    SiteLanguage::update(&conn, test_langs.clone(), site.id).unwrap();
+    let conn = &mut establish_unpooled_connection();
+    let site = create_test_site(conn);
+    let test_langs = test_langs1(conn);
+    SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
 
     let community_form = CommunityForm {
       name: "test community".to_string(),
@@ -315,32 +315,32 @@ mod tests {
       public_key: Some("pubkey".to_string()),
       ..Default::default()
     };
-    let community = Community::create(&conn, &community_form).unwrap();
-    let community_langs1 = CommunityLanguage::read(&conn, community.id).unwrap();
+    let community = Community::create(conn, &community_form).unwrap();
+    let community_langs1 = CommunityLanguage::read(conn, community.id).unwrap();
     // community is initialized with site languages
     assert_eq!(test_langs, community_langs1);
 
     let allowed_lang1 =
-      CommunityLanguage::is_allowed_community_language(&conn, test_langs[0], community.id);
+      CommunityLanguage::is_allowed_community_language(conn, test_langs[0], community.id);
     assert!(allowed_lang1.is_ok());
 
-    let test_langs2 = test_langs2(&conn);
+    let test_langs2 = test_langs2(conn);
     let allowed_lang2 =
-      CommunityLanguage::is_allowed_community_language(&conn, test_langs2[0], community.id);
+      CommunityLanguage::is_allowed_community_language(conn, test_langs2[0], community.id);
     assert!(allowed_lang2.is_err());
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    CommunityLanguage::limit_languages(&conn, vec![test_langs[0], test_langs2[0]]).unwrap();
-    let community_langs2 = CommunityLanguage::read(&conn, community.id).unwrap();
+    CommunityLanguage::limit_languages(conn, vec![test_langs[0], test_langs2[0]]).unwrap();
+    let community_langs2 = CommunityLanguage::read(conn, community.id).unwrap();
     assert_eq!(vec![test_langs[0]], community_langs2);
 
     // update community languages to different ones
-    CommunityLanguage::update(&conn, test_langs2.clone(), community.id).unwrap();
-    let community_langs3 = CommunityLanguage::read(&conn, community.id).unwrap();
+    CommunityLanguage::update(conn, test_langs2.clone(), community.id).unwrap();
+    let community_langs3 = CommunityLanguage::read(conn, community.id).unwrap();
     assert_eq!(test_langs2, community_langs3);
 
-    Site::delete(&conn, site.id).unwrap();
-    Community::delete(&conn, community.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
+    Community::delete(conn, community.id).unwrap();
   }
 }
