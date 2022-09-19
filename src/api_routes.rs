@@ -1,6 +1,14 @@
 use actix_web::*;
 use lemmy_api::Perform;
-use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
+use lemmy_api_common::{
+  comment::*,
+  community::*,
+  person::*,
+  post::*,
+  private_message::*,
+  site::*,
+  websocket::*,
+};
 use lemmy_api_crud::PerformCrud;
 use lemmy_utils::rate_limit::RateLimit;
 use lemmy_websocket::{routes::chat_route, LemmyContext};
@@ -148,6 +156,18 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route(
             "/mark_as_read",
             web::post().to(route_post::<MarkPrivateMessageAsRead>),
+          )
+          .route(
+            "/report",
+            web::post().to(route_post::<CreatePrivateMessageReport>),
+          )
+          .route(
+            "/report/resolve",
+            web::put().to(route_post::<ResolvePrivateMessageReport>),
+          )
+          .route(
+            "/report/list",
+            web::get().to(route_get::<ListPrivateMessageReports>),
           ),
       )
       // User

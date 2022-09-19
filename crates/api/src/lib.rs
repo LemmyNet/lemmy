@@ -1,7 +1,15 @@
 use actix_web::{web, web::Data};
 use captcha::Captcha;
-use lemmy_api_common::{comment::*, community::*, person::*, post::*, site::*, websocket::*};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_api_common::{
+  comment::*,
+  community::*,
+  person::*,
+  post::*,
+  private_message::*,
+  site::*,
+  websocket::*,
+};
+use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
@@ -12,6 +20,7 @@ mod local_user;
 mod post;
 mod post_report;
 mod private_message;
+mod private_message_report;
 mod site;
 mod websocket;
 
@@ -97,6 +106,15 @@ pub async fn match_websocket_operation(
     // Private Message ops
     UserOperation::MarkPrivateMessageAsRead => {
       do_websocket_operation::<MarkPrivateMessageAsRead>(context, id, op, data).await
+    }
+    UserOperation::CreatePrivateMessageReport => {
+      do_websocket_operation::<CreatePrivateMessageReport>(context, id, op, data).await
+    }
+    UserOperation::ResolvePrivateMessageReport => {
+      do_websocket_operation::<ResolvePrivateMessageReport>(context, id, op, data).await
+    }
+    UserOperation::ListPrivateMessageReports => {
+      do_websocket_operation::<ListPrivateMessageReports>(context, id, op, data).await
     }
 
     // Site ops
@@ -206,6 +224,18 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 
   // Convert to base64
   base64::encode(concat_letters)
+}
+
+/// Check size of report and remove whitespace
+pub(crate) fn check_report_reason(reason: &str, context: &LemmyContext) -> Result<(), LemmyError> {
+  check_slurs(reason, &context.settings().slur_regex())?;
+  if reason.is_empty() {
+    return Err(LemmyError::from_message("report_reason_required"));
+  }
+  if reason.chars().count() > 1000 {
+    return Err(LemmyError::from_message("report_too_long"));
+  }
+  Ok(())
 }
 
 #[cfg(test)]

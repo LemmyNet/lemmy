@@ -10,6 +10,7 @@ use lemmy_db_schema::{
     post::Post,
     post_report::PostReport,
     private_message::PrivateMessage,
+    private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -92,6 +93,15 @@ pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
   pub creator: PersonSafe,
   pub recipient: PersonSafeAlias1,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct PrivateMessageReportView {
+  pub private_message_report: PrivateMessageReport,
+  pub private_message: PrivateMessage,
+  pub private_message_creator: PersonSafe,
+  pub creator: PersonSafeAlias1,
+  pub resolver: Option<PersonSafeAlias2>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

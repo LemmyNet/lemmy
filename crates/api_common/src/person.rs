@@ -1,5 +1,10 @@
 use crate::sensitive::Sensitive;
-use lemmy_db_views::structs::{CommentView, PostView, PrivateMessageView};
+use lemmy_db_schema::{
+  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
+  CommentSortType,
+  SortType,
+};
+use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
@@ -13,18 +18,6 @@ pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
 }
-use lemmy_db_schema::{
-  newtypes::{
-    CommentReplyId,
-    CommunityId,
-    LanguageId,
-    PersonId,
-    PersonMentionId,
-    PrivateMessageId,
-  },
-  CommentSortType,
-  SortType,
-};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Register {
@@ -250,52 +243,6 @@ pub struct PasswordChangeAfterReset {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct CreatePrivateMessage {
-  pub content: String,
-  pub recipient_id: PersonId,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct EditPrivateMessage {
-  pub private_message_id: PrivateMessageId,
-  pub content: String,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct DeletePrivateMessage {
-  pub private_message_id: PrivateMessageId,
-  pub deleted: bool,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct MarkPrivateMessageAsRead {
-  pub private_message_id: PrivateMessageId,
-  pub read: bool,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetPrivateMessages {
-  pub unread_only: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub auth: Sensitive<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PrivateMessagesResponse {
-  pub private_messages: Vec<PrivateMessageView>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PrivateMessageResponse {
-  pub private_message_view: PrivateMessageView,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
   pub auth: Sensitive<String>,
@@ -306,6 +253,7 @@ pub struct GetReportCountResponse {
   pub community_id: Option<CommunityId>,
   pub comment_reports: i64,
   pub post_reports: i64,
+  pub private_message_reports: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
