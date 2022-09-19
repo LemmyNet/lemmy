@@ -26,7 +26,7 @@ use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
-  utils::{check_slurs, is_valid_actor_name},
+  utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
 };
 use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
@@ -99,7 +99,9 @@ impl PerformCrud for Register {
       }
     }
 
-    check_slurs(&data.username, &context.settings().slur_regex())?;
+    let slur_regex = &context.settings().slur_regex();
+    check_slurs(&data.username, slur_regex)?;
+    check_slurs_opt(&data.answer, slur_regex)?;
 
     let actor_keypair = generate_actor_keypair()?;
     if !is_valid_actor_name(&data.username, context.settings().actor_name_max_length) {
