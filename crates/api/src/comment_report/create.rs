@@ -29,9 +29,8 @@ impl Perform for CreateCommentReport {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    // check size of report and check for whitespace
-    let reason = data.reason.trim();
-    check_report_reason(reason)?;
+    let reason = self.reason.trim();
+    check_report_reason(reason, context)?;
 
     let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;
@@ -67,7 +66,7 @@ impl Perform for CreateCommentReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreateCommentReport,
       response: res.clone(),
-      community_id: Some(comment_view.community.id),
+      community_id: comment_view.community.id,
       websocket_id,
     });
 

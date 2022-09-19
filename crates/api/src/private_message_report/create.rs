@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
@@ -28,9 +29,8 @@ impl Perform for CreatePrivateMessageReport {
     let local_user_view =
       get_local_user_view_from_jwt(&self.auth, context.pool(), context.secret()).await?;
 
-    // check size of report and check for whitespace
     let reason = self.reason.trim();
-    check_report_reason(reason)?;
+    check_report_reason(reason, context)?;
 
     let person_id = local_user_view.person.id;
     let private_message_id = self.private_message_id;
@@ -64,7 +64,7 @@ impl Perform for CreatePrivateMessageReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreatePrivateMessageReport,
       response: res.clone(),
-      community_id: None,
+      community_id: CommunityId(0),
       websocket_id,
     });
 

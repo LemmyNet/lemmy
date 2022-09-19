@@ -9,7 +9,7 @@ use lemmy_api_common::{
   site::*,
   websocket::*,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
@@ -226,7 +226,9 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
   base64::encode(concat_letters)
 }
 
-pub(crate) fn check_report_reason(reason: &str) -> Result<(), LemmyError> {
+/// Check size of report and remove whitespace
+pub(crate) fn check_report_reason(reason: &str, context: &LemmyContext) -> Result<(), LemmyError> {
+  check_slurs(reason, &context.settings().slur_regex())?;
   if reason.is_empty() {
     return Err(LemmyError::from_message("report_reason_required"));
   }

@@ -1,1 +1,1 @@
-drop view pm_report_view;
+drop table private_message_report;

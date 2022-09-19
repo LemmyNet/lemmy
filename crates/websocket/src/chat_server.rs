@@ -288,7 +288,7 @@ impl ChatServer {
     &self,
     op: &OP,
     response: &Response,
-    community_id: Option<CommunityId>,
+    community_id: CommunityId,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError>
   where
@@ -296,8 +296,6 @@ impl ChatServer {
     Response: Serialize,
   {
     let res_str = &serialize_websocket_message(op, response)?;
-    // use admin room if no community is specified
-    let community_id = community_id.unwrap_or(CommunityId(0));
     if let Some(sessions) = self.mod_rooms.get(&community_id) {
       for id in sessions {
         if let Some(my_id) = websocket_id {
