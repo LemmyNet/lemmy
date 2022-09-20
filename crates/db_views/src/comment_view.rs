@@ -165,6 +165,7 @@ pub struct CommentQuery<'a> {
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   saved_only: Option<bool>,
+  show_deleted_and_removed: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
   max_depth: Option<i32>,
@@ -300,6 +301,11 @@ impl<'a> CommentQuery<'a> {
 
     if self.saved_only.unwrap_or(false) {
       query = query.filter(comment_saved::id.is_not_null());
+    }
+
+    if !self.show_deleted_and_removed.unwrap_or(true) {
+      query = query.filter(comment::deleted.eq(false));
+      query = query.filter(comment::removed.eq(false));
     }
 
     if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
