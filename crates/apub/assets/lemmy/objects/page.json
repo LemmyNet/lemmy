@@ -27,5 +27,9 @@
   "sensitive": false,
   "commentsEnabled": true,
   "stickied": true,
+  "language": {
+    "identifier": "fr",
+    "name": "Français"
+  },
   "published": "2021-02-26T12:35:34.292626+00:00"
 }

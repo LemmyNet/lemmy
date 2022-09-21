@@ -1,0 +1,1 @@
+alter table site drop column hide_modlog_mod_names;

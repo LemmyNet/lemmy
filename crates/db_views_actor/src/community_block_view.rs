@@ -33,10 +33,10 @@ impl ViewToVec for CommunityBlockView {
   type DbTuple = CommunityBlockViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        person: a.0.to_owned(),
-        community: a.1.to_owned(),
+        person: a.0,
+        community: a.1,
       })
       .collect::<Vec<Self>>()
   }

@@ -3,7 +3,7 @@ use crate::{
   local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::Source,
+  protocol::{objects::LanguageTag, Source},
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -44,6 +44,9 @@ pub struct Note {
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
   pub(crate) tag: Vec<MentionOrValue>,
+  // lemmy extension
+  pub(crate) distinguished: Option<bool>,
+  pub(crate) language: Option<LanguageTag>,
 }
 
 impl Note {

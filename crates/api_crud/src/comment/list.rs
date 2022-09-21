@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community},
   traits::{Crud, DeleteableOrRemoveable},
 };
-use lemmy_db_views::comment_view::CommentQueryBuilder;
+use lemmy_db_views::comment_view::CommentQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -32,13 +32,7 @@ impl PerformCrud for GetComments {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-
     check_private_instance(&local_user_view, context.pool()).await?;
-
-    let show_bot_accounts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_bot_accounts);
-    let person_id = local_user_view.map(|u| u.person.id);
 
     let community_id = data.community_id;
     let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
@@ -70,9 +64,11 @@ impl PerformCrud for GetComments {
     };
 
     let post_id = data.post_id;
+    let local_user = local_user_view.map(|l| l.local_user);
     let mut comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
-        .listing_type(listing_type)
+      CommentQuery::builder()
+        .conn(conn)
+        .listing_type(Some(listing_type))
         .sort(sort)
         .max_depth(max_depth)
         .saved_only(saved_only)
@@ -80,10 +76,10 @@ impl PerformCrud for GetComments {
         .community_actor_id(community_actor_id)
         .parent_path(parent_path)
         .post_id(post_id)
-        .my_person_id(person_id)
-        .show_bot_accounts(show_bot_accounts)
+        .local_user(local_user.as_ref())
         .page(page)
         .limit(limit)
+        .build()
         .list()
     })
     .await?

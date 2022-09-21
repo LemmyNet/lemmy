@@ -5,7 +5,8 @@ use lemmy_api_common::{
   site::{CreateSite, GetSite, GetSiteResponse, MyUserInfo},
   utils::{blocking, build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_schema::source::language::Language;
+use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
@@ -83,6 +84,8 @@ impl PerformCrud for GetSite {
     .await?
     {
       let person_id = local_user_view.person.id;
+      let local_user_id = local_user_view.local_user.id;
+
       let follows = blocking(context.pool(), move |conn| {
         CommunityFollowerView::for_person(conn, person_id)
       })
@@ -109,18 +112,27 @@ impl PerformCrud for GetSite {
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
+      let discussion_languages = blocking(context.pool(), move |conn| {
+        LocalUserDiscussionLanguageView::read_languages(conn, local_user_id)
+      })
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+
       Some(MyUserInfo {
         local_user_view,
         follows,
         moderates,
         community_blocks,
         person_blocks,
+        discussion_languages,
       })
     } else {
       None
     };
 
     let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
+
+    let all_languages = blocking(context.pool(), Language::read_all).await??;
 
     Ok(GetSiteResponse {
       site_view,
@@ -129,6 +141,7 @@ impl PerformCrud for GetSite {
       version: version::VERSION.to_string(),
       my_user,
       federated_instances,
+      all_languages,
     })
   }
 }

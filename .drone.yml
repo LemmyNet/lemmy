@@ -41,7 +41,7 @@ steps:
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends postgresql-client
-      - cargo test --workspace --no-fail-fast
+      - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
     image: clux/muslrust:1.57.0

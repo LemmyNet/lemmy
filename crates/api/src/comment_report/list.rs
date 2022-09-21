@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_views::comment_report_view::CommentReportQueryBuilder;
+use lemmy_db_views::comment_report_view::CommentReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -32,11 +32,15 @@ impl Perform for ListCommentReports {
     let page = data.page;
     let limit = data.limit;
     let comment_reports = blocking(context.pool(), move |conn| {
-      CommentReportQueryBuilder::create(conn, person_id, admin)
+      CommentReportQuery::builder()
+        .conn(conn)
+        .my_person_id(person_id)
+        .admin(admin)
         .community_id(community_id)
         .unresolved_only(unresolved_only)
         .page(page)
         .limit(limit)
+        .build()
         .list()
     })
     .await??;

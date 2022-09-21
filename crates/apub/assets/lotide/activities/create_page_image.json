@@ -1,0 +1,26 @@
+{
+  "actor": "http://ltthostname.local:3334/apub/users/3",
+  "object": {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "http://ltthostname.local:3334/apub/posts/46",
+    "type": "Note",
+    "name": "image",
+    "to": "http://localhost:8536/c/elsewhere",
+    "cc": "https://www.w3.org/ns/activitystreams#Public",
+    "attributedTo": "http://ltthostname.local:3334/apub/users/3",
+    "attachment": [
+      {
+        "type": "Image",
+        "url": "http://ltthostname.local:3334/api/stable/posts/46/href"
+      }
+    ],
+    "sensitive": false,
+    "published": "2022-08-06T18:35:01.043072+00:00",
+    "summary": "image"
+  },
+  "to": "http://localhost:8536/c/elsewhere",
+  "cc": "https://www.w3.org/ns/activitystreams#Public",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "http://ltthostname.local:3334/apub/posts/46/create",
+  "type": "Create"
+}

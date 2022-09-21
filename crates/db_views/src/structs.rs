@@ -4,11 +4,13 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_report::CommentReport,
     community::CommunitySafe,
+    language::Language,
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
     post::Post,
     post_report::PostReport,
     private_message::PrivateMessage,
+    private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -83,6 +85,7 @@ pub struct PostView {
   pub read: bool,                 // Left join to PostRead
   pub creator_blocked: bool,      // Left join to PersonBlock
   pub my_vote: Option<i16>,       // Left join to PostLike
+  pub language: Language,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -90,6 +93,15 @@ pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
   pub creator: PersonSafe,
   pub recipient: PersonSafeAlias1,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct PrivateMessageReportView {
+  pub private_message_report: PrivateMessageReport,
+  pub private_message: PrivateMessage,
+  pub private_message_creator: PersonSafe,
+  pub creator: PersonSafeAlias1,
+  pub resolver: Option<PersonSafeAlias2>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -104,4 +116,10 @@ pub struct RegistrationApplicationView {
 pub struct SiteView {
   pub site: Site,
   pub counts: SiteAggregates,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LocalUserDiscussionLanguageView {
+  pub local_user: LocalUserSettings,
+  pub language: Language,
 }

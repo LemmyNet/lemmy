@@ -1,7 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  person::{MarkPrivateMessageAsRead, PrivateMessageResponse},
+  private_message::{MarkPrivateMessageAsRead, PrivateMessageResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};

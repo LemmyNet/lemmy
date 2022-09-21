@@ -22,6 +22,7 @@ pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
     active_counts(&conn);
     update_banned_when_expired(&conn);
     reindex_aggregates_tables(&conn, true);
+    drop_ccnew_indexes(&conn);
   });
 
   let conn = pool.get()?;
@@ -102,4 +103,14 @@ fn update_banned_when_expired(conn: &PgConnection) {
   sql_query(update_ban_expires_stmt)
     .execute(conn)
     .expect("update banned when expires");
+}
+
+/// Drops the phantom CCNEW indexes created by postgres
+/// https://github.com/LemmyNet/lemmy/issues/2431
+fn drop_ccnew_indexes(conn: &PgConnection) {
+  info!("Dropping phantom ccnew indexes...");
+  let drop_stmt = "select drop_ccnew_indexes()";
+  sql_query(drop_stmt)
+    .execute(conn)
+    .expect("drop ccnew indexes");
 }

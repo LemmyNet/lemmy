@@ -1,3 +1,4 @@
+use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{EditPost, PostResponse},
@@ -24,8 +25,6 @@ use lemmy_utils::{
   ConnectionId,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-
-use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {
@@ -93,6 +92,7 @@ impl PerformCrud for EditPost {
       embed_title,
       embed_description,
       embed_video_url,
+      language_id: data.language_id,
       thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };

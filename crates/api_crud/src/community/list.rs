@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
-use lemmy_db_views_actor::community_view::CommunityQueryBuilder;
+use lemmy_db_views_actor::community_view::CommunityQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -28,24 +28,20 @@ impl PerformCrud for ListCommunities {
 
     let person_id = local_user_view.to_owned().map(|l| l.person.id);
 
-    // Don't show NSFW by default
-    let show_nsfw = match &local_user_view {
-      Some(uv) => uv.local_user.show_nsfw,
-      None => false,
-    };
-
     let sort = data.sort;
     let listing_type = data.type_;
     let page = data.page;
     let limit = data.limit;
+    let local_user = local_user_view.map(|l| l.local_user);
     let mut communities = blocking(context.pool(), move |conn| {
-      CommunityQueryBuilder::create(conn)
+      CommunityQuery::builder()
+        .conn(conn)
         .listing_type(listing_type)
         .sort(sort)
-        .show_nsfw(show_nsfw)
-        .my_person_id(person_id)
+        .local_user(local_user.as_ref())
         .page(page)
         .limit(limit)
+        .build()
         .list()
     })
     .await??;

@@ -3,7 +3,7 @@ use diesel::{dsl::*, result::Error, *};
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   schema::{
     comment,
     comment_aggregates,
@@ -13,6 +13,8 @@ use lemmy_db_schema::{
     community_block,
     community_follower,
     community_person_ban,
+    language,
+    local_user_language,
     person,
     person_block,
     post,
@@ -20,15 +22,17 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentSaved},
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    local_user::LocalUser,
     person::{Person, PersonSafe},
     person_block::PersonBlock,
     post::Post,
   },
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset_unlimited},
   CommentSortType,
   ListingType,
 };
+use typed_builder::TypedBuilder;
 
 type CommentViewTuple = (
   Comment,
@@ -146,7 +150,10 @@ impl CommentView {
   }
 }
 
-pub struct CommentQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct CommentQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
@@ -155,111 +162,22 @@ pub struct CommentQueryBuilder<'a> {
   post_id: Option<PostId>,
   parent_path: Option<Ltree>,
   creator_id: Option<PersonId>,
-  my_person_id: Option<PersonId>,
+  local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   saved_only: Option<bool>,
-  show_bot_accounts: Option<bool>,
+  show_deleted_and_removed: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
   max_depth: Option<i32>,
 }
 
-impl<'a> CommentQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    CommentQueryBuilder {
-      conn,
-      listing_type: Some(ListingType::All),
-      sort: None,
-      community_id: None,
-      community_actor_id: None,
-      post_id: None,
-      parent_path: None,
-      creator_id: None,
-      my_person_id: None,
-      search_term: None,
-      saved_only: None,
-      show_bot_accounts: None,
-      page: None,
-      limit: None,
-      max_depth: None,
-    }
-  }
-
-  pub fn listing_type<T: MaybeOptional<ListingType>>(mut self, listing_type: T) -> Self {
-    self.listing_type = listing_type.get_optional();
-    self
-  }
-
-  pub fn sort<T: MaybeOptional<CommentSortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn post_id<T: MaybeOptional<PostId>>(mut self, post_id: T) -> Self {
-    self.post_id = post_id.get_optional();
-    self
-  }
-
-  pub fn creator_id<T: MaybeOptional<PersonId>>(mut self, creator_id: T) -> Self {
-    self.creator_id = creator_id.get_optional();
-    self
-  }
-
-  pub fn community_id<T: MaybeOptional<CommunityId>>(mut self, community_id: T) -> Self {
-    self.community_id = community_id.get_optional();
-    self
-  }
-
-  pub fn my_person_id<T: MaybeOptional<PersonId>>(mut self, my_person_id: T) -> Self {
-    self.my_person_id = my_person_id.get_optional();
-    self
-  }
-
-  pub fn community_actor_id<T: MaybeOptional<DbUrl>>(mut self, community_actor_id: T) -> Self {
-    self.community_actor_id = community_actor_id.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn saved_only<T: MaybeOptional<bool>>(mut self, saved_only: T) -> Self {
-    self.saved_only = saved_only.get_optional();
-    self
-  }
-
-  pub fn show_bot_accounts<T: MaybeOptional<bool>>(mut self, show_bot_accounts: T) -> Self {
-    self.show_bot_accounts = show_bot_accounts.get_optional();
-    self
-  }
-
-  pub fn parent_path<T: MaybeOptional<Ltree>>(mut self, parent_path: T) -> Self {
-    self.parent_path = parent_path.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn max_depth<T: MaybeOptional<i32>>(mut self, max_depth: T) -> Self {
-    self.max_depth = max_depth.get_optional();
-    self
-  }
-
+impl<'a> CommentQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentView>, Error> {
     use diesel::dsl::*;
 
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
+    let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
 
     let mut query = comment::table
       .inner_join(person::table)
@@ -311,6 +229,14 @@ impl<'a> CommentQueryBuilder<'a> {
           comment::id
             .eq(comment_like::comment_id)
             .and(comment_like::person_id.eq(person_id_join)),
+        ),
+      )
+      .inner_join(language::table)
+      .left_join(
+        local_user_language::table.on(
+          comment::language_id
+            .eq(local_user_language::language_id)
+            .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
       .select((
@@ -377,12 +303,20 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(comment_saved::id.is_not_null());
     }
 
-    if !self.show_bot_accounts.unwrap_or(true) {
+    if !self.show_deleted_and_removed.unwrap_or(true) {
+      query = query.filter(comment::deleted.eq(false));
+      query = query.filter(comment::removed.eq(false));
+    }
+
+    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    // Don't show blocked communities or persons
-    if self.my_person_id.is_some() {
+    if self.local_user.is_some() {
+      // Filter out the rows with missing languages
+      query = query.filter(local_user_language::id.is_not_null());
+
+      // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
     }
@@ -437,13 +371,13 @@ impl ViewToVec for CommentView {
   type DbTuple = CommentViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        comment: a.0.to_owned(),
-        creator: a.1.to_owned(),
-        post: a.2.to_owned(),
-        community: a.3.to_owned(),
-        counts: a.4.to_owned(),
+        comment: a.0,
+        creator: a.1,
+        post: a.2,
+        community: a.3,
+        counts: a.4,
         creator_banned_from_community: a.5.is_some(),
         subscribed: CommunityFollower::to_subscribed_type(&a.6),
         saved: a.7.is_some(),
@@ -459,33 +393,54 @@ mod tests {
   use crate::comment_view::*;
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
-    source::{comment::*, community::*, person::*, person_block::PersonBlockForm, post::*},
+    newtypes::LanguageId,
+    source::{
+      comment::*,
+      community::*,
+      language::Language,
+      local_user::LocalUserForm,
+      local_user_language::LocalUserLanguage,
+      person::*,
+      person_block::PersonBlockForm,
+      post::*,
+    },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
     SubscribedType,
   };
   use serial_test::serial;
 
-  #[test]
-  #[serial]
-  fn test_crud() {
-    let conn = establish_unpooled_connection();
+  struct Data {
+    inserted_comment_0: Comment,
+    inserted_comment_1: Comment,
+    inserted_comment_2: Comment,
+    inserted_post: Post,
+    inserted_person: Person,
+    inserted_local_user: LocalUser,
+    inserted_person_2: Person,
+    inserted_community: Community,
+  }
 
+  fn init_data(conn: &PgConnection) -> Data {
     let new_person = PersonForm {
       name: "timmy".into(),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
+    let local_user_form = LocalUserForm {
+      person_id: Some(inserted_person.id),
+      password_encrypted: Some("".to_string()),
+      ..Default::default()
+    };
+    let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
 
     let new_person_2 = PersonForm {
       name: "sara".into(),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-
-    let inserted_person_2 = Person::create(&conn, &new_person_2).unwrap();
+    let inserted_person_2 = Person::create(conn, &new_person_2).unwrap();
 
     let new_community = CommunityForm {
       name: "test community 5".to_string(),
@@ -494,7 +449,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post 2".into(),
@@ -503,7 +458,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(conn, &new_post).unwrap();
 
     // Create a comment tree with this hierarchy
     //       0
@@ -520,7 +475,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment_0 = Comment::create(&conn, &comment_form_0, None).unwrap();
+    let inserted_comment_0 = Comment::create(conn, &comment_form_0, None).unwrap();
 
     let comment_form_1 = CommentForm {
       content: "Comment 1, A test blocked comment".into(),
@@ -530,17 +485,19 @@ mod tests {
     };
 
     let inserted_comment_1 =
-      Comment::create(&conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
+      Comment::create(conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
 
+    let finnish_id = Language::read_id_from_code(conn, "fi").unwrap();
     let comment_form_2 = CommentForm {
       content: "Comment 2".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language_id: Some(finnish_id),
       ..CommentForm::default()
     };
 
     let inserted_comment_2 =
-      Comment::create(&conn, &comment_form_2, Some(&inserted_comment_0.path)).unwrap();
+      Comment::create(conn, &comment_form_2, Some(&inserted_comment_0.path)).unwrap();
 
     let comment_form_3 = CommentForm {
       content: "Comment 3".into(),
@@ -550,17 +507,19 @@ mod tests {
     };
 
     let _inserted_comment_3 =
-      Comment::create(&conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
+      Comment::create(conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
 
+    let polish_id = Language::read_id_from_code(conn, "pl").unwrap();
     let comment_form_4 = CommentForm {
       content: "Comment 4".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      language_id: Some(polish_id),
       ..CommentForm::default()
     };
 
     let inserted_comment_4 =
-      Comment::create(&conn, &comment_form_4, Some(&inserted_comment_1.path)).unwrap();
+      Comment::create(conn, &comment_form_4, Some(&inserted_comment_1.path)).unwrap();
 
     let comment_form_5 = CommentForm {
       content: "Comment 5".into(),
@@ -570,14 +529,14 @@ mod tests {
     };
 
     let _inserted_comment_5 =
-      Comment::create(&conn, &comment_form_5, Some(&inserted_comment_4.path)).unwrap();
+      Comment::create(conn, &comment_form_5, Some(&inserted_comment_4.path)).unwrap();
 
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: inserted_person.id,
       target_id: inserted_person_2.id,
     };
 
-    let inserted_block = PersonBlock::block(&conn, &timmy_blocks_sara_form).unwrap();
+    let inserted_block = PersonBlock::block(conn, &timmy_blocks_sara_form).unwrap();
 
     let expected_block = PersonBlock {
       id: inserted_block.id,
@@ -585,7 +544,6 @@ mod tests {
       target_id: inserted_person_2.id,
       published: inserted_block.published,
     };
-
     assert_eq!(expected_block, inserted_block);
 
     let comment_like_form = CommentLikeForm {
@@ -595,104 +553,35 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
+    let _inserted_comment_like = CommentLike::like(conn, &comment_like_form).unwrap();
 
-    let agg = CommentAggregates::read(&conn, inserted_comment_0.id).unwrap();
+    Data {
+      inserted_comment_0,
+      inserted_comment_1,
+      inserted_comment_2,
+      inserted_post,
+      inserted_person,
+      inserted_local_user,
+      inserted_person_2,
+      inserted_community,
+    }
+  }
 
-    let top_path = inserted_comment_0.to_owned().path;
-    let expected_comment_view_no_person = CommentView {
-      creator_banned_from_community: false,
-      my_vote: None,
-      subscribed: SubscribedType::NotSubscribed,
-      saved: false,
-      creator_blocked: false,
-      comment: Comment {
-        id: inserted_comment_0.id,
-        content: "Comment 0".into(),
-        creator_id: inserted_person.id,
-        post_id: inserted_post.id,
-        removed: false,
-        deleted: false,
-        published: inserted_comment_0.published,
-        ap_id: inserted_comment_0.ap_id,
-        updated: None,
-        local: true,
-        path: top_path,
-      },
-      creator: PersonSafe {
-        id: inserted_person.id,
-        name: "timmy".into(),
-        display_name: None,
-        published: inserted_person.published,
-        avatar: None,
-        actor_id: inserted_person.actor_id.to_owned(),
-        local: true,
-        banned: false,
-        deleted: false,
-        admin: false,
-        bot_account: false,
-        bio: None,
-        banner: None,
-        updated: None,
-        inbox_url: inserted_person.inbox_url.to_owned(),
-        shared_inbox_url: None,
-        matrix_user_id: None,
-        ban_expires: None,
-      },
-      post: Post {
-        id: inserted_post.id,
-        name: inserted_post.name.to_owned(),
-        creator_id: inserted_person.id,
-        url: None,
-        body: None,
-        published: inserted_post.published,
-        updated: None,
-        community_id: inserted_community.id,
-        removed: false,
-        deleted: false,
-        locked: false,
-        stickied: false,
-        nsfw: false,
-        embed_title: None,
-        embed_description: None,
-        embed_video_url: None,
-        thumbnail_url: None,
-        ap_id: inserted_post.ap_id.to_owned(),
-        local: true,
-      },
-      community: CommunitySafe {
-        id: inserted_community.id,
-        name: "test community 5".to_string(),
-        icon: None,
-        removed: false,
-        deleted: false,
-        nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
-        local: true,
-        title: "nada".to_owned(),
-        description: None,
-        updated: None,
-        banner: None,
-        hidden: false,
-        posting_restricted_to_mods: false,
-        published: inserted_community.published,
-      },
-      counts: CommentAggregates {
-        id: agg.id,
-        comment_id: inserted_comment_0.id,
-        score: 1,
-        upvotes: 1,
-        downvotes: 0,
-        published: agg.published,
-        child_count: 5,
-      },
-    };
+  #[test]
+  #[serial]
+  fn test_crud() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    let expected_comment_view_no_person = expected_comment_view(&data, &conn);
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
     expected_comment_view_with_person.my_vote = Some(1);
 
-    let read_comment_views_no_person = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
+    let read_comment_views_no_person = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(data.inserted_post.id))
+      .build()
       .list()
       .unwrap();
 
@@ -701,9 +590,11 @@ mod tests {
       read_comment_views_no_person[0]
     );
 
-    let read_comment_views_with_person = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .my_person_id(inserted_person.id)
+    let read_comment_views_with_person = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(data.inserted_post.id))
+      .local_user(Some(&data.inserted_local_user))
+      .build()
       .list()
       .unwrap();
 
@@ -715,23 +606,40 @@ mod tests {
     // Make sure its 1, not showing the blocked comment
     assert_eq!(5, read_comment_views_with_person.len());
 
-    let read_comment_from_blocked_person =
-      CommentView::read(&conn, inserted_comment_1.id, Some(inserted_person.id)).unwrap();
+    let read_comment_from_blocked_person = CommentView::read(
+      &conn,
+      data.inserted_comment_1.id,
+      Some(data.inserted_person.id),
+    )
+    .unwrap();
 
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
 
-    let top_path = inserted_comment_0.path;
-    let read_comment_views_top_path = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .parent_path(top_path)
+    cleanup(data, &conn);
+  }
+
+  #[test]
+  #[serial]
+  fn test_comment_tree() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    let top_path = data.inserted_comment_0.path.clone();
+    let read_comment_views_top_path = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(data.inserted_post.id))
+      .parent_path(Some(top_path))
+      .build()
       .list()
       .unwrap();
 
-    let child_path = inserted_comment_1.to_owned().path;
-    let read_comment_views_child_path = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .parent_path(child_path)
+    let child_path = data.inserted_comment_1.path.clone();
+    let read_comment_views_child_path = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(data.inserted_post.id))
+      .parent_path(Some(child_path))
+      .build()
       .list()
       .unwrap();
 
@@ -744,28 +652,32 @@ mod tests {
       .into_iter()
       .map(|c| c.comment)
       .collect::<Vec<Comment>>();
-    assert!(child_comments.contains(&inserted_comment_1));
-    assert!(!child_comments.contains(&inserted_comment_2));
+    assert!(child_comments.contains(&data.inserted_comment_1));
+    assert!(!child_comments.contains(&data.inserted_comment_2));
 
-    let read_comment_views_top_max_depth = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .max_depth(1)
+    let read_comment_views_top_max_depth = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(data.inserted_post.id))
+      .max_depth(Some(1))
+      .build()
       .list()
       .unwrap();
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
-      expected_comment_view_no_person,
+      expected_comment_view(&data, &conn),
       read_comment_views_top_max_depth[0]
     );
     assert_eq!(1, read_comment_views_top_max_depth.len());
 
-    let child_path = inserted_comment_1.path;
-    let read_comment_views_parent_max_depth = CommentQueryBuilder::create(&conn)
-      .post_id(inserted_post.id)
-      .parent_path(child_path)
-      .max_depth(1)
-      .sort(CommentSortType::New)
+    let child_path = data.inserted_comment_1.path.clone();
+    let read_comment_views_parent_max_depth = CommentQuery::builder()
+      .conn(&conn)
+      .post_id(Some(data.inserted_post.id))
+      .parent_path(Some(child_path))
+      .max_depth(Some(1))
+      .sort(Some(CommentSortType::New))
+      .build()
       .list()
       .unwrap();
 
@@ -776,17 +688,166 @@ mod tests {
       .eq("Comment 3"));
     assert_eq!(3, read_comment_views_parent_max_depth.len());
 
-    // Delete everything
-    let like_removed =
-      CommentLike::remove(&conn, inserted_person.id, inserted_comment_0.id).unwrap();
-    let num_deleted = Comment::delete(&conn, inserted_comment_0.id).unwrap();
-    Comment::delete(&conn, inserted_comment_1.id).unwrap();
-    Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
-    Person::delete(&conn, inserted_person_2.id).unwrap();
+    cleanup(data, &conn);
+  }
 
-    assert_eq!(1, num_deleted);
-    assert_eq!(1, like_removed);
+  #[test]
+  #[serial]
+  fn test_languages() {
+    let conn = establish_unpooled_connection();
+    let data = init_data(&conn);
+
+    // by default, user has all languages enabled and should see all comments
+    // (except from blocked user)
+    let all_languages = CommentQuery::builder()
+      .conn(&conn)
+      .local_user(Some(&data.inserted_local_user))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(5, all_languages.len());
+
+    // change user lang to finnish, should only show single finnish comment
+    let finnish_id = Language::read_id_from_code(&conn, "fi").unwrap();
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      Some(vec![finnish_id]),
+      data.inserted_local_user.id,
+    )
+    .unwrap();
+    let finnish_comment = CommentQuery::builder()
+      .conn(&conn)
+      .local_user(Some(&data.inserted_local_user))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(1, finnish_comment.len());
+    assert_eq!(
+      data.inserted_comment_2.content,
+      finnish_comment[0].comment.content
+    );
+    assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
+
+    // now show all comments with undetermined language (which is the default value)
+    let undetermined_id = Language::read_id_from_code(&conn, "und").unwrap();
+    LocalUserLanguage::update_user_languages(
+      &conn,
+      Some(vec![undetermined_id]),
+      data.inserted_local_user.id,
+    )
+    .unwrap();
+    let undetermined_comment = CommentQuery::builder()
+      .conn(&conn)
+      .local_user(Some(&data.inserted_local_user))
+      .build()
+      .list()
+      .unwrap();
+    assert_eq!(3, undetermined_comment.len());
+
+    cleanup(data, &conn);
+  }
+
+  fn cleanup(data: Data, conn: &PgConnection) {
+    CommentLike::remove(conn, data.inserted_person.id, data.inserted_comment_0.id).unwrap();
+    Comment::delete(conn, data.inserted_comment_0.id).unwrap();
+    Comment::delete(conn, data.inserted_comment_1.id).unwrap();
+    Post::delete(conn, data.inserted_post.id).unwrap();
+    Community::delete(conn, data.inserted_community.id).unwrap();
+    Person::delete(conn, data.inserted_person.id).unwrap();
+    Person::delete(conn, data.inserted_person_2.id).unwrap();
+  }
+
+  fn expected_comment_view(data: &Data, conn: &PgConnection) -> CommentView {
+    let agg = CommentAggregates::read(conn, data.inserted_comment_0.id).unwrap();
+    CommentView {
+      creator_banned_from_community: false,
+      my_vote: None,
+      subscribed: SubscribedType::NotSubscribed,
+      saved: false,
+      creator_blocked: false,
+      comment: Comment {
+        id: data.inserted_comment_0.id,
+        content: "Comment 0".into(),
+        creator_id: data.inserted_person.id,
+        post_id: data.inserted_post.id,
+        removed: false,
+        deleted: false,
+        published: data.inserted_comment_0.published,
+        ap_id: data.inserted_comment_0.ap_id.clone(),
+        updated: None,
+        local: true,
+        distinguished: false,
+        path: data.inserted_comment_0.to_owned().path,
+        language_id: LanguageId(0),
+      },
+      creator: PersonSafe {
+        id: data.inserted_person.id,
+        name: "timmy".into(),
+        display_name: None,
+        published: data.inserted_person.published,
+        avatar: None,
+        actor_id: data.inserted_person.actor_id.to_owned(),
+        local: true,
+        banned: false,
+        deleted: false,
+        admin: false,
+        bot_account: false,
+        bio: None,
+        banner: None,
+        updated: None,
+        inbox_url: data.inserted_person.inbox_url.to_owned(),
+        shared_inbox_url: None,
+        matrix_user_id: None,
+        ban_expires: None,
+      },
+      post: Post {
+        id: data.inserted_post.id,
+        name: data.inserted_post.name.to_owned(),
+        creator_id: data.inserted_person.id,
+        url: None,
+        body: None,
+        published: data.inserted_post.published,
+        updated: None,
+        community_id: data.inserted_community.id,
+        removed: false,
+        deleted: false,
+        locked: false,
+        stickied: false,
+        nsfw: false,
+        embed_title: None,
+        embed_description: None,
+        embed_video_url: None,
+        thumbnail_url: None,
+        ap_id: data.inserted_post.ap_id.to_owned(),
+        local: true,
+        language_id: Default::default(),
+      },
+      community: CommunitySafe {
+        id: data.inserted_community.id,
+        name: "test community 5".to_string(),
+        icon: None,
+        removed: false,
+        deleted: false,
+        nsfw: false,
+        actor_id: data.inserted_community.actor_id.to_owned(),
+        local: true,
+        title: "nada".to_owned(),
+        description: None,
+        updated: None,
+        banner: None,
+        hidden: false,
+        posting_restricted_to_mods: false,
+        published: data.inserted_community.published,
+      },
+      counts: CommentAggregates {
+        id: agg.id,
+        comment_id: data.inserted_comment_0.id,
+        score: 1,
+        upvotes: 1,
+        downvotes: 0,
+        published: agg.published,
+        child_count: 5,
+      },
+    }
   }
 }

@@ -70,10 +70,10 @@ impl ViewToVec for CommunityModeratorView {
   type DbTuple = CommunityModeratorViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        community: a.0.to_owned(),
-        moderator: a.1.to_owned(),
+        community: a.0,
+        moderator: a.1,
       })
       .collect::<Vec<Self>>()
   }

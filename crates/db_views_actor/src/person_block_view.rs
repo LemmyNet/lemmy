@@ -30,10 +30,10 @@ impl ViewToVec for PersonBlockView {
   type DbTuple = PersonBlockViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        person: a.0.to_owned(),
-        target: a.1.to_owned(),
+        person: a.0,
+        target: a.1,
       })
       .collect::<Vec<Self>>()
   }

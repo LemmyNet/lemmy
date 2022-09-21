@@ -5,10 +5,11 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
-  traits::{MaybeOptional, ToSafe, ViewToVec},
+  traits::{ToSafe, ViewToVec},
   utils::{fuzzy_search, limit_and_offset},
   SortType,
 };
+use typed_builder::TypedBuilder;
 
 type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
 
@@ -50,7 +51,10 @@ impl PersonViewSafe {
   }
 }
 
-pub struct PersonQueryBuilder<'a> {
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
+pub struct PersonQuery<'a> {
+  #[builder(!default)]
   conn: &'a PgConnection,
   sort: Option<SortType>,
   search_term: Option<String>,
@@ -58,37 +62,7 @@ pub struct PersonQueryBuilder<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PersonQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection) -> Self {
-    PersonQueryBuilder {
-      conn,
-      search_term: None,
-      sort: None,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn sort<T: MaybeOptional<SortType>>(mut self, sort: T) -> Self {
-    self.sort = sort.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
+impl<'a> PersonQuery<'a> {
   pub fn list(self) -> Result<Vec<PersonViewSafe>, Error> {
     let mut query = person::table
       .inner_join(person_aggregates::table)
@@ -96,7 +70,10 @@ impl<'a> PersonQueryBuilder<'a> {
       .into_boxed();
 
     if let Some(search_term) = self.search_term {
-      query = query.filter(person::name.ilike(fuzzy_search(&search_term)));
+      let searcher = fuzzy_search(&search_term);
+      query = query
+        .filter(person::name.ilike(searcher.to_owned()))
+        .or_filter(person::display_name.ilike(searcher));
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
@@ -138,10 +115,10 @@ impl ViewToVec for PersonViewSafe {
   type DbTuple = PersonViewSafeTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        person: a.0.to_owned(),
-        counts: a.1.to_owned(),
+        person: a.0,
+        counts: a.1,
       })
       .collect::<Vec<Self>>()
   }

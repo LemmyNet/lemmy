@@ -33,6 +33,7 @@ pub struct Site {
   pub default_post_listing_type: String,
   pub legal_information: Option<String>,
   pub application_email_admins: bool,
+  pub hide_modlog_mod_names: bool,
 }
 
 #[derive(Default)]
@@ -63,4 +64,5 @@ pub struct SiteForm {
   pub default_post_listing_type: Option<String>,
   pub legal_information: Option<Option<String>>,
   pub application_email_admins: Option<bool>,
+  pub hide_modlog_mod_names: Option<bool>,
 }

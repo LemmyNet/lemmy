@@ -48,10 +48,10 @@ impl ViewToVec for CommunityFollowerView {
   type DbTuple = CommunityFollowerViewTuple;
   fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
     items
-      .iter()
+      .into_iter()
       .map(|a| Self {
-        community: a.0.to_owned(),
-        follower: a.1.to_owned(),
+        community: a.0,
+        follower: a.1,
       })
       .collect::<Vec<Self>>()
   }

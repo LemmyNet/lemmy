@@ -1,11 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  person::{GetPrivateMessages, PrivateMessagesResponse},
+  private_message::{GetPrivateMessages, PrivateMessagesResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
-use lemmy_db_views::private_message_view::PrivateMessageQueryBuilder;
+use lemmy_db_views::private_message_view::PrivateMessageQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -28,10 +28,13 @@ impl PerformCrud for GetPrivateMessages {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let mut messages = blocking(context.pool(), move |conn| {
-      PrivateMessageQueryBuilder::create(conn, person_id)
+      PrivateMessageQuery::builder()
+        .conn(conn)
+        .recipient_id(person_id)
         .page(page)
         .limit(limit)
         .unread_only(unread_only)
+        .build()
         .list()
     })
     .await??;
