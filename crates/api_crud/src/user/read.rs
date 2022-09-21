@@ -60,6 +60,7 @@ impl PerformCrud for GetPersonDetails {
     let page = data.page;
     let limit = data.limit;
     let saved_only = data.saved_only;
+    let show_deleted_and_removed = data.show_deleted_and_removed;
     let community_id = data.community_id;
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
@@ -77,6 +78,7 @@ impl PerformCrud for GetPersonDetails {
         .local_user(local_user.as_ref())
         .sort(sort.map(post_to_comment_sort_type))
         .saved_only(saved_only)
+        .show_deleted_and_removed(show_deleted_and_removed)
         .community_id(community_id)
         .page(page)
         .limit(limit);
