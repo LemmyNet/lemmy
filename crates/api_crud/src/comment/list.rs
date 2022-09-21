@@ -11,7 +11,6 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
-  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::{comment::Comment, community::Community},
   traits::{Crud, DeleteableOrRemoveable},
 };
@@ -34,8 +33,6 @@ impl PerformCrud for GetComments {
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
     check_private_instance(&local_user_view, context.pool()).await?;
-
-    let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
     let community_id = data.community_id;
     let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;

@@ -461,10 +461,9 @@ mod tests {
   use crate::post_view::{PostQuery, PostView};
   use diesel::PgConnection;
   use lemmy_db_schema::{
-    aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm, PostAggregates},
+    aggregates::structs::PostAggregates,
     newtypes::LanguageId,
     source::{
-      comment::{Comment, CommentForm},
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
       language::Language,
