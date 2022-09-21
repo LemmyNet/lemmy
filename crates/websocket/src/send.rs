@@ -6,9 +6,9 @@ use crate::{
 use lemmy_api_common::{
   comment::CommentResponse,
   community::CommunityResponse,
-  person::PrivateMessageResponse,
   post::PostResponse,
-  utils::{blocking, check_person_block, get_user_lang, send_email_to_user},
+  private_message::PrivateMessageResponse,
+  utils::{blocking, check_person_block, get_interface_language, send_email_to_user},
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
@@ -213,7 +213,7 @@ pub async fn send_local_notifs(
 
       // Send an email to those local users that have notifications on
       if do_send_email {
-        let lang = get_user_lang(&mention_user_view);
+        let lang = get_interface_language(&mention_user_view);
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
@@ -263,7 +263,7 @@ pub async fn send_local_notifs(
         .ok();
 
         if do_send_email {
-          let lang = get_user_lang(&parent_user_view);
+          let lang = get_interface_language(&parent_user_view);
           send_email_to_user(
             &parent_user_view,
             &lang.notification_comment_reply_subject(&person.name),
@@ -304,7 +304,7 @@ pub async fn send_local_notifs(
         .ok();
 
         if do_send_email {
-          let lang = get_user_lang(&parent_user_view);
+          let lang = get_interface_language(&parent_user_view);
           send_email_to_user(
             &parent_user_view,
             &lang.notification_post_reply_subject(&person.name),

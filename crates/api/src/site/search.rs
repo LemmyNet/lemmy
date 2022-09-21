@@ -31,18 +31,10 @@ impl Perform for Search {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let show_nsfw = local_user_view.as_ref().map(|t| t.local_user.show_nsfw);
-    let show_bot_accounts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_bot_accounts);
-    let show_read_posts = local_user_view
-      .as_ref()
-      .map(|t| t.local_user.show_read_posts);
-
-    let person_id = local_user_view.map(|u| u.person.id);
+    let person_id = local_user_view.as_ref().map(|u| u.person.id);
+    let local_user = local_user_view.map(|l| l.local_user);
 
     let mut posts = Vec::new();
     let mut comments = Vec::new();
@@ -73,14 +65,11 @@ impl Perform for Search {
           PostQuery::builder()
             .conn(conn)
             .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)
-            .my_person_id(person_id)
+            .local_user(local_user.as_ref())
             .search_term(Some(q))
             .page(page)
             .limit(limit)
@@ -96,11 +85,10 @@ impl Perform for Search {
             .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
             .search_term(Some(q))
-            .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)
-            .my_person_id(person_id)
+            .local_user(local_user.as_ref())
             .page(page)
             .limit(limit)
             .build()
@@ -115,7 +103,7 @@ impl Perform for Search {
             .sort(sort)
             .listing_type(listing_type)
             .search_term(Some(q))
-            .my_person_id(person_id)
+            .local_user(local_user.as_ref())
             .page(page)
             .limit(limit)
             .build()
@@ -142,18 +130,16 @@ impl Perform for Search {
           data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
         let community_actor_id_2 = community_actor_id.to_owned();
 
+        let local_user_ = local_user.clone();
         posts = blocking(context.pool(), move |conn| {
           PostQuery::builder()
             .conn(conn)
             .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
             .community_id(community_id)
             .community_actor_id(community_actor_id_2)
             .creator_id(creator_id)
-            .my_person_id(person_id)
+            .local_user(local_user_.as_ref())
             .search_term(Some(q))
             .page(page)
             .limit(limit)
@@ -165,17 +151,17 @@ impl Perform for Search {
         let q = data.q.to_owned();
         let community_actor_id = community_actor_id.to_owned();
 
+        let local_user_ = local_user.clone();
         comments = blocking(context.pool(), move |conn| {
           CommentQuery::builder()
             .conn(conn)
             .sort(sort.map(post_to_comment_sort_type))
             .listing_type(listing_type)
             .search_term(Some(q))
-            .show_bot_accounts(show_bot_accounts)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)
-            .my_person_id(person_id)
+            .local_user(local_user_.as_ref())
             .page(page)
             .limit(limit)
             .build()
@@ -194,7 +180,7 @@ impl Perform for Search {
               .sort(sort)
               .listing_type(listing_type)
               .search_term(Some(q))
-              .my_person_id(person_id)
+              .local_user(local_user.as_ref())
               .page(page)
               .limit(limit)
               .build()
@@ -226,11 +212,7 @@ impl Perform for Search {
           PostQuery::builder()
             .conn(conn)
             .sort(sort)
-            .show_nsfw(show_nsfw)
-            .show_bot_accounts(show_bot_accounts)
-            .show_read_posts(show_read_posts)
             .listing_type(listing_type)
-            .my_person_id(person_id)
             .community_id(community_id)
             .community_actor_id(community_actor_id)
             .creator_id(creator_id)

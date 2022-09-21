@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityFollower, CommunitySafe},
     community_block::CommunityBlock,
+    local_user::LocalUser,
   },
   traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
@@ -99,8 +100,7 @@ pub struct CommunityQuery<'a> {
   conn: &'a PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
-  my_person_id: Option<PersonId>,
-  show_nsfw: Option<bool>,
+  local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -109,7 +109,7 @@ pub struct CommunityQuery<'a> {
 impl<'a> CommunityQuery<'a> {
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
     // The left join below will return None in this case
-    let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
 
     let mut query = community::table
       .inner_join(community_aggregates::table)
@@ -140,8 +140,7 @@ impl<'a> CommunityQuery<'a> {
       let searcher = fuzzy_search(&search_term);
       query = query
         .filter(community::name.ilike(searcher.to_owned()))
-        .or_filter(community::title.ilike(searcher.to_owned()))
-        .or_filter(community::description.ilike(searcher));
+        .or_filter(community::title.ilike(searcher));
     };
 
     match self.sort.unwrap_or(SortType::Hot) {
@@ -188,12 +187,12 @@ impl<'a> CommunityQuery<'a> {
     }
 
     // Don't show blocked communities or nsfw communities if not enabled in profile
-    if self.my_person_id.is_some() {
+    if self.local_user.is_some() {
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
       // No person in request, only show nsfw communities if show_nsfw passed into request
-      if !self.show_nsfw.unwrap_or(false) {
+      if !self.local_user.map(|l| l.show_nsfw).unwrap_or(false) {
         query = query.filter(community::nsfw.eq(false));
       }
     }

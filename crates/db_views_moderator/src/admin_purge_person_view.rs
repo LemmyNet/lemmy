@@ -1,4 +1,4 @@
-use crate::structs::AdminPurgePersonView;
+use crate::structs::{AdminPurgePersonView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -11,28 +11,30 @@ use lemmy_db_schema::{
   utils::limit_and_offset,
 };
 
-type AdminPurgePersonViewTuple = (AdminPurgePerson, PersonSafe);
+type AdminPurgePersonViewTuple = (AdminPurgePerson, Option<PersonSafe>);
 
 impl AdminPurgePersonView {
-  pub fn list(
-    conn: &PgConnection,
-    admin_person_id: Option<PersonId>,
-    page: Option<i64>,
-    limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+    let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
+    let show_mod_names = !params.hide_modlog_names;
+    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
+
+    let admin_names_join = admin_purge_person::admin_person_id
+      .eq(person::id)
+      .and(show_mod_names_expr.or(person::id.eq(admin_person_id_join)));
     let mut query = admin_purge_person::table
-      .inner_join(person::table.on(admin_purge_person::admin_person_id.eq(person::id)))
+      .left_join(person::table.on(admin_names_join))
       .select((
         admin_purge_person::all_columns,
-        Person::safe_columns_tuple(),
+        Person::safe_columns_tuple().nullable(),
       ))
       .into_boxed();
 
-    if let Some(admin_person_id) = admin_person_id {
+    if let Some(admin_person_id) = params.mod_person_id {
       query = query.filter(admin_purge_person::admin_person_id.eq(admin_person_id));
     };
 
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     let res = query
       .limit(limit)
@@ -40,7 +42,8 @@ impl AdminPurgePersonView {
       .order_by(admin_purge_person::when_.desc())
       .load::<AdminPurgePersonViewTuple>(conn)?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    let results = Self::from_tuple_to_vec(res);
+    Ok(results)
   }
 }
 

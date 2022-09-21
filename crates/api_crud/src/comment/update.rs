@@ -7,13 +7,17 @@ use lemmy_api_common::{
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
     get_local_user_view_from_jwt,
+    is_mod_or_admin,
   },
 };
 use lemmy_apub::protocol::activities::{
   create_or_update::comment::CreateOrUpdateComment,
   CreateOrUpdateType,
 };
-use lemmy_db_schema::source::comment::Comment;
+use lemmy_db_schema::{
+  source::comment::{Comment, CommentForm},
+  traits::Crud,
+};
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   error::LemmyError,
@@ -63,12 +67,32 @@ impl PerformCrud for EditComment {
       return Err(LemmyError::from_message("no_comment_edit_allowed"));
     }
 
-    // Do the update
-    let content_slurs_removed =
-      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
+    if data.distinguished.is_some() {
+      // Verify that only a mod or admin can distinguish a comment
+      is_mod_or_admin(
+        context.pool(),
+        local_user_view.person.id,
+        orig_comment.community.id,
+      )
+      .await?;
+    }
+
+    // Update the Content
+    let content_slurs_removed = data
+      .content
+      .as_ref()
+      .map(|c| remove_slurs(c, &context.settings().slur_regex()));
     let comment_id = data.comment_id;
+    let form = CommentForm {
+      creator_id: orig_comment.comment.creator_id,
+      post_id: orig_comment.comment.post_id,
+      content: content_slurs_removed.unwrap_or(orig_comment.comment.content),
+      distinguished: data.distinguished,
+      language_id: data.language_id,
+      ..Default::default()
+    };
     let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_content(conn, comment_id, &content_slurs_removed)
+      Comment::update(conn, comment_id, &form)
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;

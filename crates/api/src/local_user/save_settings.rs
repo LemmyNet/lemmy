@@ -7,6 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserForm},
+    local_user_language::LocalUserLanguage,
     person::{Person, PersonForm},
     site::Site,
   },
@@ -118,6 +119,20 @@ impl Perform for SaveUserSettings {
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
+    if let Some(discussion_languages) = data.discussion_languages.clone() {
+      // An empty array is a "clear" / set all languages
+      let languages = if discussion_languages.is_empty() {
+        None
+      } else {
+        Some(discussion_languages)
+      };
+
+      blocking(context.pool(), move |conn| {
+        LocalUserLanguage::update_user_languages(conn, languages, local_user_id)
+      })
+      .await??;
+    }
+
     let local_user_form = LocalUserForm {
       person_id: Some(person_id),
       email,
@@ -128,7 +143,7 @@ impl Perform for SaveUserSettings {
       theme: data.theme.to_owned(),
       default_sort_type,
       default_listing_type,
-      lang: data.lang.to_owned(),
+      interface_language: data.interface_language.to_owned(),
       show_avatars: data.show_avatars,
       show_read_posts: data.show_read_posts,
       show_new_post_notifs: data.show_new_post_notifs,

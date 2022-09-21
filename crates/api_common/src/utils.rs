@@ -47,16 +47,14 @@ where
 {
   let pool = pool.clone();
   let blocking_span = tracing::info_span!("blocking operation");
-  let res = actix_web::web::block(move || {
+  actix_web::web::block(move || {
     let entered = blocking_span.enter();
     let conn = pool.get()?;
     let res = (f)(&conn);
     drop(entered);
     Ok(res) as Result<T, LemmyError>
   })
-  .await?;
-
-  res
+  .await?
 }
 
 #[tracing::instrument(skip_all)]
@@ -407,7 +405,7 @@ pub async fn send_password_reset_email(
   .await??;
 
   let email = &user.local_user.email.to_owned().expect("email");
-  let lang = get_user_lang(user);
+  let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
@@ -434,7 +432,7 @@ pub async fn send_verification_email(
   );
   blocking(pool, move |conn| EmailVerification::create(conn, &form)).await??;
 
-  let lang = get_user_lang(user);
+  let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);
   let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
   send_email(&subject, new_email, &user.person.name, &body, settings)?;
@@ -447,14 +445,14 @@ pub fn send_email_verification_success(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let email = &user.local_user.email.to_owned().expect("email");
-  let lang = get_user_lang(user);
+  let lang = get_interface_language(user);
   let subject = &lang.email_verified_subject(&user.person.actor_id);
   let body = &lang.email_verified_body();
   send_email(subject, email, &user.person.name, body, settings)
 }
 
-pub fn get_user_lang(user: &LocalUserView) -> Lang {
-  let user_lang = LanguageId::new(user.local_user.lang.clone());
+pub fn get_interface_language(user: &LocalUserView) -> Lang {
+  let user_lang = LanguageId::new(user.local_user.interface_language.clone());
   Lang::from_language_id(&user_lang).unwrap_or_else(|| {
     let en = LanguageId::new("en");
     Lang::from_language_id(&en).expect("default language")
@@ -466,7 +464,7 @@ pub fn send_application_approved_email(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let email = &user.local_user.email.to_owned().expect("email");
-  let lang = get_user_lang(user);
+  let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
   send_email(&subject, email, &user.person.name, &body, settings)
@@ -488,7 +486,7 @@ pub async fn check_registration_application(
     })
     .await??;
     if let Some(deny_reason) = registration.deny_reason {
-      let lang = get_user_lang(local_user_view);
+      let lang = get_interface_language(local_user_view);
       let registration_denied_message = format!("{}: {}", lang.registration_denied(), &deny_reason);
       return Err(LemmyError::from_message(&registration_denied_message));
     } else {

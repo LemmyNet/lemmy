@@ -21,6 +21,7 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   source::{
     community::Community,
+    language::Language,
     post::{Post, PostForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
@@ -89,6 +90,14 @@ impl PerformCrud for CreatePost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
+    let language_id = Some(
+      data.language_id.unwrap_or(
+        blocking(context.pool(), move |conn| {
+          Language::read_undetermined(conn)
+        })
+        .await??,
+      ),
+    );
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
@@ -100,6 +109,7 @@ impl PerformCrud for CreatePost {
       embed_title,
       embed_description,
       embed_video_url,
+      language_id,
       thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };

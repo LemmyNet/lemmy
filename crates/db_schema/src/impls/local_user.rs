@@ -1,7 +1,10 @@
 use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::*,
-  source::local_user::{LocalUser, LocalUserForm},
+  source::{
+    local_user::{LocalUser, LocalUserForm},
+    local_user_language::LocalUserLanguage,
+  },
   traits::Crud,
   utils::naive_now,
 };
@@ -23,7 +26,7 @@ mod safe_settings_type {
     theme,
     default_sort_type,
     default_listing_type,
-    lang,
+    interface_language,
     show_avatars,
     send_notifications_to_email,
     validator_time,
@@ -48,7 +51,7 @@ mod safe_settings_type {
         theme,
         default_sort_type,
         default_listing_type,
-        lang,
+        interface_language,
         show_avatars,
         send_notifications_to_email,
         validator_time,
@@ -115,9 +118,12 @@ impl Crud for LocalUser {
     diesel::delete(local_user.find(local_user_id)).execute(conn)
   }
   fn create(conn: &PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
-    insert_into(local_user)
+    let local_user_ = insert_into(local_user)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(conn)?;
+    // initialize with all languages
+    LocalUserLanguage::update_user_languages(conn, None, local_user_.id)?;
+    Ok(local_user_)
   }
   fn update(
     conn: &PgConnection,

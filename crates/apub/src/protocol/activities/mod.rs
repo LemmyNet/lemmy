@@ -52,6 +52,7 @@ mod tests {
   #[test]
   fn test_parse_lotide_activities() {
     test_json::<CreateOrUpdatePost>("assets/lotide/activities/create_page.json").unwrap();
+    test_json::<CreateOrUpdatePost>("assets/lotide/activities/create_page_image.json").unwrap();
     test_json::<CreateOrUpdateComment>("assets/lotide/activities/create_note_reply.json").unwrap();
   }
 

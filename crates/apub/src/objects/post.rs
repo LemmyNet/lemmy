@@ -4,7 +4,10 @@ use crate::{
   local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
-    objects::page::{Attachment, AttributedTo, Page, PageType},
+    objects::{
+      page::{Attachment, AttributedTo, Page, PageType},
+      LanguageTag,
+    },
     ImageObject,
     Source,
   },
@@ -22,6 +25,7 @@ use lemmy_db_schema::{
   self,
   source::{
     community::Community,
+    language::Language,
     moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
     person::Person,
     post::{Post, PostForm},
@@ -98,6 +102,11 @@ impl ApubObject for ApubPost {
       Community::read(conn, community_id)
     })
     .await??;
+    let language = self.language_id;
+    let language = blocking(context.pool(), move |conn| {
+      Language::read_from_id(conn, language)
+    })
+    .await??;
 
     let page = Page {
       kind: PageType::Page,
@@ -115,6 +124,7 @@ impl ApubObject for ApubPost {
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       stickied: Some(self.stickied),
+      language: LanguageTag::new(language),
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
     };
@@ -158,8 +168,11 @@ impl ApubObject for ApubPost {
 
     let form = if !page.is_mod_action(context).await? {
       let url = if let Some(attachment) = page.attachment.first() {
-        // url as sent by Lemmy (new)
-        Some(attachment.href.clone())
+        Some(match attachment {
+          // url as sent by Lemmy (new)
+          Attachment::Link(link) => link.href.clone(),
+          Attachment::Image(image) => image.url.clone(),
+        })
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())
@@ -178,6 +191,11 @@ impl ApubObject for ApubPost {
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| Some(remove_slurs(&s, &context.settings().slur_regex())));
+      let language = page.language.map(|l| l.identifier);
+      let language = blocking(context.pool(), move |conn| {
+        Language::read_id_from_code_opt(conn, language.as_deref())
+      })
+      .await??;
 
       PostForm {
         name: page.name.clone(),
@@ -198,6 +216,7 @@ impl ApubObject for ApubPost {
         thumbnail_url: Some(thumbnail_url),
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
+        language_id: language,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else

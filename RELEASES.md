@@ -1,4 +1,18 @@
-#  Lemmy v0.16.6 Release : bug fixes (2022-07-19)
+# Lemmy v0.16.7 Release : Bug fixes (2022-09-14)
+
+_Written by @dessalines and @nutomic, 2022-09-14_
+
+A few bug fixes:
+
+- Fix missing auth on new post refresh. ([#764](https://github.com/LemmyNet/lemmy-ui/issues/764))
+- Change CSP rule for connect-src (websocket) to wildcard (fixes [#730](https://github.com/LemmyNet/lemmy-ui/issues/730)) ([#737](https://github.com/LemmyNet/lemmy-ui/issues/737))
+- Increase default search rate limit. ([#2424](https://github.com/LemmyNet/lemmy/issues/2424))
+- Rejected federated pm from blocked users (fixes [#2398](https://github.com/LemmyNet/lemmy/issues/2398)) ([#2408](https://github.com/LemmyNet/lemmy/issues/2408))
+- Handle Like, Undo/Like activities from Mastodon, add tests (fixes [#2378](https://github.com/LemmyNet/lemmy/issues/2378)) ([#2380](https://github.com/LemmyNet/lemmy/issues/2380))
+- Dont allow login if account is banned or deleted (fixes [#2372](https://github.com/LemmyNet/lemmy/issues/2372)) ([#2374](https://github.com/LemmyNet/lemmy/issues/2374))
+- Fix panics in search_by_apub_id() (fixes [#2371](https://github.com/LemmyNet/lemmy/issues/2371)) ([#2373](https://github.com/LemmyNet/lemmy/issues/2373))
+
+# Lemmy v0.16.6 Release : bug fixes (2022-07-19)
 
 A few bug fixes:
 
@@ -10,7 +24,7 @@ A few bug fixes:
 - Add pub use for db crates in api_common ([#2305](https://github.com/LemmyNet/lemmy/issues/2305))
 - Accept private like ([#1968](https://github.com/LemmyNet/lemmy/issues/1968)) ([#2301](https://github.com/LemmyNet/lemmy/issues/2301))
 
-#  Lemmy v0.16.4 Release : Peertube federation, Rust API and other improvements (2022-05-27)
+# Lemmy v0.16.4 Release : Peertube federation, Rust API and other improvements (2022-05-27)
 
 ## What is Lemmy?
 
@@ -46,7 +60,7 @@ Follow the [Docker or Ansible upgrade instructions here.](https://join-lemmy.org
 
 ## Support development
 
-We (@dessalines and @nutomic) have been working full-time on Lemmy for almost two years. This is largely thanks to support from [NLnet foundation](https://nlnet.nl/). 
+We (@dessalines and @nutomic) have been working full-time on Lemmy for almost two years. This is largely thanks to support from [NLnet foundation](https://nlnet.nl/).
 
 If you'd like to support development, and make sure that we will always be available to work full time on Lemmy, consider [donating to support its development](https://join-lemmy.org/donate). We've spent hundreds of hours on Lemmy, and would like to be able to add more developers to our little open-source co-op as time goes on.
 
@@ -225,8 +239,9 @@ Until now, only community bans were federated, and the "Remove content" option d
 ### Hide communities
 
 @dayinjing implemented a funcionality for instance admins to hide controversial communities. A hidden community is only visible to those users who subscribe to it. This represents a milder alternative to removing a community. This functionality is not implemented in lemmy-ui yet, but admins can hide a community like this via command line:
+
 ```
-curl -X PUT https://example.com/api/v3/community/hide \   
+curl -X PUT https://example.com/api/v3/community/hide \
     -H "Content-Type: application/json" \
     -d \
     '{"community_id":3,"hidden":true,"reason":"*reason for mod log*","auth":"*admin jwt token*"}'
@@ -234,12 +249,11 @@ curl -X PUT https://example.com/api/v3/community/hide \
 
 ### Jerboa: a new android app
 
-To help adoption, and since most people use social media through their smartphones nowadays, @dessalines has been working on a native android app for Lemmy called [Jerboa](https://github.com/dessalines/jerboa), which is now on [F-Droid](https://f-droid.org/packages/com.jerboa) and [Google Play](https://play.google.com/store/apps/details?id=com.jerboa). 
+To help adoption, and since most people use social media through their smartphones nowadays, @dessalines has been working on a native android app for Lemmy called [Jerboa](https://github.com/dessalines/jerboa), which is now on [F-Droid](https://f-droid.org/packages/com.jerboa) and [Google Play](https://play.google.com/store/apps/details?id=com.jerboa).
 
 It is still at an alpha level, but is very usable. We'd love to have experienced android developers contribute to it.
 
-This now makes three smartphone apps for Lemmy: [Lemmur and Jerboa for Android, and Remmel for iOS](https://join-lemmy.org/apps). 
-
+This now makes three smartphone apps for Lemmy: [Lemmur and Jerboa for Android, and Remmel for iOS](https://join-lemmy.org/apps).
 
 ## Upgrade notes
 
@@ -291,7 +305,7 @@ If you'd like to support development, and make sure that we will always be avail
 
 ### Lemmy UI
 
-- Rename theme files from *.min.css to *.css ([#590](https://github.com/LemmyNet/lemmy-ui/issues/590))
+- Rename theme files from _.min.css to _.css ([#590](https://github.com/LemmyNet/lemmy-ui/issues/590))
 - Custom themes ([#584](https://github.com/LemmyNet/lemmy-ui/issues/584))
 - Add option to set site default theme (fixes [#559](https://github.com/LemmyNet/lemmy-ui/issues/559))
 - Adding nofollow to links. Fixes [#542](https://github.com/LemmyNet/lemmy-ui/issues/542) ([#543](https://github.com/LemmyNet/lemmy-ui/issues/543))
@@ -330,7 +344,6 @@ Lemmy now has private instances, optional registration applications, optional em
 
 Special thanks to @asonix for adding [tokio-console](https://github.com/LemmyNet/Lemmy/issues/2003) and [Jaeger + opentelemetry](https://github.com/LemmyNet/Lemmy/issues/1992) to our dev setups, so we can better identify performance bottlenecks.
 
-
 ## What is Lemmy?
 
 [Lemmy](https://join-lemmy.org/) is similar to sites like Reddit, Lobste.rs, or Hacker News: you subscribe to communities you're interested in, post links and discussions, then vote and comment on them. Lemmy isn't just a reddit alternative; its a network of interconnected communities ran by different people and organizations, all combining to create a single, personalized front page of your favorite news, articles, and memes.
@@ -345,11 +358,11 @@ Admins can turn this on, and new users will need to verify their emails. Current
 
 Admins can now optionally make new users fill out an application to join your server. There is a new panel in their top bar where they can approve or deny pending applications.
 
-This works in conjunction with the *require_email* field. If that is also turned on, the application will only be shown after their email has been verified. The user will receive an email when they have been accepted.
+This works in conjunction with the _require_email_ field. If that is also turned on, the application will only be shown after their email has been verified. The user will receive an email when they have been accepted.
 
 ### Closed / Private instances
 
-The instance settings now includes a *private instance* option, which if turned on, will only let logged in users view your site. Private instances was one of our first issues, and it was a large effort, so its great to finally have this completed.
+The instance settings now includes a _private instance_ option, which if turned on, will only let logged in users view your site. Private instances was one of our first issues, and it was a large effort, so its great to finally have this completed.
 
 ### Temporary Bans
 
@@ -371,7 +384,7 @@ If you'd like to support development, and make sure that we will always be avail
 
 ### API
 
-We've removed a list of banned users from `GetSite`, added a few endpoints related to registration applications, made a few changes allowing temporary bans, site settings, made a few changes to the login response. These are non-destructive and current clients should work with this release. 
+We've removed a list of banned users from `GetSite`, added a few endpoints related to registration applications, made a few changes allowing temporary bans, site settings, made a few changes to the login response. These are non-destructive and current clients should work with this release.
 
 - A full list of the API changes can be seen on this diff of [lemmy-js-client: 0.14.0 -> 0.15.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.14.0-rc.1...0.15.0-rc.34) .
 
@@ -455,12 +468,11 @@ Almost one year after [first enabling federation](https://lemmy.ml/post/42833), 
 
 It took a lot of work to make this possible, so big thanks to [NLnet](https://nlnet.nl/) for funding our full time work on Lemmy, and to [@lanodan](https://queer.hacktivis.me/users/lanodan) and [@asonix](https://masto.asonix.dog/@asonix) for helping to figure out how Pleroma and Mastodon federation works (it's difficult because they have almost no documentation).
 
-
 ## Major Changes
 
 ### Federation code rewrite
 
-The rewrite of the federation code started by @nutomic in August is now mostly complete. As a result, the code is much cleaner, and has tests to guarantee no breaking changes between Lemmy versions. As a side effect of this rewrite, it was now relatively easy to enable federation with other projects. 
+The rewrite of the federation code started by @nutomic in August is now mostly complete. As a result, the code is much cleaner, and has tests to guarantee no breaking changes between Lemmy versions. As a side effect of this rewrite, it was now relatively easy to enable federation with other projects.
 
 Mastodon and Pleroma users can:
 
@@ -470,7 +482,7 @@ Mastodon and Pleroma users can:
 
 In addition, Pleroma users can exchange private messages with Lemmy users.
 
-Note that Pleroma and Mastodon rely on a compatibility mode in Lemmy, which means that they won't receive events like Deletes or Votes. Other projects whose federation works similar to Pleroma/Mastodon  will likely also federate.
+Note that Pleroma and Mastodon rely on a compatibility mode in Lemmy, which means that they won't receive events like Deletes or Votes. Other projects whose federation works similar to Pleroma/Mastodon will likely also federate.
 
 ### Hardcoded slur filter removed
 
@@ -526,7 +538,7 @@ We've now separated our ansible install method (the preferred way to deploy Lemm
 - Format config/defaults.hjson before committing ([#1860](https://github.com/LemmyNet/Lemmy/issues/1860))
 - Breaking apub changes ([#1859](https://github.com/LemmyNet/Lemmy/issues/1859))
 - Pleroma federation2 ([#1855](https://github.com/LemmyNet/Lemmy/issues/1855))
-- Create a custom pre-commit hook, generates config/defaults.hjson  ([#1857](https://github.com/LemmyNet/Lemmy/issues/1857))
+- Create a custom pre-commit hook, generates config/defaults.hjson ([#1857](https://github.com/LemmyNet/Lemmy/issues/1857))
 - Add cargo metadata to all crates ([#1853](https://github.com/LemmyNet/Lemmy/issues/1853))
 - Add both (De)Serialize to all models ([#1851](https://github.com/LemmyNet/Lemmy/issues/1851))
 - Adding GetUnreadCount to the API. Fixes [#1794](https://github.com/LemmyNet/Lemmy/issues/1794) ([#1842](https://github.com/LemmyNet/Lemmy/issues/1842))
@@ -565,6 +577,7 @@ We've now separated our ansible install method (the preferred way to deploy Lemm
 - ui changes for marking comment as read on reply ([#454](https://github.com/LemmyNet/lemmy-ui/issues/454))
 - hide mod actions appropriately fix [#441](https://github.com/LemmyNet/lemmy-ui/issues/441) ([#447](https://github.com/LemmyNet/lemmy-ui/issues/447))
 - Add honeypot for user and form creation. Fixes [#433](https://github.com/LemmyNet/lemmy-ui/issues/433) ([#435](https://github.com/LemmyNet/lemmy-ui/issues/435))
+
 # Lemmy v0.13.3 Release (2021-10-13)
 
 - Dont swallow API errors (fixes [#1834](https://github.com/LemmyNet/lemmy/issues/1834)) ([#1837](https://github.com/LemmyNet/lemmy/issues/1837))
@@ -578,10 +591,10 @@ Since our last release earlier this month, we've had [~30](https://github.com/Le
 
 ## Major Changes
 
-- Added comment and post reporting in the front end, and cleaned up the reporting API. 
-  - *Note: these are local-only currently, reports are not yet federated.*
-- The JWT secret is now auto-generated by the database. 
-  - *Note: this will log out all users, so users will have to log in again.*
+- Added comment and post reporting in the front end, and cleaned up the reporting API.
+  - _Note: these are local-only currently, reports are not yet federated._
+- The JWT secret is now auto-generated by the database.
+  - _Note: this will log out all users, so users will have to log in again._
 - Lots of smaller UI fixes listed below.
 
 ## Upgrade notes
@@ -661,7 +674,7 @@ Since our last release in April, we've had [~80](https://github.com/LemmyNet/lem
 
 #### Major Changes
 
-*Note: Issue links are below.*
+_Note: Issue links are below._
 
 - @nutomic did a major rewrite of the federation code. It is much simpler now, and reduced from 8000 lines of code to 6400. Functionality is mostly the same, but future changes will be much easier.
 - You can now block users and communities, and their posts / comments won't show up in your feed.
@@ -711,7 +724,6 @@ Since our last release in April, we've had [~80](https://github.com/LemmyNet/lem
 - Rewrite remaining activities ([#1712](https://github.com/LemmyNet/lemmy/issues/1712))
 - Migrate comment inReplyTo field to single value (ref [#1454](https://github.com/LemmyNet/lemmy/issues/1454))
 - Fix issue with protocol string in actor id generation ([#1668](https://github.com/LemmyNet/lemmy/issues/1668))
-
 
 ### Lemmy UI
 
@@ -781,7 +793,7 @@ Since our last release, we've had [~30](https://github.com/LemmyNet/lemmy/compar
 
 ### Lemmy Server
 
-- Blank out extra info for deleted or removed content. Fixes [#1679](https://github.com/LemmyNet/Lemmy/issues/1679) 
+- Blank out extra info for deleted or removed content. Fixes [#1679](https://github.com/LemmyNet/Lemmy/issues/1679)
 - Add show_new_posts_notifs setting. Fixes [#1664](https://github.com/LemmyNet/Lemmy/issues/1664)
 - Fix issue with protocol string in actor id generation [#1668](https://github.com/LemmyNet/Lemmy/issues/1668)
 - Adding shortname fetching for users and communities. Fixes [#1662](https://github.com/LemmyNet/Lemmy/issues/1662)
@@ -848,7 +860,7 @@ Since our last release this month, we've had [~60](https://github.com/LemmyNet/l
 
 #### Major Changes
 
-- Add option to disable strict allowlist ( [#1486](https://github.com/LemmyNet/lemmy/issues/1486)) [documentation](https://join-lemmy.org/docs/en/federation/administration.html) 
+- Add option to disable strict allowlist ( [#1486](https://github.com/LemmyNet/lemmy/issues/1486)) [documentation](https://join-lemmy.org/docs/en/federation/administration.html)
 - Add option to limit community creation to admins only ([#1587](https://github.com/LemmyNet/lemmy/issues/1587))
 - Many search improvements:
   - Don't search for communities or users when the id is included.
@@ -926,7 +938,7 @@ Since our last release in February, we've had [~150](https://github.com/LemmyNet
 #### General
 
 - Rewrote config implementation, finally allowing us to use newer Rust versions.
-- Removed categories. 
+- Removed categories.
 - Various refactors.
 
 #### API
@@ -940,7 +952,7 @@ Since our last release in February, we've had [~150](https://github.com/LemmyNet
 - Federating Matrix ID.
 - Many changes for better compatibility with ActivityPub standard.
 
-#### Database 
+#### Database
 
 - Split the `user_` into `person` and `local_user` tables.
 - Strictly typed commonly used ID columns, to prevent DB errors using `i32` as ids.
@@ -972,8 +984,8 @@ Since our last release in February, we've had [~150](https://github.com/LemmyNet
 
 - Configuration via environment variables is not supported anymore, you must have all your config in the [lemmy.hjson](https://github.com/LemmyNet/lemmy/blob/main/ansible/templates/config.hjson) file ( except for `LEMMY_CONFIG_LOCATION` ).
 - The config format for `allowed_instances` and `blocked_instances` has changed, and you need to adjust your config file manually:
-    - before: `allowed_instances: ds9.lemmy.ml,enterprise.lemmy.ml`
-    - now: `allowed_instances: ["ds9.lemmy.ml", "enterprise.lemmy.ml"]` , and only one of the `allowed_instances` or `blocked_instances` blocks can be set.
+  - before: `allowed_instances: ds9.lemmy.ml,enterprise.lemmy.ml`
+  - now: `allowed_instances: ["ds9.lemmy.ml", "enterprise.lemmy.ml"]` , and only one of the `allowed_instances` or `blocked_instances` blocks can be set.
 - The API has been upgraded from `v2` to `v3`, so all clients need to be updated: [lemmy-js-client: 0.9.9 -> 0.10.0](https://github.com/LemmyNet/lemmy-js-client/compare/0.9.9...0.10.0-rc.13) .
 
 If you'd like to make a DB backup before upgrading, follow [this guide](https://join-lemmy.org/docs/en/administration/backup_and_restore.html).
@@ -983,13 +995,12 @@ To upgrade your instance to `v0.10.0`, simply follow the instructions in the doc
 - [Upgrade with manual Docker installation](https://join-lemmy.org/docs/en/administration/install_docker.html#updating)
 - [Upgrade with Ansible installation](https://join-lemmy.org/docs/en/administration/install_ansible.html)
 
-
 ## Compilation time
 
-|| v0.9.0 (Rust 1.47) | v0.10.0 (Rust 1.47) | v0.10.0 (Rust 1.51) |
-|-| -------- | -------- | -------- |
-|Clean | 140s     | 146s     | 119s     |
-| Incremental | 28s | 22s | 19s |
+|             | v0.9.0 (Rust 1.47) | v0.10.0 (Rust 1.47) | v0.10.0 (Rust 1.51) |
+| ----------- | ------------------ | ------------------- | ------------------- |
+| Clean       | 140s               | 146s                | 119s                |
+| Incremental | 28s                | 22s                 | 19s                 |
 
 Despite ongoing efforts to speed up compilation, it has actually gotten slower when comparing with the same Rust version. Only thanks to improvements in newer Rust versions has our build process gotten faster. This could be simply because we added more code, while Lemmy v0.9.0 had 22.4k lines of Rust, v0.10.0 has 23.8k (an increase of 6%).
 
@@ -1008,6 +1019,7 @@ On the other hand, some crates have gotten much slower to compile, in particular
 ## Changes
 
 ### Lemmy backend
+
 - Added an federated activity query sorting order.
 - Explicitly marking posts and comments as public.
 - Added a `NewComment` / forum sort for posts.
@@ -1113,7 +1125,6 @@ None of these are breaking changes, so federation between 0.9.0 and 0.8.11 will 
 - Fixed community link wrapping.
 - Various other bug fixes.
 
-
 ### Lemmy Docs
 
 - We moved documentation into a separate git repository, and support translation for the docs now!
@@ -1130,7 +1141,7 @@ If you'd like to make a DB backup before upgrading, follow [this guide](https://
 
 ## Changes
 
-We've been working at warp speed since our `v0.7.0` release in June, adding over [870 commits](https://github.com/LemmyNet/lemmy/compare/v0.7.0...main) since then. :sweat: 
+We've been working at warp speed since our `v0.7.0` release in June, adding over [870 commits](https://github.com/LemmyNet/lemmy/compare/v0.7.0...main) since then. :sweat:
 
 Here are some of the bigger changes:
 
@@ -1145,7 +1156,7 @@ Here are some of the bigger changes:
 
 #### Federation
 
-- The first **federation public beta release**, woohoo :fireworks: 
+- The first **federation public beta release**, woohoo :fireworks:
 - All Lemmy functionality now works over ActivityPub (except turning remote users into mods/admins)
 - Instance allowlist and blocklist
 - Documentation for [admins](https://join-lemmy.org/docs/administration_federation.html) and [devs](https://join-lemmy.org/docs/contributing_federation_overview.html) on how federation works
@@ -1159,7 +1170,7 @@ Here are some of the bigger changes:
 ### User Interface
 
 - Separated the UI from the server code, in [lemmy-ui](https://github.com/LemmyNet/lemmy-ui).
-- The UI can now read with javascript disabled! 
+- The UI can now read with javascript disabled!
 - It's now a fully isomorphic application using [inferno-isomorphic](https://infernojs.org/docs/guides/isomorphic). This means that page loads are now much faster, as the server does the work.
 - The UI now also supports open-graph and twitter cards! Linking to lemmy posts (from whatever platform you use) looks pretty now: ![](https://i.imgur.com/6TZ2v7s.png)
 - Improved the search page ( more features incoming ).
@@ -1182,7 +1193,7 @@ Here are some of the bigger changes:
 
 ## Contributors
 
-We'd also like to thank both the [NLnet foundation](https://nlnet.nl/) for their support in allowing us to work full-time on Lemmy ( as well as their support for [other important open-source projects](https://nlnet.nl/project/current.html) ), [those who sponsor us](https://lemmy.ml/sponsors), and those who [help translate Lemmy](https://weblate.yerbamate.ml/projects/lemmy/). Every little bit does help. We remain committed to never allowing advertisements, monetizing, or venture-capital in Lemmy; software should be communal, and should benefit humanity, not a small group of company owners. 
+We'd also like to thank both the [NLnet foundation](https://nlnet.nl/) for their support in allowing us to work full-time on Lemmy ( as well as their support for [other important open-source projects](https://nlnet.nl/project/current.html) ), [those who sponsor us](https://lemmy.ml/sponsors), and those who [help translate Lemmy](https://weblate.yerbamate.ml/projects/lemmy/). Every little bit does help. We remain committed to never allowing advertisements, monetizing, or venture-capital in Lemmy; software should be communal, and should benefit humanity, not a small group of company owners.
 
 ## Upgrading
 
@@ -1235,6 +1246,7 @@ ansible-playbook lemmy.yml
 ```
 
 **With manual Docker installation:**
+
 ```
 # run these commands on your server
 cd /lemmy
@@ -1245,7 +1257,6 @@ sudo nginx -s reload
 wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/docker/prod/docker-compose.yml
 sudo docker-compose up -d
 ```
-
 
 # Lemmy v0.7.0 Release (2020-06-23)
 
@@ -1260,7 +1271,7 @@ Overall, since our last major release in January (v0.6.0), we have closed over
 - Reconnecting websockets
 - Many more themes, including a default light one.
 - Expandable embeds for post links (and thumbnails), from
-[iframely](https://github.com/itteco/iframely)
+  [iframely](https://github.com/itteco/iframely)
 - Better icons
 - Emoji autocomplete to post and message bodies, and an Emoji Picker
 - Post body now searchable
@@ -1294,6 +1305,7 @@ sudo ./migrate-pictshare-to-pictrs.bash
 ```
 
 **With manual Docker installation:**
+
 ```
 # run these commands on your server
 cd /lemmy
@@ -1312,7 +1324,7 @@ login again, so that images are loaded correctly.
 
 # Lemmy v0.6.0 Release (2020-01-16)
 
-`v0.6.0` is here, and we've closed [41 issues!](https://github.com/LemmyNet/lemmy/milestone/15?closed=1) 
+`v0.6.0` is here, and we've closed [41 issues!](https://github.com/LemmyNet/lemmy/milestone/15?closed=1)
 
 This is the biggest release by far:
 
@@ -1322,7 +1334,7 @@ This is the biggest release by far:
 - Can set a custom language.
 - Lemmy-wide settings to disable downvotes, and close registration.
 - A better documentation system, hosted in lemmy itself.
-- [Huge DB performance gains](https://github.com/LemmyNet/lemmy/issues/411) (everthing down to < `30ms`) by using materialized views. 
+- [Huge DB performance gains](https://github.com/LemmyNet/lemmy/issues/411) (everthing down to < `30ms`) by using materialized views.
 - Fixed major issue with similar post URL and title searching.
 - Upgraded to Actix `2.0`
 - Faster comment / post voting.

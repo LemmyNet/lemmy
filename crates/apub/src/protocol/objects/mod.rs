@@ -1,3 +1,4 @@
+use lemmy_db_schema::source::language::Language;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -13,6 +14,27 @@ pub(crate) mod tombstone;
 #[serde(rename_all = "camelCase")]
 pub struct Endpoints {
   pub shared_inbox: Url,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LanguageTag {
+  pub(crate) identifier: String,
+  pub(crate) name: String,
+}
+
+impl LanguageTag {
+  pub(crate) fn new(lang: Language) -> Option<LanguageTag> {
+    // undetermined
+    if lang.code == "und" {
+      None
+    } else {
+      Some(LanguageTag {
+        identifier: lang.code,
+        name: lang.name,
+      })
+    }
+  }
 }
 
 #[cfg(test)]

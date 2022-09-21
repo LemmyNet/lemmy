@@ -21,6 +21,11 @@
       "name": "@picard@enterprise.lemmy.ml"
     }
   ],
+  "distinguished": false,
+  "language": {
+    "identifier": "fr",
+    "name": "Français"
+  },
   "published": "2021-03-01T13:42:43.966208+00:00",
   "updated": "2021-03-01T13:43:03.955787+00:00"
 }

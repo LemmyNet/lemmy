@@ -70,7 +70,10 @@ impl<'a> PersonQuery<'a> {
       .into_boxed();
 
     if let Some(search_term) = self.search_term {
-      query = query.filter(person::name.ilike(fuzzy_search(&search_term)));
+      let searcher = fuzzy_search(&search_term);
+      query = query
+        .filter(person::name.ilike(searcher.to_owned()))
+        .or_filter(person::display_name.ilike(searcher));
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
