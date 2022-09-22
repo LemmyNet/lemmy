@@ -64,15 +64,16 @@ impl PerformCrud for GetPersonDetails {
     let community_id = data.community_id;
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
+      let local_user = local_user_view.map(|l| l.local_user);
       let posts_query = PostQuery::builder()
         .conn(conn)
         .sort(sort)
         .saved_only(saved_only)
+        .local_user(local_user.as_ref())
         .community_id(community_id)
         .page(page)
         .limit(limit);
 
-      let local_user = local_user_view.map(|l| l.local_user);
       let comments_query = CommentQuery::builder()
         .conn(conn)
         .local_user(local_user.as_ref())
