@@ -395,6 +395,7 @@ mod tests {
     source::{
       comment::*,
       community::*,
+      language::Language,
       local_user::LocalUserForm,
       local_user_language::LocalUserLanguage,
       person::*,
