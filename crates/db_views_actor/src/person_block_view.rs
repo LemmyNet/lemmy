@@ -13,12 +13,13 @@ impl PersonBlockView {
   pub fn for_person(conn: &PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = person_block::table
       .inner_join(person::table)
-      .inner_join(person_alias_1::table) // TODO I dont know if this will be smart abt the column
+      .inner_join(person_alias_1::table)
       .select((
         Person::safe_columns_tuple(),
         PersonAlias1::safe_columns_tuple(),
       ))
       .filter(person_block::person_id.eq(person_id))
+      .filter(person_alias_1::deleted.eq(false))
       .order_by(person_block::published)
       .load::<PersonBlockViewTuple>(conn)?;
 

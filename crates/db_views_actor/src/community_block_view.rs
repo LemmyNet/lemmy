@@ -22,6 +22,8 @@ impl CommunityBlockView {
         Community::safe_columns_tuple(),
       ))
       .filter(community_block::person_id.eq(person_id))
+      .filter(community::deleted.eq(false))
+      .filter(community::removed.eq(false))
       .order_by(community_block::published)
       .load::<CommunityBlockViewTuple>(conn)?;
 

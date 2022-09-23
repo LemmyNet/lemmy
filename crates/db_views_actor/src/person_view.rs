@@ -28,6 +28,7 @@ impl PersonViewSafe {
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
       .filter(person::admin.eq(true))
+      .filter(person::deleted.eq(false))
       .order_by(person::published)
       .load::<PersonViewSafeTuple>(conn)?;
 
@@ -45,6 +46,7 @@ impl PersonViewSafe {
             .or(person::ban_expires.gt(now)),
         ),
       )
+      .filter(person::deleted.eq(false))
       .load::<PersonViewSafeTuple>(conn)?;
 
     Ok(Self::from_tuple_to_vec(banned))
