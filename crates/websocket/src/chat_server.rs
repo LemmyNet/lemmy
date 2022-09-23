@@ -499,7 +499,7 @@ impl ChatServer {
         fut.await
       } else {
         // if rate limit was hit, respond with message
-        return Err(LemmyError::from_message("rate_limit_error"));
+        Err(LemmyError::from_message("rate_limit_error"))
       }
     }
   }
