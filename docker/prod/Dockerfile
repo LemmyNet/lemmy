@@ -1,5 +1,5 @@
 # Build the project
-FROM clux/muslrust:1.59.0 as builder
+FROM clux/muslrust:1.63.0 as builder
 
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="release"
