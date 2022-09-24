@@ -34,5 +34,5 @@ strum_macros = "0.24.3"
 chrono = { version = "0.4.22", features = ["serde"], default-features = false }
 actix-web = { version = "4.2.1", default-features = false, features = ["rustls"] }
 actix-web-actors = { version = "4.1.0", default-features = false }
-opentelemetry = "0.18.0"
-tracing-opentelemetry = "0.18.0"
+opentelemetry = "0.17.0"
+tracing-opentelemetry = "0.17.2"
