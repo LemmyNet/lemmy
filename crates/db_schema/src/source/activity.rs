@@ -2,8 +2,8 @@ use crate::{newtypes::DbUrl, schema::activity};
 use serde_json::Value;
 use std::fmt::Debug;
 
-#[derive(PartialEq, Debug, Queryable, Identifiable)]
-#[table_name = "activity"]
+#[derive(PartialEq, Eq, Debug, Queryable, Identifiable)]
+#[diesel(table_name = activity)]
 pub struct Activity {
   pub id: i32,
   pub data: Value,
@@ -15,7 +15,7 @@ pub struct Activity {
 }
 
 #[derive(Insertable, AsChangeset)]
-#[table_name = "activity"]
+#[diesel(table_name = activity)]
 pub struct ActivityForm {
   pub data: Value,
   pub local: Option<bool>,

@@ -50,7 +50,7 @@ pub struct PersonBlockView {
   pub target: PersonSafeAlias1,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
   pub comment: Comment,
@@ -66,7 +66,7 @@ pub struct PersonMentionView {
   pub my_vote: Option<i16>,                // Left join to CommentLike
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct CommentReplyView {
   pub comment_reply: CommentReply,
   pub comment: Comment,

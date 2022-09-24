@@ -32,7 +32,7 @@ use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use url::Url;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ApubPerson(DbPerson);
 
 impl Deref for ApubPerson {

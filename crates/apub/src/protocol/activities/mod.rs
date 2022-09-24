@@ -8,7 +8,7 @@ pub mod deletion;
 pub mod following;
 pub mod voting;
 
-#[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
 pub enum CreateOrUpdateType {
   Create,
   Update,

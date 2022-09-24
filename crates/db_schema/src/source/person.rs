@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use crate::schema::{person, person_alias_1, person_alias_2};
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "person")]
+#[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct Person {
   pub id: PersonId,
   pub name: String,
@@ -32,9 +32,9 @@ pub struct Person {
 }
 
 /// A safe representation of person, without the sensitive info
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "person")]
+#[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct PersonSafe {
   pub id: PersonId,
   pub name: String,
@@ -56,9 +56,9 @@ pub struct PersonSafe {
   pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "person_alias_1")]
+#[cfg_attr(feature = "full", diesel(table_name = person_alias_1))]
 pub struct PersonAlias1 {
   pub id: PersonId,
   pub name: String,
@@ -83,9 +83,9 @@ pub struct PersonAlias1 {
   pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "person_alias_1")]
+#[cfg_attr(feature = "full", diesel(table_name = person_alias_1))]
 pub struct PersonSafeAlias1 {
   pub id: PersonId,
   pub name: String,
@@ -107,9 +107,9 @@ pub struct PersonSafeAlias1 {
   pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "person_alias_2")]
+#[cfg_attr(feature = "full", diesel(table_name = person_alias_2))]
 pub struct PersonAlias2 {
   pub id: PersonId,
   pub name: String,
@@ -134,9 +134,9 @@ pub struct PersonAlias2 {
   pub ban_expires: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "person_alias_1")]
+#[cfg_attr(feature = "full", diesel(table_name = person_alias_1))]
 pub struct PersonSafeAlias2 {
   pub id: PersonId,
   pub name: String,
@@ -160,7 +160,7 @@ pub struct PersonSafeAlias2 {
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "person")]
+#[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct PersonForm {
   pub name: String,
   pub display_name: Option<Option<String>>,
