@@ -112,7 +112,9 @@ pub fn establish_unpooled_connection() -> PgConnection {
   };
   let mut conn =
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
-  let _ = &mut conn.run_pending_migrations(MIGRATIONS).unwrap();
+  let _ = &mut conn
+    .run_pending_migrations(MIGRATIONS)
+    .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
   conn
 }
 
