@@ -25,7 +25,7 @@ impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub fn read(conn: &PgConnection, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+  pub fn read(conn: &mut PgConnection, report_id: PrivateMessageReportId) -> Result<Self, Error> {
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
       private_message_report::table
         .find(report_id)
@@ -57,7 +57,7 @@ impl PrivateMessageReportView {
   }
 
   /// Returns the current unresolved post report count for the communities you mod
-  pub fn get_report_count(conn: &PgConnection) -> Result<i64, Error> {
+  pub fn get_report_count(conn: &mut PgConnection) -> Result<i64, Error> {
     use diesel::dsl::*;
 
     private_message_report::table
@@ -73,7 +73,7 @@ impl PrivateMessageReportView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageReportQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   page: Option<i64>,
   limit: Option<i64>,
   unresolved_only: Option<bool>,
@@ -150,21 +150,21 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let new_person_1 = PersonForm {
       name: "timmy_mrv".into(),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-    let inserted_timmy = Person::create(&conn, &new_person_1).unwrap();
+    let inserted_timmy = Person::create(conn, &new_person_1).unwrap();
 
     let new_person_2 = PersonForm {
       name: "jessica_mrv".into(),
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-    let inserted_jessica = Person::create(&conn, &new_person_2).unwrap();
+    let inserted_jessica = Person::create(conn, &new_person_2).unwrap();
 
     // timmy sends private message to jessica
     let pm_form = PrivateMessageForm {
@@ -173,7 +173,7 @@ mod tests {
       content: "something offensive".to_string(),
       ..Default::default()
     };
-    let pm = PrivateMessage::create(&conn, &pm_form).unwrap();
+    let pm = PrivateMessage::create(conn, &pm_form).unwrap();
 
     // jessica reports private message
     let pm_report_form = PrivateMessageReportForm {
@@ -182,10 +182,10 @@ mod tests {
       private_message_id: pm.id,
       reason: "its offensive".to_string(),
     };
-    let pm_report = PrivateMessageReport::report(&conn, &pm_report_form).unwrap();
+    let pm_report = PrivateMessageReport::report(conn, &pm_report_form).unwrap();
 
     let reports = PrivateMessageReportQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .build()
       .list()
       .unwrap();
@@ -201,13 +201,13 @@ mod tests {
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-    let inserted_admin = Person::create(&conn, &new_person_3).unwrap();
+    let inserted_admin = Person::create(conn, &new_person_3).unwrap();
 
     // admin resolves the report (after taking appropriate action)
-    PrivateMessageReport::resolve(&conn, pm_report.id, inserted_admin.id).unwrap();
+    PrivateMessageReport::resolve(conn, pm_report.id, inserted_admin.id).unwrap();
 
     let reports = PrivateMessageReportQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .unresolved_only(Some(false))
       .build()
       .list()

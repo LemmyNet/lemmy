@@ -45,7 +45,7 @@ pub struct CommentForm {
 
 #[derive(PartialEq, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Comment))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::comment::Comment))]
 #[cfg_attr(feature = "full", table_name = "comment_like")]
 pub struct CommentLike {
   pub id: i32,
@@ -68,7 +68,7 @@ pub struct CommentLikeForm {
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Comment))]
+#[cfg_attr(feature = "full", belongs_to(crate::source::comment::Comment))]
 #[cfg_attr(feature = "full", table_name = "comment_saved")]
 pub struct CommentSaved {
   pub id: i32,

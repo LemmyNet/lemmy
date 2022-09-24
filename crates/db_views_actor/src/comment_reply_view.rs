@@ -48,7 +48,7 @@ type CommentReplyViewTuple = (
 
 impl CommentReplyView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -149,7 +149,7 @@ impl CommentReplyView {
   }
 
   /// Gets the number of unread replies
-  pub fn get_unread_replies(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_replies(conn: &mut PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
 
     comment_reply::table
@@ -164,7 +164,7 @@ impl CommentReplyView {
 #[builder(field_defaults(default))]
 pub struct CommentReplyQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,

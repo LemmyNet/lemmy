@@ -31,7 +31,7 @@ impl Perform for ResolvePrivateMessageReport {
     let resolved = self.resolved;
     let report_id = self.report_id;
     let person_id = local_user_view.person.id;
-    let resolve_fn = move |conn: &'_ _| {
+    let resolve_fn = move |conn: &mut _| {
       if resolved {
         PrivateMessageReport::resolve(conn, report_id, person_id)
       } else {

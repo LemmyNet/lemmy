@@ -13,6 +13,7 @@ use crate::schema::{
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", table_name = "comment_aggregates")]
+#[cfg_attr(feature = "full", belongs_to(crate::source::comment::Comment))]
 pub struct CommentAggregates {
   pub id: i32,
   pub comment_id: CommentId,
@@ -26,6 +27,7 @@ pub struct CommentAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", table_name = "community_aggregates")]
+#[cfg_attr(feature = "full", belongs_to(crate::source::community::Community))]
 pub struct CommunityAggregates {
   pub id: i32,
   pub community_id: CommunityId,
@@ -42,6 +44,7 @@ pub struct CommunityAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", table_name = "person_aggregates")]
+#[cfg_attr(feature = "full", belongs_to(crate::source::person::Person))]
 pub struct PersonAggregates {
   pub id: i32,
   pub person_id: PersonId,
@@ -54,6 +57,7 @@ pub struct PersonAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", table_name = "post_aggregates")]
+#[cfg_attr(feature = "full", belongs_to(crate::source::post::Post))]
 pub struct PostAggregates {
   pub id: i32,
   pub post_id: PostId,
@@ -70,6 +74,7 @@ pub struct PostAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", table_name = "site_aggregates")]
+#[cfg_attr(feature = "full", belongs_to(crate::source::site::Site))]
 pub struct SiteAggregates {
   pub id: i32,
   pub site_id: i32,

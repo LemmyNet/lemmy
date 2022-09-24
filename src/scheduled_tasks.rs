@@ -11,24 +11,24 @@ use tracing::info;
 pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
   let mut scheduler = Scheduler::new();
 
-  let conn = pool.get()?;
-  active_counts(&conn);
-  update_banned_when_expired(&conn);
+  let mut conn = pool.get()?;
+  active_counts(&mut conn);
+  update_banned_when_expired(&mut conn);
 
   // On startup, reindex the tables non-concurrently
   // TODO remove this for now, since it slows down startup a lot on lemmy.ml
-  reindex_aggregates_tables(&conn, true);
+  reindex_aggregates_tables(&mut conn, true);
   scheduler.every(1.hour()).run(move || {
-    active_counts(&conn);
-    update_banned_when_expired(&conn);
-    reindex_aggregates_tables(&conn, true);
-    drop_ccnew_indexes(&conn);
+    active_counts(&mut conn);
+    update_banned_when_expired(&mut conn);
+    reindex_aggregates_tables(&mut conn, true);
+    drop_ccnew_indexes(&mut conn);
   });
 
-  let conn = pool.get()?;
-  clear_old_activities(&conn);
+  let mut conn = pool.get()?;
+  clear_old_activities(&mut conn);
   scheduler.every(1.weeks()).run(move || {
-    clear_old_activities(&conn);
+    clear_old_activities(&mut conn);
   });
 
   // Manually run the scheduler in an event loop
@@ -41,7 +41,7 @@ pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
 /// Reindex the aggregates tables every one hour
 /// This is necessary because hot_rank is actually a mutable function:
 /// https://dba.stackexchange.com/questions/284052/how-to-create-an-index-based-on-a-time-based-function-in-postgres?noredirect=1#comment555727_284052
-fn reindex_aggregates_tables(conn: &PgConnection, concurrently: bool) {
+fn reindex_aggregates_tables(conn: &mut PgConnection, concurrently: bool) {
   for table_name in &[
     "post_aggregates",
     "comment_aggregates",
@@ -51,7 +51,7 @@ fn reindex_aggregates_tables(conn: &PgConnection, concurrently: bool) {
   }
 }
 
-fn reindex_table(conn: &PgConnection, table_name: &str, concurrently: bool) {
+fn reindex_table(conn: &mut PgConnection, table_name: &str, concurrently: bool) {
   let concurrently_str = if concurrently { "concurrently" } else { "" };
   info!("Reindexing table {} {} ...", concurrently_str, table_name);
   let query = format!("reindex table {} {}", concurrently_str, table_name);
@@ -60,14 +60,14 @@ fn reindex_table(conn: &PgConnection, table_name: &str, concurrently: bool) {
 }
 
 /// Clear old activities (this table gets very large)
-fn clear_old_activities(conn: &PgConnection) {
+fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
   Activity::delete_olds(conn).expect("clear old activities");
   info!("Done.");
 }
 
 /// Re-calculate the site and community active counts every 12 hours
-fn active_counts(conn: &PgConnection) {
+fn active_counts(conn: &mut PgConnection) {
   info!("Updating active site and community aggregates ...");
 
   let intervals = vec![
@@ -96,7 +96,7 @@ fn active_counts(conn: &PgConnection) {
 }
 
 /// Set banned to false after ban expires
-fn update_banned_when_expired(conn: &PgConnection) {
+fn update_banned_when_expired(conn: &mut PgConnection) {
   info!("Updating banned column if it expires ...");
   let update_ban_expires_stmt =
     "update person set banned = false where banned = true and ban_expires < now()";
@@ -107,7 +107,7 @@ fn update_banned_when_expired(conn: &PgConnection) {
 
 /// Drops the phantom CCNEW indexes created by postgres
 /// https://github.com/LemmyNet/lemmy/issues/2431
-fn drop_ccnew_indexes(conn: &PgConnection) {
+fn drop_ccnew_indexes(conn: &mut PgConnection) {
   info!("Dropping phantom ccnew indexes...");
   let drop_stmt = "select drop_ccnew_indexes()";
   sql_query(drop_stmt)

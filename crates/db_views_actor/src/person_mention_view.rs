@@ -48,7 +48,7 @@ type PersonMentionViewTuple = (
 
 impl PersonMentionView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -149,7 +149,10 @@ impl PersonMentionView {
   }
 
   /// Gets the number of unread mentions
-  pub fn get_unread_mentions(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_mentions(
+    conn: &mut PgConnection,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::*;
 
     person_mention::table
@@ -164,7 +167,7 @@ impl PersonMentionView {
 #[builder(field_defaults(default))]
 pub struct PersonMentionQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,

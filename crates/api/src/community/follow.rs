@@ -55,13 +55,13 @@ impl Perform for FollowCommunity {
         check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
         check_community_deleted_or_removed(community_id, context.pool()).await?;
 
-        let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
+        let follow = move |conn: &mut _| CommunityFollower::follow(conn, &community_follower_form);
         blocking(context.pool(), follow)
           .await?
           .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
       } else {
         let unfollow =
-          move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
+          move |conn: &mut _| CommunityFollower::unfollow(conn, &community_follower_form);
         blocking(context.pool(), unfollow)
           .await?
           .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
@@ -74,7 +74,8 @@ impl Perform for FollowCommunity {
     } else {
       UndoFollowCommunity::send(&local_user_view.person.clone().into(), &community, context)
         .await?;
-      let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
+      let unfollow =
+        move |conn: &mut _| CommunityFollower::unfollow(conn, &community_follower_form);
       blocking(context.pool(), unfollow)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;

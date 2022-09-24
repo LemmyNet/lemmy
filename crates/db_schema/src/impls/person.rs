@@ -171,19 +171,23 @@ mod safe_type_alias_2 {
 impl Crud for Person {
   type Form = PersonForm;
   type IdType = PersonId;
-  fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, person_id: PersonId) -> Result<Self, Error> {
     person
       .filter(deleted.eq(false))
       .find(person_id)
       .first::<Self>(conn)
   }
-  fn delete(conn: &PgConnection, person_id: PersonId) -> Result<usize, Error> {
+  fn delete(conn: &mut PgConnection, person_id: PersonId) -> Result<usize, Error> {
     diesel::delete(person.find(person_id)).execute(conn)
   }
-  fn create(conn: &PgConnection, form: &PersonForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &PersonForm) -> Result<Self, Error> {
     insert_into(person).values(form).get_result::<Self>(conn)
   }
-  fn update(conn: &PgConnection, person_id: PersonId, form: &PersonForm) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    person_id: PersonId,
+    form: &PersonForm,
+  ) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -192,7 +196,7 @@ impl Crud for Person {
 
 impl Person {
   pub fn ban_person(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_id: PersonId,
     ban: bool,
     expires: Option<chrono::NaiveDateTime>,
@@ -202,19 +206,23 @@ impl Person {
       .get_result::<Self>(conn)
   }
 
-  pub fn add_admin(conn: &PgConnection, person_id: PersonId, added: bool) -> Result<Self, Error> {
+  pub fn add_admin(
+    conn: &mut PgConnection,
+    person_id: PersonId,
+    added: bool,
+  ) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 
-  pub fn mark_as_updated(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
+  pub fn mark_as_updated(conn: &mut PgConnection, person_id: PersonId) -> Result<Person, Error> {
     diesel::update(person.find(person_id))
       .set((last_refreshed_at.eq(naive_now()),))
       .get_result::<Self>(conn)
   }
 
-  pub fn delete_account(conn: &PgConnection, person_id: PersonId) -> Result<Person, Error> {
+  pub fn delete_account(conn: &mut PgConnection, person_id: PersonId) -> Result<Person, Error> {
     use crate::schema::local_user;
 
     // Set the local user info to none
@@ -238,7 +246,7 @@ impl Person {
       .get_result::<Self>(conn)
   }
 
-  pub fn upsert(conn: &PgConnection, person_form: &PersonForm) -> Result<Person, Error> {
+  pub fn upsert(conn: &mut PgConnection, person_form: &PersonForm) -> Result<Person, Error> {
     insert_into(person)
       .values(person_form)
       .on_conflict(actor_id)
@@ -248,7 +256,7 @@ impl Person {
   }
 
   pub fn update_deleted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_id: PersonId,
     new_deleted: bool,
   ) -> Result<Person, Error> {
@@ -258,13 +266,16 @@ impl Person {
       .get_result::<Self>(conn)
   }
 
-  pub fn leave_admin(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  pub fn leave_admin(conn: &mut PgConnection, person_id: PersonId) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set(admin.eq(false))
       .get_result::<Self>(conn)
   }
 
-  pub fn remove_avatar_and_banner(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  pub fn remove_avatar_and_banner(
+    conn: &mut PgConnection,
+    person_id: PersonId,
+  ) -> Result<Self, Error> {
     diesel::update(person.find(person_id))
       .set((
         avatar.eq::<Option<String>>(None),
@@ -283,7 +294,7 @@ pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool 
 }
 
 impl ApubActor for Person {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+  fn read_from_apub_id(conn: &mut PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     use crate::schema::person::dsl::*;
     Ok(
       person
@@ -296,7 +307,7 @@ impl ApubActor for Person {
   }
 
   fn read_from_name(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     from_name: &str,
     include_deleted: bool,
   ) -> Result<Person, Error> {
@@ -311,7 +322,7 @@ impl ApubActor for Person {
   }
 
   fn read_from_name_and_domain(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_name: &str,
     protocol_domain: &str,
   ) -> Result<Person, Error> {
@@ -329,7 +340,7 @@ mod tests {
 
   #[test]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let new_person = PersonForm {
       name: "holly".into(),
@@ -337,7 +348,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let expected_person = Person {
       id: inserted_person.id,
@@ -363,9 +374,9 @@ mod tests {
       ban_expires: None,
     };
 
-    let read_person = Person::read(&conn, inserted_person.id).unwrap();
-    let updated_person = Person::update(&conn, inserted_person.id, &new_person).unwrap();
-    let num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    let read_person = Person::read(conn, inserted_person.id).unwrap();
+    let updated_person = Person::update(conn, inserted_person.id, &new_person).unwrap();
+    let num_deleted = Person::delete(conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_person, read_person);
     assert_eq!(expected_person, inserted_person);

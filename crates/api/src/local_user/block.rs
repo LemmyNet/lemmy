@@ -49,12 +49,12 @@ impl Perform for BlockPerson {
     }
 
     if data.block {
-      let block = move |conn: &'_ _| PersonBlock::block(conn, &person_block_form);
+      let block = move |conn: &mut _| PersonBlock::block(conn, &person_block_form);
       blocking(context.pool(), block)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     } else {
-      let unblock = move |conn: &'_ _| PersonBlock::unblock(conn, &person_block_form);
+      let unblock = move |conn: &mut _| PersonBlock::unblock(conn, &person_block_form);
       blocking(context.pool(), unblock)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;

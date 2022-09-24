@@ -32,12 +32,12 @@ impl Perform for SaveComment {
     };
 
     if data.save {
-      let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
+      let save_comment = move |conn: &mut _| CommentSaved::save(conn, &comment_saved_form);
       blocking(context.pool(), save_comment)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
-      let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
+      let unsave_comment = move |conn: &mut _| CommentSaved::unsave(conn, &comment_saved_form);
       blocking(context.pool(), unsave_comment)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;

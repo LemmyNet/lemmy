@@ -16,7 +16,10 @@ use typed_builder::TypedBuilder;
 type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafeAlias1);
 
 impl PrivateMessageView {
-  pub fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
+  pub fn read(
+    conn: &mut PgConnection,
+    private_message_id: PrivateMessageId,
+  ) -> Result<Self, Error> {
     let (private_message, creator, recipient) = private_message::table
       .find(private_message_id)
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
@@ -37,7 +40,10 @@ impl PrivateMessageView {
   }
 
   /// Gets the number of unread messages
-  pub fn get_unread_messages(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_messages(
+    conn: &mut PgConnection,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::*;
     private_message::table
       .filter(private_message::read.eq(false))
@@ -52,7 +58,7 @@ impl PrivateMessageView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,

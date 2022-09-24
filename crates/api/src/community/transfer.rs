@@ -75,7 +75,7 @@ impl Perform for TransferCommunity {
         person_id: cmod.moderator.id,
       };
 
-      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
+      let join = move |conn: &mut _| CommunityModerator::join(conn, &community_moderator_form);
       blocking(context.pool(), join)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;

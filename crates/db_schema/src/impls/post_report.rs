@@ -14,7 +14,7 @@ impl Reportable for PostReport {
   ///
   /// * `conn` - the postgres connection
   /// * `post_report_form` - the filled CommentReportForm to insert
-  fn report(conn: &PgConnection, post_report_form: &PostReportForm) -> Result<Self, Error> {
+  fn report(conn: &mut PgConnection, post_report_form: &PostReportForm) -> Result<Self, Error> {
     use crate::schema::post_report::dsl::*;
     insert_into(post_report)
       .values(post_report_form)
@@ -27,7 +27,7 @@ impl Reportable for PostReport {
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
   fn resolve(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -47,7 +47,7 @@ impl Reportable for PostReport {
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
   fn unresolve(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {

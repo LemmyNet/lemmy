@@ -217,7 +217,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           pending: false,
         };
-        blocking(context.pool(), move |conn: &'_ _| {
+        blocking(context.pool(), move |conn: &mut _| {
           CommunityFollower::unfollow(conn, &community_follower_form)
         })
         .await?

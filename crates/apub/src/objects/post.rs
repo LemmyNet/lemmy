@@ -283,6 +283,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_post() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let (person, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
 
@@ -304,9 +305,9 @@ mod tests {
     assert!(post.stickied);
     assert_eq!(request_counter, 0);
 
-    Post::delete(&*context.pool().get().unwrap(), post.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), person.id).unwrap();
-    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
-    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
+    Post::delete(conn, post.id).unwrap();
+    Person::delete(conn, person.id).unwrap();
+    Community::delete(conn, community.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 }

@@ -30,7 +30,7 @@ use tracing::info;
 use url::Url;
 
 pub fn run_advanced_migrations(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   user_updates_2020_04_02(conn, protocol_and_hostname)?;
@@ -47,7 +47,7 @@ pub fn run_advanced_migrations(
 }
 
 fn user_updates_2020_04_02(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::*;
@@ -85,7 +85,7 @@ fn user_updates_2020_04_02(
 }
 
 fn community_updates_2020_04_02(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::*;
@@ -130,7 +130,7 @@ fn community_updates_2020_04_02(
 }
 
 fn post_updates_2020_04_03(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
@@ -158,7 +158,7 @@ fn post_updates_2020_04_03(
 }
 
 fn comment_updates_2020_04_03(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::*;
@@ -186,7 +186,7 @@ fn comment_updates_2020_04_03(
 }
 
 fn private_message_updates_2020_05_05(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::*;
@@ -214,7 +214,7 @@ fn private_message_updates_2020_05_05(
 }
 
 fn post_thumbnail_url_updates_2020_07_27(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
@@ -243,7 +243,7 @@ fn post_thumbnail_url_updates_2020_07_27(
 
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
-fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
+fn apub_columns_2021_02_02(conn: &mut PgConnection) -> Result<(), LemmyError> {
   info!("Running apub_columns_2021_02_02");
   {
     use lemmy_db_schema::schema::person::dsl::*;
@@ -291,7 +291,7 @@ fn apub_columns_2021_02_02(conn: &PgConnection) -> Result<(), LemmyError> {
 /// Before this point, there is only a single value in the site table which refers to the local
 /// Lemmy instance, so thats all we need to update.
 fn instance_actor_2022_01_28(
-  conn: &PgConnection,
+  conn: &mut PgConnection,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
@@ -321,7 +321,7 @@ fn instance_actor_2022_01_28(
 /// key field is empty, generate a new keypair. It would be possible to regenerate only the pubkey,
 /// but thats more complicated and has no benefit, as federation is already broken for these actors.
 /// https://github.com/LemmyNet/lemmy/issues/2347
-fn regenerate_public_keys_2022_07_05(conn: &PgConnection) -> Result<(), LemmyError> {
+fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), LemmyError> {
   info!("Running regenerate_public_keys_2022_07_05");
 
   {

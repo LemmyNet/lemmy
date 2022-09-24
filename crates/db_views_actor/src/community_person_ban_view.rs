@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 
 impl CommunityPersonBanView {
   pub fn get(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     from_person_id: PersonId,
     from_community_id: CommunityId,
   ) -> Result<Self, Error> {

@@ -14,7 +14,7 @@ type LocalUserDiscussionLanguageViewTuple = (LocalUserSettings, Language);
 
 impl LocalUserDiscussionLanguageView {
   pub fn read_languages(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     local_user_id: LocalUserId,
   ) -> Result<Vec<Language>, Error> {
     let res = local_user_language::table

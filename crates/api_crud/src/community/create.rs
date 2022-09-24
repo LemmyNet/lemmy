@@ -114,7 +114,7 @@ impl PerformCrud for CreateCommunity {
       person_id: local_user_view.person.id,
     };
 
-    let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
+    let join = move |conn: &mut _| CommunityModerator::join(conn, &community_moderator_form);
     blocking(context.pool(), join)
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
@@ -126,7 +126,7 @@ impl PerformCrud for CreateCommunity {
       pending: false,
     };
 
-    let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
+    let follow = move |conn: &mut _| CommunityFollower::follow(conn, &community_follower_form);
     blocking(context.pool(), follow)
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
