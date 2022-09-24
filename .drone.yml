@@ -27,6 +27,8 @@ steps:
   - name: cargo clippy
     image: rust:1.61-buster
     commands:
+      - apt-get update
+      - apt-get -y install protobuf-compiler libprotobuf-dev
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
