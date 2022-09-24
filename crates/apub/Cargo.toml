@@ -26,7 +26,7 @@ activitystreams-kinds = "0.2.1"
 chrono = { version = "0.4.22", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.85", features = ["preserve_order"] }
 serde = { version = "1.0.145", features = ["derive"] }
-serde_with = "2.0.1"
+serde_with = "1.14.0"
 actix = "0.13.0"
 actix-web = { version = "4.2.1", default-features = false }
 actix-rt = { version = "2.7.0", default-features = false }
