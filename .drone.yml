@@ -42,7 +42,7 @@ steps:
       RUST_TEST_THREADS: 1
     commands:
       - apt-get update
-      - apt-get -y install --no-install-recommends postgresql-client
+      - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
       - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
