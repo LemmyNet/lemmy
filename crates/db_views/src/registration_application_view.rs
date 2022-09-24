@@ -1,10 +1,10 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{dsl::count, result::Error, *};
 use lemmy_db_schema::{
-  schema::{local_user, person, person_alias_1, registration_application},
+  schema::{local_user, person, registration_application},
   source::{
     local_user::{LocalUser, LocalUserSettings},
-    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person::{Person, PersonSafe},
     registration_application::RegistrationApplication,
   },
   traits::{ToSafe, ToSafeSettings, ViewToVec},
@@ -16,11 +16,13 @@ type RegistrationApplicationViewTuple = (
   RegistrationApplication,
   LocalUserSettings,
   PersonSafe,
-  Option<PersonSafeAlias1>,
+  Option<PersonSafe>,
 );
 
 impl RegistrationApplicationView {
   pub fn read(conn: &mut PgConnection, registration_application_id: i32) -> Result<Self, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let (registration_application, creator_local_user, creator, admin) =
       registration_application::table
         .find(registration_application_id)
@@ -29,15 +31,17 @@ impl RegistrationApplicationView {
         )
         .inner_join(person::table.on(local_user::person_id.eq(person::id)))
         .left_join(
-          person_alias_1::table
-            .on(registration_application::admin_id.eq(person_alias_1::id.nullable())),
+          person_alias_1
+            .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
         )
         .order_by(registration_application::published.desc())
         .select((
           registration_application::all_columns,
           LocalUser::safe_settings_columns_tuple(),
           Person::safe_columns_tuple(),
-          PersonAlias1::safe_columns_tuple().nullable(),
+          person_alias_1
+            .fields(Person::safe_columns_tuple())
+            .nullable(),
         ))
         .first::<RegistrationApplicationViewTuple>(conn)?;
 
@@ -54,12 +58,14 @@ impl RegistrationApplicationView {
     conn: &mut PgConnection,
     verified_email_only: bool,
   ) -> Result<i64, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
-        person_alias_1::table
-          .on(registration_application::admin_id.eq(person_alias_1::id.nullable())),
+        person_alias_1
+          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
       )
       .filter(registration_application::admin_id.is_null())
       .into_boxed();
@@ -87,19 +93,23 @@ pub struct RegistrationApplicationQuery<'a> {
 
 impl<'a> RegistrationApplicationQuery<'a> {
   pub fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
-        person_alias_1::table
-          .on(registration_application::admin_id.eq(person_alias_1::id.nullable())),
+        person_alias_1
+          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
       )
       .order_by(registration_application::published.desc())
       .select((
         registration_application::all_columns,
         LocalUser::safe_settings_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple().nullable(),
+        person_alias_1
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .into_boxed();
 
@@ -324,7 +334,7 @@ mod tests {
       .accepted_application = true;
     expected_sara_app_view.registration_application.admin_id = Some(inserted_timmy_person.id);
 
-    expected_sara_app_view.admin = Some(PersonSafeAlias1 {
+    expected_sara_app_view.admin = Some(PersonSafe {
       id: inserted_timmy_person.id,
       name: inserted_timmy_person.name.to_owned(),
       display_name: None,

@@ -6,7 +6,7 @@ use lemmy_db_schema::{
     community::CommunitySafe,
     language::Language,
     local_user::{LocalUser, LocalUserSettings},
-    person::{Person, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
+    person::{Person, PersonSafe},
     post::Post,
     post_report::PostReport,
     private_message::PrivateMessage,
@@ -25,11 +25,11 @@ pub struct CommentReportView {
   pub post: Post,
   pub community: CommunitySafe,
   pub creator: PersonSafe,
-  pub comment_creator: PersonSafeAlias1,
+  pub comment_creator: PersonSafe,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub my_vote: Option<i16>,                // Left join to CommentLike
-  pub resolver: Option<PersonSafeAlias2>,
+  pub resolver: Option<PersonSafe>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -66,11 +66,11 @@ pub struct PostReportView {
   pub post: Post,
   pub community: CommunitySafe,
   pub creator: PersonSafe,
-  pub post_creator: PersonSafeAlias1,
+  pub post_creator: PersonSafe,
   pub creator_banned_from_community: bool,
   pub my_vote: Option<i16>,
   pub counts: PostAggregates,
-  pub resolver: Option<PersonSafeAlias2>,
+  pub resolver: Option<PersonSafe>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -92,7 +92,7 @@ pub struct PostView {
 pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
   pub creator: PersonSafe,
-  pub recipient: PersonSafeAlias1,
+  pub recipient: PersonSafe,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -100,8 +100,8 @@ pub struct PrivateMessageReportView {
   pub private_message_report: PrivateMessageReport,
   pub private_message: PrivateMessage,
   pub private_message_creator: PersonSafe,
-  pub creator: PersonSafeAlias1,
-  pub resolver: Option<PersonSafeAlias2>,
+  pub creator: PersonSafe,
+  pub resolver: Option<PersonSafe>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -109,7 +109,7 @@ pub struct RegistrationApplicationView {
   pub registration_application: RegistrationApplication,
   pub creator_local_user: LocalUserSettings,
   pub creator: PersonSafe,
-  pub admin: Option<PersonSafeAlias1>,
+  pub admin: Option<PersonSafe>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

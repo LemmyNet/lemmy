@@ -8,8 +8,6 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     person,
-    person_alias_1,
-    person_alias_2,
     post,
     post_aggregates,
     post_like,
@@ -17,7 +15,7 @@ use lemmy_db_schema::{
   },
   source::{
     community::{Community, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
+    person::{Person, PersonSafe},
     post::Post,
     post_report::PostReport,
   },
@@ -31,11 +29,11 @@ type PostReportViewTuple = (
   Post,
   CommunitySafe,
   PersonSafe,
-  PersonSafeAlias1,
+  PersonSafe,
   Option<CommunityPersonBan>,
   Option<i16>,
   PostAggregates,
-  Option<PersonSafeAlias2>,
+  Option<PersonSafe>,
 );
 
 impl PostReportView {
@@ -47,6 +45,8 @@ impl PostReportView {
     report_id: PostReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let (
       post_report,
       post,
@@ -62,7 +62,7 @@ impl PostReportView {
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -84,18 +84,18 @@ impl PostReportView {
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
-        person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         post_report::all_columns,
         post::all_columns,
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_2.fields(Person::safe_columns_tuple().nullable()),
       ))
       .first::<PostReportViewTuple>(conn)?;
 
@@ -166,11 +166,13 @@ pub struct PostReportQuery<'a> {
 
 impl<'a> PostReportQuery<'a> {
   pub fn list(self) -> Result<Vec<PostReportView>, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let mut query = post_report::table
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(post::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -192,18 +194,20 @@ impl<'a> PostReportQuery<'a> {
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
-        person_alias_2::table.on(post_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         post_report::all_columns,
         post::all_columns,
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_2
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .into_boxed();
 
@@ -401,7 +405,7 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
       },
-      post_creator: PersonSafeAlias1 {
+      post_creator: PersonSafe {
         id: inserted_timmy.id,
         name: inserted_timmy.name.to_owned(),
         display_name: None,
@@ -501,7 +505,7 @@ mod tests {
     expected_jessica_report_view_after_resolve
       .post_report
       .updated = read_jessica_report_view_after_resolve.post_report.updated;
-    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafeAlias2 {
+    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
       id: inserted_timmy.id,
       name: inserted_timmy.name.to_owned(),
       display_name: None,

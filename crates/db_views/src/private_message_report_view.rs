@@ -2,9 +2,9 @@ use crate::structs::PrivateMessageReportView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::PrivateMessageReportId,
-  schema::{person, person_alias_1, person_alias_2, private_message, private_message_report},
+  schema::{person, private_message, private_message_report},
   source::{
-    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
+    person::{Person, PersonSafe},
     private_message::PrivateMessage,
     private_message_report::PrivateMessageReport,
   },
@@ -17,8 +17,8 @@ type PrivateMessageReportViewTuple = (
   PrivateMessageReport,
   PrivateMessage,
   PersonSafe,
-  PersonSafeAlias1,
-  Option<PersonSafeAlias2>,
+  PersonSafe,
+  Option<PersonSafe>,
 );
 
 impl PrivateMessageReportView {
@@ -26,24 +26,30 @@ impl PrivateMessageReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub fn read(conn: &mut PgConnection, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
       private_message_report::table
         .find(report_id)
         .inner_join(private_message::table)
         .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
         .inner_join(
-          person_alias_1::table.on(private_message_report::creator_id.eq(person_alias_1::id)),
+          person_alias_1
+            .on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
         )
         .left_join(
-          person_alias_2::table
-            .on(private_message_report::resolver_id.eq(person_alias_2::id.nullable())),
+          person_alias_2.on(
+            private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable()),
+          ),
         )
         .select((
           private_message_report::all_columns,
           private_message::all_columns,
           Person::safe_columns_tuple(),
-          PersonAlias1::safe_columns_tuple(),
-          PersonAlias2::safe_columns_tuple().nullable(),
+          person_alias_1.fields(Person::safe_columns_tuple()),
+          person_alias_2
+            .fields(Person::safe_columns_tuple())
+            .nullable(),
         ))
         .first::<PrivateMessageReportViewTuple>(conn)?;
 
@@ -81,22 +87,26 @@ pub struct PrivateMessageReportQuery<'a> {
 
 impl<'a> PrivateMessageReportQuery<'a> {
   pub fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let mut query = private_message_report::table
       .inner_join(private_message::table)
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
       .inner_join(
-        person_alias_1::table.on(private_message_report::creator_id.eq(person_alias_1::id)),
+        person_alias_1.on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
       )
       .left_join(
-        person_alias_2::table
-          .on(private_message_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2
+          .on(private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         private_message_report::all_columns,
         private_message::all_columns,
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
+        person_alias_2
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .into_boxed();
 

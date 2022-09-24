@@ -12,15 +12,13 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     person,
-    person_alias_1,
-    person_alias_2,
     post,
   },
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::{Community, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
+    person::{Person, PersonSafe},
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
@@ -34,11 +32,11 @@ type CommentReportViewTuple = (
   Post,
   CommunitySafe,
   PersonSafe,
-  PersonSafeAlias1,
+  PersonSafe,
   CommentAggregates,
   Option<CommunityPersonBan>,
   Option<i16>,
-  Option<PersonSafeAlias2>,
+  Option<PersonSafe>,
 );
 
 impl CommentReportView {
@@ -50,6 +48,8 @@ impl CommentReportView {
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let (
       comment_report,
       comment,
@@ -67,7 +67,7 @@ impl CommentReportView {
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -91,7 +91,8 @@ impl CommentReportView {
         ),
       )
       .left_join(
-        person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2
+          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         comment_report::all_columns,
@@ -99,11 +100,13 @@ impl CommentReportView {
         post::all_columns,
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_2
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .first::<CommentReportViewTuple>(conn)?;
 
@@ -177,12 +180,14 @@ pub struct CommentReportQuery<'a> {
 
 impl<'a> CommentReportQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentReportView>, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let mut query = comment_report::table
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -206,7 +211,8 @@ impl<'a> CommentReportQuery<'a> {
         ),
       )
       .left_join(
-        person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2
+          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         comment_report::all_columns,
@@ -214,11 +220,13 @@ impl<'a> CommentReportQuery<'a> {
         post::all_columns,
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_2
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .into_boxed();
 
@@ -418,7 +426,7 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
       },
-      comment_creator: PersonSafeAlias1 {
+      comment_creator: PersonSafe {
         id: inserted_timmy.id,
         name: inserted_timmy.name.to_owned(),
         display_name: None,
@@ -516,7 +524,7 @@ mod tests {
       .updated = read_jessica_report_view_after_resolve
       .comment_report
       .updated;
-    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafeAlias2 {
+    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
       id: inserted_timmy.id,
       name: inserted_timmy.name.to_owned(),
       display_name: None,

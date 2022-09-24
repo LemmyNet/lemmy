@@ -2,7 +2,7 @@ use crate::newtypes::{DbUrl, PersonId};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
-use crate::schema::{person, person_alias_1, person_alias_2};
+use crate::schema::person;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
@@ -36,108 +36,6 @@ pub struct Person {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct PersonSafe {
-  pub id: PersonId,
-  pub name: String,
-  pub display_name: Option<String>,
-  pub avatar: Option<DbUrl>,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub actor_id: DbUrl,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub banner: Option<DbUrl>,
-  pub deleted: bool,
-  pub inbox_url: DbUrl,
-  pub shared_inbox_url: Option<DbUrl>,
-  pub matrix_user_id: Option<String>,
-  pub admin: bool,
-  pub bot_account: bool,
-  pub ban_expires: Option<chrono::NaiveDateTime>,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = person_alias_1))]
-pub struct PersonAlias1 {
-  pub id: PersonId,
-  pub name: String,
-  pub display_name: Option<String>,
-  pub avatar: Option<DbUrl>,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub actor_id: DbUrl,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: String,
-  pub last_refreshed_at: chrono::NaiveDateTime,
-  pub banner: Option<DbUrl>,
-  pub deleted: bool,
-  pub inbox_url: DbUrl,
-  pub shared_inbox_url: Option<DbUrl>,
-  pub matrix_user_id: Option<String>,
-  pub admin: bool,
-  pub bot_account: bool,
-  pub ban_expires: Option<chrono::NaiveDateTime>,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = person_alias_1))]
-pub struct PersonSafeAlias1 {
-  pub id: PersonId,
-  pub name: String,
-  pub display_name: Option<String>,
-  pub avatar: Option<DbUrl>,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub actor_id: DbUrl,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub banner: Option<DbUrl>,
-  pub deleted: bool,
-  pub inbox_url: DbUrl,
-  pub shared_inbox_url: Option<DbUrl>,
-  pub matrix_user_id: Option<String>,
-  pub admin: bool,
-  pub bot_account: bool,
-  pub ban_expires: Option<chrono::NaiveDateTime>,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = person_alias_2))]
-pub struct PersonAlias2 {
-  pub id: PersonId,
-  pub name: String,
-  pub display_name: Option<String>,
-  pub avatar: Option<DbUrl>,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub actor_id: DbUrl,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: String,
-  pub last_refreshed_at: chrono::NaiveDateTime,
-  pub banner: Option<DbUrl>,
-  pub deleted: bool,
-  pub inbox_url: DbUrl,
-  pub shared_inbox_url: Option<DbUrl>,
-  pub matrix_user_id: Option<String>,
-  pub admin: bool,
-  pub bot_account: bool,
-  pub ban_expires: Option<chrono::NaiveDateTime>,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = person_alias_1))]
-pub struct PersonSafeAlias2 {
   pub id: PersonId,
   pub name: String,
   pub display_name: Option<String>,
