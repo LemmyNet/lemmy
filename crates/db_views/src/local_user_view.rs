@@ -135,7 +135,7 @@ impl LocalUserSettingsView {
     })
   }
 
-  pub fn list_admins_with_emails(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+  pub fn list_admins_with_emails(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
     let res = local_user::table
       .filter(person::admin.eq(true))
       .filter(local_user::email.is_not_null())
