@@ -99,7 +99,6 @@ pub struct GetPersonDetails {
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub saved_only: Option<bool>,
-  pub show_deleted_and_removed: Option<bool>,
   pub auth: Option<Sensitive<String>>,
 }
 
