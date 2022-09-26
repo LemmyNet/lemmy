@@ -498,8 +498,8 @@ impl ChatServer {
       if passed {
         fut.await
       } else {
-        // if rate limit was hit, respond with empty message
-        Ok("".to_string())
+        // if rate limit was hit, respond with message
+        Err(LemmyError::from_message("rate_limit_error"))
       }
     }
   }
