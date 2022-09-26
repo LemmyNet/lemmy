@@ -68,9 +68,9 @@ impl PerformCrud for GetPersonDetails {
     let posts = blocking(context.pool(), move |conn| {
       let posts_query = PostQuery::builder()
         .conn(conn)
-        .local_user(local_user.as_ref())
         .sort(sort)
         .saved_only(saved_only)
+        .local_user(local_user.as_ref())
         .community_id(community_id)
         .page(page)
         .limit(limit);
