@@ -219,11 +219,12 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_instance() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let site = parse_lemmy_instance(&context).await;
 
     assert_eq!(site.name, "Enterprise");
     assert_eq!(site.description.as_ref().unwrap().len(), 15);
 
-    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 }

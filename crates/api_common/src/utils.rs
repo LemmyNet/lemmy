@@ -42,15 +42,15 @@ use tracing::warn;
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where
-  F: FnOnce(&diesel::PgConnection) -> T + Send + 'static,
+  F: FnOnce(&mut diesel::PgConnection) -> T + Send + 'static,
   T: Send + 'static,
 {
   let pool = pool.clone();
   let blocking_span = tracing::info_span!("blocking operation");
   actix_web::web::block(move || {
     let entered = blocking_span.enter();
-    let conn = pool.get()?;
-    let res = (f)(&conn);
+    let mut conn = pool.get()?;
+    let res = (f)(&mut conn);
     drop(entered);
     Ok(res) as Result<T, LemmyError>
   })
@@ -219,7 +219,7 @@ pub async fn check_community_ban(
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
+    move |conn: &mut _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(pool, is_banned).await? {
     Err(LemmyError::from_message("community_ban"))
   } else {
@@ -256,7 +256,7 @@ pub async fn check_person_block(
   potential_blocker_id: PersonId,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let is_blocked = move |conn: &'_ _| PersonBlock::read(conn, potential_blocker_id, my_id).is_ok();
+  let is_blocked = move |conn: &mut _| PersonBlock::read(conn, potential_blocker_id, my_id).is_ok();
   if blocking(pool, is_blocked).await? {
     Err(LemmyError::from_message("person_block"))
   } else {
@@ -519,7 +519,7 @@ pub async fn purge_image_posts_for_person(
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
-  let posts = blocking(pool, move |conn: &'_ _| {
+  let posts = blocking(pool, move |conn: &mut _| {
     Post::fetch_pictrs_posts_for_creator(conn, banned_person_id)
   })
   .await??;
@@ -548,7 +548,7 @@ pub async fn purge_image_posts_for_community(
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
-  let posts = blocking(pool, move |conn: &'_ _| {
+  let posts = blocking(pool, move |conn: &mut _| {
     Post::fetch_pictrs_posts_for_community(conn, banned_community_id)
   })
   .await??;
@@ -597,7 +597,7 @@ pub async fn remove_user_data(
   .await??;
 
   // Posts
-  blocking(pool, move |conn: &'_ _| {
+  blocking(pool, move |conn: &mut _| {
     Post::update_removed_for_creator(conn, banned_person_id, None, true)
   })
   .await??;
@@ -608,7 +608,7 @@ pub async fn remove_user_data(
   // Communities
   // Remove all communities where they're the top mod
   // for now, remove the communities manually
-  let first_mod_communities = blocking(pool, move |conn: &'_ _| {
+  let first_mod_communities = blocking(pool, move |conn: &mut _| {
     CommunityModeratorView::get_community_first_mods(conn)
   })
   .await??;
@@ -621,7 +621,7 @@ pub async fn remove_user_data(
 
   for first_mod_community in banned_user_first_communities {
     let community_id = first_mod_community.community.id;
-    blocking(pool, move |conn: &'_ _| {
+    blocking(pool, move |conn: &mut _| {
       Community::update_removed(conn, community_id, true)
     })
     .await??;
@@ -643,7 +643,7 @@ pub async fn remove_user_data(
   }
 
   // Comments
-  blocking(pool, move |conn: &'_ _| {
+  blocking(pool, move |conn: &mut _| {
     Comment::update_removed_for_creator(conn, banned_person_id, true)
   })
   .await??;
@@ -707,13 +707,13 @@ pub async fn delete_user_account(
   // No need to update avatar and banner, those are handled in Person::delete_account
 
   // Comments
-  let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, person_id);
+  let permadelete = move |conn: &mut _| Comment::permadelete_for_creator(conn, person_id);
   blocking(pool, permadelete)
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
   // Posts
-  let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, person_id);
+  let permadelete = move |conn: &mut _| Post::permadelete_for_creator(conn, person_id);
   blocking(pool, permadelete)
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;

@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 type AdminPurgeCommunityViewTuple = (AdminPurgeCommunity, Option<PersonSafe>);
 
 impl AdminPurgeCommunityView {
-  pub fn list(conn: &PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &mut PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();

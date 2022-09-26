@@ -247,6 +247,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_community() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let site = parse_lemmy_instance(&context).await;
     let community = parse_lemmy_community(&context).await;
 
@@ -254,7 +255,7 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
-    Community::delete(&*context.pool().get().unwrap(), community.id).unwrap();
-    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
+    Community::delete(conn, community.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 }

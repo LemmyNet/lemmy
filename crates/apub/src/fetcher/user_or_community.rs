@@ -22,7 +22,7 @@ pub enum PersonOrGroup {
   Group(Group),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum PersonOrGroupType {
   Person,
   Group,

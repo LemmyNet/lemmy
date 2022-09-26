@@ -2,9 +2,9 @@ use crate::structs::PrivateMessageView;
 use diesel::{pg::Pg, result::Error, *};
 use lemmy_db_schema::{
   newtypes::{PersonId, PrivateMessageId},
-  schema::{person, person_alias_1, private_message},
+  schema::{person, private_message},
   source::{
-    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person::{Person, PersonSafe},
     private_message::PrivateMessage,
   },
   traits::{ToSafe, ViewToVec},
@@ -13,19 +13,26 @@ use lemmy_db_schema::{
 use tracing::debug;
 use typed_builder::TypedBuilder;
 
-type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafeAlias1);
+type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafe);
 
 impl PrivateMessageView {
-  pub fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
+  pub fn read(
+    conn: &mut PgConnection,
+    private_message_id: PrivateMessageId,
+  ) -> Result<Self, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let (private_message, creator, recipient) = private_message::table
       .find(private_message_id)
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(private_message::recipient_id.eq(person_alias_1::id)))
+      .inner_join(
+        person_alias_1.on(private_message::recipient_id.eq(person_alias_1.field(person::id))),
+      )
       .order_by(private_message::published.desc())
       .select((
         private_message::all_columns,
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
       ))
       .first::<PrivateMessageViewTuple>(conn)?;
 
@@ -37,7 +44,10 @@ impl PrivateMessageView {
   }
 
   /// Gets the number of unread messages
-  pub fn get_unread_messages(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_messages(
+    conn: &mut PgConnection,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::*;
     private_message::table
       .filter(private_message::read.eq(false))
@@ -52,7 +62,7 @@ impl PrivateMessageView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,
@@ -62,13 +72,17 @@ pub struct PrivateMessageQuery<'a> {
 
 impl<'a> PrivateMessageQuery<'a> {
   pub fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let mut query = private_message::table
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(private_message::recipient_id.eq(person_alias_1::id)))
+      .inner_join(
+        person_alias_1.on(private_message::recipient_id.eq(person_alias_1.field(person::id))),
+      )
       .select((
         private_message::all_columns,
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
       ))
       .into_boxed();
 

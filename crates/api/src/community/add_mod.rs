@@ -52,12 +52,12 @@ impl Perform for AddModToCommunity {
       person_id: data.person_id,
     };
     if data.added {
-      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
+      let join = move |conn: &mut _| CommunityModerator::join(conn, &community_moderator_form);
       blocking(context.pool(), join)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     } else {
-      let leave = move |conn: &'_ _| CommunityModerator::leave(conn, &community_moderator_form);
+      let leave = move |conn: &mut _| CommunityModerator::leave(conn, &community_moderator_form);
       blocking(context.pool(), leave)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;

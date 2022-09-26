@@ -1,19 +1,21 @@
-use crate::{newtypes::DbUrl, CommentSortType, SortType};
+use crate::{diesel_migrations::MigrationHarness, newtypes::DbUrl, CommentSortType, SortType};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  pg::Pg,
   result::Error::QueryBuilderError,
   serialize::{Output, ToSql},
   sql_types::Text,
   Connection,
   PgConnection,
 };
+use diesel_migrations::EmbeddedMigrations;
 use lemmy_utils::error::LemmyError;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{env, env::VarError, io::Write};
+use std::{env, env::VarError};
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
@@ -98,7 +100,7 @@ pub fn diesel_option_overwrite_to_url(
   }
 }
 
-embed_migrations!();
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub fn establish_unpooled_connection() -> PgConnection {
   let db_url = match get_database_url_from_env() {
@@ -108,9 +110,11 @@ pub fn establish_unpooled_connection() -> PgConnection {
       e
     ),
   };
-  let conn =
+  let mut conn =
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
-  embedded_migrations::run(&conn).expect("load migrations");
+  let _ = &mut conn
+    .run_pending_migrations(MIGRATIONS)
+    .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
   conn
 }
 
@@ -146,12 +150,9 @@ pub mod functions {
   sql_function!(fn lower(x: Text) -> Text);
 }
 
-impl<DB: Backend> ToSql<Text, DB> for DbUrl
-where
-  String: ToSql<Text, DB>,
-{
-  fn to_sql<W: Write>(&self, out: &mut Output<W, DB>) -> diesel::serialize::Result {
-    self.0.to_string().to_sql(out)
+impl ToSql<Text, Pg> for DbUrl {
+  fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
+    <std::string::String as ToSql<Text, Pg>>::to_sql(&self.0.to_string(), &mut out.reborrow())
   }
 }
 
@@ -159,8 +160,8 @@ impl<DB: Backend> FromSql<Text, DB> for DbUrl
 where
   String: FromSql<Text, DB>,
 {
-  fn from_sql(bytes: Option<&DB::RawValue>) -> diesel::deserialize::Result<Self> {
-    let str = String::from_sql(bytes)?;
+  fn from_sql(value: diesel::backend::RawValue<'_, DB>) -> diesel::deserialize::Result<Self> {
+    let str = String::from_sql(value)?;
     Ok(DbUrl(Url::parse(&str)?))
   }
 }

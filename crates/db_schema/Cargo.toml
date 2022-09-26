@@ -18,22 +18,22 @@ full = ["diesel", "diesel-derive-newtype", "diesel_migrations", "bcrypt", "lemmy
     "activitypub_federation", "sha2", "regex", "once_cell", "serde_json"]
 
 [dependencies]
-chrono = { version = "0.4.19", features = ["serde"], default-features = false }
-serde = { version = "1.0.136", features = ["derive"] }
-url = { version = "2.2.2", features = ["serde"] }
-strum =  "0.24.0"
-strum_macros = "0.24.0"
-serde_json = { version = "1.0.79", features = ["preserve_order"], optional = true }
+chrono = { version = "0.4.22", features = ["serde"], default-features = false }
+serde = { version = "1.0.145", features = ["derive"] }
+url = { version = "2.3.1", features = ["serde"] }
+strum = "0.24.1"
+strum_macros = "0.24.3"
+serde_json = { version = "1.0.85", features = ["preserve_order"], optional = true }
 activitypub_federation = { version = "0.2.0", optional = true }
 lemmy_utils = { version = "=0.16.5", path = "../utils", optional = true }
-bcrypt = { version = "0.12.1", optional = true }
-diesel = { version = "1.4.8", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
-diesel-derive-newtype = { version = "0.1.2", optional = true }
-diesel_migrations = { version = "1.4.0", optional = true }
-sha2 = { version = "0.10.2", optional = true }
-regex = { version = "1.5.5", optional = true }
-once_cell = { version = "1.10.0", optional = true }
-diesel_ltree = "0.2.7"
+bcrypt = { version = "0.13.0", optional = true }
+diesel = { version = "2.0.0", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
+diesel-derive-newtype = { version = "2.0.0-rc.0", optional = true }
+diesel_migrations = { version = "2.0.0", optional = true }
+sha2 = { version = "0.10.6", optional = true }
+regex = { version = "1.6.0", optional = true }
+once_cell = { version = "1.15.0", optional = true }
+diesel_ltree = "0.3.0"
 
 [dev-dependencies]
-serial_test = "0.6.0"
+serial_test = "0.9.0"

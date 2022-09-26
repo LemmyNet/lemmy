@@ -254,8 +254,8 @@ mod tests {
 
   #[test]
   fn test_should_not_validate_user_token_after_password_change() {
-    let conn = establish_unpooled_connection();
-    let secret = Secret::init(&conn).unwrap();
+    let conn = &mut establish_unpooled_connection();
+    let secret = Secret::init(conn).unwrap();
     let settings = &SETTINGS.to_owned();
 
     let new_person = PersonForm {
@@ -264,7 +264,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let local_user_form = LocalUserForm {
       person_id: Some(inserted_person.id),
@@ -272,7 +272,7 @@ mod tests {
       ..LocalUserForm::default()
     };
 
-    let inserted_local_user = LocalUser::create(&conn, &local_user_form).unwrap();
+    let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
 
     let jwt = Claims::jwt(
       inserted_local_user.id.0,
@@ -286,11 +286,11 @@ mod tests {
 
     // The check should fail, since the validator time is now newer than the jwt issue time
     let updated_local_user =
-      LocalUser::update_password(&conn, inserted_local_user.id, "password111").unwrap();
+      LocalUser::update_password(conn, inserted_local_user.id, "password111").unwrap();
     let check_after = check_validator_time(&updated_local_user.validator_time, &claims);
     assert!(check_after.is_err());
 
-    let num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    let num_deleted = Person::delete(conn, inserted_person.id).unwrap();
     assert_eq!(1, num_deleted);
   }
 }

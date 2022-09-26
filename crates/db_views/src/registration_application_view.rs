@@ -1,10 +1,10 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{dsl::count, result::Error, *};
 use lemmy_db_schema::{
-  schema::{local_user, person, person_alias_1, registration_application},
+  schema::{local_user, person, registration_application},
   source::{
     local_user::{LocalUser, LocalUserSettings},
-    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person::{Person, PersonSafe},
     registration_application::RegistrationApplication,
   },
   traits::{ToSafe, ToSafeSettings, ViewToVec},
@@ -16,11 +16,13 @@ type RegistrationApplicationViewTuple = (
   RegistrationApplication,
   LocalUserSettings,
   PersonSafe,
-  Option<PersonSafeAlias1>,
+  Option<PersonSafe>,
 );
 
 impl RegistrationApplicationView {
-  pub fn read(conn: &PgConnection, registration_application_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &mut PgConnection, registration_application_id: i32) -> Result<Self, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let (registration_application, creator_local_user, creator, admin) =
       registration_application::table
         .find(registration_application_id)
@@ -29,15 +31,17 @@ impl RegistrationApplicationView {
         )
         .inner_join(person::table.on(local_user::person_id.eq(person::id)))
         .left_join(
-          person_alias_1::table
-            .on(registration_application::admin_id.eq(person_alias_1::id.nullable())),
+          person_alias_1
+            .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
         )
         .order_by(registration_application::published.desc())
         .select((
           registration_application::all_columns,
           LocalUser::safe_settings_columns_tuple(),
           Person::safe_columns_tuple(),
-          PersonAlias1::safe_columns_tuple().nullable(),
+          person_alias_1
+            .fields(Person::safe_columns_tuple())
+            .nullable(),
         ))
         .first::<RegistrationApplicationViewTuple>(conn)?;
 
@@ -50,13 +54,18 @@ impl RegistrationApplicationView {
   }
 
   /// Returns the current unread registration_application count
-  pub fn get_unread_count(conn: &PgConnection, verified_email_only: bool) -> Result<i64, Error> {
+  pub fn get_unread_count(
+    conn: &mut PgConnection,
+    verified_email_only: bool,
+  ) -> Result<i64, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
-        person_alias_1::table
-          .on(registration_application::admin_id.eq(person_alias_1::id.nullable())),
+        person_alias_1
+          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
       )
       .filter(registration_application::admin_id.is_null())
       .into_boxed();
@@ -75,7 +84,7 @@ impl RegistrationApplicationView {
 #[builder(field_defaults(default))]
 pub struct RegistrationApplicationQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   unread_only: Option<bool>,
   verified_email_only: Option<bool>,
   page: Option<i64>,
@@ -84,19 +93,23 @@ pub struct RegistrationApplicationQuery<'a> {
 
 impl<'a> RegistrationApplicationQuery<'a> {
   pub fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
-        person_alias_1::table
-          .on(registration_application::admin_id.eq(person_alias_1::id.nullable())),
+        person_alias_1
+          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
       )
       .order_by(registration_application::published.desc())
       .select((
         registration_application::all_columns,
         LocalUser::safe_settings_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple().nullable(),
+        person_alias_1
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .into_boxed();
 
@@ -156,7 +169,7 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let timmy_person_form = PersonForm {
       name: "timmy_rav".into(),
@@ -165,7 +178,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_timmy_person = Person::create(&conn, &timmy_person_form).unwrap();
+    let inserted_timmy_person = Person::create(conn, &timmy_person_form).unwrap();
 
     let timmy_local_user_form = LocalUserForm {
       person_id: Some(inserted_timmy_person.id),
@@ -173,7 +186,7 @@ mod tests {
       ..LocalUserForm::default()
     };
 
-    let _inserted_timmy_local_user = LocalUser::create(&conn, &timmy_local_user_form).unwrap();
+    let _inserted_timmy_local_user = LocalUser::create(conn, &timmy_local_user_form).unwrap();
 
     let sara_person_form = PersonForm {
       name: "sara_rav".into(),
@@ -181,7 +194,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_sara_person = Person::create(&conn, &sara_person_form).unwrap();
+    let inserted_sara_person = Person::create(conn, &sara_person_form).unwrap();
 
     let sara_local_user_form = LocalUserForm {
       person_id: Some(inserted_sara_person.id),
@@ -189,7 +202,7 @@ mod tests {
       ..LocalUserForm::default()
     };
 
-    let inserted_sara_local_user = LocalUser::create(&conn, &sara_local_user_form).unwrap();
+    let inserted_sara_local_user = LocalUser::create(conn, &sara_local_user_form).unwrap();
 
     // Sara creates an application
     let sara_app_form = RegistrationApplicationForm {
@@ -198,9 +211,9 @@ mod tests {
       ..RegistrationApplicationForm::default()
     };
 
-    let sara_app = RegistrationApplication::create(&conn, &sara_app_form).unwrap();
+    let sara_app = RegistrationApplication::create(conn, &sara_app_form).unwrap();
 
-    let read_sara_app_view = RegistrationApplicationView::read(&conn, sara_app.id).unwrap();
+    let read_sara_app_view = RegistrationApplicationView::read(conn, sara_app.id).unwrap();
 
     let jess_person_form = PersonForm {
       name: "jess_rav".into(),
@@ -208,7 +221,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_jess_person = Person::create(&conn, &jess_person_form).unwrap();
+    let inserted_jess_person = Person::create(conn, &jess_person_form).unwrap();
 
     let jess_local_user_form = LocalUserForm {
       person_id: Some(inserted_jess_person.id),
@@ -216,7 +229,7 @@ mod tests {
       ..LocalUserForm::default()
     };
 
-    let inserted_jess_local_user = LocalUser::create(&conn, &jess_local_user_form).unwrap();
+    let inserted_jess_local_user = LocalUser::create(conn, &jess_local_user_form).unwrap();
 
     // Sara creates an application
     let jess_app_form = RegistrationApplicationForm {
@@ -225,9 +238,9 @@ mod tests {
       ..RegistrationApplicationForm::default()
     };
 
-    let jess_app = RegistrationApplication::create(&conn, &jess_app_form).unwrap();
+    let jess_app = RegistrationApplication::create(conn, &jess_app_form).unwrap();
 
-    let read_jess_app_view = RegistrationApplicationView::read(&conn, jess_app.id).unwrap();
+    let read_jess_app_view = RegistrationApplicationView::read(conn, jess_app.id).unwrap();
 
     let mut expected_sara_app_view = RegistrationApplicationView {
       registration_application: sara_app.to_owned(),
@@ -277,7 +290,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .unread_only(Some(true))
       .build()
       .list()
@@ -292,7 +305,7 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let unread_count = RegistrationApplicationView::get_unread_count(&conn, false).unwrap();
+    let unread_count = RegistrationApplicationView::get_unread_count(conn, false).unwrap();
     assert_eq!(unread_count, 2);
 
     // Approve the application
@@ -302,7 +315,7 @@ mod tests {
       ..RegistrationApplicationForm::default()
     };
 
-    RegistrationApplication::update(&conn, sara_app.id, &approve_form).unwrap();
+    RegistrationApplication::update(conn, sara_app.id, &approve_form).unwrap();
 
     // Update the local_user row
     let approve_local_user_form = LocalUserForm {
@@ -310,10 +323,10 @@ mod tests {
       ..LocalUserForm::default()
     };
 
-    LocalUser::update(&conn, inserted_sara_local_user.id, &approve_local_user_form).unwrap();
+    LocalUser::update(conn, inserted_sara_local_user.id, &approve_local_user_form).unwrap();
 
     let read_sara_app_view_after_approve =
-      RegistrationApplicationView::read(&conn, sara_app.id).unwrap();
+      RegistrationApplicationView::read(conn, sara_app.id).unwrap();
 
     // Make sure the columns changed
     expected_sara_app_view
@@ -321,7 +334,7 @@ mod tests {
       .accepted_application = true;
     expected_sara_app_view.registration_application.admin_id = Some(inserted_timmy_person.id);
 
-    expected_sara_app_view.admin = Some(PersonSafeAlias1 {
+    expected_sara_app_view.admin = Some(PersonSafe {
       id: inserted_timmy_person.id,
       name: inserted_timmy_person.name.to_owned(),
       display_name: None,
@@ -346,7 +359,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .unread_only(Some(true))
       .build()
       .list()
@@ -355,19 +368,19 @@ mod tests {
 
     // Make sure the counts are correct
     let unread_count_after_approve =
-      RegistrationApplicationView::get_unread_count(&conn, false).unwrap();
+      RegistrationApplicationView::get_unread_count(conn, false).unwrap();
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
     let all_apps = RegistrationApplicationQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .build()
       .list()
       .unwrap();
     assert_eq!(all_apps.len(), 2);
 
-    Person::delete(&conn, inserted_timmy_person.id).unwrap();
-    Person::delete(&conn, inserted_sara_person.id).unwrap();
-    Person::delete(&conn, inserted_jess_person.id).unwrap();
+    Person::delete(conn, inserted_timmy_person.id).unwrap();
+    Person::delete(conn, inserted_sara_person.id).unwrap();
+    Person::delete(conn, inserted_jess_person.id).unwrap();
   }
 }
