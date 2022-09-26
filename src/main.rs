@@ -1,12 +1,14 @@
 #[macro_use]
 extern crate diesel_migrations;
 
+use crate::diesel_migrations::MigrationHarness;
 use actix::prelude::*;
 use actix_web::{web::Data, *};
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
+use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::{
@@ -41,7 +43,7 @@ use std::{
 };
 use tracing_actix_web::TracingLogger;
 
-embed_migrations!();
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 /// Max timeout for http requests
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -77,7 +79,9 @@ async fn main() -> Result<(), LemmyError> {
   // Run the migrations from code
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   blocking(&pool, move |conn| {
-    embedded_migrations::run(conn)?;
+    let _ = conn
+      .run_pending_migrations(MIGRATIONS)
+      .map_err(|_| LemmyError::from_message("Couldn't run migrations"))?;
     run_advanced_migrations(conn, &protocol_and_hostname)?;
     Ok(()) as Result<(), LemmyError>
   })
@@ -96,8 +100,8 @@ async fn main() -> Result<(), LemmyError> {
   };
 
   // Initialize the secrets
-  let conn = pool.get()?;
-  let secret = Secret::init(&conn).expect("Couldn't initialize secrets.");
+  let conn = &mut pool.get()?;
+  let secret = Secret::init(conn).expect("Couldn't initialize secrets.");
 
   println!(
     "Starting http server at {}:{}",
@@ -117,13 +121,13 @@ async fn main() -> Result<(), LemmyError> {
   };
 
   let client = ClientBuilder::new(reqwest_client.clone())
-    .with(TracingMiddleware)
+    .with(TracingMiddleware::default())
     .with(RetryTransientMiddleware::new_with_policy(retry_policy))
     .build();
 
   // Pictrs cannot use the retry middleware
   let pictrs_client = ClientBuilder::new(reqwest_client.clone())
-    .with(TracingMiddleware)
+    .with(TracingMiddleware::default())
     .build();
 
   check_private_instance_and_federation_enabled(&pool, &settings).await?;

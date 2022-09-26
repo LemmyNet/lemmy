@@ -13,7 +13,6 @@ use lemmy_db_schema::{
     community_follower,
     community_person_ban,
     person,
-    person_alias_1,
     person_block,
     post,
   },
@@ -21,7 +20,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentSaved},
     comment_reply::CommentReply,
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person::{Person, PersonSafe},
     person_block::PersonBlock,
     post::Post,
   },
@@ -37,7 +36,7 @@ type CommentReplyViewTuple = (
   PersonSafe,
   Post,
   CommunitySafe,
-  PersonSafeAlias1,
+  PersonSafe,
   CommentAggregates,
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
@@ -48,10 +47,12 @@ type CommentReplyViewTuple = (
 
 impl CommentReplyView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
+    let person_alias_1 = diesel::alias!(person as person1);
+
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -74,7 +75,7 @@ impl CommentReplyView {
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person_alias_1::table)
+      .inner_join(person_alias_1)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(
         community_person_ban::table.on(
@@ -122,7 +123,7 @@ impl CommentReplyView {
         Person::safe_columns_tuple(),
         post::all_columns,
         Community::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -149,7 +150,7 @@ impl CommentReplyView {
   }
 
   /// Gets the number of unread replies
-  pub fn get_unread_replies(conn: &PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub fn get_unread_replies(conn: &mut PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
 
     comment_reply::table
@@ -164,7 +165,7 @@ impl CommentReplyView {
 #[builder(field_defaults(default))]
 pub struct CommentReplyQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,
@@ -178,6 +179,8 @@ impl<'a> CommentReplyQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentReplyView>, Error> {
     use diesel::dsl::*;
 
+    let person_alias_1 = diesel::alias!(person as person1);
+
     // The left join below will return None in this case
     let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
@@ -186,7 +189,7 @@ impl<'a> CommentReplyQuery<'a> {
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person_alias_1::table)
+      .inner_join(person_alias_1)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(
         community_person_ban::table.on(
@@ -234,7 +237,7 @@ impl<'a> CommentReplyQuery<'a> {
         Person::safe_columns_tuple(),
         post::all_columns,
         Community::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),

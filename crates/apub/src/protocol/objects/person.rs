@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum UserTypes {
   Person,
   Service,

@@ -10,18 +10,18 @@ use sha2::{Digest, Sha256};
 impl Crud for PasswordResetRequest {
   type Form = PasswordResetRequestForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)
   }
-  fn create(conn: &PgConnection, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     insert_into(password_reset_request)
       .values(form)
       .get_result::<Self>(conn)
   }
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     password_reset_request_id: i32,
     form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
@@ -33,7 +33,7 @@ impl Crud for PasswordResetRequest {
 
 impl PasswordResetRequest {
   pub fn create_token(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
@@ -48,7 +48,10 @@ impl PasswordResetRequest {
 
     Self::create(conn, &form)
   }
-  pub fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error> {
+  pub fn read_from_token(
+    conn: &mut PgConnection,
+    token: &str,
+  ) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();
     hasher.update(token);
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
@@ -83,7 +86,7 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let new_person = PersonForm {
       name: "thommy prw".into(),
@@ -91,7 +94,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let new_local_user = LocalUserForm {
       person_id: Some(inserted_person.id),
@@ -99,13 +102,13 @@ mod tests {
       ..LocalUserForm::default()
     };
 
-    let inserted_local_user = LocalUser::create(&conn, &new_local_user).unwrap();
+    let inserted_local_user = LocalUser::create(conn, &new_local_user).unwrap();
 
     let token = "nope";
     let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create_token(&conn, inserted_local_user.id, token).unwrap();
+      PasswordResetRequest::create_token(conn, inserted_local_user.id, token).unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
@@ -114,8 +117,8 @@ mod tests {
       published: inserted_password_reset_request.published,
     };
 
-    let read_password_reset_request = PasswordResetRequest::read_from_token(&conn, token).unwrap();
-    let num_deleted = Person::delete(&conn, inserted_person.id).unwrap();
+    let read_password_reset_request = PasswordResetRequest::read_from_token(conn, token).unwrap();
+    let num_deleted = Person::delete(conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

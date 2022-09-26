@@ -12,15 +12,13 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     person,
-    person_alias_1,
-    person_alias_2,
     post,
   },
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::{Community, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonAlias1, PersonAlias2, PersonSafe, PersonSafeAlias1, PersonSafeAlias2},
+    person::{Person, PersonSafe},
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
@@ -34,11 +32,11 @@ type CommentReportViewTuple = (
   Post,
   CommunitySafe,
   PersonSafe,
-  PersonSafeAlias1,
+  PersonSafe,
   CommentAggregates,
   Option<CommunityPersonBan>,
   Option<i16>,
-  Option<PersonSafeAlias2>,
+  Option<PersonSafe>,
 );
 
 impl CommentReportView {
@@ -46,10 +44,12 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let (
       comment_report,
       comment,
@@ -67,7 +67,7 @@ impl CommentReportView {
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -91,7 +91,8 @@ impl CommentReportView {
         ),
       )
       .left_join(
-        person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2
+          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         comment_report::all_columns,
@@ -99,11 +100,13 @@ impl CommentReportView {
         post::all_columns,
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_2
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .first::<CommentReportViewTuple>(conn)?;
 
@@ -125,7 +128,7 @@ impl CommentReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub fn get_report_count(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -164,7 +167,7 @@ impl CommentReportView {
 #[builder(field_defaults(default))]
 pub struct CommentReportQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -177,12 +180,14 @@ pub struct CommentReportQuery<'a> {
 
 impl<'a> CommentReportQuery<'a> {
   pub fn list(self) -> Result<Vec<CommentReportView>, Error> {
+    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
+
     let mut query = comment_report::table
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -206,7 +211,8 @@ impl<'a> CommentReportQuery<'a> {
         ),
       )
       .left_join(
-        person_alias_2::table.on(comment_report::resolver_id.eq(person_alias_2::id.nullable())),
+        person_alias_2
+          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         comment_report::all_columns,
@@ -214,11 +220,13 @@ impl<'a> CommentReportQuery<'a> {
         post::all_columns,
         Community::safe_columns_tuple(),
         Person::safe_columns_tuple(),
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        PersonAlias2::safe_columns_tuple().nullable(),
+        person_alias_2
+          .fields(Person::safe_columns_tuple())
+          .nullable(),
       ))
       .into_boxed();
 
@@ -291,7 +299,7 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let new_person = PersonForm {
       name: "timmy_crv".into(),
@@ -299,7 +307,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_timmy = Person::create(&conn, &new_person).unwrap();
+    let inserted_timmy = Person::create(conn, &new_person).unwrap();
 
     let new_person_2 = PersonForm {
       name: "sara_crv".into(),
@@ -307,7 +315,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_sara = Person::create(&conn, &new_person_2).unwrap();
+    let inserted_sara = Person::create(conn, &new_person_2).unwrap();
 
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonForm {
@@ -316,7 +324,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_jessica = Person::create(&conn, &new_person_3).unwrap();
+    let inserted_jessica = Person::create(conn, &new_person_3).unwrap();
 
     let new_community = CommunityForm {
       name: "test community crv".to_string(),
@@ -325,7 +333,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(conn, &new_community).unwrap();
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -333,7 +341,7 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(&conn, &timmy_moderator_form).unwrap();
+    let _inserted_moderator = CommunityModerator::join(conn, &timmy_moderator_form).unwrap();
 
     let new_post = PostForm {
       name: "A test post crv".into(),
@@ -342,7 +350,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(conn, &new_post).unwrap();
 
     let comment_form = CommentForm {
       content: "A test comment 32".into(),
@@ -351,7 +359,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
+    let inserted_comment = Comment::create(conn, &comment_form, None).unwrap();
 
     // sara reports
     let sara_report_form = CommentReportForm {
@@ -361,7 +369,7 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    let inserted_sara_report = CommentReport::report(&conn, &sara_report_form).unwrap();
+    let inserted_sara_report = CommentReport::report(conn, &sara_report_form).unwrap();
 
     // jessica reports
     let jessica_report_form = CommentReportForm {
@@ -371,12 +379,12 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = CommentReport::report(&conn, &jessica_report_form).unwrap();
+    let inserted_jessica_report = CommentReport::report(conn, &jessica_report_form).unwrap();
 
-    let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
+    let agg = CommentAggregates::read(conn, inserted_comment.id).unwrap();
 
     let read_jessica_report_view =
-      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+      CommentReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.to_owned(),
       comment: inserted_comment.to_owned(),
@@ -418,7 +426,7 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
       },
-      comment_creator: PersonSafeAlias1 {
+      comment_creator: PersonSafe {
         id: inserted_timmy.id,
         name: inserted_timmy.name.to_owned(),
         display_name: None,
@@ -479,7 +487,7 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = CommentReportQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
@@ -496,13 +504,13 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count =
-      CommentReportView::get_report_count(&conn, inserted_timmy.id, false, None).unwrap();
+      CommentReportView::get_report_count(conn, inserted_timmy.id, false, None).unwrap();
     assert_eq!(2, report_count);
 
     // Try to resolve the report
-    CommentReport::resolve(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+    CommentReport::resolve(conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
     let read_jessica_report_view_after_resolve =
-      CommentReportView::read(&conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+      CommentReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
@@ -516,7 +524,7 @@ mod tests {
       .updated = read_jessica_report_view_after_resolve
       .comment_report
       .updated;
-    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafeAlias2 {
+    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
       id: inserted_timmy.id,
       name: inserted_timmy.name.to_owned(),
       display_name: None,
@@ -545,7 +553,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = CommentReportQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
@@ -556,12 +564,12 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      CommentReportView::get_report_count(&conn, inserted_timmy.id, false, None).unwrap();
+      CommentReportView::get_report_count(conn, inserted_timmy.id, false, None).unwrap();
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(&conn, inserted_timmy.id).unwrap();
-    Person::delete(&conn, inserted_sara.id).unwrap();
-    Person::delete(&conn, inserted_jessica.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
+    Person::delete(conn, inserted_timmy.id).unwrap();
+    Person::delete(conn, inserted_sara.id).unwrap();
+    Person::delete(conn, inserted_jessica.id).unwrap();
+    Community::delete(conn, inserted_community.id).unwrap();
   }
 }

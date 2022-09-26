@@ -17,11 +17,11 @@ lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", featur
 lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
 lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
 activitypub_federation = "0.2.0"
-bcrypt = "0.12.1"
-serde_json = { version = "1.0.79", features = ["preserve_order"] }
-serde = { version = "1.0.136", features = ["derive"] }
-actix-web = { version = "4.0.1", default-features = false }
-tracing = "0.1.32"
-url = { version = "2.2.2", features = ["serde"] }
-async-trait = "0.1.53"
+bcrypt = "0.13.0"
+serde_json = { version = "1.0.85", features = ["preserve_order"] }
+serde = { version = "1.0.145", features = ["derive"] }
+actix-web = { version = "4.2.1", default-features = false }
+tracing = "0.1.36"
+url = { version = "2.3.1", features = ["serde"] }
+async-trait = "0.1.57"
 webmention = "0.4.0"

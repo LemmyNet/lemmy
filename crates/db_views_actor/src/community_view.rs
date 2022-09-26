@@ -25,7 +25,7 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -66,7 +66,7 @@ impl CommunityView {
   }
 
   pub fn is_mod_or_admin(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> bool {
@@ -97,7 +97,7 @@ impl CommunityView {
 #[builder(field_defaults(default))]
 pub struct CommunityQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,

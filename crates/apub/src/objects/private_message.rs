@@ -192,15 +192,17 @@ mod tests {
   }
 
   fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &LemmyContext) {
-    Person::delete(&*context.pool().get().unwrap(), data.0.id).unwrap();
-    Person::delete(&*context.pool().get().unwrap(), data.1.id).unwrap();
-    Site::delete(&*context.pool().get().unwrap(), data.2.id).unwrap();
+    let conn = &mut context.pool().get().unwrap();
+    Person::delete(conn, data.0.id).unwrap();
+    Person::delete(conn, data.1.id).unwrap();
+    Site::delete(conn, data.2.id).unwrap();
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_pm() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json").unwrap();
@@ -220,7 +222,7 @@ mod tests {
     let to_apub = pm.into_apub(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    PrivateMessage::delete(&*context.pool().get().unwrap(), pm_id).unwrap();
+    PrivateMessage::delete(conn, pm_id).unwrap();
     cleanup(data, &context);
   }
 
@@ -228,6 +230,7 @@ mod tests {
   #[serial]
   async fn test_parse_pleroma_pm() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
@@ -244,7 +247,7 @@ mod tests {
     assert_eq!(pm.content.len(), 3);
     assert_eq!(request_counter, 0);
 
-    PrivateMessage::delete(&*context.pool().get().unwrap(), pm.id).unwrap();
+    PrivateMessage::delete(conn, pm.id).unwrap();
     cleanup(data, &context);
   }
 }
