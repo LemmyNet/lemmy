@@ -32,12 +32,12 @@ impl Perform for SavePost {
     };
 
     if data.save {
-      let save = move |conn: &'_ _| PostSaved::save(conn, &post_saved_form);
+      let save = move |conn: &mut _| PostSaved::save(conn, &post_saved_form);
       blocking(context.pool(), save)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     } else {
-      let unsave = move |conn: &'_ _| PostSaved::unsave(conn, &post_saved_form);
+      let unsave = move |conn: &mut _| PostSaved::unsave(conn, &post_saved_form);
       blocking(context.pool(), unsave)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;

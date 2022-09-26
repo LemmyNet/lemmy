@@ -7,7 +7,7 @@ use lemmy_db_schema::{
 };
 
 impl SiteView {
-  pub fn read_local(conn: &PgConnection) -> Result<Self, Error> {
+  pub fn read_local(conn: &mut PgConnection) -> Result<Self, Error> {
     let (mut site, counts) = site::table
       .inner_join(site_aggregates::table)
       .select((site::all_columns, site_aggregates::all_columns))

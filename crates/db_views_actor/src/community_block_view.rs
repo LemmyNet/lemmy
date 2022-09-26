@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 type CommunityBlockViewTuple = (PersonSafe, CommunitySafe);
 
 impl CommunityBlockView {
-  pub fn for_person(conn: &PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub fn for_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_block::table
       .inner_join(person::table)
       .inner_join(community::table)

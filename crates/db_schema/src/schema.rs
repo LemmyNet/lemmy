@@ -531,59 +531,6 @@ table! {
     }
 }
 
-// These are necessary since diesel doesn't have self joins / aliases
-table! {
-    person_alias_1 (id) {
-        id -> Int4,
-        name -> Varchar,
-        display_name -> Nullable<Varchar>,
-        avatar -> Nullable<Varchar>,
-        banned -> Bool,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
-        actor_id -> Varchar,
-        bio -> Nullable<Text>,
-        local -> Bool,
-        private_key -> Nullable<Text>,
-        public_key -> Text,
-        last_refreshed_at -> Timestamp,
-        banner -> Nullable<Varchar>,
-        deleted -> Bool,
-        inbox_url -> Varchar,
-        shared_inbox_url -> Nullable<Varchar>,
-        matrix_user_id -> Nullable<Text>,
-        admin -> Bool,
-        bot_account -> Bool,
-        ban_expires -> Nullable<Timestamp>,
-    }
-}
-
-table! {
-    person_alias_2 (id) {
-        id -> Int4,
-        name -> Varchar,
-        display_name -> Nullable<Varchar>,
-        avatar -> Nullable<Varchar>,
-        banned -> Bool,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
-        actor_id -> Varchar,
-        bio -> Nullable<Text>,
-        local -> Bool,
-        private_key -> Nullable<Text>,
-        public_key -> Text,
-        last_refreshed_at -> Timestamp,
-        banner -> Nullable<Varchar>,
-        deleted -> Bool,
-        inbox_url -> Varchar,
-        shared_inbox_url -> Nullable<Varchar>,
-        matrix_user_id -> Nullable<Text>,
-        admin -> Bool,
-        bot_account -> Bool,
-        ban_expires -> Nullable<Timestamp>,
-    }
-}
-
 table! {
   secret(id) {
     id -> Int4,
@@ -677,18 +624,7 @@ table! {
     }
 }
 
-joinable!(person_mention -> person_alias_1 (recipient_id));
-joinable!(comment_reply -> person_alias_1 (recipient_id));
-joinable!(post -> person_alias_1 (creator_id));
-joinable!(comment -> person_alias_1 (creator_id));
-joinable!(private_message_report -> person_alias_1 (resolver_id));
-
-joinable!(post_report -> person_alias_2 (resolver_id));
-joinable!(comment_report -> person_alias_2 (resolver_id));
-joinable!(private_message_report -> person_alias_2 (resolver_id));
-
 joinable!(person_block -> person (person_id));
-joinable!(person_block -> person_alias_1 (target_id));
 
 joinable!(comment -> person (creator_id));
 joinable!(comment -> post (post_id));
@@ -800,8 +736,6 @@ allow_tables_to_appear_in_same_query!(
   private_message_report,
   site,
   site_aggregates,
-  person_alias_1,
-  person_alias_2,
   admin_purge_comment,
   admin_purge_community,
   admin_purge_person,

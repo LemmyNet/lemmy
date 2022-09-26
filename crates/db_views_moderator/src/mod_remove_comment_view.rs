@@ -2,12 +2,12 @@ use crate::structs::{ModRemoveCommentView, ModlogListParams};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   newtypes::PersonId,
-  schema::{comment, community, mod_remove_comment, person, person_alias_1, post},
+  schema::{comment, community, mod_remove_comment, person, post},
   source::{
     comment::Comment,
     community::{Community, CommunitySafe},
     moderator::ModRemoveComment,
-    person::{Person, PersonAlias1, PersonSafe, PersonSafeAlias1},
+    person::{Person, PersonSafe},
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
@@ -18,13 +18,14 @@ type ModRemoveCommentViewTuple = (
   ModRemoveComment,
   Option<PersonSafe>,
   Comment,
-  PersonSafeAlias1,
+  PersonSafe,
   Post,
   CommunitySafe,
 );
 
 impl ModRemoveCommentView {
-  pub fn list(conn: &PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &mut PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+    let person_alias_1 = diesel::alias!(lemmy_db_schema::schema::person as person1);
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
@@ -35,14 +36,14 @@ impl ModRemoveCommentView {
     let mut query = mod_remove_comment::table
       .left_join(person::table.on(admin_names_join))
       .inner_join(comment::table)
-      .inner_join(person_alias_1::table.on(comment::creator_id.eq(person_alias_1::id)))
+      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .select((
         mod_remove_comment::all_columns,
         Person::safe_columns_tuple().nullable(),
         comment::all_columns,
-        PersonAlias1::safe_columns_tuple(),
+        person_alias_1.fields(Person::safe_columns_tuple()),
         post::all_columns,
         Community::safe_columns_tuple(),
       ))
@@ -57,7 +58,7 @@ impl ModRemoveCommentView {
     };
 
     if let Some(other_person_id) = params.other_person_id {
-      query = query.filter(person_alias_1::id.eq(other_person_id));
+      query = query.filter(person_alias_1.field(person::id).eq(other_person_id));
     };
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;

@@ -19,20 +19,20 @@ lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["f
 lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", features = ["full"] }
 lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"] }
 lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
-reqwest-middleware = "0.1.5"
-tracing = "0.1.32"
+reqwest-middleware = "0.1.6"
+tracing = "0.1.36"
 rand = "0.8.5"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_json = { version = "1.0.79", features = ["preserve_order"] }
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = { version = "1.0.85", features = ["preserve_order"] }
 actix = "0.13.0"
-anyhow = "1.0.56"
-diesel = "1.4.8"
+anyhow = "1.0.65"
+diesel = "2.0.0"
 background-jobs = "0.12.0"
-tokio = "1.17.0"
-strum = "0.24.0"
-strum_macros = "0.24.0"
-chrono = { version = "0.4.19", features = ["serde"], default-features = false }
-actix-web = { version = "4.0.1", default-features = false, features = ["rustls"] }
+tokio = "1.21.1"
+strum = "0.24.1"
+strum_macros = "0.24.3"
+chrono = { version = "0.4.22", features = ["serde"], default-features = false }
+actix-web = { version = "4.2.1", default-features = false, features = ["rustls"] }
 actix-web-actors = { version = "4.1.0", default-features = false }
 opentelemetry = "0.17.0"
 tracing-opentelemetry = "0.17.2"

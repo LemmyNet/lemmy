@@ -4,19 +4,23 @@ use diesel::{dsl::*, result::Error, *};
 impl Crud for ModRemovePost {
   type Form = ModRemovePostForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
     mod_remove_post.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModRemovePostForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModRemovePostForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
     insert_into(mod_remove_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModRemovePostForm) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    from_id: i32,
+    form: &ModRemovePostForm,
+  ) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
     diesel::update(mod_remove_post.find(from_id))
       .set(form)
@@ -27,19 +31,19 @@ impl Crud for ModRemovePost {
 impl Crud for ModLockPost {
   type Form = ModLockPostForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
     mod_lock_post.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModLockPostForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
     insert_into(mod_lock_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
     diesel::update(mod_lock_post.find(from_id))
       .set(form)
@@ -50,19 +54,23 @@ impl Crud for ModLockPost {
 impl Crud for ModStickyPost {
   type Form = ModStickyPostForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
     mod_sticky_post.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModStickyPostForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModStickyPostForm) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
     insert_into(mod_sticky_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModStickyPostForm) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    from_id: i32,
+    form: &ModStickyPostForm,
+  ) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
     diesel::update(mod_sticky_post.find(from_id))
       .set(form)
@@ -73,19 +81,23 @@ impl Crud for ModStickyPost {
 impl Crud for ModRemoveComment {
   type Form = ModRemoveCommentForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
     mod_remove_comment.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModRemoveCommentForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModRemoveCommentForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
     insert_into(mod_remove_comment)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModRemoveCommentForm) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    from_id: i32,
+    form: &ModRemoveCommentForm,
+  ) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
@@ -96,12 +108,12 @@ impl Crud for ModRemoveComment {
 impl Crud for ModRemoveCommunity {
   type Form = ModRemoveCommunityForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::*;
     mod_remove_community.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::*;
     insert_into(mod_remove_community)
       .values(form)
@@ -109,7 +121,7 @@ impl Crud for ModRemoveCommunity {
   }
 
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     from_id: i32,
     form: &ModRemoveCommunityForm,
   ) -> Result<Self, Error> {
@@ -123,12 +135,12 @@ impl Crud for ModRemoveCommunity {
 impl Crud for ModBanFromCommunity {
   type Form = ModBanFromCommunityForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::*;
     mod_ban_from_community.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::*;
     insert_into(mod_ban_from_community)
       .values(form)
@@ -136,7 +148,7 @@ impl Crud for ModBanFromCommunity {
   }
 
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     from_id: i32,
     form: &ModBanFromCommunityForm,
   ) -> Result<Self, Error> {
@@ -150,17 +162,17 @@ impl Crud for ModBanFromCommunity {
 impl Crud for ModBan {
   type Form = ModBanForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
     mod_ban.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModBanForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
     insert_into(mod_ban).values(form).get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
     diesel::update(mod_ban.find(from_id))
       .set(form)
@@ -172,19 +184,23 @@ impl Crud for ModHideCommunity {
   type Form = ModHideCommunityForm;
   type IdType = i32;
 
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::*;
     mod_hide_community.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModHideCommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModHideCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::*;
     insert_into(mod_hide_community)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModHideCommunityForm) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    from_id: i32,
+    form: &ModHideCommunityForm,
+  ) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::*;
     diesel::update(mod_hide_community.find(from_id))
       .set(form)
@@ -195,19 +211,23 @@ impl Crud for ModHideCommunity {
 impl Crud for ModAddCommunity {
   type Form = ModAddCommunityForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
     mod_add_community.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModAddCommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModAddCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
     insert_into(mod_add_community)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModAddCommunityForm) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    from_id: i32,
+    form: &ModAddCommunityForm,
+  ) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
     diesel::update(mod_add_community.find(from_id))
       .set(form)
@@ -218,12 +238,12 @@ impl Crud for ModAddCommunity {
 impl Crud for ModTransferCommunity {
   type Form = ModTransferCommunityForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::*;
     mod_transfer_community.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModTransferCommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModTransferCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::*;
     insert_into(mod_transfer_community)
       .values(form)
@@ -231,7 +251,7 @@ impl Crud for ModTransferCommunity {
   }
 
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     from_id: i32,
     form: &ModTransferCommunityForm,
   ) -> Result<Self, Error> {
@@ -245,17 +265,17 @@ impl Crud for ModTransferCommunity {
 impl Crud for ModAdd {
   type Form = ModAddForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
     mod_add.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &ModAddForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &ModAddForm) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
     insert_into(mod_add).values(form).get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
     diesel::update(mod_add.find(from_id))
       .set(form)
@@ -266,19 +286,19 @@ impl Crud for ModAdd {
 impl Crud for AdminPurgePerson {
   type Form = AdminPurgePersonForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::*;
     admin_purge_person.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::*;
     insert_into(admin_purge_person)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::*;
     diesel::update(admin_purge_person.find(from_id))
       .set(form)
@@ -289,19 +309,19 @@ impl Crud for AdminPurgePerson {
 impl Crud for AdminPurgeCommunity {
   type Form = AdminPurgeCommunityForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::*;
     admin_purge_community.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::*;
     insert_into(admin_purge_community)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::*;
     diesel::update(admin_purge_community.find(from_id))
       .set(form)
@@ -312,19 +332,19 @@ impl Crud for AdminPurgeCommunity {
 impl Crud for AdminPurgePost {
   type Form = AdminPurgePostForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::*;
     admin_purge_post.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::*;
     insert_into(admin_purge_post)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::*;
     diesel::update(admin_purge_post.find(from_id))
       .set(form)
@@ -335,19 +355,19 @@ impl Crud for AdminPurgePost {
 impl Crud for AdminPurgeComment {
   type Form = AdminPurgeCommentForm;
   type IdType = i32;
-  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::*;
     admin_purge_comment.find(from_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::*;
     insert_into(admin_purge_comment)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, from_id: i32, form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::*;
     diesel::update(admin_purge_comment.find(from_id))
       .set(form)
@@ -368,7 +388,7 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let new_mod = PersonForm {
       name: "the mod".into(),
@@ -376,7 +396,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_mod = Person::create(&conn, &new_mod).unwrap();
+    let inserted_mod = Person::create(conn, &new_mod).unwrap();
 
     let new_person = PersonForm {
       name: "jim2".into(),
@@ -384,7 +404,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "mod_community".to_string(),
@@ -393,7 +413,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post thweep".into(),
@@ -402,7 +422,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(conn, &new_post).unwrap();
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
@@ -411,7 +431,7 @@ mod tests {
       ..CommentForm::default()
     };
 
-    let inserted_comment = Comment::create(&conn, &comment_form, None).unwrap();
+    let inserted_comment = Comment::create(conn, &comment_form, None).unwrap();
 
     // Now the actual tests
 
@@ -422,8 +442,8 @@ mod tests {
       reason: None,
       removed: None,
     };
-    let inserted_mod_remove_post = ModRemovePost::create(&conn, &mod_remove_post_form).unwrap();
-    let read_mod_remove_post = ModRemovePost::read(&conn, inserted_mod_remove_post.id).unwrap();
+    let inserted_mod_remove_post = ModRemovePost::create(conn, &mod_remove_post_form).unwrap();
+    let read_mod_remove_post = ModRemovePost::read(conn, inserted_mod_remove_post.id).unwrap();
     let expected_mod_remove_post = ModRemovePost {
       id: inserted_mod_remove_post.id,
       post_id: inserted_post.id,
@@ -440,8 +460,8 @@ mod tests {
       post_id: inserted_post.id,
       locked: None,
     };
-    let inserted_mod_lock_post = ModLockPost::create(&conn, &mod_lock_post_form).unwrap();
-    let read_mod_lock_post = ModLockPost::read(&conn, inserted_mod_lock_post.id).unwrap();
+    let inserted_mod_lock_post = ModLockPost::create(conn, &mod_lock_post_form).unwrap();
+    let read_mod_lock_post = ModLockPost::read(conn, inserted_mod_lock_post.id).unwrap();
     let expected_mod_lock_post = ModLockPost {
       id: inserted_mod_lock_post.id,
       post_id: inserted_post.id,
@@ -457,8 +477,8 @@ mod tests {
       post_id: inserted_post.id,
       stickied: None,
     };
-    let inserted_mod_sticky_post = ModStickyPost::create(&conn, &mod_sticky_post_form).unwrap();
-    let read_mod_sticky_post = ModStickyPost::read(&conn, inserted_mod_sticky_post.id).unwrap();
+    let inserted_mod_sticky_post = ModStickyPost::create(conn, &mod_sticky_post_form).unwrap();
+    let read_mod_sticky_post = ModStickyPost::read(conn, inserted_mod_sticky_post.id).unwrap();
     let expected_mod_sticky_post = ModStickyPost {
       id: inserted_mod_sticky_post.id,
       post_id: inserted_post.id,
@@ -476,9 +496,9 @@ mod tests {
       removed: None,
     };
     let inserted_mod_remove_comment =
-      ModRemoveComment::create(&conn, &mod_remove_comment_form).unwrap();
+      ModRemoveComment::create(conn, &mod_remove_comment_form).unwrap();
     let read_mod_remove_comment =
-      ModRemoveComment::read(&conn, inserted_mod_remove_comment.id).unwrap();
+      ModRemoveComment::read(conn, inserted_mod_remove_comment.id).unwrap();
     let expected_mod_remove_comment = ModRemoveComment {
       id: inserted_mod_remove_comment.id,
       comment_id: inserted_comment.id,
@@ -498,9 +518,9 @@ mod tests {
       expires: None,
     };
     let inserted_mod_remove_community =
-      ModRemoveCommunity::create(&conn, &mod_remove_community_form).unwrap();
+      ModRemoveCommunity::create(conn, &mod_remove_community_form).unwrap();
     let read_mod_remove_community =
-      ModRemoveCommunity::read(&conn, inserted_mod_remove_community.id).unwrap();
+      ModRemoveCommunity::read(conn, inserted_mod_remove_community.id).unwrap();
     let expected_mod_remove_community = ModRemoveCommunity {
       id: inserted_mod_remove_community.id,
       community_id: inserted_community.id,
@@ -522,9 +542,9 @@ mod tests {
       expires: None,
     };
     let inserted_mod_ban_from_community =
-      ModBanFromCommunity::create(&conn, &mod_ban_from_community_form).unwrap();
+      ModBanFromCommunity::create(conn, &mod_ban_from_community_form).unwrap();
     let read_mod_ban_from_community =
-      ModBanFromCommunity::read(&conn, inserted_mod_ban_from_community.id).unwrap();
+      ModBanFromCommunity::read(conn, inserted_mod_ban_from_community.id).unwrap();
     let expected_mod_ban_from_community = ModBanFromCommunity {
       id: inserted_mod_ban_from_community.id,
       community_id: inserted_community.id,
@@ -545,8 +565,8 @@ mod tests {
       banned: None,
       expires: None,
     };
-    let inserted_mod_ban = ModBan::create(&conn, &mod_ban_form).unwrap();
-    let read_mod_ban = ModBan::read(&conn, inserted_mod_ban.id).unwrap();
+    let inserted_mod_ban = ModBan::create(conn, &mod_ban_form).unwrap();
+    let read_mod_ban = ModBan::read(conn, inserted_mod_ban.id).unwrap();
     let expected_mod_ban = ModBan {
       id: inserted_mod_ban.id,
       mod_person_id: inserted_mod.id,
@@ -566,9 +586,9 @@ mod tests {
       removed: None,
     };
     let inserted_mod_add_community =
-      ModAddCommunity::create(&conn, &mod_add_community_form).unwrap();
+      ModAddCommunity::create(conn, &mod_add_community_form).unwrap();
     let read_mod_add_community =
-      ModAddCommunity::read(&conn, inserted_mod_add_community.id).unwrap();
+      ModAddCommunity::read(conn, inserted_mod_add_community.id).unwrap();
     let expected_mod_add_community = ModAddCommunity {
       id: inserted_mod_add_community.id,
       community_id: inserted_community.id,
@@ -585,8 +605,8 @@ mod tests {
       other_person_id: inserted_person.id,
       removed: None,
     };
-    let inserted_mod_add = ModAdd::create(&conn, &mod_add_form).unwrap();
-    let read_mod_add = ModAdd::read(&conn, inserted_mod_add.id).unwrap();
+    let inserted_mod_add = ModAdd::create(conn, &mod_add_form).unwrap();
+    let read_mod_add = ModAdd::read(conn, inserted_mod_add.id).unwrap();
     let expected_mod_add = ModAdd {
       id: inserted_mod_add.id,
       mod_person_id: inserted_mod.id,
@@ -595,11 +615,11 @@ mod tests {
       when_: inserted_mod_add.when_,
     };
 
-    Comment::delete(&conn, inserted_comment.id).unwrap();
-    Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
-    Person::delete(&conn, inserted_mod.id).unwrap();
+    Comment::delete(conn, inserted_comment.id).unwrap();
+    Post::delete(conn, inserted_post.id).unwrap();
+    Community::delete(conn, inserted_community.id).unwrap();
+    Person::delete(conn, inserted_person.id).unwrap();
+    Person::delete(conn, inserted_mod.id).unwrap();
 
     assert_eq!(expected_mod_remove_post, read_mod_remove_post);
     assert_eq!(expected_mod_lock_post, read_mod_lock_post);
