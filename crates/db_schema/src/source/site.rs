@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use crate::schema::site;
 
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "site")]
+#[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct Site {
   pub id: i32,
   pub name: String,
@@ -38,7 +38,7 @@ pub struct Site {
 
 #[derive(Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "site")]
+#[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct SiteForm {
   pub name: String,
   pub sidebar: Option<Option<String>>,

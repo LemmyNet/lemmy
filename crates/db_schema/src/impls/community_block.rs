@@ -6,7 +6,7 @@ use diesel::{dsl::*, result::Error, *};
 
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
-  fn block(conn: &PgConnection, community_block_form: &Self::Form) -> Result<Self, Error> {
+  fn block(conn: &mut PgConnection, community_block_form: &Self::Form) -> Result<Self, Error> {
     use crate::schema::community_block::dsl::*;
     insert_into(community_block)
       .values(community_block_form)
@@ -15,7 +15,7 @@ impl Blockable for CommunityBlock {
       .set(community_block_form)
       .get_result::<Self>(conn)
   }
-  fn unblock(conn: &PgConnection, community_block_form: &Self::Form) -> Result<usize, Error> {
+  fn unblock(conn: &mut PgConnection, community_block_form: &Self::Form) -> Result<usize, Error> {
     use crate::schema::community_block::dsl::*;
     diesel::delete(
       community_block

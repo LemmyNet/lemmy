@@ -25,7 +25,7 @@ pub struct Vote {
   pub(crate) unparsed: Unparsed,
 }
 
-#[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
 pub enum VoteType {
   Like,
   Dislike,

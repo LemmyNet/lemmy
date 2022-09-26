@@ -14,7 +14,7 @@ use typed_builder::TypedBuilder;
 type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
 
 impl PersonViewSafe {
-  pub fn read(conn: &PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  pub fn read(conn: &mut PgConnection, person_id: PersonId) -> Result<Self, Error> {
     let (person, counts) = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
@@ -23,7 +23,7 @@ impl PersonViewSafe {
     Ok(Self { person, counts })
   }
 
-  pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+  pub fn admins(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
@@ -34,7 +34,7 @@ impl PersonViewSafe {
     Ok(Self::from_tuple_to_vec(admins))
   }
 
-  pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+  pub fn banned(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
@@ -55,7 +55,7 @@ impl PersonViewSafe {
 #[builder(field_defaults(default))]
 pub struct PersonQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,

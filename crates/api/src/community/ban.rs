@@ -55,19 +55,19 @@ impl Perform for BanFromCommunity {
       expires: Some(expires),
     };
 
-    let community: ApubCommunity = blocking(context.pool(), move |conn: &'_ _| {
+    let community: ApubCommunity = blocking(context.pool(), move |conn: &mut _| {
       Community::read(conn, community_id)
     })
     .await??
     .into();
-    let banned_person: ApubPerson = blocking(context.pool(), move |conn: &'_ _| {
+    let banned_person: ApubPerson = blocking(context.pool(), move |conn: &mut _| {
       Person::read(conn, banned_person_id)
     })
     .await??
     .into();
 
     if data.ban {
-      let ban = move |conn: &'_ _| CommunityPersonBan::ban(conn, &community_user_ban_form);
+      let ban = move |conn: &mut _| CommunityPersonBan::ban(conn, &community_user_ban_form);
       blocking(context.pool(), ban)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
@@ -78,7 +78,7 @@ impl Perform for BanFromCommunity {
         person_id: banned_person_id,
         pending: false,
       };
-      blocking(context.pool(), move |conn: &'_ _| {
+      blocking(context.pool(), move |conn: &mut _| {
         CommunityFollower::unfollow(conn, &community_follower_form)
       })
       .await?
@@ -95,7 +95,7 @@ impl Perform for BanFromCommunity {
       )
       .await?;
     } else {
-      let unban = move |conn: &'_ _| CommunityPersonBan::unban(conn, &community_user_ban_form);
+      let unban = move |conn: &mut _| CommunityPersonBan::unban(conn, &community_user_ban_form);
       blocking(context.pool(), unban)
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;

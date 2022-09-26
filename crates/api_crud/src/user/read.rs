@@ -62,20 +62,36 @@ impl PerformCrud for GetPersonDetails {
     let saved_only = data.saved_only;
     let show_deleted_and_removed = data.show_deleted_and_removed;
     let community_id = data.community_id;
+    let local_user = local_user_view.map(|l| l.local_user);
+    let local_user_clone = local_user.to_owned();
 
-    let (posts, comments) = blocking(context.pool(), move |conn| {
+    let posts = blocking(context.pool(), move |conn| {
       let posts_query = PostQuery::builder()
         .conn(conn)
         .sort(sort)
         .saved_only(saved_only)
+        .local_user(local_user.as_ref())
         .community_id(community_id)
         .page(page)
         .limit(limit);
 
-      let local_user = local_user_view.map(|l| l.local_user);
+      // If its saved only, you don't care what creator it was
+      // Or, if its not saved, then you only want it for that specific creator
+      if !saved_only.unwrap_or(false) {
+        posts_query
+          .creator_id(Some(person_details_id))
+          .build()
+          .list()
+      } else {
+        posts_query.build().list()
+      }
+    })
+    .await??;
+
+    let comments = blocking(context.pool(), move |conn| {
       let comments_query = CommentQuery::builder()
         .conn(conn)
-        .local_user(local_user.as_ref())
+        .local_user(local_user_clone.as_ref())
         .sort(sort.map(post_to_comment_sort_type))
         .saved_only(saved_only)
         .show_deleted_and_removed(show_deleted_and_removed)
@@ -85,22 +101,14 @@ impl PerformCrud for GetPersonDetails {
 
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
-      let (posts, comments) = if !saved_only.unwrap_or(false) {
-        (
-          posts_query
-            .creator_id(Some(person_details_id))
-            .build()
-            .list()?,
-          comments_query
-            .creator_id(Some(person_details_id))
-            .build()
-            .list()?,
-        )
+      if !saved_only.unwrap_or(false) {
+        comments_query
+          .creator_id(Some(person_details_id))
+          .build()
+          .list()
       } else {
-        (posts_query.build().list()?, comments_query.build().list()?)
-      };
-
-      Ok((posts, comments)) as Result<_, LemmyError>
+        comments_query.build().list()
+      }
     })
     .await??;
 

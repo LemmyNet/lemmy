@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use crate::schema::{post, post_like, post_read, post_saved};
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", table_name = "post")]
+#[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct Post {
   pub id: PostId,
   pub name: String,
@@ -32,7 +32,7 @@ pub struct Post {
 
 #[derive(Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "post")]
+#[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostForm {
   pub name: String,
   pub creator_id: PersonId,
@@ -55,10 +55,10 @@ pub struct PostForm {
   pub language_id: Option<LanguageId>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Post))]
-#[cfg_attr(feature = "full", table_name = "post_like")]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_like))]
 pub struct PostLike {
   pub id: i32,
   pub post_id: PostId,
@@ -69,17 +69,17 @@ pub struct PostLike {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "post_like")]
+#[cfg_attr(feature = "full", diesel(table_name = post_like))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Post))]
-#[cfg_attr(feature = "full", table_name = "post_saved")]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_saved))]
 pub struct PostSaved {
   pub id: i32,
   pub post_id: PostId,
@@ -88,16 +88,16 @@ pub struct PostSaved {
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "post_saved")]
+#[cfg_attr(feature = "full", diesel(table_name = post_saved))]
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
-#[cfg_attr(feature = "full", belongs_to(Post))]
-#[cfg_attr(feature = "full", table_name = "post_read")]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_read))]
 pub struct PostRead {
   pub id: i32,
   pub post_id: PostId,
@@ -106,7 +106,7 @@ pub struct PostRead {
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "post_read")]
+#[cfg_attr(feature = "full", diesel(table_name = post_read))]
 pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,

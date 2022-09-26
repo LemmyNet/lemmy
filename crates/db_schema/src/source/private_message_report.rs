@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use crate::schema::private_message_report;
 
-#[derive(PartialEq, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(
   feature = "full",
-  belongs_to(crate::source::private_message::PrivateMessage)
+  diesel(belongs_to(crate::source::private_message::PrivateMessage))
 )]
-#[cfg_attr(feature = "full", table_name = "private_message_report")]
+#[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
 pub struct PrivateMessageReport {
   pub id: PrivateMessageReportId,
   pub creator_id: PersonId,
@@ -25,7 +25,7 @@ pub struct PrivateMessageReport {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", table_name = "private_message_report")]
+#[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
 pub struct PrivateMessageReportForm {
   pub creator_id: PersonId,
   pub private_message_id: PrivateMessageId,

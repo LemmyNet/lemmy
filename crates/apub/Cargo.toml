@@ -21,32 +21,32 @@ lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", featur
 lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
 lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
 activitypub_federation = "0.2.0"
-diesel = "1.4.8"
+diesel = "2.0.0"
 activitystreams-kinds = "0.2.1"
-chrono = { version = "0.4.19", features = ["serde"], default-features = false }
-serde_json = { version = "1.0.79", features = ["preserve_order"] }
-serde = { version = "1.0.136", features = ["derive"] }
-serde_with = "1.12.0"
+chrono = { version = "0.4.22", features = ["serde"], default-features = false }
+serde_json = { version = "1.0.85", features = ["preserve_order"] }
+serde = { version = "1.0.145", features = ["derive"] }
+serde_with = "1.14.0"
 actix = "0.13.0"
-actix-web = { version = "4.0.1", default-features = false }
+actix-web = { version = "4.2.1", default-features = false }
 actix-rt = { version = "2.7.0", default-features = false }
-tracing = "0.1.32"
-strum_macros = "0.24.0"
-url = { version = "2.2.2", features = ["serde"] }
-http = "0.2.6"
+tracing = "0.1.36"
+strum_macros = "0.24.3"
+url = { version = "2.3.1", features = ["serde"] }
+http = "0.2.8"
 http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }
-futures = "0.3.21"
-itertools = "0.10.3"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
-sha2 = "0.10.2"
-async-trait = "0.1.53"
-anyhow = "1.0.56"
-reqwest = { version = "0.11.10", features = ["json"] }
+futures = "0.3.24"
+itertools = "0.10.5"
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
+sha2 = "0.10.6"
+async-trait = "0.1.57"
+anyhow = "1.0.65"
+reqwest = { version = "0.11.12", features = ["json"] }
 html2md = "0.2.13"
-once_cell = "1.10.0"
+once_cell = "1.15.0"
 
 [dev-dependencies]
-serial_test = "0.6.0"
-assert-json-diff = "2.0.1"
-reqwest-middleware = "0.1.5"
-task-local-extensions = "0.1.1"
+serial_test = "0.9.0"
+assert-json-diff = "2.0.2"
+reqwest-middleware = "0.1.6"
+task-local-extensions = "0.1.3"

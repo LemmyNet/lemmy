@@ -53,6 +53,7 @@ impl PerformCrud for GetPosts {
     let mut posts = blocking(context.pool(), move |conn| {
       PostQuery::builder()
         .conn(conn)
+        .local_user(local_user_view.map(|l| l.local_user).as_ref())
         .listing_type(Some(listing_type))
         .sort(sort)
         .community_id(community_id)

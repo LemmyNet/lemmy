@@ -11,12 +11,15 @@ use url::Url;
 impl Crud for PrivateMessage {
   type Form = PrivateMessageForm;
   type IdType = PrivateMessageId;
-  fn read(conn: &PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, private_message_id: PrivateMessageId) -> Result<Self, Error> {
     use crate::schema::private_message::dsl::*;
     private_message.find(private_message_id).first::<Self>(conn)
   }
 
-  fn create(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
+  fn create(
+    conn: &mut PgConnection,
+    private_message_form: &PrivateMessageForm,
+  ) -> Result<Self, Error> {
     use crate::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
@@ -24,7 +27,7 @@ impl Crud for PrivateMessage {
   }
 
   fn update(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     private_message_id: PrivateMessageId,
     private_message_form: &PrivateMessageForm,
   ) -> Result<Self, Error> {
@@ -33,7 +36,7 @@ impl Crud for PrivateMessage {
       .set(private_message_form)
       .get_result::<Self>(conn)
   }
-  fn delete(conn: &PgConnection, pm_id: Self::IdType) -> Result<usize, Error> {
+  fn delete(conn: &mut PgConnection, pm_id: Self::IdType) -> Result<usize, Error> {
     use crate::schema::private_message::dsl::*;
     diesel::delete(private_message.find(pm_id)).execute(conn)
   }
@@ -41,7 +44,7 @@ impl Crud for PrivateMessage {
 
 impl PrivateMessage {
   pub fn update_ap_id(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     private_message_id: PrivateMessageId,
     apub_id: DbUrl,
   ) -> Result<PrivateMessage, Error> {
@@ -53,7 +56,7 @@ impl PrivateMessage {
   }
 
   pub fn update_content(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     private_message_id: PrivateMessageId,
     new_content: &str,
   ) -> Result<PrivateMessage, Error> {
@@ -64,7 +67,7 @@ impl PrivateMessage {
   }
 
   pub fn update_deleted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     private_message_id: PrivateMessageId,
     new_deleted: bool,
   ) -> Result<PrivateMessage, Error> {
@@ -75,7 +78,7 @@ impl PrivateMessage {
   }
 
   pub fn update_read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     private_message_id: PrivateMessageId,
     new_read: bool,
   ) -> Result<PrivateMessage, Error> {
@@ -86,7 +89,7 @@ impl PrivateMessage {
   }
 
   pub fn mark_all_as_read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
     use crate::schema::private_message::dsl::*;
@@ -100,7 +103,7 @@ impl PrivateMessage {
   }
 
   pub fn upsert(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     private_message_form: &PrivateMessageForm,
   ) -> Result<PrivateMessage, Error> {
     use crate::schema::private_message::dsl::*;
@@ -113,7 +116,7 @@ impl PrivateMessage {
   }
 
   pub fn read_from_apub_id(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     object_id: Url,
   ) -> Result<Option<Self>, LemmyError> {
     use crate::schema::private_message::dsl::*;
@@ -147,7 +150,7 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let creator_form = PersonForm {
       name: "creator_pm".into(),
@@ -155,7 +158,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_creator = Person::create(&conn, &creator_form).unwrap();
+    let inserted_creator = Person::create(conn, &creator_form).unwrap();
 
     let recipient_form = PersonForm {
       name: "recipient_pm".into(),
@@ -163,7 +166,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_recipient = Person::create(&conn, &recipient_form).unwrap();
+    let inserted_recipient = Person::create(conn, &recipient_form).unwrap();
 
     let private_message_form = PrivateMessageForm {
       content: "A test private message".into(),
@@ -172,7 +175,7 @@ mod tests {
       ..PrivateMessageForm::default()
     };
 
-    let inserted_private_message = PrivateMessage::create(&conn, &private_message_form).unwrap();
+    let inserted_private_message = PrivateMessage::create(conn, &private_message_form).unwrap();
 
     let expected_private_message = PrivateMessage {
       id: inserted_private_message.id,
@@ -187,15 +190,15 @@ mod tests {
       local: true,
     };
 
-    let read_private_message = PrivateMessage::read(&conn, inserted_private_message.id).unwrap();
+    let read_private_message = PrivateMessage::read(conn, inserted_private_message.id).unwrap();
     let updated_private_message =
-      PrivateMessage::update(&conn, inserted_private_message.id, &private_message_form).unwrap();
+      PrivateMessage::update(conn, inserted_private_message.id, &private_message_form).unwrap();
     let deleted_private_message =
-      PrivateMessage::update_deleted(&conn, inserted_private_message.id, true).unwrap();
+      PrivateMessage::update_deleted(conn, inserted_private_message.id, true).unwrap();
     let marked_read_private_message =
-      PrivateMessage::update_read(&conn, inserted_private_message.id, true).unwrap();
-    Person::delete(&conn, inserted_creator.id).unwrap();
-    Person::delete(&conn, inserted_recipient.id).unwrap();
+      PrivateMessage::update_read(conn, inserted_private_message.id, true).unwrap();
+    Person::delete(conn, inserted_creator.id).unwrap();
+    Person::delete(conn, inserted_recipient.id).unwrap();
 
     assert_eq!(expected_private_message, read_private_message);
     assert_eq!(expected_private_message, updated_private_message);

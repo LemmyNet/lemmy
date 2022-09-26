@@ -35,7 +35,7 @@ impl Perform for MarkCommentReplyAsRead {
 
     let comment_reply_id = read_comment_reply.id;
     let read = data.read;
-    let update_reply = move |conn: &'_ _| CommentReply::update_read(conn, comment_reply_id, read);
+    let update_reply = move |conn: &mut _| CommentReply::update_read(conn, comment_reply_id, read);
     blocking(context.pool(), update_reply)
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;

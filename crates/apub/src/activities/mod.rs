@@ -67,7 +67,7 @@ pub(crate) async fn verify_person_in_community(
   let person_id = person.id;
   let community_id = community.id;
   let is_banned =
-    move |conn: &'_ _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
+    move |conn: &mut _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
   if blocking(context.pool(), is_banned).await? {
     return Err(LemmyError::from_message("Person is banned from community"));
   }

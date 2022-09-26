@@ -32,7 +32,7 @@ use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use url::Url;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ApubPerson(DbPerson);
 
 impl Deref for ApubPerson {
@@ -230,20 +230,22 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_person() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let (person, site) = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
-    DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
-    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
+    DbPerson::delete(conn, person.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_person() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
@@ -270,7 +272,7 @@ pub(crate) mod tests {
     assert_eq!(request_counter, 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
-    DbPerson::delete(&*context.pool().get().unwrap(), person.id).unwrap();
-    Site::delete(&*context.pool().get().unwrap(), site.id).unwrap();
+    DbPerson::delete(conn, person.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 }

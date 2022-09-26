@@ -19,22 +19,22 @@ use url::Url;
 impl Crud for Post {
   type Form = PostForm;
   type IdType = PostId;
-  fn read(conn: &PgConnection, post_id: PostId) -> Result<Self, Error> {
+  fn read(conn: &mut PgConnection, post_id: PostId) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
     post.find(post_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, post_id: PostId) -> Result<usize, Error> {
+  fn delete(conn: &mut PgConnection, post_id: PostId) -> Result<usize, Error> {
     use crate::schema::post::dsl::*;
     diesel::delete(post.find(post_id)).execute(conn)
   }
 
-  fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
     insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, post_id: PostId, new_post: &PostForm) -> Result<Self, Error> {
+  fn update(conn: &mut PgConnection, post_id: PostId, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
@@ -44,7 +44,7 @@ impl Crud for Post {
 
 impl Post {
   pub fn list_for_community(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
@@ -58,7 +58,11 @@ impl Post {
       .load::<Self>(conn)
   }
 
-  pub fn update_ap_id(conn: &PgConnection, post_id: PostId, apub_id: DbUrl) -> Result<Self, Error> {
+  pub fn update_ap_id(
+    conn: &mut PgConnection,
+    post_id: PostId,
+    apub_id: DbUrl,
+  ) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
@@ -67,7 +71,7 @@ impl Post {
   }
 
   pub fn permadelete_for_creator(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
@@ -87,7 +91,7 @@ impl Post {
   }
 
   pub fn update_deleted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     post_id: PostId,
     new_deleted: bool,
   ) -> Result<Self, Error> {
@@ -98,7 +102,7 @@ impl Post {
   }
 
   pub fn update_removed(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     post_id: PostId,
     new_removed: bool,
   ) -> Result<Self, Error> {
@@ -109,7 +113,7 @@ impl Post {
   }
 
   pub fn update_removed_for_creator(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
     new_removed: bool,
@@ -129,7 +133,7 @@ impl Post {
   }
 
   pub fn update_locked(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     post_id: PostId,
     new_locked: bool,
   ) -> Result<Self, Error> {
@@ -140,7 +144,7 @@ impl Post {
   }
 
   pub fn update_stickied(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     post_id: PostId,
     new_stickied: bool,
   ) -> Result<Self, Error> {
@@ -154,7 +158,7 @@ impl Post {
     person_id == post_creator_id
   }
 
-  pub fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
+  pub fn upsert(conn: &mut PgConnection, post_form: &PostForm) -> Result<Post, Error> {
     use crate::schema::post::dsl::*;
     insert_into(post)
       .values(post_form)
@@ -163,7 +167,7 @@ impl Post {
       .set(post_form)
       .get_result::<Self>(conn)
   }
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
+  pub fn read_from_apub_id(conn: &mut PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
     use crate::schema::post::dsl::*;
     let object_id: DbUrl = object_id.into();
     Ok(
@@ -176,7 +180,7 @@ impl Post {
   }
 
   pub fn fetch_pictrs_posts_for_creator(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
@@ -190,7 +194,7 @@ impl Post {
 
   /// Sets the url and thumbnails fields to None
   pub fn remove_pictrs_post_images_and_thumbnails_for_creator(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
@@ -209,7 +213,7 @@ impl Post {
   }
 
   pub fn fetch_pictrs_posts_for_community(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
@@ -222,7 +226,7 @@ impl Post {
 
   /// Sets the url and thumbnails fields to None
   pub fn remove_pictrs_post_images_and_thumbnails_for_community(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
@@ -244,7 +248,7 @@ impl Post {
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
-  fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
+  fn like(conn: &mut PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use crate::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
@@ -253,7 +257,7 @@ impl Likeable for PostLike {
       .set(post_like_form)
       .get_result::<Self>(conn)
   }
-  fn remove(conn: &PgConnection, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
+  fn remove(conn: &mut PgConnection, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     diesel::delete(
       dsl::post_like
@@ -266,7 +270,7 @@ impl Likeable for PostLike {
 
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
-  fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
+  fn save(conn: &mut PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     use crate::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
@@ -275,7 +279,7 @@ impl Saveable for PostSaved {
       .set(post_saved_form)
       .get_result::<Self>(conn)
   }
-  fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
+  fn unsave(conn: &mut PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     use crate::schema::post_saved::dsl::*;
     diesel::delete(
       post_saved
@@ -288,7 +292,7 @@ impl Saveable for PostSaved {
 
 impl Readable for PostRead {
   type Form = PostReadForm;
-  fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
+  fn mark_as_read(conn: &mut PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::*;
     insert_into(post_read)
       .values(post_read_form)
@@ -298,7 +302,10 @@ impl Readable for PostRead {
       .get_result::<Self>(conn)
   }
 
-  fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
+  fn mark_as_unread(
+    conn: &mut PgConnection,
+    post_read_form: &PostReadForm,
+  ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::*;
     diesel::delete(
       post_read
@@ -339,7 +346,7 @@ mod tests {
   #[test]
   #[serial]
   fn test_crud() {
-    let conn = establish_unpooled_connection();
+    let conn = &mut establish_unpooled_connection();
 
     let new_person = PersonForm {
       name: "jim".into(),
@@ -347,7 +354,7 @@ mod tests {
       ..PersonForm::default()
     };
 
-    let inserted_person = Person::create(&conn, &new_person).unwrap();
+    let inserted_person = Person::create(conn, &new_person).unwrap();
 
     let new_community = CommunityForm {
       name: "test community_3".to_string(),
@@ -356,7 +363,7 @@ mod tests {
       ..CommunityForm::default()
     };
 
-    let inserted_community = Community::create(&conn, &new_community).unwrap();
+    let inserted_community = Community::create(conn, &new_community).unwrap();
 
     let new_post = PostForm {
       name: "A test post".into(),
@@ -365,7 +372,7 @@ mod tests {
       ..PostForm::default()
     };
 
-    let inserted_post = Post::create(&conn, &new_post).unwrap();
+    let inserted_post = Post::create(conn, &new_post).unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -397,7 +404,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
+    let inserted_post_like = PostLike::like(conn, &post_like_form).unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -413,7 +420,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_saved = PostSaved::save(&conn, &post_saved_form).unwrap();
+    let inserted_post_saved = PostSaved::save(conn, &post_saved_form).unwrap();
 
     let expected_post_saved = PostSaved {
       id: inserted_post_saved.id,
@@ -428,7 +435,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_read = PostRead::mark_as_read(&conn, &post_read_form).unwrap();
+    let inserted_post_read = PostRead::mark_as_read(conn, &post_read_form).unwrap();
 
     let expected_post_read = PostRead {
       id: inserted_post_read.id,
@@ -437,14 +444,14 @@ mod tests {
       published: inserted_post_read.published,
     };
 
-    let read_post = Post::read(&conn, inserted_post.id).unwrap();
-    let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
-    let like_removed = PostLike::remove(&conn, inserted_person.id, inserted_post.id).unwrap();
-    let saved_removed = PostSaved::unsave(&conn, &post_saved_form).unwrap();
-    let read_removed = PostRead::mark_as_unread(&conn, &post_read_form).unwrap();
-    let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
-    Community::delete(&conn, inserted_community.id).unwrap();
-    Person::delete(&conn, inserted_person.id).unwrap();
+    let read_post = Post::read(conn, inserted_post.id).unwrap();
+    let updated_post = Post::update(conn, inserted_post.id, &new_post).unwrap();
+    let like_removed = PostLike::remove(conn, inserted_person.id, inserted_post.id).unwrap();
+    let saved_removed = PostSaved::unsave(conn, &post_saved_form).unwrap();
+    let read_removed = PostRead::mark_as_unread(conn, &post_read_form).unwrap();
+    let num_deleted = Post::delete(conn, inserted_post.id).unwrap();
+    Community::delete(conn, inserted_community.id).unwrap();
+    Person::delete(conn, inserted_person.id).unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);

@@ -143,7 +143,7 @@ impl ActivityHandler for CreateOrUpdateComment {
       person_id: comment.creator_id,
       score: 1,
     };
-    blocking(context.pool(), move |conn: &'_ _| {
+    blocking(context.pool(), move |conn: &mut _| {
       CommentLike::like(conn, &like_form)
     })
     .await??;
