@@ -4,16 +4,16 @@ use diesel::{result::Error, PgConnection};
 pub trait Crud {
   type Form;
   type IdType;
-  fn create(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn read(conn: &PgConnection, id: Self::IdType) -> Result<Self, Error>
+  fn read(conn: &mut PgConnection, id: Self::IdType) -> Result<Self, Error>
   where
     Self: Sized;
-  fn update(conn: &PgConnection, id: Self::IdType, form: &Self::Form) -> Result<Self, Error>
+  fn update(conn: &mut PgConnection, id: Self::IdType, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn delete(_conn: &PgConnection, _id: Self::IdType) -> Result<usize, Error>
+  fn delete(_conn: &mut PgConnection, _id: Self::IdType) -> Result<usize, Error>
   where
     Self: Sized,
   {
@@ -23,28 +23,29 @@ pub trait Crud {
 
 pub trait Followable {
   type Form;
-  fn follow(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn follow(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   fn follow_accepted(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     community_id: CommunityId,
     person_id: PersonId,
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  fn unfollow(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  fn unfollow(conn: &mut PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
-  fn has_local_followers(conn: &PgConnection, community_id: CommunityId) -> Result<bool, Error>;
+  fn has_local_followers(conn: &mut PgConnection, community_id: CommunityId)
+    -> Result<bool, Error>;
 }
 
 pub trait Joinable {
   type Form;
-  fn join(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn join(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn leave(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  fn leave(conn: &mut PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -52,11 +53,11 @@ pub trait Joinable {
 pub trait Likeable {
   type Form;
   type IdType;
-  fn like(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn like(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   fn remove(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     person_id: PersonId,
     item_id: Self::IdType,
   ) -> Result<usize, Error>
@@ -66,40 +67,40 @@ pub trait Likeable {
 
 pub trait Bannable {
   type Form;
-  fn ban(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn ban(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn unban(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  fn unban(conn: &mut PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
 
 pub trait Saveable {
   type Form;
-  fn save(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn save(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn unsave(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  fn unsave(conn: &mut PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
 
 pub trait Blockable {
   type Form;
-  fn block(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn block(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn unblock(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  fn unblock(conn: &mut PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
 
 pub trait Readable {
   type Form;
-  fn mark_as_read(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn mark_as_read(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  fn mark_as_unread(conn: &PgConnection, form: &Self::Form) -> Result<usize, Error>
+  fn mark_as_unread(conn: &mut PgConnection, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -107,18 +108,18 @@ pub trait Readable {
 pub trait Reportable {
   type Form;
   type IdType;
-  fn report(conn: &PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn report(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   fn resolve(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     report_id: Self::IdType,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
   where
     Self: Sized;
   fn unresolve(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     report_id: Self::IdType,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
@@ -149,20 +150,20 @@ pub trait ViewToVec {
 
 pub trait ApubActor {
   // TODO: this should be in a trait ApubObject (and implemented for Post, Comment, PrivateMessage as well)
-  fn read_from_apub_id(conn: &PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error>
+  fn read_from_apub_id(conn: &mut PgConnection, object_id: &DbUrl) -> Result<Option<Self>, Error>
   where
     Self: Sized;
   /// - actor_name is the name of the community or user to read.
   /// - include_deleted, if true, will return communities or users that were deleted/removed
   fn read_from_name(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     actor_name: &str,
     include_deleted: bool,
   ) -> Result<Self, Error>
   where
     Self: Sized;
   fn read_from_name_and_domain(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     actor_name: &str,
     protocol_domain: &str,
   ) -> Result<Self, Error>

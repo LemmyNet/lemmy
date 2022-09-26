@@ -35,7 +35,7 @@ impl Perform for ResolveCommentReport {
     is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
 
     let resolved = data.resolved;
-    let resolve_fun = move |conn: &'_ _| {
+    let resolve_fun = move |conn: &mut _| {
       if resolved {
         CommentReport::resolve(conn, report_id, person_id)
       } else {

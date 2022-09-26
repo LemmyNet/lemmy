@@ -36,7 +36,7 @@ impl Perform for MarkPersonMentionAsRead {
     let person_mention_id = read_person_mention.id;
     let read = data.read;
     let update_mention =
-      move |conn: &'_ _| PersonMention::update_read(conn, person_mention_id, read);
+      move |conn: &mut _| PersonMention::update_read(conn, person_mention_id, read);
     blocking(context.pool(), update_mention)
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;

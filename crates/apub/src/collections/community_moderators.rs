@@ -163,6 +163,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_community_moderators() {
     let context = init_context();
+    let conn = &mut context.pool().get().unwrap();
     let (new_mod, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
@@ -172,13 +173,13 @@ mod tests {
       public_key: Some("pubkey".to_string()),
       ..PersonForm::default()
     };
-    let old_mod = Person::create(&context.pool().get().unwrap(), &old_mod).unwrap();
+    let old_mod = Person::create(conn, &old_mod).unwrap();
     let community_moderator_form = CommunityModeratorForm {
       community_id: community.id,
       person_id: old_mod.id,
     };
 
-    CommunityModerator::join(&context.pool().get().unwrap(), &community_moderator_form).unwrap();
+    CommunityModerator::join(conn, &community_moderator_form).unwrap();
 
     assert_eq!(site.actor_id.to_string(), "https://enterprise.lemmy.ml/");
 
@@ -205,13 +206,9 @@ mod tests {
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(&*community_context.1.pool().get().unwrap(), old_mod.id).unwrap();
-    Person::delete(&*community_context.1.pool().get().unwrap(), new_mod.id).unwrap();
-    Community::delete(
-      &*community_context.1.pool().get().unwrap(),
-      community_context.0.id,
-    )
-    .unwrap();
-    Site::delete(&*community_context.1.pool().get().unwrap(), site.id).unwrap();
+    Person::delete(conn, old_mod.id).unwrap();
+    Person::delete(conn, new_mod.id).unwrap();
+    Community::delete(conn, community_context.0.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
   }
 }

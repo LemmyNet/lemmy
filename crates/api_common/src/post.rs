@@ -164,7 +164,7 @@ pub struct GetSiteMetadataResponse {
   pub metadata: SiteMetadata,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct SiteMetadata {
   pub title: Option<String>,
   pub description: Option<String>,

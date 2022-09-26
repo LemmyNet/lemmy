@@ -9,7 +9,7 @@ impl LocalUserLanguage {
   ///
   /// If no language_id vector is given, it will show all languages
   pub fn update_user_languages(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     language_ids: Option<Vec<LanguageId>>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
@@ -23,7 +23,7 @@ impl LocalUserLanguage {
         .collect(),
     );
 
-    conn.build_transaction().read_write().run(|| {
+    conn.build_transaction().read_write().run(|conn| {
       // Clear the current user languages
       delete(local_user_language.filter(local_user_id.eq(for_local_user_id))).execute(conn)?;
 

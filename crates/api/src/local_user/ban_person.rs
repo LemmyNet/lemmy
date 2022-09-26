@@ -41,7 +41,7 @@ impl Perform for BanPerson {
     let banned_person_id = data.person_id;
     let expires = data.expires.map(naive_from_unix);
 
-    let ban_person = move |conn: &'_ _| Person::ban_person(conn, banned_person_id, ban, expires);
+    let ban_person = move |conn: &mut _| Person::ban_person(conn, banned_person_id, ban, expires);
     let person = blocking(context.pool(), ban_person)
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;

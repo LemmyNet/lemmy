@@ -23,15 +23,15 @@ lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", featur
 lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
 lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
 activitypub_federation = "0.2.0"
-diesel = "1.4.8"
-bcrypt = "0.12.1"
-chrono = { version = "0.4.19", features = ["serde"], default-features = false }
-serde_json = { version = "1.0.79", features = ["preserve_order"] }
-serde = { version = "1.0.136", features = ["derive"] }
-actix-web = { version = "4.0.1", default-features = false }
+diesel = "2.0.0"
+bcrypt = "0.13.0"
+chrono = { version = "0.4.22", features = ["serde"], default-features = false }
+serde_json = { version = "1.0.85", features = ["preserve_order"] }
+serde = { version = "1.0.145", features = ["derive"] }
+actix-web = { version = "4.2.1", default-features = false }
 base64 = "0.13.0"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
-async-trait = "0.1.53"
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
+async-trait = "0.1.57"
 captcha = "0.0.9"
-anyhow = "1.0.56"
-tracing = "0.1.32"
+anyhow = "1.0.65"
+tracing = "0.1.36"

@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum PageType {
   Page,
   Article,

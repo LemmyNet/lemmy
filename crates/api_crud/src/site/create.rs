@@ -80,7 +80,7 @@ impl PerformCrud for CreateSite {
       ..SiteForm::default()
     };
 
-    let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
+    let create_site = move |conn: &mut _| Site::create(conn, &site_form);
     blocking(context.pool(), create_site)
       .await?
       .map_err(|e| LemmyError::from_error_message(e, "site_already_exists"))?;

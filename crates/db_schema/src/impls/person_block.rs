@@ -7,7 +7,7 @@ use diesel::{dsl::*, result::Error, *};
 
 impl PersonBlock {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     for_person_id: PersonId,
     for_recipient_id: PersonId,
   ) -> Result<Self, Error> {
@@ -21,7 +21,7 @@ impl PersonBlock {
 
 impl Blockable for PersonBlock {
   type Form = PersonBlockForm;
-  fn block(conn: &PgConnection, person_block_form: &PersonBlockForm) -> Result<Self, Error> {
+  fn block(conn: &mut PgConnection, person_block_form: &PersonBlockForm) -> Result<Self, Error> {
     use crate::schema::person_block::dsl::*;
     insert_into(person_block)
       .values(person_block_form)
@@ -30,7 +30,7 @@ impl Blockable for PersonBlock {
       .set(person_block_form)
       .get_result::<Self>(conn)
   }
-  fn unblock(conn: &PgConnection, person_block_form: &Self::Form) -> Result<usize, Error> {
+  fn unblock(conn: &mut PgConnection, person_block_form: &Self::Form) -> Result<usize, Error> {
     use crate::schema::person_block::dsl::*;
     diesel::delete(
       person_block

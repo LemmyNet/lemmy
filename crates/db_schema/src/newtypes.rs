@@ -86,9 +86,9 @@ pub struct LocalUserLanguageId(pub i32);
 pub struct CommentReplyId(i32);
 
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
-#[cfg_attr(feature = "full", sql_type = "diesel::sql_types::Text")]
+#[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
 pub struct DbUrl(pub(crate) Url);
 
 #[derive(Serialize, Deserialize)]

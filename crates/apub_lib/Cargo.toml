@@ -1,0 +1,31 @@
+[package]
+name = "lemmy_apub_lib"
+version = "0.16.3"
+edition = "2021"
+description = "A link aggregator for the fediverse"
+license = "AGPL-3.0"
+homepage = "https://join-lemmy.org/"
+documentation = "https://join-lemmy.org/docs/en/index.html"
+
+[dependencies]
+lemmy_utils = { version = "=0.16.3", path = "../utils" }
+lemmy_apub_lib_derive = { version = "=0.16.3", path = "../apub_lib_derive" }
+chrono = { version = "0.4.19", default-features = false }
+serde = { version = "1.0.136", features = ["derive"] }
+async-trait = "0.1.53"
+url = { version = "2.2.2", features = ["serde"] }
+serde_json = { version = "1.0.79", features = ["preserve_order"] }
+anyhow = "1.0.56"
+reqwest = { version = "0.11.10", features = ["json"] }
+reqwest-middleware = "0.1.5"
+tracing = "0.1.32"
+base64 = "0.13.0"
+openssl = "0.10.38"
+once_cell = "1.10.0"
+http = "0.2.6"
+sha2 = "0.10.2"
+actix-web = { version = "4.0.1", default-features = false }
+http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }
+http-signature-normalization-reqwest = { version = "0.5.0", default-features = false, features = ["sha-2", "middleware"] }
+background-jobs = "0.12.0"
+diesel = { version = "2.0.0-rc.0", features = ["chrono"] }

@@ -54,7 +54,7 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 impl PostView {
   pub fn read(
-    conn: &PgConnection,
+    conn: &mut PgConnection,
     post_id: PostId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -181,7 +181,7 @@ impl PostView {
 #[builder(field_defaults(default))]
 pub struct PostQuery<'a> {
   #[builder(!default)]
-  conn: &'a PgConnection,
+  conn: &'a mut PgConnection,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -489,7 +489,7 @@ mod tests {
     inserted_post: Post,
   }
 
-  fn init_data(conn: &PgConnection) -> Data {
+  fn init_data(conn: &mut PgConnection) -> Data {
     let person_name = "tegan".to_string();
 
     let new_person = PersonForm {
@@ -585,18 +585,18 @@ mod tests {
   #[test]
   #[serial]
   fn post_listing_with_person() {
-    let conn = establish_unpooled_connection();
-    let data = init_data(&conn);
+    let conn = &mut establish_unpooled_connection();
+    let data = init_data(conn);
 
     let local_user_form = LocalUserForm {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
     let inserted_local_user =
-      LocalUser::update(&conn, data.inserted_local_user.id, &local_user_form).unwrap();
+      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form).unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -605,9 +605,9 @@ mod tests {
       .unwrap();
 
     let post_listing_single_with_person =
-      PostView::read(&conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
+      PostView::read(conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
 
-    let mut expected_post_listing_with_user = expected_post_view(&data, &conn);
+    let mut expected_post_listing_with_user = expected_post_view(&data, conn);
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(1, read_post_listing.len());
@@ -624,10 +624,10 @@ mod tests {
       ..Default::default()
     };
     let inserted_local_user =
-      LocalUser::update(&conn, data.inserted_local_user.id, &local_user_form).unwrap();
+      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form).unwrap();
 
     let post_listings_with_bots = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -637,17 +637,17 @@ mod tests {
     // should include bot post which has "undetermined" language
     assert_eq!(2, post_listings_with_bots.len());
 
-    cleanup(data, &conn);
+    cleanup(data, conn);
   }
 
   #[test]
   #[serial]
   fn post_listing_no_person() {
-    let conn = establish_unpooled_connection();
-    let data = init_data(&conn);
+    let conn = &mut establish_unpooled_connection();
+    let data = init_data(conn);
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .build()
@@ -655,9 +655,9 @@ mod tests {
       .unwrap();
 
     let read_post_listing_single_no_person =
-      PostView::read(&conn, data.inserted_post.id, None).unwrap();
+      PostView::read(conn, data.inserted_post.id, None).unwrap();
 
-    let expected_post_listing_no_person = expected_post_view(&data, &conn);
+    let expected_post_listing_no_person = expected_post_view(&data, conn);
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(3, read_post_listing_multiple_no_person.len());
@@ -671,23 +671,23 @@ mod tests {
       read_post_listing_single_no_person
     );
 
-    cleanup(data, &conn);
+    cleanup(data, conn);
   }
 
   #[test]
   #[serial]
   fn post_listing_block_community() {
-    let conn = establish_unpooled_connection();
-    let data = init_data(&conn);
+    let conn = &mut establish_unpooled_connection();
+    let data = init_data(conn);
 
     let community_block = CommunityBlockForm {
       person_id: data.inserted_person.id,
       community_id: data.inserted_community.id,
     };
-    CommunityBlock::block(&conn, &community_block).unwrap();
+    CommunityBlock::block(conn, &community_block).unwrap();
 
     let read_post_listings_with_person_after_block = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&data.inserted_local_user))
@@ -697,15 +697,15 @@ mod tests {
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
-    CommunityBlock::unblock(&conn, &community_block).unwrap();
-    cleanup(data, &conn);
+    CommunityBlock::unblock(conn, &community_block).unwrap();
+    cleanup(data, conn);
   }
 
   #[test]
   #[serial]
   fn post_listing_like() {
-    let conn = establish_unpooled_connection();
-    let data = init_data(&conn);
+    let conn = &mut establish_unpooled_connection();
+    let data = init_data(conn);
 
     let post_like_form = PostLikeForm {
       post_id: data.inserted_post.id,
@@ -713,7 +713,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
+    let inserted_post_like = PostLike::like(conn, &post_like_form).unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -725,18 +725,18 @@ mod tests {
     assert_eq!(expected_post_like, inserted_post_like);
 
     let like_removed =
-      PostLike::remove(&conn, data.inserted_person.id, data.inserted_post.id).unwrap();
+      PostLike::remove(conn, data.inserted_person.id, data.inserted_post.id).unwrap();
     assert_eq!(1, like_removed);
-    cleanup(data, &conn);
+    cleanup(data, conn);
   }
 
   #[test]
   #[serial]
   fn post_listing_person_language() {
-    let conn = establish_unpooled_connection();
-    let data = init_data(&conn);
+    let conn = &mut establish_unpooled_connection();
+    let data = init_data(conn);
 
-    let spanish_id = Language::read_id_from_code(&conn, "es").unwrap();
+    let spanish_id = Language::read_id_from_code(conn, "es").unwrap();
     let post_spanish = PostForm {
       name: "asffgdsc".to_string(),
       creator_id: data.inserted_person.id,
@@ -745,10 +745,10 @@ mod tests {
       ..PostForm::default()
     };
 
-    Post::create(&conn, &post_spanish).unwrap();
+    Post::create(conn, &post_spanish).unwrap();
 
     let post_listings_all = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -758,16 +758,16 @@ mod tests {
     // no language filters specified, all posts should be returned
     assert_eq!(3, post_listings_all.len());
 
-    let french_id = Language::read_id_from_code(&conn, "fr").unwrap();
+    let french_id = Language::read_id_from_code(conn, "fr").unwrap();
     LocalUserLanguage::update_user_languages(
-      &conn,
+      conn,
       Some(vec![french_id]),
       data.inserted_local_user.id,
     )
     .unwrap();
 
     let post_listing_french = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -778,15 +778,15 @@ mod tests {
     assert_eq!(1, post_listing_french.len());
     assert_eq!(french_id, post_listing_french[0].post.language_id);
 
-    let undetermined_id = Language::read_id_from_code(&conn, "und").unwrap();
+    let undetermined_id = Language::read_id_from_code(conn, "und").unwrap();
     LocalUserLanguage::update_user_languages(
-      &conn,
+      conn,
       Some(vec![french_id, undetermined_id]),
       data.inserted_local_user.id,
     )
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
-      .conn(&conn)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -801,10 +801,10 @@ mod tests {
     );
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
 
-    cleanup(data, &conn);
+    cleanup(data, conn);
   }
 
-  fn cleanup(data: Data, conn: &PgConnection) {
+  fn cleanup(data: Data, conn: &mut PgConnection) {
     let num_deleted = Post::delete(conn, data.inserted_post.id).unwrap();
     Community::delete(conn, data.inserted_community.id).unwrap();
     Person::delete(conn, data.inserted_person.id).unwrap();
@@ -813,7 +813,7 @@ mod tests {
     assert_eq!(1, num_deleted);
   }
 
-  fn expected_post_view(data: &Data, conn: &PgConnection) -> PostView {
+  fn expected_post_view(data: &Data, conn: &mut PgConnection) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,
