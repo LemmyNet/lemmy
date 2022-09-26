@@ -60,7 +60,6 @@ impl PerformCrud for GetPersonDetails {
     let page = data.page;
     let limit = data.limit;
     let saved_only = data.saved_only;
-    let show_deleted_and_removed = data.show_deleted_and_removed;
     let community_id = data.community_id;
     let local_user = local_user_view.map(|l| l.local_user);
     let local_user_clone = local_user.to_owned();
@@ -94,7 +93,7 @@ impl PerformCrud for GetPersonDetails {
         .local_user(local_user_clone.as_ref())
         .sort(sort.map(post_to_comment_sort_type))
         .saved_only(saved_only)
-        .show_deleted_and_removed(show_deleted_and_removed)
+        .show_deleted_and_removed(Some(false))
         .community_id(community_id)
         .page(page)
         .limit(limit);
