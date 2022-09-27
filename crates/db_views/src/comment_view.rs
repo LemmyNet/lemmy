@@ -13,7 +13,6 @@ use lemmy_db_schema::{
     community_block,
     community_follower,
     community_person_ban,
-    language,
     local_user_language,
     person,
     person_block,
@@ -231,7 +230,6 @@ impl<'a> CommentQuery<'a> {
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
-      .inner_join(language::table)
       .left_join(
         local_user_language::table.on(
           comment::language_id

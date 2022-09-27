@@ -21,7 +21,7 @@ impl Perform for PasswordReset {
     let data: &PasswordReset = self;
 
     // Fetch that email
-    let email = data.email.clone();
+    let email = data.email.to_lowercase();
     let local_user_view = blocking(context.pool(), move |conn| {
       LocalUserView::find_by_email(conn, &email)
     })
