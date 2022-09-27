@@ -8,7 +8,6 @@ use lemmy_db_schema::{
     community_block,
     community_follower,
     community_person_ban,
-    language,
     local_user_language,
     person,
     person_block,
@@ -20,7 +19,6 @@ use lemmy_db_schema::{
   },
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
-    language::Language,
     local_user::LocalUser,
     person::{Person, PersonSafe},
     person_block::PersonBlock,
@@ -45,7 +43,6 @@ type PostViewTuple = (
   Option<PostRead>,
   Option<PersonBlock>,
   Option<i16>,
-  Language,
 );
 
 impl PostView {
@@ -67,7 +64,6 @@ impl PostView {
       read,
       creator_blocked,
       post_like,
-      language,
     ) = post::table
       .find(post_id)
       .inner_join(person::table)
@@ -120,7 +116,6 @@ impl PostView {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
-      .inner_join(language::table)
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -132,7 +127,6 @@ impl PostView {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
-        language::all_columns,
       ))
       .first::<PostViewTuple>(conn)?;
 
@@ -155,7 +149,6 @@ impl PostView {
       read: read.is_some(),
       creator_blocked: creator_blocked.is_some(),
       my_vote,
-      language,
     })
   }
 }
@@ -244,7 +237,6 @@ impl<'a> PostQuery<'a> {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
-      .inner_join(language::table)
       .left_join(
         local_user_language::table.on(
           post::language_id
@@ -263,7 +255,6 @@ impl<'a> PostQuery<'a> {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
-        language::all_columns,
       ))
       .into_boxed();
 
@@ -421,7 +412,6 @@ impl ViewToVec for PostView {
         read: a.7.is_some(),
         creator_blocked: a.8.is_some(),
         my_vote: a.9,
-        language: a.10,
       })
       .collect::<Vec<Self>>()
   }
@@ -870,11 +860,6 @@ mod tests {
       read: false,
       saved: false,
       creator_blocked: false,
-      language: Language {
-        id: LanguageId(47),
-        code: "fr".to_string(),
-        name: "Français".to_string(),
-      },
     }
   }
 }
