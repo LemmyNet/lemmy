@@ -6,6 +6,7 @@ use crate::schema::{
   comment_aggregates,
   community_aggregates,
   person_aggregates,
+  person_post_aggregates,
   post_aggregates,
   site_aggregates,
 };
@@ -75,6 +76,28 @@ pub struct PostAggregates {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", diesel(table_name = person_post_aggregates))]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
+pub struct PersonPostAggregates {
+  pub id: i32,
+  pub person_id: PersonId,
+  pub post_id: PostId,
+  pub read_comments: i64,
+  pub published: chrono::NaiveDateTime,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_post_aggregates))]
+pub struct PersonPostAggregatesForm {
+  pub person_id: PersonId,
+  pub post_id: PostId,
+  pub read_comments: i64,
+  pub published: Option<chrono::NaiveDateTime>,
+}
+
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = site_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]

@@ -63,6 +63,7 @@ impl PerformCrud for GetComments {
       None
     };
 
+    let parent_path_cloned = parent_path.to_owned();
     let post_id = data.post_id;
     let local_user = local_user_view.map(|l| l.local_user);
     let mut comments = blocking(context.pool(), move |conn| {
@@ -74,7 +75,7 @@ impl PerformCrud for GetComments {
         .saved_only(saved_only)
         .community_id(community_id)
         .community_actor_id(community_actor_id)
-        .parent_path(parent_path)
+        .parent_path(parent_path_cloned)
         .post_id(post_id)
         .local_user(local_user.as_ref())
         .page(page)

@@ -8,7 +8,7 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe},
   },
-  traits::{ToSafe, ToSafeSettings},
+  traits::{ToSafe, ToSafeSettings, ViewToVec},
   utils::functions::lower,
 };
 
@@ -133,5 +133,35 @@ impl LocalUserSettingsView {
       person,
       counts,
     })
+  }
+
+  pub fn list_admins_with_emails(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
+    let res = local_user::table
+      .filter(person::admin.eq(true))
+      .filter(local_user::email.is_not_null())
+      .inner_join(person::table)
+      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+      .select((
+        LocalUser::safe_settings_columns_tuple(),
+        Person::safe_columns_tuple(),
+        person_aggregates::all_columns,
+      ))
+      .load::<LocalUserSettingsViewTuple>(conn)?;
+
+    Ok(LocalUserSettingsView::from_tuple_to_vec(res))
+  }
+}
+
+impl ViewToVec for LocalUserSettingsView {
+  type DbTuple = LocalUserSettingsViewTuple;
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
+      .into_iter()
+      .map(|a| Self {
+        local_user: a.0,
+        person: a.1,
+        counts: a.2,
+      })
+      .collect::<Vec<Self>>()
   }
 }

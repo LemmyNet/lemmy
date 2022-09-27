@@ -381,6 +381,16 @@ table! {
 }
 
 table! {
+    person_post_aggregates (id) {
+        id -> Int4,
+        person_id -> Int4,
+        post_id -> Int4,
+        read_comments -> Int8,
+        published -> Timestamp,
+    }
+}
+
+table! {
     post_aggregates (id) {
         id -> Int4,
         post_id -> Int4,
@@ -494,6 +504,7 @@ table! {
         default_theme -> Text,
         default_post_listing_type -> Text,
         legal_information -> Nullable<Text>,
+        application_email_admins -> Bool,
         hide_modlog_mod_names -> Bool,
     }
 }
@@ -667,6 +678,8 @@ joinable!(comment_reply -> comment (comment_id));
 joinable!(comment_reply -> person (recipient_id));
 joinable!(post -> community (community_id));
 joinable!(post -> person (creator_id));
+joinable!(person_post_aggregates -> post (post_id));
+joinable!(person_post_aggregates -> person (person_id));
 joinable!(post_aggregates -> post (post_id));
 joinable!(post_like -> person (person_id));
 joinable!(post_like -> post (post_id));
@@ -725,6 +738,7 @@ allow_tables_to_appear_in_same_query!(
   person_ban,
   person_block,
   person_mention,
+  person_post_aggregates,
   comment_reply,
   post,
   post_aggregates,
