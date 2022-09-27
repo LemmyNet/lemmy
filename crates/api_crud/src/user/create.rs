@@ -144,7 +144,7 @@ impl PerformCrud for Register {
     // Create the local user
     let local_user_form = LocalUserForm {
       person_id: Some(inserted_person.id),
-      email: Some(data.email.as_deref().map(|s| s.to_owned())),
+      email: Some(data.email.as_deref().map(|s| s.to_lowercase())),
       password_encrypted: Some(data.password.to_string()),
       show_nsfw: Some(data.show_nsfw),
       email_verified: Some(false),
