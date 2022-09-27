@@ -452,8 +452,16 @@ pub fn send_email_verification_success(
 }
 
 pub fn get_interface_language(user: &LocalUserView) -> Lang {
-  let user_lang = LanguageId::new(user.local_user.interface_language.clone());
-  Lang::from_language_id(&user_lang).unwrap_or_else(|| {
+  lang_str_to_lang(&user.local_user.interface_language)
+}
+
+pub fn get_interface_language_from_settings(user: &LocalUserSettingsView) -> Lang {
+  lang_str_to_lang(&user.local_user.interface_language)
+}
+
+fn lang_str_to_lang(lang: &str) -> Lang {
+  let lang_id = LanguageId::new(lang);
+  Lang::from_language_id(&lang_id).unwrap_or_else(|| {
     let en = LanguageId::new("en");
     Lang::from_language_id(&en).expect("default language")
   })
@@ -468,6 +476,33 @@ pub fn send_application_approved_email(
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
   send_email(&subject, email, &user.person.name, &body, settings)
+}
+
+/// Send a new applicant email notification to all admins
+pub async fn send_new_applicant_email_to_admins(
+  applicant_username: &str,
+  pool: &DbPool,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  // Collect the admins with emails
+  let admins = blocking(pool, move |conn| {
+    LocalUserSettingsView::list_admins_with_emails(conn)
+  })
+  .await??;
+
+  let applications_link = &format!(
+    "{}/registration_applications",
+    settings.get_protocol_and_hostname(),
+  );
+
+  for admin in &admins {
+    let email = &admin.local_user.email.to_owned().expect("email");
+    let lang = get_interface_language_from_settings(admin);
+    let subject = lang.new_application_subject(applicant_username, &settings.hostname);
+    let body = lang.new_application_body(applications_link);
+    send_email(&subject, email, &admin.person.name, &body, settings)?;
+  }
+  Ok(())
 }
 
 pub async fn check_registration_application(

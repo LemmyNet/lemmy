@@ -504,6 +504,7 @@ table! {
         default_theme -> Text,
         default_post_listing_type -> Text,
         legal_information -> Nullable<Text>,
+        application_email_admins -> Bool,
         hide_modlog_mod_names -> Bool,
     }
 }
