@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read},
 };
 use lemmy_db_schema::{
+  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::comment::Comment,
   traits::{Crud, DeleteableOrRemoveable},
 };
@@ -63,6 +64,23 @@ impl PerformCrud for GetPost {
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+
+    // Insert into PersonPostAggregates
+    // to update the read_comments count
+    if let Some(person_id) = person_id {
+      let read_comments = post_view.counts.comments;
+      let person_post_agg_form = PersonPostAggregatesForm {
+        person_id,
+        post_id,
+        read_comments,
+        ..PersonPostAggregatesForm::default()
+      };
+      blocking(context.pool(), move |conn| {
+        PersonPostAggregates::upsert(conn, &person_post_agg_form)
+      })
+      .await?
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
+    }
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {
