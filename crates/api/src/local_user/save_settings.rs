@@ -42,7 +42,7 @@ impl Perform for SaveUserSettings {
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
     let bot_account = data.bot_account;
-    let email_deref = data.email.as_deref().map(|e| e.to_owned());
+    let email_deref = data.email.as_deref().map(|e| e.to_lowercase());
     let email = diesel_option_overwrite(&email_deref);
 
     if let Some(Some(email)) = &email {
