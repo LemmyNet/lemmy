@@ -11,6 +11,7 @@ use lemmy_db_schema::{
     local_user_language,
     person,
     person_block,
+    person_post_aggregates,
     post,
     post_aggregates,
     post_like,
@@ -43,7 +44,10 @@ type PostViewTuple = (
   Option<PostRead>,
   Option<PersonBlock>,
   Option<i16>,
+  i64,
 );
+
+sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
 impl PostView {
   pub fn read(
@@ -64,6 +68,7 @@ impl PostView {
       read,
       creator_blocked,
       post_like,
+      unread_comments,
     ) = post::table
       .find(post_id)
       .inner_join(person::table)
@@ -116,6 +121,13 @@ impl PostView {
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        person_post_aggregates::table.on(
+          post::id
+            .eq(person_post_aggregates::post_id)
+            .and(person_post_aggregates::person_id.eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -127,6 +139,10 @@ impl PostView {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
+        coalesce(
+          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
+          post_aggregates::comments,
+        ),
       ))
       .first::<PostViewTuple>(conn)?;
 
@@ -149,6 +165,7 @@ impl PostView {
       read: read.is_some(),
       creator_blocked: creator_blocked.is_some(),
       my_vote,
+      unread_comments,
     })
   }
 }
@@ -238,6 +255,13 @@ impl<'a> PostQuery<'a> {
         ),
       )
       .left_join(
+        person_post_aggregates::table.on(
+          post::id
+            .eq(person_post_aggregates::post_id)
+            .and(person_post_aggregates::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         local_user_language::table.on(
           post::language_id
             .eq(local_user_language::language_id)
@@ -255,6 +279,10 @@ impl<'a> PostQuery<'a> {
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
         post_like::score.nullable(),
+        coalesce(
+          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
+          post_aggregates::comments,
+        ),
       ))
       .into_boxed();
 
@@ -412,6 +440,7 @@ impl ViewToVec for PostView {
         read: a.7.is_some(),
         creator_blocked: a.8.is_some(),
         my_vote: a.9,
+        unread_comments: a.10,
       })
       .collect::<Vec<Self>>()
   }
@@ -806,6 +835,7 @@ mod tests {
         language_id: LanguageId(47),
       },
       my_vote: None,
+      unread_comments: 0,
       creator: PersonSafe {
         id: inserted_person.id,
         name: inserted_person.name.clone(),

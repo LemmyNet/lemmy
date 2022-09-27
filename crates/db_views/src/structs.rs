@@ -85,6 +85,7 @@ pub struct PostView {
   pub read: bool,                 // Left join to PostRead
   pub creator_blocked: bool,      // Left join to PersonBlock
   pub my_vote: Option<i16>,       // Left join to PostLike
+  pub unread_comments: i64,       // Left join to PersonPostAggregates
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
