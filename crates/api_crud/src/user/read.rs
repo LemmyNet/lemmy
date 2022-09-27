@@ -37,7 +37,7 @@ impl PerformCrud for GetPersonDetails {
       Some(id) => id,
       None => {
         if let Some(username) = &data.username {
-          resolve_actor_identifier::<ApubPerson, Person>(username, context)
+          resolve_actor_identifier::<ApubPerson, Person>(username, context, true)
             .await
             .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
             .id
