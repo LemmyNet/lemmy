@@ -21,6 +21,7 @@ impl PersonBlockView {
         person_alias_1.fields(Person::safe_columns_tuple()),
       ))
       .filter(person_block::person_id.eq(person_id))
+      .filter(person_alias_1.field(person::deleted).eq(false))
       .order_by(person_block::published)
       .load::<PersonBlockViewTuple>(conn)?;
 

@@ -41,7 +41,7 @@ impl PerformCrud for GetPosts {
     let limit = data.limit;
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)
         .await
         .ok()
         .map(|c| c.actor_id)

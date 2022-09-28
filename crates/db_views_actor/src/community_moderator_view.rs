@@ -40,6 +40,8 @@ impl CommunityModeratorView {
         Person::safe_columns_tuple(),
       ))
       .filter(community_moderator::person_id.eq(person_id))
+      .filter(community::deleted.eq(false))
+      .filter(community::removed.eq(false))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;
 

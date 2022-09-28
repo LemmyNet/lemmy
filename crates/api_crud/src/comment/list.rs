@@ -38,7 +38,7 @@ impl PerformCrud for GetComments {
     let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
 
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)
         .await
         .ok()
         .map(|c| c.actor_id)

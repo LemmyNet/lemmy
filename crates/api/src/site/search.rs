@@ -51,7 +51,7 @@ impl Perform for Search {
     let search_type = data.type_.unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, false)
         .await
         .ok()
         .map(|c| c.actor_id)
