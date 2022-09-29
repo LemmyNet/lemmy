@@ -154,8 +154,11 @@ impl CommentReplyView {
     use diesel::dsl::*;
 
     comment_reply::table
+      .inner_join(comment::table)
       .filter(comment_reply::recipient_id.eq(my_person_id))
       .filter(comment_reply::read.eq(false))
+      .filter(comment::deleted.eq(false))
+      .filter(comment::removed.eq(false))
       .select(count(comment_reply::id))
       .first::<i64>(conn)
   }
