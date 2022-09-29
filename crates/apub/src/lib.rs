@@ -2,7 +2,7 @@ use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{
   core::signatures::PublicKey,
   traits::{Actor, ApubObject},
-  InstanceSettingsBuilder,
+  InstanceSettings,
   LocalInstance,
 };
 use anyhow::Context;
@@ -34,13 +34,14 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
   static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::new();
   LOCAL_INSTANCE.get_or_init(|| {
-    let settings = InstanceSettingsBuilder::default()
+    let settings = InstanceSettings::builder()
       .http_fetch_retry_limit(context.settings().federation.http_fetch_retry_limit)
       .worker_count(context.settings().federation.worker_count)
       .debug(context.settings().federation.debug)
       // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
       // without the value getting captured.
       .verify_url_function(|url| check_apub_id_valid(url, &SETTINGS))
+      .http_signature_compat(true)
       .build()
       .expect("configure federation");
     LocalInstance::new(
