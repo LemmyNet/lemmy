@@ -157,8 +157,11 @@ impl PersonMentionView {
     use diesel::dsl::*;
 
     person_mention::table
+      .inner_join(comment::table)
       .filter(person_mention::recipient_id.eq(my_person_id))
       .filter(person_mention::read.eq(false))
+      .filter(comment::deleted.eq(false))
+      .filter(comment::removed.eq(false))
       .select(count(person_mention::id))
       .first::<i64>(conn)
   }
