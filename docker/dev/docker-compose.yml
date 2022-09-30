@@ -9,62 +9,58 @@ networks:
     internal: true
 
 services:
-  lemmy-proxy:
+  proxy:
     image: nginx:1-alpine
-    container_name: lemmy-proxy
     networks:
       - lemmyinternal
       - lemmyexternalproxy
     ports:
     # actual and only port facing any connection from outside 
-      - "1239:1236"
+      - "1236:1236"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx_proxy.conf:/etc/nginx/proxy.conf:ro
-    restart: unless-stopped
+    restart: always
     depends_on:
-      - lemmy-pictrs
+      - pictrs
       - lemmy-ui
 
   lemmy:
     image: dessalines/lemmy:dev
-    container_name: lemmy
+    # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
     hostname: lemmy
     networks:
       - lemmyinternal
-    restart: unless-stopped
+    restart: always
     environment:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
       - RUST_BACKTRACE=full
     volumes:
       - ./../lemmy.hjson:/config/config.hjson
     depends_on:
-      - lemmy-pg
-      - lemmy-pictrs
+      - postgres
+      - pictrs
 
   lemmy-ui:
     image: dessalines/lemmy-ui:dev
-    container_name: lemmy-ui
     networks:
       - lemmyinternal
-    restart: unless-stopped
     environment:
       # this needs to match the hostname defined in the lemmy service
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
       # set the outside hostname here
-      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1239
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1236
       - LEMMY_HTTPS=false
       - LEMMY_UI_DEBUG=true
     depends_on:
       - lemmy
+    restart: always
 
-  lemmy-pictrs:
+  pictrs:
     image: asonix/pictrs:0.3.1
-    container_name: lemmy-pictrs
     # this needs to match the pictrs url in lemmy.hjson
     hostname: pictrs
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion
-    entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
+    # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
     networks:
       - lemmyinternal
     environment:
@@ -75,11 +71,10 @@ services:
     user: 991:991
     volumes:
       - ./volumes/pictrs:/mnt
-    restart: unless-stopped
+    restart: always
 
-  lemmy-pg:
+  postgres:
     image: postgres:14-alpine
-    container_name: lemmy-pg
     # this needs to match the database host in lemmy.hson
     hostname: postgres
     command: ["postgres", "-c", "session_preload_libraries=auto_explain", "-c", "auto_explain.log_min_duration=5ms", "-c", "auto_explain.log_analyze=true"]
@@ -96,7 +91,7 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: always
 
   otel:
     image: otel/opentelemetry-collector:latest
@@ -110,7 +105,7 @@ services:
       - type: bind
         source: ./otel.yml
         target: /otel-local-config.yaml
-    restart: always
+    restart: unless-stopped
     depends_on:
       - jaeger
   
@@ -123,4 +118,4 @@ services:
       - "14250:14250"
       # To view traces, visit http://localhost:16686
       - "16686:16686"
-    restart: always
+    restart: unless-stopped
