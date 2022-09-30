@@ -80,16 +80,15 @@ impl PerformCrud for EditComment {
       .await?;
     }
 
-    if let Some(language_id) = data.language_id {
-      blocking(context.pool(), move |conn| {
-        CommunityLanguage::is_allowed_community_language(
-          conn,
-          language_id,
-          orig_comment.community.id,
-        )
-      })
-      .await??;
-    }
+    let language_id = self.language_id;
+    blocking(context.pool(), move |conn| {
+      CommunityLanguage::is_allowed_community_language_opt(
+        conn,
+        language_id,
+        orig_comment.community.id,
+      )
+    })
+    .await??;
 
     // Update the Content
     let content_slurs_removed = data

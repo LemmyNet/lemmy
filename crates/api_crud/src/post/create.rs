@@ -195,35 +195,3 @@ impl PerformCrud for CreatePost {
     .await
   }
 }
-
-/// Check the intersection of user languages and community languages. If it contains only one item,
-/// use that as default language for the post. Otherwise, use "undetermined".
-async fn default_post_language(
-  local_user_id: LocalUserId,
-  community_id: CommunityId,
-  pool: &DbPool,
-) -> Result<LanguageId, LemmyError> {
-  let (user_langs, community_langs, undetermined_lang) = blocking(pool, move |conn| {
-    Ok::<(Vec<LanguageId>, Vec<LanguageId>, LanguageId), LemmyError>((
-      LocalUserLanguage::read(conn, local_user_id)?,
-      CommunityLanguage::read(conn, community_id)?,
-      Language::read_undetermined(conn)?,
-    ))
-  })
-  .await??;
-  let common_langs = vec_intersection(user_langs, community_langs);
-  if common_langs.len() == 1 {
-    Ok(common_langs[0])
-  } else {
-    Ok(undetermined_lang)
-  }
-}
-
-fn vec_intersection<T>(a: Vec<T>, b: Vec<T>) -> Vec<T>
-where
-  T: Eq + Hash + Clone,
-{
-  let a: HashSet<T> = a.into_iter().collect();
-  let b: HashSet<T> = b.into_iter().collect();
-  a.intersection(&b).into_iter().cloned().collect()
-}

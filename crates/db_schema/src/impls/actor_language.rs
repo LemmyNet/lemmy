@@ -1,9 +1,17 @@
 use crate::{
+  diesel::{query_dsl::InternalJoinDsl, JoinOnDsl},
   newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
-  source::{actor_language::*, community::Community, language::Language, site::Site},
+  source::{actor_language::*, community::Community, language::Language},
 };
 use diesel::{
-  delete, dsl::*, insert_into, result::Error, select, ExpressionMethods, PgConnection, QueryDsl,
+  delete,
+  dsl::*,
+  insert_into,
+  result::Error,
+  select,
+  ExpressionMethods,
+  PgConnection,
+  QueryDsl,
   RunQueryDsl,
 };
 use lemmy_utils::error::LemmyError;
@@ -51,10 +59,16 @@ impl LocalUserLanguage {
 
 impl SiteLanguage {
   pub fn read_local(conn: &mut PgConnection) -> Result<Vec<LanguageId>, Error> {
-    conn.build_transaction().read_write().run(|conn| {
-      let local_site = Site::read_local(conn)?;
-      SiteLanguage::read(conn, local_site.id)
-    })
+    use crate::schema::{site, site_language::dsl::*};
+    let subquery = crate::schema::site::dsl::site
+      .order_by(site::id)
+      .select(site::id)
+      .limit(1)
+      .into_boxed();
+    site_language
+      .filter(site_id.eq_any(subquery))
+      .select(language_id)
+      .load(conn)
   }
 
   pub fn read(conn: &mut PgConnection, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
@@ -70,26 +84,24 @@ impl SiteLanguage {
     language_ids: Vec<LanguageId>,
     for_site_id: SiteId,
   ) -> Result<(), Error> {
-    conn.build_transaction().read_write().run(|conn| {
-      use crate::schema::site_language::dsl::*;
-      // Clear the current languages
-      delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
+    use crate::schema::site_language::dsl::*;
+    // Clear the current languages
+    delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
 
-      let lang_ids = update_languages(conn, language_ids)?;
-      for l in lang_ids.clone() {
-        let form = SiteLanguageForm {
-          site_id: for_site_id,
-          language_id: l,
-        };
-        insert_into(site_language)
-          .values(form)
-          .get_result::<Self>(conn)?;
-      }
+    let lang_ids = update_languages(conn, language_ids)?;
+    for l in lang_ids.clone() {
+      let form = SiteLanguageForm {
+        site_id: for_site_id,
+        language_id: l,
+      };
+      insert_into(site_language)
+        .values(form)
+        .get_result::<Self>(conn)?;
+    }
 
-      CommunityLanguage::limit_languages(conn, lang_ids)?;
+    CommunityLanguage::limit_languages(conn, lang_ids)?;
 
-      Ok(())
-    })
+    Ok(())
   }
 }
 
@@ -115,6 +127,17 @@ impl CommunityLanguage {
     }
   }
 
+  pub fn is_allowed_community_language_opt(
+    conn: &mut PgConnection,
+    for_language_id: Option<LanguageId>,
+    for_community_id: CommunityId,
+  ) -> Result<(), LemmyError> {
+    match for_language_id {
+      Some(l) => CommunityLanguage::is_allowed_community_language(conn, l, for_community_id),
+      None => Ok(()),
+    }
+  }
+
   /// When site languages are updated, delete all languages of local communities which are not
   /// also part of site languages. This is because post/comment language is only checked against
   /// community language, and it shouldnt be possible to post content in languages which are not
@@ -126,18 +149,20 @@ impl CommunityLanguage {
     // this could be implemented using join + delete, but its not supported in diesel yet
     // https://github.com/diesel-rs/diesel/issues/1478
 
-    use crate::schema::{community::dsl::*, community_language::dsl::*};
-    let local_communities: Vec<Community> = community.filter(local.eq(true)).load(conn)?;
+    conn.build_transaction().read_write().run(|conn| {
+      use crate::schema::{community::dsl::*, community_language::dsl::*};
+      let local_communities: Vec<Community> = community.filter(local.eq(true)).load(conn)?;
 
-    for c in local_communities {
-      delete(
-        community_language
-          .filter(community_id.eq(c.id))
-          .filter(language_id.ne_all(&site_language_ids)),
-      )
-      .execute(conn)?;
-    }
-    Ok(())
+      for c in local_communities {
+        delete(
+          community_language
+            .filter(community_id.eq(c.id))
+            .filter(language_id.ne_all(&site_language_ids)),
+        )
+        .execute(conn)?;
+      }
+      Ok(())
+    })
   }
 
   pub fn read(
@@ -153,7 +178,7 @@ impl CommunityLanguage {
 
   pub fn update(
     conn: &mut PgConnection,
-    language_ids: Vec<LanguageId>,
+    mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
     conn.build_transaction().read_write().run(|conn| {
@@ -161,8 +186,10 @@ impl CommunityLanguage {
       // Clear the current languages
       delete(community_language.filter(community_id.eq(for_community_id))).execute(conn)?;
 
-      let lang_ids = update_languages(conn, language_ids)?;
-      for l in lang_ids {
+      if language_ids.is_empty() {
+        language_ids = SiteLanguage::read_local(conn)?;
+      }
+      for l in language_ids {
         let form = CommunityLanguageForm {
           community_id: for_community_id,
           language_id: l,
@@ -173,6 +200,25 @@ impl CommunityLanguage {
       }
       Ok(())
     })
+  }
+}
+
+pub fn default_post_language(conn: &mut PgConnection) -> Result<LanguageId, Error> {
+  use crate::schema::{
+    community_language::dsl::community_language,
+    local_user_language::dsl::local_user_language,
+  };
+  let intersection = local_user_language
+    .join(
+      community_language.on(local_user_language::language_id.eq(community_language::language_id)),
+    )
+    .filter(local_user_language::id.is_null())
+    .filter(community_language::id.is_null())
+    .get_result::<LanguageId>(conn);
+  if intersection.len() == 1 {
+    Ok(intersection[0])
+  } else {
+    Ok(Language::undetermined())
   }
 }
 
@@ -201,7 +247,7 @@ mod tests {
       community::CommunityForm,
       local_user::{LocalUser, LocalUserForm},
       person::{Person, PersonForm},
-      site::SiteForm,
+      site::{Site, SiteForm},
     },
     traits::Crud,
     utils::establish_unpooled_connection,
@@ -292,7 +338,8 @@ mod tests {
     assert_eq!(test_langs, local_user_langs1);
 
     // update user languages
-    LocalUserLanguage::update(conn, test_langs2(conn), local_user.id).unwrap();
+    let test_langs2 = test_langs2(conn);
+    LocalUserLanguage::update(conn, test_langs2, local_user.id).unwrap();
     let local_user_langs2 = LocalUserLanguage::read(conn, local_user.id).unwrap();
     assert_eq!(2, local_user_langs2.len());
 

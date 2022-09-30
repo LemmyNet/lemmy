@@ -5,8 +5,18 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   schema::{
-    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
-    community_follower, community_person_ban, local_user_language, person, person_block, post,
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_saved,
+    community,
+    community_block,
+    community_follower,
+    community_person_ban,
+    local_user_language,
+    person,
+    person_block,
+    post,
   },
   source::{
     comment::{Comment, CommentSaved},
@@ -18,7 +28,8 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset_unlimited},
-  CommentSortType, ListingType,
+  CommentSortType,
+  ListingType,
 };
 use typed_builder::TypedBuilder;
 
@@ -382,8 +393,14 @@ mod tests {
     aggregates::structs::CommentAggregates,
     newtypes::LanguageId,
     source::{
-      actor_language::LocalUserLanguage, comment::*, community::*, language::Language,
-      local_user::LocalUserForm, person::*, person_block::PersonBlockForm, post::*,
+      actor_language::LocalUserLanguage,
+      comment::*,
+      community::*,
+      language::Language,
+      local_user::LocalUserForm,
+      person::*,
+      person_block::PersonBlockForm,
+      post::*,
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,

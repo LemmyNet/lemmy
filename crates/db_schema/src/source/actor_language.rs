@@ -1,5 +1,10 @@
 use crate::newtypes::{
-  CommunityId, CommunityLanguageId, LanguageId, LocalUserId, LocalUserLanguageId, SiteId,
+  CommunityId,
+  CommunityLanguageId,
+  LanguageId,
+  LocalUserId,
+  LocalUserLanguageId,
+  SiteId,
   SiteLanguageId,
 };
 use serde::{Deserialize, Serialize};
@@ -7,7 +12,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use crate::schema::local_user_language;
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user_language))]
 pub struct LocalUserLanguage {
@@ -28,7 +33,7 @@ pub struct LocalUserLanguageForm {
 #[cfg(feature = "full")]
 use crate::schema::community_language;
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = community_language))]
 pub struct CommunityLanguage {
@@ -49,7 +54,7 @@ pub struct CommunityLanguageForm {
 #[cfg(feature = "full")]
 use crate::schema::site_language;
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = site_language))]
 pub struct SiteLanguage {

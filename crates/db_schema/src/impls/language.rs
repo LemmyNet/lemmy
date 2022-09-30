@@ -1,5 +1,5 @@
-use crate::{newtypes::LanguageId, source::language::Language};
-use diesel::{result::Error, PgConnection, RunQueryDsl, *};
+use crate::{diesel::ExpressionMethods, newtypes::LanguageId, source::language::Language};
+use diesel::{result::Error, PgConnection, QueryDsl, RunQueryDsl};
 
 impl Language {
   pub fn read_all(conn: &mut PgConnection) -> Result<Vec<Language>, Error> {
@@ -28,15 +28,15 @@ impl Language {
     }
   }
 
-  pub fn read_undetermined(conn: &mut PgConnection) -> Result<LanguageId, Error> {
-    use crate::schema::language::dsl::*;
-    Ok(language.filter(code.eq("und")).first::<Self>(conn)?.id)
+  pub fn undetermined() -> LanguageId {
+    LanguageId(0)
   }
 }
 
 #[cfg(test)]
 mod tests {
   use crate::{source::language::Language, utils::establish_unpooled_connection};
+  use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
   use serial_test::serial;
 
   #[test]
@@ -50,5 +50,19 @@ mod tests {
     assert_eq!("ak", all[5].code);
     assert_eq!("lv", all[99].code);
     assert_eq!("yi", all[179].code);
+  }
+
+  #[test]
+  #[serial]
+  fn test_undetermined_id() {
+    use crate::schema::language::dsl::*;
+    let conn = &mut establish_unpooled_connection();
+
+    let db_id = language
+      .filter(code.eq("und"))
+      .first::<Language>(conn)
+      .unwrap()
+      .id;
+    assert_eq!(db_id, Language::undetermined());
   }
 }

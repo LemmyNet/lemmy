@@ -11,7 +11,6 @@ use lemmy_db_schema::{
   SubscribedType,
 };
 use serde::{Deserialize, Serialize};
-use lemmy_db_schema::source::language::Language;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityBlockView {
@@ -43,7 +42,6 @@ pub struct CommunityView {
   pub subscribed: SubscribedType,
   pub blocked: bool,
   pub counts: CommunityAggregates,
-  pub languages: Vec<Language>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

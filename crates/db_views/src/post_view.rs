@@ -4,8 +4,18 @@ use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   schema::{
-    community, community_block, community_follower, community_person_ban, local_user_language,
-    person, person_block, person_post_aggregates, post, post_aggregates, post_like, post_read,
+    community,
+    community_block,
+    community_follower,
+    community_person_ban,
+    local_user_language,
+    person,
+    person_block,
+    person_post_aggregates,
+    post,
+    post_aggregates,
+    post_like,
+    post_read,
     post_saved,
   },
   source::{
@@ -17,7 +27,8 @@ use lemmy_db_schema::{
   },
   traits::{ToSafe, ViewToVec},
   utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
-  ListingType, SortType,
+  ListingType,
+  SortType,
 };
 use tracing::debug;
 use typed_builder::TypedBuilder;
@@ -454,7 +465,8 @@ mod tests {
     },
     traits::{Blockable, Crud, Likeable},
     utils::establish_unpooled_connection,
-    SortType, SubscribedType,
+    SortType,
+    SubscribedType,
   };
   use serial_test::serial;
 

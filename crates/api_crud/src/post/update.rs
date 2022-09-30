@@ -84,12 +84,15 @@ impl PerformCrud for EditPost {
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
-    if let Some(language_id) = data.language_id {
-      blocking(context.pool(), move |conn| {
-        CommunityLanguage::is_allowed_community_language(conn, language_id, orig_post.community_id)
-      })
-      .await??;
-    }
+    let language_id = self.language_id;
+    blocking(context.pool(), move |conn| {
+      CommunityLanguage::is_allowed_community_language_opt(
+        conn,
+        language_id,
+        orig_post.community_id,
+      )
+    })
+    .await??;
 
     let post_form = PostForm {
       creator_id: orig_post.creator_id.to_owned(),
