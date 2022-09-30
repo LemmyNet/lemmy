@@ -26,7 +26,6 @@
     url: "http://pictrs:8080"
     api_key: "API_KEY"
   }
-  # settings related to the postgresql database
   database: {
     # name of the postgres database for lemmy
     database: "lemmy"
