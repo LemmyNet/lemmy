@@ -1,0 +1,62 @@
+{
+  # for more info about the config, check out the documentation
+  # https://join-lemmy.org/docs/en/administration/configuration.html
+
+  # This is lemmy config for the dev / main branch. Do not use for a 
+  # release / stable version.
+
+  setup: {
+    # username for the admin user
+    admin_username: "lemmy"
+    # password for the admin user
+    admin_password: "lemmylemmy"
+    # name of the site (can be changed later)
+    site_name: "lemmy-dev"
+  }
+
+  opentelemetry_url: "http://otel:4137"
+
+  # the domain name of your instance (eg "lemmy.ml")
+  hostname: "localhost"
+  # address where lemmy should listen for incoming requests
+  bind: "0.0.0.0"
+  # port where lemmy should listen for incoming requests
+  port: 8536
+  # settings related to the postgresql database
+  pictrs_config: {
+    url: "http://pictrs:8080"
+    api_key: "API_KEY"
+  }
+  database: {
+    # name of the postgres database for lemmy
+    database: "lemmy"
+    # username to connect to postgres
+    user: "lemmy"
+    # password to connect to postgres
+    password: "password"
+    # host where postgres is running
+    host: "postgres"
+    # port where postgres can be accessed
+    port: 5432
+    # maximum number of active sql connections
+    pool_size: 5
+  }
+  slur_filter:
+    '''
+    (fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)
+    '''
+#  # optional: email sending configuration
+#  email: {
+#    # hostname and port of the smtp server
+#    smtp_server: ""
+#    # login name for smtp server
+#    smtp_login: ""
+#    # password to login to the smtp server
+#    smtp_password: ""
+#    # address to send emails from, eg "noreply@your-instance.com"
+#    smtp_from_address: ""
+#    # whether or not smtp connections should use tls
+#    use_tls: true
+#  }
+}
+

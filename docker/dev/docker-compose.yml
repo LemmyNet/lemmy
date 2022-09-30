@@ -18,7 +18,7 @@ services:
     # actual and only port facing any connection from outside 
       - "1236:1236"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-dev.conf:/etc/nginx/nginx.conf:ro
     restart: always
     depends_on:
       - pictrs
@@ -35,7 +35,7 @@ services:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
       - RUST_BACKTRACE=full
     volumes:
-      - ./../lemmy.hjson:/config/config.hjson
+      - ./lemmy-dev.hjson:/config/config.hjson
     depends_on:
       - postgres
       - pictrs
