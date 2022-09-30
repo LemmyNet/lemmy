@@ -22,11 +22,11 @@
   bind: "0.0.0.0"
   # port where lemmy should listen for incoming requests
   port: 8536
-  # settings related to the postgresql database
-  pictrs_config: {
-    url: "http://pictrs:8080"
+  pictrs: {
+    url: "http://pictrs:8080/"
     api_key: "API_KEY"
   }
+  # settings related to the postgresql database
   database: {
     # name of the postgres database for lemmy
     database: "lemmy"
