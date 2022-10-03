@@ -27,16 +27,11 @@ impl Language {
       Ok(None)
     }
   }
-
-  pub fn undetermined() -> LanguageId {
-    LanguageId(0)
-  }
 }
 
 #[cfg(test)]
 mod tests {
   use crate::{source::language::Language, utils::establish_unpooled_connection};
-  use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
   use serial_test::serial;
 
   #[test]
@@ -50,19 +45,5 @@ mod tests {
     assert_eq!("ak", all[5].code);
     assert_eq!("lv", all[99].code);
     assert_eq!("yi", all[179].code);
-  }
-
-  #[test]
-  #[serial]
-  fn test_undetermined_id() {
-    use crate::schema::language::dsl::*;
-    let conn = &mut establish_unpooled_connection();
-
-    let db_id = language
-      .filter(code.eq("und"))
-      .first::<Language>(conn)
-      .unwrap()
-      .id;
-    assert_eq!(db_id, Language::undetermined());
   }
 }

@@ -19,15 +19,14 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, LocalUserId},
+  impls::actor_language::default_post_language,
   source::{
-    actor_language::{CommunityLanguage, LocalUserLanguage},
+    actor_language::CommunityLanguage,
     community::Community,
-    language::Language,
     post::{Post, PostForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
-  utils::{diesel_option_overwrite, DbPool},
+  utils::diesel_option_overwrite,
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
@@ -36,7 +35,6 @@ use lemmy_utils::{
   ConnectionId,
 };
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
-use std::{collections::HashSet, hash::Hash};
 use tracing::{warn, Instrument};
 use url::Url;
 use webmention::{Webmention, WebmentionError};
@@ -94,9 +92,15 @@ impl PerformCrud for CreatePost {
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
-    let language_id = data.language_id.unwrap_or(
-      default_post_language(local_user_view.local_user.id, community_id, context.pool()).await?,
-    );
+    let language_id = match data.language_id {
+      Some(lid) => Some(lid),
+      None => {
+        blocking(context.pool(), move |conn| {
+          default_post_language(conn, community_id, local_user_view.local_user.id)
+        })
+        .await??
+      }
+    };
     blocking(context.pool(), move |conn| {
       CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
     })
@@ -112,7 +116,7 @@ impl PerformCrud for CreatePost {
       embed_title,
       embed_description,
       embed_video_url,
-      language_id: Some(language_id),
+      language_id,
       thumbnail_url: Some(thumbnail_url),
       ..PostForm::default()
     };

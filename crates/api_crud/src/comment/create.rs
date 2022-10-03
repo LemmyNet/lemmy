@@ -93,7 +93,7 @@ impl PerformCrud for CreateComment {
     let language_id = data.language_id.unwrap_or(parent_language);
 
     blocking(context.pool(), move |conn| {
-      CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
+      CommunityLanguage::is_allowed_community_language(conn, Some(language_id), community_id)
     })
     .await??;
 

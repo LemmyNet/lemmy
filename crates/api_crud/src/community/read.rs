@@ -9,7 +9,7 @@ use lemmy_apub::{
   objects::{community::ApubCommunity, instance::instance_actor_id_from_url},
 };
 use lemmy_db_schema::{
-  source::{community::Community, site::Site},
+  source::{actor_language::CommunityLanguage, community::Community, site::Site},
   traits::DeleteableOrRemoveable,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
@@ -87,11 +87,18 @@ impl PerformCrud for GetCommunity {
       }
     }
 
+    let community_id = community_view.community.id;
+    let discussion_languages = blocking(context.pool(), move |conn| {
+      CommunityLanguage::read(conn, community_id)
+    })
+    .await??;
+
     let res = GetCommunityResponse {
       community_view,
       site,
       moderators,
       online,
+      discussion_languages,
     };
 
     // Return the jwt

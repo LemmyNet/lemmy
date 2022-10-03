@@ -82,11 +82,7 @@ impl PerformCrud for EditComment {
 
     let language_id = self.language_id;
     blocking(context.pool(), move |conn| {
-      CommunityLanguage::is_allowed_community_language_opt(
-        conn,
-        language_id,
-        orig_comment.community.id,
-      )
+      CommunityLanguage::is_allowed_community_language(conn, language_id, orig_comment.community.id)
     })
     .await??;
 

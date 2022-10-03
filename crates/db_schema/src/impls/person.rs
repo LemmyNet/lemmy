@@ -235,8 +235,10 @@ impl ApubActor for Person {
 #[cfg(test)]
 mod tests {
   use crate::{source::person::*, traits::Crud, utils::establish_unpooled_connection};
+  use serial_test::serial;
 
   #[test]
+  #[serial]
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 

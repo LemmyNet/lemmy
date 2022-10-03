@@ -22,6 +22,7 @@ pub struct GetCommunityResponse {
   pub site: Option<Site>,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
+  pub discussion_languages: Vec<LanguageId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

@@ -1,7 +1,7 @@
 use crate::{
-  diesel::{query_dsl::InternalJoinDsl, JoinOnDsl},
+  diesel::JoinOnDsl,
   newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
-  source::{actor_language::*, community::Community, language::Language},
+  source::{actor_language::*, language::Language},
 };
 use diesel::{
   delete,
@@ -84,24 +84,26 @@ impl SiteLanguage {
     language_ids: Vec<LanguageId>,
     for_site_id: SiteId,
   ) -> Result<(), Error> {
-    use crate::schema::site_language::dsl::*;
-    // Clear the current languages
-    delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
+    conn.build_transaction().read_write().run(|conn| {
+      use crate::schema::site_language::dsl::*;
+      // Clear the current languages
+      delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
 
-    let lang_ids = update_languages(conn, language_ids)?;
-    for l in lang_ids.clone() {
-      let form = SiteLanguageForm {
-        site_id: for_site_id,
-        language_id: l,
-      };
-      insert_into(site_language)
-        .values(form)
-        .get_result::<Self>(conn)?;
-    }
+      let lang_ids = update_languages(conn, language_ids)?;
+      for l in lang_ids {
+        let form = SiteLanguageForm {
+          site_id: for_site_id,
+          language_id: l,
+        };
+        insert_into(site_language)
+          .values(form)
+          .get_result::<Self>(conn)?;
+      }
 
-    CommunityLanguage::limit_languages(conn, lang_ids)?;
+      CommunityLanguage::limit_languages(conn)?;
 
-    Ok(())
+      Ok(())
+    })
   }
 }
 
@@ -109,32 +111,25 @@ impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub fn is_allowed_community_language(
     conn: &mut PgConnection,
-    for_language_id: LanguageId,
-    for_community_id: CommunityId,
-  ) -> Result<(), LemmyError> {
-    use crate::schema::community_language::dsl::*;
-    let is_allowed = select(exists(
-      community_language
-        .filter(language_id.eq(for_language_id))
-        .filter(community_id.eq(for_community_id)),
-    ))
-    .get_result(conn)?;
-
-    if is_allowed {
-      Ok(())
-    } else {
-      Err(LemmyError::from_message("language_not_allowed"))
-    }
-  }
-
-  pub fn is_allowed_community_language_opt(
-    conn: &mut PgConnection,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
-    match for_language_id {
-      Some(l) => CommunityLanguage::is_allowed_community_language(conn, l, for_community_id),
-      None => Ok(()),
+    use crate::schema::community_language::dsl::*;
+    if let Some(for_language_id) = for_language_id {
+      let is_allowed = select(exists(
+        community_language
+          .filter(language_id.eq(for_language_id))
+          .filter(community_id.eq(for_community_id)),
+      ))
+      .get_result(conn)?;
+
+      if is_allowed {
+        Ok(())
+      } else {
+        Err(LemmyError::from_message("language_not_allowed"))
+      }
+    } else {
+      Ok(())
     }
   }
 
@@ -142,27 +137,24 @@ impl CommunityLanguage {
   /// also part of site languages. This is because post/comment language is only checked against
   /// community language, and it shouldnt be possible to post content in languages which are not
   /// allowed by local site.
-  fn limit_languages(
-    conn: &mut PgConnection,
-    site_language_ids: Vec<LanguageId>,
-  ) -> Result<(), Error> {
-    // this could be implemented using join + delete, but its not supported in diesel yet
-    // https://github.com/diesel-rs/diesel/issues/1478
+  fn limit_languages(conn: &mut PgConnection) -> Result<(), Error> {
+    use crate::schema::{
+      community::dsl as c,
+      community_language::dsl as cl,
+      site_language::dsl as sl,
+    };
+    let community_languages: Vec<LanguageId> = cl::community_language
+      .left_outer_join(sl::site_language.on(cl::language_id.eq(sl::language_id)))
+      .inner_join(c::community)
+      .filter(c::local)
+      .filter(sl::language_id.is_null())
+      .select(cl::language_id)
+      .get_results(conn)?;
 
-    conn.build_transaction().read_write().run(|conn| {
-      use crate::schema::{community::dsl::*, community_language::dsl::*};
-      let local_communities: Vec<Community> = community.filter(local.eq(true)).load(conn)?;
-
-      for c in local_communities {
-        delete(
-          community_language
-            .filter(community_id.eq(c.id))
-            .filter(language_id.ne_all(&site_language_ids)),
-        )
-        .execute(conn)?;
-      }
-      Ok(())
-    })
+    for c in community_languages {
+      delete(cl::community_language.filter(cl::language_id.eq(c))).execute(conn)?;
+    }
+    Ok(())
   }
 
   pub fn read(
@@ -173,7 +165,7 @@ impl CommunityLanguage {
     community_language
       .filter(community_id.eq(for_community_id))
       .select(language_id)
-      .load(conn)
+      .get_results(conn)
   }
 
   pub fn update(
@@ -203,22 +195,23 @@ impl CommunityLanguage {
   }
 }
 
-pub fn default_post_language(conn: &mut PgConnection) -> Result<LanguageId, Error> {
-  use crate::schema::{
-    community_language::dsl::community_language,
-    local_user_language::dsl::local_user_language,
-  };
-  let intersection = local_user_language
-    .join(
-      community_language.on(local_user_language::language_id.eq(community_language::language_id)),
-    )
-    .filter(local_user_language::id.is_null())
-    .filter(community_language::id.is_null())
-    .get_result::<LanguageId>(conn);
+pub fn default_post_language(
+  conn: &mut PgConnection,
+  community_id: CommunityId,
+  local_user_id: LocalUserId,
+) -> Result<Option<LanguageId>, Error> {
+  use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
+  let intersection = ul::local_user_language
+    .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
+    .filter(ul::local_user_id.eq(local_user_id))
+    .filter(cl::community_id.eq(community_id))
+    .select(cl::language_id)
+    .get_results::<LanguageId>(conn)?;
+
   if intersection.len() == 1 {
-    Ok(intersection[0])
+    Ok(Some(intersection[0]))
   } else {
-    Ok(Language::undetermined())
+    Ok(None)
   }
 }
 
@@ -244,7 +237,7 @@ mod tests {
   use crate::{
     impls::actor_language::*,
     source::{
-      community::CommunityForm,
+      community::{Community, CommunityForm},
       local_user::{LocalUser, LocalUserForm},
       person::{Person, PersonForm},
       site::{Site, SiteForm},
@@ -368,17 +361,17 @@ mod tests {
     assert_eq!(test_langs, community_langs1);
 
     let allowed_lang1 =
-      CommunityLanguage::is_allowed_community_language(conn, test_langs[0], community.id);
+      CommunityLanguage::is_allowed_community_language(conn, Some(test_langs[0]), community.id);
     assert!(allowed_lang1.is_ok());
 
     let test_langs2 = test_langs2(conn);
     let allowed_lang2 =
-      CommunityLanguage::is_allowed_community_language(conn, test_langs2[0], community.id);
+      CommunityLanguage::is_allowed_community_language(conn, Some(test_langs2[0]), community.id);
     assert!(allowed_lang2.is_err());
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    CommunityLanguage::limit_languages(conn, vec![test_langs[0], test_langs2[0]]).unwrap();
+    SiteLanguage::update(conn, vec![test_langs[0], test_langs2[0]], site.id).unwrap();
     let community_langs2 = CommunityLanguage::read(conn, community.id).unwrap();
     assert_eq!(vec![test_langs[0]], community_langs2);
 
@@ -389,5 +382,56 @@ mod tests {
 
     Site::delete(conn, site.id).unwrap();
     Community::delete(conn, community.id).unwrap();
+  }
+
+  #[test]
+  #[serial]
+  fn test_default_post_language() {
+    let conn = &mut establish_unpooled_connection();
+    let test_langs = test_langs1(conn);
+    let test_langs2 = test_langs2(conn);
+
+    let community_form = CommunityForm {
+      name: "test community".to_string(),
+      title: "test community".to_string(),
+      public_key: Some("pubkey".to_string()),
+      ..Default::default()
+    };
+    let community = Community::create(conn, &community_form).unwrap();
+    CommunityLanguage::update(conn, test_langs, community.id).unwrap();
+
+    let person_form = PersonForm {
+      name: "my test person".to_string(),
+      public_key: Some("pubkey".to_string()),
+      ..Default::default()
+    };
+    let person = Person::create(conn, &person_form).unwrap();
+    let local_user_form = LocalUserForm {
+      person_id: Some(person.id),
+      password_encrypted: Some("my_pw".to_string()),
+      ..Default::default()
+    };
+    let local_user = LocalUser::create(conn, &local_user_form).unwrap();
+    LocalUserLanguage::update(conn, test_langs2, local_user.id).unwrap();
+
+    // no overlap in user/community languages, so no default language for post
+    let def1 = default_post_language(conn, community.id, local_user.id).unwrap();
+    assert_eq!(None, def1);
+
+    let ru = Language::read_id_from_code(conn, "ru").unwrap();
+    let test_langs3 = vec![
+      ru,
+      Language::read_id_from_code(conn, "fi").unwrap(),
+      Language::read_id_from_code(conn, "se").unwrap(),
+    ];
+    LocalUserLanguage::update(conn, test_langs3, local_user.id).unwrap();
+
+    // this time, both have ru as common lang
+    let def2 = default_post_language(conn, community.id, local_user.id).unwrap();
+    assert_eq!(Some(ru), def2);
+
+    Person::delete(conn, person.id).unwrap();
+    Community::delete(conn, community.id).unwrap();
+    LocalUser::delete(conn, local_user.id).unwrap();
   }
 }

@@ -114,6 +114,7 @@ impl Perform for TransferCommunity {
       site: None,
       moderators,
       online: 0,
+      discussion_languages: vec![],
     })
   }
 }
