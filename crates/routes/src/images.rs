@@ -16,8 +16,10 @@ use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
+use lemmy_api_common::{utils::blocking};
+use lemmy_db_schema::{ source::{  site::Site }};
 use lemmy_api_common::{
-  utils::{is_private_instance}
+  utils::{get_local_user_view_from_jwt},
 };
 
 pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
@@ -127,17 +129,18 @@ async fn full_res(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
-  let is_priv_inst = is_private_instance(context.pool()).await?;
-  if true == is_priv_inst {
+  let site = blocking(context.pool(), Site::read_local_site).await?;
+  // The site might not be set up yet
+  if let Ok(site) = site {
+    if site.private_instance {
       let jwt = req
       .cookie("jwt")
-      .expect("No auth header for picture access.");
-      
-      if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
+      .expect("No auth header for picture access");
+      if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret()).await.is_err() {
         return Ok(HttpResponse::Unauthorized().finish());
       };
+    }
   }
-
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original

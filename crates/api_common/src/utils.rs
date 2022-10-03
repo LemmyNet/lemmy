@@ -288,20 +288,6 @@ pub fn check_private_instance(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn is_private_instance(
-  pool: &DbPool
-) -> Result<bool, LemmyError> {
-  let site = blocking(pool, Site::read_local_site).await?;
-    // The site might not be set up yet
-    if let Ok(site) = site {
-      if site.private_instance {
-        return Ok(true);
-      }
-    }
-    return Ok(false);
-}
-
-#[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
   pool: &DbPool,
