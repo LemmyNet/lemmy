@@ -16,6 +16,9 @@ use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
+use lemmy_api_common::{
+  utils::{is_private_instance}
+};
 
 pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
   cfg
@@ -123,6 +126,18 @@ async fn full_res(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
+  // block access to images if instance is private and unauthorized, public
+  let is_priv_inst = is_private_instance(context.pool()).await?;
+  if true == is_priv_inst {
+      let jwt = req
+      .cookie("jwt")
+      .expect("No auth header for picture access.");
+      
+      if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
+        return Ok(HttpResponse::Unauthorized().finish());
+      };
+  }
+
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
