@@ -1,0 +1,19 @@
+{
+  # for more info about the config, check out the documentation
+  # https://join-lemmy.org/docs/en/administration/configuration.html
+
+  # This is a minimal lemmy config for the dev / main branch. Do not use for a 
+  # release / stable version.
+
+  setup: {
+    # username for the admin user
+    admin_username: "lemmy"
+    # password for the admin user
+    admin_password: "lemmylemmy"
+    # name of the site (can be changed later)
+    site_name: "lemmy-dev"
+  }
+
+  opentelemetry_url: "http://otel:4137"
+
+}
