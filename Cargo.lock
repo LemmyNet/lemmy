@@ -4,15 +4,15 @@ version = 3
 
 [[package]]
 name = "activitypub_federation"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "446e75aefabf78ed9cc7e175f0d90c74f478086fb9bc571a9614fb0b7cbe35d4"
+checksum = "690ed975ab70b883b4f0776f60fd7f23a7484a49f4257e7672e64d0990e95771"
 dependencies = [
  "activitypub_federation_derive",
  "actix-web",
  "anyhow",
  "async-trait",
- "background-jobs",
+ "background-jobs 0.13.0",
  "base64",
  "chrono",
  "derive_builder 0.11.2",
@@ -479,8 +479,18 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c301b3ccb60fa2aadb4da111e27b257ddc4f0509848c43c85764dc14f7a49a3"
 dependencies = [
- "background-jobs-actix",
- "background-jobs-core",
+ "background-jobs-actix 0.12.0",
+ "background-jobs-core 0.12.0",
+]
+
+[[package]]
+name = "background-jobs"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "793a813f9145c5f3a27b8dcd834c0927de68bbd60d53a369e5894f3cc5759020"
+dependencies = [
+ "background-jobs-actix 0.13.0",
+ "background-jobs-core 0.13.0",
 ]
 
 [[package]]
@@ -493,7 +503,7 @@ dependencies = [
  "anyhow",
  "async-mutex",
  "async-trait",
- "background-jobs-core",
+ "background-jobs-core 0.12.0",
  "num_cpus",
  "serde",
  "serde_json",
@@ -502,6 +512,27 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "uuid 0.8.2",
+]
+
+[[package]]
+name = "background-jobs-actix"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8660626a2d8781b50cbe0e3b63d8e2a7e08a90e80fa2bca8e8cc19deff72ebf4"
+dependencies = [
+ "actix-rt",
+ "anyhow",
+ "async-mutex",
+ "async-trait",
+ "background-jobs-core 0.13.0",
+ "num_cpus",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-futures",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -521,6 +552,25 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "uuid 0.8.2",
+]
+
+[[package]]
+name = "background-jobs-core"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48e78e842fe2ae461319e3d1843c12e301630e65650332b02032ac70b0dfc66f"
+dependencies = [
+ "actix-rt",
+ "anyhow",
+ "async-trait",
+ "event-listener",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "time 0.3.14",
+ "tracing",
+ "tracing-futures",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -2189,7 +2239,7 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "anyhow",
- "background-jobs",
+ "background-jobs 0.12.0",
  "chrono",
  "diesel",
  "lemmy_api_common",
@@ -2570,9 +2620,9 @@ checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
 
 [[package]]
 name = "openssl"
-version = "0.10.41"
+version = "0.10.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "618febf65336490dfcf20b73f885f5651a0c89c64c2d4a8c3662585a70bf5bd0"
+checksum = "12fc0523e3bd51a692c8850d075d74dc062ccf251c0110668cbd921917118a13"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -2602,9 +2652,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.75"
+version = "0.9.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5f9bd0c2710541a3cda73d6f9ac4f1b240de4ae261065d309dbe73d9dceb42f"
+checksum = "5230151e44c0f05157effb743e8d517472843121cf9243e8b81393edb5acd9ce"
 dependencies = [
  "autocfg",
  "cc",
@@ -3829,18 +3879,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.35"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c53f98874615aea268107765aa1ed8f6116782501d18e53d08b471733bea6c85"
+checksum = "10deb33631e3c9018b9baf9dcbbc4f737320d2b576bac10f6aefa048fa407e3e"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.35"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8b463991b4eab2d801e724172285ec4195c650e8ec79b149e6c2a8e6dd3f783"
+checksum = "982d17546b47146b28f7c22e3d08465f6b8903d0ea13c1660d9d84a6e7adcdbb"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",
