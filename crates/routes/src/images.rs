@@ -11,16 +11,13 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
+use lemmy_api_common::utils::{blocking, get_local_user_view_from_jwt};
+use lemmy_db_schema::source::site::Site;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
-use lemmy_api_common::{utils::blocking};
-use lemmy_db_schema::{ source::{  site::Site }};
-use lemmy_api_common::{
-  utils::{get_local_user_view_from_jwt},
-};
 
 pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
   cfg
@@ -134,9 +131,12 @@ async fn full_res(
   if let Ok(site) = site {
     if site.private_instance {
       let jwt = req
-      .cookie("jwt")
-      .expect("No auth header for picture access");
-      if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret()).await.is_err() {
+        .cookie("jwt")
+        .expect("No auth header for picture access");
+      if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret())
+        .await
+        .is_err()
+      {
         return Ok(HttpResponse::Unauthorized().finish());
       };
     }
