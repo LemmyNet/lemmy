@@ -157,7 +157,7 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 ## Contact
 
 - [Mastodon](https://mastodon.social/@LemmyDev)
-- [Matrix](https://matrix.to/#/#lemmy:matrix.org)
+- [Lemmy Support Forum](https://lemmy.ml/c/lemmy_support)
 
 ## Code Mirrors
 
