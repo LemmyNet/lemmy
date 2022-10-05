@@ -51,7 +51,7 @@ Desktop|Mobile
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
 
-The overall goal is to create an easily self-hostable, decentralized alternative to Reddit and other link aggregators, outside of their corporate control and meddling.
+It is an easily self-hostable, decentralized alternative to Reddit and other link aggregators, outside of their corporate control and meddling.
 
 Each Lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
