@@ -22,7 +22,7 @@
 
  <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
   <p align="center">
-    A link aggregator / Reddit clone for the fediverse.
+    A link aggregator and forum for the fediverse.
     <br />
     <br />
     <a href="https://join-lemmy.org">Join Lemmy</a>
