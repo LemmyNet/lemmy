@@ -55,8 +55,6 @@ It is an easily self-hostable, decentralized alternative to Reddit and other lin
 
 Each Lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
-*Note: The WebSocket and HTTP APIs are currently unstable*
-
 ### Why's it called Lemmy?
 
 - Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
