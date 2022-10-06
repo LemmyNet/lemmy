@@ -22,7 +22,7 @@
 
  <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
   <p align="center">
-    A link aggregator / Reddit clone for the fediverse.
+    A link aggregator and forum for the fediverse.
     <br />
     <br />
     <a href="https://join-lemmy.org">Join Lemmy</a>
@@ -51,11 +51,9 @@ Desktop|Mobile
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
 
-The overall goal is to create an easily self-hostable, decentralized alternative to Reddit and other link aggregators, outside of their corporate control and meddling.
+It is an easily self-hostable, decentralized alternative to Reddit and other link aggregators, outside of their corporate control and meddling.
 
 Each Lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
-
-*Note: The WebSocket and HTTP APIs are currently unstable*
 
 ### Why's it called Lemmy?
 
@@ -157,7 +155,7 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 ## Contact
 
 - [Mastodon](https://mastodon.social/@LemmyDev)
-- [Matrix](https://matrix.to/#/#lemmy:matrix.org)
+- [Lemmy Support Forum](https://lemmy.ml/c/lemmy_support)
 
 ## Code Mirrors
 
