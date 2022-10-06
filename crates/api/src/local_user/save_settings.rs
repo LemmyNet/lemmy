@@ -6,8 +6,8 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserForm},
-    local_user_language::LocalUserLanguage,
     person::{Person, PersonForm},
     site::Site,
   },
@@ -56,7 +56,7 @@ impl Perform for SaveUserSettings {
 
     // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
     if let Some(email) = &email {
-      let site_fut = blocking(context.pool(), Site::read_local_site);
+      let site_fut = blocking(context.pool(), Site::read_local);
       if email.is_none() && site_fut.await??.require_email_verification {
         return Err(LemmyError::from_message("email_required"));
       }
@@ -120,15 +120,8 @@ impl Perform for SaveUserSettings {
     .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      // An empty array is a "clear" / set all languages
-      let languages = if discussion_languages.is_empty() {
-        None
-      } else {
-        Some(discussion_languages)
-      };
-
       blocking(context.pool(), move |conn| {
-        LocalUserLanguage::update_user_languages(conn, languages, local_user_id)
+        LocalUserLanguage::update(conn, discussion_languages, local_user_id)
       })
       .await??;
     }

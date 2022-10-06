@@ -295,7 +295,7 @@ fn instance_actor_2022_01_28(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(site) = Site::read_local_site(conn) {
+  if let Ok(site) = Site::read_local(conn) {
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {
       return Ok(());

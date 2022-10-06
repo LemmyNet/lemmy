@@ -267,7 +267,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
   if score == -1 {
-    let site = blocking(pool, Site::read_local_site).await??;
+    let site = blocking(pool, Site::read_local).await??;
     if !site.enable_downvotes {
       return Err(LemmyError::from_message("downvotes_disabled"));
     }
@@ -281,7 +281,7 @@ pub async fn check_private_instance(
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() {
-    let site = blocking(pool, Site::read_local_site).await?;
+    let site = blocking(pool, Site::read_local).await?;
 
     // The site might not be set up yet
     if let Ok(site) = site {
@@ -536,7 +536,7 @@ pub async fn check_private_instance_and_federation_enabled(
   pool: &DbPool,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let site_opt = blocking(pool, Site::read_local_site).await?;
+  let site_opt = blocking(pool, Site::read_local).await?;
 
   if let Ok(site) = site_opt {
     if site.private_instance && settings.federation.enabled {
@@ -768,7 +768,7 @@ pub async fn listing_type_with_site_default(
   Ok(match listing_type {
     Some(l) => l,
     None => {
-      let site = blocking(pool, Site::read_local_site).await??;
+      let site = blocking(pool, Site::read_local).await??;
       ListingType::from_str(&site.default_post_listing_type)?
     }
   })

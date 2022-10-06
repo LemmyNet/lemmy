@@ -53,7 +53,7 @@ impl PerformCrud for Register {
     let (mut email_verification, mut require_application) = (false, false);
 
     // Make sure site has open registration
-    let site = blocking(context.pool(), Site::read_local_site).await?;
+    let site = blocking(context.pool(), Site::read_local).await?;
     if let Ok(site) = &site {
       if !site.open_registration {
         return Err(LemmyError::from_message("registration_closed"));

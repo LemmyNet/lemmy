@@ -454,11 +454,11 @@ mod tests {
     aggregates::structs::PostAggregates,
     newtypes::LanguageId,
     source::{
+      actor_language::LocalUserLanguage,
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserForm},
-      local_user_language::LocalUserLanguage,
       person::*,
       person_block::{PersonBlock, PersonBlockForm},
       post::*,
@@ -749,12 +749,7 @@ mod tests {
     assert_eq!(3, post_listings_all.len());
 
     let french_id = Language::read_id_from_code(conn, "fr").unwrap();
-    LocalUserLanguage::update_user_languages(
-      conn,
-      Some(vec![french_id]),
-      data.inserted_local_user.id,
-    )
-    .unwrap();
+    LocalUserLanguage::update(conn, vec![french_id], data.inserted_local_user.id).unwrap();
 
     let post_listing_french = PostQuery::builder()
       .conn(conn)
@@ -769,9 +764,9 @@ mod tests {
     assert_eq!(french_id, post_listing_french[0].post.language_id);
 
     let undetermined_id = Language::read_id_from_code(conn, "und").unwrap();
-    LocalUserLanguage::update_user_languages(
+    LocalUserLanguage::update(
       conn,
-      Some(vec![french_id, undetermined_id]),
+      vec![french_id, undetermined_id],
       data.inserted_local_user.id,
     )
     .unwrap();

@@ -15,7 +15,10 @@ use lemmy_apub::protocol::activities::{
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
-  source::comment::{Comment, CommentForm},
+  source::{
+    actor_language::CommunityLanguage,
+    comment::{Comment, CommentForm},
+  },
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
@@ -76,6 +79,12 @@ impl PerformCrud for EditComment {
       )
       .await?;
     }
+
+    let language_id = self.language_id;
+    blocking(context.pool(), move |conn| {
+      CommunityLanguage::is_allowed_community_language(conn, language_id, orig_comment.community.id)
+    })
+    .await??;
 
     // Update the Content
     let content_slurs_removed = data

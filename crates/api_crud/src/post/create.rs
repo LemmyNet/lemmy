@@ -19,9 +19,10 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
+  impls::actor_language::default_post_language,
   source::{
+    actor_language::CommunityLanguage,
     community::Community,
-    language::Language,
     post::{Post, PostForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
@@ -90,14 +91,20 @@ impl PerformCrud for CreatePost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
-    let language_id = Some(
-      data.language_id.unwrap_or(
+
+    let language_id = match data.language_id {
+      Some(lid) => Some(lid),
+      None => {
         blocking(context.pool(), move |conn| {
-          Language::read_undetermined(conn)
+          default_post_language(conn, community_id, local_user_view.local_user.id)
         })
-        .await??,
-      ),
-    );
+        .await??
+      }
+    };
+    blocking(context.pool(), move |conn| {
+      CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
+    })
+    .await??;
 
     let post_form = PostForm {
       name: data.name.trim().to_owned(),
