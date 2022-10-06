@@ -23,6 +23,9 @@ pub struct GetCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
   pub discussion_languages: Vec<LanguageId>,
+  /// Default language used for new posts if none is specified, generated based on community and
+  /// user languages.
+  pub default_post_language: Option<LanguageId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

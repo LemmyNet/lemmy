@@ -9,6 +9,7 @@ use lemmy_apub::{
   objects::{community::ApubCommunity, instance::instance_actor_id_from_url},
 };
 use lemmy_db_schema::{
+  impls::actor_language::default_post_language,
   source::{actor_language::CommunityLanguage, community::Community, site::Site},
   traits::DeleteableOrRemoveable,
 };
@@ -37,7 +38,7 @@ impl PerformCrud for GetCommunity {
 
     check_private_instance(&local_user_view, context.pool()).await?;
 
-    let person_id = local_user_view.map(|u| u.person.id);
+    let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
     let community_id = match data.id {
       Some(id) => id,
@@ -92,6 +93,14 @@ impl PerformCrud for GetCommunity {
       CommunityLanguage::read(conn, community_id)
     })
     .await??;
+    let default_post_language = if let Some(user) = local_user_view {
+      blocking(context.pool(), move |conn| {
+        default_post_language(conn, community_id, user.local_user.id)
+      })
+      .await??
+    } else {
+      None
+    };
 
     let res = GetCommunityResponse {
       community_view,
@@ -99,6 +108,7 @@ impl PerformCrud for GetCommunity {
       moderators,
       online,
       discussion_languages,
+      default_post_language,
     };
 
     // Return the jwt
