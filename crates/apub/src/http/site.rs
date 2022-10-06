@@ -15,9 +15,7 @@ use url::Url;
 pub(crate) async fn get_apub_site_http(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let site: ApubSite = blocking(context.pool(), Site::read_local_site)
-    .await??
-    .into();
+  let site: ApubSite = blocking(context.pool(), Site::read_local).await??.into();
 
   let apub = site.into_apub(&context).await?;
   Ok(create_apub_response(&apub))

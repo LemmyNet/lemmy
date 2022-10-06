@@ -1,5 +1,5 @@
-use crate::{newtypes::LanguageId, source::language::Language};
-use diesel::{result::Error, PgConnection, RunQueryDsl, *};
+use crate::{diesel::ExpressionMethods, newtypes::LanguageId, source::language::Language};
+use diesel::{result::Error, PgConnection, QueryDsl, RunQueryDsl};
 
 impl Language {
   pub fn read_all(conn: &mut PgConnection) -> Result<Vec<Language>, Error> {
@@ -26,11 +26,6 @@ impl Language {
     } else {
       Ok(None)
     }
-  }
-
-  pub fn read_undetermined(conn: &mut PgConnection) -> Result<LanguageId, Error> {
-    use crate::schema::language::dsl::*;
-    Ok(language.filter(code.eq("und")).first::<Self>(conn)?.id)
   }
 }
 

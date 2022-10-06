@@ -5,7 +5,11 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   objects::{community::ApubCommunity, read_from_string_or_source_opt},
-  protocol::{objects::Endpoints, ImageObject, Source},
+  protocol::{
+    objects::{Endpoints, LanguageTag},
+    ImageObject,
+    Source,
+  },
 };
 use activitypub_federation::{
   core::{object_id::ObjectId, signatures::PublicKey},
@@ -53,6 +57,8 @@ pub struct Group {
   pub(crate) posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   pub(crate) endpoints: Option<Endpoints>,
+  #[serde(default)]
+  pub(crate) language: Vec<LanguageTag>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
 }

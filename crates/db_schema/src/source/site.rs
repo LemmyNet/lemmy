@@ -1,4 +1,4 @@
-use crate::newtypes::DbUrl;
+use crate::newtypes::{DbUrl, SiteId};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "full")]
@@ -8,7 +8,7 @@ use crate::schema::site;
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct Site {
-  pub id: i32,
+  pub id: SiteId,
   pub name: String,
   pub sidebar: Option<String>,
   pub published: chrono::NaiveDateTime,

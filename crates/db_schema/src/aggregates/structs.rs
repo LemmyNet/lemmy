@@ -97,7 +97,7 @@ pub struct PersonPostAggregatesForm {
   pub published: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = site_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]

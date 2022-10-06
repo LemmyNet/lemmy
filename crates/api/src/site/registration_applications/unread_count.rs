@@ -25,7 +25,7 @@ impl Perform for GetUnreadRegistrationApplicationCount {
     // Only let admins do this
     is_admin(&local_user_view)?;
 
-    let verified_email_only = blocking(context.pool(), Site::read_local_site)
+    let verified_email_only = blocking(context.pool(), Site::read_local)
       .await??
       .require_email_verification;
 

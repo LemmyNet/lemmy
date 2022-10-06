@@ -1,4 +1,6 @@
-use lemmy_db_schema::source::language::Language;
+use lemmy_api_common::utils::blocking;
+use lemmy_db_schema::{newtypes::LanguageId, source::language::Language, utils::DbPool};
+use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -16,6 +18,7 @@ pub struct Endpoints {
   pub shared_inbox: Url,
 }
 
+/// As specified in https://schema.org/Language
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct LanguageTag {
@@ -24,16 +27,71 @@ pub(crate) struct LanguageTag {
 }
 
 impl LanguageTag {
-  pub(crate) fn new(lang: Language) -> Option<LanguageTag> {
+  pub(crate) async fn new_single(
+    lang: LanguageId,
+    pool: &DbPool,
+  ) -> Result<Option<LanguageTag>, LemmyError> {
+    let lang = blocking(pool, move |conn| Language::read_from_id(conn, lang)).await??;
+
     // undetermined
     if lang.code == "und" {
-      None
+      Ok(None)
     } else {
-      Some(LanguageTag {
+      Ok(Some(LanguageTag {
         identifier: lang.code,
         name: lang.name,
-      })
+      }))
     }
+  }
+
+  pub(crate) async fn new_multiple(
+    langs: Vec<LanguageId>,
+    pool: &DbPool,
+  ) -> Result<Vec<LanguageTag>, LemmyError> {
+    let langs = blocking(pool, move |conn| {
+      langs
+        .into_iter()
+        .map(|l| Language::read_from_id(conn, l))
+        .collect::<Result<Vec<Language>, diesel::result::Error>>()
+    })
+    .await??;
+
+    let langs = langs
+      .into_iter()
+      .map(|l| LanguageTag {
+        identifier: l.code,
+        name: l.name,
+      })
+      .collect();
+    Ok(langs)
+  }
+
+  pub(crate) async fn to_language_id_single(
+    lang: Option<Self>,
+    pool: &DbPool,
+  ) -> Result<Option<LanguageId>, LemmyError> {
+    let identifier = lang.map(|l| l.identifier);
+    let language = blocking(pool, move |conn| {
+      Language::read_id_from_code_opt(conn, identifier.as_deref())
+    })
+    .await??;
+
+    Ok(language)
+  }
+
+  pub(crate) async fn to_language_id_multiple(
+    langs: Vec<Self>,
+    pool: &DbPool,
+  ) -> Result<Vec<LanguageId>, LemmyError> {
+    let languages = blocking(pool, move |conn| {
+      langs
+        .into_iter()
+        .map(|l| l.identifier)
+        .map(|l| Language::read_id_from_code(conn, &l))
+        .collect::<Result<Vec<LanguageId>, diesel::result::Error>>()
+    })
+    .await??;
+    Ok(languages)
   }
 }
 

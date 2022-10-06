@@ -19,6 +19,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   source::{
+    actor_language::CommunityLanguage,
     comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
     comment_reply::CommentReply,
     person_mention::PersonMention,
@@ -89,13 +90,18 @@ impl PerformCrud for CreateComment {
       .as_ref()
       .map(|p| p.language_id)
       .unwrap_or(post.language_id);
-    let language_id = Some(data.language_id.unwrap_or(parent_language));
+    let language_id = data.language_id.unwrap_or(parent_language);
+
+    blocking(context.pool(), move |conn| {
+      CommunityLanguage::is_allowed_community_language(conn, Some(language_id), community_id)
+    })
+    .await??;
 
     let comment_form = CommentForm {
       content: content_slurs_removed,
       post_id: data.post_id,
       creator_id: local_user_view.person.id,
-      language_id,
+      language_id: Some(language_id),
       ..CommentForm::default()
     };
 

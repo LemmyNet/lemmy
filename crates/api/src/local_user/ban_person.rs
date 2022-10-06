@@ -75,11 +75,7 @@ impl Perform for BanPerson {
     })
     .await??;
 
-    let site = SiteOrCommunity::Site(
-      blocking(context.pool(), Site::read_local_site)
-        .await??
-        .into(),
-    );
+    let site = SiteOrCommunity::Site(blocking(context.pool(), Site::read_local).await??.into());
     // if the action affects a local user, federate to other instances
     if person.local {
       if ban {

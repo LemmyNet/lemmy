@@ -2,8 +2,8 @@ use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::*,
   source::{
+    actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserForm},
-    local_user_language::LocalUserLanguage,
   },
   traits::Crud,
   utils::naive_now,
@@ -121,8 +121,17 @@ impl Crud for LocalUser {
     let local_user_ = insert_into(local_user)
       .values(form)
       .get_result::<Self>(conn)?;
-    // initialize with all languages
-    LocalUserLanguage::update_user_languages(conn, None, local_user_.id)?;
+
+    let site_languages = SiteLanguage::read_local(conn);
+    if let Ok(langs) = site_languages {
+      // if site exists, init user with site languages
+      LocalUserLanguage::update(conn, langs, local_user_.id)?;
+    } else {
+      // otherwise, init with all languages (this only happens during tests and
+      // for first admin user, which is created before site)
+      LocalUserLanguage::update(conn, vec![], local_user_.id)?;
+    }
+
     Ok(local_user_)
   }
   fn update(

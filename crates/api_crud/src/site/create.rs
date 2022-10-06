@@ -33,7 +33,7 @@ impl PerformCrud for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let read_site = Site::read_local_site;
+    let read_site = Site::read_local;
     if blocking(context.pool(), read_site).await?.is_ok() {
       return Err(LemmyError::from_message("site_already_exists"));
     };
