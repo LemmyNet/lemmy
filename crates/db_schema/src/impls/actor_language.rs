@@ -60,6 +60,7 @@ impl LocalUserLanguage {
 impl SiteLanguage {
   pub fn read_local(conn: &mut PgConnection) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::{site, site_language::dsl::*};
+    // TODO: remove this subquery once site.local column is added
     let subquery = crate::schema::site::dsl::site
       .order_by(site::id)
       .select(site::id)
