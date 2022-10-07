@@ -1,6 +1,7 @@
 {
   # for more info about the config, check out the documentation
   # https://join-lemmy.org/docs/en/administration/configuration.html
+  # only few config options are covered in this example config
 
   setup: {
     # username for the admin user
@@ -8,10 +9,8 @@
     # password for the admin user
     admin_password: "lemmylemmy"
     # name of the site (can be changed later)
-    site_name: "lemmy-test"
+    site_name: "mylemmyinstance"
   }
-
-  opentelemetry_url: "http://otel:4137"
 
   # the domain name of your instance (eg "lemmy.ml")
   hostname: "mydomain.ml"
@@ -19,11 +18,13 @@
   bind: "0.0.0.0"
   # port where lemmy should listen for incoming requests
   port: 8536
+  # Whether the site is available over TLS. Needs to be true for federation to work.
+  tls_enabled: true
+
+  # pictrs host
+  pictrs_url: "http://pictrs:8080"
+
   # settings related to the postgresql database
-  pictrs_config: {
-    url: "http://pictrs:8080"
-    api_key: "API_KEY"
-  }
   database: {
     # name of the postgres database for lemmy
     database: "lemmy"
@@ -38,22 +39,5 @@
     # maximum number of active sql connections
     pool_size: 5
   }
-  slur_filter:
-    '''
-    (fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)
-    '''
-#  # optional: email sending configuration
-#  email: {
-#    # hostname and port of the smtp server
-#    smtp_server: ""
-#    # login name for smtp server
-#    smtp_login: ""
-#    # password to login to the smtp server
-#    smtp_password: ""
-#    # address to send emails from, eg "noreply@your-instance.com"
-#    smtp_from_address: ""
-#    # whether or not smtp connections should use tls
-#    use_tls: true
-#  }
 }
 
