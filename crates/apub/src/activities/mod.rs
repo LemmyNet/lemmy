@@ -14,7 +14,7 @@ use activitypub_federation::{
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -75,9 +75,7 @@ pub(crate) async fn verify_person_in_community(
   Ok(())
 }
 
-/// Verify that the actor is a community mod. This check is only run if the community is local,
-/// because in case of remote communities, admins can also perform mod actions. As admin status
-/// is not federated, we cant verify their actions remotely.
+/// Verify that mod action in community was performed by a moderator.
 ///
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
 /// * `object_id` - Activitypub ID of the actor or object that is being moderated
@@ -86,40 +84,30 @@ pub(crate) async fn verify_person_in_community(
 pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   object_id: &Url,
-  community: &ApubCommunity,
+  community_id: CommunityId,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  if community.local {
-    let actor = mod_id
-      .dereference(context, local_instance(context), request_counter)
-      .await?;
-
-    // Note: this will also return true for admins in addition to mods, but as we dont know about
-    //       remote admins, it doesnt make any difference.
-    let community_id = community.id;
-    let actor_id = actor.id;
-
-    let is_mod_or_admin = blocking(context.pool(), move |conn| {
-      CommunityView::is_mod_or_admin(conn, actor_id, community_id)
-    })
+  let mod_ = mod_id
+    .dereference(context, local_instance(context), request_counter)
     .await?;
 
-    // mod action was done either by a community mod or a local admin, so its allowed
-    if is_mod_or_admin {
-      return Ok(());
-    }
-
-    // mod action comes from the same instance as the moderated object, so it was presumably done
-    // by an instance admin and is legitimate (admin status is not federated).
-    if mod_id.inner().domain() == object_id.domain() {
-      return Ok(());
-    }
-
-    // the user is not a valid mod
-    return Err(LemmyError::from_message("Not a mod"));
+  let is_mod_or_admin = blocking(context.pool(), move |conn| {
+    CommunityView::is_mod_or_admin(conn, mod_.id, community_id)
+  })
+  .await?;
+  if is_mod_or_admin {
+    return Ok(());
   }
-  Ok(())
+
+  // mod action comes from the same instance as the moderated object, so it was presumably done
+  // by an instance admin.
+  // TODO: federate instance admin status and check it here
+  if mod_id.inner().domain() == object_id.domain() {
+    return Ok(());
+  }
+
+  Err(LemmyError::from_message("Not a mod"))
 }
 
 /// For Add/Remove community moderator activities, check that the target field actually contains
