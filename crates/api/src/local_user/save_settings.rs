@@ -2,17 +2,22 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, SaveUserSettings},
-  utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
+  utils::{
+    blocking,
+    get_local_user_view_from_jwt,
+    local_site_to_email_config,
+    send_verification_email,
+  },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
-    local_user::{LocalUser, LocalUserForm},
-    person::{Person, PersonForm},
-    site::Site,
+    local_site::LocalSite,
+    local_user::{LocalUser, LocalUserUpdateForm},
+    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
 };
 use lemmy_utils::{
   claims::Claims,
@@ -35,6 +40,7 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -49,15 +55,21 @@ impl Perform for SaveUserSettings {
       let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
       // Only send the verification email if there was an email change
       if previous_email.ne(email) {
-        send_verification_email(&local_user_view, email, context.pool(), context.settings())
-          .await?;
+        let email_config = local_site_to_email_config(&local_site)?;
+        send_verification_email(
+          &local_user_view,
+          email,
+          context.pool(),
+          context.settings(),
+          &email_config,
+        )
+        .await?;
       }
     }
 
     // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
     if let Some(email) = &email {
-      let site_fut = blocking(context.pool(), Site::read_local);
-      if email.is_none() && site_fut.await??.require_email_verification {
+      if email.is_none() && local_site.require_email_verification {
         return Err(LemmyError::from_message("email_required"));
       }
     }
@@ -71,7 +83,7 @@ impl Perform for SaveUserSettings {
     if let Some(Some(display_name)) = &display_name {
       if !is_valid_display_name(
         display_name.trim(),
-        context.settings().actor_name_max_length,
+        local_site.actor_name_max_length as usize,
       ) {
         return Err(LemmyError::from_message("invalid_username"));
       }
@@ -87,31 +99,15 @@ impl Perform for SaveUserSettings {
     let person_id = local_user_view.person.id;
     let default_listing_type = data.default_listing_type;
     let default_sort_type = data.default_sort_type;
-    let password_encrypted = local_user_view.local_user.password_encrypted;
-    let public_key = Some(local_user_view.person.public_key);
 
-    let person_form = PersonForm {
-      name: local_user_view.person.name,
-      avatar,
-      banner,
-      inbox_url: None,
-      display_name,
-      published: None,
-      updated: Some(naive_now()),
-      banned: None,
-      deleted: None,
-      actor_id: None,
-      bio,
-      local: None,
-      admin: None,
-      private_key: None,
-      public_key,
-      last_refreshed_at: None,
-      shared_inbox_url: None,
-      matrix_user_id,
-      bot_account,
-      ban_expires: None,
-    };
+    let person_form = PersonUpdateForm::builder()
+      .display_name(display_name)
+      .bio(bio)
+      .matrix_user_id(matrix_user_id)
+      .bot_account(bot_account)
+      .avatar(avatar)
+      .banner(banner)
+      .build();
 
     blocking(context.pool(), move |conn| {
       Person::update(conn, person_id, &person_form)
@@ -126,24 +122,20 @@ impl Perform for SaveUserSettings {
       .await??;
     }
 
-    let local_user_form = LocalUserForm {
-      person_id: Some(person_id),
-      email,
-      password_encrypted: Some(password_encrypted),
-      show_nsfw: data.show_nsfw,
-      show_bot_accounts: data.show_bot_accounts,
-      show_scores: data.show_scores,
-      theme: data.theme.to_owned(),
-      default_sort_type,
-      default_listing_type,
-      interface_language: data.interface_language.to_owned(),
-      show_avatars: data.show_avatars,
-      show_read_posts: data.show_read_posts,
-      show_new_post_notifs: data.show_new_post_notifs,
-      send_notifications_to_email: data.send_notifications_to_email,
-      email_verified: None,
-      accepted_application: None,
-    };
+    let local_user_form = LocalUserUpdateForm::builder()
+      .email(email)
+      .show_avatars(data.show_avatars)
+      .show_read_posts(data.show_read_posts)
+      .show_new_post_notifs(data.show_new_post_notifs)
+      .send_notifications_to_email(data.send_notifications_to_email)
+      .show_nsfw(data.show_nsfw)
+      .show_bot_accounts(data.show_bot_accounts)
+      .show_scores(data.show_scores)
+      .default_sort_type(default_sort_type)
+      .default_listing_type(default_listing_type)
+      .theme(data.theme.to_owned())
+      .interface_language(data.interface_language.to_owned())
+      .build();
 
     let local_user_res = blocking(context.pool(), move |conn| {
       LocalUser::update(conn, local_user_id, &local_user_form)

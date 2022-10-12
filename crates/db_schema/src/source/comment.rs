@@ -1,6 +1,7 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, LtreeDef, PersonId, PostId};
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 #[cfg(feature = "full")]
 use crate::schema::{comment, comment_like, comment_saved};
@@ -26,16 +27,36 @@ pub struct Comment {
   pub language_id: LanguageId,
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, TypedBuilder)]
+#[builder(field_defaults(default))]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
-pub struct CommentForm {
+pub struct CommentInsertForm {
+  #[builder(!default)]
   pub creator_id: PersonId,
+  #[builder(!default)]
   pub post_id: PostId,
+  #[builder(!default)]
   pub content: String,
   pub removed: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: Option<bool>,
+  pub ap_id: Option<DbUrl>,
+  pub local: Option<bool>,
+  pub distinguished: Option<bool>,
+  pub language_id: Option<LanguageId>,
+}
+
+#[derive(Debug, Clone, TypedBuilder)]
+#[builder(field_defaults(default))]
+#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = comment))]
+pub struct CommentUpdateForm {
+  pub content: Option<String>,
+  pub removed: Option<bool>,
+  // Don't use a default naive_now here, because the create function does a lot of comment updates
+  pub updated: Option<Option<chrono::NaiveDateTime>>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,

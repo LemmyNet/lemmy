@@ -148,8 +148,9 @@ mod tests {
   use crate::private_message_report_view::PrivateMessageReportQuery;
   use lemmy_db_schema::{
     source::{
-      person::{Person, PersonForm},
-      private_message::{PrivateMessage, PrivateMessageForm},
+      instance::{Instance, InstanceForm},
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Crud, Reportable},
@@ -162,27 +163,33 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person_1 = PersonForm {
-      name: "timmy_mrv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let new_person_1 = PersonInsertForm::builder()
+      .name("timmy_mrv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let inserted_timmy = Person::create(conn, &new_person_1).unwrap();
 
-    let new_person_2 = PersonForm {
-      name: "jessica_mrv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_2 = PersonInsertForm::builder()
+      .name("jessica_mrv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let inserted_jessica = Person::create(conn, &new_person_2).unwrap();
 
     // timmy sends private message to jessica
-    let pm_form = PrivateMessageForm {
-      creator_id: inserted_timmy.id,
-      recipient_id: inserted_jessica.id,
-      content: "something offensive".to_string(),
-      ..Default::default()
-    };
+    let pm_form = PrivateMessageInsertForm::builder()
+      .creator_id(inserted_timmy.id)
+      .recipient_id(inserted_jessica.id)
+      .content("something offensive".to_string())
+      .build();
     let pm = PrivateMessage::create(conn, &pm_form).unwrap();
 
     // jessica reports private message
@@ -206,11 +213,11 @@ mod tests {
     assert_eq!(pm_report.reason, reports[0].private_message_report.reason);
     assert_eq!(pm.content, reports[0].private_message.content);
 
-    let new_person_3 = PersonForm {
-      name: "admin_mrv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_3 = PersonInsertForm::builder()
+      .name("admin_mrv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let inserted_admin = Person::create(conn, &new_person_3).unwrap();
 
     // admin resolves the report (after taking appropriate action)
@@ -229,5 +236,7 @@ mod tests {
       inserted_admin.name,
       reports[0].resolver.as_ref().unwrap().name
     );
+
+    Instance::delete(conn, inserted_instance.id).unwrap();
   }
 }

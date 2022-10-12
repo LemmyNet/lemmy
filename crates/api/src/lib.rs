@@ -9,7 +9,12 @@ use lemmy_api_common::{
   site::*,
   websocket::*,
 };
-use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
+use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{check_slurs, slur_regex},
+  ConnectionId,
+};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
@@ -227,8 +232,10 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 }
 
 /// Check size of report and remove whitespace
-pub(crate) fn check_report_reason(reason: &str, context: &LemmyContext) -> Result<(), LemmyError> {
-  check_slurs(reason, &context.settings().slur_regex())?;
+pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Result<(), LemmyError> {
+  let slur_regex = &slur_regex(local_site.slur_filter_regex.as_deref());
+
+  check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
     return Err(LemmyError::from_message("report_reason_required"));
   }
@@ -243,8 +250,9 @@ mod tests {
   use lemmy_api_common::utils::check_validator_time;
   use lemmy_db_schema::{
     source::{
-      local_user::{LocalUser, LocalUserForm},
-      person::{Person, PersonForm},
+      instance::{Instance, InstanceForm},
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
       secret::Secret,
     },
     traits::Crud,
@@ -258,19 +266,25 @@ mod tests {
     let secret = Secret::init(conn).unwrap();
     let settings = &SETTINGS.to_owned();
 
-    let new_person = PersonForm {
-      name: "Gerry9812".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("Gerry9812".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let local_user_form = LocalUserForm {
-      person_id: Some(inserted_person.id),
-      password_encrypted: Some("123456".to_string()),
-      ..LocalUserForm::default()
-    };
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted("123456".to_string())
+      .build();
 
     let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
 

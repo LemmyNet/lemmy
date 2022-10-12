@@ -6,13 +6,14 @@ use activitypub_federation::{
   LocalInstance,
 };
 use anyhow::Context;
+use diesel::PgConnection;
 use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::{newtypes::DbUrl, source::activity::Activity, utils::DbPool};
-use lemmy_utils::{
-  error::LemmyError,
-  location_info,
-  settings::{structs::Settings, SETTINGS},
+use lemmy_db_schema::{
+  newtypes::DbUrl,
+  source::{activity::Activity, instance::Instance, local_site::LocalSite},
+  utils::DbPool,
 };
+use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
 use url::{ParseError, Url};
@@ -34,13 +35,39 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
   static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::new();
   LOCAL_INSTANCE.get_or_init(|| {
+    let conn = &mut context
+      .pool()
+      .get()
+      .expect("getting connection for LOCAL_INSTANCE init");
+    // Local site may be missing
+    let local_site = &LocalSite::read(conn);
+    let worker_count = local_site
+      .as_ref()
+      .map(|l| l.federation_worker_count)
+      .unwrap_or(64) as u64;
+    let http_fetch_retry_limit = local_site
+      .as_ref()
+      .map(|l| l.federation_http_fetch_retry_limit)
+      .unwrap_or(25);
+    let federation_debug = local_site
+      .as_ref()
+      .map(|l| l.federation_debug)
+      .unwrap_or(true);
+
     let settings = InstanceSettings::builder()
-      .http_fetch_retry_limit(context.settings().federation.http_fetch_retry_limit)
-      .worker_count(context.settings().federation.worker_count)
-      .debug(context.settings().federation.debug)
+      .http_fetch_retry_limit(http_fetch_retry_limit)
+      .worker_count(worker_count)
+      .debug(federation_debug)
       // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
       // without the value getting captured.
-      .verify_url_function(|url| check_apub_id_valid(url, &SETTINGS))
+      // TODO this is broken
+      // .verify_url_function(|url| {
+      //   let conn2 = &mut context.to_owned().pool().get().expect("getting connection for LOCAL_INSTANCE init");
+      //   let local_site = &LocalSite::read(conn2).expect("reading local_site");
+      //   let allowed_instances = &Instance::allowlist(conn2).ok();
+      //   let blocked_instances = &Instance::blocklist(conn2).ok();
+      //   check_apub_id_valid(url, local_site, allowed_instances, blocked_instances, &SETTINGS)
+      // })
       .http_signature_compat(true)
       .build()
       .expect("configure federation");
@@ -62,8 +89,12 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
 ///
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
-#[tracing::instrument(skip(settings))]
-fn check_apub_id_valid(apub_id: &Url, settings: &Settings) -> Result<(), &'static str> {
+#[tracing::instrument(skip(settings, local_site_data))]
+fn check_apub_id_valid(
+  apub_id: &Url,
+  local_site_data: &LocalSiteData,
+  settings: &Settings,
+) -> Result<(), &'static str> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
   let local_instance = settings
     .get_hostname_without_port()
@@ -72,7 +103,12 @@ fn check_apub_id_valid(apub_id: &Url, settings: &Settings) -> Result<(), &'stati
     return Ok(());
   }
 
-  if !settings.federation.enabled {
+  if !local_site_data
+    .local_site
+    .as_ref()
+    .map(|l| l.federation_enabled)
+    .unwrap_or(true)
+  {
     return Err("Federation disabled");
   }
 
@@ -80,13 +116,13 @@ fn check_apub_id_valid(apub_id: &Url, settings: &Settings) -> Result<(), &'stati
     return Err("Invalid protocol scheme");
   }
 
-  if let Some(blocked) = settings.to_owned().federation.blocked_instances {
+  if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
     if blocked.contains(&domain) {
       return Err("Domain is blocked");
     }
   }
 
-  if let Some(allowed) = settings.to_owned().federation.allowed_instances {
+  if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
     if !allowed.contains(&domain) {
       return Err("Domain is not in allowlist");
     }
@@ -95,13 +131,39 @@ fn check_apub_id_valid(apub_id: &Url, settings: &Settings) -> Result<(), &'stati
   Ok(())
 }
 
-#[tracing::instrument(skip(settings))]
+pub(crate) struct LocalSiteData {
+  local_site: Option<LocalSite>,
+  allowed_instances: Option<Vec<String>>,
+  blocked_instances: Option<Vec<String>>,
+}
+
+pub(crate) fn fetch_local_site_data(
+  conn: &mut PgConnection,
+) -> Result<LocalSiteData, diesel::result::Error> {
+  // LocalSite may be missing
+  let local_site = LocalSite::read(conn).ok();
+  let allowed = Instance::allowlist(conn)?;
+  let blocked = Instance::blocklist(conn)?;
+
+  // These can return empty vectors, so convert them to options
+  let allowed_instances = (!allowed.is_empty()).then(|| allowed);
+  let blocked_instances = (!blocked.is_empty()).then(|| blocked);
+
+  Ok(LocalSiteData {
+    local_site,
+    allowed_instances,
+    blocked_instances,
+  })
+}
+
+#[tracing::instrument(skip(settings, local_site_data))]
 pub(crate) fn check_apub_id_valid_with_strictness(
   apub_id: &Url,
   is_strict: bool,
+  local_site_data: &LocalSiteData,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  check_apub_id_valid(apub_id, settings).map_err(LemmyError::from_message)?;
+  check_apub_id_valid(apub_id, local_site_data, settings).map_err(LemmyError::from_message)?;
   let domain = apub_id.domain().expect("apud id has domain").to_string();
   let local_instance = settings
     .get_hostname_without_port()
@@ -110,15 +172,20 @@ pub(crate) fn check_apub_id_valid_with_strictness(
     return Ok(());
   }
 
-  if let Some(mut allowed) = settings.to_owned().federation.allowed_instances {
+  if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
     // Only check allowlist if this is a community, or strict allowlist is enabled.
-    let strict_allowlist = settings.to_owned().federation.strict_allowlist;
+    let strict_allowlist = local_site_data
+      .local_site
+      .as_ref()
+      .map(|l| l.federation_strict_allowlist)
+      .unwrap_or(true);
     if is_strict || strict_allowlist {
       // need to allow this explicitly because apub receive might contain objects from our local
       // instance.
-      allowed.push(local_instance);
+      let mut allowed_and_local = allowed.to_owned();
+      allowed_and_local.push(local_instance);
 
-      if !allowed.contains(&domain) {
+      if !allowed_and_local.contains(&domain) {
         return Err(LemmyError::from_message(
           "Federation forbidden by strict allowlist",
         ));
@@ -182,6 +249,10 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
+pub fn generate_domain_url(actor_id: &Url) -> Result<String, LemmyError> {
+  Ok(actor_id.host_str().context(location_info!())?.to_string())
+}
+
 pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/outbox", actor_id))?.into())
 }
@@ -203,7 +274,7 @@ async fn insert_activity(
   let ap_id = ap_id.to_owned().into();
   Ok(
     blocking(pool, move |conn| {
-      Activity::insert(conn, ap_id, activity, local, sensitive)
+      Activity::insert(conn, ap_id, activity, local, Some(sensitive))
     })
     .await??,
   )

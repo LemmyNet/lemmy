@@ -6,7 +6,7 @@ use crate::{
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
-use regex::{Regex, RegexBuilder};
+use regex::Regex;
 use std::{env, fs, io::Error};
 
 pub mod structs;
@@ -88,15 +88,6 @@ impl Settings {
 
   pub fn webfinger_regex(&self) -> Regex {
     WEBFINGER_REGEX.to_owned()
-  }
-
-  pub fn slur_regex(&self) -> Option<Regex> {
-    self.slur_filter.as_ref().map(|slurs| {
-      RegexBuilder::new(slurs)
-        .case_insensitive(true)
-        .build()
-        .expect("compile regex")
-    })
   }
 
   pub fn pictrs_config(&self) -> Result<PictrsConfig, LemmyError> {

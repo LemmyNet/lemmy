@@ -7,8 +7,9 @@ use lemmy_api_common::{
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
+    comment::{Comment, CommentUpdateForm},
     community::Community,
+    local_site::LocalSite,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
     post::Post,
   },
@@ -35,6 +36,7 @@ impl PerformCrud for RemoveComment {
     let data: &RemoveComment = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -60,7 +62,11 @@ impl PerformCrud for RemoveComment {
     // Do the remove
     let removed = data.removed;
     let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_removed(conn, comment_id, removed)
+      Comment::update(
+        conn,
+        comment_id,
+        &CommentUpdateForm::builder().removed(Some(removed)).build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
@@ -84,6 +90,7 @@ impl PerformCrud for RemoveComment {
       &updated_comment,
       &local_user_view.person.clone(),
       &post,
+      &local_site,
       false,
       context,
     )

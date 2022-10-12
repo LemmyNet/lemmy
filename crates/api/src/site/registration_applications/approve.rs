@@ -2,12 +2,19 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin, send_application_approved_email},
+  utils::{
+    blocking,
+    get_local_user_view_from_jwt,
+    is_admin,
+    local_site_to_email_config,
+    send_application_approved_email,
+  },
 };
 use lemmy_db_schema::{
   source::{
-    local_user::{LocalUser, LocalUserForm},
-    registration_application::{RegistrationApplication, RegistrationApplicationForm},
+    local_site::LocalSite,
+    local_user::{LocalUser, LocalUserUpdateForm},
+    registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
   },
   traits::Crud,
   utils::diesel_option_overwrite,
@@ -36,10 +43,9 @@ impl Perform for ApproveRegistrationApplication {
 
     // Update the registration with reason, admin_id
     let deny_reason = diesel_option_overwrite(&data.deny_reason);
-    let app_form = RegistrationApplicationForm {
-      admin_id: Some(local_user_view.person.id),
+    let app_form = RegistrationApplicationUpdateForm {
+      admin_id: Some(Some(local_user_view.person.id)),
       deny_reason,
-      ..RegistrationApplicationForm::default()
     };
 
     let registration_application = blocking(context.pool(), move |conn| {
@@ -48,10 +54,9 @@ impl Perform for ApproveRegistrationApplication {
     .await??;
 
     // Update the local_user row
-    let local_user_form = LocalUserForm {
-      accepted_application: Some(data.approve),
-      ..LocalUserForm::default()
-    };
+    let local_user_form = LocalUserUpdateForm::builder()
+      .accepted_application(Some(data.approve))
+      .build();
 
     let approved_user_id = registration_application.local_user_id;
     blocking(context.pool(), move |conn| {
@@ -66,7 +71,13 @@ impl Perform for ApproveRegistrationApplication {
       .await??;
 
       if approved_local_user_view.local_user.email.is_some() {
-        send_application_approved_email(&approved_local_user_view, context.settings())?;
+        let local_site = blocking(context.pool(), LocalSite::read).await??;
+        let email_config = local_site_to_email_config(&local_site)?;
+        send_application_approved_email(
+          &approved_local_user_view,
+          context.settings(),
+          &email_config,
+        )?;
       }
     }
 

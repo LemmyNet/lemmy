@@ -9,6 +9,7 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     get_local_user_view_from_jwt,
     get_post,
+    local_site_to_slur_regex,
   },
 };
 use lemmy_apub::{
@@ -20,9 +21,10 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
-    comment_reply::CommentReply,
-    person_mention::PersonMention,
+    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+    comment_reply::{CommentReply, CommentReplyUpdateForm},
+    local_site::LocalSite,
+    person_mention::{PersonMention, PersonMentionUpdateForm},
   },
   traits::{Crud, Likeable},
 };
@@ -50,9 +52,12 @@ impl PerformCrud for CreateComment {
     let data: &CreateComment = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
-    let content_slurs_removed =
-      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
+    let content_slurs_removed = remove_slurs(
+      &data.content.to_owned(),
+      &local_site_to_slur_regex(&local_site),
+    );
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -97,13 +102,12 @@ impl PerformCrud for CreateComment {
     })
     .await??;
 
-    let comment_form = CommentForm {
-      content: content_slurs_removed,
-      post_id: data.post_id,
-      creator_id: local_user_view.person.id,
-      language_id: Some(language_id),
-      ..CommentForm::default()
-    };
+    let comment_form = CommentInsertForm::builder()
+      .content(content_slurs_removed.to_owned())
+      .post_id(data.post_id)
+      .creator_id(local_user_view.person.id)
+      .language_id(Some(language_id))
+      .build();
 
     // Create the comment
     let comment_form2 = comment_form.clone();
@@ -125,19 +129,24 @@ impl PerformCrud for CreateComment {
           &inserted_comment_id.to_string(),
           &protocol_and_hostname,
         )?;
-        Ok(Comment::update_ap_id(conn, inserted_comment_id, apub_id)?)
+        Ok(Comment::update(
+          conn,
+          inserted_comment_id,
+          &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
+        )?)
       })
       .await?
       .map_err(|e| e.with_message("couldnt_create_comment"))?;
 
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
-    let mentions = scrape_text_for_mentions(&comment_form.content);
+    let mentions = scrape_text_for_mentions(&content_slurs_removed);
     let recipient_ids = send_local_notifs(
       mentions,
       &updated_comment,
       &local_user_view.person,
       &post,
+      &local_site,
       true,
       context,
     )
@@ -175,7 +184,7 @@ impl PerformCrud for CreateComment {
       .await?;
       if let Ok(reply) = comment_reply {
         blocking(context.pool(), move |conn| {
-          CommentReply::update_read(conn, reply.id, true)
+          CommentReply::update(conn, reply.id, &CommentReplyUpdateForm { read: Some(true) })
         })
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_replies"))?;
@@ -189,7 +198,11 @@ impl PerformCrud for CreateComment {
       .await?;
       if let Ok(mention) = person_mention {
         blocking(context.pool(), move |conn| {
-          PersonMention::update_read(conn, mention.id, true)
+          PersonMention::update(
+            conn,
+            mention.id,
+            &PersonMentionUpdateForm { read: Some(true) },
+          )
         })
         .await?
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_person_mentions"))?;

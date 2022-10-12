@@ -2,14 +2,14 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{GetSiteResponse, LeaveAdmin},
-  utils::{blocking, build_federated_instances, get_local_user_view_from_jwt, is_admin},
+  utils::{blocking, get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
     language::Language,
     moderator::{ModAdd, ModAddForm},
-    person::Person,
+    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
@@ -42,7 +42,11 @@ impl Perform for LeaveAdmin {
 
     let person_id = local_user_view.person.id;
     blocking(context.pool(), move |conn| {
-      Person::leave_admin(conn, person_id)
+      Person::update(
+        conn,
+        person_id,
+        &PersonUpdateForm::builder().admin(Some(false)).build(),
+      )
     })
     .await??;
 
@@ -59,18 +63,16 @@ impl Perform for LeaveAdmin {
     let site_view = blocking(context.pool(), SiteView::read_local).await??;
     let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
-    let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
-
     let all_languages = blocking(context.pool(), Language::read_all).await??;
     let discussion_languages = blocking(context.pool(), SiteLanguage::read_local).await??;
 
     Ok(GetSiteResponse {
-      site_view: Some(site_view),
+      site_view,
       admins,
       online: 0,
       version: version::VERSION.to_string(),
       my_user: None,
-      federated_instances,
+      federated_instances: None,
       all_languages,
       discussion_languages,
     })

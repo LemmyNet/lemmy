@@ -157,9 +157,14 @@ mod tests {
   };
   use lemmy_db_schema::{
     source::{
-      local_user::{LocalUser, LocalUserForm, LocalUserSettings},
+      instance::{Instance, InstanceForm},
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserSettings, LocalUserUpdateForm},
       person::*,
-      registration_application::{RegistrationApplication, RegistrationApplicationForm},
+      registration_application::{
+        RegistrationApplication,
+        RegistrationApplicationInsertForm,
+        RegistrationApplicationUpdateForm,
+      },
     },
     traits::Crud,
     utils::establish_unpooled_connection,
@@ -171,71 +176,73 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let timmy_person_form = PersonForm {
-      name: "timmy_rav".into(),
-      admin: Some(true),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let timmy_person_form = PersonInsertForm::builder()
+      .name("timmy_rav".into())
+      .admin(Some(true))
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_timmy_person = Person::create(conn, &timmy_person_form).unwrap();
 
-    let timmy_local_user_form = LocalUserForm {
-      person_id: Some(inserted_timmy_person.id),
-      password_encrypted: Some("nada".to_string()),
-      ..LocalUserForm::default()
-    };
+    let timmy_local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_timmy_person.id)
+      .password_encrypted("nada".to_string())
+      .build();
 
     let _inserted_timmy_local_user = LocalUser::create(conn, &timmy_local_user_form).unwrap();
 
-    let sara_person_form = PersonForm {
-      name: "sara_rav".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let sara_person_form = PersonInsertForm::builder()
+      .name("sara_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_sara_person = Person::create(conn, &sara_person_form).unwrap();
 
-    let sara_local_user_form = LocalUserForm {
-      person_id: Some(inserted_sara_person.id),
-      password_encrypted: Some("nada".to_string()),
-      ..LocalUserForm::default()
-    };
+    let sara_local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_sara_person.id)
+      .password_encrypted("nada".to_string())
+      .build();
 
     let inserted_sara_local_user = LocalUser::create(conn, &sara_local_user_form).unwrap();
 
     // Sara creates an application
-    let sara_app_form = RegistrationApplicationForm {
-      local_user_id: Some(inserted_sara_local_user.id),
-      answer: Some("LET ME IIIIINN".to_string()),
-      ..RegistrationApplicationForm::default()
+    let sara_app_form = RegistrationApplicationInsertForm {
+      local_user_id: inserted_sara_local_user.id,
+      answer: "LET ME IIIIINN".to_string(),
     };
 
     let sara_app = RegistrationApplication::create(conn, &sara_app_form).unwrap();
 
     let read_sara_app_view = RegistrationApplicationView::read(conn, sara_app.id).unwrap();
 
-    let jess_person_form = PersonForm {
-      name: "jess_rav".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let jess_person_form = PersonInsertForm::builder()
+      .name("jess_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_jess_person = Person::create(conn, &jess_person_form).unwrap();
 
-    let jess_local_user_form = LocalUserForm {
-      person_id: Some(inserted_jess_person.id),
-      password_encrypted: Some("nada".to_string()),
-      ..LocalUserForm::default()
-    };
+    let jess_local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_jess_person.id)
+      .password_encrypted("nada".to_string())
+      .build();
 
     let inserted_jess_local_user = LocalUser::create(conn, &jess_local_user_form).unwrap();
 
     // Sara creates an application
-    let jess_app_form = RegistrationApplicationForm {
-      local_user_id: Some(inserted_jess_local_user.id),
-      answer: Some("LET ME IIIIINN".to_string()),
-      ..RegistrationApplicationForm::default()
+    let jess_app_form = RegistrationApplicationInsertForm {
+      local_user_id: inserted_jess_local_user.id,
+      answer: "LET ME IIIIINN".to_string(),
     };
 
     let jess_app = RegistrationApplication::create(conn, &jess_app_form).unwrap();
@@ -282,6 +289,7 @@ mod tests {
         inbox_url: inserted_sara_person.inbox_url.to_owned(),
         shared_inbox_url: None,
         matrix_user_id: None,
+        instance_id: inserted_instance.id,
       },
       admin: None,
     };
@@ -309,19 +317,17 @@ mod tests {
     assert_eq!(unread_count, 2);
 
     // Approve the application
-    let approve_form = RegistrationApplicationForm {
-      admin_id: Some(inserted_timmy_person.id),
+    let approve_form = RegistrationApplicationUpdateForm {
+      admin_id: Some(Some(inserted_timmy_person.id)),
       deny_reason: None,
-      ..RegistrationApplicationForm::default()
     };
 
     RegistrationApplication::update(conn, sara_app.id, &approve_form).unwrap();
 
     // Update the local_user row
-    let approve_local_user_form = LocalUserForm {
-      accepted_application: Some(true),
-      ..LocalUserForm::default()
-    };
+    let approve_local_user_form = LocalUserUpdateForm::builder()
+      .accepted_application(Some(true))
+      .build();
 
     LocalUser::update(conn, inserted_sara_local_user.id, &approve_local_user_form).unwrap();
 
@@ -353,6 +359,7 @@ mod tests {
       inbox_url: inserted_timmy_person.inbox_url.to_owned(),
       shared_inbox_url: None,
       matrix_user_id: None,
+      instance_id: inserted_instance.id,
     });
     assert_eq!(read_sara_app_view_after_approve, expected_sara_app_view);
 
@@ -382,5 +389,6 @@ mod tests {
     Person::delete(conn, inserted_timmy_person.id).unwrap();
     Person::delete(conn, inserted_sara_person.id).unwrap();
     Person::delete(conn, inserted_jess_person.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
   }
 }

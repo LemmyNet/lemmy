@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel;

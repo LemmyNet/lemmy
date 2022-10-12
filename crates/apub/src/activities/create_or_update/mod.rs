@@ -3,7 +3,7 @@ use activitypub_federation::core::object_id::ObjectId;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  source::{comment::Comment, post::Post},
+  source::{comment::Comment, local_site::LocalSite, post::Post},
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, utils::scrape_text_for_mentions};
@@ -27,11 +27,22 @@ async fn get_comment_notif_recipients(
     .dereference(context, local_instance(context), request_counter)
     .await?;
 
+  let local_site = blocking(context.pool(), LocalSite::read).await??;
+
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,
   // Its much easier to scrape them from the comment body, since the API has to do that
   // anyway.
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
-  send_local_notifs(mentions, comment, &*actor, &post, do_send_email, context).await
+  send_local_notifs(
+    mentions,
+    comment,
+    &*actor,
+    &post,
+    &local_site,
+    do_send_email,
+    context,
+  )
+  .await
 }

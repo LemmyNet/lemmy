@@ -28,11 +28,11 @@ use activitystreams_kinds::public;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
-    community::Community,
+    comment::{Comment, CommentUpdateForm},
+    community::{Community, CommunityUpdateForm},
     person::Person,
-    post::Post,
-    private_message::PrivateMessage,
+    post::{Post, PostUpdateForm},
+    private_message::{PrivateMessage, PrivateMessageUpdateForm},
   },
   traits::Crud,
 };
@@ -239,7 +239,13 @@ async fn receive_delete_action(
       }
 
       let community = blocking(context.pool(), move |conn| {
-        Community::update_deleted(conn, community.id, deleted)
+        Community::update(
+          conn,
+          community.id,
+          &CommunityUpdateForm::builder()
+            .deleted(Some(deleted))
+            .build(),
+        )
       })
       .await??;
       send_community_ws_message(
@@ -254,7 +260,11 @@ async fn receive_delete_action(
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
         let deleted_post = blocking(context.pool(), move |conn| {
-          Post::update_deleted(conn, post.id, deleted)
+          Post::update(
+            conn,
+            post.id,
+            &PostUpdateForm::builder().deleted(Some(deleted)).build(),
+          )
         })
         .await??;
         send_post_ws_message(
@@ -270,7 +280,11 @@ async fn receive_delete_action(
     DeletableObjects::Comment(comment) => {
       if deleted != comment.deleted {
         let deleted_comment = blocking(context.pool(), move |conn| {
-          Comment::update_deleted(conn, comment.id, deleted)
+          Comment::update(
+            conn,
+            comment.id,
+            &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
+          )
         })
         .await??;
         send_comment_ws_message_simple(
@@ -283,7 +297,13 @@ async fn receive_delete_action(
     }
     DeletableObjects::PrivateMessage(pm) => {
       let deleted_private_message = blocking(context.pool(), move |conn| {
-        PrivateMessage::update_deleted(conn, pm.id, deleted)
+        PrivateMessage::update(
+          conn,
+          pm.id,
+          &PrivateMessageUpdateForm::builder()
+            .deleted(Some(deleted))
+            .build(),
+        )
       })
       .await??;
 

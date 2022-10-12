@@ -1,5 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
+  fetch_local_site_data,
   local_instance,
   objects::read_from_string_or_source,
   protocol::{
@@ -18,7 +19,7 @@ use lemmy_api_common::utils::{blocking, check_person_block};
 use lemmy_db_schema::{
   source::{
     person::Person,
-    private_message::{PrivateMessage, PrivateMessageForm},
+    private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
 };
@@ -108,7 +109,15 @@ impl ApubObject for ApubPrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    check_apub_id_valid_with_strictness(note.id.inner(), false, context.settings())?;
+
+    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+
+    check_apub_id_valid_with_strictness(
+      note.id.inner(),
+      false,
+      &local_site_data,
+      context.settings(),
+    )?;
     let person = note
       .attributed_to
       .dereference(context, local_instance(context), request_counter)
@@ -134,7 +143,7 @@ impl ApubObject for ApubPrivateMessage {
       .await?;
     check_person_block(creator.id, recipient.id, context.pool()).await?;
 
-    let form = PrivateMessageForm {
+    let form = PrivateMessageInsertForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
       content: read_from_string_or_source(&note.content, &None, &note.source),
@@ -146,7 +155,7 @@ impl ApubObject for ApubPrivateMessage {
       local: Some(false),
     };
     let pm = blocking(context.pool(), move |conn| {
-      PrivateMessage::upsert(conn, &form)
+      PrivateMessage::create(conn, &form)
     })
     .await??;
     Ok(pm.into())

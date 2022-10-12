@@ -7,11 +7,10 @@ use lemmy_api_common::{
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityForm},
+    community::{Community, CommunityUpdateForm},
     moderator::{ModHideCommunity, ModHideCommunityForm},
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
@@ -33,20 +32,9 @@ impl Perform for HideCommunity {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
     is_admin(&local_user_view)?;
 
-    let community_id = data.community_id;
-    let read_community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
-
-    let community_form = CommunityForm {
-      name: read_community.name,
-      title: read_community.title,
-      description: Some(read_community.description.to_owned()),
-      hidden: Some(data.hidden),
-      updated: Some(naive_now()),
-      ..CommunityForm::default()
-    };
+    let community_form = CommunityUpdateForm::builder()
+      .hidden(Some(data.hidden))
+      .build();
 
     let mod_hide_community_form = ModHideCommunityForm {
       community_id: data.community_id,

@@ -13,10 +13,17 @@ use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::{
   request::build_user_agent,
-  utils::{blocking, check_private_instance_and_federation_enabled},
+  utils::{
+    blocking,
+    check_private_instance_and_federation_enabled,
+    local_site_to_rate_limit_config,
+  },
 };
 use lemmy_api_crud::match_websocket_operation_crud;
-use lemmy_db_schema::{source::secret::Secret, utils::get_database_url_from_env};
+use lemmy_db_schema::{
+  source::{local_site::LocalSite, secret::Secret},
+  utils::get_database_url_from_env,
+};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
   api_routes,
@@ -77,12 +84,12 @@ async fn main() -> Result<(), LemmyError> {
     .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 
   // Run the migrations from code
-  let protocol_and_hostname = settings.get_protocol_and_hostname();
+  let settings_cloned = settings.to_owned();
   blocking(&pool, move |conn| {
     let _ = conn
       .run_pending_migrations(MIGRATIONS)
       .map_err(|_| LemmyError::from_message("Couldn't run migrations"))?;
-    run_advanced_migrations(conn, &protocol_and_hostname)?;
+    run_advanced_migrations(conn, &settings_cloned)?;
     Ok(()) as Result<(), LemmyError>
   })
   .await??;
@@ -93,15 +100,26 @@ async fn main() -> Result<(), LemmyError> {
     scheduled_tasks::setup(pool2).expect("Couldn't set up scheduled_tasks");
   });
 
-  // Set up the rate limiter
-  let rate_limiter = RateLimit {
-    rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
-    rate_limit_config: settings.rate_limit.to_owned().unwrap_or_default(),
-  };
-
   // Initialize the secrets
   let conn = &mut pool.get()?;
   let secret = Secret::init(conn).expect("Couldn't initialize secrets.");
+
+  // Make sure the local site is set up.
+  let local_site = LocalSite::read(conn).expect("local site not set up");
+  let federation_enabled = local_site.federation_enabled;
+
+  if federation_enabled {
+    println!("federation enabled, host is {}", &settings.hostname);
+  }
+
+  check_private_instance_and_federation_enabled(&local_site)?;
+
+  // Set up the rate limiter
+  let rate_limit_config = local_site_to_rate_limit_config(&local_site);
+  let rate_limiter = RateLimit {
+    rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
+    rate_limit_config,
+  };
 
   println!(
     "Starting http server at {}:{}",
@@ -129,8 +147,6 @@ async fn main() -> Result<(), LemmyError> {
   let pictrs_client = ClientBuilder::new(reqwest_client.clone())
     .with(TracingMiddleware::default())
     .build();
-
-  check_private_instance_and_federation_enabled(&pool, &settings).await?;
 
   let chat_server = ChatServer::startup(
     pool.clone(),
@@ -161,11 +177,19 @@ async fn main() -> Result<(), LemmyError> {
       .app_data(Data::new(rate_limiter.clone()))
       // The routes
       .configure(|cfg| api_routes::config(cfg, &rate_limiter))
-      .configure(|cfg| lemmy_apub::http::routes::config(cfg, &settings))
+      .configure(|cfg| {
+        if federation_enabled {
+          lemmy_apub::http::routes::config(cfg)
+        }
+      })
       .configure(feeds::config)
       .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limiter))
       .configure(nodeinfo::config)
-      .configure(|cfg| webfinger::config(cfg, &settings))
+      .configure(|cfg| {
+        if federation_enabled {
+          webfinger::config(cfg)
+        }
+      })
   })
   .bind((settings_bind.bind, settings_bind.port))?
   .run()

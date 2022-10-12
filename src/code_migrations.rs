@@ -4,6 +4,7 @@ use diesel::{
   sql_types::{Nullable, Text},
   *,
 };
+use lemmy_api_common::lemmy_db_views::structs::SiteView;
 use lemmy_apub::{
   generate_followers_url,
   generate_inbox_url,
@@ -14,25 +15,28 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
-    community::{Community, CommunityForm},
-    person::{Person, PersonForm},
-    post::Post,
-    private_message::PrivateMessage,
-    site::{Site, SiteForm},
+    comment::{Comment, CommentUpdateForm},
+    community::{Community, CommunityUpdateForm},
+    instance::{Instance, InstanceForm},
+    local_site::{LocalSite, LocalSiteInsertForm},
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm, PersonUpdateForm},
+    post::{Post, PostUpdateForm},
+    private_message::{PrivateMessage, PrivateMessageUpdateForm},
+    site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::error::LemmyError;
-use std::default::Default;
+use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use tracing::info;
 use url::Url;
 
 pub fn run_advanced_migrations(
   conn: &mut PgConnection,
-  protocol_and_hostname: &str,
+  settings: &Settings,
 ) -> Result<(), LemmyError> {
+  let protocol_and_hostname = &settings.get_protocol_and_hostname();
   user_updates_2020_04_02(conn, protocol_and_hostname)?;
   community_updates_2020_04_02(conn, protocol_and_hostname)?;
   post_updates_2020_04_03(conn, protocol_and_hostname)?;
@@ -42,6 +46,7 @@ pub fn run_advanced_migrations(
   apub_columns_2021_02_02(conn)?;
   instance_actor_2022_01_28(conn, protocol_and_hostname)?;
   regenerate_public_keys_2022_07_05(conn)?;
+  initialize_local_site_2022_10_10(conn, settings)?;
 
   Ok(())
 }
@@ -63,18 +68,16 @@ fn user_updates_2020_04_02(
   for cperson in &incorrect_persons {
     let keypair = generate_actor_keypair()?;
 
-    let form = PersonForm {
-      name: cperson.name.to_owned(),
-      actor_id: Some(generate_local_apub_endpoint(
+    let form = PersonUpdateForm::builder()
+      .actor_id(Some(generate_local_apub_endpoint(
         EndpointType::Person,
         &cperson.name,
         protocol_and_hostname,
-      )?),
-      private_key: Some(Some(keypair.private_key)),
-      public_key: Some(keypair.public_key),
-      last_refreshed_at: Some(naive_now()),
-      ..PersonForm::default()
-    };
+      )?))
+      .private_key(Some(Some(keypair.private_key)))
+      .public_key(Some(keypair.public_key))
+      .last_refreshed_at(Some(naive_now()))
+      .build();
 
     Person::update(conn, cperson.id, &form)?;
   }
@@ -106,20 +109,12 @@ fn community_updates_2020_04_02(
       protocol_and_hostname,
     )?;
 
-    let form = CommunityForm {
-      name: ccommunity.name.to_owned(),
-      title: ccommunity.title.to_owned(),
-      description: Some(ccommunity.description.to_owned()),
-      hidden: Some(false),
-      actor_id: Some(community_actor_id.to_owned()),
-      local: Some(ccommunity.local),
-      private_key: Some(Some(keypair.private_key)),
-      public_key: Some(keypair.public_key),
-      last_refreshed_at: Some(naive_now()),
-      icon: Some(ccommunity.icon.to_owned()),
-      banner: Some(ccommunity.banner.to_owned()),
-      ..Default::default()
-    };
+    let form = CommunityUpdateForm::builder()
+      .actor_id(Some(community_actor_id.to_owned()))
+      .private_key(Some(Some(keypair.private_key)))
+      .public_key(Some(keypair.public_key))
+      .last_refreshed_at(Some(naive_now()))
+      .build();
 
     Community::update(conn, ccommunity.id, &form)?;
   }
@@ -149,7 +144,11 @@ fn post_updates_2020_04_03(
       &cpost.id.to_string(),
       protocol_and_hostname,
     )?;
-    Post::update_ap_id(conn, cpost.id, apub_id)?;
+    Post::update(
+      conn,
+      cpost.id,
+      &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
+    )?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());
@@ -177,7 +176,11 @@ fn comment_updates_2020_04_03(
       &ccomment.id.to_string(),
       protocol_and_hostname,
     )?;
-    Comment::update_ap_id(conn, ccomment.id, apub_id)?;
+    Comment::update(
+      conn,
+      ccomment.id,
+      &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
+    )?;
   }
 
   info!("{} comment rows updated.", incorrect_comments.len());
@@ -205,7 +208,13 @@ fn private_message_updates_2020_05_05(
       &cpm.id.to_string(),
       protocol_and_hostname,
     )?;
-    PrivateMessage::update_ap_id(conn, cpm.id, apub_id)?;
+    PrivateMessage::update(
+      conn,
+      cpm.id,
+      &PrivateMessageUpdateForm::builder()
+        .ap_id(Some(apub_id))
+        .build(),
+    )?;
   }
 
   info!("{} private message rows updated.", incorrect_pms.len());
@@ -295,22 +304,21 @@ fn instance_actor_2022_01_28(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(site) = Site::read_local(conn) {
+  if let Ok(site_view) = SiteView::read_local(conn) {
+    let site = site_view.site;
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {
       return Ok(());
     }
     let key_pair = generate_actor_keypair()?;
     let actor_id = Url::parse(protocol_and_hostname)?;
-    let site_form = SiteForm {
-      name: site.name,
-      actor_id: Some(actor_id.clone().into()),
-      last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
-      private_key: Some(Some(key_pair.private_key)),
-      public_key: Some(key_pair.public_key),
-      ..Default::default()
-    };
+    let site_form = SiteUpdateForm::builder()
+      .actor_id(Some(actor_id.clone().into()))
+      .last_refreshed_at(Some(naive_now()))
+      .inbox_url(Some(generate_site_inbox_url(&actor_id.into())?))
+      .private_key(Some(Some(key_pair.private_key)))
+      .public_key(Some(key_pair.public_key))
+      .build();
     Site::update(conn, site.id, &site_form)?;
   }
   Ok(())
@@ -337,13 +345,10 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
         community_.name
       );
       let key_pair = generate_actor_keypair()?;
-      let form = CommunityForm {
-        name: community_.name,
-        title: community_.title,
-        public_key: Some(key_pair.public_key),
-        private_key: Some(Some(key_pair.private_key)),
-        ..Default::default()
-      };
+      let form = CommunityUpdateForm::builder()
+        .public_key(Some(key_pair.public_key))
+        .private_key(Some(Some(key_pair.private_key)))
+        .build();
       Community::update(conn, community_.id, &form)?;
     }
   }
@@ -361,14 +366,99 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
         person_.name
       );
       let key_pair = generate_actor_keypair()?;
-      let form = PersonForm {
-        name: person_.name,
-        public_key: Some(key_pair.public_key),
-        private_key: Some(Some(key_pair.private_key)),
-        ..Default::default()
-      };
+      let form = PersonUpdateForm::builder()
+        .public_key(Some(key_pair.public_key))
+        .private_key(Some(Some(key_pair.private_key)))
+        .build();
       Person::update(conn, person_.id, &form)?;
     }
   }
+  Ok(())
+}
+
+/// This ensures that your local site is initialized and exists.
+///
+/// If a site already exists, the DB migration should generate a local_site row.
+/// This will only be run for brand new sites.
+fn initialize_local_site_2022_10_10(
+  conn: &mut PgConnection,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  info!("Running initialize_local_site_2022_10_10");
+
+  // Check to see if local_site exists
+  if LocalSite::read(conn).is_ok() {
+    return Ok(());
+  }
+  info!("No Local Site found, creating it.");
+
+  let domain = settings
+    .get_hostname_without_port()
+    .expect("must have domain");
+
+  // Upsert this to the instance table
+  let instance_form = InstanceForm {
+    domain,
+    updated: None,
+  };
+  let instance = Instance::create(conn, &instance_form)?;
+
+  if let Some(setup) = &settings.setup {
+    let person_keypair = generate_actor_keypair()?;
+    let person_actor_id = generate_local_apub_endpoint(
+      EndpointType::Person,
+      &setup.admin_username,
+      &settings.get_protocol_and_hostname(),
+    )?;
+
+    // Register the user if there's a site setup
+    let person_form = PersonInsertForm::builder()
+      .name(setup.admin_username.to_owned())
+      .admin(Some(true))
+      .instance_id(instance.id)
+      .actor_id(Some(person_actor_id.clone()))
+      .private_key(Some(person_keypair.private_key))
+      .public_key(person_keypair.public_key)
+      .inbox_url(Some(generate_inbox_url(&person_actor_id)?))
+      .shared_inbox_url(Some(generate_shared_inbox_url(&person_actor_id)?))
+      .build();
+    let person_inserted = Person::create(conn, &person_form)?;
+
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(person_inserted.id)
+      .password_encrypted(setup.admin_password.to_owned())
+      .email(setup.admin_email.to_owned())
+      .build();
+    LocalUser::create(conn, &local_user_form)?;
+  };
+
+  // Add an entry for the site table
+  let site_key_pair = generate_actor_keypair()?;
+  let site_actor_id = Url::parse(&settings.get_protocol_and_hostname())?;
+
+  let site_form = SiteInsertForm::builder()
+    .name(
+      settings
+        .setup
+        .to_owned()
+        .map(|s| s.site_name)
+        .unwrap_or_else(|| "New Site".to_string()),
+    )
+    .instance_id(instance.id)
+    .actor_id(Some(site_actor_id.clone().into()))
+    .last_refreshed_at(Some(naive_now()))
+    .inbox_url(Some(generate_site_inbox_url(&site_actor_id.into())?))
+    .private_key(Some(site_key_pair.private_key))
+    .public_key(Some(site_key_pair.public_key))
+    .build();
+  let site = Site::create(conn, &site_form)?;
+
+  // Finally create the local_site row
+  let local_site_form = LocalSiteInsertForm::builder()
+    .site_id(site.id)
+    .site_setup(Some(settings.setup.is_some()))
+    .build();
+  LocalSite::create(conn, &local_site_form)?;
+
   Ok(())
 }

@@ -17,7 +17,7 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   source::{
     moderator::{ModLockPost, ModLockPostForm},
-    post::Post,
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
@@ -61,7 +61,11 @@ impl Perform for LockPost {
     let post_id = data.post_id;
     let locked = data.locked;
     let updated_post: ApubPost = blocking(context.pool(), move |conn| {
-      Post::update_locked(conn, post_id, locked)
+      Post::update(
+        conn,
+        post_id,
+        &PostUpdateForm::builder().locked(Some(locked)).build(),
+      )
     })
     .await??
     .into();

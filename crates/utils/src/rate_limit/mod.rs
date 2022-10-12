@@ -1,10 +1,11 @@
-use crate::{settings::structs::RateLimitConfig, utils::get_ip, IpAddr};
+use crate::{utils::get_ip, IpAddr};
 use actix_web::{
   dev::{Service, ServiceRequest, ServiceResponse, Transform},
   HttpResponse,
 };
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
+use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
   pin::Pin,
@@ -12,8 +13,49 @@ use std::{
   sync::{Arc, Mutex},
   task::{Context, Poll},
 };
+use typed_builder::TypedBuilder;
 
 pub mod rate_limiter;
+
+#[derive(Debug, Deserialize, Serialize, Clone, TypedBuilder)]
+pub struct RateLimitConfig {
+  #[builder(default = 180)]
+  /// Maximum number of messages created in interval
+  pub message: i32,
+  #[builder(default = 60)]
+  /// Interval length for message limit, in seconds
+  pub message_per_second: i32,
+  #[builder(default = 6)]
+  /// Maximum number of posts created in interval
+  pub post: i32,
+  #[builder(default = 300)]
+  /// Interval length for post limit, in seconds
+  pub post_per_second: i32,
+  #[builder(default = 3)]
+  /// Maximum number of registrations in interval
+  pub register: i32,
+  #[builder(default = 3600)]
+  /// Interval length for registration limit, in seconds
+  pub register_per_second: i32,
+  #[builder(default = 6)]
+  /// Maximum number of image uploads in interval
+  pub image: i32,
+  #[builder(default = 3600)]
+  /// Interval length for image uploads, in seconds
+  pub image_per_second: i32,
+  #[builder(default = 6)]
+  /// Maximum number of comments created in interval
+  pub comment: i32,
+  #[builder(default = 600)]
+  /// Interval length for comment limit, in seconds
+  pub comment_per_second: i32,
+  #[builder(default = 60)]
+  /// Maximum number of searches created in interval
+  pub search: i32,
+  #[builder(default = 600)]
+  /// Interval length for search limit, in seconds
+  pub search_per_second: i32,
+}
 
 #[derive(Debug, Clone)]
 pub struct RateLimit {

@@ -1,5 +1,6 @@
-use crate::newtypes::{DbUrl, PersonId};
+use crate::newtypes::{DbUrl, InstanceId, PersonId};
 use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 #[cfg(feature = "full")]
 use crate::schema::person;
@@ -29,6 +30,7 @@ pub struct Person {
   pub admin: bool,
   pub bot_account: bool,
   pub ban_expires: Option<chrono::NaiveDateTime>,
+  pub instance_id: InstanceId,
 }
 
 /// A safe representation of person, without the sensitive info
@@ -54,23 +56,54 @@ pub struct PersonSafe {
   pub admin: bool,
   pub bot_account: bool,
   pub ban_expires: Option<chrono::NaiveDateTime>,
+  pub instance_id: InstanceId,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, TypedBuilder)]
+#[builder(field_defaults(default))]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
-pub struct PersonForm {
+pub struct PersonInsertForm {
+  #[builder(!default)]
   pub name: String,
-  pub display_name: Option<Option<String>>,
-  pub avatar: Option<Option<DbUrl>>,
+  #[builder(!default)]
+  pub public_key: String,
+  #[builder(!default)]
+  pub instance_id: InstanceId,
+  pub display_name: Option<String>,
+  pub avatar: Option<DbUrl>,
   pub banned: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub actor_id: Option<DbUrl>,
+  pub bio: Option<String>,
+  pub local: Option<bool>,
+  pub private_key: Option<String>,
+  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
+  pub banner: Option<DbUrl>,
+  pub deleted: Option<bool>,
+  pub inbox_url: Option<DbUrl>,
+  pub shared_inbox_url: Option<DbUrl>,
+  pub matrix_user_id: Option<String>,
+  pub admin: Option<bool>,
+  pub bot_account: Option<bool>,
+  pub ban_expires: Option<chrono::NaiveDateTime>,
+}
+
+#[derive(Clone, TypedBuilder)]
+#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person))]
+#[builder(field_defaults(default))]
+pub struct PersonUpdateForm {
+  pub display_name: Option<Option<String>>,
+  pub avatar: Option<Option<DbUrl>>,
+  pub banned: Option<bool>,
+  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub actor_id: Option<DbUrl>,
   pub bio: Option<Option<String>>,
   pub local: Option<bool>,
-  pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,
+  pub private_key: Option<Option<String>>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
   pub banner: Option<Option<DbUrl>>,
   pub deleted: Option<bool>,

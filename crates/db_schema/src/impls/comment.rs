@@ -2,11 +2,12 @@ use crate::{
   newtypes::{CommentId, DbUrl, PersonId},
   source::comment::{
     Comment,
-    CommentForm,
+    CommentInsertForm,
     CommentLike,
     CommentLikeForm,
     CommentSaved,
     CommentSavedForm,
+    CommentUpdateForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
   utils::naive_now,
@@ -16,18 +17,6 @@ use diesel_ltree::Ltree;
 use url::Url;
 
 impl Comment {
-  pub fn update_ap_id(
-    conn: &mut PgConnection,
-    comment_id: CommentId,
-    apub_id: DbUrl,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-
-    diesel::update(comment.find(comment_id))
-      .set(ap_id.eq(apub_id))
-      .get_result::<Self>(conn)
-  }
-
   pub fn permadelete_for_creator(
     conn: &mut PgConnection,
     for_creator_id: PersonId,
@@ -40,28 +29,6 @@ impl Comment {
         updated.eq(naive_now()),
       ))
       .get_results::<Self>(conn)
-  }
-
-  pub fn update_deleted(
-    conn: &mut PgConnection,
-    comment_id: CommentId,
-    new_deleted: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_removed(
-    conn: &mut PgConnection,
-    comment_id: CommentId,
-    new_removed: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
   }
 
   pub fn update_removed_for_creator(
@@ -77,7 +44,7 @@ impl Comment {
 
   pub fn create(
     conn: &mut PgConnection,
-    comment_form: &CommentForm,
+    comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
     use crate::schema::comment::dsl::*;
@@ -168,7 +135,8 @@ where ca.comment_id = c.id",
 }
 
 impl Crud for Comment {
-  type Form = CommentForm;
+  type InsertForm = CommentInsertForm;
+  type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
   fn read(conn: &mut PgConnection, comment_id: CommentId) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
@@ -181,14 +149,14 @@ impl Crud for Comment {
   }
 
   /// This is unimplemented, use [[Comment::create]]
-  fn create(_conn: &mut PgConnection, _comment_form: &CommentForm) -> Result<Self, Error> {
+  fn create(_conn: &mut PgConnection, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
     unimplemented!();
   }
 
   fn update(
     conn: &mut PgConnection,
     comment_id: CommentId,
-    comment_form: &CommentForm,
+    comment_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
@@ -262,8 +230,9 @@ mod tests {
     newtypes::LanguageId,
     source::{
       comment::*,
-      community::{Community, CommunityForm},
-      person::{Person, PersonForm},
+      community::{Community, CommunityInsertForm},
+      instance::{Instance, InstanceForm},
+      person::{Person, PersonInsertForm},
       post::*,
     },
     traits::{Crud, Likeable, Saveable},
@@ -277,38 +246,43 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "terry".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("terry".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let new_community = CommunityForm {
-      name: "test community".to_string(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("test community".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
-    let new_post = PostForm {
-      name: "A test post".into(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
-    let comment_form = CommentForm {
-      content: "A test comment".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_comment = Comment::create(conn, &comment_form, None).unwrap();
 
@@ -328,13 +302,11 @@ mod tests {
       language_id: LanguageId::default(),
     };
 
-    let child_comment_form = CommentForm {
-      content: "A child comment".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      // path: Some(text2ltree(inserted_comment.id),
-      ..CommentForm::default()
-    };
+    let child_comment_form = CommentInsertForm::builder()
+      .content("A child comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_child_comment =
       Comment::create(conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
@@ -373,8 +345,13 @@ mod tests {
       published: inserted_comment_saved.published,
     };
 
+    let comment_update_form = CommentUpdateForm::builder()
+      .content(Some("A test comment".into()))
+      .build();
+
+    let updated_comment = Comment::update(conn, inserted_comment.id, &comment_update_form).unwrap();
+
     let read_comment = Comment::read(conn, inserted_comment.id).unwrap();
-    let updated_comment = Comment::update(conn, inserted_comment.id, &comment_form).unwrap();
     let like_removed = CommentLike::remove(conn, inserted_person.id, inserted_comment.id).unwrap();
     let saved_removed = CommentSaved::unsave(conn, &comment_saved_form).unwrap();
     let num_deleted = Comment::delete(conn, inserted_comment.id).unwrap();
@@ -382,6 +359,7 @@ mod tests {
     Post::delete(conn, inserted_post.id).unwrap();
     Community::delete(conn, inserted_community.id).unwrap();
     Person::delete(conn, inserted_person.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);

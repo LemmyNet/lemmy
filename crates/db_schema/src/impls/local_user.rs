@@ -3,7 +3,7 @@ use crate::{
   schema::local_user::dsl::*,
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
-    local_user::{LocalUser, LocalUserForm},
+    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
   },
   traits::Crud,
   utils::naive_now,
@@ -67,12 +67,10 @@ mod safe_settings_type {
 }
 
 impl LocalUser {
-  pub fn register(conn: &mut PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
+  pub fn register(conn: &mut PgConnection, form: &LocalUserInsertForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
-    let password_hash = form
-      .password_encrypted
-      .as_ref()
-      .map(|p| hash(p, DEFAULT_COST).expect("Couldn't hash password"));
+    let password_hash =
+      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
     edited_user.password_encrypted = password_hash;
 
     Self::create(conn, &edited_user)
@@ -109,7 +107,8 @@ impl LocalUser {
 }
 
 impl Crud for LocalUser {
-  type Form = LocalUserForm;
+  type InsertForm = LocalUserInsertForm;
+  type UpdateForm = LocalUserUpdateForm;
   type IdType = LocalUserId;
   fn read(conn: &mut PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
     local_user.find(local_user_id).first::<Self>(conn)
@@ -117,7 +116,7 @@ impl Crud for LocalUser {
   fn delete(conn: &mut PgConnection, local_user_id: LocalUserId) -> Result<usize, Error> {
     diesel::delete(local_user.find(local_user_id)).execute(conn)
   }
-  fn create(conn: &mut PgConnection, form: &LocalUserForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::InsertForm) -> Result<Self, Error> {
     let local_user_ = insert_into(local_user)
       .values(form)
       .get_result::<Self>(conn)?;
@@ -137,7 +136,7 @@ impl Crud for LocalUser {
   fn update(
     conn: &mut PgConnection,
     local_user_id: LocalUserId,
-    form: &LocalUserForm,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(local_user.find(local_user_id))
       .set(form)

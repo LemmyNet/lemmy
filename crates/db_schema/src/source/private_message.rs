@@ -1,5 +1,6 @@
 use crate::newtypes::{DbUrl, PersonId, PrivateMessageId};
 use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 #[cfg(feature = "full")]
 use crate::schema::private_message;
@@ -24,17 +25,35 @@ pub struct PrivateMessage {
   pub local: bool,
 }
 
-#[derive(Default)]
+#[derive(Clone, TypedBuilder)]
+#[builder(field_defaults(default))]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
-pub struct PrivateMessageForm {
+pub struct PrivateMessageInsertForm {
+  #[builder(!default)]
   pub creator_id: PersonId,
+  #[builder(!default)]
   pub recipient_id: PersonId,
+  #[builder(!default)]
   pub content: String,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub ap_id: Option<DbUrl>,
+  pub local: Option<bool>,
+}
+
+#[derive(Clone, TypedBuilder)]
+#[builder(field_defaults(default))]
+#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = private_message))]
+pub struct PrivateMessageUpdateForm {
+  pub content: Option<String>,
+  pub deleted: Option<bool>,
+  pub read: Option<bool>,
+  pub published: Option<chrono::NaiveDateTime>,
+  pub updated: Option<Option<chrono::NaiveDateTime>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
 }

@@ -1,6 +1,8 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
+  fetch_local_site_data,
+  generate_domain_url,
   generate_moderators_url,
   generate_outbox_url,
   local_instance,
@@ -21,8 +23,13 @@ use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
-  source::{actor_language::CommunityLanguage, community::Community},
-  traits::ApubActor,
+  source::{
+    actor_language::CommunityLanguage,
+    community::{Community, CommunityUpdateForm},
+    instance::{Instance, InstanceForm},
+  },
+  traits::{ApubActor, Crud},
+  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
@@ -78,7 +85,11 @@ impl ApubObject for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     blocking(context.pool(), move |conn| {
-      Community::update_deleted(conn, self.id, true)
+      Community::update(
+        conn,
+        self.id,
+        &CommunityUpdateForm::builder().deleted(Some(true)).build(),
+      )
     })
     .await??;
     Ok(())
@@ -138,11 +149,21 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let form = Group::into_form(group.clone());
+    let domain = generate_domain_url(group.id.inner())?;
+    let instance_form = InstanceForm {
+      domain,
+      updated: Some(naive_now()),
+    };
+    let instance = blocking(context.pool(), move |conn| {
+      Instance::create(conn, &instance_form)
+    })
+    .await??;
+
+    let form = Group::into_insert_form(group.clone(), instance.id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
 
     let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      let community = Community::upsert(conn, &form)?;
+      let community = Community::create(conn, &form)?;
       CommunityLanguage::update(conn, languages, community.id)?;
       Ok::<Community, diesel::result::Error>(community)
     })
@@ -205,6 +226,7 @@ impl ApubCommunity {
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
+    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
     let follows = blocking(context.pool(), move |conn| {
       CommunityFollowerView::for_community(conn, id)
     })
@@ -221,7 +243,10 @@ impl ApubCommunity {
       .unique()
       .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
-      .filter(|inbox| check_apub_id_valid_with_strictness(inbox, false, context.settings()).is_ok())
+      .filter(|inbox| {
+        check_apub_id_valid_with_strictness(inbox, false, &local_site_data, context.settings())
+          .is_ok()
+      })
       .collect();
 
     Ok(inboxes)

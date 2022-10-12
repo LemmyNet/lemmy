@@ -67,7 +67,7 @@ pub(crate) mod tests {
   };
   use lemmy_utils::{
     error::LemmyError,
-    rate_limit::{rate_limiter::RateLimiter, RateLimit},
+    rate_limit::{rate_limiter::RateLimiter, RateLimit, RateLimitConfig},
     settings::SETTINGS,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
@@ -96,10 +96,6 @@ pub(crate) mod tests {
     // call this to run migrations
     establish_unpooled_connection();
     let settings = SETTINGS.to_owned();
-    let rate_limiter = RateLimit {
-      rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
-      rate_limit_config: settings.rate_limit.to_owned().unwrap_or_default(),
-    };
     let client = Client::builder()
       .user_agent(build_user_agent(&settings))
       .build()
@@ -122,6 +118,14 @@ pub(crate) mod tests {
     async fn x() -> Result<String, LemmyError> {
       Ok("".to_string())
     }
+
+    let rate_limit_config = RateLimitConfig::builder().build();
+
+    let rate_limiter = RateLimit {
+      rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
+      rate_limit_config,
+    };
+
     let chat_server = ChatServer::startup(
       pool.clone(),
       rate_limiter,

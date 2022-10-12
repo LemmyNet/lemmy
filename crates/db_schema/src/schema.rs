@@ -100,6 +100,7 @@ table! {
         shared_inbox_url -> Nullable<Varchar>,
         hidden -> Bool,
         posting_restricted_to_mods -> Bool,
+        instance_id -> Int4,
     }
 }
 
@@ -313,6 +314,7 @@ table! {
         admin -> Bool,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamp>,
+        instance_id -> Int4,
     }
 }
 
@@ -485,27 +487,15 @@ table! {
         sidebar -> Nullable<Text>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
-        enable_downvotes -> Bool,
-        open_registration -> Bool,
-        enable_nsfw -> Bool,
         icon -> Nullable<Varchar>,
         banner -> Nullable<Varchar>,
         description -> Nullable<Text>,
-        community_creation_admin_only -> Bool,
-        require_email_verification -> Bool,
-        require_application -> Bool,
-        application_question -> Nullable<Text>,
-        private_instance -> Bool,
         actor_id -> Text,
         last_refreshed_at -> Timestamp,
         inbox_url -> Text,
         private_key -> Nullable<Text>,
         public_key -> Text,
-        default_theme -> Text,
-        default_post_listing_type -> Text,
-        legal_information -> Nullable<Text>,
-        application_email_admins -> Bool,
-        hide_modlog_mod_names -> Bool,
+        instance_id -> Int4,
     }
 }
 
@@ -651,6 +641,83 @@ table! {
     }
 }
 
+table! {
+  instance(id) {
+    id -> Int4,
+    domain -> Text,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+  }
+}
+
+table! {
+  allowlist(id) {
+    id -> Int4,
+    instance_id -> Int4,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+  }
+}
+
+table! {
+  blocklist(id) {
+    id -> Int4,
+    instance_id -> Int4,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+  }
+}
+
+table! {
+  local_site(id) {
+    id -> Int4,
+    site_id -> Int4,
+    site_setup -> Bool,
+    enable_downvotes -> Bool,
+    open_registration -> Bool,
+    enable_nsfw -> Bool,
+    community_creation_admin_only -> Bool,
+    require_email_verification -> Bool,
+    require_application -> Bool,
+    application_question -> Nullable<Text>,
+    private_instance -> Bool,
+    default_theme -> Text,
+    default_post_listing_type -> Text,
+    legal_information -> Nullable<Text>,
+    hide_modlog_mod_names -> Bool,
+    application_email_admins -> Bool,
+    slur_filter_regex -> Nullable<Text>,
+    actor_name_max_length -> Int4,
+    rate_limit_message -> Int4,
+    rate_limit_message_per_second-> Int4,
+    rate_limit_post -> Int4,
+    rate_limit_post_per_second -> Int4,
+    rate_limit_register -> Int4,
+    rate_limit_register_per_second -> Int4,
+    rate_limit_image -> Int4,
+    rate_limit_image_per_second -> Int4,
+    rate_limit_comment -> Int4,
+    rate_limit_comment_per_second -> Int4,
+    rate_limit_search -> Int4,
+    rate_limit_search_per_second -> Int4,
+    federation_enabled -> Bool,
+    federation_debug -> Bool,
+    federation_strict_allowlist -> Bool,
+    federation_http_fetch_retry_limit -> Int4,
+    federation_worker_count -> Int4,
+    email_enabled -> Bool,
+    email_smtp_server -> Nullable<Text>,
+    email_smtp_login -> Nullable<Text>,
+    email_smtp_password -> Nullable<Text>,
+    email_smtp_from_address -> Nullable<Text>,
+    email_tls_type -> Text,
+    captcha_enabled -> Bool,
+    captcha_difficulty -> Text,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+  }
+}
+
 joinable!(person_block -> person (person_id));
 
 joinable!(comment -> person (creator_id));
@@ -727,6 +794,13 @@ joinable!(admin_purge_person -> person (admin_person_id));
 joinable!(admin_purge_post -> community (community_id));
 joinable!(admin_purge_post -> person (admin_person_id));
 
+joinable!(site -> instance (instance_id));
+joinable!(person -> instance (instance_id));
+joinable!(community -> instance (instance_id));
+joinable!(allowlist -> instance (instance_id));
+joinable!(blocklist -> instance (instance_id));
+joinable!(local_site -> site (site_id));
+
 allow_tables_to_appear_in_same_query!(
   activity,
   comment,
@@ -780,4 +854,8 @@ allow_tables_to_appear_in_same_query!(
   local_user_language,
   site_language,
   community_language,
+  instance,
+  allowlist,
+  blocklist,
+  local_site,
 );

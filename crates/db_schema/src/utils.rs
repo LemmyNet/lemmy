@@ -100,6 +100,20 @@ pub fn diesel_option_overwrite_to_url(
   }
 }
 
+pub fn diesel_option_overwrite_to_url_create(
+  opt: &Option<String>,
+) -> Result<Option<DbUrl>, LemmyError> {
+  match opt.as_ref().map(|s| s.as_str()) {
+    // An empty string is nothing
+    Some("") => Ok(None),
+    Some(str_url) => match Url::parse(str_url) {
+      Ok(url) => Ok(Some(url.into())),
+      Err(e) => Err(LemmyError::from_error_message(e, "invalid_url")),
+    },
+    None => Ok(None),
+  }
+}
+
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub fn establish_unpooled_connection() -> PgConnection {

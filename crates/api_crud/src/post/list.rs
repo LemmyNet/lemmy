@@ -10,7 +10,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
-use lemmy_db_schema::{source::community::Community, traits::DeleteableOrRemoveable};
+use lemmy_db_schema::{
+  source::{community::Community, local_site::LocalSite},
+  traits::DeleteableOrRemoveable,
+};
 use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -29,13 +32,14 @@ impl PerformCrud for GetPosts {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
-    check_private_instance(&local_user_view, context.pool()).await?;
+    check_private_instance(&local_user_view, &local_site)?;
 
     let is_logged_in = local_user_view.is_some();
 
     let sort = data.sort;
-    let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
+    let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
 
     let page = data.page;
     let limit = data.limit;

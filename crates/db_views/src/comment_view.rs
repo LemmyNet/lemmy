@@ -396,8 +396,9 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::*,
       community::*,
+      instance::{Instance, InstanceForm},
       language::Language,
-      local_user::LocalUserForm,
+      local_user::LocalUserInsertForm,
       person::*,
       person_block::PersonBlockForm,
       post::*,
@@ -409,6 +410,7 @@ mod tests {
   use serial_test::serial;
 
   struct Data {
+    inserted_instance: Instance,
     inserted_comment_0: Comment,
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
@@ -420,41 +422,46 @@ mod tests {
   }
 
   fn init_data(conn: &mut PgConnection) -> Data {
-    let new_person = PersonForm {
-      name: "timmy".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("timmy".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let inserted_person = Person::create(conn, &new_person).unwrap();
-    let local_user_form = LocalUserForm {
-      person_id: Some(inserted_person.id),
-      password_encrypted: Some("".to_string()),
-      ..Default::default()
-    };
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted("".to_string())
+      .build();
     let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
 
-    let new_person_2 = PersonForm {
-      name: "sara".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_2 = PersonInsertForm::builder()
+      .name("sara".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let inserted_person_2 = Person::create(conn, &new_person_2).unwrap();
 
-    let new_community = CommunityForm {
-      name: "test community 5".to_string(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("test community 5".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
-    let new_post = PostForm {
-      name: "A test post 2".into(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("A test post 2".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
@@ -466,65 +473,59 @@ mod tests {
     //  3  4
     //     \
     //     5
-    let comment_form_0 = CommentForm {
-      content: "Comment 0".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form_0 = CommentInsertForm::builder()
+      .content("Comment 0".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_comment_0 = Comment::create(conn, &comment_form_0, None).unwrap();
 
-    let comment_form_1 = CommentForm {
-      content: "Comment 1, A test blocked comment".into(),
-      creator_id: inserted_person_2.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form_1 = CommentInsertForm::builder()
+      .content("Comment 1, A test blocked comment".into())
+      .creator_id(inserted_person_2.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_comment_1 =
       Comment::create(conn, &comment_form_1, Some(&inserted_comment_0.path)).unwrap();
 
     let finnish_id = Language::read_id_from_code(conn, "fi").unwrap();
-    let comment_form_2 = CommentForm {
-      content: "Comment 2".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      language_id: Some(finnish_id),
-      ..CommentForm::default()
-    };
+    let comment_form_2 = CommentInsertForm::builder()
+      .content("Comment 2".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .language_id(Some(finnish_id))
+      .build();
 
     let inserted_comment_2 =
       Comment::create(conn, &comment_form_2, Some(&inserted_comment_0.path)).unwrap();
 
-    let comment_form_3 = CommentForm {
-      content: "Comment 3".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form_3 = CommentInsertForm::builder()
+      .content("Comment 3".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let _inserted_comment_3 =
       Comment::create(conn, &comment_form_3, Some(&inserted_comment_1.path)).unwrap();
 
     let polish_id = Language::read_id_from_code(conn, "pl").unwrap();
-    let comment_form_4 = CommentForm {
-      content: "Comment 4".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      language_id: Some(polish_id),
-      ..CommentForm::default()
-    };
+    let comment_form_4 = CommentInsertForm::builder()
+      .content("Comment 4".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .language_id(Some(polish_id))
+      .build();
 
     let inserted_comment_4 =
       Comment::create(conn, &comment_form_4, Some(&inserted_comment_1.path)).unwrap();
 
-    let comment_form_5 = CommentForm {
-      content: "Comment 5".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form_5 = CommentInsertForm::builder()
+      .content("Comment 5".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let _inserted_comment_5 =
       Comment::create(conn, &comment_form_5, Some(&inserted_comment_4.path)).unwrap();
@@ -554,6 +555,7 @@ mod tests {
     let _inserted_comment_like = CommentLike::like(conn, &comment_like_form).unwrap();
 
     Data {
+      inserted_instance,
       inserted_comment_0,
       inserted_comment_1,
       inserted_comment_2,
@@ -743,6 +745,7 @@ mod tests {
     Community::delete(conn, data.inserted_community.id).unwrap();
     Person::delete(conn, data.inserted_person.id).unwrap();
     Person::delete(conn, data.inserted_person_2.id).unwrap();
+    Instance::delete(conn, data.inserted_instance.id).unwrap();
   }
 
   fn expected_comment_view(data: &Data, conn: &mut PgConnection) -> CommentView {
@@ -787,6 +790,7 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
+        instance_id: data.inserted_instance.id,
       },
       post: Post {
         id: data.inserted_post.id,
@@ -826,6 +830,7 @@ mod tests {
         hidden: false,
         posting_restricted_to_mods: false,
         published: data.inserted_community.published,
+        instance_id: data.inserted_instance.id,
       },
       counts: CommentAggregates {
         id: agg.id,

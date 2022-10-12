@@ -272,6 +272,7 @@ mod tests {
     aggregates::structs::PostAggregates,
     source::{
       community::*,
+      instance::{Instance, InstanceForm},
       person::*,
       post::*,
       post_report::{PostReport, PostReportForm},
@@ -286,37 +287,44 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "timmy_prv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("timmy_prv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_timmy = Person::create(conn, &new_person).unwrap();
 
-    let new_person_2 = PersonForm {
-      name: "sara_prv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_2 = PersonInsertForm::builder()
+      .name("sara_prv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_sara = Person::create(conn, &new_person_2).unwrap();
 
     // Add a third person, since new ppl can only report something once.
-    let new_person_3 = PersonForm {
-      name: "jessica_prv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_3 = PersonInsertForm::builder()
+      .name("jessica_prv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_jessica = Person::create(conn, &new_person_3).unwrap();
 
-    let new_community = CommunityForm {
-      name: "test community prv".to_string(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("test community prv".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
@@ -328,12 +336,11 @@ mod tests {
 
     let _inserted_moderator = CommunityModerator::join(conn, &timmy_moderator_form).unwrap();
 
-    let new_post = PostForm {
-      name: "A test post crv".into(),
-      creator_id: inserted_timmy.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("A test post crv".into())
+      .creator_id(inserted_timmy.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
@@ -384,6 +391,7 @@ mod tests {
         hidden: false,
         posting_restricted_to_mods: false,
         published: inserted_community.published,
+        instance_id: inserted_instance.id,
       },
       creator: PersonSafe {
         id: inserted_jessica.id,
@@ -404,6 +412,7 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
+        instance_id: inserted_instance.id,
       },
       post_creator: PersonSafe {
         id: inserted_timmy.id,
@@ -424,6 +433,7 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
+        instance_id: inserted_instance.id,
       },
       creator_banned_from_community: false,
       my_vote: None,
@@ -466,6 +476,7 @@ mod tests {
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
+      instance_id: inserted_instance.id,
     };
 
     // Do a batch read of timmys reports
@@ -524,6 +535,7 @@ mod tests {
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
+      instance_id: inserted_instance.id,
     });
 
     assert_eq!(
@@ -551,5 +563,6 @@ mod tests {
     Person::delete(conn, inserted_sara.id).unwrap();
     Person::delete(conn, inserted_jessica.id).unwrap();
     Community::delete(conn, inserted_community.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
   }
 }

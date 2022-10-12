@@ -7,6 +7,8 @@ use lemmy_api_common::{
     check_person_block,
     get_interface_language,
     get_local_user_view_from_jwt,
+    local_site_to_email_config,
+    local_site_to_slur_regex,
     send_email_to_user,
   },
 };
@@ -19,7 +21,10 @@ use lemmy_apub::{
   EndpointType,
 };
 use lemmy_db_schema::{
-  source::private_message::{PrivateMessage, PrivateMessageForm},
+  source::{
+    local_site::LocalSite,
+    private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+  },
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -39,18 +44,20 @@ impl PerformCrud for CreatePrivateMessage {
     let data: &CreatePrivateMessage = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
-    let content_slurs_removed =
-      remove_slurs(&data.content.to_owned(), &context.settings().slur_regex());
+    let content_slurs_removed = remove_slurs(
+      &data.content.to_owned(),
+      &local_site_to_slur_regex(&local_site),
+    );
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
-    let private_message_form = PrivateMessageForm {
-      content: content_slurs_removed.to_owned(),
-      creator_id: local_user_view.person.id,
-      recipient_id: data.recipient_id,
-      ..PrivateMessageForm::default()
-    };
+    let private_message_form = PrivateMessageInsertForm::builder()
+      .content(content_slurs_removed.to_owned())
+      .creator_id(local_user_view.person.id)
+      .recipient_id(data.recipient_id)
+      .build();
 
     let inserted_private_message = match blocking(context.pool(), move |conn| {
       PrivateMessage::create(conn, &private_message_form)
@@ -76,10 +83,12 @@ impl PerformCrud for CreatePrivateMessage {
           &inserted_private_message_id.to_string(),
           &protocol_and_hostname,
         )?;
-        Ok(PrivateMessage::update_ap_id(
+        Ok(PrivateMessage::update(
           conn,
-          inserted_private_message_id,
-          apub_id,
+          inserted_private_message.id,
+          &PrivateMessageUpdateForm::builder()
+            .ap_id(Some(apub_id))
+            .build(),
         )?)
       },
     )
@@ -119,7 +128,8 @@ impl PerformCrud for CreatePrivateMessage {
           &content_slurs_removed,
           &local_recipient.person.name,
         ),
-        context.settings(),
+        &context.settings().hostname,
+        &local_site_to_email_config(&local_site)?,
       );
     }
 

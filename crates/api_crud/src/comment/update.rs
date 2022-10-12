@@ -8,6 +8,7 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     get_local_user_view_from_jwt,
     is_mod_or_admin,
+    local_site_to_slur_regex,
   },
 };
 use lemmy_apub::protocol::activities::{
@@ -17,7 +18,8 @@ use lemmy_apub::protocol::activities::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    comment::{Comment, CommentForm},
+    comment::{Comment, CommentUpdateForm},
+    local_site::LocalSite,
   },
   traits::Crud,
 };
@@ -48,6 +50,7 @@ impl PerformCrud for EditComment {
     let data: &EditComment = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -90,16 +93,13 @@ impl PerformCrud for EditComment {
     let content_slurs_removed = data
       .content
       .as_ref()
-      .map(|c| remove_slurs(c, &context.settings().slur_regex()));
+      .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
     let comment_id = data.comment_id;
-    let form = CommentForm {
-      creator_id: orig_comment.comment.creator_id,
-      post_id: orig_comment.comment.post_id,
-      content: content_slurs_removed.unwrap_or(orig_comment.comment.content),
-      distinguished: data.distinguished,
-      language_id: data.language_id,
-      ..Default::default()
-    };
+    let form = CommentUpdateForm::builder()
+      .content(content_slurs_removed)
+      .distinguished(data.distinguished)
+      .language_id(data.language_id)
+      .build();
     let updated_comment = blocking(context.pool(), move |conn| {
       Comment::update(conn, comment_id, &form)
     })
@@ -114,6 +114,7 @@ impl PerformCrud for EditComment {
       &updated_comment,
       &local_user_view.person,
       &orig_comment.post,
+      &local_site,
       false,
       context,
     )

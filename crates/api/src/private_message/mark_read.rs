@@ -4,7 +4,10 @@ use lemmy_api_common::{
   private_message::{MarkPrivateMessageAsRead, PrivateMessageResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
+use lemmy_db_schema::{
+  source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
+  traits::Crud,
+};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperation};
 
@@ -36,7 +39,11 @@ impl Perform for MarkPrivateMessageAsRead {
     let private_message_id = data.private_message_id;
     let read = data.read;
     blocking(context.pool(), move |conn| {
-      PrivateMessage::update_read(conn, private_message_id, read)
+      PrivateMessage::update(
+        conn,
+        private_message_id,
+        &PrivateMessageUpdateForm::builder().read(Some(read)).build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;

@@ -18,8 +18,14 @@ pub struct PersonMention {
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_mention))]
-pub struct PersonMentionForm {
+pub struct PersonMentionInsertForm {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,
+  pub read: Option<bool>,
+}
+
+#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_mention))]
+pub struct PersonMentionUpdateForm {
   pub read: Option<bool>,
 }

@@ -7,7 +7,7 @@ use lemmy_api_common::{
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
-    community::Community,
+    community::{Community, CommunityUpdateForm},
     moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
   traits::Crud,
@@ -36,7 +36,13 @@ impl PerformCrud for RemoveCommunity {
     let community_id = data.community_id;
     let removed = data.removed;
     let updated_community = blocking(context.pool(), move |conn| {
-      Community::update_removed(conn, community_id, removed)
+      Community::update(
+        conn,
+        community_id,
+        &CommunityUpdateForm::builder()
+          .removed(Some(removed))
+          .build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;

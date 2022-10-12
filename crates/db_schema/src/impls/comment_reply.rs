@@ -6,14 +6,15 @@ use crate::{
 use diesel::{dsl::*, result::Error, *};
 
 impl Crud for CommentReply {
-  type Form = CommentReplyForm;
+  type InsertForm = CommentReplyInsertForm;
+  type UpdateForm = CommentReplyUpdateForm;
   type IdType = CommentReplyId;
   fn read(conn: &mut PgConnection, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
     use crate::schema::comment_reply::dsl::*;
     comment_reply.find(comment_reply_id).first::<Self>(conn)
   }
 
-  fn create(conn: &mut PgConnection, comment_reply_form: &CommentReplyForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, comment_reply_form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::comment_reply::dsl::*;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
@@ -28,7 +29,7 @@ impl Crud for CommentReply {
   fn update(
     conn: &mut PgConnection,
     comment_reply_id: CommentReplyId,
-    comment_reply_form: &CommentReplyForm,
+    comment_reply_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     use crate::schema::comment_reply::dsl::*;
     diesel::update(comment_reply.find(comment_reply_id))
@@ -38,17 +39,6 @@ impl Crud for CommentReply {
 }
 
 impl CommentReply {
-  pub fn update_read(
-    conn: &mut PgConnection,
-    comment_reply_id: CommentReplyId,
-    new_read: bool,
-  ) -> Result<CommentReply, Error> {
-    use crate::schema::comment_reply::dsl::*;
-    diesel::update(comment_reply.find(comment_reply_id))
-      .set(read.eq(new_read))
-      .get_result::<Self>(conn)
-  }
-
   pub fn mark_all_as_read(
     conn: &mut PgConnection,
     for_recipient_id: PersonId,
@@ -80,7 +70,8 @@ mod tests {
     source::{
       comment::*,
       comment_reply::*,
-      community::{Community, CommunityForm},
+      community::{Community, CommunityInsertForm},
+      instance::{Instance, InstanceForm},
       person::*,
       post::*,
     },
@@ -94,50 +85,55 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "terrylake".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
+    let new_instance = InstanceForm {
+      domain: "my_domain.tld".into(),
+      updated: None,
     };
+
+    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("terrylake".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let recipient_form = PersonForm {
-      name: "terrylakes recipient".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let recipient_form = PersonInsertForm::builder()
+      .name("terrylakes recipient".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_recipient = Person::create(conn, &recipient_form).unwrap();
 
-    let new_community = CommunityForm {
-      name: "test community lake".to_string(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("test community lake".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
-    let new_post = PostForm {
-      name: "A test post".into(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
-    let comment_form = CommentForm {
-      content: "A test comment".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_comment = Comment::create(conn, &comment_form, None).unwrap();
 
-    let comment_reply_form = CommentReplyForm {
+    let comment_reply_form = CommentReplyInsertForm {
       recipient_id: inserted_recipient.id,
       comment_id: inserted_comment.id,
       read: None,
@@ -154,12 +150,17 @@ mod tests {
     };
 
     let read_reply = CommentReply::read(conn, inserted_reply.id).unwrap();
-    let updated_reply = CommentReply::update(conn, inserted_reply.id, &comment_reply_form).unwrap();
+
+    let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
+    let updated_reply =
+      CommentReply::update(conn, inserted_reply.id, &comment_reply_update_form).unwrap();
+
     Comment::delete(conn, inserted_comment.id).unwrap();
     Post::delete(conn, inserted_post.id).unwrap();
     Community::delete(conn, inserted_community.id).unwrap();
     Person::delete(conn, inserted_person.id).unwrap();
     Person::delete(conn, inserted_recipient.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
 
     assert_eq!(expected_reply, read_reply);
     assert_eq!(expected_reply, inserted_reply);
