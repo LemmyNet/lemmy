@@ -4,6 +4,7 @@ import { CommunityView } from 'lemmy-js-client';
 import {
   alpha,
   beta,
+  gamma,
   setupLogins,
   resolveCommunity,
   createCommunity,
@@ -11,6 +12,12 @@ import {
   removeCommunity,
   getCommunity,
   followCommunity,
+  banPersonFromCommunity,
+  resolvePerson,
+  getSite,
+  createPost,
+  getPost,
+  resolvePost,
 } from './shared';
 
 beforeAll(async () => {
@@ -161,4 +168,34 @@ test('Search for beta community', async () => {
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
   let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community.unwrap();
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
+});
+
+test('Admin actions in remote community are not federated to origin', async () => {
+  // create a community on alpha
+  let communityRes = (await createCommunity(alpha)).community_view;
+  expect(communityRes.community.name).toBeDefined();
+
+  // gamma follows community and posts in it
+  let gammaCommunity = (await resolveCommunity(gamma, communityRes.community.actor_id)).community.unwrap();
+  let gammaFollow = (await followCommunity(gamma, true, gammaCommunity.community.id));
+  expect(gammaFollow.community_view.subscribed).toBe("Subscribed");
+  let gammaPost = (await createPost(gamma, gammaCommunity.community.id)).post_view;
+  expect(gammaPost.post.id).toBeDefined();
+  expect(gammaPost.creator_banned_from_community).toBe(false);
+
+  // admin of beta decides to ban gamma from community
+  let betaCommunity = (await resolveCommunity(beta, communityRes.community.actor_id)).community.unwrap();
+  let bannedUserInfo1 = (await getSite(gamma)).my_user.unwrap().local_user_view.person;
+  let bannedUserInfo2 = (await resolvePerson(beta, bannedUserInfo1.actor_id)).person.unwrap();
+  let banRes = (await banPersonFromCommunity(beta, bannedUserInfo2.person.id, betaCommunity.community.id, true, true));
+  console.log(banRes);
+  expect(banRes.banned).toBe(true);
+
+  // ban doesnt federate to community's origin instance alpha
+  let alphaPost = (await resolvePost(alpha, gammaPost.post)).post.unwrap();
+  expect(alphaPost.creator_banned_from_community).toBe(false);
+
+  // and neither to gamma
+  let gammaPost2 = (await getPost(gamma, gammaPost.post.id));
+  expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
 });

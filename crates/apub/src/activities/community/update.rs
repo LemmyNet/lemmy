@@ -75,7 +75,7 @@ impl ActivityHandler for UpdateCommunity {
     verify_mod_action(
       &self.actor,
       self.object.id.inner(),
-      &community,
+      community.id,
       context,
       request_counter,
     )

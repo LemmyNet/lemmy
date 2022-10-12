@@ -145,7 +145,7 @@ impl ActivityHandler for BlockUser {
         verify_mod_action(
           &self.actor,
           self.object.inner(),
-          &community,
+          community.id,
           context,
           request_counter,
         )

@@ -159,7 +159,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_mod_action(
         &activity.actor,
         activity.object.id(),
-        &community,
+        community.id,
         context,
         request_counter,
       )
@@ -208,7 +208,7 @@ async fn verify_delete_post_or_comment(
 ) -> Result<(), LemmyError> {
   verify_person_in_community(actor, community, context, request_counter).await?;
   if is_mod_action {
-    verify_mod_action(actor, object_id, community, context, request_counter).await?;
+    verify_mod_action(actor, object_id, community.id, context, request_counter).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;
