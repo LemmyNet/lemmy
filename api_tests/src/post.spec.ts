@@ -32,7 +32,8 @@ import {
   registerUser,
   API,
   getSite,
-  unfollows
+  unfollows,
+  resolveCommunity
 } from './shared';
 
 let betaCommunity: CommunityView;
@@ -226,7 +227,8 @@ test('Delete a post', async () => {
 });
 
 test('Remove a post from admin and community on different instance', async () => {
-  let postRes = await createPost(gamma, betaCommunity.community.id);
+  let gammaCommunity = await resolveCommunity(gamma, betaCommunity.community.actor_id);
+  let postRes = await createPost(gamma, gammaCommunity.community.unwrap().community.id);
 
   let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post.unwrap();
   let removedPost = await removePost(alpha, true, alphaPost.post);

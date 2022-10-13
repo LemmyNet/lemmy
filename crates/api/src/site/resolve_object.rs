@@ -5,7 +5,7 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
-use lemmy_apub::fetcher::search::{search_by_apub_id, SearchableObjects};
+use lemmy_apub::fetcher::search::{search_query_to_object_id, SearchableObjects};
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonViewSafe};
@@ -28,7 +28,7 @@ impl Perform for ResolveObject {
     let local_site = blocking(context.pool(), LocalSite::read).await??;
     check_private_instance(&local_user_view, &local_site)?;
 
-    let res = search_by_apub_id(&self.q, context)
+    let res = search_query_to_object_id(&self.q, local_user_view.is_none(), context)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))?;
     convert_response(res, local_user_view.map(|l| l.person.id), context.pool())

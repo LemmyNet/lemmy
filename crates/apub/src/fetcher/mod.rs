@@ -45,7 +45,7 @@ where
       Ok(actor?)
     } else {
       // Fetch the actor from its home instance using webfinger
-      let id = webfinger_resolve_actor::<Actor>(identifier, context, &mut 0).await?;
+      let id = webfinger_resolve_actor::<Actor>(identifier, true, context, &mut 0).await?;
       let actor: DbActor = blocking(context.pool(), move |conn| {
         DbActor::read_from_apub_id(conn, &id)
       })
