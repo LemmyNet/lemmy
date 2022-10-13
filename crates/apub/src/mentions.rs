@@ -73,10 +73,9 @@ pub async fn collect_non_local_mentions(
     .collect::<Vec<MentionData>>();
 
   for mention in &mentions {
-    // TODO should it be fetching it every time?
     let identifier = format!("{}@{}", mention.name, mention.domain);
     let actor_id =
-      webfinger_resolve_actor::<ApubPerson>(&identifier, context, request_counter).await;
+      webfinger_resolve_actor::<ApubPerson>(&identifier, true, context, request_counter).await;
     if let Ok(actor_id) = actor_id {
       let actor_id: ObjectId<ApubPerson> = ObjectId::new(actor_id);
       addressed_ccs.push(actor_id.to_string().parse()?);

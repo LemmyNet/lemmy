@@ -11,52 +11,44 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
 
-/// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
-///
-/// Some working examples for use with the `docker/federation/` setup:
-/// http://lemmy_alpha:8541/c/main, or !main@lemmy_alpha:8541
-/// http://lemmy_beta:8551/u/lemmy_alpha, or @lemmy_beta@lemmy_beta:8551
-/// http://lemmy_gamma:8561/post/3
-/// http://lemmy_delta:8571/comment/2
+/// Converts search query to object id. The query can either be an URL, which will be treated as
+/// ObjectId directly, or a webfinger identifier (@user@example.com or !community@example.com)
+/// which gets resolved to an URL.
 #[tracing::instrument(skip_all)]
-pub async fn search_by_apub_id(
+pub async fn search_query_to_object_id(
   query: &str,
+  local_only: bool,
   context: &LemmyContext,
 ) -> Result<SearchableObjects, LemmyError> {
   let request_counter = &mut 0;
-  let instance = local_instance(context);
-  match Url::parse(query) {
-    Ok(url) => {
-      ObjectId::new(url)
-        .dereference(context, instance, request_counter)
-        .await
-    }
+  let object_id = match Url::parse(query) {
+    // its already an url, just go with it
+    Ok(url) => ObjectId::new(url),
     Err(_) => {
+      // not an url, try to resolve via webfinger
       let mut chars = query.chars();
       let kind = chars.next();
       let identifier = chars.as_str();
-      match kind {
+      let id = match kind {
         Some('@') => {
-          let id =
-            webfinger_resolve_actor::<ApubPerson>(identifier, context, request_counter).await?;
-          Ok(SearchableObjects::Person(
-            ObjectId::new(id)
-              .dereference(context, instance, request_counter)
-              .await?,
-          ))
+          webfinger_resolve_actor::<ApubPerson>(identifier, local_only, context, request_counter)
+            .await?
         }
         Some('!') => {
-          let id =
-            webfinger_resolve_actor::<ApubCommunity>(identifier, context, request_counter).await?;
-          Ok(SearchableObjects::Community(
-            ObjectId::new(id)
-              .dereference(context, instance, request_counter)
-              .await?,
-          ))
+          webfinger_resolve_actor::<ApubCommunity>(identifier, local_only, context, request_counter)
+            .await?
         }
-        _ => Err(LemmyError::from_message("invalid query")),
-      }
+        _ => return Err(LemmyError::from_message("invalid query")),
+      };
+      ObjectId::new(id)
     }
+  };
+  if local_only {
+    object_id.dereference_local(context).await
+  } else {
+    object_id
+      .dereference(context, local_instance(context), request_counter)
+      .await
   }
 }
 
