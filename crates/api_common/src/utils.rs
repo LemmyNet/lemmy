@@ -9,6 +9,7 @@ use lemmy_db_schema::{
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
     local_site::LocalSite,
+    local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
@@ -31,7 +32,7 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   claims::Claims,
-  email::{send_email, translations::Lang, EmailConfig},
+  email::{send_email, translations::Lang},
   error::LemmyError,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -342,8 +343,7 @@ pub fn send_email_to_user(
   local_user_view: &LocalUserView,
   subject: &str,
   body: &str,
-  hostname: &str,
-  config: &EmailConfig,
+  settings: &Settings,
 ) {
   if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
@@ -355,8 +355,7 @@ pub fn send_email_to_user(
       user_email,
       &local_user_view.person.name,
       body,
-      hostname,
-      config,
+      settings,
     ) {
       Ok(_o) => _o,
       Err(e) => warn!("{}", e),
@@ -368,7 +367,6 @@ pub async fn send_password_reset_email(
   user: &LocalUserView,
   pool: &DbPool,
   settings: &Settings,
-  config: &EmailConfig,
 ) -> Result<(), LemmyError> {
   // Generate a random token
   let token = generate_random_string();
@@ -387,14 +385,7 @@ pub async fn send_password_reset_email(
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
   let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(
-    subject,
-    email,
-    &user.person.name,
-    body,
-    &settings.hostname,
-    config,
-  )
+  send_email(subject, email, &user.person.name, body, settings)
 }
 
 /// Send a verification email
@@ -403,7 +394,6 @@ pub async fn send_verification_email(
   new_email: &str,
   pool: &DbPool,
   settings: &Settings,
-  config: &EmailConfig,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
     local_user_id: user.local_user.id,
@@ -420,14 +410,7 @@ pub async fn send_verification_email(
   let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);
   let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
-  send_email(
-    &subject,
-    new_email,
-    &user.person.name,
-    &body,
-    &settings.hostname,
-    config,
-  )?;
+  send_email(&subject, new_email, &user.person.name, &body, settings)?;
 
   Ok(())
 }
@@ -435,20 +418,12 @@ pub async fn send_verification_email(
 pub fn send_email_verification_success(
   user: &LocalUserView,
   settings: &Settings,
-  config: &EmailConfig,
 ) -> Result<(), LemmyError> {
   let email = &user.local_user.email.to_owned().expect("email");
   let lang = get_interface_language(user);
   let subject = &lang.email_verified_subject(&user.person.actor_id);
   let body = &lang.email_verified_body();
-  send_email(
-    subject,
-    email,
-    &user.person.name,
-    body,
-    &settings.hostname,
-    config,
-  )
+  send_email(subject, email, &user.person.name, body, settings)
 }
 
 pub fn get_interface_language(user: &LocalUserView) -> Lang {
@@ -467,39 +442,23 @@ fn lang_str_to_lang(lang: &str) -> Lang {
   })
 }
 
-pub fn local_site_to_email_config(local_site: &LocalSite) -> Result<EmailConfig, LemmyError> {
-  let ls = local_site.to_owned();
-
-  let err_msg = LemmyError::from_message("no_email_setup");
-
-  if ls.email_enabled {
-    Ok(EmailConfig {
-      smtp_server: ls.email_smtp_server.as_ref().ok_or(err_msg)?.to_string(),
-      smtp_login: ls.email_smtp_login,
-      smtp_password: ls.email_smtp_password,
-      smtp_from_address: ls.email_smtp_from_address,
-      tls_type: ls.email_tls_type,
-    })
-  } else {
-    Err(err_msg)
-  }
-}
-
-pub fn local_site_to_rate_limit_config(local_site: &LocalSite) -> RateLimitConfig {
-  let l = local_site;
+pub fn local_site_rate_limit_to_rate_limit_config(
+  local_site_rate_limit: &LocalSiteRateLimit,
+) -> RateLimitConfig {
+  let l = local_site_rate_limit;
   RateLimitConfig {
-    message: l.rate_limit_message,
-    message_per_second: l.rate_limit_message_per_second,
-    post: l.rate_limit_post,
-    post_per_second: l.rate_limit_post_per_second,
-    register: l.rate_limit_register,
-    register_per_second: l.rate_limit_register_per_second,
-    image: l.rate_limit_image,
-    image_per_second: l.rate_limit_image_per_second,
-    comment: l.rate_limit_comment,
-    comment_per_second: l.rate_limit_comment_per_second,
-    search: l.rate_limit_search,
-    search_per_second: l.rate_limit_search_per_second,
+    message: l.message,
+    message_per_second: l.message_per_second,
+    post: l.post,
+    post_per_second: l.post_per_second,
+    register: l.register,
+    register_per_second: l.register_per_second,
+    image: l.image,
+    image_per_second: l.image_per_second,
+    comment: l.comment,
+    comment_per_second: l.comment_per_second,
+    search: l.search,
+    search_per_second: l.search_per_second,
   }
 }
 
@@ -510,20 +469,12 @@ pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
 pub fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
-  config: &EmailConfig,
 ) -> Result<(), LemmyError> {
   let email = &user.local_user.email.to_owned().expect("email");
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
-  send_email(
-    &subject,
-    email,
-    &user.person.name,
-    &body,
-    &settings.hostname,
-    config,
-  )
+  send_email(&subject, email, &user.person.name, &body, settings)
 }
 
 /// Send a new applicant email notification to all admins
@@ -531,7 +482,6 @@ pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
   pool: &DbPool,
   settings: &Settings,
-  config: &EmailConfig,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
   let admins = blocking(pool, move |conn| {
@@ -549,14 +499,7 @@ pub async fn send_new_applicant_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(applicant_username, &settings.hostname);
     let body = lang.new_application_body(applications_link);
-    send_email(
-      &subject,
-      email,
-      &admin.person.name,
-      &body,
-      &settings.hostname,
-      config,
-    )?;
+    send_email(&subject, email, &admin.person.name, &body, settings)?;
   }
   Ok(())
 }

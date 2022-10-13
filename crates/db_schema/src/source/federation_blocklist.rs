@@ -1,4 +1,4 @@
-use crate::{newtypes::InstanceId, schema::allowlist};
+use crate::{newtypes::InstanceId, schema::federation_blocklist};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -8,8 +8,8 @@ use std::fmt::Debug;
   feature = "full",
   diesel(belongs_to(crate::source::instance::Instance))
 )]
-#[cfg_attr(feature = "full", diesel(table_name = allowlist))]
-pub struct AllowList {
+#[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
+pub struct FederationBlockList {
   pub id: i32,
   pub instance_id: InstanceId,
   pub published: chrono::NaiveDateTime,
@@ -18,8 +18,8 @@ pub struct AllowList {
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = allowlist))]
-pub struct AllowListForm {
+#[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
+pub struct FederationBlockListForm {
   pub instance_id: InstanceId,
   pub updated: Option<chrono::NaiveDateTime>,
 }

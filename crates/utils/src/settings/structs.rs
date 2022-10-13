@@ -14,6 +14,9 @@ pub struct Settings {
   #[default(Some(Default::default()))]
   pub(crate) pictrs: Option<PictrsConfig>,
   /// Email sending configuration. All options except login/password are mandatory
+  #[default(None)]
+  #[doku(example = "Some(Default::default())")]
+  pub email: Option<EmailConfig>,
   /// Parameters for automatic configuration of new instance (only used at first start)
   #[default(None)]
   #[doku(example = "Some(Default::default())")]
@@ -21,7 +24,7 @@ pub struct Settings {
   /// the domain name of your instance (mandatory)
   #[default("unset")]
   #[doku(example = "example.com")]
-  pub hostname: String, // TODO this is duplicated in the instance / local_site table now tho?
+  pub hostname: String,
   /// Address where lemmy should listen for incoming requests
   #[default(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)))]
   #[doku(as = "String")]
@@ -72,6 +75,24 @@ pub struct DatabaseConfig {
   /// Maximum number of active sql connections
   #[default(5)]
   pub pool_size: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
+pub struct EmailConfig {
+  /// Hostname and port of the smtp server
+  #[doku(example = "localhost:25")]
+  pub smtp_server: String,
+  /// Login name for smtp server
+  pub smtp_login: Option<String>,
+  /// Password to login to the smtp server
+  pub smtp_password: Option<String>,
+  #[doku(example = "noreply@example.com")]
+  /// Address to send emails from, eg "noreply@your-instance.com"
+  pub smtp_from_address: String,
+  /// Whether or not smtp connections should use tls. Can be none, tls, or starttls
+  #[default("none")]
+  #[doku(example = "none")]
+  pub tls_type: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

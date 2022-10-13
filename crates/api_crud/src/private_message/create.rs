@@ -7,7 +7,6 @@ use lemmy_api_common::{
     check_person_block,
     get_interface_language,
     get_local_user_view_from_jwt,
-    local_site_to_email_config,
     local_site_to_slur_regex,
     send_email_to_user,
   },
@@ -128,8 +127,7 @@ impl PerformCrud for CreatePrivateMessage {
           &content_slurs_removed,
           &local_recipient.person.name,
         ),
-        &context.settings().hostname,
-        &local_site_to_email_config(&local_site)?,
+        context.settings(),
       );
     }
 

@@ -11,6 +11,7 @@ pub trait Crud {
   fn read(conn: &mut PgConnection, id: Self::IdType) -> Result<Self, Error>
   where
     Self: Sized;
+  /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   fn update(
     conn: &mut PgConnection,
     id: Self::IdType,

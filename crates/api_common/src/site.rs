@@ -148,16 +148,10 @@ pub struct CreateSite {
   pub federation_strict_allowlist: Option<bool>,
   pub federation_http_fetch_retry_limit: Option<i32>,
   pub federation_worker_count: Option<i32>,
-  pub email_enabled: Option<bool>,
-  pub email_smtp_server: Option<String>,
-  pub email_smtp_login: Option<String>,
-  pub email_smtp_password: Option<String>,
-  pub email_smtp_from_address: Option<String>,
-  pub email_tls_type: Option<String>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
-  pub allowed_instances: Option<String>,
-  pub blocked_instances: Option<String>,
+  pub allowed_instances: Option<Vec<String>>,
+  pub blocked_instances: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -200,16 +194,10 @@ pub struct EditSite {
   pub federation_strict_allowlist: Option<bool>,
   pub federation_http_fetch_retry_limit: Option<i32>,
   pub federation_worker_count: Option<i32>,
-  pub email_enabled: Option<bool>,
-  pub email_smtp_server: Option<String>,
-  pub email_smtp_login: Option<String>,
-  pub email_smtp_password: Option<String>,
-  pub email_smtp_from_address: Option<String>,
-  pub email_tls_type: Option<String>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
-  pub allowed_instances: Option<String>,
-  pub blocked_instances: Option<String>,
+  pub allowed_instances: Option<Vec<String>>,
+  pub blocked_instances: Option<Vec<String>>,
   pub auth: Sensitive<String>,
 }
 

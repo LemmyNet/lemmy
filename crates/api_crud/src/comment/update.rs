@@ -114,7 +114,6 @@ impl PerformCrud for EditComment {
       &updated_comment,
       &local_user_view.person,
       &orig_comment.post,
-      &local_site,
       false,
       context,
     )

@@ -1,6 +1,6 @@
 use crate::{
   newtypes::InstanceId,
-  schema::{allowlist, blocklist, instance},
+  schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
 };
 use diesel::{dsl::*, result::Error, *};
@@ -23,22 +23,22 @@ impl Instance {
   }
   pub fn allowlist(conn: &mut PgConnection) -> Result<Vec<String>, Error> {
     instance::table
-      .inner_join(allowlist::table)
+      .inner_join(federation_allowlist::table)
       .select(instance::domain)
       .load::<String>(conn)
   }
 
   pub fn blocklist(conn: &mut PgConnection) -> Result<Vec<String>, Error> {
     instance::table
-      .inner_join(blocklist::table)
+      .inner_join(federation_blocklist::table)
       .select(instance::domain)
       .load::<String>(conn)
   }
 
   pub fn linked(conn: &mut PgConnection) -> Result<Vec<String>, Error> {
     instance::table
-      .left_join(blocklist::table)
-      .filter(blocklist::id.is_null())
+      .left_join(federation_blocklist::table)
+      .filter(federation_blocklist::id.is_null())
       .select(instance::domain)
       .load::<String>(conn)
   }

@@ -44,7 +44,7 @@ lemmy_api_common = { version = "=0.16.5", path = "crates/api_common" }
 lemmy_websocket = { version = "=0.16.5", path = "./crates/websocket" }
 lemmy_routes = { version = "=0.16.5", path = "./crates/routes" }
 activitypub_federation = "0.2.0"
-diesel = { version = "2.0.0", features = ["64-column-tables"] }
+diesel = "2.0.0"
 diesel_migrations = "2.0.0"
 serde = { version = "1.0.145", features = ["derive"] }
 actix = "0.13.0"

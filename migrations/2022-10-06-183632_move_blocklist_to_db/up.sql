@@ -48,14 +48,14 @@ alter table person alter column instance_id set not null;
 alter table community alter column instance_id set not null;
 
 -- Create allowlist and blocklist tables
-create table allowlist (
+create table federation_allowlist (
   id serial primary key,
   instance_id int references instance on update cascade on delete cascade not null unique,
   published timestamp not null default now(),
   updated timestamp null
 );
 
-create table blocklist (
+create table federation_blocklist (
   id serial primary key,
   instance_id int references instance on update cascade on delete cascade not null unique,
   published timestamp not null default now(),
@@ -87,33 +87,35 @@ create table local_site (
   -- Fields from lemmy.hjson
   slur_filter_regex text,
   actor_name_max_length int default 20 not null,
-  rate_limit_message int default 180 not null,
-  rate_limit_message_per_second int default 60 not null,
-  rate_limit_post int default 6 not null,
-  rate_limit_post_per_second int default 600 not null,
-  rate_limit_register int default 3 not null,
-  rate_limit_register_per_second int default 3600 not null,
-  rate_limit_image int default 6 not null,
-  rate_limit_image_per_second int default 3600 not null,
-  rate_limit_comment int default 6 not null,
-  rate_limit_comment_per_second int default 600 not null,
-  rate_limit_search int default 60 not null,
-  rate_limit_search_per_second int default 600 not null,
   federation_enabled boolean default true not null,
   federation_debug boolean default false not null,
   federation_strict_allowlist boolean default true not null,
   federation_http_fetch_retry_limit int default 25 not null,
   federation_worker_count int default 64 not null,
-  email_enabled boolean default false not null,
-  email_smtp_server varchar(255),
-  email_smtp_login varchar(255),
-  email_smtp_password varchar(255),
-  email_smtp_from_address varchar(255),
-  email_tls_type varchar(255) default 'none' not null,
   captcha_enabled boolean default false not null,
   captcha_difficulty varchar(255) default 'medium' not null,
 
   -- Time fields
+  published timestamp without time zone default now() not null,
+  updated timestamp without time zone
+);
+
+-- local_site_rate_limit is its own table, so as to not go over 32 columns, and force diesel to use the 64-column-tables feature
+create table local_site_rate_limit (
+  id serial primary key,
+  local_site_id int references local_site on update cascade on delete cascade not null unique,
+  message int default 180 not null,
+  message_per_second int default 60 not null,
+  post int default 6 not null,
+  post_per_second int default 600 not null,
+  register int default 3 not null,
+  register_per_second int default 3600 not null,
+  image int default 6 not null,
+  image_per_second int default 3600 not null,
+  comment int default 6 not null,
+  comment_per_second int default 600 not null,
+  search int default 60 not null,
+  search_per_second int default 600 not null,
   published timestamp without time zone default now() not null,
   updated timestamp without time zone
 );
@@ -157,6 +159,13 @@ select
   published,
   updated
 from site
+order by id limit 1;
+
+-- Default here
+insert into local_site_rate_limit (
+  local_site_id
+)
+select id from local_site
 order by id limit 1;
 
 -- Drop all those columns from site

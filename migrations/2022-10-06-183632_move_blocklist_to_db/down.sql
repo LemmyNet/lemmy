@@ -56,7 +56,8 @@ alter table site drop column instance_id;
 alter table person drop column instance_id;
 alter table community drop column instance_id;
 
+drop table local_site_rate_limit;
 drop table local_site;
-drop table allowlist;
-drop table blocklist;
+drop table federation_allowlist;
+drop table federation_blocklist;
 drop table instance;

@@ -2,17 +2,10 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{
-    blocking,
-    get_local_user_view_from_jwt,
-    is_admin,
-    local_site_to_email_config,
-    send_application_approved_email,
-  },
+  utils::{blocking, get_local_user_view_from_jwt, is_admin, send_application_approved_email},
 };
 use lemmy_db_schema::{
   source::{
-    local_site::LocalSite,
     local_user::{LocalUser, LocalUserUpdateForm},
     registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
   },
@@ -71,13 +64,7 @@ impl Perform for ApproveRegistrationApplication {
       .await??;
 
       if approved_local_user_view.local_user.email.is_some() {
-        let local_site = blocking(context.pool(), LocalSite::read).await??;
-        let email_config = local_site_to_email_config(&local_site)?;
-        send_application_approved_email(
-          &approved_local_user_view,
-          context.settings(),
-          &email_config,
-        )?;
+        send_application_approved_email(&approved_local_user_view, context.settings())?;
       }
     }
 

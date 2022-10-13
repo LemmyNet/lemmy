@@ -19,6 +19,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityUpdateForm},
     instance::{Instance, InstanceForm},
     local_site::{LocalSite, LocalSiteInsertForm},
+    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm, PersonUpdateForm},
     post::{Post, PostUpdateForm},
@@ -458,7 +459,13 @@ fn initialize_local_site_2022_10_10(
     .site_id(site.id)
     .site_setup(Some(settings.setup.is_some()))
     .build();
-  LocalSite::create(conn, &local_site_form)?;
+  let local_site = LocalSite::create(conn, &local_site_form)?;
+
+  // Create the rate limit table
+  let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
+    .local_site_id(local_site.id)
+    .build();
+  LocalSiteRateLimit::create(conn, &local_site_rate_limit_form)?;
 
   Ok(())
 }

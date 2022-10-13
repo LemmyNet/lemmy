@@ -16,6 +16,7 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     local_site::{LocalSite, LocalSiteUpdateForm},
+    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
@@ -111,34 +112,36 @@ impl PerformCrud for CreateSite {
       .updated(Some(Some(naive_now())))
       .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
       .actor_name_max_length(data.actor_name_max_length)
-      .rate_limit_message(data.rate_limit_message)
-      .rate_limit_message_per_second(data.rate_limit_message_per_second)
-      .rate_limit_post(data.rate_limit_post)
-      .rate_limit_post_per_second(data.rate_limit_post_per_second)
-      .rate_limit_register(data.rate_limit_register)
-      .rate_limit_register_per_second(data.rate_limit_register_per_second)
-      .rate_limit_image(data.rate_limit_image)
-      .rate_limit_image_per_second(data.rate_limit_image_per_second)
-      .rate_limit_comment(data.rate_limit_comment)
-      .rate_limit_comment_per_second(data.rate_limit_comment_per_second)
-      .rate_limit_search(data.rate_limit_search)
-      .rate_limit_search_per_second(data.rate_limit_search_per_second)
       .federation_enabled(data.federation_enabled)
       .federation_debug(data.federation_debug)
       .federation_strict_allowlist(data.federation_strict_allowlist)
       .federation_http_fetch_retry_limit(data.federation_http_fetch_retry_limit)
       .federation_worker_count(data.federation_worker_count)
-      .email_enabled(data.email_enabled)
-      .email_smtp_server(diesel_option_overwrite(&data.email_smtp_server))
-      .email_smtp_login(diesel_option_overwrite(&data.email_smtp_login))
-      .email_smtp_password(diesel_option_overwrite(&data.email_smtp_password))
-      .email_smtp_from_address(diesel_option_overwrite(&data.email_smtp_from_address))
-      .email_tls_type(data.email_tls_type.to_owned())
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.to_owned())
       .build();
     blocking(context.pool(), move |conn| {
       LocalSite::update(conn, &local_site_form)
+    })
+    .await??;
+
+    let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
+      .message(data.rate_limit_message)
+      .message_per_second(data.rate_limit_message_per_second)
+      .post(data.rate_limit_post)
+      .post_per_second(data.rate_limit_post_per_second)
+      .register(data.rate_limit_register)
+      .register_per_second(data.rate_limit_register_per_second)
+      .image(data.rate_limit_image)
+      .image_per_second(data.rate_limit_image_per_second)
+      .comment(data.rate_limit_comment)
+      .comment_per_second(data.rate_limit_comment_per_second)
+      .search(data.rate_limit_search)
+      .search_per_second(data.rate_limit_search_per_second)
+      .build();
+
+    blocking(context.pool(), move |conn| {
+      LocalSiteRateLimit::update(conn, &local_site_rate_limit_form)
     })
     .await??;
 

@@ -8,20 +8,13 @@ use lemmy_api_common::{
   community::CommunityResponse,
   post::PostResponse,
   private_message::PrivateMessageResponse,
-  utils::{
-    blocking,
-    check_person_block,
-    get_interface_language,
-    local_site_to_email_config,
-    send_email_to_user,
-  },
+  utils::{blocking, check_person_block, get_interface_language, send_email_to_user},
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
   source::{
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
-    local_site::LocalSite,
     person::Person,
     person_mention::{PersonMention, PersonMentionInsertForm},
     post::Post,
@@ -181,19 +174,16 @@ pub async fn send_local_notifs(
   comment: &Comment,
   person: &Person,
   post: &Post,
-  local_site: &LocalSite,
   do_send_email: bool,
   context: &LemmyContext,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
-  let hostname = &context.settings().hostname;
-
   // Send the local mentions
   for mention in mentions
     .iter()
-    .filter(|m| m.is_local(hostname) && m.name.ne(&person.name))
+    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
     .collect::<Vec<&MentionData>>()
   {
     let mention_name = mention.name.clone();
@@ -201,7 +191,6 @@ pub async fn send_local_notifs(
       LocalUserView::read_from_name(conn, &mention_name)
     })
     .await?;
-    let hostname = &context.settings().hostname;
     if let Ok(mention_user_view) = user_view {
       // TODO
       // At some point, make it so you can't tag the parent creator either
@@ -229,8 +218,7 @@ pub async fn send_local_notifs(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
           &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
-          hostname,
-          &local_site_to_email_config(local_site)?,
+          context.settings(),
         )
       }
     }
@@ -280,8 +268,7 @@ pub async fn send_local_notifs(
             &parent_user_view,
             &lang.notification_comment_reply_subject(&person.name),
             &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
-            hostname,
-            &local_site_to_email_config(local_site)?,
+            context.settings(),
           )
         }
       }
@@ -322,8 +309,7 @@ pub async fn send_local_notifs(
             &parent_user_view,
             &lang.notification_post_reply_subject(&person.name),
             &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
-            hostname,
-            &local_site_to_email_config(local_site)?,
+            context.settings(),
           )
         }
       }

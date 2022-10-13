@@ -6,7 +6,6 @@ use lemmy_api_common::{
   utils::{
     blocking,
     honeypot_check,
-    local_site_to_email_config,
     local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
@@ -185,14 +184,8 @@ impl PerformCrud for Register {
 
     // Email the admins
     if local_site.application_email_admins {
-      let email_config = local_site_to_email_config(&local_site)?;
-      send_new_applicant_email_to_admins(
-        &data.username,
-        context.pool(),
-        context.settings(),
-        &email_config,
-      )
-      .await?;
+      send_new_applicant_email_to_admins(&data.username, context.pool(), context.settings())
+        .await?;
     }
 
     let mut login_response = LoginResponse {
@@ -225,15 +218,8 @@ impl PerformCrud for Register {
           .clone()
           .expect("email was provided");
 
-        let email_config = local_site_to_email_config(&local_site)?;
-        send_verification_email(
-          &local_user_view,
-          &email,
-          context.pool(),
-          context.settings(),
-          &email_config,
-        )
-        .await?;
+        send_verification_email(&local_user_view, &email, context.pool(), context.settings())
+          .await?;
         login_response.verify_email_sent = true;
       }
 

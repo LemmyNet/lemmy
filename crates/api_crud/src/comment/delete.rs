@@ -9,7 +9,6 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     community::Community,
-    local_site::LocalSite,
     post::Post,
   },
   traits::Crud,
@@ -35,7 +34,6 @@ impl PerformCrud for DeleteComment {
     let data: &DeleteComment = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -79,7 +77,6 @@ impl PerformCrud for DeleteComment {
       &updated_comment,
       &local_user_view.person,
       &post,
-      &local_site,
       false,
       context,
     )

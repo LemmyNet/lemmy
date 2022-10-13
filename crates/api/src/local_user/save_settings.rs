@@ -2,12 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, SaveUserSettings},
-  utils::{
-    blocking,
-    get_local_user_view_from_jwt,
-    local_site_to_email_config,
-    send_verification_email,
-  },
+  utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -55,15 +50,8 @@ impl Perform for SaveUserSettings {
       let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
       // Only send the verification email if there was an email change
       if previous_email.ne(email) {
-        let email_config = local_site_to_email_config(&local_site)?;
-        send_verification_email(
-          &local_user_view,
-          email,
-          context.pool(),
-          context.settings(),
-          &email_config,
-        )
-        .await?;
+        send_verification_email(&local_user_view, email, context.pool(), context.settings())
+          .await?;
       }
     }
 

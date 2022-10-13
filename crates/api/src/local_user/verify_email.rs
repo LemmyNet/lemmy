@@ -2,12 +2,11 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{VerifyEmail, VerifyEmailResponse},
-  utils::{blocking, local_site_to_email_config, send_email_verification_success},
+  utils::{blocking, send_email_verification_success},
 };
 use lemmy_db_schema::{
   source::{
     email_verification::EmailVerification,
-    local_site::LocalSite,
     local_user::{LocalUser, LocalUserUpdateForm},
   },
   traits::Crud,
@@ -49,9 +48,7 @@ impl Perform for VerifyEmail {
     })
     .await??;
 
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
-    let email_config = local_site_to_email_config(&local_site)?;
-    send_email_verification_success(&local_user_view, context.settings(), &email_config)?;
+    send_email_verification_success(&local_user_view, context.settings())?;
 
     blocking(context.pool(), move |conn| {
       EmailVerification::delete_old_tokens_for_local_user(conn, local_user_id)

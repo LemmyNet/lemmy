@@ -146,7 +146,6 @@ impl PerformCrud for CreateComment {
       &updated_comment,
       &local_user_view.person,
       &post,
-      &local_site,
       true,
       context,
     )

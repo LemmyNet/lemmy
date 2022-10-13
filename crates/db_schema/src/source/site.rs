@@ -34,7 +34,6 @@ pub struct SiteInsertForm {
   pub name: String,
   pub sidebar: Option<String>,
   pub updated: Option<chrono::NaiveDateTime>,
-  // when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
   pub description: Option<String>,
