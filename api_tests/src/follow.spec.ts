@@ -37,7 +37,7 @@ test('Follow federated community', async () => {
     c => c.community.local == false
   ).community.id;
   expect(remoteCommunityId).toBeDefined();
-  expect(site.my_user.unwrap().follows.length).toBe(1);
+  expect(site.my_user.unwrap().follows.length).toBe(2);
 
   // Test an unfollow
   let unfollow = await followCommunity(alpha, false, remoteCommunityId);
@@ -45,5 +45,5 @@ test('Follow federated community', async () => {
 
   // Make sure you are unsubbed locally
   let siteUnfollowCheck = await getSite(alpha);
-  expect(siteUnfollowCheck.my_user.unwrap().follows.length).toBe(0);
+  expect(siteUnfollowCheck.my_user.unwrap().follows.length).toBe(1);
 });

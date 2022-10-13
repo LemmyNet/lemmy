@@ -19,7 +19,12 @@ import {
   API,
   resolveComment,
   saveUserSettingsFederated,
+  setupLogins,
 } from './shared';
+
+beforeAll(async () => {
+  await setupLogins();
+});
 
 let apShortname: string;
 

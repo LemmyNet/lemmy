@@ -174,9 +174,9 @@ export async function setupLogins() {
   editSiteForm.auth = epsilon.auth.unwrap();
   await epsilon.client.editSite(editSiteForm);
 
-  // Create the main beta community, follow it
+  // Create the main alpha/beta communities
+  await createCommunity(alpha, "main");
   await createCommunity(beta, "main");
-  await followBeta(beta);
 }
 
 export async function createPost(

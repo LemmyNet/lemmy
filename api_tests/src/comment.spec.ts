@@ -30,6 +30,7 @@ import {
   unfollows,
   getComments,
   getCommentParentId,
+  resolveCommunity,
 } from './shared';
 
 let postRes: PostResponse;
@@ -293,8 +294,8 @@ test('Comment Search', async () => {
 
 test('A and G subscribe to B (center) A posts, G mentions B, it gets announced to A', async () => {
   // Create a local post
-  let alphaCommunity = await createCommunity(alpha, "main");
-  let alphaPost = await createPost(alpha, alphaCommunity.community_view.community.id);
+  let alphaCommunity = (await resolveCommunity(alpha, "!main@lemmy-alpha:8541")).community.unwrap();
+  let alphaPost = await createPost(alpha, alphaCommunity.community.id);
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it
