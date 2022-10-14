@@ -81,11 +81,8 @@ impl ApubObject for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     blocking(context.pool(), move |conn| {
-      DbPerson::update(
-        conn,
-        self.id,
-        &PersonUpdateForm::builder().deleted(Some(true)).build(),
-      )
+      let form = PersonUpdateForm::builder().deleted(Some(true)).build();
+      DbPerson::update(conn, self.id, &form)
     })
     .await??;
     Ok(())

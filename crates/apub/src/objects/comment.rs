@@ -83,11 +83,8 @@ impl ApubObject for ApubComment {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
       blocking(context.pool(), move |conn| {
-        Comment::update(
-          conn,
-          self.id,
-          &CommentUpdateForm::builder().deleted(Some(true)).build(),
-        )
+        let form = CommentUpdateForm::builder().deleted(Some(true)).build();
+        Comment::update(conn, self.id, &form)
       })
       .await??;
     }

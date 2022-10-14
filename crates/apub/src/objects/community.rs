@@ -84,11 +84,8 @@ impl ApubObject for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     blocking(context.pool(), move |conn| {
-      Community::update(
-        conn,
-        self.id,
-        &CommunityUpdateForm::builder().deleted(Some(true)).build(),
-      )
+      let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
+      Community::update(conn, self.id, &form)
     })
     .await??;
     Ok(())

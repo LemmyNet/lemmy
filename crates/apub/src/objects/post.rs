@@ -86,11 +86,8 @@ impl ApubObject for ApubPost {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
       blocking(context.pool(), move |conn| {
-        Post::update(
-          conn,
-          self.id,
-          &PostUpdateForm::builder().deleted(Some(true)).build(),
-        )
+        let form = PostUpdateForm::builder().deleted(Some(true)).build();
+        Post::update(conn, self.id, &form)
       })
       .await??;
     }
