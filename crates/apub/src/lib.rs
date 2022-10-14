@@ -13,7 +13,11 @@ use lemmy_db_schema::{
   source::{activity::Activity, instance::Instance, local_site::LocalSite},
   utils::DbPool,
 };
-use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
+use lemmy_utils::{
+  error::LemmyError,
+  location_info,
+  settings::{structs::Settings, SETTINGS},
+};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
 use url::{ParseError, Url};
@@ -54,6 +58,10 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .map(|l| l.federation_debug)
       .unwrap_or(true);
 
+    let local_site_data = fetch_local_site_data(conn)
+      .expect("should have local_site_data")
+      .to_owned();
+
     let settings = InstanceSettings::builder()
       .http_fetch_retry_limit(http_fetch_retry_limit)
       .worker_count(worker_count)
@@ -61,13 +69,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
       // without the value getting captured.
       // TODO this is broken
-      // .verify_url_function(|url| {
-      //   let conn2 = &mut context.to_owned().pool().get().expect("getting connection for LOCAL_INSTANCE init");
-      //   let local_site = &LocalSite::read(conn2).expect("reading local_site");
-      //   let allowed_instances = &Instance::allowlist(conn2).ok();
-      //   let blocked_instances = &Instance::blocklist(conn2).ok();
-      //   check_apub_id_valid(url, local_site, allowed_instances, blocked_instances, &SETTINGS)
-      // })
+      .verify_url_function(|url| check_apub_id_valid(url, &local_site_data, &SETTINGS))
       .http_signature_compat(true)
       .build()
       .expect("configure federation");
@@ -131,6 +133,7 @@ fn check_apub_id_valid(
   Ok(())
 }
 
+#[derive(Clone)]
 pub(crate) struct LocalSiteData {
   local_site: Option<LocalSite>,
   allowed_instances: Option<Vec<String>>,
