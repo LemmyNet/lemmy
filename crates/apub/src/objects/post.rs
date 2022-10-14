@@ -205,8 +205,13 @@ impl ApubObject for ApubPost {
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
         .unwrap_or_default();
-      let local_site = blocking(context.pool(), LocalSite::read).await??;
-      let slur_regex = &slur_regex(local_site.slur_filter_regex.as_deref());
+      let slur_regex = &slur_regex(
+        blocking(context.pool(), LocalSite::read)
+          .await?
+          .as_ref()
+          .map(|l| l.slur_filter_regex.as_deref())
+          .unwrap_or(None),
+      );
 
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)

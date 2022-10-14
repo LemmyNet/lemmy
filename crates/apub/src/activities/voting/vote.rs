@@ -85,8 +85,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
-    if self.kind == VoteType::Dislike && !local_site.enable_downvotes {
+    let enable_downvotes = blocking(context.pool(), LocalSite::read)
+      .await?
+      .map(|l| l.enable_downvotes)
+      .unwrap_or(true);
+    if self.kind == VoteType::Dislike && !enable_downvotes {
       return Err(anyhow!("Downvotes disabled").into());
     }
     Ok(())

@@ -193,8 +193,13 @@ impl ApubObject for ApubComment {
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
-    let slur_regex = &slur_regex(local_site.slur_filter_regex.as_deref());
+    let slur_regex = &slur_regex(
+      blocking(context.pool(), LocalSite::read)
+        .await?
+        .as_ref()
+        .map(|l| l.slur_filter_regex.as_deref())
+        .unwrap_or(None),
+    );
 
     let content_slurs_removed = remove_slurs(&content, slur_regex);
     let language_id = LanguageTag::to_language_id_single(note.language, context.pool()).await?;
