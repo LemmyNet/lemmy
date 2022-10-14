@@ -25,7 +25,7 @@ steps:
 
   # latest rust for clippy to get extra checks
   - name: cargo clippy
-    image: rust:1.61-buster
+    image: rust:1.64-buster
     commands:
       - apt-get update
       - apt-get -y install protobuf-compiler libprotobuf-dev
