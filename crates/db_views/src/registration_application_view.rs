@@ -157,7 +157,7 @@ mod tests {
   };
   use lemmy_db_schema::{
     source::{
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserSettings, LocalUserUpdateForm},
       person::*,
       registration_application::{
@@ -176,12 +176,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let timmy_person_form = PersonInsertForm::builder()
       .name("timmy_rav".into())

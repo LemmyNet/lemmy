@@ -2,11 +2,12 @@ use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
+  utils::naive_now,
 };
 use diesel::{dsl::*, result::Error, *};
 
 impl Instance {
-  pub fn create(conn: &mut PgConnection, form: &InstanceForm) -> Result<Self, Error> {
+  fn create_from_form(conn: &mut PgConnection, form: &InstanceForm) -> Result<Self, Error> {
     // Do upsert on domain name conflict
     insert_into(instance::table)
       .values(form)
@@ -14,6 +15,13 @@ impl Instance {
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
+  }
+  pub fn create(conn: &mut PgConnection, domain: &str) -> Result<Self, Error> {
+    let form = InstanceForm {
+      domain: domain.to_string(),
+      updated: Some(naive_now()),
+    };
+    Self::create_from_form(conn, &form)
   }
   pub fn delete(conn: &mut PgConnection, instance_id: InstanceId) -> Result<usize, Error> {
     diesel::delete(instance::table.find(instance_id)).execute(conn)

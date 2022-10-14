@@ -290,14 +290,7 @@ mod tests {
   use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
-    source::{
-      comment::*,
-      comment_report::*,
-      community::*,
-      instance::{Instance, InstanceForm},
-      person::*,
-      post::*,
-    },
+    source::{comment::*, comment_report::*, community::*, instance::Instance, person::*, post::*},
     traits::{Crud, Joinable, Reportable},
     utils::establish_unpooled_connection,
   };
@@ -308,12 +301,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("timmy_crv".into())

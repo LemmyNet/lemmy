@@ -152,7 +152,7 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::Community,
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       person::{Person, PersonInsertForm},
       site::Site,
     },
@@ -169,12 +169,7 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let old_mod = PersonInsertForm::builder()
       .name("holly".into())

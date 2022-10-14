@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityUpdateForm},
-    instance::{Instance, InstanceForm},
+    instance::Instance,
     local_site::{LocalSite, LocalSiteInsertForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
     local_user::{LocalUser, LocalUserInsertForm},
@@ -398,11 +398,7 @@ fn initialize_local_site_2022_10_10(
     .expect("must have domain");
 
   // Upsert this to the instance table
-  let instance_form = InstanceForm {
-    domain,
-    updated: None,
-  };
-  let instance = Instance::create(conn, &instance_form)?;
+  let instance = Instance::create(conn, &domain)?;
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;

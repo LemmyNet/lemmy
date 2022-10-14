@@ -25,7 +25,7 @@ use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
-    instance::{Instance as DbInstance, InstanceForm},
+    instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
@@ -143,14 +143,7 @@ impl ApubObject for ApubSite {
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let domain = generate_domain_url(apub.id.inner())?;
-    let instance_form = InstanceForm {
-      domain,
-      updated: Some(naive_now()),
-    };
-    let instance = blocking(data.pool(), move |conn| {
-      DbInstance::create(conn, &instance_form)
-    })
-    .await??;
+    let instance = blocking(data.pool(), move |conn| DbInstance::create(conn, &domain)).await??;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),

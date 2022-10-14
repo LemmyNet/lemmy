@@ -23,7 +23,7 @@ use chrono::NaiveDateTime;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
-    instance::{Instance, InstanceForm},
+    instance::Instance,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
@@ -161,14 +161,7 @@ impl ApubObject for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     // TODO Maybe a better way to do this? Same for community and site from_apub
     let domain = generate_domain_url(person.id.inner())?;
-    let instance_form = InstanceForm {
-      domain,
-      updated: Some(naive_now()),
-    };
-    let instance = blocking(context.pool(), move |conn| {
-      Instance::create(conn, &instance_form)
-    })
-    .await??;
+    let instance = blocking(context.pool(), move |conn| Instance::create(conn, &domain)).await??;
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,

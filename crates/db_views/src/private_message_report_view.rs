@@ -148,7 +148,7 @@ mod tests {
   use crate::private_message_report_view::PrivateMessageReportQuery;
   use lemmy_db_schema::{
     source::{
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       person::{Person, PersonInsertForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
@@ -163,12 +163,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person_1 = PersonInsertForm::builder()
       .name("timmy_mrv".into())

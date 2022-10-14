@@ -281,7 +281,7 @@ mod tests {
   use crate::{
     source::{
       community::{Community, CommunityInsertForm},
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       person::*,
       post::*,
     },
@@ -295,12 +295,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("jim".into())

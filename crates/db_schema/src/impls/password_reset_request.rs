@@ -75,7 +75,7 @@ fn bytes_to_hex(bytes: Vec<u8>) -> String {
 mod tests {
   use crate::{
     source::{
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       password_reset_request::PasswordResetRequest,
       person::*,
@@ -90,12 +90,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("thommy prw".into())

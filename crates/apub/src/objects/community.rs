@@ -26,10 +26,9 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
-    instance::{Instance, InstanceForm},
+    instance::Instance,
   },
   traits::{ApubActor, Crud},
-  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
@@ -150,14 +149,7 @@ impl ApubObject for ApubCommunity {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let domain = generate_domain_url(group.id.inner())?;
-    let instance_form = InstanceForm {
-      domain,
-      updated: Some(naive_now()),
-    };
-    let instance = blocking(context.pool(), move |conn| {
-      Instance::create(conn, &instance_form)
-    })
-    .await??;
+    let instance = blocking(context.pool(), move |conn| Instance::create(conn, &domain)).await??;
 
     let form = Group::into_insert_form(group.clone(), instance.id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;

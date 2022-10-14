@@ -457,7 +457,7 @@ mod tests {
       actor_language::LocalUserLanguage,
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::*,
@@ -482,12 +482,7 @@ mod tests {
   }
 
   fn init_data(conn: &mut PgConnection) -> Data {
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let person_name = "tegan".to_string();
 

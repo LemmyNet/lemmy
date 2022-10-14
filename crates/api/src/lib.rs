@@ -250,7 +250,7 @@ mod tests {
   use lemmy_api_common::utils::check_validator_time;
   use lemmy_db_schema::{
     source::{
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       secret::Secret,
@@ -266,12 +266,7 @@ mod tests {
     let secret = Secret::init(conn).unwrap();
     let settings = &SETTINGS.to_owned();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("Gerry9812".into())

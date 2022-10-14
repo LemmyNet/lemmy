@@ -2,7 +2,7 @@ use crate::{
   schema::federation_allowlist,
   source::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
-    instance::{Instance, InstanceForm},
+    instance::Instance,
   },
 };
 use diesel::{dsl::*, result::Error, *};
@@ -15,11 +15,7 @@ impl FederationAllowList {
 
         for domain in list {
           // Upsert all of these as instances
-          let instance_form = InstanceForm {
-            domain: domain.to_string(),
-            updated: None,
-          };
-          let instance = Instance::create(conn, &instance_form)?;
+          let instance = Instance::create(conn, &domain)?;
 
           let form = FederationAllowListForm {
             instance_id: instance.id,

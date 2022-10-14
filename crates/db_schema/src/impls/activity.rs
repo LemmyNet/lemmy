@@ -84,7 +84,7 @@ mod tests {
     newtypes::DbUrl,
     source::{
       activity::{Activity, ActivityInsertForm},
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       person::{Person, PersonInsertForm},
     },
     utils::establish_unpooled_connection,
@@ -98,12 +98,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let creator_form = PersonInsertForm::builder()
       .name("activity_creator_ pm".into())

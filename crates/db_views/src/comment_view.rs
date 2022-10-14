@@ -396,7 +396,7 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::*,
       community::*,
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       language::Language,
       local_user::LocalUserInsertForm,
       person::*,
@@ -422,12 +422,7 @@ mod tests {
   }
 
   fn init_data(conn: &mut PgConnection) -> Data {
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("timmy".into())

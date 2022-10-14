@@ -272,7 +272,7 @@ mod tests {
     aggregates::structs::PostAggregates,
     source::{
       community::*,
-      instance::{Instance, InstanceForm},
+      instance::Instance,
       person::*,
       post::*,
       post_report::{PostReport, PostReportForm},
@@ -287,12 +287,7 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_instance = InstanceForm {
-      domain: "my_domain.tld".into(),
-      updated: None,
-    };
-
-    let inserted_instance = Instance::create(conn, &new_instance).unwrap();
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("timmy_prv".into())
