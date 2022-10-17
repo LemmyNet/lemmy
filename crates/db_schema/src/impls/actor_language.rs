@@ -15,6 +15,7 @@ use diesel::{
   RunQueryDsl,
 };
 use lemmy_utils::error::LemmyError;
+use once_cell::sync::OnceCell;
 
 impl LocalUserLanguage {
   pub fn read(
@@ -23,10 +24,11 @@ impl LocalUserLanguage {
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::*;
 
-    local_user_language
+    let langs = local_user_language
       .filter(local_user_id.eq(for_local_user_id))
       .select(language_id)
-      .get_results(conn)
+      .get_results(conn)?;
+    convert_read_languages(conn, langs)
   }
 
   /// Update the user's languages.
@@ -42,7 +44,7 @@ impl LocalUserLanguage {
       // Clear the current user languages
       delete(local_user_language.filter(local_user_id.eq(for_local_user_id))).execute(conn)?;
 
-      let lang_ids = update_languages(conn, language_ids)?;
+      let lang_ids = convert_update_languages(conn, language_ids)?;
       for l in lang_ids {
         let form = LocalUserLanguageForm {
           local_user_id: for_local_user_id,
@@ -74,10 +76,11 @@ impl SiteLanguage {
 
   pub fn read(conn: &mut PgConnection, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::site_language::dsl::*;
-    site_language
+    let langs = site_language
       .filter(site_id.eq(for_site_id))
       .select(language_id)
-      .load(conn)
+      .load(conn)?;
+    convert_read_languages(conn, langs)
   }
 
   pub fn update(
@@ -90,7 +93,7 @@ impl SiteLanguage {
       // Clear the current languages
       delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
 
-      let lang_ids = update_languages(conn, language_ids)?;
+      let lang_ids = convert_update_languages(conn, language_ids)?;
       for l in lang_ids {
         let form = SiteLanguageForm {
           site_id: for_site_id,
@@ -163,10 +166,11 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::*;
-    community_language
+    let langs = community_language
       .filter(community_id.eq(for_community_id))
       .select(language_id)
-      .get_results(conn)
+      .get_results(conn)?;
+    convert_read_languages(conn, langs)
   }
 
   pub fn update(
@@ -216,8 +220,8 @@ pub fn default_post_language(
   }
 }
 
-// If no language is given, set all languages
-fn update_languages(
+/// If no language is given, set all languages
+fn convert_update_languages(
   conn: &mut PgConnection,
   language_ids: Vec<LanguageId>,
 ) -> Result<Vec<LanguageId>, Error> {
@@ -228,6 +232,28 @@ fn update_languages(
         .map(|l| l.id)
         .collect(),
     )
+  } else {
+    Ok(language_ids)
+  }
+}
+
+/// If all languages are returned, return empty vec instead
+fn convert_read_languages(
+  conn: &mut PgConnection,
+  language_ids: Vec<LanguageId>,
+) -> Result<Vec<LanguageId>, Error> {
+  static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::new();
+  let count = ALL_LANGUAGES_COUNT.get_or_init(|| {
+    use crate::schema::language::dsl::*;
+    let count: i64 = language
+      .select(count(id))
+      .first(conn)
+      .expect("read number of languages");
+    count as usize
+  });
+
+  if &language_ids.len() == count {
+    Ok(vec![])
   } else {
     Ok(language_ids)
   }
@@ -272,17 +298,33 @@ mod tests {
 
   #[test]
   #[serial]
-  fn test_update_languages() {
+  fn test_convert_update_languages() {
     let conn = &mut establish_unpooled_connection();
 
     // call with empty vec, returns all languages
-    let updated1 = update_languages(conn, vec![]).unwrap();
-    assert_eq!(184, updated1.len());
+    let converted1 = convert_update_languages(conn, vec![]).unwrap();
+    assert_eq!(184, converted1.len());
 
     // call with nonempty vec, returns same vec
     let test_langs = test_langs1(conn);
-    let updated2 = update_languages(conn, test_langs.clone()).unwrap();
-    assert_eq!(test_langs, updated2);
+    let converted2 = convert_update_languages(conn, test_langs.clone()).unwrap();
+    assert_eq!(test_langs, converted2);
+  }
+  #[test]
+  #[serial]
+  fn test_convert_read_languages() {
+    let conn = &mut establish_unpooled_connection();
+
+    // call with all languages, returns empty vec
+    use crate::schema::language::dsl::*;
+    let all_langs = language.select(id).get_results(conn).unwrap();
+    let converted1: Vec<LanguageId> = convert_read_languages(conn, all_langs).unwrap();
+    assert_eq!(0, converted1.len());
+
+    // call with nonempty vec, returns same vec
+    let test_langs = test_langs1(conn);
+    let converted2 = convert_read_languages(conn, test_langs.clone()).unwrap();
+    assert_eq!(test_langs, converted2);
   }
 
   #[test]
