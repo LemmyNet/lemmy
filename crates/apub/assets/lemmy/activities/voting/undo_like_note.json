@@ -3,15 +3,9 @@
   "object": {
     "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
     "object": "http://ds9.lemmy.ml/comment/1",
-    "cc": [
-      "https://www.w3.org/ns/activitystreams#Public"
-    ],
     "type": "Like",
     "id": "http://ds9.lemmy.ml/activities/like/efcf7ae2-dfcc-4ff4-9ce4-6adf251ff004"
   },
-  "cc": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
   "type": "Undo",
   "id": "http://ds9.lemmy.ml/activities/undo/3518565c-24a7-4d9e-8e0a-f7a2f45ac618"
 }

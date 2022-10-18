@@ -21,7 +21,7 @@ use activitypub_federation::{
   traits::ActivityHandler,
   utils::verify_urls_match,
 };
-use activitystreams_kinds::{activity::UndoType, public};
+use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -54,7 +54,6 @@ impl UndoVote {
     let undo_vote = UndoVote {
       actor: ObjectId::new(actor.actor_id()),
       object,
-      cc: vec![public()],
       kind: UndoType::Undo,
       id: id.clone(),
       unparsed: Default::default(),

@@ -167,6 +167,9 @@ where
   ActorT: Actor + ActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
+  if !context.settings().federation.enabled {
+    return Ok(());
+  }
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 

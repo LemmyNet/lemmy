@@ -1,9 +1,6 @@
 {
   "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
   "object": "http://ds9.lemmy.ml/post/1",
-  "cc": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
   "type": "Dislike",
   "id": "http://enterprise.lemmy.ml/activities/dislike/64d40d40-a829-43a5-8247-1fb595b3ca1c"
 }

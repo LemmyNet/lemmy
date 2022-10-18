@@ -13,7 +13,6 @@ use crate::{
   PostOrComment,
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
-use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -37,7 +36,6 @@ impl Vote {
     Ok(Vote {
       actor: ObjectId::new(actor.actor_id()),
       object: ObjectId::new(object.ap_id()),
-      cc: vec![public()],
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
       unparsed: Default::default(),
