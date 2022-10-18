@@ -12,6 +12,8 @@ use diesel::{
   PgConnection,
 };
 use diesel_migrations::EmbeddedMigrations;
+use diesel_async::pooled_connection::{bb8::Pool, AsyncDieselConnectionManager};
+use diesel_async::pg::AsyncPgConnection;
 use lemmy_utils::error::LemmyError;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -21,9 +23,12 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 
-pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+pub type DbPool = Pool<AsyncPgConnection>;
 
-pub fn get_database_url_from_env() -> Result<String, VarError> {
+pub async fn get_database_url_from_env() -> Result<String, VarError> {
+  let t = AsyncDieselConnectionManager::<AsyncPgConnection>::new("test");
+  let p = Pool::builder().build(t).await.unwrap();
+  let mut conn = p.get().await.unwrap();
   env::var("LEMMY_DATABASE_URL")
 }
 

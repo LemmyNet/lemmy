@@ -4,10 +4,8 @@ extern crate diesel_migrations;
 use crate::diesel_migrations::MigrationHarness;
 use actix::prelude::*;
 use actix_web::{web::Data, *};
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
+use diesel_async::pooled_connection::bb8::Pool;
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
@@ -74,7 +72,7 @@ async fn main() -> Result<(), LemmyError> {
     Ok(url) => url,
     Err(_) => settings.get_database_url(),
   };
-  let manager = ConnectionManager::<PgConnection>::new(&db_url);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
   let pool = Pool::builder()
     .max_size(settings.database.pool_size)
     .min_idle(Some(1))

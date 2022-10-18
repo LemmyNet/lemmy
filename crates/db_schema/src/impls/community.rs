@@ -1,3 +1,6 @@
+use diesel_async::pooled_connection::bb8::Pool;
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use crate::utils::DbPool;
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
@@ -28,6 +31,7 @@ use diesel::{
   RunQueryDsl,
   TextExpressionMethods,
 };
+use diesel_async::*;
 
 mod safe_type {
   use crate::{schema::community::*, source::community::Community, traits::ToSafe};
@@ -170,23 +174,31 @@ impl DeleteableOrRemoveable for Community {
 }
 
 impl CommunityModerator {
-  pub fn delete_for_community(
-    conn: &mut PgConnection,
+  pub async fn delete_for_community(
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::*;
-    diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(conn)
+    // let mut conn = pool.get().await.unwrap();
+  let t = AsyncDieselConnectionManager::<AsyncPgConnection>::new("test");
+  let p = Pool::builder().build(t).await.unwrap();
+  let mut conn = p.get().await.unwrap();
+  diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(&mut conn)
   }
 
-  pub fn get_person_moderated_communities(
+  pub async fn get_person_moderated_communities(
     conn: &mut PgConnection,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
+  let t = AsyncDieselConnectionManager::<AsyncPgConnection>::new("test");
+  let p = Pool::builder().build(t).await.unwrap();
+  let p2 = p.get_owned().await.unwrap();
+  // let mut conn = &p2.get().await.unwrap();
     use crate::schema::community_moderator::dsl::*;
     community_moderator
       .filter(person_id.eq(for_person_id))
       .select(community_id)
-      .load::<CommunityId>(conn)
+      .load::<CommunityId>(&mut p2)
   }
 }
 

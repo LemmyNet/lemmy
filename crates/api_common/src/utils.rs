@@ -44,32 +44,14 @@ use rosetta_i18n::{Language, LanguageId};
 use std::str::FromStr;
 use tracing::warn;
 
-pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
-where
-  F: FnOnce(&mut diesel::PgConnection) -> T + Send + 'static,
-  T: Send + 'static,
-{
-  let pool = pool.clone();
-  let blocking_span = tracing::info_span!("blocking operation");
-  actix_web::web::block(move || {
-    let entered = blocking_span.enter();
-    let mut conn = pool.get()?;
-    let res = (f)(&mut conn);
-    drop(entered);
-    Ok(res) as Result<T, LemmyError>
-  })
-  .await?
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &DbPool,
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
-  let is_mod_or_admin = blocking(pool, move |conn| {
-    CommunityView::is_mod_or_admin(conn, person_id, community_id)
-  })
+  let is_mod_or_admin = 
+    CommunityView::is_mod_or_admin(pool, person_id, community_id)
   .await?;
   if !is_mod_or_admin {
     return Err(LemmyError::from_message("not_a_mod_or_admin"));

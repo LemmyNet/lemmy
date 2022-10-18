@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
   traits::{ToSafe, ViewToVec},
-  utils::{fuzzy_search, limit_and_offset},
+  utils::{fuzzy_search, limit_and_offset, DbPool},
   SortType,
 };
 use typed_builder::TypedBuilder;
@@ -23,7 +23,8 @@ impl PersonViewSafe {
     Ok(Self { person, counts })
   }
 
-  pub fn admins(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
+  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = pool.get().await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))

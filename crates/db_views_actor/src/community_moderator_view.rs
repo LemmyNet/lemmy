@@ -1,3 +1,4 @@
+use lemmy_db_schema::utils::DbPool;
 use crate::structs::CommunityModeratorView;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
@@ -13,10 +14,12 @@ use lemmy_db_schema::{
 type CommunityModeratorViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityModeratorView {
-  pub fn for_community(
-    conn: &mut PgConnection,
+  pub async fn for_community(
+    pool: &DbPool,
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
+    let mut conn = pool.get().await.unwrap();
+
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -26,7 +29,7 @@ impl CommunityModeratorView {
       ))
       .filter(community_moderator::community_id.eq(community_id))
       .order_by(community_moderator::published)
-      .load::<CommunityModeratorViewTuple>(conn)?;
+      .load::<CommunityModeratorViewTuple>(&mut conn).await?;
 
     Ok(Self::from_tuple_to_vec(res))
   }
