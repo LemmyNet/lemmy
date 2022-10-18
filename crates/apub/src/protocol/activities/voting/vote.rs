@@ -3,7 +3,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::Unparsed,
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
+use activitypub_federation::core::object_id::ObjectId;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -15,8 +15,6 @@ use url::Url;
 pub struct Vote {
   pub(crate) actor: ObjectId<ApubPerson>,
   pub(crate) object: ObjectId<PostOrComment>,
-  #[serde(deserialize_with = "deserialize_one_or_many", default)]
-  pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
   pub(crate) kind: VoteType,
   pub(crate) id: Url,
