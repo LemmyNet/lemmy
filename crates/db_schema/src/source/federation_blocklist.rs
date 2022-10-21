@@ -1,6 +1,9 @@
-use crate::{newtypes::InstanceId, schema::federation_blocklist};
+use crate::newtypes::InstanceId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+
+#[cfg(feature = "full")]
+use crate::schema::federation_blocklist;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
