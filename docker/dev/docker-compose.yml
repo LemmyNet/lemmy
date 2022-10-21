@@ -25,12 +25,12 @@ services:
       - lemmy-ui
 
   lemmy:
-    image: dessalines/lemmy:dev
+    # image: dessalines/lemmy:dev
     # use this to build your local lemmy server image for development
     # run docker compose up --build
-    # build: 
-    #   context: ../..
-    #   dockerfile: docker/dev/Dockerfile
+    build: 
+      context: ../..
+      dockerfile: docker/dev/Dockerfile
     # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
     hostname: lemmy
     networks:
@@ -46,13 +46,13 @@ services:
       - pictrs
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:dev
+    # image: dessalines/lemmy-ui:dev
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
-    # build: 
-    #  context: ../../../lemmy-ui
-    #  dockerfile: Dockerfile  
+    build: 
+     context: ../../../lemmy-ui
+     dockerfile: Dockerfile  
     networks:
       - lemmyinternal
     environment:
