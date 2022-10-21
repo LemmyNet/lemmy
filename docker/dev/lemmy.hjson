@@ -39,7 +39,12 @@
   port: 8536
 
   # pictrs host
-  pictrs_url: "http://pictrs:8080"
+  pictrs: {
+    # Address where pictrs is available (for image hosting)
+    url: "http://pictrs:8080/"
+    # Set a custom pictrs API key. ( Required for deleting images )
+    api_key: "API_KEY"
+  }
 
   opentelemetry_url: "http://otel:4137"
 }
