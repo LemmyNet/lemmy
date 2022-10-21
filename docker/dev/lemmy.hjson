@@ -6,44 +6,22 @@
   # release / stable version.
 
   setup: {
-    # username for the admin user
     admin_username: "lemmy"
-    # password for the admin user
     admin_password: "lemmylemmy"
-    # name of the site (can be changed later)
     site_name: "lemmy-dev"
   }
 
-  # settings related to the postgresql database
   database: {
-    # name of the postgres database for lemmy
-    database: "lemmy"
-    # username to connect to postgres
-    user: "lemmy"
-    # password to connect to postgres
-    password: "password"
-    # host where postgres is running
     host: "postgres"
-    # port where postgres can be accessed
-    port: 5432
-    # maximum number of active sql connections
-    pool_size: 5
   }
 
-
-  # the domain name of your instance (eg "lemmy.ml")
   hostname: "localhost"
-  # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
-  # port where lemmy should listen for incoming requests
   port: 8536
 
-  # pictrs host
   pictrs: {
-    # Address where pictrs is available (for image hosting)
     url: "http://pictrs:8080/"
-    # Set a custom pictrs API key. ( Required for deleting images )
-    api_key: "API_KEY"
+    # api_key: "API_KEY"
   }
 
   opentelemetry_url: "http://otel:4137"

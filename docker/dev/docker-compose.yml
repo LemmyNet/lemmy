@@ -46,13 +46,13 @@ services:
       - pictrs
 
   lemmy-ui:
-    # image: dessalines/lemmy-ui:dev
+    image: dessalines/lemmy-ui:dev
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
-    build: 
-     context: ../../../lemmy-ui
-     dockerfile: Dockerfile  
+    # build: 
+    #  context: ../../../lemmy-ui
+    #  dockerfile: Dockerfile  
     networks:
       - lemmyinternal
     environment:
