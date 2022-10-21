@@ -144,7 +144,7 @@ impl PerformCrud for Register {
       .build();
 
     let inserted_local_user = match blocking(context.pool(), move |conn| {
-      LocalUser::register(conn, &local_user_form)
+      LocalUser::create(conn, &local_user_form)
     })
     .await?
     {

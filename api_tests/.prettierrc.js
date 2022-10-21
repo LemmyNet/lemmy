@@ -1,4 +1,4 @@
-module.exports = Object.assign(require('eslint-plugin-jane/prettier-ts'), {
-  arrowParens: 'avoid',
+module.exports = Object.assign(require("eslint-plugin-prettier"), {
+  arrowParens: "avoid",
   semi: true,
 });

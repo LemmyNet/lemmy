@@ -13,11 +13,7 @@ use lemmy_db_schema::{
   source::{activity::Activity, instance::Instance, local_site::LocalSite},
   utils::DbPool,
 };
-use lemmy_utils::{
-  error::LemmyError,
-  location_info,
-  settings::{structs::Settings, SETTINGS},
-};
+use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
 use url::{ParseError, Url};
@@ -36,6 +32,7 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 });
 
 // TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
+// TODO this singleton needs to be redone to account for live data.
 fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
   static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::new();
   LOCAL_INSTANCE.get_or_init(|| {
@@ -58,18 +55,12 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .map(|l| l.federation_debug)
       .unwrap_or(true);
 
-    let local_site_data = fetch_local_site_data(conn)
-      .expect("should have local_site_data")
-      .to_owned();
-
     let settings = InstanceSettings::builder()
       .http_fetch_retry_limit(http_fetch_retry_limit)
       .worker_count(worker_count)
       .debug(federation_debug)
       // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
       // without the value getting captured.
-      // TODO this is broken
-      .verify_url_function(|url| check_apub_id_valid(url, &local_site_data, &SETTINGS))
       .http_signature_compat(true)
       .build()
       .expect("configure federation");
@@ -92,6 +83,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
 #[tracing::instrument(skip(settings, local_site_data))]
+// TODO This function needs to be called by incoming activities
 fn check_apub_id_valid(
   apub_id: &Url,
   local_site_data: &LocalSiteData,

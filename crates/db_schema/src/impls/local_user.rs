@@ -67,15 +67,6 @@ mod safe_settings_type {
 }
 
 impl LocalUser {
-  pub fn register(conn: &mut PgConnection, form: &LocalUserInsertForm) -> Result<Self, Error> {
-    let mut edited_user = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
-    edited_user.password_encrypted = password_hash;
-
-    Self::create(conn, &edited_user)
-  }
-
   pub fn update_password(
     conn: &mut PgConnection,
     local_user_id: LocalUserId,
@@ -117,8 +108,13 @@ impl Crud for LocalUser {
     diesel::delete(local_user.find(local_user_id)).execute(conn)
   }
   fn create(conn: &mut PgConnection, form: &Self::InsertForm) -> Result<Self, Error> {
+    let mut form_with_encrypted_password = form.clone();
+    let password_hash =
+      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+    form_with_encrypted_password.password_encrypted = password_hash;
+
     let local_user_ = insert_into(local_user)
-      .values(form)
+      .values(form_with_encrypted_password)
       .get_result::<Self>(conn)?;
 
     let site_languages = SiteLanguage::read_local(conn);

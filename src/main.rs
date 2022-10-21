@@ -116,6 +116,9 @@ async fn main() -> Result<(), LemmyError> {
   // Set up the rate limiter
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+
+  // TODO this isn't live-updating
+  // https://github.com/LemmyNet/lemmy/issues/2508
   let rate_limiter = RateLimit {
     rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
     rate_limit_config,

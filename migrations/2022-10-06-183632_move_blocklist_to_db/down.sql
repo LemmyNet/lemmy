@@ -9,7 +9,7 @@ alter table site
   add column application_question text default 'to verify that you are human, please explain why you want to create an account on this site'::text,
   add column private_instance boolean default false not null,
   add column default_theme text default 'browser'::text not null,
-  add column default_post_listing_type text default 'local'::text not null,
+  add column default_post_listing_type text default 'Local'::text not null,
   add column legal_information text,
   add column hide_modlog_mod_names boolean default true not null,
   add column application_email_admins boolean default false not null;
