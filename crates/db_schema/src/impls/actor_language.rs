@@ -1,90 +1,105 @@
 use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
+  schema::{local_site, local_user_language::dsl::*, site, site_language},
   source::{actor_language::*, language::Language},
+  utils::{get_conn, DbPool},
 };
-use diesel::{
-  delete,
-  dsl::*,
-  insert_into,
-  result::Error,
-  select,
-  ExpressionMethods,
-  PgConnection,
-  QueryDsl,
-  RunQueryDsl,
-};
+use diesel::{delete, dsl::*, insert_into, result::Error, select, ExpressionMethods, QueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::LemmyError;
 use once_cell::sync::OnceCell;
 
 impl LocalUserLanguage {
-  pub fn read(
-    conn: &mut PgConnection,
+  pub async fn read(
+    pool: &DbPool,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::local_user_language::dsl::*;
+    let conn = &mut get_conn(&pool).await?;
 
-    let langs = local_user_language
-      .filter(local_user_id.eq(for_local_user_id))
-      .select(language_id)
-      .get_results(conn)?;
-    convert_read_languages(conn, langs)
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          let langs = local_user_language
+            .filter(local_user_id.eq(for_local_user_id))
+            .select(language_id)
+            .get_results(conn)
+            .await?;
+          convert_read_languages(conn, langs).await
+        }) as _
+      })
+      .await
   }
 
   /// Update the user's languages.
   ///
   /// If no language_id vector is given, it will show all languages
-  pub fn update(
-    conn: &mut PgConnection,
+  pub async fn update(
+    pool: &DbPool,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
-    conn.build_transaction().read_write().run(|conn| {
-      use crate::schema::local_user_language::dsl::*;
-      // Clear the current user languages
-      delete(local_user_language.filter(local_user_id.eq(for_local_user_id))).execute(conn)?;
+    let conn = &mut get_conn(&pool).await?;
 
-      let lang_ids = convert_update_languages(conn, language_ids)?;
-      for l in lang_ids {
-        let form = LocalUserLanguageForm {
-          local_user_id: for_local_user_id,
-          language_id: l,
-        };
-        insert_into(local_user_language)
-          .values(form)
-          .get_result::<Self>(conn)?;
-      }
-      Ok(())
-    })
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          use crate::schema::local_user_language::dsl::*;
+          // Clear the current user languages
+          delete(local_user_language.filter(local_user_id.eq(for_local_user_id)))
+            .execute(conn)
+            .await;
+
+          let lang_ids = convert_update_languages(conn, language_ids).await?;
+          for l in lang_ids {
+            let form = LocalUserLanguageForm {
+              local_user_id: for_local_user_id,
+              language_id: l,
+            };
+            insert_into(local_user_language)
+              .values(form)
+              .get_result::<Self>(conn)
+              .await;
+          }
+          Ok(())
+        }) as _
+      })
+      .await
   }
 }
 
 impl SiteLanguage {
-  pub fn read_local(conn: &mut PgConnection) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::{local_site, site, site_language};
+  pub async fn read_local(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(&pool).await?;
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
       .select(site_language::language_id)
       .load(conn)
+      .await
   }
 
-  pub fn read(conn: &mut PgConnection, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::site_language::dsl::*;
+  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(&pool).await?;
+
     let langs = site_language
       .filter(site_id.eq(for_site_id))
       .select(language_id)
-      .load(conn)?;
+      .load(conn)
+      .await?;
     convert_read_languages(conn, langs)
   }
 
-  pub fn update(
-    conn: &mut PgConnection,
+  pub async fn update(
+    pool: &DbPool,
     language_ids: Vec<LanguageId>,
     for_site_id: SiteId,
   ) -> Result<(), Error> {
+    let conn = &mut get_conn(&pool).await?;
+
     conn.build_transaction().read_write().run(|conn| {
-      use crate::schema::site_language::dsl::*;
       // Clear the current languages
       delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
 
@@ -108,8 +123,8 @@ impl SiteLanguage {
 
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
-  pub fn is_allowed_community_language(
-    conn: &mut PgConnection,
+  pub async fn is_allowed_community_language(
+    pool: &DbPool,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
@@ -136,7 +151,7 @@ impl CommunityLanguage {
   /// also part of site languages. This is because post/comment language is only checked against
   /// community language, and it shouldnt be possible to post content in languages which are not
   /// allowed by local site.
-  fn limit_languages(conn: &mut PgConnection) -> Result<(), Error> {
+  async fn limit_languages(pool: &DbPool) -> Result<(), Error> {
     use crate::schema::{
       community::dsl as c,
       community_language::dsl as cl,
@@ -156,8 +171,8 @@ impl CommunityLanguage {
     Ok(())
   }
 
-  pub fn read(
-    conn: &mut PgConnection,
+  pub async fn read(
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::*;
@@ -168,8 +183,8 @@ impl CommunityLanguage {
     convert_read_languages(conn, langs)
   }
 
-  pub fn update(
-    conn: &mut PgConnection,
+  pub async fn update(
+    pool: &DbPool,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
@@ -195,8 +210,8 @@ impl CommunityLanguage {
   }
 }
 
-pub fn default_post_language(
-  conn: &mut PgConnection,
+pub async fn default_post_language(
+  pool: &DbPool,
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
@@ -216,8 +231,8 @@ pub fn default_post_language(
 }
 
 /// If no language is given, set all languages
-fn convert_update_languages(
-  conn: &mut PgConnection,
+async fn convert_update_languages(
+  conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
 ) -> Result<Vec<LanguageId>, Error> {
   if language_ids.is_empty() {
@@ -233,8 +248,8 @@ fn convert_update_languages(
 }
 
 /// If all languages are returned, return empty vec instead
-fn convert_read_languages(
-  conn: &mut PgConnection,
+async fn convert_read_languages(
+  conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
 ) -> Result<Vec<LanguageId>, Error> {
   static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::new();
@@ -271,21 +286,21 @@ mod tests {
   };
   use serial_test::serial;
 
-  fn test_langs1(conn: &mut PgConnection) -> Vec<LanguageId> {
+  async fn test_langs1(pool: &DbPool) -> Vec<LanguageId> {
     vec![
       Language::read_id_from_code(conn, "en").unwrap(),
       Language::read_id_from_code(conn, "fr").unwrap(),
       Language::read_id_from_code(conn, "ru").unwrap(),
     ]
   }
-  fn test_langs2(conn: &mut PgConnection) -> Vec<LanguageId> {
+  async fn test_langs2(pool: &DbPool) -> Vec<LanguageId> {
     vec![
       Language::read_id_from_code(conn, "fi").unwrap(),
       Language::read_id_from_code(conn, "se").unwrap(),
     ]
   }
 
-  fn create_test_site(conn: &mut PgConnection) -> (Site, Instance) {
+  async fn create_test_site(pool: &DbPool) -> (Site, Instance) {
     let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
 
     let site_form = SiteInsertForm::builder()
@@ -303,7 +318,7 @@ mod tests {
 
   #[test]
   #[serial]
-  fn test_convert_update_languages() {
+  async fn test_convert_update_languages() {
     let conn = &mut establish_unpooled_connection();
 
     // call with empty vec, returns all languages
@@ -317,7 +332,7 @@ mod tests {
   }
   #[test]
   #[serial]
-  fn test_convert_read_languages() {
+  async fn test_convert_read_languages() {
     let conn = &mut establish_unpooled_connection();
 
     // call with all languages, returns empty vec
@@ -334,7 +349,7 @@ mod tests {
 
   #[test]
   #[serial]
-  fn test_site_languages() {
+  async fn test_site_languages() {
     let conn = &mut establish_unpooled_connection();
 
     let (site, instance) = create_test_site(conn);
@@ -356,7 +371,7 @@ mod tests {
 
   #[test]
   #[serial]
-  fn test_user_languages() {
+  async fn test_user_languages() {
     let conn = &mut establish_unpooled_connection();
 
     let (site, instance) = create_test_site(conn);
@@ -395,7 +410,7 @@ mod tests {
 
   #[test]
   #[serial]
-  fn test_community_languages() {
+  async fn test_community_languages() {
     let conn = &mut establish_unpooled_connection();
     let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);
@@ -448,7 +463,7 @@ mod tests {
 
   #[test]
   #[serial]
-  fn test_default_post_language() {
+  async fn test_default_post_language() {
     let conn = &mut establish_unpooled_connection();
     let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);

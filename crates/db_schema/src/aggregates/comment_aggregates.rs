@@ -25,16 +25,16 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable},
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_crud() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("thommy_comment_agg".into())

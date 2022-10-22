@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, limit_and_offset, DbPool},
+  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
   ListingType,
   SortType,
 };
@@ -66,11 +66,11 @@ impl CommunityView {
   }
 
   pub fn is_mod_or_admin(
-    pool: &DbPool,
+    conn: &mut PgConnection,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> bool {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
+    let is_mod = CommunityModeratorView::for_community(conn, community_id)
       .map(|v| {
         v.into_iter()
           .map(|m| m.moderator.id)

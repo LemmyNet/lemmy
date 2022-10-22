@@ -17,4 +17,3 @@ pub mod person_mention_view;
 #[cfg(feature = "full")]
 pub mod person_view;
 pub mod structs;
-

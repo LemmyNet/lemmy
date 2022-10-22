@@ -1,20 +1,23 @@
 use crate::{diesel_migrations::MigrationHarness, newtypes::DbUrl, CommentSortType, SortType};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use bb8::PooledConnection;
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
   pg::Pg,
-  result::Error::QueryBuilderError,
+  result::{Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::Text,
   Connection,
   PgConnection,
 };
+use diesel_async::{
+  pg::AsyncPgConnection,
+  pooled_connection::{bb8::Pool, AsyncDieselConnectionManager},
+};
 use diesel_migrations::EmbeddedMigrations;
-use diesel_async::pooled_connection::{bb8::Pool, AsyncDieselConnectionManager};
-use diesel_async::pg::AsyncPgConnection;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{env, env::VarError};
@@ -25,10 +28,13 @@ pub const FETCH_LIMIT_MAX: i64 = 50;
 
 pub type DbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_database_url_from_env() -> Result<String, VarError> {
-  let t = AsyncDieselConnectionManager::<AsyncPgConnection>::new("test");
-  let p = Pool::builder().build(t).await.unwrap();
-  let mut conn = p.get().await.unwrap();
+pub async fn get_conn(
+  pool: &DbPool,
+) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
+  pool.get().await.map_err(|_| DieselError::NotInTransaction)
+}
+
+pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }
 
@@ -121,20 +127,37 @@ pub fn diesel_option_overwrite_to_url_create(
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-pub fn establish_unpooled_connection() -> PgConnection {
-  let db_url = match get_database_url_from_env() {
-    Ok(url) => url,
-    Err(e) => panic!(
-      "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
-      e
-    ),
-  };
-  let mut conn =
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
-  let _ = &mut conn
-    .run_pending_migrations(MIGRATIONS)
-    .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
-  conn
+async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> DbPool {
+  let db_url = get_database_url(settings);
+  let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
+  Pool::builder()
+    .max_size(pool_size)
+    .min_idle(Some(1))
+    .build(manager)
+    .await
+    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+}
+
+pub async fn build_db_pool(settings: &Settings) -> DbPool {
+  build_db_pool_settings_opt(Some(settings)).await
+}
+
+pub async fn build_db_pool_for_tests() -> DbPool {
+  build_db_pool_settings_opt(None).await
+}
+
+fn get_database_url(settings: Option<&Settings>) -> String {
+  match settings {
+    Some(settings) => settings.get_database_url(),
+    None => match get_database_url_from_env() {
+      Ok(url) => url,
+      Err(e) => panic!(
+        "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
+        e
+      ),
+    },
+  }
 }
 
 pub fn naive_now() -> NaiveDateTime {

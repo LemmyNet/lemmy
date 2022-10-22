@@ -4,8 +4,7 @@ extern crate diesel_migrations;
 use crate::diesel_migrations::MigrationHarness;
 use actix::prelude::*;
 use actix_web::{web::Data, *};
-use diesel_async::pooled_connection::bb8::Pool;
-use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::pooled_connection::{bb8::Pool, AsyncDieselConnectionManager};
 use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
@@ -19,7 +18,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_api_crud::match_websocket_operation_crud;
-use lemmy_db_schema::{source::secret::Secret, utils::get_database_url_from_env};
+use lemmy_db_schema::{
+  source::secret::Secret,
+  utils::{build_db_pool, get_database_url_from_env},
+};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
   api_routes,
@@ -67,17 +69,8 @@ async fn main() -> Result<(), LemmyError> {
 
   init_logging(&settings.opentelemetry_url)?;
 
-  // Set up the r2d2 connection pool
-  let db_url = match get_database_url_from_env() {
-    Ok(url) => url,
-    Err(_) => settings.get_database_url(),
-  };
-  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
-  let pool = Pool::builder()
-    .max_size(settings.database.pool_size)
-    .min_idle(Some(1))
-    .build(manager)
-    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  // Set up the bb8 connection pool
+  let pool = build_db_pool(&settings).await;
 
   // Run the migrations from code
   let settings_cloned = settings.to_owned();

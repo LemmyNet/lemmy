@@ -16,7 +16,7 @@ full = ["lemmy_db_schema/full", "diesel"]
 
 [dependencies]
 lemmy_db_schema = { version = "=0.16.5", path = "../db_schema" }
-diesel = { version = "2.0.0", features = ["postgres","chrono","serde_json"], optional = true }
-diesel-async = { version = "0.1.0", features = ["postgres", "bb8"] }
-serde = { version = "1.0.145", features = ["derive"] }
+diesel = { version = "2.0.2", features = ["postgres","chrono","serde_json"], optional = true }
+diesel-async = { version = "0.1.1", features = ["postgres", "bb8"] }
+serde = { version = "1.0.147", features = ["derive"] }
 typed-builder = "0.10.0"

@@ -4,35 +4,46 @@ use crate::{
     federation_blocklist::{FederationBlockList, FederationBlockListForm},
     instance::Instance,
   },
+  utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::*, result::Error};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationBlockList {
-  pub fn replace(conn: &mut PgConnection, list_opt: Option<Vec<String>>) -> Result<(), Error> {
-    conn.build_transaction().read_write().run(|conn| {
-      if let Some(list) = list_opt {
-        Self::clear(conn)?;
+  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+    let conn = &mut get_conn(&pool).await?;
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          if let Some(list) = list_opt {
+            Self::clear(conn).await?;
 
-        for domain in list {
-          // Upsert all of these as instances
-          let instance = Instance::create(conn, &domain)?;
+            for domain in list {
+              // Upsert all of these as instances
+              let instance = Instance::create_conn(conn, &domain).await?;
 
-          let form = FederationBlockListForm {
-            instance_id: instance.id,
-            updated: None,
-          };
-          insert_into(federation_blocklist::table)
-            .values(form)
-            .get_result::<Self>(conn)?;
-        }
-        Ok(())
-      } else {
-        Ok(())
-      }
-    })
+              let form = FederationBlockListForm {
+                instance_id: instance.id,
+                updated: None,
+              };
+              insert_into(federation_blocklist::table)
+                .values(form)
+                .get_result::<Self>(conn)
+                .await;
+            }
+            Ok(())
+          } else {
+            Ok(())
+          }
+        }) as _
+      })
+      .await
   }
 
-  pub fn clear(conn: &mut PgConnection) -> Result<usize, Error> {
-    diesel::delete(federation_blocklist::table).execute(conn)
+  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
+    diesel::delete(federation_blocklist::table)
+      .execute(conn)
+      .await
   }
 }

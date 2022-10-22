@@ -1,61 +1,74 @@
-use crate::{newtypes::DbUrl, source::activity::*, traits::Crud};
+use crate::{
+  newtypes::DbUrl,
+  schema::activity::dsl::*,
+  source::activity::*,
+  traits::Crud,
+  utils::{get_conn, DbPool},
+};
 use diesel::{
   dsl::*,
   result::{DatabaseErrorKind, Error},
-  *,
+  ExpressionMethods,
+  QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use serde_json::Value;
 
+#[async_trait]
 impl Crud for Activity {
   type InsertForm = ActivityInsertForm;
   type UpdateForm = ActivityUpdateForm;
   type IdType = i32;
-  fn read(conn: &mut PgConnection, activity_id: i32) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
-    activity.find(activity_id).first::<Self>(conn)
+  async fn read(pool: &DbPool, activity_id: i32) -> Result<Self, Error> {
+    let conn = &mut get_conn(&pool).await?;
+    activity.find(activity_id).first::<Self>(conn).await
   }
 
-  fn create(conn: &mut PgConnection, new_activity: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
+  async fn create(pool: &DbPool, new_activity: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(&pool).await?;
     insert_into(activity)
       .values(new_activity)
       .get_result::<Self>(conn)
+      .await
   }
 
-  fn update(
-    conn: &mut PgConnection,
+  async fn update(
+    pool: &DbPool,
     activity_id: i32,
     new_activity: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
+    let conn = &mut get_conn(&pool).await?;
     diesel::update(activity.find(activity_id))
       .set(new_activity)
       .get_result::<Self>(conn)
+      .await
   }
-  fn delete(conn: &mut PgConnection, activity_id: i32) -> Result<usize, Error> {
-    use crate::schema::activity::dsl::*;
-    diesel::delete(activity.find(activity_id)).execute(conn)
+  async fn delete(pool: &DbPool, activity_id: i32) -> Result<usize, Error> {
+    let conn = &mut get_conn(&pool).await?;
+    diesel::delete(activity.find(activity_id))
+      .execute(conn)
+      .await
   }
 }
 
 impl Activity {
   /// Returns true if the insert was successful
   // TODO this should probably just be changed to an upsert on_conflict, rather than an error
-  pub fn insert(
-    conn: &mut PgConnection,
-    ap_id: DbUrl,
-    data: Value,
-    local: bool,
-    sensitive: Option<bool>,
+  pub async fn insert(
+    pool: &DbPool,
+    ap_id_: DbUrl,
+    data_: Value,
+    local_: bool,
+    sensitive_: Option<bool>,
   ) -> Result<bool, Error> {
     let activity_form = ActivityInsertForm {
-      ap_id,
-      data,
-      local: Some(local),
-      sensitive,
+      ap_id: ap_id_,
+      data: data_,
+      local: Some(local_),
+      sensitive: sensitive_,
       updated: None,
     };
-    match Activity::create(conn, &activity_form) {
+    match Activity::create(pool, &activity_form).await {
       Ok(_) => Ok(true),
       Err(e) => {
         if let Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _) = e {
@@ -66,14 +79,19 @@ impl Activity {
     }
   }
 
-  pub fn read_from_apub_id(conn: &mut PgConnection, object_id: &DbUrl) -> Result<Activity, Error> {
-    use crate::schema::activity::dsl::*;
-    activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
+  pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Activity, Error> {
+    let conn = &mut get_conn(&pool).await?;
+    activity
+      .filter(ap_id.eq(object_id))
+      .first::<Self>(conn)
+      .await
   }
 
-  pub fn delete_olds(conn: &mut PgConnection) -> Result<usize, Error> {
-    use crate::schema::activity::dsl::*;
-    diesel::delete(activity.filter(published.lt(now - 6.months()))).execute(conn)
+  pub async fn delete_olds(pool: &DbPool) -> Result<usize, Error> {
+    let conn = &mut get_conn(&pool).await?;
+    diesel::delete(activity.filter(published.lt(now - 6.months())))
+      .execute(conn)
+      .await
   }
 }
 
@@ -87,18 +105,18 @@ mod tests {
       instance::Instance,
       person::{Person, PersonInsertForm},
     },
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serde_json::Value;
   use serial_test::serial;
   use url::Url;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_crud() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let creator_form = PersonInsertForm::builder()
       .name("activity_creator_ pm".into())
@@ -106,9 +124,9 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_creator = Person::create(conn, &creator_form).unwrap();
+    let inserted_creator = Person::create(pool, &creator_form).await.unwrap();
 
-    let ap_id: DbUrl = Url::parse(
+    let ap_id_: DbUrl = Url::parse(
       "https://enterprise.lemmy.ml/activities/delete/f1b5d57c-80f8-4e03-a615-688d552e946c",
     )
     .unwrap()
@@ -128,17 +146,17 @@ mod tests {
     )
     .unwrap();
     let activity_form = ActivityInsertForm {
-      ap_id: ap_id.clone(),
+      ap_id: ap_id_.clone(),
       data: test_json.to_owned(),
       local: Some(true),
       sensitive: Some(false),
       updated: None,
     };
 
-    let inserted_activity = Activity::create(conn, &activity_form).unwrap();
+    let inserted_activity = Activity::create(pool, &activity_form).await.unwrap();
 
     let expected_activity = Activity {
-      ap_id: ap_id.clone(),
+      ap_id: ap_id_.clone(),
       id: inserted_activity.id,
       data: test_json,
       local: true,
@@ -147,10 +165,10 @@ mod tests {
       updated: None,
     };
 
-    let read_activity = Activity::read(conn, inserted_activity.id).unwrap();
-    let read_activity_by_apub_id = Activity::read_from_apub_id(conn, &ap_id).unwrap();
-    Person::delete(conn, inserted_creator.id).unwrap();
-    Activity::delete(conn, inserted_activity.id).unwrap();
+    let read_activity = Activity::read(pool, inserted_activity.id).await.unwrap();
+    let read_activity_by_apub_id = Activity::read_from_apub_id(pool, &ap_id_).await.unwrap();
+    Person::delete(pool, inserted_creator.id).await.unwrap();
+    Activity::delete(pool, inserted_activity.id).await.unwrap();
 
     assert_eq!(expected_activity, read_activity);
     assert_eq!(expected_activity, read_activity_by_apub_id);
