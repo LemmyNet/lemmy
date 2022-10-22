@@ -14,7 +14,10 @@ use activitypub_federation::{
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{community::Community, local_site::LocalSite},
+};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -167,6 +170,14 @@ where
   ActorT: Actor + ActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
+  let federation_enabled = blocking(context.pool(), &LocalSite::read)
+    .await?
+    .map(|l| l.federation_enabled)
+    .unwrap_or(false);
+  if !federation_enabled {
+    return Ok(());
+  }
+
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 

@@ -94,8 +94,10 @@ impl PerformCrud for EditSite {
     blocking(context.pool(), move |conn| {
       Site::update(conn, site_id, &site_form)
     })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_site"))?;
+    .await
+    // Ignore errors for all these, so as to not throw errors if no update occurs
+    // Diesel will throw an error for empty update forms
+    .ok();
 
     let local_site_form = LocalSiteUpdateForm::builder()
       .enable_downvotes(data.enable_downvotes)
@@ -126,8 +128,8 @@ impl PerformCrud for EditSite {
     let update_local_site = blocking(context.pool(), move |conn| {
       LocalSite::update(conn, &local_site_form)
     })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_site"))?;
+    .await
+    .ok();
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -147,7 +149,8 @@ impl PerformCrud for EditSite {
     blocking(context.pool(), move |conn| {
       LocalSiteRateLimit::update(conn, &local_site_rate_limit_form)
     })
-    .await??;
+    .await
+    .ok();
 
     // Replace the blocked and allowed instances
     let allowed = data.allowed_instances.to_owned();
@@ -166,7 +169,16 @@ impl PerformCrud for EditSite {
     // will be able to log in. It really only wants this to be a requirement for NEW signups.
     // So if it was set from false, to true, you need to update all current users columns to be verified.
 
-    if !local_site.require_application && update_local_site.require_application {
+    let new_require_application = update_local_site
+      .as_ref()
+      .map(|ols| {
+        ols
+          .as_ref()
+          .map(|ls| ls.require_application)
+          .unwrap_or(false)
+      })
+      .unwrap_or(false);
+    if !local_site.require_application && new_require_application {
       blocking(context.pool(), move |conn| {
         LocalUser::set_all_users_registration_applications_accepted(conn)
       })
@@ -174,7 +186,16 @@ impl PerformCrud for EditSite {
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
     }
 
-    if !local_site.require_email_verification && update_local_site.require_email_verification {
+    let new_require_email_verification = update_local_site
+      .as_ref()
+      .map(|ols| {
+        ols
+          .as_ref()
+          .map(|ls| ls.require_email_verification)
+          .unwrap_or(false)
+      })
+      .unwrap_or(false);
+    if !local_site.require_email_verification && new_require_email_verification {
       blocking(context.pool(), move |conn| {
         LocalUser::set_all_users_email_verified(conn)
       })

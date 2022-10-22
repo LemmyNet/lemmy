@@ -1,8 +1,12 @@
-use crate::{newtypes::InstanceId, schema::instance};
+use crate::newtypes::InstanceId;
 use std::fmt::Debug;
 
-#[derive(PartialEq, Eq, Debug, Queryable, Identifiable)]
-#[diesel(table_name = instance)]
+#[cfg(feature = "full")]
+use crate::schema::instance;
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", diesel(table_name = instance))]
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
@@ -10,8 +14,8 @@ pub struct Instance {
   pub updated: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Insertable, AsChangeset)]
-#[diesel(table_name = instance)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = instance))]
 pub struct InstanceForm {
   pub domain: String,
   pub updated: Option<chrono::NaiveDateTime>,
