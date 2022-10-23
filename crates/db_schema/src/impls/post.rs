@@ -181,7 +181,6 @@ impl Post {
       .filter(url.like(pictrs_search))
       .load::<Self>(conn)
       .await
-      .await
   }
 
   /// Sets the url and thumbnails fields to None
@@ -202,7 +201,6 @@ impl Post {
       thumbnail_url.eq::<Option<String>>(None),
     ))
     .get_results::<Self>(conn)
-    .await
     .await
   }
 }

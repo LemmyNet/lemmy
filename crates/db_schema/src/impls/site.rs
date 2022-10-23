@@ -5,7 +5,8 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use url::Url;
 
 #[async_trait]
@@ -30,7 +31,7 @@ impl Crud for Site {
       .await?;
 
     // initialize with all languages
-    SiteLanguage::update(conn, vec![], site_.id)?;
+    SiteLanguage::update(pool, vec![], site_.id).await?;
     Ok(site_)
   }
 

@@ -1,5 +1,14 @@
 use crate::structs::PersonMentionView;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::*,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{PersonId, PersonMentionId},
@@ -25,7 +34,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, limit_and_offset},
+  utils::{functions::hot_rank, get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -46,11 +55,12 @@ type PersonMentionViewTuple = (
 );
 
 impl PersonMentionView {
-  pub fn read(
-    conn: &mut PgConnection,
+  pub async fn read(
+    pool: &DbPool,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(&pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     // The left join below will return None in this case
@@ -131,7 +141,8 @@ impl PersonMentionView {
         person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<PersonMentionViewTuple>(conn)?;
+      .first::<PersonMentionViewTuple>(conn)
+      .await?;
 
     Ok(PersonMentionView {
       person_mention,
@@ -150,11 +161,9 @@ impl PersonMentionView {
   }
 
   /// Gets the number of unread mentions
-  pub fn get_unread_mentions(
-    conn: &mut PgConnection,
-    my_person_id: PersonId,
-  ) -> Result<i64, Error> {
+  pub async fn get_unread_mentions(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
+    let conn = &mut get_conn(&pool).await?;
 
     person_mention::table
       .inner_join(comment::table)
@@ -164,6 +173,7 @@ impl PersonMentionView {
       .filter(comment::removed.eq(false))
       .select(count(person_mention::id))
       .first::<i64>(conn)
+      .await
   }
 }
 
@@ -171,7 +181,7 @@ impl PersonMentionView {
 #[builder(field_defaults(default))]
 pub struct PersonMentionQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,
@@ -182,8 +192,9 @@ pub struct PersonMentionQuery<'a> {
 }
 
 impl<'a> PersonMentionQuery<'a> {
-  pub fn list(self) -> Result<Vec<PersonMentionView>, Error> {
+  pub async fn list(self) -> Result<Vec<PersonMentionView>, Error> {
     use diesel::dsl::*;
+    let conn = &mut get_conn(self.pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -279,7 +290,8 @@ impl<'a> PersonMentionQuery<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<PersonMentionViewTuple>(self.conn)?;
+      .load::<PersonMentionViewTuple>(conn)
+      .await?;
 
     Ok(PersonMentionView::from_tuple_to_vec(res))
   }

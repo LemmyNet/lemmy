@@ -19,6 +19,7 @@ impl Instance {
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
+      .await
   }
   pub async fn create(pool: &DbPool, domain: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(&pool).await?;

@@ -22,8 +22,9 @@ pub trait Crud {
   async fn delete(_pool: &DbPool, _id: Self::IdType) -> Result<usize, Error>
   where
     Self: Sized,
+    Self::IdType: Send,
   {
-    unimplemented!()
+    async { Err(Error::NotFound) }.await
   }
 }
 

@@ -129,16 +129,17 @@ impl Crud for LocalUser {
     let local_user_ = insert_into(local_user)
       .values(form_with_encrypted_password)
       .get_result::<Self>(conn)
-      .await?;
+      .await
+      .expect("couldnt create local user");
 
-    let site_languages = SiteLanguage::read_local(conn).await;
+    let site_languages = SiteLanguage::read_local(pool).await;
     if let Ok(langs) = site_languages {
       // if site exists, init user with site languages
-      LocalUserLanguage::update(conn, langs, local_user_.id).await?;
+      LocalUserLanguage::update(pool, langs, local_user_.id).await?;
     } else {
       // otherwise, init with all languages (this only happens during tests and
       // for first admin user, which is created before site)
-      LocalUserLanguage::update(conn, vec![], local_user_.id).await?;
+      LocalUserLanguage::update(pool, vec![], local_user_.id).await?;
     }
 
     Ok(local_user_)

@@ -1,4 +1,10 @@
-use crate::{diesel_migrations::MigrationHarness, newtypes::DbUrl, CommentSortType, SortType};
+use crate::{
+  diesel::Connection,
+  diesel_migrations::MigrationHarness,
+  newtypes::DbUrl,
+  CommentSortType,
+  SortType,
+};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use bb8::PooledConnection;
 use chrono::NaiveDateTime;
@@ -9,7 +15,6 @@ use diesel::{
   result::{Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::Text,
-  Connection,
   PgConnection,
 };
 use diesel_async::{
@@ -31,6 +36,7 @@ pub type DbPool = Pool<AsyncPgConnection>;
 pub async fn get_conn(
   pool: &DbPool,
 ) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
+  // TODO Maybe find a better diesel error for this
   pool.get().await.map_err(|_| DieselError::NotInTransaction)
 }
 
@@ -125,18 +131,34 @@ pub fn diesel_option_overwrite_to_url_create(
   }
 }
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
 async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> DbPool {
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
-  Pool::builder()
+  let pool = Pool::builder()
     .max_size(pool_size)
     .min_idle(Some(1))
     .build(manager)
     .await
-    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+
+  // If there's no settings, that means its a unit test, and migrations need to be run
+  if settings.is_none() {
+    run_migrations(&db_url);
+  }
+
+  pool
+}
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+
+pub fn run_migrations(db_url: &str) {
+  // Needs to be a sync connection
+  let mut conn =
+    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  let _ = &mut conn
+    .run_pending_migrations(MIGRATIONS)
+    .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
 }
 
 pub async fn build_db_pool(settings: &Settings) -> DbPool {

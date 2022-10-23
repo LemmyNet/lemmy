@@ -1,5 +1,14 @@
 use crate::structs::CommentReplyView;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::*,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReplyId, PersonId},
@@ -25,7 +34,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, limit_and_offset},
+  utils::{functions::hot_rank, get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -46,11 +55,12 @@ type CommentReplyViewTuple = (
 );
 
 impl CommentReplyView {
-  pub fn read(
-    conn: &mut PgConnection,
+  pub async fn read(
+    pool: &DbPool,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(&pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     // The left join below will return None in this case
@@ -131,7 +141,8 @@ impl CommentReplyView {
         person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<CommentReplyViewTuple>(conn)?;
+      .first::<CommentReplyViewTuple>(conn)
+      .await?;
 
     Ok(CommentReplyView {
       comment_reply,
@@ -150,8 +161,10 @@ impl CommentReplyView {
   }
 
   /// Gets the number of unread replies
-  pub fn get_unread_replies(conn: &mut PgConnection, my_person_id: PersonId) -> Result<i64, Error> {
+  pub async fn get_unread_replies(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
+
+    let conn = &mut get_conn(&pool).await?;
 
     comment_reply::table
       .inner_join(comment::table)
@@ -161,6 +174,7 @@ impl CommentReplyView {
       .filter(comment::removed.eq(false))
       .select(count(comment_reply::id))
       .first::<i64>(conn)
+      .await
   }
 }
 
@@ -168,7 +182,7 @@ impl CommentReplyView {
 #[builder(field_defaults(default))]
 pub struct CommentReplyQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,
@@ -179,8 +193,9 @@ pub struct CommentReplyQuery<'a> {
 }
 
 impl<'a> CommentReplyQuery<'a> {
-  pub fn list(self) -> Result<Vec<CommentReplyView>, Error> {
+  pub async fn list(self) -> Result<Vec<CommentReplyView>, Error> {
     use diesel::dsl::*;
+    let conn = &mut get_conn(self.pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -276,7 +291,8 @@ impl<'a> CommentReplyQuery<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<CommentReplyViewTuple>(self.conn)?;
+      .load::<CommentReplyViewTuple>(conn)
+      .await?;
 
     Ok(CommentReplyView::from_tuple_to_vec(res))
   }

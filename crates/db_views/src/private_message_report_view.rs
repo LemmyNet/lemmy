@@ -1,5 +1,6 @@
 use crate::structs::PrivateMessageReportView;
-use diesel::{result::Error, *};
+use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
@@ -9,7 +10,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
   },
   traits::{ToSafe, ViewToVec},
-  utils::limit_and_offset,
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
@@ -25,7 +26,8 @@ impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub fn read(conn: &mut PgConnection, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+    let conn = &mut get_conn(&pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
@@ -51,7 +53,8 @@ impl PrivateMessageReportView {
             .fields(Person::safe_columns_tuple())
             .nullable(),
         ))
-        .first::<PrivateMessageReportViewTuple>(conn)?;
+        .first::<PrivateMessageReportViewTuple>(conn)
+        .await?;
 
     Ok(Self {
       private_message_report,
@@ -63,8 +66,9 @@ impl PrivateMessageReportView {
   }
 
   /// Returns the current unresolved post report count for the communities you mod
-  pub fn get_report_count(conn: &mut PgConnection) -> Result<i64, Error> {
+  pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
     use diesel::dsl::*;
+    let conn = &mut get_conn(&pool).await?;
 
     private_message_report::table
       .inner_join(private_message::table)
@@ -72,6 +76,7 @@ impl PrivateMessageReportView {
       .into_boxed()
       .select(count(private_message_report::id))
       .first::<i64>(conn)
+      .await
   }
 }
 
@@ -79,14 +84,15 @@ impl PrivateMessageReportView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageReportQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   page: Option<i64>,
   limit: Option<i64>,
   unresolved_only: Option<bool>,
 }
 
 impl<'a> PrivateMessageReportQuery<'a> {
-  pub fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
+  pub async fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
+    let conn = &mut get_conn(self.pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = private_message_report::table
@@ -121,7 +127,7 @@ impl<'a> PrivateMessageReportQuery<'a> {
       .limit(limit)
       .offset(offset);
 
-    let res = query.load::<PrivateMessageReportViewTuple>(self.conn)?;
+    let res = query.load::<PrivateMessageReportViewTuple>(conn).await?;
 
     Ok(PrivateMessageReportView::from_tuple_to_vec(res))
   }
@@ -154,30 +160,30 @@ mod tests {
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Crud, Reportable},
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_crud() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person_1 = PersonInsertForm::builder()
       .name("timmy_mrv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_timmy = Person::create(conn, &new_person_1).unwrap();
+    let inserted_timmy = Person::create(pool, &new_person_1).await.unwrap();
 
     let new_person_2 = PersonInsertForm::builder()
       .name("jessica_mrv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_jessica = Person::create(conn, &new_person_2).unwrap();
+    let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
     // timmy sends private message to jessica
     let pm_form = PrivateMessageInsertForm::builder()
@@ -185,7 +191,7 @@ mod tests {
       .recipient_id(inserted_jessica.id)
       .content("something offensive".to_string())
       .build();
-    let pm = PrivateMessage::create(conn, &pm_form).unwrap();
+    let pm = PrivateMessage::create(pool, &pm_form).await.unwrap();
 
     // jessica reports private message
     let pm_report_form = PrivateMessageReportForm {
@@ -194,12 +200,15 @@ mod tests {
       private_message_id: pm.id,
       reason: "its offensive".to_string(),
     };
-    let pm_report = PrivateMessageReport::report(conn, &pm_report_form).unwrap();
+    let pm_report = PrivateMessageReport::report(pool, &pm_report_form)
+      .await
+      .unwrap();
 
     let reports = PrivateMessageReportQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .build()
       .list()
+      .await
       .unwrap();
     assert_eq!(1, reports.len());
     assert!(!reports[0].private_message_report.resolved);
@@ -213,16 +222,19 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_admin = Person::create(conn, &new_person_3).unwrap();
+    let inserted_admin = Person::create(pool, &new_person_3).await.unwrap();
 
     // admin resolves the report (after taking appropriate action)
-    PrivateMessageReport::resolve(conn, pm_report.id, inserted_admin.id).unwrap();
+    PrivateMessageReport::resolve(pool, pm_report.id, inserted_admin.id)
+      .await
+      .unwrap();
 
     let reports = PrivateMessageReportQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .unresolved_only(Some(false))
       .build()
       .list()
+      .await
       .unwrap();
     assert_eq!(1, reports.len());
     assert!(reports[0].private_message_report.resolved);
@@ -232,6 +244,6 @@ mod tests {
       reports[0].resolver.as_ref().unwrap().name
     );
 
-    Instance::delete(conn, inserted_instance.id).unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
   }
 }

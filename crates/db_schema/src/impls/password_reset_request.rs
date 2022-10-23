@@ -93,12 +93,12 @@ mod tests {
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
+  async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("thommy prw".into())
@@ -106,20 +106,22 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(pool, &new_person).unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let new_local_user = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted("pass".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(pool, &new_local_user).unwrap();
+    let inserted_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
 
     let token = "nope";
     let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create_token(pool, inserted_local_user.id, token).unwrap();
+      PasswordResetRequest::create_token(pool, inserted_local_user.id, token)
+        .await
+        .unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
@@ -128,9 +130,11 @@ mod tests {
       published: inserted_password_reset_request.published,
     };
 
-    let read_password_reset_request = PasswordResetRequest::read_from_token(pool, token).unwrap();
-    let num_deleted = Person::delete(pool, inserted_person.id).unwrap();
-    Instance::delete(pool, inserted_instance.id).unwrap();
+    let read_password_reset_request = PasswordResetRequest::read_from_token(pool, token)
+      .await
+      .unwrap();
+    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

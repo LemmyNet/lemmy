@@ -1,5 +1,14 @@
 use crate::structs::{AdminPurgePersonView, ModlogListParams};
-use diesel::{result::Error, *};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  IntoSql,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{admin_purge_person, person},
@@ -8,13 +17,15 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ViewToVec},
-  utils::limit_and_offset,
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 
 type AdminPurgePersonViewTuple = (AdminPurgePerson, Option<PersonSafe>);
 
 impl AdminPurgePersonView {
-  pub fn list(conn: &mut PgConnection, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(&pool).await?;
+
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
@@ -40,7 +51,8 @@ impl AdminPurgePersonView {
       .limit(limit)
       .offset(offset)
       .order_by(admin_purge_person::when_.desc())
-      .load::<AdminPurgePersonViewTuple>(conn)?;
+      .load::<AdminPurgePersonViewTuple>(conn)
+      .await?;
 
     let results = Self::from_tuple_to_vec(res);
     Ok(results)
