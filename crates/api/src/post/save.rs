@@ -32,11 +32,11 @@ impl Perform for SavePost {
     };
 
     if data.save {
-      let save = PostSaved::save(context.pool(), &post_saved_form)
+      PostSaved::save(context.pool(), &post_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     } else {
-      let unsave = PostSaved::unsave(context.pool(), &post_saved_form)
+      PostSaved::unsave(context.pool(), &post_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     }

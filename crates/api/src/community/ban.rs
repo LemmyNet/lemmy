@@ -59,7 +59,7 @@ impl Perform for BanFromCommunity {
     let banned_person: ApubPerson = Person::read(context.pool(), banned_person_id).await?.into();
 
     if data.ban {
-      let ban = CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
+      CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
 
@@ -85,7 +85,7 @@ impl Perform for BanFromCommunity {
       )
       .await?;
     } else {
-      let unban = CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
+      CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
       UndoBlockUser::send(

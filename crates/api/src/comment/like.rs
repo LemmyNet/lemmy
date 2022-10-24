@@ -82,7 +82,7 @@ impl Perform for CreateCommentLike {
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let like = CommentLike::like(context.pool(), &like_form2)
+      CommentLike::like(context.pool(), &like_form2)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 

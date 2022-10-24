@@ -275,7 +275,7 @@ pub(crate) mod tests {
     assert_json_include!(actual: json, expected: to_apub);
 
     Comment::delete(context.pool(), comment_id).await.unwrap();
-    cleanup(data, &context);
+    cleanup(data, &context).await;
   }
 
   #[actix_rt::test]

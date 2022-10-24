@@ -1,10 +1,8 @@
 #[macro_use]
 extern crate diesel_migrations;
 
-use crate::diesel_migrations::MigrationHarness;
 use actix::prelude::*;
 use actix_web::{web::Data, *};
-use diesel_async::pooled_connection::{bb8::Pool, AsyncDieselConnectionManager};
 use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, Formatting};
 use lemmy_api::match_websocket_operation;
@@ -12,7 +10,6 @@ use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
   utils::{
-    blocking,
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
@@ -20,7 +17,7 @@ use lemmy_api_common::{
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_db_schema::{
   source::secret::Secret,
-  utils::{build_db_pool, get_database_url_from_env},
+  utils::{build_db_pool, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
@@ -73,28 +70,33 @@ async fn main() -> Result<(), LemmyError> {
   let pool = build_db_pool(&settings).await;
 
   // Run the migrations from code
-  let settings_cloned = settings.to_owned();
-  blocking(&pool, move |conn| {
-    let _ = conn
-      .run_pending_migrations(MIGRATIONS)
-      .map_err(|_| LemmyError::from_message("Couldn't run migrations"))?;
-    run_advanced_migrations(conn, &settings_cloned)?;
-    Ok(()) as Result<(), LemmyError>
-  })
-  .await??;
+  // let settings_cloned = settings.to_owned();
+  // blocking(&pool, move |conn| {
+  //   let _ = conn
+  //     .run_pending_migrations(MIGRATIONS)
+  //     .map_err(|_| LemmyError::from_message("Couldn't run migrations"))?;
+  //   run_advanced_migrations(conn, &settings_cloned)?;
+  //   Ok(()) as Result<(), LemmyError>
+  // })
+  // .await??;
+  let db_url = settings.get_database_url();
+  run_migrations(&db_url);
+  run_advanced_migrations(&pool, &settings).await?;
 
   // Schedules various cleanup tasks for the DB
-  let pool2 = pool.clone();
   thread::spawn(move || {
-    scheduled_tasks::setup(pool2).expect("Couldn't set up scheduled_tasks");
+    scheduled_tasks::setup(db_url).expect("Couldn't set up scheduled_tasks");
   });
 
   // Initialize the secrets
-  let conn = &mut pool.get()?;
-  let secret = Secret::init(conn).expect("Couldn't initialize secrets.");
+  let secret = Secret::init(&pool)
+    .await
+    .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(conn).expect("local site not set up");
+  let site_view = SiteView::read_local(&pool)
+    .await
+    .expect("local site not set up");
   let local_site = site_view.local_site;
   let federation_enabled = local_site.federation_enabled;
 

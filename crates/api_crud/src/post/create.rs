@@ -151,7 +151,7 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    let like = PostLike::like(context.pool(), &like_form)
+    PostLike::like(context.pool(), &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 

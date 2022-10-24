@@ -248,7 +248,7 @@ pub(crate) mod tests {
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
-    cleanup((person, site), &context);
+    cleanup((person, site), &context).await;
   }
 
   #[actix_rt::test]
@@ -281,7 +281,7 @@ pub(crate) mod tests {
     assert_eq!(request_counter, 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
-    cleanup((person, site), &context);
+    cleanup((person, site), &context).await;
   }
 
   async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {

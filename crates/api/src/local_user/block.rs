@@ -46,11 +46,11 @@ impl Perform for BlockPerson {
     }
 
     if data.block {
-      let block = PersonBlock::block(context.pool(), &person_block_form)
+      PersonBlock::block(context.pool(), &person_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     } else {
-      let unblock = PersonBlock::unblock(context.pool(), &person_block_form)
+      PersonBlock::unblock(context.pool(), &person_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }

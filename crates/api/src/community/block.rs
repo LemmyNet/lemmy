@@ -38,7 +38,7 @@ impl Perform for BlockCommunity {
     };
 
     if data.block {
-      let block = CommunityBlock::block(context.pool(), &community_block_form)
+      CommunityBlock::block(context.pool(), &community_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
 
@@ -55,7 +55,7 @@ impl Perform for BlockCommunity {
       let community = Community::read(context.pool(), community_id).await?;
       UndoFollowCommunity::send(&local_user_view.person.into(), &community.into(), context).await?;
     } else {
-      let unblock = CommunityBlock::unblock(context.pool(), &community_block_form)
+      CommunityBlock::unblock(context.pool(), &community_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
     }

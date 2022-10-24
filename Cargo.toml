@@ -46,6 +46,7 @@ lemmy_routes = { version = "=0.16.5", path = "./crates/routes" }
 activitypub_federation = "0.2.2"
 diesel = "2.0.2"
 diesel_migrations = "2.0.0"
+diesel-async = "0.1.1"
 serde = { version = "1.0.147", features = ["derive"] }
 actix = "0.13.0"
 actix-web = { version = "4.2.1", default-features = false, features = ["macros", "rustls"] }

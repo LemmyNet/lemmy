@@ -113,7 +113,7 @@ impl Person {
         local_user::validator_time.eq(naive_now()),
       ))
       .execute(conn)
-      .await;
+      .await?;
 
     diesel::update(person.find(person_id))
       .set((

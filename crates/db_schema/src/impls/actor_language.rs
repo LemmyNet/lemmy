@@ -51,7 +51,7 @@ impl LocalUserLanguage {
           // Clear the current user languages
           delete(local_user_language.filter(local_user_id.eq(for_local_user_id)))
             .execute(conn)
-            .await;
+            .await?;
 
           let lang_ids = convert_update_languages(conn, language_ids).await?;
           for l in lang_ids {
@@ -62,7 +62,7 @@ impl LocalUserLanguage {
             insert_into(local_user_language)
               .values(form)
               .get_result::<Self>(conn)
-              .await;
+              .await?;
           }
           Ok(())
         }) as _
@@ -109,7 +109,7 @@ impl SiteLanguage {
           // Clear the current languages
           delete(site_language.filter(site_id.eq(for_site_id)))
             .execute(conn)
-            .await;
+            .await?;
 
           let lang_ids = convert_update_languages(conn, language_ids).await?;
           for l in lang_ids {
@@ -120,10 +120,10 @@ impl SiteLanguage {
             insert_into(site_language)
               .values(form)
               .get_result::<Self>(conn)
-              .await;
+              .await?;
           }
 
-          CommunityLanguage::limit_languages(conn).await;
+          CommunityLanguage::limit_languages(conn).await?;
 
           Ok(())
         }) as _
@@ -183,7 +183,7 @@ impl CommunityLanguage {
     for c in community_languages {
       delete(cl::community_language.filter(cl::language_id.eq(c)))
         .execute(conn)
-        .await;
+        .await?;
     }
     Ok(())
   }
@@ -222,7 +222,7 @@ impl CommunityLanguage {
           // Clear the current languages
           delete(community_language.filter(community_id.eq(for_community_id)))
             .execute(conn)
-            .await;
+            .await?;
 
           for l in language_ids {
             let form = CommunityLanguageForm {
@@ -232,7 +232,7 @@ impl CommunityLanguage {
             insert_into(community_language)
               .values(form)
               .get_result::<Self>(conn)
-              .await;
+              .await?;
           }
           Ok(())
         }) as _

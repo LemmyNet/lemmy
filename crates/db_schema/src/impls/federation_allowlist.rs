@@ -30,7 +30,7 @@ impl FederationAllowList {
               insert_into(federation_allowlist::table)
                 .values(form)
                 .get_result::<Self>(conn)
-                .await;
+                .await?;
             }
             Ok(())
           } else {

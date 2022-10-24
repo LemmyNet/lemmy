@@ -153,7 +153,7 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    let like = CommentLike::like(context.pool(), &like_form)
+    CommentLike::like(context.pool(), &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 

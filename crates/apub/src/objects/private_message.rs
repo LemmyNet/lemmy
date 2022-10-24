@@ -248,6 +248,6 @@ mod tests {
     assert_eq!(request_counter, 0);
 
     PrivateMessage::delete(context.pool(), pm.id).await.unwrap();
-    cleanup(data, &context);
+    cleanup(data, &context).await;
   }
 }

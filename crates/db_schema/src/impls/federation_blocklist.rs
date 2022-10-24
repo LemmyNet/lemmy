@@ -30,7 +30,7 @@ impl FederationBlockList {
               insert_into(federation_blocklist::table)
                 .values(form)
                 .get_result::<Self>(conn)
-                .await;
+                .await?;
             }
             Ok(())
           } else {

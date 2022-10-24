@@ -182,7 +182,7 @@ mod tests {
       file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     let mut request_counter = 0;
-    let community_context = CommunityContext(community, context);
+    let community_context = CommunityContext(community, context.to_owned());
     ApubCommunityModerators::verify(&json, &url, &community_context, &mut request_counter)
       .await
       .unwrap();

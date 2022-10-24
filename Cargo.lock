@@ -2031,6 +2031,8 @@ dependencies = [
  "lemmy_websocket",
  "serde",
  "serde_json",
+ "serial_test",
+ "tokio",
  "tracing",
  "uuid",
 ]
@@ -2117,6 +2119,7 @@ dependencies = [
  "sha2",
  "strum_macros",
  "task-local-extensions",
+ "tokio",
  "tracing",
  "url",
  "uuid",
@@ -2155,10 +2158,12 @@ name = "lemmy_db_views"
 version = "0.16.5"
 dependencies = [
  "diesel",
+ "diesel-async",
  "diesel_ltree",
  "lemmy_db_schema",
  "serde",
  "serial_test",
+ "tokio",
  "tracing",
  "typed-builder",
  "url",
@@ -2180,6 +2185,7 @@ name = "lemmy_db_views_moderator"
 version = "0.16.5"
 dependencies = [
  "diesel",
+ "diesel-async",
  "lemmy_db_schema",
  "serde",
 ]
@@ -2221,6 +2227,7 @@ dependencies = [
  "clokwerk",
  "console-subscriber",
  "diesel",
+ "diesel-async",
  "diesel_migrations",
  "doku",
  "lemmy_api",

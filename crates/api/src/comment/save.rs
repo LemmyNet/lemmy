@@ -32,11 +32,11 @@ impl Perform for SaveComment {
     };
 
     if data.save {
-      let save_comment = CommentSaved::save(context.pool(), &comment_saved_form)
+      CommentSaved::save(context.pool(), &comment_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
-      let unsave_comment = CommentSaved::unsave(context.pool(), &comment_saved_form)
+      CommentSaved::unsave(context.pool(), &comment_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     }

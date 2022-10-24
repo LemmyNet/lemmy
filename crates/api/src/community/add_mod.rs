@@ -49,11 +49,11 @@ impl Perform for AddModToCommunity {
       person_id: data.person_id,
     };
     if data.added {
-      let join = CommunityModerator::join(context.pool(), &community_moderator_form)
+      CommunityModerator::join(context.pool(), &community_moderator_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     } else {
-      let leave = CommunityModerator::leave(context.pool(), &community_moderator_form)
+      CommunityModerator::leave(context.pool(), &community_moderator_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }

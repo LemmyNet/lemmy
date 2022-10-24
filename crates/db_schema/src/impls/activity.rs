@@ -86,13 +86,6 @@ impl Activity {
       .first::<Self>(conn)
       .await
   }
-
-  pub async fn delete_olds(pool: &DbPool) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
-    diesel::delete(activity.filter(published.lt(now - 6.months())))
-      .execute(conn)
-      .await
-  }
 }
 
 #[cfg(test)]
