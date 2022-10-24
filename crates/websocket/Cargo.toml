@@ -20,7 +20,7 @@ lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", features = ["ful
 lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"] }
 lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
 reqwest-middleware = "0.1.6"
-tracing = "0.1.37"
+tracing = "0.1.36"
 rand = "0.8.5"
 serde = { version = "1.0.147", features = ["derive"] }
 serde_json = { version = "1.0.87", features = ["preserve_order"] }
