@@ -10,7 +10,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Language {
   pub async fn read_all(pool: &DbPool) -> Result<Vec<Language>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     Self::read_all_conn(conn).await
   }
 
@@ -19,12 +19,12 @@ impl Language {
   }
 
   pub async fn read_from_id(pool: &DbPool, id_: LanguageId) -> Result<Language, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
   pub async fn read_id_from_code(pool: &DbPool, code_: &str) -> Result<LanguageId, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     Ok(
       language
         .filter(code.eq(code_))

@@ -24,7 +24,7 @@ type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
 
 impl PersonViewSafe {
   pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let (person, counts) = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
@@ -35,7 +35,7 @@ impl PersonViewSafe {
   }
 
   pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
@@ -49,7 +49,7 @@ impl PersonViewSafe {
   }
 
   pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))

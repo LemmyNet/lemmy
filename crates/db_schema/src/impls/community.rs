@@ -76,19 +76,19 @@ impl Crud for Community {
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
   async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     community.find(community_id).first::<Self>(conn).await
   }
 
   async fn delete(pool: &DbPool, community_id: CommunityId) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(community.find(community_id))
       .execute(conn)
       .await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let community_ = insert_into(community)
       .values(form)
       .on_conflict(actor_id)
@@ -114,7 +114,7 @@ impl Crud for Community {
     community_id: CommunityId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(community.find(community_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -130,7 +130,7 @@ impl Joinable for CommunityModerator {
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_moderator::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_moderator)
       .values(community_moderator_form)
       .get_result::<Self>(conn)
@@ -142,7 +142,7 @@ impl Joinable for CommunityModerator {
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_moderator
         .filter(community_id.eq(community_moderator_form.community_id))
@@ -179,7 +179,7 @@ impl CommunityModerator {
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id)))
       .execute(conn)
@@ -191,7 +191,7 @@ impl CommunityModerator {
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     use crate::schema::community_moderator::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     community_moderator
       .filter(person_id.eq(for_person_id))
       .select(community_id)
@@ -208,7 +208,7 @@ impl Bannable for CommunityPersonBan {
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_person_ban::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_person_ban)
       .values(community_person_ban_form)
       .on_conflict((community_id, person_id))
@@ -223,7 +223,7 @@ impl Bannable for CommunityPersonBan {
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_person_ban::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_person_ban
         .filter(community_id.eq(community_person_ban_form.community_id))
@@ -258,7 +258,7 @@ impl Followable for CommunityFollower {
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_follower)
       .values(community_follower_form)
       .on_conflict((community_id, person_id))
@@ -273,7 +273,7 @@ impl Followable for CommunityFollower {
     person_id_: PersonId,
   ) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(
       community_follower
         .filter(community_id.eq(community_id_))
@@ -288,7 +288,7 @@ impl Followable for CommunityFollower {
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_follower::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_follower
         .filter(community_id.eq(&community_follower_form.community_id))
@@ -301,7 +301,7 @@ impl Followable for CommunityFollower {
   //       community, it will also return true if only remote followers exist
   async fn has_local_followers(pool: &DbPool, community_id_: CommunityId) -> Result<bool, Error> {
     use crate::schema::community_follower::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::select(exists(
       community_follower.filter(community_id.eq(community_id_)),
     ))
@@ -313,7 +313,7 @@ impl Followable for CommunityFollower {
 #[async_trait]
 impl ApubActor for Community {
   async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     Ok(
       community
         .filter(actor_id.eq(object_id))
@@ -329,7 +329,7 @@ impl ApubActor for Community {
     community_name: &str,
     include_deleted: bool,
   ) -> Result<Community, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let mut q = community
       .into_boxed()
       .filter(local.eq(true))
@@ -345,7 +345,7 @@ impl ApubActor for Community {
     community_name: &str,
     protocol_domain: &str,
   ) -> Result<Community, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     community
       .filter(lower(name).eq(lower(community_name)))
       .filter(actor_id.like(format!("{}%", protocol_domain)))

@@ -19,7 +19,7 @@ impl LocalUserDiscussionLanguageView {
     pool: &DbPool,
     local_user_id: LocalUserId,
   ) -> Result<Vec<Language>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let res = local_user_language::table
       .inner_join(local_user::table)

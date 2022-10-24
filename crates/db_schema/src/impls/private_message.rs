@@ -16,7 +16,7 @@ impl Crud for PrivateMessage {
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
   async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     private_message
       .find(private_message_id)
       .first::<Self>(conn)
@@ -24,7 +24,7 @@ impl Crud for PrivateMessage {
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(private_message)
       .values(form)
       .on_conflict(ap_id)
@@ -39,14 +39,14 @@ impl Crud for PrivateMessage {
     private_message_id: PrivateMessageId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(private_message.find(private_message_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
   }
   async fn delete(pool: &DbPool, pm_id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(private_message.find(pm_id))
       .execute(conn)
       .await
@@ -58,7 +58,7 @@ impl PrivateMessage {
     pool: &DbPool,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(
       private_message
         .filter(recipient_id.eq(for_recipient_id))
@@ -73,7 +73,7 @@ impl PrivateMessage {
     pool: &DbPool,
     object_id: Url,
   ) -> Result<Option<Self>, LemmyError> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
       private_message

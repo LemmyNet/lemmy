@@ -10,7 +10,7 @@ use diesel_async::RunQueryDsl;
 
 impl PersonPostAggregates {
   pub async fn upsert(pool: &DbPool, form: &PersonPostAggregatesForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(person_post_aggregates)
       .values(form)
       .on_conflict((person_id, post_id))
@@ -20,7 +20,7 @@ impl PersonPostAggregates {
       .await
   }
   pub async fn read(pool: &DbPool, person_id_: PersonId, post_id_: PostId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     person_post_aggregates
       .filter(post_id.eq(post_id_).and(person_id.eq(person_id_)))
       .first::<Self>(conn)

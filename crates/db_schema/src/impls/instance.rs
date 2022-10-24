@@ -22,7 +22,7 @@ impl Instance {
       .await
   }
   pub async fn create(pool: &DbPool, domain: &str) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     Self::create_conn(conn, domain).await
   }
   pub async fn create_conn(conn: &mut AsyncPgConnection, domain: &str) -> Result<Self, Error> {
@@ -33,17 +33,17 @@ impl Instance {
     Self::create_from_form_conn(conn, &form).await
   }
   pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table.find(instance_id))
       .execute(conn)
       .await
   }
   pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table).execute(conn).await
   }
   pub async fn allowlist(pool: &DbPool) -> Result<Vec<String>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_allowlist::table)
       .select(instance::domain)
@@ -52,7 +52,7 @@ impl Instance {
   }
 
   pub async fn blocklist(pool: &DbPool) -> Result<Vec<String>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
       .select(instance::domain)
@@ -61,7 +61,7 @@ impl Instance {
   }
 
   pub async fn linked(pool: &DbPool) -> Result<Vec<String>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())

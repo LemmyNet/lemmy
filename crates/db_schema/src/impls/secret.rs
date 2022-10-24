@@ -14,7 +14,7 @@ impl Secret {
   }
 
   async fn read_secrets(pool: &DbPool) -> Result<Secret, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     secret.first::<Secret>(conn).await
   }
 }

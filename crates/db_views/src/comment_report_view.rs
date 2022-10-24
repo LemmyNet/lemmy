@@ -57,7 +57,7 @@ impl CommentReportView {
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -147,7 +147,7 @@ impl CommentReportView {
   ) -> Result<i64, Error> {
     use diesel::dsl::*;
 
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let mut query = comment_report::table
       .inner_join(comment::table)

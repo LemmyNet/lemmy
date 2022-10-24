@@ -18,7 +18,7 @@ impl CommunityPersonBanView {
     from_person_id: PersonId,
     from_community_id: CommunityId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let (community, person) = community_person_ban::table
       .inner_join(community::table)
       .inner_join(person::table)

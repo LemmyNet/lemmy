@@ -11,7 +11,7 @@ use diesel_async::RunQueryDsl;
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
   async fn block(pool: &DbPool, community_block_form: &Self::Form) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_block)
       .values(community_block_form)
       .on_conflict((person_id, community_id))
@@ -21,7 +21,7 @@ impl Blockable for CommunityBlock {
       .await
   }
   async fn unblock(pool: &DbPool, community_block_form: &Self::Form) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_block
         .filter(person_id.eq(community_block_form.person_id))

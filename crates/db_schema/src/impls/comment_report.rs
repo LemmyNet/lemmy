@@ -17,7 +17,7 @@ impl Reportable for CommentReport {
   /// * `conn` - the postgres connection
   /// * `comment_report_form` - the filled CommentReportForm to insert
   async fn report(pool: &DbPool, comment_report_form: &CommentReportForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(comment_report)
       .values(comment_report_form)
       .get_result::<Self>(conn)
@@ -34,7 +34,7 @@ impl Reportable for CommentReport {
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     update(comment_report.find(report_id_))
       .set((
         resolved.eq(true),
@@ -55,7 +55,7 @@ impl Reportable for CommentReport {
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     update(comment_report.find(report_id_))
       .set((
         resolved.eq(false),

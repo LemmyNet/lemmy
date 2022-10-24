@@ -8,7 +8,7 @@ use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
   pub async fn read(pool: &DbPool) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     site_aggregates::table.first::<Self>(conn).await
   }
 }

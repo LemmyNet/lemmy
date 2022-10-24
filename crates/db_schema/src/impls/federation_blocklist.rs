@@ -11,7 +11,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationBlockList {
   pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
       .run(|conn| {

@@ -27,7 +27,7 @@ impl PrivateMessageReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(pool: &DbPool, report_id: PrivateMessageReportId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
@@ -68,7 +68,7 @@ impl PrivateMessageReportView {
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
     use diesel::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     private_message_report::table
       .inner_join(private_message::table)

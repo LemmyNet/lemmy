@@ -16,12 +16,12 @@ impl Crud for Site {
   type IdType = SiteId;
 
   async fn read(pool: &DbPool, _site_id: SiteId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     site.first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let site_ = insert_into(site)
       .values(form)
       .on_conflict(actor_id)
@@ -40,7 +40,7 @@ impl Crud for Site {
     site_id: SiteId,
     new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(site.find(site_id))
       .set(new_site)
       .get_result::<Self>(conn)
@@ -48,14 +48,14 @@ impl Crud for Site {
   }
 
   async fn delete(pool: &DbPool, site_id: SiteId) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(site.find(site_id)).execute(conn).await
   }
 }
 
 impl Site {
   pub async fn read_from_apub_id(pool: &DbPool, object_id: Url) -> Result<Option<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
       site
@@ -69,7 +69,7 @@ impl Site {
 
   // TODO this needs fixed
   pub async fn read_remote_sites(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     site.order_by(id).offset(1).get_results::<Self>(conn).await
   }
 }

@@ -58,7 +58,7 @@ async fn user_updates_2020_04_02(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::*;
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
 
@@ -96,7 +96,7 @@ async fn community_updates_2020_04_02(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::*;
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
 
@@ -135,7 +135,7 @@ async fn post_updates_2020_04_03(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_updates_2020_04_03");
 
@@ -170,7 +170,7 @@ async fn comment_updates_2020_04_03(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::*;
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -205,7 +205,7 @@ async fn private_message_updates_2020_05_05(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::*;
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -242,7 +242,7 @@ async fn post_thumbnail_url_updates_2020_07_27(
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
@@ -270,7 +270,7 @@ async fn post_thumbnail_url_updates_2020_07_27(
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
 async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
     use lemmy_db_schema::schema::person::dsl::*;
@@ -352,7 +352,7 @@ async fn instance_actor_2022_01_28(
 /// but thats more complicated and has no benefit, as federation is already broken for these actors.
 /// https://github.com/LemmyNet/lemmy/issues/2347
 async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyError> {
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
   info!("Running regenerate_public_keys_2022_07_05");
 
   {

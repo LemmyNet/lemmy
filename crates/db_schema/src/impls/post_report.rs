@@ -14,7 +14,7 @@ impl Reportable for PostReport {
   type IdType = PostReportId;
 
   async fn report(pool: &DbPool, post_report_form: &PostReportForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_report)
       .values(post_report_form)
       .get_result::<Self>(conn)
@@ -26,7 +26,7 @@ impl Reportable for PostReport {
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     update(post_report.find(report_id))
       .set((
         resolved.eq(true),
@@ -42,7 +42,7 @@ impl Reportable for PostReport {
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     update(post_report.find(report_id))
       .set((
         resolved.eq(false),

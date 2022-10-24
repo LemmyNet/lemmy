@@ -25,17 +25,17 @@ impl Crud for Post {
   type UpdateForm = PostUpdateForm;
   type IdType = PostId;
   async fn read(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     post.find(post_id).first::<Self>(conn).await
   }
 
   async fn delete(pool: &DbPool, post_id: PostId) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(post.find(post_id)).execute(conn).await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(post)
       .values(form)
       .on_conflict(ap_id)
@@ -50,7 +50,7 @@ impl Crud for Post {
     post_id: PostId,
     new_post: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
@@ -63,7 +63,7 @@ impl Post {
     pool: &DbPool,
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     post
       .filter(community_id.eq(the_community_id))
       .filter(deleted.eq(false))
@@ -79,7 +79,7 @@ impl Post {
     pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let perma_deleted = "*Permananently Deleted*";
     let perma_deleted_url = "https://deleted.com";
@@ -102,7 +102,7 @@ impl Post {
     for_community_id: Option<CommunityId>,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let mut update = diesel::update(post).into_boxed();
     update = update.filter(creator_id.eq(for_creator_id));
@@ -122,7 +122,7 @@ impl Post {
   }
 
   pub async fn read_from_apub_id(pool: &DbPool, object_id: Url) -> Result<Option<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
       post
@@ -139,7 +139,7 @@ impl Post {
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
     post
@@ -154,7 +154,7 @@ impl Post {
     pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
     diesel::update(
@@ -174,7 +174,7 @@ impl Post {
     pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
     post
       .filter(community_id.eq(for_community_id))
@@ -188,7 +188,7 @@ impl Post {
     pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
     diesel::update(
@@ -211,7 +211,7 @@ impl Likeable for PostLike {
   type IdType = PostId;
   async fn like(pool: &DbPool, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use crate::schema::post_like::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_like)
       .values(post_like_form)
       .on_conflict((post_id, person_id))
@@ -222,7 +222,7 @@ impl Likeable for PostLike {
   }
   async fn remove(pool: &DbPool, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       dsl::post_like
         .filter(dsl::post_id.eq(post_id))
@@ -238,7 +238,7 @@ impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     use crate::schema::post_saved::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_saved)
       .values(post_saved_form)
       .on_conflict((post_id, person_id))
@@ -249,7 +249,7 @@ impl Saveable for PostSaved {
   }
   async fn unsave(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     use crate::schema::post_saved::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_saved
         .filter(post_id.eq(post_saved_form.post_id))
@@ -265,7 +265,7 @@ impl Readable for PostRead {
   type Form = PostReadForm;
   async fn mark_as_read(pool: &DbPool, post_read_form: &PostReadForm) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_read)
       .values(post_read_form)
       .on_conflict((post_id, person_id))
@@ -277,7 +277,7 @@ impl Readable for PostRead {
 
   async fn mark_as_unread(pool: &DbPool, post_read_form: &PostReadForm) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_read
         .filter(post_id.eq(post_read_form.post_id))

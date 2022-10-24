@@ -26,7 +26,7 @@ type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafe);
 
 impl PrivateMessageView {
   pub async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let (private_message, creator, recipient) = private_message::table
@@ -54,7 +54,7 @@ impl PrivateMessageView {
   /// Gets the number of unread messages
   pub async fn get_unread_messages(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     private_message::table
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))

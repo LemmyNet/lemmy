@@ -13,7 +13,7 @@ type PersonBlockViewTuple = (PersonSafe, PersonSafe);
 
 impl PersonBlockView {
   pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let res = person_block::table

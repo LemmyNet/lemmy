@@ -60,7 +60,7 @@ impl CommentReplyView {
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     // The left join below will return None in this case
@@ -164,7 +164,7 @@ impl CommentReplyView {
   pub async fn get_unread_replies(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::*;
 
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     comment_reply::table
       .inner_join(comment::table)

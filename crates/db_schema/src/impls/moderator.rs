@@ -13,13 +13,13 @@ impl Crud for ModRemovePost {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_remove_post.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModRemovePostForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_remove_post)
       .values(form)
       .get_result::<Self>(conn)
@@ -28,7 +28,7 @@ impl Crud for ModRemovePost {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModRemovePostForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_remove_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -43,13 +43,13 @@ impl Crud for ModLockPost {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_lock_post.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_lock_post)
       .values(form)
       .get_result::<Self>(conn)
@@ -58,7 +58,7 @@ impl Crud for ModLockPost {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_lock_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -73,13 +73,13 @@ impl Crud for ModStickyPost {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_sticky_post.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModStickyPostForm) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_sticky_post)
       .values(form)
       .get_result::<Self>(conn)
@@ -88,7 +88,7 @@ impl Crud for ModStickyPost {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModStickyPostForm) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_sticky_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -103,13 +103,13 @@ impl Crud for ModRemoveComment {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_remove_comment.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModRemoveCommentForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_remove_comment)
       .values(form)
       .get_result::<Self>(conn)
@@ -118,7 +118,7 @@ impl Crud for ModRemoveComment {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModRemoveCommentForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -133,13 +133,13 @@ impl Crud for ModRemoveCommunity {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_remove_community.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_remove_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -152,7 +152,7 @@ impl Crud for ModRemoveCommunity {
     form: &ModRemoveCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_remove_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -167,7 +167,7 @@ impl Crud for ModBanFromCommunity {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_ban_from_community
       .find(from_id)
       .first::<Self>(conn)
@@ -176,7 +176,7 @@ impl Crud for ModBanFromCommunity {
 
   async fn create(pool: &DbPool, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_ban_from_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -189,7 +189,7 @@ impl Crud for ModBanFromCommunity {
     form: &ModBanFromCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_ban_from_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -204,13 +204,13 @@ impl Crud for ModBan {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_ban.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_ban)
       .values(form)
       .get_result::<Self>(conn)
@@ -219,7 +219,7 @@ impl Crud for ModBan {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_ban.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -235,13 +235,13 @@ impl Crud for ModHideCommunity {
 
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_hide_community.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModHideCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_hide_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -250,7 +250,7 @@ impl Crud for ModHideCommunity {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModHideCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_hide_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -265,13 +265,13 @@ impl Crud for ModAddCommunity {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_add_community.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModAddCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_add_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -280,7 +280,7 @@ impl Crud for ModAddCommunity {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModAddCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_add_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -295,7 +295,7 @@ impl Crud for ModTransferCommunity {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_transfer_community
       .find(from_id)
       .first::<Self>(conn)
@@ -304,7 +304,7 @@ impl Crud for ModTransferCommunity {
 
   async fn create(pool: &DbPool, form: &ModTransferCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_transfer_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -317,7 +317,7 @@ impl Crud for ModTransferCommunity {
     form: &ModTransferCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_transfer_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -332,13 +332,13 @@ impl Crud for ModAdd {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     mod_add.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &ModAddForm) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(mod_add)
       .values(form)
       .get_result::<Self>(conn)
@@ -347,7 +347,7 @@ impl Crud for ModAdd {
 
   async fn update(pool: &DbPool, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(mod_add.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -362,13 +362,13 @@ impl Crud for AdminPurgePerson {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     admin_purge_person.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_person)
       .values(form)
       .get_result::<Self>(conn)
@@ -377,7 +377,7 @@ impl Crud for AdminPurgePerson {
 
   async fn update(pool: &DbPool, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_person.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -392,7 +392,7 @@ impl Crud for AdminPurgeCommunity {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     admin_purge_community
       .find(from_id)
       .first::<Self>(conn)
@@ -401,7 +401,7 @@ impl Crud for AdminPurgeCommunity {
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_community)
       .values(form)
       .get_result::<Self>(conn)
@@ -410,7 +410,7 @@ impl Crud for AdminPurgeCommunity {
 
   async fn update(pool: &DbPool, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -425,13 +425,13 @@ impl Crud for AdminPurgePost {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     admin_purge_post.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_post)
       .values(form)
       .get_result::<Self>(conn)
@@ -440,7 +440,7 @@ impl Crud for AdminPurgePost {
 
   async fn update(pool: &DbPool, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -455,13 +455,13 @@ impl Crud for AdminPurgeComment {
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     admin_purge_comment.find(from_id).first::<Self>(conn).await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_comment)
       .values(form)
       .get_result::<Self>(conn)
@@ -470,7 +470,7 @@ impl Crud for AdminPurgeComment {
 
   async fn update(pool: &DbPool, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_comment.find(from_id))
       .set(form)
       .get_result::<Self>(conn)

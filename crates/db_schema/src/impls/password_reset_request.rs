@@ -15,14 +15,14 @@ impl Crud for PasswordResetRequest {
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
   async fn read(pool: &DbPool, password_reset_request_id: i32) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)
       .await
   }
   async fn create(pool: &DbPool, form: &PasswordResetRequestForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
       .values(form)
       .get_result::<Self>(conn)
@@ -33,7 +33,7 @@ impl Crud for PasswordResetRequest {
     password_reset_request_id: i32,
     form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(password_reset_request.find(password_reset_request_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -59,7 +59,7 @@ impl PasswordResetRequest {
     Self::create(pool, &form).await
   }
   pub async fn read_from_token(pool: &DbPool, token: &str) -> Result<PasswordResetRequest, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let mut hasher = Sha256::new();
     hasher.update(token);
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());

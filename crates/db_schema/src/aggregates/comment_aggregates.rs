@@ -9,7 +9,7 @@ use diesel_async::RunQueryDsl;
 
 impl CommentAggregates {
   pub async fn read(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     comment_aggregates::table
       .filter(comment_aggregates::comment_id.eq(comment_id))
       .first::<Self>(conn)

@@ -16,7 +16,7 @@ type CommunityFollowerViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityFollowerView {
   pub async fn for_community(pool: &DbPool, community_id: CommunityId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -33,7 +33,7 @@ impl CommunityFollowerView {
   }
 
   pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)

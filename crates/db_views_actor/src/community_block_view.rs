@@ -16,7 +16,7 @@ type CommunityBlockViewTuple = (PersonSafe, CommunitySafe);
 
 impl CommunityBlockView {
   pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let res = community_block::table
       .inner_join(person::table)
       .inner_join(community::table)

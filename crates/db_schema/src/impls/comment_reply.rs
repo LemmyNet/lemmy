@@ -14,7 +14,7 @@ impl Crud for CommentReply {
   type UpdateForm = CommentReplyUpdateForm;
   type IdType = CommentReplyId;
   async fn read(pool: &DbPool, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     comment_reply
       .find(comment_reply_id)
       .first::<Self>(conn)
@@ -22,7 +22,7 @@ impl Crud for CommentReply {
   }
 
   async fn create(pool: &DbPool, comment_reply_form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
@@ -40,7 +40,7 @@ impl Crud for CommentReply {
     comment_reply_id: CommentReplyId,
     comment_reply_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(comment_reply.find(comment_reply_id))
       .set(comment_reply_form)
       .get_result::<Self>(conn)
@@ -53,7 +53,7 @@ impl CommentReply {
     pool: &DbPool,
     for_recipient_id: PersonId,
   ) -> Result<Vec<CommentReply>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(
       comment_reply
         .filter(recipient_id.eq(for_recipient_id))
@@ -65,7 +65,7 @@ impl CommentReply {
   }
 
   pub async fn read_by_comment(pool: &DbPool, for_comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     comment_reply
       .filter(comment_id.eq(for_comment_id))
       .first::<Self>(conn)

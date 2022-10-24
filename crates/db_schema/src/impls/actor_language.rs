@@ -16,7 +16,7 @@ impl LocalUserLanguage {
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
@@ -41,7 +41,7 @@ impl LocalUserLanguage {
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
@@ -73,7 +73,7 @@ impl LocalUserLanguage {
 
 impl SiteLanguage {
   pub async fn read_local(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
@@ -83,7 +83,7 @@ impl SiteLanguage {
   }
 
   pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let langs = site_language::table
       .filter(site_language::site_id.eq(for_site_id))
@@ -98,7 +98,7 @@ impl SiteLanguage {
     language_ids: Vec<LanguageId>,
     for_site_id: SiteId,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
@@ -140,7 +140,7 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
     use crate::schema::community_language::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     if let Some(for_language_id) = for_language_id {
       let is_allowed = select(exists(
@@ -193,7 +193,7 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     let langs = community_language
       .filter(community_id.eq(for_community_id))
@@ -208,7 +208,7 @@ impl CommunityLanguage {
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local(pool).await?;
@@ -246,7 +246,7 @@ pub async fn default_post_language(
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
-  let conn = &mut get_conn(&pool).await?;
+  let conn = &mut get_conn(pool).await?;
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let intersection = ul::local_user_language
     .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
@@ -377,7 +377,7 @@ mod tests {
 
     // call with all languages, returns empty vec
     use crate::schema::language::dsl::*;
-    let conn = &mut get_conn(&pool).await.unwrap();
+    let conn = &mut get_conn(pool).await.unwrap();
     let all_langs = language.select(id).get_results(conn).await.unwrap();
     let converted1: Vec<LanguageId> = convert_read_languages(conn, all_langs).await.unwrap();
     assert_eq!(0, converted1.len());

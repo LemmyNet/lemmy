@@ -23,7 +23,7 @@ impl Comment {
     pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((
         content.eq("*Permananently Deleted*"),
@@ -39,7 +39,7 @@ impl Comment {
     for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_results::<Self>(conn)
@@ -51,7 +51,7 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     // Insert, to get the id
     let inserted_comment = insert_into(comment)
@@ -115,7 +115,7 @@ where ca.comment_id = c.id",
     }
   }
   pub async fn read_from_apub_id(pool: &DbPool, object_id: Url) -> Result<Option<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
       comment
@@ -147,12 +147,12 @@ impl Crud for Comment {
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
   async fn read(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     comment.find(comment_id).first::<Self>(conn).await
   }
 
   async fn delete(pool: &DbPool, comment_id: CommentId) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(comment.find(comment_id)).execute(conn).await
   }
 
@@ -166,7 +166,7 @@ impl Crud for Comment {
     comment_id: CommentId,
     comment_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
@@ -180,7 +180,7 @@ impl Likeable for CommentLike {
   type IdType = CommentId;
   async fn like(pool: &DbPool, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use crate::schema::comment_like::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(comment_like)
       .values(comment_like_form)
       .on_conflict((comment_id, person_id))
@@ -195,7 +195,7 @@ impl Likeable for CommentLike {
     comment_id_: CommentId,
   ) -> Result<usize, Error> {
     use crate::schema::comment_like::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       comment_like
         .filter(comment_id.eq(comment_id_))
@@ -211,7 +211,7 @@ impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
   async fn save(pool: &DbPool, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(comment_saved)
       .values(comment_saved_form)
       .on_conflict((comment_id, person_id))
@@ -222,7 +222,7 @@ impl Saveable for CommentSaved {
   }
   async fn unsave(pool: &DbPool, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::*;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       comment_saved
         .filter(comment_id.eq(comment_saved_form.comment_id))

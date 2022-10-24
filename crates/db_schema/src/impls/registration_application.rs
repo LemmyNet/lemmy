@@ -15,7 +15,7 @@ impl Crud for RegistrationApplication {
   type IdType = i32;
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(registration_application)
       .values(form)
       .get_result::<Self>(conn)
@@ -23,7 +23,7 @@ impl Crud for RegistrationApplication {
   }
 
   async fn read(pool: &DbPool, id_: Self::IdType) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     registration_application.find(id_).first::<Self>(conn).await
   }
 
@@ -32,7 +32,7 @@ impl Crud for RegistrationApplication {
     id_: Self::IdType,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(registration_application.find(id_))
       .set(form)
       .get_result::<Self>(conn)
@@ -40,7 +40,7 @@ impl Crud for RegistrationApplication {
   }
 
   async fn delete(pool: &DbPool, id_: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(registration_application.find(id_))
       .execute(conn)
       .await
@@ -52,7 +52,7 @@ impl RegistrationApplication {
     pool: &DbPool,
     local_user_id_: LocalUserId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     registration_application
       .filter(local_user_id.eq(local_user_id_))
       .first::<Self>(conn)

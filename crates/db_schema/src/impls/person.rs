@@ -67,7 +67,7 @@ impl Crud for Person {
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
   async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     person
       .filter(deleted.eq(false))
       .find(person_id)
@@ -75,11 +75,11 @@ impl Crud for Person {
       .await
   }
   async fn delete(pool: &DbPool, person_id: PersonId) -> Result<usize, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(person.find(person_id)).execute(conn).await
   }
   async fn create(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     insert_into(person)
       .values(form)
       .on_conflict(actor_id)
@@ -93,7 +93,7 @@ impl Crud for Person {
     person_id: PersonId,
     form: &PersonUpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(person.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -104,7 +104,7 @@ impl Crud for Person {
 impl Person {
   pub async fn delete_account(pool: &DbPool, person_id: PersonId) -> Result<Person, Error> {
     use crate::schema::local_user;
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
@@ -141,7 +141,7 @@ pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool 
 #[async_trait]
 impl ApubActor for Person {
   async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     Ok(
       person
         .filter(deleted.eq(false))
@@ -158,7 +158,7 @@ impl ApubActor for Person {
     from_name: &str,
     include_deleted: bool,
   ) -> Result<Person, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let mut q = person
       .into_boxed()
       .filter(local.eq(true))
@@ -174,7 +174,7 @@ impl ApubActor for Person {
     person_name: &str,
     protocol_domain: &str,
   ) -> Result<Person, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     person
       .filter(lower(name).eq(lower(person_name)))
       .filter(actor_id.like(format!("{}%", protocol_domain)))

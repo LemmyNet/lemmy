@@ -155,7 +155,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 pub fn run_migrations(db_url: &str) {
   // Needs to be a sync connection
   let mut conn =
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
   let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
     .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));

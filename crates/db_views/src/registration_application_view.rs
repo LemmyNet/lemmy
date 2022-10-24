@@ -29,7 +29,7 @@ type RegistrationApplicationViewTuple = (
 
 impl RegistrationApplicationView {
   pub async fn read(pool: &DbPool, registration_application_id: i32) -> Result<Self, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let (registration_application, creator_local_user, creator, admin) =
@@ -65,7 +65,7 @@ impl RegistrationApplicationView {
 
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(pool: &DbPool, verified_email_only: bool) -> Result<i64, Error> {
-    let conn = &mut get_conn(&pool).await?;
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
