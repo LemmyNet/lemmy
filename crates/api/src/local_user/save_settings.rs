@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, SaveUserSettings},
-  utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
+  utils::{get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -35,7 +35,7 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -97,17 +97,12 @@ impl Perform for SaveUserSettings {
       .banner(banner)
       .build();
 
-    blocking(context.pool(), move |conn| {
-      Person::update(conn, person_id, &person_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+    Person::update(context.pool(), person_id, &person_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      blocking(context.pool(), move |conn| {
-        LocalUserLanguage::update(conn, discussion_languages, local_user_id)
-      })
-      .await??;
+      LocalUserLanguage::update(context.pool(), discussion_languages, local_user_id).await?;
     }
 
     let local_user_form = LocalUserUpdateForm::builder()
@@ -125,10 +120,7 @@ impl Perform for SaveUserSettings {
       .interface_language(data.interface_language.to_owned())
       .build();
 
-    let local_user_res = blocking(context.pool(), move |conn| {
-      LocalUser::update(conn, local_user_id, &local_user_form)
-    })
-    .await?;
+    let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;
     let updated_local_user = match local_user_res {
       Ok(u) => u,
       Err(e) => {

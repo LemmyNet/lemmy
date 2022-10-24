@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{PostReportResponse, ResolvePostReport},
-  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin},
+  utils::{get_local_user_view_from_jwt, is_mod_or_admin},
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views::structs::PostReportView;
@@ -26,31 +26,22 @@ impl Perform for ResolvePostReport {
 
     let report_id = data.report_id;
     let person_id = local_user_view.person.id;
-    let report = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report_id, person_id)
-    })
-    .await??;
+    let report = PostReportView::read(context.pool(), report_id, person_id).await?;
 
     let person_id = local_user_view.person.id;
     is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
 
-    let resolved = data.resolved;
-    let resolve_fun = move |conn: &mut _| {
-      if resolved {
-        PostReport::resolve(conn, report_id, person_id)
-      } else {
-        PostReport::unresolve(conn, report_id, person_id)
-      }
-    };
+    if data.resolved {
+      PostReport::resolve(context.pool(), report_id, person_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
+    } else {
+      PostReport::unresolve(context.pool(), report_id, person_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
+    }
 
-    blocking(context.pool(), resolve_fun)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
-
-    let post_report_view = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report_id, person_id)
-    })
-    .await??;
+    let post_report_view = PostReportView::read(context.pool(), report_id, person_id).await?;
 
     let res = PostReportResponse { post_report_view };
 

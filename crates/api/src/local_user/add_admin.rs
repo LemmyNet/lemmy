@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{AddAdmin, AddAdminResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin},
+  utils::{get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,14 +34,12 @@ impl Perform for AddAdmin {
 
     let added = data.added;
     let added_person_id = data.person_id;
-    let added_admin = blocking(context.pool(), move |conn| {
-      Person::update(
-        conn,
-        added_person_id,
-        &PersonUpdateForm::builder().admin(Some(added)).build(),
-      )
-    })
-    .await?
+    let added_admin = Person::update(
+      context.pool(),
+      added_person_id,
+      &PersonUpdateForm::builder().admin(Some(added)).build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Mod tables
@@ -51,9 +49,9 @@ impl Perform for AddAdmin {
       removed: Some(!data.added),
     };
 
-    blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
+    ModAdd::create(context.pool(), &form).await?;
 
-    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    let admins = PersonViewSafe::admins(context.pool()).await?;
 
     let res = AddAdminResponse { admins };
 

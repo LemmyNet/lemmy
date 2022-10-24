@@ -3,7 +3,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   post::{PostResponse, StickyPost},
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
@@ -39,7 +38,7 @@ impl Perform for StickyPost {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -60,14 +59,12 @@ impl Perform for StickyPost {
     // Update the post
     let post_id = data.post_id;
     let stickied = data.stickied;
-    let updated_post: ApubPost = blocking(context.pool(), move |conn| {
-      Post::update(
-        conn,
-        post_id,
-        &PostUpdateForm::builder().stickied(Some(stickied)).build(),
-      )
-    })
-    .await??
+    let updated_post: ApubPost = Post::update(
+      context.pool(),
+      post_id,
+      &PostUpdateForm::builder().stickied(Some(stickied)).build(),
+    )
+    .await?
     .into();
 
     // Mod tables
@@ -76,10 +73,8 @@ impl Perform for StickyPost {
       post_id: data.post_id,
       stickied: Some(stickied),
     };
-    blocking(context.pool(), move |conn| {
-      ModStickyPost::create(conn, &form)
-    })
-    .await??;
+
+    ModStickyPost::create(context.pool(), &form).await?;
 
     // Apub updates
     // TODO stickied should pry work like locked for ease of use

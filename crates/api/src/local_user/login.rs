@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use bcrypt::verify;
 use lemmy_api_common::{
   person::{Login, LoginResponse},
-  utils::{blocking, check_registration_application, check_user_valid},
+  utils::{check_registration_application, check_user_valid},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
@@ -22,15 +22,13 @@ impl Perform for Login {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
 
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let local_user_view = blocking(context.pool(), move |conn| {
-      LocalUserView::find_by_email_or_name(conn, &username_or_email)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
+    let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
 
     // Verify the password
     let valid: bool = verify(

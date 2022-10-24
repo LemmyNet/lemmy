@@ -3,7 +3,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   post::{LockPost, PostResponse},
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
@@ -39,7 +38,7 @@ impl Perform for LockPost {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -60,14 +59,12 @@ impl Perform for LockPost {
     // Update the post
     let post_id = data.post_id;
     let locked = data.locked;
-    let updated_post: ApubPost = blocking(context.pool(), move |conn| {
-      Post::update(
-        conn,
-        post_id,
-        &PostUpdateForm::builder().locked(Some(locked)).build(),
-      )
-    })
-    .await??
+    let updated_post: ApubPost = Post::update(
+      context.pool(),
+      post_id,
+      &PostUpdateForm::builder().locked(Some(locked)).build(),
+    )
+    .await?
     .into();
 
     // Mod tables
@@ -76,7 +73,7 @@ impl Perform for LockPost {
       post_id: data.post_id,
       locked: Some(locked),
     };
-    blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
+    ModLockPost::create(context.pool(), &form).await?;
 
     // apub updates
     CreateOrUpdatePost::send(

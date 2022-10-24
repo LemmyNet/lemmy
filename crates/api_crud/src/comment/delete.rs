@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment},
-  utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
+  utils::{check_community_ban, get_local_user_view_from_jwt},
 };
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
@@ -36,10 +36,7 @@ impl PerformCrud for DeleteComment {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
@@ -60,18 +57,16 @@ impl PerformCrud for DeleteComment {
 
     // Do the delete
     let deleted = data.deleted;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update(
-        conn,
-        comment_id,
-        &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
-      )
-    })
-    .await?
+    let updated_comment = Comment::update(
+      context.pool(),
+      comment_id,
+      &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let post_id = updated_comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(context.pool(), post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,
@@ -94,10 +89,7 @@ impl PerformCrud for DeleteComment {
     .await?;
 
     // Send the apub message
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_comment.post.community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), orig_comment.post.community_id).await?;
     let deletable = DeletableObjects::Comment(Box::new(updated_comment.clone().into()));
     send_apub_delete_in_community(
       local_user_view.person,

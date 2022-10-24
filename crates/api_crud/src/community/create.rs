@@ -3,7 +3,7 @@ use activitypub_federation::core::{object_id::ObjectId, signatures::generate_act
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin, local_site_to_slur_regex},
+  utils::{get_local_user_view_from_jwt, is_admin, local_site_to_slur_regex},
 };
 use lemmy_apub::{
   generate_followers_url,
@@ -47,7 +47,7 @@ impl PerformCrud for CreateCommunity {
     let data: &CreateCommunity = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
 
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
@@ -101,11 +101,9 @@ impl PerformCrud for CreateCommunity {
       .instance_id(site_view.site.instance_id)
       .build();
 
-    let inserted_community = blocking(context.pool(), move |conn| {
-      Community::create(conn, &community_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
+    let inserted_community = Community::create(context.pool(), &community_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -113,9 +111,8 @@ impl PerformCrud for CreateCommunity {
       person_id: local_user_view.person.id,
     };
 
-    let join = move |conn: &mut _| CommunityModerator::join(conn, &community_moderator_form);
-    blocking(context.pool(), join)
-      .await?
+    let join = CommunityModerator::join(context.pool(), &community_moderator_form)
+      .await
       .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
 
     // Follow your own community
@@ -125,16 +122,13 @@ impl PerformCrud for CreateCommunity {
       pending: false,
     };
 
-    let follow = move |conn: &mut _| CommunityFollower::follow(conn, &community_follower_form);
-    blocking(context.pool(), follow)
-      .await?
+    let follow = CommunityFollower::follow(context.pool(), &community_follower_form)
+      .await
       .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
 
     let person_id = local_user_view.person.id;
-    let community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, inserted_community.id, Some(person_id))
-    })
-    .await??;
+    let community_view =
+      CommunityView::read(context.pool(), inserted_community.id, Some(person_id)).await?;
 
     Ok(CommunityResponse { community_view })
   }

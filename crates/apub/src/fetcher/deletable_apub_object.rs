@@ -1,5 +1,4 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_queries::source::{
   comment::Comment_,
   community::Community_,
@@ -27,10 +26,8 @@ pub trait DeletableApubObject {
 impl DeletableApubObject for Community {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
-    blocking(context.pool(), move |conn| {
-      Community::update_deleted(conn, id, true)
-    })
-    .await??;
+      Community::update_deleted(context.pool(), id, true)
+    .await?;
     Ok(())
   }
 }
@@ -39,7 +36,7 @@ impl DeletableApubObject for Community {
 impl DeletableApubObject for Person {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
-    blocking(context.pool(), move |conn| Person::delete_account(conn, id)).await??;
+    Person::delete_account(context.pool(), id).await?;
     Ok(())
   }
 }
@@ -48,10 +45,8 @@ impl DeletableApubObject for Person {
 impl DeletableApubObject for Post {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
-    blocking(context.pool(), move |conn| {
-      Post::update_deleted(conn, id, true)
-    })
-    .await??;
+      Post::update_deleted(context.pool(), id, true)
+    .await?;
     Ok(())
   }
 }
@@ -60,10 +55,8 @@ impl DeletableApubObject for Post {
 impl DeletableApubObject for Comment {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
-    blocking(context.pool(), move |conn| {
-      Comment::update_deleted(conn, id, true)
-    })
-    .await??;
+      Comment::update_deleted(context.pool(), id, true)
+    .await?;
     Ok(())
   }
 }
@@ -73,16 +66,12 @@ impl DeletableApubObject for PostOrComment {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     match self {
       PostOrComment::Comment(c) => {
-        blocking(context.pool(), move |conn| {
-          Comment::update_deleted(conn, c.id, true)
-        })
-        .await??;
+          Comment::update_deleted(context.pool(), c.id, true)
+        .await?;
       }
       PostOrComment::Post(p) => {
-        blocking(context.pool(), move |conn| {
-          Post::update_deleted(conn, p.id, true)
-        })
-        .await??;
+          Post::update_deleted(context.pool(), p.id, true)
+        .await?;
       }
     }
 

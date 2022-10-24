@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{PostResponse, RemovePost},
-  utils::{blocking, check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
+  utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
 };
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
@@ -31,7 +31,7 @@ impl PerformCrud for RemovePost {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -51,14 +51,12 @@ impl PerformCrud for RemovePost {
     // Update the post
     let post_id = data.post_id;
     let removed = data.removed;
-    let updated_post = blocking(context.pool(), move |conn| {
-      Post::update(
-        conn,
-        post_id,
-        &PostUpdateForm::builder().removed(Some(removed)).build(),
-      )
-    })
-    .await??;
+    let updated_post = Post::update(
+      context.pool(),
+      post_id,
+      &PostUpdateForm::builder().removed(Some(removed)).build(),
+    )
+    .await?;
 
     // Mod tables
     let form = ModRemovePostForm {
@@ -67,10 +65,7 @@ impl PerformCrud for RemovePost {
       removed: Some(removed),
       reason: data.reason.to_owned(),
     };
-    blocking(context.pool(), move |conn| {
-      ModRemovePost::create(conn, &form)
-    })
-    .await??;
+    ModRemovePost::create(context.pool(), &form).await?;
 
     let res = send_post_ws_message(
       data.post_id,
@@ -82,10 +77,7 @@ impl PerformCrud for RemovePost {
     .await?;
 
     // apub updates
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_post.community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), orig_post.community_id).await?;
     let deletable = DeletableObjects::Post(Box::new(updated_post.into()));
     send_apub_delete_in_community(
       local_user_view.person,

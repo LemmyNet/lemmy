@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
+  utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
 };
 use lemmy_apub::{
   activities::block::SiteOrCommunity,
@@ -55,21 +55,12 @@ impl Perform for BanFromCommunity {
       expires: Some(expires),
     };
 
-    let community: ApubCommunity = blocking(context.pool(), move |conn: &mut _| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
-    let banned_person: ApubPerson = blocking(context.pool(), move |conn: &mut _| {
-      Person::read(conn, banned_person_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
+    let banned_person: ApubPerson = Person::read(context.pool(), banned_person_id).await?.into();
 
     if data.ban {
-      let ban = move |conn: &mut _| CommunityPersonBan::ban(conn, &community_user_ban_form);
-      blocking(context.pool(), ban)
-        .await?
+      let ban = CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
 
       // Also unsubscribe them from the community, if they are subscribed
@@ -78,11 +69,10 @@ impl Perform for BanFromCommunity {
         person_id: banned_person_id,
         pending: false,
       };
-      blocking(context.pool(), move |conn: &mut _| {
-        CommunityFollower::unfollow(conn, &community_follower_form)
-      })
-      .await?
-      .ok();
+
+      CommunityFollower::unfollow(context.pool(), &community_follower_form)
+        .await
+        .ok();
 
       BlockUser::send(
         &SiteOrCommunity::Community(community),
@@ -95,9 +85,8 @@ impl Perform for BanFromCommunity {
       )
       .await?;
     } else {
-      let unban = move |conn: &mut _| CommunityPersonBan::unban(conn, &community_user_ban_form);
-      blocking(context.pool(), unban)
-        .await?
+      let unban = CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
       UndoBlockUser::send(
         &SiteOrCommunity::Community(community),
@@ -123,16 +112,11 @@ impl Perform for BanFromCommunity {
       banned: Some(data.ban),
       expires,
     };
-    blocking(context.pool(), move |conn| {
-      ModBanFromCommunity::create(conn, &form)
-    })
-    .await??;
+
+    ModBanFromCommunity::create(context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_id)
-    })
-    .await??;
+    let person_view = PersonViewSafe::read(context.pool(), person_id).await?;
 
     let res = BanFromCommunityResponse {
       person_view,

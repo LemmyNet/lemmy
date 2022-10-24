@@ -21,7 +21,6 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
@@ -73,11 +72,9 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(data.pool(), move |conn| {
-        Site::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      Site::read_from_apub_id(data.pool(), object_id)
+        .await?
+        .map(Into::into),
     )
   }
 
@@ -88,7 +85,7 @@ impl ApubObject for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let site_id = self.id;
-    let langs = blocking(data.pool(), move |conn| SiteLanguage::read(conn, site_id)).await??;
+    let langs = SiteLanguage::read(data.pool(), site_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
 
     let instance = Instance {
@@ -118,7 +115,7 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = blocking(data.pool(), fetch_local_site_data).await??;
+    let local_site_data = fetch_local_site_data(data.pool()).await?;
 
     check_apub_id_valid_with_strictness(apub.id.inner(), true, &local_site_data, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
@@ -143,7 +140,7 @@ impl ApubObject for ApubSite {
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let domain = generate_domain_url(apub.id.inner())?;
-    let instance = blocking(data.pool(), move |conn| DbInstance::create(conn, &domain)).await??;
+    let instance = DbInstance::create(data.pool(), &domain).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -161,12 +158,8 @@ impl ApubObject for ApubSite {
     };
     let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
 
-    let site = blocking(data.pool(), move |conn| {
-      let site = Site::create(conn, &site_form)?;
-      SiteLanguage::update(conn, languages, site.id)?;
-      Ok::<Site, diesel::result::Error>(site)
-    })
-    .await??;
+    let site = Site::create(data.pool(), &site_form).await?;
+    SiteLanguage::update(data.pool(), languages, site.id).await?;
     Ok(site.into())
   }
 }
@@ -208,7 +201,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
   // try to fetch the instance actor (to make things like instance rules available)
   let instance_id = instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
-    .dereference(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context).await, request_counter)
     .await;
   if let Err(e) = site {
     debug!("Failed to dereference site for {}: {}", instance_id, e);
@@ -217,8 +210,8 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
 
 pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
   Ok(
-    blocking(pool, Site::read_remote_sites)
-      .await??
+    Site::read_remote_sites(pool)
+      .await?
       .into_iter()
       .map(|s| ApubSite::from(s).shared_inbox_or_inbox())
       .collect(),
@@ -249,13 +242,12 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_instance() {
-    let context = init_context();
-    let conn = &mut context.pool().get().unwrap();
+    let context = init_context().await;
     let site = parse_lemmy_instance(&context).await;
 
     assert_eq!(site.name, "Enterprise");
     assert_eq!(site.description.as_ref().unwrap().len(), 15);
 
-    Site::delete(conn, site.id).unwrap();
+    Site::delete(context.pool(), site.id).await.unwrap();
   }
 }

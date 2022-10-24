@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_apub::activities::deletion::send_apub_delete_private_message;
 use lemmy_db_schema::{
@@ -28,10 +28,7 @@ impl PerformCrud for DeletePrivateMessage {
 
     // Checking permissions
     let private_message_id = data.private_message_id;
-    let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, private_message_id)
-    })
-    .await??;
+    let orig_private_message = PrivateMessage::read(context.pool(), private_message_id).await?;
     if local_user_view.person.id != orig_private_message.creator_id {
       return Err(LemmyError::from_message("no_private_message_edit_allowed"));
     }
@@ -39,16 +36,14 @@ impl PerformCrud for DeletePrivateMessage {
     // Doing the update
     let private_message_id = data.private_message_id;
     let deleted = data.deleted;
-    let updated_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::update(
-        conn,
-        private_message_id,
-        &PrivateMessageUpdateForm::builder()
-          .deleted(Some(deleted))
-          .build(),
-      )
-    })
-    .await?
+    let updated_private_message = PrivateMessage::update(
+      context.pool(),
+      private_message_id,
+      &PrivateMessageUpdateForm::builder()
+        .deleted(Some(deleted))
+        .build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     // Send the apub update

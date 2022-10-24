@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{GetSite, GetSiteResponse, MyUserInfo},
-  utils::{blocking, build_federated_instances, get_local_user_settings_view_from_jwt_opt},
+  utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language};
 use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};
@@ -28,9 +28,9 @@ impl PerformCrud for GetSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
 
-    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    let admins = PersonViewSafe::admins(context.pool()).await?;
 
     let online = context
       .chat_server()
@@ -49,37 +49,28 @@ impl PerformCrud for GetSite {
       let person_id = local_user_view.person.id;
       let local_user_id = local_user_view.local_user.id;
 
-      let follows = blocking(context.pool(), move |conn| {
-        CommunityFollowerView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let follows = CommunityFollowerView::for_person(context.pool(), person_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let person_id = local_user_view.person.id;
-      let community_blocks = blocking(context.pool(), move |conn| {
-        CommunityBlockView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let community_blocks = CommunityBlockView::for_person(context.pool(), person_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let person_id = local_user_view.person.id;
-      let person_blocks = blocking(context.pool(), move |conn| {
-        PersonBlockView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let person_blocks = PersonBlockView::for_person(context.pool(), person_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
-      let moderates = blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_person(conn, person_id)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let moderates = CommunityModeratorView::for_person(context.pool(), person_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
-      let discussion_languages = blocking(context.pool(), move |conn| {
-        LocalUserDiscussionLanguageView::read_languages(conn, local_user_id)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let discussion_languages =
+        LocalUserDiscussionLanguageView::read_languages(context.pool(), local_user_id)
+          .await
+          .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       Some(MyUserInfo {
         local_user_view,
@@ -96,8 +87,8 @@ impl PerformCrud for GetSite {
     let federated_instances =
       build_federated_instances(&site_view.local_site, context.pool()).await?;
 
-    let all_languages = blocking(context.pool(), Language::read_all).await??;
-    let discussion_languages = blocking(context.pool(), SiteLanguage::read_local).await??;
+    let all_languages = Language::read_all(context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
 
     Ok(GetSiteResponse {
       site_view,

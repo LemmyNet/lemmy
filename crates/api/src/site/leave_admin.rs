@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   site::{GetSiteResponse, LeaveAdmin},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin},
+  utils::{get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -35,20 +35,18 @@ impl Perform for LeaveAdmin {
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    let admins = PersonViewSafe::admins(context.pool()).await?;
     if admins.len() == 1 {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
 
     let person_id = local_user_view.person.id;
-    blocking(context.pool(), move |conn| {
-      Person::update(
-        conn,
-        person_id,
-        &PersonUpdateForm::builder().admin(Some(false)).build(),
-      )
-    })
-    .await??;
+    Person::update(
+      context.pool(),
+      person_id,
+      &PersonUpdateForm::builder().admin(Some(false)).build(),
+    )
+    .await?;
 
     // Mod tables
     let form = ModAddForm {
@@ -57,14 +55,14 @@ impl Perform for LeaveAdmin {
       removed: Some(true),
     };
 
-    blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
+    ModAdd::create(context.pool(), &form).await?;
 
     // Reread site and admins
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
-    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
+    let admins = PersonViewSafe::admins(context.pool()).await?;
 
-    let all_languages = blocking(context.pool(), Language::read_all).await??;
-    let discussion_languages = blocking(context.pool(), SiteLanguage::read_local).await??;
+    let all_languages = Language::read_all(context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
 
     Ok(GetSiteResponse {
       site_view,

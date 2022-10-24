@@ -3,7 +3,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::{
-    blocking,
     check_private_instance,
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
@@ -32,7 +31,7 @@ impl PerformCrud for GetPosts {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -54,22 +53,20 @@ impl PerformCrud for GetPosts {
     };
     let saved_only = data.saved_only;
 
-    let mut posts = blocking(context.pool(), move |conn| {
-      PostQuery::builder()
-        .conn(conn)
-        .local_user(local_user_view.map(|l| l.local_user).as_ref())
-        .listing_type(Some(listing_type))
-        .sort(sort)
-        .community_id(community_id)
-        .community_actor_id(community_actor_id)
-        .saved_only(saved_only)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list()
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
+    let mut posts = PostQuery::builder()
+      .pool(context.pool())
+      .local_user(local_user_view.map(|l| l.local_user).as_ref())
+      .listing_type(Some(listing_type))
+      .sort(sort)
+      .community_id(community_id)
+      .community_actor_id(community_actor_id)
+      .saved_only(saved_only)
+      .page(page)
+      .limit(limit)
+      .build()
+      .list()
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if !is_logged_in {

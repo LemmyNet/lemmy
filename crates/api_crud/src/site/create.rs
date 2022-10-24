@@ -4,7 +4,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   site::{CreateSite, SiteResponse},
   utils::{
-    blocking,
     get_local_user_view_from_jwt,
     is_admin,
     local_site_to_slur_regex,
@@ -43,7 +42,7 @@ impl PerformCrud for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     if local_site.site_setup {
       return Err(LemmyError::from_message("site_already_exists"));
@@ -88,10 +87,8 @@ impl PerformCrud for CreateSite {
       .build();
 
     let site_id = local_site.site_id;
-    blocking(context.pool(), move |conn| {
-      Site::update(conn, site_id, &site_form)
-    })
-    .await??;
+
+    Site::update(context.pool(), site_id, &site_form).await?;
 
     let local_site_form = LocalSiteUpdateForm::builder()
       // Set the site setup to true
@@ -120,10 +117,8 @@ impl PerformCrud for CreateSite {
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.to_owned())
       .build();
-    blocking(context.pool(), move |conn| {
-      LocalSite::update(conn, &local_site_form)
-    })
-    .await??;
+
+    LocalSite::update(context.pool(), &local_site_form).await?;
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -140,12 +135,9 @@ impl PerformCrud for CreateSite {
       .search_per_second(data.rate_limit_search_per_second)
       .build();
 
-    blocking(context.pool(), move |conn| {
-      LocalSiteRateLimit::update(conn, &local_site_rate_limit_form)
-    })
-    .await??;
+    LocalSiteRateLimit::update(context.pool(), &local_site_rate_limit_form).await?;
 
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
 
     Ok(SiteResponse { site_view })
   }

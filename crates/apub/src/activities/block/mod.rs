@@ -5,7 +5,6 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::site::Site, utils::DbPool};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -116,8 +115,8 @@ impl SiteOrCommunity {
 
 async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
   Ok(match target {
-    SiteOrCommunity::Site(_) => blocking(pool, Site::read_remote_sites)
-      .await??
+    SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
+      .await?
       .into_iter()
       .map(|s| s.actor_id.into())
       .collect(),

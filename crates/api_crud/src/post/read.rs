@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{GetPost, GetPostResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read},
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
@@ -28,7 +28,7 @@ impl PerformCrud for GetPost {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -38,19 +38,17 @@ impl PerformCrud for GetPost {
     let post_id = if let Some(id) = data.id {
       id
     } else if let Some(comment_id) = data.comment_id {
-      blocking(context.pool(), move |conn| Comment::read(conn, comment_id))
-        .await?
+      Comment::read(context.pool(), comment_id)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?
         .post_id
     } else {
       Err(LemmyError::from_message("couldnt_find_post"))?
     };
 
-    let mut post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, person_id)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
+    let mut post_view = PostView::read(context.pool(), post_id, person_id)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
 
     // Mark the post as read
     let post_id = post_view.post.id;
@@ -60,11 +58,9 @@ impl PerformCrud for GetPost {
 
     // Necessary for the sidebar subscribed
     let community_id = post_view.community.id;
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, person_id)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    let mut community_view = CommunityView::read(context.pool(), community_id, person_id)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     // Insert into PersonPostAggregates
     // to update the read_comments count
@@ -76,11 +72,9 @@ impl PerformCrud for GetPost {
         read_comments,
         ..PersonPostAggregatesForm::default()
       };
-      blocking(context.pool(), move |conn| {
-        PersonPostAggregates::upsert(conn, &person_post_agg_form)
-      })
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
+      PersonPostAggregates::upsert(context.pool(), &person_post_agg_form)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
     }
 
     // Blank out deleted or removed info for non-logged in users
@@ -94,10 +88,7 @@ impl PerformCrud for GetPost {
       }
     }
 
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     let online = context
       .chat_server()

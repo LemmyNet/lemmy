@@ -8,7 +8,7 @@ use lemmy_api_common::{
   community::CommunityResponse,
   post::PostResponse,
   private_message::PrivateMessageResponse,
-  utils::{blocking, check_person_block, get_interface_language, send_email_to_user},
+  utils::{check_person_block, get_interface_language, send_email_to_user},
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
@@ -34,10 +34,7 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<PostResponse, LemmyError> {
-  let post_view = blocking(context.pool(), move |conn| {
-    PostView::read(conn, post_id, person_id)
-  })
-  .await??;
+  let post_view = PostView::read(context.pool(), post_id, person_id).await?;
 
   let res = PostResponse { post_view };
 
@@ -71,10 +68,7 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
   recipient_ids: Vec<LocalUserId>,
   context: &LemmyContext,
 ) -> Result<CommentResponse, LemmyError> {
-  let mut view = blocking(context.pool(), move |conn| {
-    CommentView::read(conn, comment_id, person_id)
-  })
-  .await??;
+  let mut view = CommentView::read(context.pool(), comment_id, person_id).await?;
 
   if view.comment.deleted || view.comment.removed {
     view.comment = view.comment.blank_out_deleted_or_removed_info();
@@ -108,10 +102,7 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
-  let community_view = blocking(context.pool(), move |conn| {
-    CommunityView::read(conn, community_id, person_id)
-  })
-  .await??;
+  let community_view = CommunityView::read(context.pool(), community_id, person_id).await?;
 
   let res = CommunityResponse { community_view };
 
@@ -136,10 +127,7 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   websocket_id: Option<ConnectionId>,
   context: &LemmyContext,
 ) -> Result<PrivateMessageResponse, LemmyError> {
-  let mut view = blocking(context.pool(), move |conn| {
-    PrivateMessageView::read(conn, private_message_id)
-  })
-  .await??;
+  let mut view = PrivateMessageView::read(context.pool(), private_message_id).await?;
 
   // Blank out deleted or removed info
   if view.private_message.deleted {
@@ -153,10 +141,7 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   // Send notifications to the local recipient, if one exists
   if res.private_message_view.recipient.local {
     let recipient_id = res.private_message_view.recipient.id;
-    let local_recipient = blocking(context.pool(), move |conn| {
-      LocalUserView::read_person(conn, recipient_id)
-    })
-    .await??;
+    let local_recipient = LocalUserView::read_person(context.pool(), recipient_id).await?;
     context.chat_server().do_send(SendUserRoomMessage {
       op,
       response: res.clone(),
@@ -187,10 +172,7 @@ pub async fn send_local_notifs(
     .collect::<Vec<&MentionData>>()
   {
     let mention_name = mention.name.clone();
-    let user_view = blocking(context.pool(), move |conn| {
-      LocalUserView::read_from_name(conn, &mention_name)
-    })
-    .await?;
+    let user_view = LocalUserView::read_from_name(context.pool(), &mention_name).await;
     if let Ok(mention_user_view) = user_view {
       // TODO
       // At some point, make it so you can't tag the parent creator either
@@ -205,11 +187,9 @@ pub async fn send_local_notifs(
 
       // Allow this to fail softly, since comment edits might re-update or replace it
       // Let the uniqueness handle this fail
-      blocking(context.pool(), move |conn| {
-        PersonMention::create(conn, &user_mention_form)
-      })
-      .await?
-      .ok();
+      PersonMention::create(context.pool(), &user_mention_form)
+        .await
+        .ok();
 
       // Send an email to those local users that have notifications on
       if do_send_email {
@@ -226,10 +206,7 @@ pub async fn send_local_notifs(
 
   // Send comment_reply to the parent commenter / poster
   if let Some(parent_comment_id) = comment.parent_comment_id() {
-    let parent_comment = blocking(context.pool(), move |conn| {
-      Comment::read(conn, parent_comment_id)
-    })
-    .await??;
+    let parent_comment = Comment::read(context.pool(), parent_comment_id).await?;
 
     // Get the parent commenter local_user
     let parent_creator_id = parent_comment.creator_id;
@@ -241,10 +218,7 @@ pub async fn send_local_notifs(
 
     // Don't send a notif to yourself
     if parent_comment.creator_id != person.id && !creator_blocked {
-      let user_view = blocking(context.pool(), move |conn| {
-        LocalUserView::read_person(conn, parent_creator_id)
-      })
-      .await?;
+      let user_view = LocalUserView::read_person(context.pool(), parent_creator_id).await;
       if let Ok(parent_user_view) = user_view {
         recipient_ids.push(parent_user_view.local_user.id);
 
@@ -256,11 +230,9 @@ pub async fn send_local_notifs(
 
         // Allow this to fail softly, since comment edits might re-update or replace it
         // Let the uniqueness handle this fail
-        blocking(context.pool(), move |conn| {
-          CommentReply::create(conn, &comment_reply_form)
-        })
-        .await?
-        .ok();
+        CommentReply::create(context.pool(), &comment_reply_form)
+          .await
+          .ok();
 
         if do_send_email {
           let lang = get_interface_language(&parent_user_view);
@@ -282,10 +254,7 @@ pub async fn send_local_notifs(
 
     if post.creator_id != person.id && !creator_blocked {
       let creator_id = post.creator_id;
-      let parent_user = blocking(context.pool(), move |conn| {
-        LocalUserView::read_person(conn, creator_id)
-      })
-      .await?;
+      let parent_user = LocalUserView::read_person(context.pool(), creator_id).await;
       if let Ok(parent_user_view) = parent_user {
         recipient_ids.push(parent_user_view.local_user.id);
 
@@ -297,11 +266,9 @@ pub async fn send_local_notifs(
 
         // Allow this to fail softly, since comment edits might re-update or replace it
         // Let the uniqueness handle this fail
-        blocking(context.pool(), move |conn| {
-          CommentReply::create(conn, &comment_reply_form)
-        })
-        .await?
-        .ok();
+        CommentReply::create(context.pool(), &comment_reply_form)
+          .await
+          .ok();
 
         if do_send_email {
           let lang = get_interface_language(&parent_user_view);

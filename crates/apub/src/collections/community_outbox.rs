@@ -16,7 +16,6 @@ use activitypub_federation::{
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use futures::future::join_all;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::source::post::Post;
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -42,13 +41,11 @@ impl ApubObject for ApubCommunityOutbox {
     // Only read from database if its a local community, otherwise fetch over http
     if data.0.local {
       let community_id = data.0.id;
-      let post_list: Vec<ApubPost> = blocking(data.1.pool(), move |conn| {
-        Post::list_for_community(conn, community_id)
-      })
-      .await??
-      .into_iter()
-      .map(Into::into)
-      .collect();
+      let post_list: Vec<ApubPost> = Post::list_for_community(data.1.pool(), community_id)
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect();
       Ok(Some(ApubCommunityOutbox(post_list)))
     } else {
       Ok(None)

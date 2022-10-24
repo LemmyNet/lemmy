@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{GetUnreadCount, GetUnreadCountResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_db_views_actor::structs::{CommentReplyView, PersonMentionView};
@@ -25,20 +25,12 @@ impl Perform for GetUnreadCount {
 
     let person_id = local_user_view.person.id;
 
-    let replies = blocking(context.pool(), move |conn| {
-      CommentReplyView::get_unread_replies(conn, person_id)
-    })
-    .await??;
+    let replies = CommentReplyView::get_unread_replies(context.pool(), person_id).await?;
 
-    let mentions = blocking(context.pool(), move |conn| {
-      PersonMentionView::get_unread_mentions(conn, person_id)
-    })
-    .await??;
+    let mentions = PersonMentionView::get_unread_mentions(context.pool(), person_id).await?;
 
-    let private_messages = blocking(context.pool(), move |conn| {
-      PrivateMessageView::get_unread_messages(conn, person_id)
-    })
-    .await??;
+    let private_messages =
+      PrivateMessageView::get_unread_messages(context.pool(), person_id).await?;
 
     let res = Self::Response {
       replies,

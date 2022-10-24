@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{GetReplies, GetRepliesResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_views_actor::comment_reply_view::CommentReplyQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -29,20 +29,18 @@ impl Perform for GetReplies {
     let person_id = Some(local_user_view.person.id);
     let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
 
-    let replies = blocking(context.pool(), move |conn| {
-      CommentReplyQuery::builder()
-        .conn(conn)
-        .recipient_id(person_id)
-        .my_person_id(person_id)
-        .sort(sort)
-        .unread_only(unread_only)
-        .show_bot_accounts(show_bot_accounts)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list()
-    })
-    .await??;
+    let replies = CommentReplyQuery::builder()
+      .pool(context.pool())
+      .recipient_id(person_id)
+      .my_person_id(person_id)
+      .sort(sort)
+      .unread_only(unread_only)
+      .show_bot_accounts(show_bot_accounts)
+      .page(page)
+      .limit(limit)
+      .build()
+      .list()
+      .await?;
 
     Ok(GetRepliesResponse { replies })
   }

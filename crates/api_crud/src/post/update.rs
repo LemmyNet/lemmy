@@ -4,7 +4,6 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
@@ -44,7 +43,7 @@ impl PerformCrud for EditPost {
     let data: &EditPost = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let data_url = data.url.as_ref();
 
@@ -64,7 +63,7 @@ impl PerformCrud for EditPost {
     }
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -88,10 +87,12 @@ impl PerformCrud for EditPost {
       .unwrap_or_default();
 
     let language_id = self.language_id;
-    blocking(context.pool(), move |conn| {
-      CommunityLanguage::is_allowed_community_language(conn, language_id, orig_post.community_id)
-    })
-    .await??;
+    CommunityLanguage::is_allowed_community_language(
+      context.pool(),
+      language_id,
+      orig_post.community_id,
+    )
+    .await?;
 
     let post_form = PostUpdateForm::builder()
       .name(data.name.to_owned())
@@ -106,10 +107,7 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = blocking(context.pool(), move |conn| {
-      Post::update(conn, post_id, &post_form)
-    })
-    .await?;
+    let res = Post::update(context.pool(), post_id, &post_form).await;
     let updated_post: Post = match res {
       Ok(post) => post,
       Err(e) => {

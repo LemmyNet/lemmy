@@ -56,15 +56,8 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 pub(crate) mod tests {
   use actix::Actor;
   use anyhow::anyhow;
-  use diesel::{
-    r2d2::{ConnectionManager, Pool},
-    PgConnection,
-  };
   use lemmy_api_common::request::build_user_agent;
-  use lemmy_db_schema::{
-    source::secret::Secret,
-    utils::{establish_unpooled_connection, get_database_url_from_env},
-  };
+  use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{
     error::LemmyError,
     rate_limit::{rate_limiter::RateLimiter, RateLimit, RateLimitConfig},
@@ -92,9 +85,10 @@ pub(crate) mod tests {
   }
 
   // TODO: would be nice if we didnt have to use a full context for tests.
-  pub(crate) fn init_context() -> LemmyContext {
+  pub(crate) async fn init_context() -> LemmyContext {
     // call this to run migrations
-    establish_unpooled_connection();
+    let pool = build_db_pool_for_tests().await;
+
     let settings = SETTINGS.to_owned();
     let client = Client::builder()
       .user_agent(build_user_agent(&settings))
@@ -106,15 +100,6 @@ pub(crate) mod tests {
       id: 0,
       jwt_secret: "".to_string(),
     };
-    let db_url = match get_database_url_from_env() {
-      Ok(url) => url,
-      Err(_) => settings.get_database_url(),
-    };
-    let manager = ConnectionManager::<PgConnection>::new(&db_url);
-    let pool = Pool::builder()
-      .max_size(settings.database.pool_size)
-      .build(manager)
-      .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
     async fn x() -> Result<String, LemmyError> {
       Ok("".to_string())
     }

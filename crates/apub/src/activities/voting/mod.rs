@@ -1,4 +1,3 @@
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},
@@ -36,11 +35,8 @@ async fn vote_comment(
     score: vote_type.into(),
   };
   let person_id = actor.id;
-  blocking(context.pool(), move |conn| {
-    CommentLike::remove(conn, person_id, comment_id)?;
-    CommentLike::like(conn, &like_form)
-  })
-  .await??;
+  CommentLike::remove(context.pool(), person_id, comment_id).await?;
+  CommentLike::like(context.pool(), &like_form).await?;
 
   send_comment_ws_message_simple(comment_id, UserOperation::CreateCommentLike, context).await?;
   Ok(())
@@ -60,11 +56,8 @@ async fn vote_post(
     score: vote_type.into(),
   };
   let person_id = actor.id;
-  blocking(context.pool(), move |conn| {
-    PostLike::remove(conn, person_id, post_id)?;
-    PostLike::like(conn, &like_form)
-  })
-  .await??;
+  PostLike::remove(context.pool(), person_id, post_id).await?;
+  PostLike::like(context.pool(), &like_form).await?;
 
   send_post_ws_message(post.id, UserOperation::CreatePostLike, None, None, context).await?;
   Ok(())
@@ -78,10 +71,7 @@ async fn undo_vote_comment(
 ) -> Result<(), LemmyError> {
   let comment_id = comment.id;
   let person_id = actor.id;
-  blocking(context.pool(), move |conn| {
-    CommentLike::remove(conn, person_id, comment_id)
-  })
-  .await??;
+  CommentLike::remove(context.pool(), person_id, comment_id).await?;
 
   send_comment_ws_message_simple(comment_id, UserOperation::CreateCommentLike, context).await?;
   Ok(())
@@ -95,10 +85,7 @@ async fn undo_vote_post(
 ) -> Result<(), LemmyError> {
   let post_id = post.id;
   let person_id = actor.id;
-  blocking(context.pool(), move |conn| {
-    PostLike::remove(conn, person_id, post_id)
-  })
-  .await??;
+  PostLike::remove(context.pool(), person_id, post_id).await?;
 
   send_post_ws_message(post_id, UserOperation::CreatePostLike, None, None, context).await?;
   Ok(())

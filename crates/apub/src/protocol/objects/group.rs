@@ -19,7 +19,6 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::community::{CommunityInsertForm, CommunityUpdateForm},
@@ -75,7 +74,7 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     check_apub_id_valid_with_strictness(
       self.id.inner(),

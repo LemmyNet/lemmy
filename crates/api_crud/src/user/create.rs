@@ -4,7 +4,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, Register},
   utils::{
-    blocking,
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
@@ -49,7 +48,7 @@ impl PerformCrud for Register {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
 
     if !local_site.open_registration {
@@ -75,10 +74,9 @@ impl PerformCrud for Register {
     }
 
     // Check if there are admins. False if admins exist
-    let no_admins = blocking(context.pool(), move |conn| {
-      PersonViewSafe::admins(conn).map(|a| a.is_empty())
-    })
-    .await??;
+    let no_admins = PersonViewSafe::admins(context.pool())
+      .await
+      .map(|a| a.is_empty())?;
 
     // If its not the admin, check the captcha
     if !no_admins && local_site.captcha_enabled {
@@ -129,11 +127,9 @@ impl PerformCrud for Register {
       .build();
 
     // insert the person
-    let inserted_person = blocking(context.pool(), move |conn| {
-      Person::create(conn, &person_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+    let inserted_person = Person::create(context.pool(), &person_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     // Create the local user
     let local_user_form = LocalUserInsertForm::builder()
@@ -143,11 +139,7 @@ impl PerformCrud for Register {
       .show_nsfw(Some(data.show_nsfw))
       .build();
 
-    let inserted_local_user = match blocking(context.pool(), move |conn| {
-      LocalUser::create(conn, &local_user_form)
-    })
-    .await?
-    {
+    let inserted_local_user = match LocalUser::create(context.pool(), &local_user_form).await {
       Ok(lu) => lu,
       Err(e) => {
         let err_type = if e.to_string()
@@ -159,10 +151,7 @@ impl PerformCrud for Register {
         };
 
         // If the local user creation errored, then delete that person
-        blocking(context.pool(), move |conn| {
-          Person::delete(conn, inserted_person.id)
-        })
-        .await??;
+        Person::delete(context.pool(), inserted_person.id).await?;
 
         return Err(LemmyError::from_error_message(e, err_type));
       }
@@ -176,10 +165,7 @@ impl PerformCrud for Register {
         answer: data.answer.to_owned().expect("must have an answer"),
       };
 
-      blocking(context.pool(), move |conn| {
-        RegistrationApplication::create(conn, &form)
-      })
-      .await??;
+      RegistrationApplication::create(context.pool(), &form).await?;
     }
 
     // Email the admins

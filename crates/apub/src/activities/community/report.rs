@@ -12,7 +12,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FlagType;
-use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse, utils::blocking};
+use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse};
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
@@ -75,7 +75,7 @@ impl ActivityHandler for Report {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let community = self.to[0]
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -89,11 +89,11 @@ impl ActivityHandler for Report {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     match self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?
     {
       PostOrComment::Post(post) => {
@@ -106,15 +106,9 @@ impl ActivityHandler for Report {
           original_post_body: post.body.clone(),
         };
 
-        let report = blocking(context.pool(), move |conn| {
-          PostReport::report(conn, &report_form)
-        })
-        .await??;
+        let report = PostReport::report(context.pool(), &report_form).await?;
 
-        let post_report_view = blocking(context.pool(), move |conn| {
-          PostReportView::read(conn, report.id, actor.id)
-        })
-        .await??;
+        let post_report_view = PostReportView::read(context.pool(), report.id, actor.id).await?;
 
         context.chat_server().do_send(SendModRoomMessage {
           op: UserOperation::CreateCommentReport,
@@ -131,15 +125,10 @@ impl ActivityHandler for Report {
           reason: self.summary,
         };
 
-        let report = blocking(context.pool(), move |conn| {
-          CommentReport::report(conn, &report_form)
-        })
-        .await??;
+        let report = CommentReport::report(context.pool(), &report_form).await?;
 
-        let comment_report_view = blocking(context.pool(), move |conn| {
-          CommentReportView::read(conn, report.id, actor.id)
-        })
-        .await??;
+        let comment_report_view =
+          CommentReportView::read(context.pool(), report.id, actor.id).await?;
         let community_id = comment_report_view.community.id;
 
         context.chat_server().do_send(SendModRoomMessage {

@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   private_message::{GetPrivateMessages, PrivateMessagesResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQuery;
@@ -27,17 +27,15 @@ impl PerformCrud for GetPrivateMessages {
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let mut messages = blocking(context.pool(), move |conn| {
-      PrivateMessageQuery::builder()
-        .conn(conn)
-        .recipient_id(person_id)
-        .page(page)
-        .limit(limit)
-        .unread_only(unread_only)
-        .build()
-        .list()
-    })
-    .await??;
+    let mut messages = PrivateMessageQuery::builder()
+      .pool(context.pool())
+      .recipient_id(person_id)
+      .page(page)
+      .limit(limit)
+      .unread_only(unread_only)
+      .build()
+      .list()
+      .await?;
 
     // Blank out deleted or removed info
     for pmv in messages
