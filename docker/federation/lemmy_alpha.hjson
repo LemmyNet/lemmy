@@ -8,10 +8,10 @@
     site_name: lemmy-alpha
   }
   database: {
-    database: lemmy
+    database: lemmy_alpha
     user: lemmy
     password: password
-    host: postgres_alpha
+    host: localhost
     port: 5432
     pool_size: 5
   }
