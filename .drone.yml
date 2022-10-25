@@ -10,7 +10,7 @@ steps:
 
   # use minimum supported rust version for most steps
   - name: prepare repo
-    image: clux/muslrust:1.59.0
+    image: clux/muslrust:1.64.0
     user: root
     commands:
       - git fetch --tags
@@ -34,7 +34,7 @@ steps:
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: clux/muslrust:1.59.0
+    image: clux/muslrust:1.64.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -46,20 +46,20 @@ steps:
       - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
-    image: clux/muslrust:1.59.0
+    image: clux/muslrust:1.64.0
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: check with different features
-    image: clux/muslrust:1.59.0
+    image: clux/muslrust:1.64.0
     commands:
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
       - cargo workspaces exec cargo check --all-features
 
   - name: cargo build
-    image: clux/muslrust:1.59.0
+    image: clux/muslrust:1.64.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
