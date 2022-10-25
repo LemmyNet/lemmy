@@ -2,7 +2,6 @@ use crate::{
   check_apub_id_valid_with_strictness,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   fetch_local_site_data,
-  generate_domain_url,
   generate_moderators_url,
   generate_outbox_url,
   local_instance,
@@ -145,8 +144,11 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let domain = generate_domain_url(group.id.inner())?;
-    let instance = blocking(context.pool(), move |conn| Instance::create(conn, &domain)).await??;
+    let apub_id = group.id.inner().to_owned();
+    let instance = blocking(context.pool(), move |conn| {
+      Instance::create_from_actor_id(conn, &apub_id)
+    })
+    .await??;
 
     let form = Group::into_insert_form(group.clone(), instance.id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;

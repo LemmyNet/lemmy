@@ -21,7 +21,10 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
-use lemmy_api_common::{request::fetch_site_data, utils::blocking};
+use lemmy_api_common::{
+  request::fetch_site_data,
+  utils::{blocking, local_site_opt_to_slur_regex},
+};
 use lemmy_db_schema::{
   self,
   source::{
@@ -35,7 +38,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs, slur_regex},
+  utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -154,13 +157,7 @@ impl ApubObject for ApubPost {
     )?;
     verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
 
-    let slur_regex = &slur_regex(
-      local_site_data
-        .local_site
-        .as_ref()
-        .map(|l| l.slur_filter_regex.as_deref())
-        .unwrap_or(None),
-    );
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs(&page.name, slur_regex)?;
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
@@ -202,13 +199,8 @@ impl ApubObject for ApubPost {
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
         .unwrap_or_default();
-      let slur_regex = &slur_regex(
-        blocking(context.pool(), LocalSite::read)
-          .await?
-          .as_ref()
-          .map(|l| l.slur_filter_regex.as_deref())
-          .unwrap_or(None),
-      );
+      let local_site = blocking(context.pool(), LocalSite::read).await?.ok();
+      let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)

@@ -1,5 +1,6 @@
-use crate::{error::LemmyError, IpAddr};
+use crate::{error::LemmyError, location_info, IpAddr};
 use actix_web::dev::ConnectionInfo;
+use anyhow::Context;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
@@ -60,7 +61,7 @@ pub(crate) fn slur_check<'a>(
   }
 }
 
-pub fn slur_regex(regex_str: Option<&str>) -> Option<Regex> {
+pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
   regex_str.map(|slurs| {
     RegexBuilder::new(slurs)
       .case_insensitive(true)
@@ -199,6 +200,10 @@ pub fn clean_url_params(url: &Url) -> Url {
     url_out.set_query(Some(&new_query));
   }
   url_out
+}
+
+pub fn generate_domain_url(actor_id: &Url) -> Result<String, LemmyError> {
+  Ok(actor_id.host_str().context(location_info!())?.to_string())
 }
 
 #[cfg(test)]

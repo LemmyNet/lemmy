@@ -36,7 +36,7 @@ use lemmy_utils::{
   error::LemmyError,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
-  utils::{generate_random_string, slur_regex},
+  utils::{build_slur_regex, generate_random_string},
 };
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
@@ -463,7 +463,14 @@ pub fn local_site_rate_limit_to_rate_limit_config(
 }
 
 pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
-  slur_regex(local_site.slur_filter_regex.as_deref())
+  build_slur_regex(local_site.slur_filter_regex.as_deref())
+}
+
+pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Regex> {
+  local_site
+    .as_ref()
+    .map(local_site_to_slur_regex)
+    .unwrap_or(None)
 }
 
 pub fn send_application_approved_email(

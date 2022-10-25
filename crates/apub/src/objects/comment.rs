@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::{object::NoteType, public};
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::utils::{blocking, local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{convert_datetime, markdown_to_html, remove_slurs, slur_regex},
+  utils::{convert_datetime, markdown_to_html, remove_slurs},
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -190,14 +190,8 @@ impl ApubObject for ApubComment {
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let slur_regex = &slur_regex(
-      blocking(context.pool(), LocalSite::read)
-        .await?
-        .as_ref()
-        .map(|l| l.slur_filter_regex.as_deref())
-        .unwrap_or(None),
-    );
-
+    let local_site = blocking(context.pool(), LocalSite::read).await?.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content_slurs_removed = remove_slurs(&content, slur_regex);
     let language_id = LanguageTag::to_language_id_single(note.language, context.pool()).await?;
 

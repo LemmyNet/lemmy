@@ -7,14 +7,11 @@ use lemmy_api_common::{
   post::*,
   private_message::*,
   site::*,
+  utils::local_site_to_slur_regex,
   websocket::*,
 };
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_utils::{
-  error::LemmyError,
-  utils::{check_slurs, slur_regex},
-  ConnectionId,
-};
+use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
@@ -233,7 +230,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
 
 /// Check size of report and remove whitespace
 pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Result<(), LemmyError> {
-  let slur_regex = &slur_regex(local_site.slur_filter_regex.as_deref());
+  let slur_regex = &local_site_to_slur_regex(local_site);
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
