@@ -10,7 +10,7 @@ steps:
 
   # use minimum supported rust version for most steps
   - name: prepare repo
-    image: rust:1.64-buster
+    image: rustdocker/rust:nightly
     commands:
       - git fetch --tags
       - git submodule init
@@ -58,7 +58,7 @@ steps:
       - cargo workspaces exec cargo check --all-features
 
   - name: cargo build
-    image: rust:1.64-buster
+    image: clux/muslrust:1.64.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
