@@ -11,7 +11,6 @@ steps:
   # use minimum supported rust version for most steps
   - name: prepare repo
     image: rustdocker/rust:nightly
-    user: root
     commands:
       - git fetch --tags
       - git submodule init
@@ -35,13 +34,14 @@ steps:
 
   - name: cargo test
     image: clux/muslrust:1.64.0
+    user: root
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      - apt-get update
+      - apt-get update --allow-unauthenticated
       - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
       - cargo test --workspace --no-fail-fast --all-features
 
