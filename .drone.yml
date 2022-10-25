@@ -11,6 +11,7 @@ steps:
   # use minimum supported rust version for most steps
   - name: prepare repo
     image: clux/muslrust:1.64.0
+    custom_dns: [ 8.8.8.8 ]
     user: root
     commands:
       - git fetch --tags
