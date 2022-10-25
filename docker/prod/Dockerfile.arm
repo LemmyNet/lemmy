@@ -15,9 +15,6 @@ RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/
 
 RUN cargo build --release
 
-# reduce binary size
-RUN strip ./target/release/lemmy_server
-
 RUN cp ./target/release/lemmy_server /app/lemmy_server
 
 # The Debian runner
