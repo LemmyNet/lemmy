@@ -10,10 +10,8 @@ steps:
 
   # use minimum supported rust version for most steps
   - name: prepare repo
-    image: clux/muslrust:1.64.0
+    image: rustdocker/rust:nightly
     user: root
-    environment:
-      DOCKER_OPTS: --dns=8.8.8.8
     commands:
       - git fetch --tags
       - git submodule init
