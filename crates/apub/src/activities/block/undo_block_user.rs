@@ -7,6 +7,8 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
+  check_apub_id_valid,
+  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
@@ -90,6 +92,10 @@ impl ActivityHandler for UndoBlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    check_apub_id_valid(self.id(), &local_site_data, context.settings())
+      .map_err(LemmyError::from_message)?;
+
     verify_is_public(&self.to, &self.cc)?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
