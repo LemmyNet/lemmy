@@ -10,7 +10,7 @@ steps:
 
   # use minimum supported rust version for most steps
   - name: prepare repo
-    image: rustdocker/rust:nightly
+    image: clux/muslrust:1.64.0
     commands:
       - git fetch --tags
       - git submodule init
@@ -33,7 +33,7 @@ steps:
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: rust:1.64-buster
+    image: clux/muslrust:1.64.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -45,13 +45,13 @@ steps:
       - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
-    image: rust:1.64-buster
+    image: clux/muslrust:1.64.0
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: check with different features
-    image: rust:1.64-buster
+    image: clux/muslrust:1.64.0
     commands:
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
