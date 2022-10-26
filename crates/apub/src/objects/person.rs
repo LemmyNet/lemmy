@@ -1,7 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   fetch_local_site_data,
-  generate_domain_url,
   generate_outbox_url,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -20,6 +19,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
+use lemmy_api_common::utils::local_site_opt_to_slur_regex;
 use lemmy_db_schema::{
   source::{
     instance::Instance,
@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html, slur_regex},
+  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -120,13 +120,7 @@ impl ApubObject for ApubPerson {
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     let local_site_data = fetch_local_site_data(context.pool()).await?;
-    let slur_regex = &slur_regex(
-      local_site_data
-        .local_site
-        .as_ref()
-        .map(|l| l.slur_filter_regex.as_deref())
-        .unwrap_or(None),
-    );
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
@@ -150,9 +144,8 @@ impl ApubObject for ApubPerson {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
-    // TODO Maybe a better way to do this? Same for community and site from_apub
-    let domain = generate_domain_url(person.id.inner())?;
-    let instance = Instance::create(context.pool(), &domain).await?;
+    let apub_id = person.id.inner().to_owned();
+    let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,

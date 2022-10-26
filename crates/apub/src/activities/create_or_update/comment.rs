@@ -8,6 +8,8 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  check_apub_id_valid,
+  fetch_local_site_data,
   local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
@@ -111,6 +113,10 @@ impl ActivityHandler for CreateOrUpdateComment {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    check_apub_id_valid(self.id(), &local_site_data, context.settings())
+      .map_err(LemmyError::from_message)?;
+
     verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context, request_counter).await?.0;
     let community = self.get_community(context, request_counter).await?;

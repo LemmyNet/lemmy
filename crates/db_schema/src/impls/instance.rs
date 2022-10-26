@@ -6,6 +6,8 @@ use crate::{
 };
 use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use lemmy_utils::utils::generate_domain_url;
+use url::Url;
 
 impl Instance {
   async fn create_from_form_conn(
@@ -24,6 +26,10 @@ impl Instance {
   pub async fn create(pool: &DbPool, domain: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     Self::create_conn(conn, domain).await
+  }
+  pub async fn create_from_actor_id(pool: &DbPool, actor_id: &Url) -> Result<Self, Error> {
+    let domain = &generate_domain_url(actor_id).expect("actor id missing a domain");
+    Self::create(pool, domain).await
   }
   pub async fn create_conn(conn: &mut AsyncPgConnection, domain: &str) -> Result<Self, Error> {
     let form = InstanceForm {

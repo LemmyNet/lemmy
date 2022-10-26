@@ -1,6 +1,8 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public},
   activity_lists::AnnouncableActivities,
+  check_apub_id_valid,
+  fetch_local_site_data,
   insert_activity,
   objects::community::ApubCommunity,
   protocol::{
@@ -84,9 +86,13 @@ impl ActivityHandler for AnnounceActivity {
   #[tracing::instrument(skip_all)]
   async fn verify(
     &self,
-    _context: &Data<LemmyContext>,
+    context: &Data<LemmyContext>,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    check_apub_id_valid(self.id(), &local_site_data, context.settings())
+      .map_err(LemmyError::from_message)?;
+
     verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }

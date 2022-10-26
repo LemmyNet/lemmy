@@ -1,7 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   fetch_local_site_data,
-  generate_domain_url,
   local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
@@ -21,6 +20,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
+use lemmy_api_common::utils::local_site_opt_to_slur_regex;
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html, slur_regex},
+  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
 };
 use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
@@ -120,13 +120,7 @@ impl ApubObject for ApubSite {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, &local_site_data, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
-    let slur_regex = &slur_regex(
-      local_site_data
-        .local_site
-        .as_ref()
-        .map(|l| l.slur_filter_regex.as_deref())
-        .unwrap_or(None),
-    );
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
@@ -139,8 +133,8 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    let domain = generate_domain_url(apub.id.inner())?;
-    let instance = DbInstance::create(data.pool(), &domain).await?;
+    let apub_id = apub.id.inner().to_owned();
+    let instance = DbInstance::create_from_actor_id(data.pool(), &apub_id).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),

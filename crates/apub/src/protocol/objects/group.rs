@@ -19,6 +19,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
+use lemmy_api_common::utils::local_site_opt_to_slur_regex;
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::community::{CommunityInsertForm, CommunityUpdateForm},
@@ -26,7 +27,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, slur_regex},
+  utils::{check_slurs, check_slurs_opt},
 };
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -84,13 +85,7 @@ impl Group {
     )?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
-    let slur_regex = &slur_regex(
-      local_site_data
-        .local_site
-        .as_ref()
-        .map(|l| l.slur_filter_regex.as_deref())
-        .unwrap_or(None),
-    );
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&self.preferred_username, slur_regex)?;
     check_slurs_opt(&self.name, slur_regex)?;

@@ -241,10 +241,6 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
   Ok(Url::parse(&url)?.into())
 }
 
-pub fn generate_domain_url(actor_id: &Url) -> Result<String, LemmyError> {
-  Ok(actor_id.host_str().context(location_info!())?.to_string())
-}
-
 pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{}/outbox", actor_id))?.into())
 }

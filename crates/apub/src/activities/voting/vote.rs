@@ -6,6 +6,8 @@ use crate::{
     voting::{vote_comment, vote_post},
   },
   activity_lists::AnnouncableActivities,
+  check_apub_id_valid,
+  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::voting::vote::{Vote, VoteType},
@@ -76,6 +78,9 @@ impl ActivityHandler for Vote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    check_apub_id_valid(self.id(), &local_site_data, context.settings())
+      .map_err(LemmyError::from_message)?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     let enable_downvotes = LocalSite::read(context.pool())
