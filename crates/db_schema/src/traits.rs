@@ -2,15 +2,21 @@ use crate::newtypes::{CommunityId, DbUrl, PersonId};
 use diesel::{result::Error, PgConnection};
 
 pub trait Crud {
-  type Form;
+  type InsertForm;
+  type UpdateForm;
   type IdType;
-  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error>
+  fn create(conn: &mut PgConnection, form: &Self::InsertForm) -> Result<Self, Error>
   where
     Self: Sized;
   fn read(conn: &mut PgConnection, id: Self::IdType) -> Result<Self, Error>
   where
     Self: Sized;
-  fn update(conn: &mut PgConnection, id: Self::IdType, form: &Self::Form) -> Result<Self, Error>
+  /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
+  fn update(
+    conn: &mut PgConnection,
+    id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> Result<Self, Error>
   where
     Self: Sized;
   fn delete(_conn: &mut PgConnection, _id: Self::IdType) -> Result<usize, Error>

@@ -2,9 +2,10 @@ use crate::{newtypes::LocalUserId, source::registration_application::*, traits::
 use diesel::{insert_into, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 
 impl Crud for RegistrationApplication {
-  type Form = RegistrationApplicationForm;
+  type InsertForm = RegistrationApplicationInsertForm;
+  type UpdateForm = RegistrationApplicationUpdateForm;
   type IdType = i32;
-  fn create(conn: &mut PgConnection, form: &Self::Form) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::registration_application::dsl::*;
     insert_into(registration_application)
       .values(form)
@@ -16,7 +17,11 @@ impl Crud for RegistrationApplication {
     registration_application.find(id_).first::<Self>(conn)
   }
 
-  fn update(conn: &mut PgConnection, id_: Self::IdType, form: &Self::Form) -> Result<Self, Error> {
+  fn update(
+    conn: &mut PgConnection,
+    id_: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> Result<Self, Error> {
     use crate::schema::registration_application::dsl::*;
     diesel::update(registration_application.find(id_))
       .set(form)

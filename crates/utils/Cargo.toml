@@ -43,6 +43,7 @@ uuid = { version = "1.1.2", features = ["serde", "v4"] }
 html2text = "0.4.2"
 rosetta-i18n = "0.1.2"
 parking_lot = "0.12.1"
+typed-builder = "0.10.0"
 
 [build-dependencies]
 rosetta-build = "0.1.2"

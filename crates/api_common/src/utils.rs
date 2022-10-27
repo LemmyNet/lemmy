@@ -4,16 +4,18 @@ use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   source::{
-    comment::Comment,
-    community::Community,
+    comment::{Comment, CommentUpdateForm},
+    community::{Community, CommunityUpdateForm},
     email_verification::{EmailVerification, EmailVerificationForm},
+    instance::Instance,
+    local_site::LocalSite,
+    local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
-    person::Person,
+    person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
     registration_application::RegistrationApplication,
     secret::Secret,
-    site::Site,
   },
   traits::{Crud, Readable},
   utils::DbPool,
@@ -32,9 +34,11 @@ use lemmy_utils::{
   claims::Claims,
   email::{send_email, translations::Lang},
   error::LemmyError,
+  rate_limit::RateLimitConfig,
   settings::structs::Settings,
-  utils::generate_random_string,
+  utils::{build_slur_regex, generate_random_string},
 };
+use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
 use std::str::FromStr;
@@ -265,67 +269,38 @@ pub async fn check_person_block(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
-  if score == -1 {
-    let site = blocking(pool, Site::read_local).await??;
-    if !site.enable_downvotes {
-      return Err(LemmyError::from_message("downvotes_disabled"));
-    }
+pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
+  if score == -1 && !local_site.enable_downvotes {
+    return Err(LemmyError::from_message("downvotes_disabled"));
   }
   Ok(())
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn check_private_instance(
+pub fn check_private_instance(
   local_user_view: &Option<LocalUserView>,
-  pool: &DbPool,
+  local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
-  if local_user_view.is_none() {
-    let site = blocking(pool, Site::read_local).await?;
-
-    // The site might not be set up yet
-    if let Ok(site) = site {
-      if site.private_instance {
-        return Err(LemmyError::from_message("instance_is_private"));
-      }
-    }
+  if local_user_view.is_none() && local_site.private_instance {
+    return Err(LemmyError::from_message("instance_is_private"));
   }
   Ok(())
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
+  local_site: &LocalSite,
   pool: &DbPool,
-  settings: &Settings,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
-  let federation_config = &settings.federation;
-  let hostname = &settings.hostname;
-  let federation = federation_config.to_owned();
-  if federation.enabled {
-    let distinct_communities = blocking(pool, move |conn| {
-      Community::distinct_federated_communities(conn)
-    })
-    .await??;
+  if local_site.federation_enabled {
+    // TODO I hate that this requires 3 queries
+    let linked = blocking(pool, Instance::linked).await??;
+    let allowed = blocking(pool, Instance::allowlist).await??;
+    let blocked = blocking(pool, Instance::blocklist).await??;
 
-    let allowed = federation.allowed_instances;
-    let blocked = federation.blocked_instances;
-
-    let mut linked = distinct_communities
-      .iter()
-      .map(|actor_id| Ok(actor_id.host_str().unwrap_or("").to_string()))
-      .collect::<Result<Vec<String>, LemmyError>>()?;
-
-    if let Some(allowed) = allowed.as_ref() {
-      linked.extend_from_slice(allowed);
-    }
-
-    if let Some(blocked) = blocked.as_ref() {
-      linked.retain(|a| !blocked.contains(a) && !a.eq(hostname));
-    }
-
-    // Sort and remove dupes
-    linked.sort_unstable();
-    linked.dedup();
+    // These can return empty vectors, so convert them to options
+    let allowed = (!allowed.is_empty()).then(|| allowed);
+    let blocked = (!blocked.is_empty()).then(|| blocked);
 
     Ok(Some(FederatedInstances {
       linked,
@@ -467,6 +442,37 @@ fn lang_str_to_lang(lang: &str) -> Lang {
   })
 }
 
+pub fn local_site_rate_limit_to_rate_limit_config(
+  local_site_rate_limit: &LocalSiteRateLimit,
+) -> RateLimitConfig {
+  let l = local_site_rate_limit;
+  RateLimitConfig {
+    message: l.message,
+    message_per_second: l.message_per_second,
+    post: l.post,
+    post_per_second: l.post_per_second,
+    register: l.register,
+    register_per_second: l.register_per_second,
+    image: l.image,
+    image_per_second: l.image_per_second,
+    comment: l.comment,
+    comment_per_second: l.comment_per_second,
+    search: l.search,
+    search_per_second: l.search_per_second,
+  }
+}
+
+pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
+  build_slur_regex(local_site.slur_filter_regex.as_deref())
+}
+
+pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Regex> {
+  local_site
+    .as_ref()
+    .map(local_site_to_slur_regex)
+    .unwrap_or(None)
+}
+
 pub fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
@@ -506,11 +512,11 @@ pub async fn send_new_applicant_email_to_admins(
 }
 
 pub async fn check_registration_application(
-  site: &Site,
   local_user_view: &LocalUserView,
+  local_site: &LocalSite,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  if site.require_application
+  if local_site.require_application
     && !local_user_view.local_user.accepted_application
     && !local_user_view.person.admin
   {
@@ -531,19 +537,13 @@ pub async fn check_registration_application(
   Ok(())
 }
 
-/// TODO this check should be removed after https://github.com/LemmyNet/lemmy/issues/868 is done.
-pub async fn check_private_instance_and_federation_enabled(
-  pool: &DbPool,
-  settings: &Settings,
+pub fn check_private_instance_and_federation_enabled(
+  local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
-  let site_opt = blocking(pool, Site::read_local).await?;
-
-  if let Ok(site) = site_opt {
-    if site.private_instance && settings.federation.enabled {
-      return Err(LemmyError::from_message(
-        "Cannot have both private instance and federation enabled.",
-      ));
-    }
+  if local_site.private_instance && local_site.federation_enabled {
+    return Err(LemmyError::from_message(
+      "Cannot have both private instance and federation enabled.",
+    ));
   }
   Ok(())
 }
@@ -627,7 +627,14 @@ pub async fn remove_user_data(
 
   // Update the fields to None
   blocking(pool, move |conn| {
-    Person::remove_avatar_and_banner(conn, banned_person_id)
+    Person::update(
+      conn,
+      banned_person_id,
+      &PersonUpdateForm::builder()
+        .avatar(Some(None))
+        .banner(Some(None))
+        .build(),
+    )
   })
   .await??;
 
@@ -656,8 +663,12 @@ pub async fn remove_user_data(
 
   for first_mod_community in banned_user_first_communities {
     let community_id = first_mod_community.community.id;
-    blocking(pool, move |conn: &mut _| {
-      Community::update_removed(conn, community_id, true)
+    blocking(pool, move |conn| {
+      Community::update(
+        conn,
+        community_id,
+        &CommunityUpdateForm::builder().removed(Some(true)).build(),
+      )
     })
     .await??;
 
@@ -672,7 +683,14 @@ pub async fn remove_user_data(
     }
     // Update the fields to None
     blocking(pool, move |conn| {
-      Community::remove_avatar_and_banner(conn, community_id)
+      Community::update(
+        conn,
+        community_id,
+        &CommunityUpdateForm::builder()
+          .icon(Some(None))
+          .banner(Some(None))
+          .build(),
+      )
     })
     .await??;
   }
@@ -713,7 +731,11 @@ pub async fn remove_user_data_in_community(
   for comment_view in &comments {
     let comment_id = comment_view.comment.id;
     blocking(pool, move |conn| {
-      Comment::update_removed(conn, comment_id, true)
+      Comment::update(
+        conn,
+        comment_id,
+        &CommentUpdateForm::builder().removed(Some(true)).build(),
+      )
     })
     .await??;
   }
@@ -761,15 +783,11 @@ pub async fn delete_user_account(
   Ok(())
 }
 
-pub async fn listing_type_with_site_default(
+pub fn listing_type_with_site_default(
   listing_type: Option<ListingType>,
-  pool: &DbPool,
+  local_site: &LocalSite,
 ) -> Result<ListingType, LemmyError> {
-  Ok(match listing_type {
-    Some(l) => l,
-    None => {
-      let site = blocking(pool, Site::read_local).await??;
-      ListingType::from_str(&site.default_post_listing_type)?
-    }
-  })
+  Ok(listing_type.unwrap_or(ListingType::from_str(
+    &local_site.default_post_listing_type,
+  )?))
 }

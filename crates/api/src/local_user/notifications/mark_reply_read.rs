@@ -4,7 +4,10 @@ use lemmy_api_common::{
   person::{CommentReplyResponse, MarkCommentReplyAsRead},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::{source::comment_reply::CommentReply, traits::Crud};
+use lemmy_db_schema::{
+  source::comment_reply::{CommentReply, CommentReplyUpdateForm},
+  traits::Crud,
+};
 use lemmy_db_views_actor::structs::CommentReplyView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -34,11 +37,12 @@ impl Perform for MarkCommentReplyAsRead {
     }
 
     let comment_reply_id = read_comment_reply.id;
-    let read = data.read;
-    let update_reply = move |conn: &mut _| CommentReply::update_read(conn, comment_reply_id, read);
-    blocking(context.pool(), update_reply)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    let read = Some(data.read);
+    blocking(context.pool(), move |conn| {
+      CommentReply::update(conn, comment_reply_id, &CommentReplyUpdateForm { read })
+    })
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let comment_reply_id = read_comment_reply.id;
     let person_id = local_user_view.person.id;

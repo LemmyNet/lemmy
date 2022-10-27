@@ -61,16 +61,11 @@ impl LocalUserLanguage {
 
 impl SiteLanguage {
   pub fn read_local(conn: &mut PgConnection) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::{site, site_language::dsl::*};
-    // TODO: remove this subquery once site.local column is added
-    let subquery = crate::schema::site::dsl::site
-      .order_by(site::id)
-      .select(site::id)
-      .limit(1)
-      .into_boxed();
-    site_language
-      .filter(site_id.eq_any(subquery))
-      .select(language_id)
+    use crate::schema::{local_site, site, site_language};
+    site::table
+      .inner_join(local_site::table)
+      .inner_join(site_language::table)
+      .select(site_language::language_id)
       .load(conn)
   }
 
@@ -264,10 +259,12 @@ mod tests {
   use crate::{
     impls::actor_language::*,
     source::{
-      community::{Community, CommunityForm},
-      local_user::{LocalUser, LocalUserForm},
-      person::{Person, PersonForm},
-      site::{Site, SiteForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      local_site::{LocalSite, LocalSiteInsertForm},
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+      site::{Site, SiteInsertForm},
     },
     traits::Crud,
     utils::establish_unpooled_connection,
@@ -288,12 +285,20 @@ mod tests {
     ]
   }
 
-  fn create_test_site(conn: &mut PgConnection) -> Site {
-    let site_form = SiteForm {
-      name: "test site".to_string(),
-      ..Default::default()
-    };
-    Site::create(conn, &site_form).unwrap()
+  fn create_test_site(conn: &mut PgConnection) -> (Site, Instance) {
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let site_form = SiteInsertForm::builder()
+      .name("test site".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let site = Site::create(conn, &site_form).unwrap();
+
+    // Create a local site, since this is necessary for local languages
+    let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
+    LocalSite::create(conn, &local_site_form).unwrap();
+
+    (site, inserted_instance)
   }
 
   #[test]
@@ -332,7 +337,7 @@ mod tests {
   fn test_site_languages() {
     let conn = &mut establish_unpooled_connection();
 
-    let site = create_test_site(conn);
+    let (site, instance) = create_test_site(conn);
     let site_languages1 = SiteLanguage::read_local(conn).unwrap();
     // site is created with all languages
     assert_eq!(184, site_languages1.len());
@@ -345,6 +350,8 @@ mod tests {
     assert_eq!(test_langs, site_languages2);
 
     Site::delete(conn, site.id).unwrap();
+    Instance::delete(conn, instance.id).unwrap();
+    LocalSite::delete(conn).unwrap();
   }
 
   #[test]
@@ -352,21 +359,21 @@ mod tests {
   fn test_user_languages() {
     let conn = &mut establish_unpooled_connection();
 
-    let site = create_test_site(conn);
+    let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);
     SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
 
-    let person_form = PersonForm {
-      name: "my test person".to_string(),
-      public_key: Some("pubkey".to_string()),
-      ..Default::default()
-    };
+    let person_form = PersonInsertForm::builder()
+      .name("my test person".to_string())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
     let person = Person::create(conn, &person_form).unwrap();
-    let local_user_form = LocalUserForm {
-      person_id: Some(person.id),
-      password_encrypted: Some("my_pw".to_string()),
-      ..Default::default()
-    };
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(person.id)
+      .password_encrypted("my_pw".to_string())
+      .build();
+
     let local_user = LocalUser::create(conn, &local_user_form).unwrap();
     let local_user_langs1 = LocalUserLanguage::read(conn, local_user.id).unwrap();
 
@@ -382,24 +389,34 @@ mod tests {
     Person::delete(conn, person.id).unwrap();
     LocalUser::delete(conn, local_user.id).unwrap();
     Site::delete(conn, site.id).unwrap();
+    LocalSite::delete(conn).unwrap();
+    Instance::delete(conn, instance.id).unwrap();
   }
 
   #[test]
   #[serial]
   fn test_community_languages() {
     let conn = &mut establish_unpooled_connection();
-    let site = create_test_site(conn);
+    let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);
     SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
 
-    let community_form = CommunityForm {
-      name: "test community".to_string(),
-      title: "test community".to_string(),
-      public_key: Some("pubkey".to_string()),
-      ..Default::default()
-    };
+    let read_site_langs = SiteLanguage::read(conn, site.id).unwrap();
+    assert_eq!(test_langs, read_site_langs);
+
+    // Test the local ones are the same
+    let read_local_site_langs = SiteLanguage::read_local(conn).unwrap();
+    assert_eq!(test_langs, read_local_site_langs);
+
+    let community_form = CommunityInsertForm::builder()
+      .name("test community".to_string())
+      .title("test community".to_string())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
     let community = Community::create(conn, &community_form).unwrap();
     let community_langs1 = CommunityLanguage::read(conn, community.id).unwrap();
+
     // community is initialized with site languages
     assert_eq!(test_langs, community_langs1);
 
@@ -423,37 +440,39 @@ mod tests {
     let community_langs3 = CommunityLanguage::read(conn, community.id).unwrap();
     assert_eq!(test_langs2, community_langs3);
 
-    Site::delete(conn, site.id).unwrap();
     Community::delete(conn, community.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
+    LocalSite::delete(conn).unwrap();
+    Instance::delete(conn, instance.id).unwrap();
   }
 
   #[test]
   #[serial]
   fn test_default_post_language() {
     let conn = &mut establish_unpooled_connection();
+    let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);
     let test_langs2 = test_langs2(conn);
 
-    let community_form = CommunityForm {
-      name: "test community".to_string(),
-      title: "test community".to_string(),
-      public_key: Some("pubkey".to_string()),
-      ..Default::default()
-    };
+    let community_form = CommunityInsertForm::builder()
+      .name("test community".to_string())
+      .title("test community".to_string())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
     let community = Community::create(conn, &community_form).unwrap();
     CommunityLanguage::update(conn, test_langs, community.id).unwrap();
 
-    let person_form = PersonForm {
-      name: "my test person".to_string(),
-      public_key: Some("pubkey".to_string()),
-      ..Default::default()
-    };
+    let person_form = PersonInsertForm::builder()
+      .name("my test person".to_string())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
     let person = Person::create(conn, &person_form).unwrap();
-    let local_user_form = LocalUserForm {
-      person_id: Some(person.id),
-      password_encrypted: Some("my_pw".to_string()),
-      ..Default::default()
-    };
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(person.id)
+      .password_encrypted("my_pw".to_string())
+      .build();
     let local_user = LocalUser::create(conn, &local_user_form).unwrap();
     LocalUserLanguage::update(conn, test_langs2, local_user.id).unwrap();
 
@@ -476,5 +495,8 @@ mod tests {
     Person::delete(conn, person.id).unwrap();
     Community::delete(conn, community.id).unwrap();
     LocalUser::delete(conn, local_user.id).unwrap();
+    Site::delete(conn, site.id).unwrap();
+    LocalSite::delete(conn).unwrap();
+    Instance::delete(conn, instance.id).unwrap();
   }
 }

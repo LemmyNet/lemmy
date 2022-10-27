@@ -2,17 +2,18 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::{blocking, get_local_user_view_from_jwt, local_site_to_slur_regex},
 };
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   newtypes::{LanguageId, PersonId},
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
-    community::{Community, CommunityForm},
+    community::{Community, CommunityUpdateForm},
+    local_site::LocalSite,
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
@@ -31,13 +32,15 @@ impl PerformCrud for EditCommunity {
     let data: &EditCommunity = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
     let description = diesel_option_overwrite(&data.description);
 
-    check_slurs_opt(&data.title, &context.settings().slur_regex())?;
-    check_slurs_opt(&data.description, &context.settings().slur_regex())?;
+    let slur_regex = local_site_to_slur_regex(&local_site);
+    check_slurs_opt(&data.title, &slur_regex)?;
+    check_slurs_opt(&data.description, &slur_regex)?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
@@ -66,22 +69,14 @@ impl PerformCrud for EditCommunity {
       .await??;
     }
 
-    let read_community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
-
-    let community_form = CommunityForm {
-      name: read_community.name,
-      title: data.title.to_owned().unwrap_or(read_community.title),
-      description,
-      icon,
-      banner,
-      nsfw: data.nsfw,
-      posting_restricted_to_mods: data.posting_restricted_to_mods,
-      updated: Some(naive_now()),
-      ..CommunityForm::default()
-    };
+    let community_form = CommunityUpdateForm::builder()
+      .title(data.title.to_owned())
+      .description(description)
+      .icon(icon)
+      .banner(banner)
+      .nsfw(data.nsfw)
+      .posting_restricted_to_mods(data.posting_restricted_to_mods)
+      .build();
 
     let community_id = data.community_id;
     let updated_community = blocking(context.pool(), move |conn| {

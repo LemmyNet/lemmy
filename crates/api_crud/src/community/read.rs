@@ -10,7 +10,12 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
-  source::{actor_language::CommunityLanguage, community::Community, site::Site},
+  source::{
+    actor_language::CommunityLanguage,
+    community::Community,
+    local_site::LocalSite,
+    site::Site,
+  },
   traits::DeleteableOrRemoveable,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
@@ -31,12 +36,13 @@ impl PerformCrud for GetCommunity {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     if data.name.is_none() && data.id.is_none() {
       return Err(LemmyError::from_message("no_id_given"));
     }
 
-    check_private_instance(&local_user_view, context.pool()).await?;
+    check_private_instance(&local_user_view, &local_site)?;
 
     let person_id = local_user_view.as_ref().map(|u| u.person.id);
 

@@ -9,6 +9,8 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  check_apub_id_valid,
+  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
@@ -33,7 +35,7 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
     },
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::Person,
+    person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud, Followable},
 };
@@ -123,6 +125,10 @@ impl ActivityHandler for BlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    check_apub_id_valid(self.id(), &local_site_data, context.settings())
+      .map_err(LemmyError::from_message)?;
+
     verify_is_public(&self.to, &self.cc)?;
     match self
       .target
@@ -177,7 +183,14 @@ impl ActivityHandler for BlockUser {
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = blocking(context.pool(), move |conn| {
-          Person::ban_person(conn, blocked_person.id, true, expires)
+          Person::update(
+            conn,
+            blocked_person.id,
+            &PersonUpdateForm::builder()
+              .banned(Some(true))
+              .ban_expires(Some(expires))
+              .build(),
+          )
         })
         .await??;
         if self.remove_data.unwrap_or(false) {

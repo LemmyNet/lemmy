@@ -6,7 +6,11 @@ use lemmy_api_common::{
 };
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
-  source::{comment::Comment, community::Community, post::Post},
+  source::{
+    comment::{Comment, CommentUpdateForm},
+    community::Community,
+    post::Post,
+  },
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
@@ -57,7 +61,11 @@ impl PerformCrud for DeleteComment {
     // Do the delete
     let deleted = data.deleted;
     let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update_deleted(conn, comment_id, deleted)
+      Comment::update(
+        conn,
+        comment_id,
+        &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;

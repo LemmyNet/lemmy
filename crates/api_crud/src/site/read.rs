@@ -1,8 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  person::Register,
-  site::{CreateSite, GetSite, GetSiteResponse, MyUserInfo},
+  site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{blocking, build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language};
@@ -16,56 +15,20 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{error::LemmyError, version, ConnectionId};
 use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
-use tracing::info;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {
   type Response = GetSiteResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
+  #[tracing::instrument(skip(context, _websocket_id))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
-    let site_view = match blocking(context.pool(), SiteView::read_local).await? {
-      Ok(site_view) => Some(site_view),
-      // If the site isn't created yet, check the setup
-      Err(_) => {
-        if let Some(setup) = context.settings().setup.as_ref() {
-          let register = Register {
-            username: setup.admin_username.to_owned(),
-            email: setup.admin_email.clone().map(|s| s.into()),
-            password: setup.admin_password.clone().into(),
-            password_verify: setup.admin_password.clone().into(),
-            show_nsfw: true,
-            captcha_uuid: None,
-            captcha_answer: None,
-            honeypot: None,
-            answer: None,
-          };
-          let admin_jwt = register
-            .perform(context, websocket_id)
-            .await?
-            .jwt
-            .expect("jwt is returned from registration on newly created site");
-          info!("Admin {} created", setup.admin_username);
-
-          let create_site = CreateSite {
-            name: setup.site_name.to_owned(),
-            auth: admin_jwt,
-            ..CreateSite::default()
-          };
-          create_site.perform(context, websocket_id).await?;
-          info!("Site {} created", setup.site_name);
-          Some(blocking(context.pool(), SiteView::read_local).await??)
-        } else {
-          None
-        }
-      }
-    };
+    let site_view = blocking(context.pool(), SiteView::read_local).await??;
 
     let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
 
@@ -130,7 +93,8 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances = build_federated_instances(context.pool(), context.settings()).await?;
+    let federated_instances =
+      build_federated_instances(&site_view.local_site, context.pool()).await?;
 
     let all_languages = blocking(context.pool(), Language::read_all).await??;
     let discussion_languages = blocking(context.pool(), SiteLanguage::read_local).await??;

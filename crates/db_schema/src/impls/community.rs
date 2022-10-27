@@ -6,16 +6,17 @@ use crate::{
       Community,
       CommunityFollower,
       CommunityFollowerForm,
-      CommunityForm,
+      CommunityInsertForm,
       CommunityModerator,
       CommunityModeratorForm,
       CommunityPersonBan,
       CommunityPersonBanForm,
       CommunitySafe,
+      CommunityUpdateForm,
     },
   },
   traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
-  utils::{functions::lower, naive_now},
+  utils::functions::lower,
   SubscribedType,
 };
 use diesel::{
@@ -47,6 +48,7 @@ mod safe_type {
     banner,
     hidden,
     posting_restricted_to_mods,
+    instance_id,
   );
 
   impl ToSafe for Community {
@@ -68,13 +70,15 @@ mod safe_type {
         banner,
         hidden,
         posting_restricted_to_mods,
+        instance_id,
       )
     }
   }
 }
 
 impl Crud for Community {
-  type Form = CommunityForm;
+  type InsertForm = CommunityInsertForm;
+  type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
   fn read(conn: &mut PgConnection, community_id: CommunityId) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
@@ -86,10 +90,13 @@ impl Crud for Community {
     diesel::delete(community.find(community_id)).execute(conn)
   }
 
-  fn create(conn: &mut PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     let community_ = insert_into(community)
-      .values(new_community)
+      .values(form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(form)
       .get_result::<Self>(conn)?;
 
     let site_languages = SiteLanguage::read_local(conn);
@@ -107,66 +114,11 @@ impl Crud for Community {
   fn update(
     conn: &mut PgConnection,
     community_id: CommunityId,
-    new_community: &CommunityForm,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     diesel::update(community.find(community_id))
-      .set(new_community)
-      .get_result::<Self>(conn)
-  }
-}
-
-impl Community {
-  pub fn update_deleted(
-    conn: &mut PgConnection,
-    community_id: CommunityId,
-    new_deleted: bool,
-  ) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    diesel::update(community.find(community_id))
-      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_removed(
-    conn: &mut PgConnection,
-    community_id: CommunityId,
-    new_removed: bool,
-  ) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    diesel::update(community.find(community_id))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn distinct_federated_communities(conn: &mut PgConnection) -> Result<Vec<DbUrl>, Error> {
-    use crate::schema::community::dsl::*;
-    community.select(actor_id).distinct().load::<DbUrl>(conn)
-  }
-
-  pub fn upsert(
-    conn: &mut PgConnection,
-    community_form: &CommunityForm,
-  ) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    insert_into(community)
-      .values(community_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(community_form)
-      .get_result::<Self>(conn)
-  }
-
-  pub fn remove_avatar_and_banner(
-    conn: &mut PgConnection,
-    community_id: CommunityId,
-  ) -> Result<Self, Error> {
-    use crate::schema::community::dsl::*;
-    diesel::update(community.find(community_id))
-      .set((
-        icon.eq::<Option<String>>(None),
-        banner.eq::<Option<String>>(None),
-      ))
+      .set(form)
       .get_result::<Self>(conn)
   }
 }
@@ -384,7 +336,7 @@ impl ApubActor for Community {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{community::*, person::*},
+    source::{community::*, instance::Instance, person::*},
     traits::{Bannable, Crud, Followable, Joinable},
     utils::establish_unpooled_connection,
   };
@@ -395,20 +347,22 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "bobbee".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("bobbee".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let new_community = CommunityForm {
-      name: "TIL".into(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("TIL".into())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
@@ -434,6 +388,7 @@ mod tests {
       shared_inbox_url: None,
       hidden: false,
       posting_restricted_to_mods: false,
+      instance_id: inserted_instance.id,
     };
 
     let community_follower_form = CommunityFollowerForm {
@@ -486,12 +441,19 @@ mod tests {
     };
 
     let read_community = Community::read(conn, inserted_community.id).unwrap();
-    let updated_community = Community::update(conn, inserted_community.id, &new_community).unwrap();
+
+    let update_community_form = CommunityUpdateForm::builder()
+      .title(Some("nada".to_owned()))
+      .build();
+    let updated_community =
+      Community::update(conn, inserted_community.id, &update_community_form).unwrap();
+
     let ignored_community = CommunityFollower::unfollow(conn, &community_follower_form).unwrap();
     let left_community = CommunityModerator::leave(conn, &community_moderator_form).unwrap();
     let unban = CommunityPersonBan::unban(conn, &community_person_ban_form).unwrap();
     let num_deleted = Community::delete(conn, inserted_community.id).unwrap();
     Person::delete(conn, inserted_person.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, inserted_community);

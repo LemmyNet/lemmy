@@ -5,7 +5,10 @@ use lemmy_api_common::{
   utils::{blocking, get_local_user_view_from_jwt},
 };
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{
+  source::community::{Community, CommunityUpdateForm},
+  traits::Crud,
+};
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
@@ -40,7 +43,13 @@ impl PerformCrud for DeleteCommunity {
     let community_id = data.community_id;
     let deleted = data.deleted;
     let updated_community = blocking(context.pool(), move |conn| {
-      Community::update_deleted(conn, community_id, deleted)
+      Community::update(
+        conn,
+        community_id,
+        &CommunityUpdateForm::builder()
+          .deleted(Some(deleted))
+          .build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;

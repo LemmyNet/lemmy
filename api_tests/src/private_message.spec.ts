@@ -9,7 +9,7 @@ import {
   listPrivateMessages,
   deletePrivateMessage,
   unfollowRemotes,
-} from './shared';
+} from "./shared";
 
 let recipient_id: number;
 
@@ -23,7 +23,7 @@ afterAll(async () => {
   await unfollowRemotes(alpha);
 });
 
-test('Create a private message', async () => {
+test("Create a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   expect(pmRes.private_message_view.private_message.content).toBeDefined();
   expect(pmRes.private_message_view.private_message.local).toBe(true);
@@ -37,8 +37,8 @@ test('Create a private message', async () => {
   expect(betaPms.private_messages[0].recipient.local).toBe(true);
 });
 
-test('Update a private message', async () => {
-  let updatedContent = 'A jest test federated private message edited';
+test("Update a private message", async () => {
+  let updatedContent = "A jest test federated private message edited";
 
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let pmUpdated = await editPrivateMessage(
@@ -55,7 +55,7 @@ test('Update a private message', async () => {
   );
 });
 
-test('Delete a private message', async () => {
+test("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await listPrivateMessages(beta);
   let deletedPmRes = await deletePrivateMessage(

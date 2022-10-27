@@ -5,7 +5,7 @@ use lemmy_api_common::{
   person::{Login, LoginResponse},
   utils::{blocking, check_registration_application, check_user_valid},
 };
-use lemmy_db_schema::source::site::Site;
+use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -21,6 +21,8 @@ impl Perform for Login {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
+
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
@@ -45,12 +47,11 @@ impl Perform for Login {
       local_user_view.person.deleted,
     )?;
 
-    let site = blocking(context.pool(), Site::read_local).await??;
-    if site.require_email_verification && !local_user_view.local_user.email_verified {
+    if local_site.require_email_verification && !local_user_view.local_user.email_verified {
       return Err(LemmyError::from_message("email_not_verified"));
     }
 
-    check_registration_application(&site, &local_user_view, context.pool()).await?;
+    check_registration_application(&local_user_view, &local_site, context.pool()).await?;
 
     // Return the jwt
     Ok(LoginResponse {

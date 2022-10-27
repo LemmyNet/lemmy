@@ -11,7 +11,10 @@ use lemmy_api_common::{
 };
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
-  source::{community::Community, post::Post},
+  source::{
+    community::Community,
+    post::{Post, PostUpdateForm},
+  },
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -56,7 +59,11 @@ impl PerformCrud for DeletePost {
     let post_id = data.post_id;
     let deleted = data.deleted;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_deleted(conn, post_id, deleted)
+      Post::update(
+        conn,
+        post_id,
+        &PostUpdateForm::builder().deleted(Some(deleted)).build(),
+      )
     })
     .await??;
 

@@ -17,7 +17,7 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   source::{
     moderator::{ModStickyPost, ModStickyPostForm},
-    post::Post,
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
@@ -61,7 +61,11 @@ impl Perform for StickyPost {
     let post_id = data.post_id;
     let stickied = data.stickied;
     let updated_post: ApubPost = blocking(context.pool(), move |conn| {
-      Post::update_stickied(conn, post_id, stickied)
+      Post::update(
+        conn,
+        post_id,
+        &PostUpdateForm::builder().stickied(Some(stickied)).build(),
+      )
     })
     .await??
     .into();

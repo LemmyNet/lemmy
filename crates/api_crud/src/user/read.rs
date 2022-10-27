@@ -5,7 +5,10 @@ use lemmy_api_common::{
   utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
-use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
+use lemmy_db_schema::{
+  source::{local_site::LocalSite, person::Person},
+  utils::post_to_comment_sort_type,
+};
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -31,7 +34,9 @@ impl PerformCrud for GetPersonDetails {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    check_private_instance(&local_user_view, context.pool()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
+
+    check_private_instance(&local_user_view, &local_site)?;
 
     let person_details_id = match data.person_id {
       Some(id) => id,

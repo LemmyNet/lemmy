@@ -2005,6 +2005,7 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "percent-encoding",
+ "regex",
  "reqwest",
  "reqwest-middleware",
  "rosetta-i18n",
@@ -2096,6 +2097,7 @@ dependencies = [
  "sha2",
  "strum",
  "strum_macros",
+ "typed-builder",
  "url",
 ]
 
@@ -2110,6 +2112,7 @@ dependencies = [
  "serial_test",
  "tracing",
  "typed-builder",
+ "url",
 ]
 
 [[package]]
@@ -2227,6 +2230,7 @@ dependencies = [
  "strum_macros",
  "tracing",
  "tracing-error",
+ "typed-builder",
  "url",
  "uuid 1.1.2",
 ]

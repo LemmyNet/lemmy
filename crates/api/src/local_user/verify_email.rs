@@ -7,7 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     email_verification::EmailVerification,
-    local_user::{LocalUser, LocalUserForm},
+    local_user::{LocalUser, LocalUserUpdateForm},
   },
   traits::Crud,
 };
@@ -31,13 +31,12 @@ impl Perform for VerifyEmail {
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "token_not_found"))?;
 
-    let form = LocalUserForm {
+    let form = LocalUserUpdateForm::builder()
       // necessary in case this is a new signup
-      email_verified: Some(true),
+      .email_verified(Some(true))
       // necessary in case email of an existing user was changed
-      email: Some(Some(verification.email)),
-      ..LocalUserForm::default()
-    };
+      .email(Some(Some(verification.email)))
+      .build();
     let local_user_id = verification.local_user_id;
     blocking(context.pool(), move |conn| {
       LocalUser::update(conn, local_user_id, &form)

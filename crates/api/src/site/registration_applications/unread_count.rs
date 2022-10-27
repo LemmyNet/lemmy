@@ -4,7 +4,7 @@ use lemmy_api_common::{
   site::{GetUnreadRegistrationApplicationCount, GetUnreadRegistrationApplicationCountResponse},
   utils::{blocking, get_local_user_view_from_jwt, is_admin},
 };
-use lemmy_db_schema::source::site::Site;
+use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::RegistrationApplicationView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -21,13 +21,12 @@ impl Perform for GetUnreadRegistrationApplicationCount {
     let data = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     // Only let admins do this
     is_admin(&local_user_view)?;
 
-    let verified_email_only = blocking(context.pool(), Site::read_local)
-      .await??
-      .require_email_verification;
+    let verified_email_only = local_site.require_email_verification;
 
     let registration_applications = blocking(context.pool(), move |conn| {
       RegistrationApplicationView::get_unread_count(conn, verified_email_only)

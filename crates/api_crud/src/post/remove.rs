@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     moderator::{ModRemovePost, ModRemovePostForm},
-    post::Post,
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
@@ -52,7 +52,11 @@ impl PerformCrud for RemovePost {
     let post_id = data.post_id;
     let removed = data.removed;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_removed(conn, post_id, removed)
+      Post::update(
+        conn,
+        post_id,
+        &PostUpdateForm::builder().removed(Some(removed)).build(),
+      )
     })
     .await??;
 

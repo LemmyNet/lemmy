@@ -14,76 +14,13 @@
     # Maximum number of active sql connections
     pool_size: 5
   }
-  # rate limits for various user actions, by user ip
-  rate_limit: {
-    # Maximum number of messages created in interval
-    message: 180
-    # Interval length for message limit, in seconds
-    message_per_second: 60
-    # Maximum number of posts created in interval
-    post: 6
-    # Interval length for post limit, in seconds
-    post_per_second: 600
-    # Maximum number of registrations in interval
-    register: 3
-    # Interval length for registration limit, in seconds
-    register_per_second: 3600
-    # Maximum number of image uploads in interval
-    image: 6
-    # Interval length for image uploads, in seconds
-    image_per_second: 3600
-    # Maximum number of comments created in interval
-    comment: 6
-    # Interval length for comment limit, in seconds
-    comment_per_second: 600
-    search: 60
-    # Interval length for search limit, in seconds
-    search_per_second: 600
-  }
   # Settings related to activitypub federation
-  federation: {
-    # Whether to enable activitypub federation.
-    enabled: false
-    # Allows and blocks are described here:
-    # https://join-lemmy.org/docs/en/administration/federation_getting_started.html
-    # 
-    # list of instances with which federation is allowed
-    allowed_instances: [
-      instance1.tld
-      instance2.tld
-      /* ... */
-    ]
-    # Instances which we never federate anything with (but previously federated objects are unaffected)
-    blocked_instances: [
-      string
-      /* ... */
-    ]
-    # If true, only federate with instances on the allowlist and block everything else. If false
-    # use allowlist only for remote communities, and posts/comments in local communities
-    # (meaning remote communities will show content from arbitrary instances).
-    strict_allowlist: true
-    # Maximum number of HTTP requests allowed to handle a single incoming activity (or a single object fetch through the search).
-    http_fetch_retry_limit: 25
-    # Number of workers for sending outgoing activities. Search logs for Activity queue stats to
-    # see information. If running number is consistently close to the worker_count, you should
-    # increase it.
-    worker_count: 64
-    # Use federation debug mode. Allows connecting to http and localhost urls. Also sends outgoing
-    # activities synchronously for easier testing. Do not use in production.
-    debug: false
-  }
   # Pictrs image server configuration.
   pictrs: {
     # Address where pictrs is available (for image hosting)
     url: "http://pictrs:8080/"
     # Set a custom pictrs API key. ( Required for deleting images )
     api_key: "string"
-  }
-  captcha: {
-    # Whether captcha is required for signup
-    enabled: false
-    # Can be easy, medium, or hard
-    difficulty: "medium"
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {
@@ -117,8 +54,4 @@
   port: 8536
   # Whether the site is available over TLS. Needs to be true for federation to work.
   tls_enabled: true
-  # A regex list of slurs to block / hide
-  slur_filter: "(\bThis\b)|(\bis\b)|(\bsample\b)"
-  # Maximum length of local community and user names
-  actor_name_max_length: 20
 }

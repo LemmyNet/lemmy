@@ -20,7 +20,10 @@ use lemmy_apub::{
   },
 };
 use lemmy_db_schema::{
-  source::post::{Post, PostLike, PostLikeForm},
+  source::{
+    local_site::LocalSite,
+    post::{Post, PostLike, PostLikeForm},
+  },
   traits::{Crud, Likeable},
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -39,9 +42,10 @@ impl Perform for CreatePostLike {
     let data: &CreatePostLike = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     // Don't do a downvote if site has downvotes disabled
-    check_downvotes_enabled(data.score, context.pool()).await?;
+    check_downvotes_enabled(data.score, &local_site)?;
 
     // Check for a community ban
     let post_id = data.post_id;

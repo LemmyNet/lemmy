@@ -2,13 +2,20 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   private_message::{EditPrivateMessage, PrivateMessageResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::{blocking, get_local_user_view_from_jwt, local_site_to_slur_regex},
 };
 use lemmy_apub::protocol::activities::{
   create_or_update::private_message::CreateOrUpdatePrivateMessage,
   CreateOrUpdateType,
 };
-use lemmy_db_schema::{source::private_message::PrivateMessage, traits::Crud};
+use lemmy_db_schema::{
+  source::{
+    local_site::LocalSite,
+    private_message::{PrivateMessage, PrivateMessageUpdateForm},
+  },
+  traits::Crud,
+  utils::naive_now,
+};
 use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
@@ -25,6 +32,7 @@ impl PerformCrud for EditPrivateMessage {
     let data: &EditPrivateMessage = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     // Checking permissions
     let private_message_id = data.private_message_id;
@@ -37,10 +45,17 @@ impl PerformCrud for EditPrivateMessage {
     }
 
     // Doing the update
-    let content_slurs_removed = remove_slurs(&data.content, &context.settings().slur_regex());
+    let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
     let private_message_id = data.private_message_id;
     let updated_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
+      PrivateMessage::update(
+        conn,
+        private_message_id,
+        &PrivateMessageUpdateForm::builder()
+          .content(Some(content_slurs_removed))
+          .updated(Some(Some(naive_now())))
+          .build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;

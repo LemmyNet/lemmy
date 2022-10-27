@@ -457,8 +457,9 @@ mod tests {
       actor_language::LocalUserLanguage,
       community::*,
       community_block::{CommunityBlock, CommunityBlockForm},
+      instance::Instance,
       language::Language,
-      local_user::{LocalUser, LocalUserForm},
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::*,
       person_block::{PersonBlock, PersonBlockForm},
       post::*,
@@ -471,6 +472,7 @@ mod tests {
   use serial_test::serial;
 
   struct Data {
+    inserted_instance: Instance,
     inserted_person: Person,
     inserted_local_user: LocalUser,
     inserted_blocked_person: Person,
@@ -480,57 +482,57 @@ mod tests {
   }
 
   fn init_data(conn: &mut PgConnection) -> Data {
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
     let person_name = "tegan".to_string();
 
-    let new_person = PersonForm {
-      name: person_name.to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person = PersonInsertForm::builder()
+      .name(person_name.to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let local_user_form = LocalUserForm {
-      person_id: Some(inserted_person.id),
-      password_encrypted: Some("".to_string()),
-      ..Default::default()
-    };
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted("".to_string())
+      .build();
     let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
 
-    let new_bot = PersonForm {
-      name: "mybot".to_string(),
-      bot_account: Some(true),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_bot = PersonInsertForm::builder()
+      .name("mybot".to_string())
+      .bot_account(Some(true))
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_bot = Person::create(conn, &new_bot).unwrap();
 
-    let new_community = CommunityForm {
-      name: "test_community_3".to_string(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("test_community_3".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
     // Test a person block, make sure the post query doesn't include their post
-    let blocked_person = PersonForm {
-      name: person_name,
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let blocked_person = PersonInsertForm::builder()
+      .name(person_name)
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_blocked_person = Person::create(conn, &blocked_person).unwrap();
 
-    let post_from_blocked_person = PostForm {
-      name: "blocked_person_post".to_string(),
-      creator_id: inserted_blocked_person.id,
-      community_id: inserted_community.id,
-      language_id: Some(LanguageId(1)),
-      ..PostForm::default()
-    };
+    let post_from_blocked_person = PostInsertForm::builder()
+      .name("blocked_person_post".to_string())
+      .creator_id(inserted_blocked_person.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(1)))
+      .build();
 
     Post::create(conn, &post_from_blocked_person).unwrap();
 
@@ -543,26 +545,25 @@ mod tests {
     PersonBlock::block(conn, &person_block).unwrap();
 
     // A sample post
-    let new_post = PostForm {
-      name: "test post 3".to_string(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
-      language_id: Some(LanguageId(47)),
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("test post 3".to_string())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(47)))
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
-    let new_bot_post = PostForm {
-      name: "test bot post".to_string(),
-      creator_id: inserted_bot.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_bot_post = PostInsertForm::builder()
+      .name("test bot post".to_string())
+      .creator_id(inserted_bot.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let _inserted_bot_post = Post::create(conn, &new_bot_post).unwrap();
 
     Data {
+      inserted_instance,
       inserted_person,
       inserted_local_user,
       inserted_blocked_person,
@@ -578,10 +579,9 @@ mod tests {
     let conn = &mut establish_unpooled_connection();
     let data = init_data(conn);
 
-    let local_user_form = LocalUserForm {
-      show_bot_accounts: Some(false),
-      ..Default::default()
-    };
+    let local_user_form = LocalUserUpdateForm::builder()
+      .show_bot_accounts(Some(false))
+      .build();
     let inserted_local_user =
       LocalUser::update(conn, data.inserted_local_user.id, &local_user_form).unwrap();
 
@@ -609,10 +609,9 @@ mod tests {
       post_listing_single_with_person
     );
 
-    let local_user_form = LocalUserForm {
-      show_bot_accounts: Some(true),
-      ..Default::default()
-    };
+    let local_user_form = LocalUserUpdateForm::builder()
+      .show_bot_accounts(Some(true))
+      .build();
     let inserted_local_user =
       LocalUser::update(conn, data.inserted_local_user.id, &local_user_form).unwrap();
 
@@ -727,13 +726,12 @@ mod tests {
     let data = init_data(conn);
 
     let spanish_id = Language::read_id_from_code(conn, "es").unwrap();
-    let post_spanish = PostForm {
-      name: "asffgdsc".to_string(),
-      creator_id: data.inserted_person.id,
-      community_id: data.inserted_community.id,
-      language_id: Some(spanish_id),
-      ..PostForm::default()
-    };
+    let post_spanish = PostInsertForm::builder()
+      .name("asffgdsc".to_string())
+      .creator_id(data.inserted_person.id)
+      .community_id(data.inserted_community.id)
+      .language_id(Some(spanish_id))
+      .build();
 
     Post::create(conn, &post_spanish).unwrap();
 
@@ -795,6 +793,7 @@ mod tests {
     Person::delete(conn, data.inserted_person.id).unwrap();
     Person::delete(conn, data.inserted_bot.id).unwrap();
     Person::delete(conn, data.inserted_blocked_person.id).unwrap();
+    Instance::delete(conn, data.inserted_instance.id).unwrap();
     assert_eq!(1, num_deleted);
   }
 
@@ -850,6 +849,7 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
+        instance_id: data.inserted_instance.id,
       },
       creator_banned_from_community: false,
       community: CommunitySafe {
@@ -868,6 +868,7 @@ mod tests {
         hidden: false,
         posting_restricted_to_mods: false,
         published: inserted_community.published,
+        instance_id: data.inserted_instance.id,
       },
       counts: PostAggregates {
         id: agg.id,

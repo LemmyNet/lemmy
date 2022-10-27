@@ -1,15 +1,14 @@
-use crate::{
-  settings::SETTINGS,
-  utils::{
-    is_valid_actor_name,
-    is_valid_display_name,
-    is_valid_matrix_id,
-    is_valid_post_title,
-    remove_slurs,
-    scrape_text_for_mentions,
-    slur_check,
-    slurs_vec_to_str,
-  },
+use regex::RegexBuilder;
+
+use crate::utils::{
+  is_valid_actor_name,
+  is_valid_display_name,
+  is_valid_matrix_id,
+  is_valid_post_title,
+  remove_slurs,
+  scrape_text_for_mentions,
+  slur_check,
+  slurs_vec_to_str,
 };
 
 #[test]
@@ -24,7 +23,7 @@ fn test_mentions_regex() {
 
 #[test]
 fn test_valid_actor_name() {
-  let actor_name_max_length = SETTINGS.actor_name_max_length;
+  let actor_name_max_length = 20;
   assert!(is_valid_actor_name("Hello_98", actor_name_max_length));
   assert!(is_valid_actor_name("ten", actor_name_max_length));
   assert!(!is_valid_actor_name("Hello-98", actor_name_max_length));
@@ -34,7 +33,7 @@ fn test_valid_actor_name() {
 
 #[test]
 fn test_valid_display_name() {
-  let actor_name_max_length = SETTINGS.actor_name_max_length;
+  let actor_name_max_length = 20;
   assert!(is_valid_display_name("hello @there", actor_name_max_length));
   assert!(!is_valid_display_name(
     "@hello there",
@@ -65,7 +64,7 @@ fn test_valid_matrix_id() {
 
 #[test]
 fn test_slur_filter() {
-  let slur_regex = SETTINGS.slur_regex();
+  let slur_regex = Some(RegexBuilder::new(r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap());
   let test =
       "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
   let slur_free = "No slurs here";

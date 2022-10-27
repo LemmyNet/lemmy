@@ -7,6 +7,8 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  check_apub_id_valid,
+  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::update::UpdateCommunity,
@@ -19,10 +21,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::{
-  source::community::{Community, CommunityForm},
-  traits::Crud,
-};
+use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
@@ -72,6 +71,9 @@ impl ActivityHandler for UpdateCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    check_apub_id_valid(self.id(), &local_site_data, context.settings())
+      .map_err(LemmyError::from_message)?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
@@ -101,19 +103,10 @@ impl ActivityHandler for UpdateCommunity {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
 
-    let updated_community = self.object.into_form();
-    let cf = CommunityForm {
-      name: updated_community.name,
-      title: updated_community.title,
-      description: updated_community.description,
-      nsfw: updated_community.nsfw,
-      // TODO: icon and banner would be hosted on the other instance, ideally we would copy it to ours
-      icon: updated_community.icon,
-      banner: updated_community.banner,
-      ..CommunityForm::default()
-    };
+    let community_update_form = self.object.into_update_form();
+
     let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(conn, community.id, &cf)
+      Community::update(conn, community.id, &community_update_form)
     })
     .await??;
 

@@ -14,12 +14,21 @@ pub struct Activity {
   pub sensitive: Option<bool>,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable)]
 #[diesel(table_name = activity)]
-pub struct ActivityForm {
+pub struct ActivityInsertForm {
   pub data: Value,
   pub local: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub ap_id: DbUrl,
-  pub sensitive: bool,
+  pub sensitive: Option<bool>,
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = activity)]
+pub struct ActivityUpdateForm {
+  pub data: Option<Value>,
+  pub local: Option<bool>,
+  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub sensitive: Option<Option<bool>>,
 }

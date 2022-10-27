@@ -19,8 +19,14 @@ pub struct CommentReply {
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_reply))]
-pub struct CommentReplyForm {
+pub struct CommentReplyInsertForm {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,
+  pub read: Option<bool>,
+}
+
+#[cfg_attr(feature = "full", derive(AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_reply))]
+pub struct CommentReplyUpdateForm {
   pub read: Option<bool>,
 }
