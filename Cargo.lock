@@ -8,7 +8,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "690ed975ab70b883b4f0776f60fd7f23a7484a49f4257e7672e64d0990e95771"
 dependencies = [
- "activitypub_federation_derive",
+ "activitypub_federation_derive 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -33,10 +33,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "activitypub_federation"
+version = "0.2.2"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify#3a96e3d85817af7b1db6d298f1a121402a86a5c6"
+dependencies = [
+ "activitypub_federation_derive 0.2.0 (git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify)",
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "background-jobs 0.13.0",
+ "base64",
+ "chrono",
+ "derive_builder 0.11.2",
+ "dyn-clone",
+ "http",
+ "http-signature-normalization-actix",
+ "http-signature-normalization-reqwest",
+ "itertools",
+ "once_cell",
+ "openssl",
+ "reqwest",
+ "reqwest-middleware",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "activitypub_federation_derive"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07520b54fc0f22ad30b90399b2a2689c6e5c113df0642ca3fa2f7ee823e54126"
+dependencies = [
+ "proc-macro2 1.0.43",
+ "quote 1.0.21",
+ "syn 1.0.100",
+]
+
+[[package]]
+name = "activitypub_federation_derive"
+version = "0.2.0"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify#3a96e3d85817af7b1db6d298f1a121402a86a5c6"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",
@@ -1220,6 +1260,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f94fa09c2aeea5b8839e414b7b841bf429fd25b9c522116ac97ee87856d88b2"
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1967,7 +2013,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api"
 version = "0.16.5"
 dependencies = [
- "activitypub_federation",
+ "activitypub_federation 0.2.2 (git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify)",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -2019,7 +2065,7 @@ dependencies = [
 name = "lemmy_api_crud"
 version = "0.16.5"
 dependencies = [
- "activitypub_federation",
+ "activitypub_federation 0.2.2 (git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify)",
  "actix-web",
  "async-trait",
  "bcrypt",
@@ -2041,7 +2087,7 @@ dependencies = [
 name = "lemmy_apub"
 version = "0.16.5"
 dependencies = [
- "activitypub_federation",
+ "activitypub_federation 0.2.2 (git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify)",
  "activitystreams-kinds",
  "actix",
  "actix-rt",
@@ -2081,7 +2127,7 @@ dependencies = [
 name = "lemmy_db_schema"
 version = "0.16.5"
 dependencies = [
- "activitypub_federation",
+ "activitypub_federation 0.2.2 (git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify)",
  "bcrypt",
  "chrono",
  "diesel",
@@ -2165,7 +2211,7 @@ dependencies = [
 name = "lemmy_server"
 version = "0.16.5"
 dependencies = [
- "activitypub_federation",
+ "activitypub_federation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix",
  "actix-web",
  "clokwerk",

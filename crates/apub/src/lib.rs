@@ -6,6 +6,7 @@ use activitypub_federation::{
   LocalInstance,
 };
 use anyhow::Context;
+use async_trait::async_trait;
 use diesel::PgConnection;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -16,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
-use url::{ParseError, Url};
+use url::{ParseError, Url};use activitypub_federation::UrlVerifier;
 
 pub mod activities;
 pub(crate) mod activity_lists;
@@ -62,6 +63,7 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
       // without the value getting captured.
       .http_signature_compat(true)
+        .verify_url_function(Box::new(VerifyUrlData { context: context.clone()} ))
       .build()
       .expect("configure federation");
     LocalInstance::new(
@@ -70,6 +72,19 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       settings,
     )
   })
+}
+
+#[derive(Clone)]
+struct VerifyUrlData {
+  context: LemmyContext
+}
+
+#[async_trait]
+impl UrlVerifier for  VerifyUrlData {
+  async fn verify(&self, url: &Url) -> Result<(), &'static str> {
+    let local_site_data = blocking(self.context.pool(), fetch_local_site_data).await.unwrap().unwrap();
+    check_apub_id_valid(url, &local_site_data, self.context.settings())
+  }
 }
 
 /// Checks if the ID is allowed for sending or receiving.
