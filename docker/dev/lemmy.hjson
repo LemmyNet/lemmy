@@ -13,6 +13,9 @@
     # name of the site (can be changed later)
     site_name: "lemmy-dev"
   }
+  database: {
+    host: postgres
+  }
 
   opentelemetry_url: "http://otel:4137"
 
