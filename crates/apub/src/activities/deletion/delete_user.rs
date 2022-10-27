@@ -13,7 +13,7 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::utils::delete_user_account;
+use lemmy_api_common::utils::{blocking, delete_user_account};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;

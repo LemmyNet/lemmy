@@ -11,7 +11,13 @@ rust-version = "1.57"
 [lib]
 doctest = false
 
+[profile.release]
+strip = "symbols"
+debug = 0
+lto = "thin"
+
 [profile.dev]
+strip = "symbols"
 debug = 0
 
 [features]
