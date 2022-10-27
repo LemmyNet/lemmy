@@ -13,7 +13,6 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::{activity::AnnounceType, public};
-use lemmy_api_common::utils::blocking;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use tracing::debug;
