@@ -16,7 +16,7 @@ lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"
 lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
 lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
 lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
-activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", branch = "async-verify" }
+activitypub_federation = "0.2.3"
 bcrypt = "0.13.0"
 serde_json = { version = "1.0.85", features = ["preserve_order"] }
 serde = { version = "1.0.145", features = ["derive"] }

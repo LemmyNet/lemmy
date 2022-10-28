@@ -49,7 +49,7 @@ lemmy_db_schema = { version = "=0.16.5", path = "./crates/db_schema" }
 lemmy_api_common = { version = "=0.16.5", path = "crates/api_common" }
 lemmy_websocket = { version = "=0.16.5", path = "./crates/websocket" }
 lemmy_routes = { version = "=0.16.5", path = "./crates/routes" }
-activitypub_federation = "0.2.0"
+activitypub_federation = "0.2.3"
 diesel = "2.0.0"
 diesel_migrations = "2.0.0"
 serde = { version = "1.0.145", features = ["derive"] }
