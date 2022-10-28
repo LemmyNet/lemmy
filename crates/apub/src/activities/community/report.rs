@@ -1,7 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
-  check_apub_id_valid,
-  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::report::Report,
@@ -76,10 +74,6 @@ impl ActivityHandler for Report {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
-    check_apub_id_valid(self.id(), &local_site_data, context.settings())
-      .map_err(LemmyError::from_message)?;
-
     let community = self.to[0]
       .dereference(context, local_instance(context).await, request_counter)
       .await?;

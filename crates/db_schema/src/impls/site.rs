@@ -31,7 +31,7 @@ impl Crud for Site {
       .await?;
 
     // initialize with all languages
-    SiteLanguage::update(pool, vec![], site_.id).await?;
+    SiteLanguage::update(pool, vec![], &site_).await?;
     Ok(site_)
   }
 

@@ -1,8 +1,8 @@
 use crate::{
   diesel::JoinOnDsl,
-  newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
+  newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
   schema::{local_site, site, site_language},
-  source::{actor_language::*, language::Language},
+  source::{actor_language::*, language::Language, site::Site},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, dsl::*, insert_into, result::Error, select, ExpressionMethods, QueryDsl};
@@ -96,9 +96,11 @@ impl SiteLanguage {
   pub async fn update(
     pool: &DbPool,
     language_ids: Vec<LanguageId>,
-    for_site_id: SiteId,
+    site: &Site,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
+    let for_site_id = site.id;
+    let instance_id = site.instance_id;
 
     conn
       .build_transaction()
@@ -123,7 +125,7 @@ impl SiteLanguage {
               .await?;
           }
 
-          CommunityLanguage::limit_languages(conn).await?;
+          CommunityLanguage::limit_languages(conn, instance_id).await?;
 
           Ok(())
         }) as _
@@ -165,7 +167,10 @@ impl CommunityLanguage {
   /// also part of site languages. This is because post/comment language is only checked against
   /// community language, and it shouldnt be possible to post content in languages which are not
   /// allowed by local site.
-  async fn limit_languages(conn: &mut AsyncPgConnection) -> Result<(), Error> {
+  async fn limit_languages(
+    conn: &mut AsyncPgConnection,
+    for_instance_id: InstanceId,
+  ) -> Result<(), Error> {
     use crate::schema::{
       community::dsl as c,
       community_language::dsl as cl,
@@ -174,7 +179,7 @@ impl CommunityLanguage {
     let community_languages: Vec<LanguageId> = cl::community_language
       .left_outer_join(sl::site_language.on(cl::language_id.eq(sl::language_id)))
       .inner_join(c::community)
-      .filter(c::local)
+      .filter(c::instance_id.eq(for_instance_id))
       .filter(sl::language_id.is_null())
       .select(cl::language_id)
       .get_results(conn)
@@ -401,7 +406,7 @@ mod tests {
     assert_eq!(184, site_languages1.len());
 
     let test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), site.id)
+    SiteLanguage::update(pool, test_langs.clone(), &site)
       .await
       .unwrap();
 
@@ -421,7 +426,7 @@ mod tests {
 
     let (site, instance) = create_test_site(pool).await;
     let test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), site.id)
+    SiteLanguage::update(pool, test_langs.clone(), &site)
       .await
       .unwrap();
 
@@ -463,7 +468,7 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
     let (site, instance) = create_test_site(pool).await;
     let test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), site.id)
+    SiteLanguage::update(pool, test_langs.clone(), &site)
       .await
       .unwrap();
 
@@ -499,7 +504,7 @@ mod tests {
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    SiteLanguage::update(pool, vec![test_langs[0], test_langs2[0]], site.id)
+    SiteLanguage::update(pool, vec![test_langs[0], test_langs2[0]], &site)
       .await
       .unwrap();
     let community_langs2 = CommunityLanguage::read(pool, community.id).await.unwrap();

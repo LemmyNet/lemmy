@@ -5,8 +5,6 @@ use crate::{
     verify_person,
     verify_person_in_community,
   },
-  check_apub_id_valid,
-  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
@@ -84,9 +82,6 @@ impl ActivityHandler for FollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
-    check_apub_id_valid(self.id(), &local_site_data, context.settings())
-      .map_err(LemmyError::from_message)?;
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object

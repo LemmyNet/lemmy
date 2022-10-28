@@ -4,8 +4,6 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
-  check_apub_id_valid,
-  fetch_local_site_data,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
@@ -56,9 +54,6 @@ impl ActivityHandler for Delete {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
-    check_apub_id_valid(self.id(), &local_site_data, context.settings())
-      .map_err(LemmyError::from_message)?;
     verify_delete_activity(self, self.summary.is_some(), context, request_counter).await?;
     Ok(())
   }

@@ -74,7 +74,8 @@ impl PerformCrud for EditSite {
 
     let site_id = local_site.site_id;
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      SiteLanguage::update(context.pool(), discussion_languages.clone(), site_id).await?;
+      let site = Site::read(context.pool(), site_id).await?;
+      SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
     }
 
     let name = data.name.to_owned();

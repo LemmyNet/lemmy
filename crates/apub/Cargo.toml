@@ -20,7 +20,7 @@ lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"
 lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
 lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
 lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
-activitypub_federation = "0.2.2"
+activitypub_federation = "0.2.3"
 diesel = "2.0.2"
 activitystreams-kinds = "0.2.1"
 chrono = { version = "0.4.22", features = ["serde"], default-features = false }

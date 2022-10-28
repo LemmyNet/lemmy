@@ -153,7 +153,7 @@ impl ApubObject for ApubSite {
     let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
 
     let site = Site::create(data.pool(), &site_form).await?;
-    SiteLanguage::update(data.pool(), languages, site.id).await?;
+    SiteLanguage::update(data.pool(), languages, &site).await?;
     Ok(site.into())
   }
 }
