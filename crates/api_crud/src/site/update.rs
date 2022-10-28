@@ -76,7 +76,8 @@ impl PerformCrud for EditSite {
     let site_id = local_site.site_id;
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       blocking(context.pool(), move |conn| {
-        SiteLanguage::update(conn, discussion_languages.clone(), site_id)
+        let site = Site::read(conn, site_id)?;
+        SiteLanguage::update(conn, discussion_languages.clone(), &site)
       })
       .await??;
     }
@@ -92,7 +93,7 @@ impl PerformCrud for EditSite {
       .build();
 
     blocking(context.pool(), move |conn| {
-      Site::update(conn, site_id, &site_form)
+      Site::update(conn, local_site.site_id, &site_form)
     })
     .await
     // Ignore errors for all these, so as to not throw errors if no update occurs

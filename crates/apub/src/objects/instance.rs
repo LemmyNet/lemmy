@@ -159,7 +159,7 @@ impl ApubObject for ApubSite {
 
     let site = blocking(data.pool(), move |conn| {
       let site = Site::create(conn, &site_form)?;
-      SiteLanguage::update(conn, languages, site.id)?;
+      SiteLanguage::update(conn, languages, &site)?;
       Ok::<Site, diesel::result::Error>(site)
     })
     .await??;

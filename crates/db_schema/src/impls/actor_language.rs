@@ -2,7 +2,7 @@ use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
   source::{actor_language::*, language::Language},
-};
+};use crate::source::site::Site;
 use diesel::{
   delete,
   dsl::*,
@@ -16,6 +16,7 @@ use diesel::{
 };
 use lemmy_utils::error::LemmyError;
 use once_cell::sync::OnceCell;
+use crate::newtypes::InstanceId;
 
 impl LocalUserLanguage {
   pub fn read(
@@ -81,17 +82,17 @@ impl SiteLanguage {
   pub fn update(
     conn: &mut PgConnection,
     language_ids: Vec<LanguageId>,
-    for_site_id: SiteId,
+    site: &Site,
   ) -> Result<(), Error> {
     conn.build_transaction().read_write().run(|conn| {
       use crate::schema::site_language::dsl::*;
       // Clear the current languages
-      delete(site_language.filter(site_id.eq(for_site_id))).execute(conn)?;
+      delete(site_language.filter(site_id.eq(site.id))).execute(conn)?;
 
       let lang_ids = convert_update_languages(conn, language_ids)?;
       for l in lang_ids {
         let form = SiteLanguageForm {
-          site_id: for_site_id,
+          site_id: site.id,
           language_id: l,
         };
         insert_into(site_language)
@@ -99,7 +100,7 @@ impl SiteLanguage {
           .get_result::<Self>(conn)?;
       }
 
-      CommunityLanguage::limit_languages(conn)?;
+      CommunityLanguage::limit_languages(conn, site.instance_id)?;
 
       Ok(())
     })
@@ -136,7 +137,7 @@ impl CommunityLanguage {
   /// also part of site languages. This is because post/comment language is only checked against
   /// community language, and it shouldnt be possible to post content in languages which are not
   /// allowed by local site.
-  fn limit_languages(conn: &mut PgConnection) -> Result<(), Error> {
+  fn limit_languages(conn: &mut PgConnection, for_instance_id: InstanceId) -> Result<(), Error> {
     use crate::schema::{
       community::dsl as c,
       community_language::dsl as cl,
@@ -145,7 +146,7 @@ impl CommunityLanguage {
     let community_languages: Vec<LanguageId> = cl::community_language
       .left_outer_join(sl::site_language.on(cl::language_id.eq(sl::language_id)))
       .inner_join(c::community)
-      .filter(c::local)
+      .filter(c::instance_id.eq(for_instance_id))
       .filter(sl::language_id.is_null())
       .select(cl::language_id)
       .get_results(conn)?;
@@ -343,7 +344,7 @@ mod tests {
     assert_eq!(184, site_languages1.len());
 
     let test_langs = test_langs1(conn);
-    SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
+    SiteLanguage::update(conn, test_langs.clone(), &site).unwrap();
 
     let site_languages2 = SiteLanguage::read_local(conn).unwrap();
     // after update, site only has new languages
@@ -361,7 +362,7 @@ mod tests {
 
     let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);
-    SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
+    SiteLanguage::update(conn, test_langs.clone(), &site).unwrap();
 
     let person_form = PersonInsertForm::builder()
       .name("my test person".to_string())
@@ -399,7 +400,7 @@ mod tests {
     let conn = &mut establish_unpooled_connection();
     let (site, instance) = create_test_site(conn);
     let test_langs = test_langs1(conn);
-    SiteLanguage::update(conn, test_langs.clone(), site.id).unwrap();
+    SiteLanguage::update(conn, test_langs.clone(), &site).unwrap();
 
     let read_site_langs = SiteLanguage::read(conn, site.id).unwrap();
     assert_eq!(test_langs, read_site_langs);
@@ -431,7 +432,7 @@ mod tests {
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    SiteLanguage::update(conn, vec![test_langs[0], test_langs2[0]], site.id).unwrap();
+    SiteLanguage::update(conn, vec![test_langs[0], test_langs2[0]], &site).unwrap();
     let community_langs2 = CommunityLanguage::read(conn, community.id).unwrap();
     assert_eq!(vec![test_langs[0]], community_langs2);
 
