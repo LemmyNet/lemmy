@@ -4,7 +4,10 @@ use lemmy_api_common::{
   person::{MarkPersonMentionAsRead, PersonMentionResponse},
   utils::{blocking, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::{source::person_mention::PersonMention, traits::Crud};
+use lemmy_db_schema::{
+  source::person_mention::{PersonMention, PersonMentionUpdateForm},
+  traits::Crud,
+};
 use lemmy_db_views_actor::structs::PersonMentionView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
@@ -34,12 +37,12 @@ impl Perform for MarkPersonMentionAsRead {
     }
 
     let person_mention_id = read_person_mention.id;
-    let read = data.read;
-    let update_mention =
-      move |conn: &mut _| PersonMention::update_read(conn, person_mention_id, read);
-    blocking(context.pool(), update_mention)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    let read = Some(data.read);
+    blocking(context.pool(), move |conn| {
+      PersonMention::update(conn, person_mention_id, &PersonMentionUpdateForm { read })
+    })
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;

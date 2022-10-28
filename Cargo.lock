@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "activitypub_federation"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "690ed975ab70b883b4f0776f60fd7f23a7484a49f4257e7672e64d0990e95771"
+checksum = "dd9ae511df7135c271dca3ef3751f5528891c965e47d8d7a70fed9d2f1e5b6b1"
 dependencies = [
  "activitypub_federation_derive",
  "actix-web",
@@ -16,6 +16,7 @@ dependencies = [
  "base64",
  "chrono",
  "derive_builder 0.11.2",
+ "dyn-clone",
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
@@ -1220,6 +1221,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f94fa09c2aeea5b8839e414b7b841bf429fd25b9c522116ac97ee87856d88b2"
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2005,6 +2012,7 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "percent-encoding",
+ "regex",
  "reqwest",
  "reqwest-middleware",
  "rosetta-i18n",
@@ -2096,6 +2104,7 @@ dependencies = [
  "sha2",
  "strum",
  "strum_macros",
+ "typed-builder",
  "url",
 ]
 
@@ -2110,6 +2119,7 @@ dependencies = [
  "serial_test",
  "tracing",
  "typed-builder",
+ "url",
 ]
 
 [[package]]
@@ -2227,6 +2237,7 @@ dependencies = [
  "strum_macros",
  "tracing",
  "tracing-error",
+ "typed-builder",
  "url",
  "uuid 1.1.2",
 ]

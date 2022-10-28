@@ -8,6 +8,7 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
+    local_site_to_slur_regex,
   },
 };
 use lemmy_apub::protocol::activities::{
@@ -17,10 +18,11 @@ use lemmy_apub::protocol::activities::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    post::{Post, PostForm},
+    local_site::LocalSite,
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, naive_now},
+  utils::diesel_option_overwrite,
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -42,6 +44,7 @@ impl PerformCrud for EditPost {
     let data: &EditPost = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let data_url = data.url.as_ref();
 
@@ -50,9 +53,9 @@ impl PerformCrud for EditPost {
     let url = Some(data_url.map(clean_url_params).map(Into::into));
     let body = diesel_option_overwrite(&data.body);
 
-    let slur_regex = &context.settings().slur_regex();
-    check_slurs_opt(&data.name, slur_regex)?;
-    check_slurs_opt(&data.body, slur_regex)?;
+    let slur_regex = local_site_to_slur_regex(&local_site);
+    check_slurs_opt(&data.name, &slur_regex)?;
+    check_slurs_opt(&data.body, &slur_regex)?;
 
     if let Some(name) = &data.name {
       if !is_valid_post_title(name) {
@@ -90,21 +93,17 @@ impl PerformCrud for EditPost {
     })
     .await??;
 
-    let post_form = PostForm {
-      creator_id: orig_post.creator_id.to_owned(),
-      community_id: orig_post.community_id,
-      name: data.name.to_owned().unwrap_or(orig_post.name),
-      url,
-      body,
-      nsfw: data.nsfw,
-      updated: Some(naive_now()),
-      embed_title,
-      embed_description,
-      embed_video_url,
-      language_id: data.language_id,
-      thumbnail_url: Some(thumbnail_url),
-      ..PostForm::default()
-    };
+    let post_form = PostUpdateForm::builder()
+      .name(data.name.to_owned())
+      .url(url)
+      .body(body)
+      .nsfw(data.nsfw)
+      .embed_title(embed_title)
+      .embed_description(embed_description)
+      .embed_video_url(embed_video_url)
+      .language_id(data.language_id)
+      .thumbnail_url(Some(thumbnail_url))
+      .build();
 
     let post_id = data.post_id;
     let res = blocking(context.pool(), move |conn| {

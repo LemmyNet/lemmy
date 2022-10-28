@@ -13,8 +13,8 @@ use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
-    community::Community,
+    comment::{Comment, CommentUpdateForm},
+    community::{Community, CommunityUpdateForm},
     moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -23,7 +23,7 @@ use lemmy_db_schema::{
       ModRemovePost,
       ModRemovePostForm,
     },
-    post::Post,
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
@@ -148,7 +148,11 @@ impl UndoDelete {
         })
         .await??;
         let deleted_community = blocking(context.pool(), move |conn| {
-          Community::update_removed(conn, community.id, false)
+          Community::update(
+            conn,
+            community.id,
+            &CommunityUpdateForm::builder().removed(Some(false)).build(),
+          )
         })
         .await??;
         send_community_ws_message(deleted_community.id, EditCommunity, None, None, context).await?;
@@ -165,7 +169,11 @@ impl UndoDelete {
         })
         .await??;
         let removed_post = blocking(context.pool(), move |conn| {
-          Post::update_removed(conn, post.id, false)
+          Post::update(
+            conn,
+            post.id,
+            &PostUpdateForm::builder().removed(Some(false)).build(),
+          )
         })
         .await??;
         send_post_ws_message(removed_post.id, EditPost, None, None, context).await?;
@@ -182,7 +190,11 @@ impl UndoDelete {
         })
         .await??;
         let removed_comment = blocking(context.pool(), move |conn| {
-          Comment::update_removed(conn, comment.id, false)
+          Comment::update(
+            conn,
+            comment.id,
+            &CommentUpdateForm::builder().removed(Some(false)).build(),
+          )
         })
         .await??;
         send_comment_ws_message_simple(removed_comment.id, EditComment, context).await?;

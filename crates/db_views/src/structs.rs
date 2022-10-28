@@ -5,6 +5,8 @@ use lemmy_db_schema::{
     comment_report::CommentReport,
     community::CommunitySafe,
     language::Language,
+    local_site::LocalSite,
+    local_site_rate_limit::LocalSiteRateLimit,
     local_user::{LocalUser, LocalUserSettings},
     person::{Person, PersonSafe},
     post::Post,
@@ -115,6 +117,8 @@ pub struct RegistrationApplicationView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SiteView {
   pub site: Site,
+  pub local_site: LocalSite,
+  pub local_site_rate_limit: LocalSiteRateLimit,
   pub counts: SiteAggregates,
 }
 

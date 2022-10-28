@@ -7,14 +7,15 @@ use diesel::{
 use serde_json::Value;
 
 impl Crud for Activity {
-  type Form = ActivityForm;
+  type InsertForm = ActivityInsertForm;
+  type UpdateForm = ActivityUpdateForm;
   type IdType = i32;
   fn read(conn: &mut PgConnection, activity_id: i32) -> Result<Self, Error> {
     use crate::schema::activity::dsl::*;
     activity.find(activity_id).first::<Self>(conn)
   }
 
-  fn create(conn: &mut PgConnection, new_activity: &ActivityForm) -> Result<Self, Error> {
+  fn create(conn: &mut PgConnection, new_activity: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::activity::dsl::*;
     insert_into(activity)
       .values(new_activity)
@@ -24,7 +25,7 @@ impl Crud for Activity {
   fn update(
     conn: &mut PgConnection,
     activity_id: i32,
-    new_activity: &ActivityForm,
+    new_activity: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     use crate::schema::activity::dsl::*;
     diesel::update(activity.find(activity_id))
@@ -39,14 +40,15 @@ impl Crud for Activity {
 
 impl Activity {
   /// Returns true if the insert was successful
+  // TODO this should probably just be changed to an upsert on_conflict, rather than an error
   pub fn insert(
     conn: &mut PgConnection,
     ap_id: DbUrl,
     data: Value,
     local: bool,
-    sensitive: bool,
+    sensitive: Option<bool>,
   ) -> Result<bool, Error> {
-    let activity_form = ActivityForm {
+    let activity_form = ActivityInsertForm {
       ap_id,
       data,
       local: Some(local),
@@ -81,8 +83,9 @@ mod tests {
   use crate::{
     newtypes::DbUrl,
     source::{
-      activity::{Activity, ActivityForm},
-      person::{Person, PersonForm},
+      activity::{Activity, ActivityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
     },
     utils::establish_unpooled_connection,
   };
@@ -95,11 +98,13 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let creator_form = PersonForm {
-      name: "activity_creator_pm".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let creator_form = PersonInsertForm::builder()
+      .name("activity_creator_ pm".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_creator = Person::create(conn, &creator_form).unwrap();
 
@@ -122,11 +127,11 @@ mod tests {
     }"#,
     )
     .unwrap();
-    let activity_form = ActivityForm {
+    let activity_form = ActivityInsertForm {
       ap_id: ap_id.clone(),
       data: test_json.to_owned(),
       local: Some(true),
-      sensitive: false,
+      sensitive: Some(false),
       updated: None,
     };
 

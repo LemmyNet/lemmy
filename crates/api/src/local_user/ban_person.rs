@@ -11,11 +11,11 @@ use lemmy_apub::{
 use lemmy_db_schema::{
   source::{
     moderator::{ModBan, ModBanForm},
-    person::Person,
-    site::Site,
+    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
 use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperation};
@@ -41,10 +41,18 @@ impl Perform for BanPerson {
     let banned_person_id = data.person_id;
     let expires = data.expires.map(naive_from_unix);
 
-    let ban_person = move |conn: &mut _| Person::ban_person(conn, banned_person_id, ban, expires);
-    let person = blocking(context.pool(), ban_person)
-      .await?
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    let person = blocking(context.pool(), move |conn| {
+      Person::update(
+        conn,
+        banned_person_id,
+        &PersonUpdateForm::builder()
+          .banned(Some(ban))
+          .ban_expires(Some(expires))
+          .build(),
+      )
+    })
+    .await?
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
@@ -75,7 +83,12 @@ impl Perform for BanPerson {
     })
     .await??;
 
-    let site = SiteOrCommunity::Site(blocking(context.pool(), Site::read_local).await??.into());
+    let site = SiteOrCommunity::Site(
+      blocking(context.pool(), SiteView::read_local)
+        .await??
+        .site
+        .into(),
+    );
     // if the action affects a local user, federate to other instances
     if person.local {
       if ban {

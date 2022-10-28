@@ -14,8 +14,8 @@ use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
-    comment::Comment,
-    community::Community,
+    comment::{Comment, CommentUpdateForm},
+    community::{Community, CommunityUpdateForm},
     moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
@@ -24,7 +24,7 @@ use lemmy_db_schema::{
       ModRemovePost,
       ModRemovePostForm,
     },
-    post::Post,
+    post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
@@ -150,7 +150,11 @@ pub(in crate::activities) async fn receive_remove_action(
       })
       .await??;
       let deleted_community = blocking(context.pool(), move |conn| {
-        Community::update_removed(conn, community.id, true)
+        Community::update(
+          conn,
+          community.id,
+          &CommunityUpdateForm::builder().removed(Some(true)).build(),
+        )
       })
       .await??;
 
@@ -168,7 +172,11 @@ pub(in crate::activities) async fn receive_remove_action(
       })
       .await??;
       let removed_post = blocking(context.pool(), move |conn| {
-        Post::update_removed(conn, post.id, true)
+        Post::update(
+          conn,
+          post.id,
+          &PostUpdateForm::builder().removed(Some(true)).build(),
+        )
       })
       .await??;
 
@@ -186,7 +194,11 @@ pub(in crate::activities) async fn receive_remove_action(
       })
       .await??;
       let removed_comment = blocking(context.pool(), move |conn| {
-        Comment::update_removed(conn, comment.id, true)
+        Comment::update(
+          conn,
+          comment.id,
+          &CommentUpdateForm::builder().removed(Some(true)).build(),
+        )
       })
       .await??;
 

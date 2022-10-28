@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
+use lemmy_utils::{error::LemmyError, location_info};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
@@ -16,13 +16,11 @@ struct Params {
   resource: String,
 }
 
-pub fn config(cfg: &mut web::ServiceConfig, settings: &Settings) {
-  if settings.federation.enabled {
-    cfg.route(
-      ".well-known/webfinger",
-      web::get().to(get_webfinger_response),
-    );
-  }
+pub fn config(cfg: &mut web::ServiceConfig) {
+  cfg.route(
+    ".well-known/webfinger",
+    web::get().to(get_webfinger_response),
+  );
 }
 
 /// Responds to webfinger requests of the following format. There isn't any real documentation for

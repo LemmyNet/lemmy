@@ -17,7 +17,7 @@ use anyhow::anyhow;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{community::Community, post::Post, site::Site},
+  source::{community::Community, local_site::LocalSite, post::Post},
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
@@ -83,8 +83,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    let site = blocking(context.pool(), Site::read_local).await??;
-    if self.kind == VoteType::Dislike && !site.enable_downvotes {
+    let enable_downvotes = blocking(context.pool(), LocalSite::read)
+      .await?
+      .map(|l| l.enable_downvotes)
+      .unwrap_or(true);
+    if self.kind == VoteType::Dislike && !enable_downvotes {
       return Err(anyhow!("Downvotes disabled").into());
     }
     Ok(())

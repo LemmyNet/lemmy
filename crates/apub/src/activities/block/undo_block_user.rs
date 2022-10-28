@@ -1,3 +1,23 @@
+use activitypub_federation::{
+  core::object_id::ObjectId,
+  data::Data,
+  traits::{ActivityHandler, Actor},
+  utils::verify_domains_match,
+};
+use activitystreams_kinds::{activity::UndoType, public};
+use lemmy_api_common::utils::blocking;
+use lemmy_db_schema::{
+  source::{
+    community::{CommunityPersonBan, CommunityPersonBanForm},
+    moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    person::{Person, PersonUpdateForm},
+  },
+  traits::{Bannable, Crud},
+};
+use lemmy_utils::error::LemmyError;
+use lemmy_websocket::LemmyContext;
+use url::Url;
+
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -12,25 +32,6 @@ use crate::{
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   ActorType,
 };
-use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
-  traits::{ActivityHandler, Actor},
-  utils::verify_domains_match,
-};
-use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::{
-  source::{
-    community::{CommunityPersonBan, CommunityPersonBanForm},
-    moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::Person,
-  },
-  traits::{Bannable, Crud},
-};
-use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
-use url::Url;
 
 impl UndoBlockUser {
   #[tracing::instrument(skip_all)]
@@ -121,7 +122,14 @@ impl ActivityHandler for UndoBlockUser {
     {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = blocking(context.pool(), move |conn| {
-          Person::ban_person(conn, blocked_person.id, false, expires)
+          Person::update(
+            conn,
+            blocked_person.id,
+            &PersonUpdateForm::builder()
+              .banned(Some(false))
+              .ban_expires(Some(expires))
+              .build(),
+          )
         })
         .await??;
 

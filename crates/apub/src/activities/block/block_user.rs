@@ -33,7 +33,7 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
     },
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::Person,
+    person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud, Followable},
 };
@@ -177,7 +177,14 @@ impl ActivityHandler for BlockUser {
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = blocking(context.pool(), move |conn| {
-          Person::ban_person(conn, blocked_person.id, true, expires)
+          Person::update(
+            conn,
+            blocked_person.id,
+            &PersonUpdateForm::builder()
+              .banned(Some(true))
+              .ban_expires(Some(expires))
+              .build(),
+          )
         })
         .await??;
         if self.remove_data.unwrap_or(false) {

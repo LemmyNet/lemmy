@@ -1,5 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
+  fetch_local_site_data,
   local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
@@ -19,12 +20,14 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::utils::{blocking, local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
-    site::{Site, SiteForm},
+    instance::Instance as DbInstance,
+    site::{Site, SiteInsertForm},
   },
+  traits::Crud,
   utils::{naive_now, DbPool},
 };
 use lemmy_utils::{
@@ -114,10 +117,13 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    check_apub_id_valid_with_strictness(apub.id.inner(), true, data.settings())?;
+    let local_site_data = blocking(data.pool(), fetch_local_site_data).await??;
+
+    check_apub_id_valid_with_strictness(apub.id.inner(), true, &local_site_data, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
-    let slur_regex = &data.settings().slur_regex();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
+
     check_slurs(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
     Ok(())
@@ -129,27 +135,30 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    let site_form = SiteForm {
+    let apub_id = apub.id.inner().to_owned();
+    let instance = blocking(data.pool(), move |conn| {
+      DbInstance::create_from_actor_id(conn, &apub_id)
+    })
+    .await??;
+
+    let site_form = SiteInsertForm {
       name: apub.name.clone(),
-      sidebar: Some(read_from_string_or_source_opt(
-        &apub.content,
-        &None,
-        &apub.source,
-      )),
+      sidebar: read_from_string_or_source_opt(&apub.content, &None, &apub.source),
       updated: apub.updated.map(|u| u.clone().naive_local()),
-      icon: Some(apub.icon.clone().map(|i| i.url.into())),
-      banner: Some(apub.image.clone().map(|i| i.url.into())),
-      description: Some(apub.summary.clone()),
+      icon: apub.icon.clone().map(|i| i.url.into()),
+      banner: apub.image.clone().map(|i| i.url.into()),
+      description: apub.summary.clone(),
       actor_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(apub.inbox.clone().into()),
       public_key: Some(apub.public_key.public_key_pem.clone()),
-      ..SiteForm::default()
+      private_key: None,
+      instance_id: instance.id,
     };
     let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
 
     let site = blocking(data.pool(), move |conn| {
-      let site = Site::upsert(conn, &site_form)?;
+      let site = Site::create(conn, &site_form)?;
       SiteLanguage::update(conn, languages, site.id)?;
       Ok::<Site, diesel::result::Error>(site)
     })

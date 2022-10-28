@@ -14,9 +14,9 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
   source::{
     comment::Comment,
-    comment_reply::{CommentReply, CommentReplyForm},
+    comment_reply::{CommentReply, CommentReplyInsertForm},
     person::Person,
-    person_mention::{PersonMention, PersonMentionForm},
+    person_mention::{PersonMention, PersonMentionInsertForm},
     post::Post,
   },
   traits::{Crud, DeleteableOrRemoveable},
@@ -197,7 +197,7 @@ pub async fn send_local_notifs(
       // This can cause two notifications, one for reply and the other for mention
       recipient_ids.push(mention_user_view.local_user.id);
 
-      let user_mention_form = PersonMentionForm {
+      let user_mention_form = PersonMentionInsertForm {
         recipient_id: mention_user_view.person.id,
         comment_id: comment.id,
         read: None,
@@ -248,7 +248,7 @@ pub async fn send_local_notifs(
       if let Ok(parent_user_view) = user_view {
         recipient_ids.push(parent_user_view.local_user.id);
 
-        let comment_reply_form = CommentReplyForm {
+        let comment_reply_form = CommentReplyInsertForm {
           recipient_id: parent_user_view.person.id,
           comment_id: comment.id,
           read: None,
@@ -289,7 +289,7 @@ pub async fn send_local_notifs(
       if let Ok(parent_user_view) = parent_user {
         recipient_ids.push(parent_user_view.local_user.id);
 
-        let comment_reply_form = CommentReplyForm {
+        let comment_reply_form = CommentReplyInsertForm {
           recipient_id: parent_user_view.person.id,
           comment_id: comment.id,
           read: None,

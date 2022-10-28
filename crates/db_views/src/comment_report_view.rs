@@ -290,7 +290,7 @@ mod tests {
   use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
-    source::{comment::*, comment_report::*, community::*, person::*, post::*},
+    source::{comment::*, comment_report::*, community::*, instance::Instance, person::*, post::*},
     traits::{Crud, Joinable, Reportable},
     utils::establish_unpooled_connection,
   };
@@ -301,37 +301,39 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "timmy_crv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("timmy_crv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_timmy = Person::create(conn, &new_person).unwrap();
 
-    let new_person_2 = PersonForm {
-      name: "sara_crv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_2 = PersonInsertForm::builder()
+      .name("sara_crv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_sara = Person::create(conn, &new_person_2).unwrap();
 
     // Add a third person, since new ppl can only report something once.
-    let new_person_3 = PersonForm {
-      name: "jessica_crv".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let new_person_3 = PersonInsertForm::builder()
+      .name("jessica_crv".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_jessica = Person::create(conn, &new_person_3).unwrap();
 
-    let new_community = CommunityForm {
-      name: "test community crv".to_string(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("test community crv".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
@@ -343,21 +345,19 @@ mod tests {
 
     let _inserted_moderator = CommunityModerator::join(conn, &timmy_moderator_form).unwrap();
 
-    let new_post = PostForm {
-      name: "A test post crv".into(),
-      creator_id: inserted_timmy.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("A test post crv".into())
+      .creator_id(inserted_timmy.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
-    let comment_form = CommentForm {
-      content: "A test comment 32".into(),
-      creator_id: inserted_timmy.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment 32".into())
+      .creator_id(inserted_timmy.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_comment = Comment::create(conn, &comment_form, None).unwrap();
 
@@ -405,6 +405,7 @@ mod tests {
         hidden: false,
         posting_restricted_to_mods: false,
         published: inserted_community.published,
+        instance_id: inserted_instance.id,
       },
       creator: PersonSafe {
         id: inserted_jessica.id,
@@ -425,6 +426,7 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
+        instance_id: inserted_instance.id,
       },
       comment_creator: PersonSafe {
         id: inserted_timmy.id,
@@ -445,6 +447,7 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
+        instance_id: inserted_instance.id,
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
@@ -483,6 +486,7 @@ mod tests {
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
+      instance_id: inserted_instance.id,
     };
 
     // Do a batch read of timmys reports
@@ -543,6 +547,7 @@ mod tests {
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
+      instance_id: inserted_instance.id,
     });
 
     assert_eq!(
@@ -571,5 +576,6 @@ mod tests {
     Person::delete(conn, inserted_sara.id).unwrap();
     Person::delete(conn, inserted_jessica.id).unwrap();
     Community::delete(conn, inserted_community.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
   }
 }

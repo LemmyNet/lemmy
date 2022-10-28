@@ -1,4 +1,4 @@
-use crate::{newtypes::LocalUserId, source::email_verification::*, traits::Crud};
+use crate::{newtypes::LocalUserId, source::email_verification::*};
 use diesel::{
   dsl::*,
   insert_into,
@@ -9,39 +9,14 @@ use diesel::{
   RunQueryDsl,
 };
 
-impl Crud for EmailVerification {
-  type Form = EmailVerificationForm;
-  type IdType = i32;
-  fn create(conn: &mut PgConnection, form: &EmailVerificationForm) -> Result<Self, Error> {
+impl EmailVerification {
+  pub fn create(conn: &mut PgConnection, form: &EmailVerificationForm) -> Result<Self, Error> {
     use crate::schema::email_verification::dsl::*;
     insert_into(email_verification)
       .values(form)
       .get_result::<Self>(conn)
   }
 
-  fn read(conn: &mut PgConnection, id_: i32) -> Result<Self, Error> {
-    use crate::schema::email_verification::dsl::*;
-    email_verification.find(id_).first::<Self>(conn)
-  }
-
-  fn update(
-    conn: &mut PgConnection,
-    id_: i32,
-    form: &EmailVerificationForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::email_verification::dsl::*;
-    diesel::update(email_verification.find(id_))
-      .set(form)
-      .get_result::<Self>(conn)
-  }
-
-  fn delete(conn: &mut PgConnection, id_: i32) -> Result<usize, Error> {
-    use crate::schema::email_verification::dsl::*;
-    diesel::delete(email_verification.find(id_)).execute(conn)
-  }
-}
-
-impl EmailVerification {
   pub fn read_for_token(conn: &mut PgConnection, token: &str) -> Result<Self, Error> {
     use crate::schema::email_verification::dsl::*;
     email_verification

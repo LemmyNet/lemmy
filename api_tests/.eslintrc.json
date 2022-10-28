@@ -4,11 +4,11 @@
     "browser": true
   },
   "plugins": [
-    "jane"
+    "@typescript-eslint"
   ],
   "extends": [
-    "plugin:jane/recommended",
-    "plugin:jane/typescript"
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {

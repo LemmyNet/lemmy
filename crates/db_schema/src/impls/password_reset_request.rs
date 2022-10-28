@@ -8,7 +8,8 @@ use diesel::{dsl::*, result::Error, PgConnection, *};
 use sha2::{Digest, Sha256};
 
 impl Crud for PasswordResetRequest {
-  type Form = PasswordResetRequestForm;
+  type InsertForm = PasswordResetRequestForm;
+  type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
   fn read(conn: &mut PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
     password_reset_request
@@ -74,7 +75,8 @@ fn bytes_to_hex(bytes: Vec<u8>) -> String {
 mod tests {
   use crate::{
     source::{
-      local_user::{LocalUser, LocalUserForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
       password_reset_request::PasswordResetRequest,
       person::*,
     },
@@ -88,19 +90,20 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "thommy prw".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("thommy prw".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let new_local_user = LocalUserForm {
-      person_id: Some(inserted_person.id),
-      password_encrypted: Some("pass".to_string()),
-      ..LocalUserForm::default()
-    };
+    let new_local_user = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted("pass".to_string())
+      .build();
 
     let inserted_local_user = LocalUser::create(conn, &new_local_user).unwrap();
 
@@ -119,6 +122,7 @@ mod tests {
 
     let read_password_reset_request = PasswordResetRequest::read_from_token(conn, token).unwrap();
     let num_deleted = Person::delete(conn, inserted_person.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

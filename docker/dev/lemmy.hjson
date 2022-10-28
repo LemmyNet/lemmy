@@ -6,23 +6,26 @@
   # release / stable version.
 
   setup: {
-    # username for the admin user
     admin_username: "lemmy"
-    # password for the admin user
     admin_password: "lemmylemmy"
-    # name of the site (can be changed later)
     site_name: "lemmy-dev"
   }
   database: {
     host: postgres
   }
 
-  opentelemetry_url: "http://otel:4137"
+  database: {
+    host: "postgres"
+  }
 
-  # the domain name of your instance (eg "lemmy.ml")
   hostname: "localhost"
-  # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
-  # port where lemmy should listen for incoming requests
   port: 8536
+
+  pictrs: {
+    url: "http://pictrs:8080/"
+    # api_key: "API_KEY"
+  }
+
+  opentelemetry_url: "http://otel:4137"
 }

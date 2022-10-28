@@ -1,10 +1,11 @@
-use crate::{error::LemmyError, IpAddr};
+use crate::{error::LemmyError, location_info, IpAddr};
 use actix_web::dev::ConnectionInfo;
+use anyhow::Context;
 use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use url::Url;
 
 static MENTIONS_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -60,6 +61,15 @@ pub(crate) fn slur_check<'a>(
   }
 }
 
+pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
+  regex_str.map(|slurs| {
+    RegexBuilder::new(slurs)
+      .case_insensitive(true)
+      .build()
+      .expect("compile regex")
+  })
+}
+
 pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
   if let Err(slurs) = slur_check(text, slur_regex) {
     Err(LemmyError::from_error_message(
@@ -85,6 +95,20 @@ pub(crate) fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
   let start = "No slurs - ";
   let combined = &slurs.join(", ");
   [start, combined].concat()
+}
+
+/// Make sure if applications are required, that there is an application questionnaire
+pub fn check_application_question(
+  application_question: &Option<Option<String>>,
+  require_application: &Option<bool>,
+) -> Result<(), LemmyError> {
+  if require_application.unwrap_or(false)
+    && application_question.as_ref().unwrap_or(&None).is_none()
+  {
+    Err(LemmyError::from_message("application_question_required"))
+  } else {
+    Ok(())
+  }
 }
 
 pub fn generate_random_string() -> String {
@@ -176,6 +200,10 @@ pub fn clean_url_params(url: &Url) -> Url {
     url_out.set_query(Some(&new_query));
   }
   url_out
+}
+
+pub fn generate_domain_url(actor_id: &Url) -> Result<String, LemmyError> {
+  Ok(actor_id.host_str().context(location_info!())?.to_string())
 }
 
 #[cfg(test)]

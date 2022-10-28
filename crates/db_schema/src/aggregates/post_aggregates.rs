@@ -14,10 +14,11 @@ mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
     source::{
-      comment::{Comment, CommentForm},
-      community::{Community, CommunityForm},
-      person::{Person, PersonForm},
-      post::{Post, PostForm, PostLike, PostLikeForm},
+      comment::{Comment, CommentInsertForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
     traits::{Crud, Likeable},
     utils::establish_unpooled_connection,
@@ -29,55 +30,54 @@ mod tests {
   fn test_crud() {
     let conn = &mut establish_unpooled_connection();
 
-    let new_person = PersonForm {
-      name: "thommy_community_agg".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("thommy_community_agg".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(conn, &new_person).unwrap();
 
-    let another_person = PersonForm {
-      name: "jerry_community_agg".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let another_person = PersonInsertForm::builder()
+      .name("jerry_community_agg".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let another_inserted_person = Person::create(conn, &another_person).unwrap();
 
-    let new_community = CommunityForm {
-      name: "TIL_community_agg".into(),
-      title: "nada".to_owned(),
-      public_key: Some("pubkey".to_string()),
-      ..CommunityForm::default()
-    };
+    let new_community = CommunityInsertForm::builder()
+      .name("TIL_community_agg".into())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_community = Community::create(conn, &new_community).unwrap();
 
-    let new_post = PostForm {
-      name: "A test post".into(),
-      creator_id: inserted_person.id,
-      community_id: inserted_community.id,
-      ..PostForm::default()
-    };
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(conn, &new_post).unwrap();
 
-    let comment_form = CommentForm {
-      content: "A test comment".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_comment = Comment::create(conn, &comment_form, None).unwrap();
 
-    let child_comment_form = CommentForm {
-      content: "A test comment".into(),
-      creator_id: inserted_person.id,
-      post_id: inserted_post.id,
-      ..CommentForm::default()
-    };
+    let child_comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
 
     let inserted_child_comment =
       Comment::create(conn, &child_comment_form, Some(&inserted_comment.path)).unwrap();
@@ -142,5 +142,7 @@ mod tests {
     // Should be none found, since the creator was deleted
     let after_delete = PostAggregates::read(conn, inserted_post.id);
     assert!(after_delete.is_err());
+
+    Instance::delete(conn, inserted_instance.id).unwrap();
   }
 }

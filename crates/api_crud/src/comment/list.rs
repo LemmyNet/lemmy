@@ -11,7 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
-  source::{comment::Comment, community::Community},
+  source::{comment::Comment, community::Community, local_site::LocalSite},
   traits::{Crud, DeleteableOrRemoveable},
 };
 use lemmy_db_views::comment_view::CommentQuery;
@@ -32,10 +32,11 @@ impl PerformCrud for GetComments {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    check_private_instance(&local_user_view, context.pool()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    check_private_instance(&local_user_view, &local_site)?;
 
     let community_id = data.community_id;
-    let listing_type = listing_type_with_site_default(data.type_, context.pool()).await?;
+    let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
 
     let community_actor_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)

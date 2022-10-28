@@ -11,9 +11,6 @@ COPY ./ ./
 RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
 RUN cargo build --release
 
-# reduce binary size
-RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
-
 RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
 
 # The alpine runner

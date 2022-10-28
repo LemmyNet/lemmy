@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
-  source::community::Community,
+  source::{community::Community, local_site::LocalSite},
   traits::DeleteableOrRemoveable,
   utils::post_to_comment_sort_type,
   SearchType,
@@ -31,7 +31,9 @@ impl Perform for Search {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    check_private_instance(&local_user_view, context.pool()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
+
+    check_private_instance(&local_user_view, &local_site)?;
 
     let person_id = local_user_view.as_ref().map(|u| u.person.id);
     let local_user = local_user_view.map(|l| l.local_user);

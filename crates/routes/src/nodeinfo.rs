@@ -33,7 +33,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     .await?
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
-  let protocols = if context.settings().federation.enabled {
+  let protocols = if site_view.local_site.federation_enabled {
     vec!["activitypub".to_string()]
   } else {
     vec![]
@@ -55,7 +55,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       local_posts: site_view.counts.posts,
       local_comments: site_view.counts.comments,
     },
-    open_registrations: site_view.site.open_registration,
+    open_registrations: site_view.local_site.open_registration,
   };
 
   Ok(HttpResponse::Ok().json(json))

@@ -152,7 +152,8 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::Community,
-      person::{Person, PersonForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
       site::Site,
     },
     traits::Crud,
@@ -168,11 +169,14 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
-    let old_mod = PersonForm {
-      name: "holly".into(),
-      public_key: Some("pubkey".to_string()),
-      ..PersonForm::default()
-    };
+    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+
+    let old_mod = PersonInsertForm::builder()
+      .name("holly".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
     let old_mod = Person::create(conn, &old_mod).unwrap();
     let community_moderator_form = CommunityModeratorForm {
       community_id: community.id,
@@ -210,5 +214,6 @@ mod tests {
     Person::delete(conn, new_mod.id).unwrap();
     Community::delete(conn, community_context.0.id).unwrap();
     Site::delete(conn, site.id).unwrap();
+    Instance::delete(conn, inserted_instance.id).unwrap();
   }
 }

@@ -7,7 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     moderator::{ModAdd, ModAddForm},
-    person::Person,
+    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
@@ -35,7 +35,11 @@ impl Perform for AddAdmin {
     let added = data.added;
     let added_person_id = data.person_id;
     let added_admin = blocking(context.pool(), move |conn| {
-      Person::add_admin(conn, added_person_id, added)
+      Person::update(
+        conn,
+        added_person_id,
+        &PersonUpdateForm::builder().admin(Some(added)).build(),
+      )
     })
     .await?
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;

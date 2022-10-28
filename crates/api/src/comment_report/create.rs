@@ -7,7 +7,10 @@ use lemmy_api_common::{
 };
 use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_db_schema::{
-  source::comment_report::{CommentReport, CommentReportForm},
+  source::{
+    comment_report::{CommentReport, CommentReportForm},
+    local_site::LocalSite,
+  },
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
@@ -28,9 +31,10 @@ impl Perform for CreateCommentReport {
     let data: &CreateCommentReport = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = blocking(context.pool(), LocalSite::read).await??;
 
     let reason = self.reason.trim();
-    check_report_reason(reason, context)?;
+    check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;

@@ -1,4 +1,4 @@
-import {None, Some, Option} from '@sniptt/monads';
+import { None, Some, Option } from "@sniptt/monads";
 import {
   Login,
   LoginResponse,
@@ -63,8 +63,8 @@ import {
   EditSite,
   CommentSortType,
   GetComments,
-  GetCommentsResponse
-} from 'lemmy-js-client';
+  GetCommentsResponse,
+} from "lemmy-js-client";
 
 export interface API {
   client: LemmyHttp;
@@ -72,59 +72,59 @@ export interface API {
 }
 
 export let alpha: API = {
-  client: new LemmyHttp('http://127.0.0.1:8541'),
+  client: new LemmyHttp("http://127.0.0.1:8541"),
   auth: None,
 };
 
 export let beta: API = {
-  client: new LemmyHttp('http://127.0.0.1:8551'),
+  client: new LemmyHttp("http://127.0.0.1:8551"),
   auth: None,
 };
 
 export let gamma: API = {
-  client: new LemmyHttp('http://127.0.0.1:8561'),
+  client: new LemmyHttp("http://127.0.0.1:8561"),
   auth: None,
 };
 
 export let delta: API = {
-  client: new LemmyHttp('http://127.0.0.1:8571'),
+  client: new LemmyHttp("http://127.0.0.1:8571"),
   auth: None,
 };
 
 export let epsilon: API = {
-  client: new LemmyHttp('http://127.0.0.1:8581'),
+  client: new LemmyHttp("http://127.0.0.1:8581"),
   auth: None,
 };
 
-const password = 'lemmylemmy'
+const password = "lemmylemmy";
 
 export async function setupLogins() {
   let formAlpha = new Login({
-    username_or_email: 'lemmy_alpha',
+    username_or_email: "lemmy_alpha",
     password,
   });
   let resAlpha = alpha.client.login(formAlpha);
 
   let formBeta = new Login({
-    username_or_email: 'lemmy_beta',
+    username_or_email: "lemmy_beta",
     password,
   });
   let resBeta = beta.client.login(formBeta);
 
   let formGamma = new Login({
-    username_or_email: 'lemmy_gamma',
+    username_or_email: "lemmy_gamma",
     password,
   });
   let resGamma = gamma.client.login(formGamma);
 
   let formDelta = new Login({
-    username_or_email: 'lemmy_delta',
+    username_or_email: "lemmy_delta",
     password,
   });
   let resDelta = delta.client.login(formDelta);
 
   let formEpsilon = new Login({
-    username_or_email: 'lemmy_epsilon',
+    username_or_email: "lemmy_epsilon",
     password,
   });
   let resEpsilon = epsilon.client.login(formEpsilon);
@@ -145,6 +145,8 @@ export async function setupLogins() {
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm = new EditSite({
+    require_application: Some(false),
+    federation_debug: Some(true),
     name: None,
     sidebar: None,
     description: None,
@@ -155,23 +157,74 @@ export async function setupLogins() {
     enable_nsfw: None,
     community_creation_admin_only: None,
     require_email_verification: None,
-    require_application: Some(false),
     application_question: None,
     private_instance: None,
     default_theme: None,
-    legal_information: None,
     default_post_listing_type: None,
+    legal_information: None,
+    application_email_admins: None,
+    hide_modlog_mod_names: None,
+    discussion_languages: None,
+    slur_filter_regex: None,
+    actor_name_max_length: None,
+    rate_limit_message: Some(999),
+    rate_limit_message_per_second: None,
+    rate_limit_post: Some(999),
+    rate_limit_post_per_second: None,
+    rate_limit_register: Some(999),
+    rate_limit_register_per_second: None,
+    rate_limit_image: Some(999),
+    rate_limit_image_per_second: None,
+    rate_limit_comment: Some(999),
+    rate_limit_comment_per_second: None,
+    rate_limit_search: Some(999),
+    rate_limit_search_per_second: None,
+    federation_enabled: None,
+    federation_strict_allowlist: None,
+    federation_http_fetch_retry_limit: None,
+    federation_worker_count: None,
+    captcha_enabled: None,
+    captcha_difficulty: None,
+    allowed_instances: None,
+    blocked_instances: None,
     auth: "",
   });
+
+  // Set the blocks and auths for each
   editSiteForm.auth = alpha.auth.unwrap();
+  editSiteForm.allowed_instances = Some([
+    "lemmy-beta",
+    "lemmy-gamma",
+    "lemmy-delta",
+    "lemmy-epsilon",
+  ]);
   await alpha.client.editSite(editSiteForm);
+
   editSiteForm.auth = beta.auth.unwrap();
+  editSiteForm.allowed_instances = Some([
+    "lemmy-alpha",
+    "lemmy-gamma",
+    "lemmy-delta",
+    "lemmy-epsilon",
+  ]);
   await beta.client.editSite(editSiteForm);
+
   editSiteForm.auth = gamma.auth.unwrap();
+  editSiteForm.allowed_instances = Some([
+    "lemmy-alpha",
+    "lemmy-beta",
+    "lemmy-delta",
+    "lemmy-epsilon",
+  ]);
   await gamma.client.editSite(editSiteForm);
+
+  editSiteForm.allowed_instances = Some(["lemmy-beta"]);
   editSiteForm.auth = delta.auth.unwrap();
   await delta.client.editSite(editSiteForm);
+
   editSiteForm.auth = epsilon.auth.unwrap();
+  editSiteForm.allowed_instances = Some([]);
+  editSiteForm.blocked_instances = Some(["lemmy-alpha"]);
   await epsilon.client.editSite(editSiteForm);
 
   // Create the main alpha/beta communities
@@ -185,7 +238,7 @@ export async function createPost(
 ): Promise<PostResponse> {
   let name = randomString(5);
   let body = Some(randomString(10));
-  let url = Some('https://google.com/');
+  let url = Some("https://google.com/");
   let form = new CreatePost({
     name,
     url,
@@ -194,12 +247,13 @@ export async function createPost(
     community_id,
     nsfw: None,
     honeypot: None,
+    language_id: None,
   });
   return api.client.createPost(form);
 }
 
 export async function editPost(api: API, post: Post): Promise<PostResponse> {
-  let name = Some('A jest test federated post, updated');
+  let name = Some("A jest test federated post, updated");
   let form = new EditPost({
     name,
     post_id: post.id,
@@ -207,6 +261,7 @@ export async function editPost(api: API, post: Post): Promise<PostResponse> {
     nsfw: None,
     url: None,
     body: None,
+    language_id: None,
   });
   return api.client.editPost(form);
 }
@@ -342,7 +397,7 @@ export async function resolveBetaCommunity(
 ): Promise<ResolveObjectResponse> {
   // Use short-hand search url
   let form = new ResolveObject({
-    q: '!main@lemmy-beta:8551',
+    q: "!main@lemmy-beta:8551",
     auth: api.auth,
   });
   return api.client.resolveObject(form);
@@ -415,7 +470,7 @@ export async function followCommunity(
   let form = new FollowCommunity({
     community_id,
     follow,
-    auth: api.auth.unwrap()
+    auth: api.auth.unwrap(),
   });
   return api.client.followCommunity(form);
 }
@@ -428,7 +483,7 @@ export async function likePost(
   let form = new CreatePostLike({
     post_id: post.id,
     score: score,
-    auth: api.auth.unwrap()
+    auth: api.auth.unwrap(),
   });
 
   return api.client.likePost(form);
@@ -438,13 +493,14 @@ export async function createComment(
   api: API,
   post_id: number,
   parent_id: Option<number>,
-  content = 'a jest test comment'
+  content = "a jest test comment"
 ): Promise<CommentResponse> {
   let form = new CreateComment({
     content,
     post_id,
     parent_id,
     form_id: None,
+    language_id: None,
     auth: api.auth.unwrap(),
   });
   return api.client.createComment(form);
@@ -453,13 +509,15 @@ export async function createComment(
 export async function editComment(
   api: API,
   comment_id: number,
-  content = 'A jest test federated comment update'
+  content = Some("A jest test federated comment update")
 ): Promise<CommentResponse> {
   let form = new EditComment({
     content,
     comment_id,
     form_id: None,
-    auth: api.auth.unwrap()
+    language_id: None,
+    distinguished: None,
+    auth: api.auth.unwrap(),
   });
   return api.client.editComment(form);
 }
@@ -491,7 +549,9 @@ export async function removeComment(
   return api.client.removeComment(form);
 }
 
-export async function getMentions(api: API): Promise<GetPersonMentionsResponse> {
+export async function getMentions(
+  api: API
+): Promise<GetPersonMentionsResponse> {
   let form = new GetPersonMentions({
     sort: Some(CommentSortType.New),
     unread_only: Some(false),
@@ -519,7 +579,7 @@ export async function createCommunity(
   api: API,
   name_: string = randomString(5)
 ): Promise<CommunityResponse> {
-  let description = Some('a sample description');
+  let description = Some("a sample description");
   let form = new CreateCommunity({
     name: name_,
     title: name_,
@@ -577,7 +637,7 @@ export async function createPrivateMessage(
   api: API,
   recipient_id: number
 ): Promise<PrivateMessageResponse> {
-  let content = 'A jest test federated private message';
+  let content = "A jest test federated private message";
   let form = new CreatePrivateMessage({
     content,
     recipient_id,
@@ -590,7 +650,7 @@ export async function editPrivateMessage(
   api: API,
   private_message_id: number
 ): Promise<PrivateMessageResponse> {
-  let updatedContent = 'A jest test federated private message edited';
+  let updatedContent = "A jest test federated private message edited";
   let form = new EditPrivateMessage({
     content: updatedContent,
     private_message_id,
@@ -630,18 +690,18 @@ export async function registerUser(
   return api.client.register(form);
 }
 
-export async function saveUserSettingsBio(
-  api: API
-): Promise<LoginResponse> {
+export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
   let form = new SaveUserSettings({
     show_nsfw: Some(true),
-    theme: Some('darkly'),
+    theme: Some("darkly"),
     default_sort_type: Some(Object.keys(SortType).indexOf(SortType.Active)),
-    default_listing_type: Some(Object.keys(ListingType).indexOf(ListingType.All)),
-    lang: Some('en'),
+    default_listing_type: Some(
+      Object.keys(ListingType).indexOf(ListingType.All)
+    ),
+    interface_language: Some("en"),
     show_avatars: Some(true),
     send_notifications_to_email: Some(false),
-    bio: Some('a changed bio'),
+    bio: Some("a changed bio"),
     avatar: None,
     banner: None,
     display_name: None,
@@ -652,6 +712,7 @@ export async function saveUserSettingsBio(
     show_bot_accounts: None,
     show_new_post_notifs: None,
     bot_account: None,
+    discussion_languages: None,
     auth: api.auth.unwrap(),
   });
   return saveUserSettings(api, form);
@@ -660,18 +721,20 @@ export async function saveUserSettingsBio(
 export async function saveUserSettingsFederated(
   api: API
 ): Promise<LoginResponse> {
-  let avatar = Some('https://image.flaticon.com/icons/png/512/35/35896.png');
-  let banner = Some('https://image.flaticon.com/icons/png/512/36/35896.png');
-  let bio = Some('a changed bio');
+  let avatar = Some("https://image.flaticon.com/icons/png/512/35/35896.png");
+  let banner = Some("https://image.flaticon.com/icons/png/512/36/35896.png");
+  let bio = Some("a changed bio");
   let form = new SaveUserSettings({
     show_nsfw: Some(false),
-    theme: Some(''),
+    theme: Some(""),
     default_sort_type: Some(Object.keys(SortType).indexOf(SortType.Hot)),
-    default_listing_type: Some(Object.keys(ListingType).indexOf(ListingType.All)),
-    lang: Some(''),
+    default_listing_type: Some(
+      Object.keys(ListingType).indexOf(ListingType.All)
+    ),
+    interface_language: Some(""),
     avatar,
     banner,
-    display_name: Some('user321'),
+    display_name: Some("user321"),
     show_avatars: Some(false),
     send_notifications_to_email: Some(false),
     bio,
@@ -682,6 +745,7 @@ export async function saveUserSettingsFederated(
     bot_account: None,
     show_bot_accounts: None,
     show_new_post_notifs: None,
+    discussion_languages: None,
     auth: api.auth.unwrap(),
   });
   return await saveUserSettings(alpha, form);
@@ -694,19 +758,15 @@ export async function saveUserSettings(
   return api.client.saveUserSettings(form);
 }
 
-export async function deleteUser(
-  api: API
-): Promise<DeleteAccountResponse> {
+export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
   let form = new DeleteAccount({
     auth: api.auth.unwrap(),
-    password
+    password,
   });
   return api.client.deleteAccount(form);
 }
 
-export async function getSite(
-  api: API
-): Promise<GetSiteResponse> {
+export async function getSite(api: API): Promise<GetSiteResponse> {
   let form = new GetSite({
     auth: api.auth,
   });
@@ -725,14 +785,12 @@ export async function listPrivateMessages(
   return api.client.getPrivateMessages(form);
 }
 
-export async function unfollowRemotes(
-  api: API
-): Promise<GetSiteResponse> {
+export async function unfollowRemotes(api: API): Promise<GetSiteResponse> {
   // Unfollow all remote communities
   let site = await getSite(api);
-  let remoteFollowed = site.my_user.unwrap().follows.filter(
-    c => c.community.local == false
-  );
+  let remoteFollowed = site.my_user
+    .unwrap()
+    .follows.filter(c => c.community.local == false);
   for (let cu of remoteFollowed) {
     await followCommunity(api, false, cu.community.id);
   }
@@ -743,7 +801,11 @@ export async function unfollowRemotes(
 export async function followBeta(api: API): Promise<CommunityResponse> {
   let betaCommunity = (await resolveBetaCommunity(api)).community;
   if (betaCommunity.isSome()) {
-    let follow = await followCommunity(api, true, betaCommunity.unwrap().community.id);
+    let follow = await followCommunity(
+      api,
+      true,
+      betaCommunity.unwrap().community.id
+    );
     return follow;
   } else {
     return Promise.reject("no community worked");
@@ -763,7 +825,9 @@ export async function reportPost(
   return api.client.createPostReport(form);
 }
 
-export async function listPostReports(api: API): Promise<ListPostReportsResponse> {
+export async function listPostReports(
+  api: API
+): Promise<ListPostReportsResponse> {
   let form = new ListPostReports({
     auth: api.auth.unwrap(),
     page: None,
@@ -787,7 +851,9 @@ export async function reportComment(
   return api.client.createCommentReport(form);
 }
 
-export async function listCommentReports(api: API): Promise<ListCommentReportsResponse> {
+export async function listCommentReports(
+  api: API
+): Promise<ListCommentReportsResponse> {
   let form = new ListCommentReports({
     page: None,
     limit: None,
@@ -798,7 +864,7 @@ export async function listCommentReports(api: API): Promise<ListCommentReportsRe
   return api.client.listCommentReports(form);
 }
 
-export function delay(millis: number = 500) {
+export function delay(millis = 500) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
 
@@ -811,8 +877,9 @@ export function wrapper(form: any): string {
 }
 
 export function randomString(length: number): string {
-  var result = '';
-  var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
+  var result = "";
+  var characters =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
   var charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
