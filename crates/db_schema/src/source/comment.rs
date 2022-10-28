@@ -1,10 +1,9 @@
 use crate::newtypes::{CommentId, DbUrl, LanguageId, LtreeDef, PersonId, PostId};
+#[cfg(feature = "full")]
+use crate::schema::{comment, comment_like, comment_saved};
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
-
-#[cfg(feature = "full")]
-use crate::schema::{comment, comment_like, comment_saved};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]

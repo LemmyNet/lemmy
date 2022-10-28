@@ -1,6 +1,4 @@
 use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "full")]
 use crate::schema::{
   admin_purge_comment,
@@ -19,6 +17,7 @@ use crate::schema::{
   mod_sticky_post,
   mod_transfer_community,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]

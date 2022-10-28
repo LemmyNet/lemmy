@@ -1,3 +1,7 @@
+use crate::{
+  objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
+  protocol::activities::voting::vote::VoteType,
+};
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
@@ -11,11 +15,6 @@ use lemmy_websocket::{
   send::{send_comment_ws_message_simple, send_post_ws_message},
   LemmyContext,
   UserOperation,
-};
-
-use crate::{
-  objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::activities::voting::vote::VoteType,
 };
 
 pub mod undo_vote;
