@@ -45,7 +45,7 @@ struct Images {
 #[derive(Deserialize)]
 struct PictrsParams {
   format: Option<String>,
-  thumbnail: Option<String>,
+  thumbnail: Option<i32>,
 }
 
 #[derive(Deserialize)]
@@ -130,8 +130,10 @@ async fn full_res(
   let url = if params.format.is_none() && params.thumbnail.is_none() {
     format!("{}image/original/{}", pictrs_config.url, name,)
   } else {
-    // Use jpg as a default when none is given
-    let format = params.format.unwrap_or_else(|| "jpg".to_string());
+    // Take file type from name, or jpg if nothing is given
+    let format = params
+      .format
+      .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string());
 
     let mut url = format!("{}image/process.{}?src={}", pictrs_config.url, format, name,);
 

@@ -10,6 +10,9 @@
     admin_password: "lemmylemmy"
     site_name: "lemmy-dev"
   }
+  database: {
+    host: postgres
+  }
 
   database: {
     host: "postgres"
