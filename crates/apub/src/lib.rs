@@ -81,8 +81,8 @@ impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
     let local_site_data = blocking(self.0.pool(), fetch_local_site_data)
       .await
-      .unwrap()
-      .unwrap();
+      .expect("read local site data")
+      .expect("read local site data");
     check_apub_id_valid(url, &local_site_data, self.0.settings())
   }
 }
