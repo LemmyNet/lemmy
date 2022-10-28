@@ -126,20 +126,20 @@ async fn full_res(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
-  let local_site = blocking(context.pool(), LocalSite::read).await?;
+  let local_site = blocking(context.pool(), LocalSite::read)
+    .await?
+    .map_err(error::ErrorBadRequest)?;
   // The site might not be set up yet
-  if let Ok(local_site) = local_site {
-    if local_site.private_instance {
-      let jwt = req
-        .cookie("jwt")
-        .expect("No auth header for picture access");
-      if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret())
-        .await
-        .is_err()
-      {
-        return Ok(HttpResponse::Unauthorized().finish());
-      };
-    }
+  if local_site.private_instance {
+    let jwt = req
+      .cookie("jwt")
+      .expect("No auth header for picture access");
+    if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret())
+      .await
+      .is_err()
+    {
+      return Ok(HttpResponse::Unauthorized().finish());
+    };
   }
   let name = &filename.into_inner();
 
