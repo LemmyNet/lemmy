@@ -77,7 +77,7 @@ impl PerformCrud for EditSite {
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       blocking(context.pool(), move |conn| {
         let site = Site::read(conn, site_id)?;
-        SiteLanguage::update(conn, discussion_languages.clone(), &site)
+        SiteLanguage::update(conn, discussion_languages, &site)
       })
       .await??;
     }

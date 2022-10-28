@@ -1,8 +1,8 @@
 use crate::{
   diesel::JoinOnDsl,
-  newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
-  source::{actor_language::*, language::Language},
-};use crate::source::site::Site;
+  newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
+  source::{actor_language::*, language::Language, site::Site},
+};
 use diesel::{
   delete,
   dsl::*,
@@ -16,7 +16,6 @@ use diesel::{
 };
 use lemmy_utils::error::LemmyError;
 use once_cell::sync::OnceCell;
-use crate::newtypes::InstanceId;
 
 impl LocalUserLanguage {
   pub fn read(
