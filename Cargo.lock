@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "activitypub_federation"
 version = "0.2.2"
-source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify#3a96e3d85817af7b1db6d298f1a121402a86a5c6"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify#9b4be7656be71c9007dbddc1ce088e54d3fe7e38"
 dependencies = [
  "activitypub_federation_derive 0.2.0 (git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify)",
  "actix-web",
@@ -76,7 +76,7 @@ dependencies = [
 [[package]]
 name = "activitypub_federation_derive"
 version = "0.2.0"
-source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify#3a96e3d85817af7b1db6d298f1a121402a86a5c6"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=async-verify#9b4be7656be71c9007dbddc1ce088e54d3fe7e38"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",

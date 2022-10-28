@@ -1,7 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
-  check_apub_id_valid,
-  fetch_local_site_data,
   local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
@@ -13,7 +11,7 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::utils::{blocking, delete_user_account};
+use lemmy_api_common::utils::delete_user_account;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -38,9 +36,6 @@ impl ActivityHandler for DeleteUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
-    check_apub_id_valid(self.id(), &local_site_data, context.settings())
-      .map_err(LemmyError::from_message)?;
     verify_is_public(&self.to, &[])?;
     verify_person(&self.actor, context, request_counter).await?;
     verify_urls_match(self.actor.inner(), self.object.inner())?;

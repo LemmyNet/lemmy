@@ -4,6 +4,7 @@ use activitypub_federation::{
   traits::{Actor, ApubObject},
   InstanceSettings,
   LocalInstance,
+  UrlVerifier,
 };
 use anyhow::Context;
 use async_trait::async_trait;
@@ -17,7 +18,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
 use lemmy_websocket::LemmyContext;
 use once_cell::sync::{Lazy, OnceCell};
-use url::{ParseError, Url};use activitypub_federation::UrlVerifier;
+use url::{ParseError, Url};
 
 pub mod activities;
 pub(crate) mod activity_lists;
@@ -60,10 +61,8 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .http_fetch_retry_limit(http_fetch_retry_limit)
       .worker_count(worker_count)
       .debug(federation_debug)
-      // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
-      // without the value getting captured.
       .http_signature_compat(true)
-        .verify_url_function(Box::new(VerifyUrlData { context: context.clone()} ))
+      .url_verifier(Box::new(VerifyUrlData(context.clone())))
       .build()
       .expect("configure federation");
     LocalInstance::new(
@@ -75,15 +74,16 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
 }
 
 #[derive(Clone)]
-struct VerifyUrlData {
-  context: LemmyContext
-}
+struct VerifyUrlData(LemmyContext);
 
 #[async_trait]
-impl UrlVerifier for  VerifyUrlData {
+impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = blocking(self.context.pool(), fetch_local_site_data).await.unwrap().unwrap();
-    check_apub_id_valid(url, &local_site_data, self.context.settings())
+    let local_site_data = blocking(self.0.pool(), fetch_local_site_data)
+      .await
+      .unwrap()
+      .unwrap();
+    check_apub_id_valid(url, &local_site_data, self.0.settings())
   }
 }
 
@@ -98,7 +98,6 @@ impl UrlVerifier for  VerifyUrlData {
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
 #[tracing::instrument(skip(settings, local_site_data))]
-// TODO This function needs to be called by incoming activities
 fn check_apub_id_valid(
   apub_id: &Url,
   local_site_data: &LocalSiteData,
