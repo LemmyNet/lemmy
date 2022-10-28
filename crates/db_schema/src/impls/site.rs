@@ -26,7 +26,7 @@ impl Crud for Site {
       .get_result::<Self>(conn)?;
 
     // initialize with all languages
-    SiteLanguage::update(conn, vec![], site_.id)?;
+    SiteLanguage::update(conn, vec![], &site_)?;
     Ok(site_)
   }
 
