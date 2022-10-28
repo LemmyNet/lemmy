@@ -1,8 +1,7 @@
 use crate::newtypes::{DbUrl, PersonId, PostId, PostReportId};
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "full")]
 use crate::schema::post_report;
+use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]

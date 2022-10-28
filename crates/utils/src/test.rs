@@ -1,5 +1,3 @@
-use regex::RegexBuilder;
-
 use crate::utils::{
   is_valid_actor_name,
   is_valid_display_name,
@@ -10,6 +8,7 @@ use crate::utils::{
   slur_check,
   slurs_vec_to_str,
 };
+use regex::RegexBuilder;
 
 #[test]
 fn test_mentions_regex() {

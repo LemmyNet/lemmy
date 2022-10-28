@@ -1,9 +1,8 @@
 use crate::newtypes::InstanceId;
-use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
-
 #[cfg(feature = "full")]
 use crate::schema::federation_allowlist;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]

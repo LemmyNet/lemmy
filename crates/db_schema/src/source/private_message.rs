@@ -1,9 +1,8 @@
 use crate::newtypes::{DbUrl, PersonId, PrivateMessageId};
-use serde::{Deserialize, Serialize};
-use typed_builder::TypedBuilder;
-
 #[cfg(feature = "full")]
 use crate::schema::private_message;
+use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]

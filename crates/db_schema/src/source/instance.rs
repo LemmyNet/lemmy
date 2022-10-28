@@ -1,8 +1,7 @@
 use crate::newtypes::InstanceId;
-use std::fmt::Debug;
-
 #[cfg(feature = "full")]
 use crate::schema::instance;
+use std::fmt::Debug;
 
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]

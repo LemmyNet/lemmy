@@ -1,8 +1,7 @@
 use crate::newtypes::{CommentId, CommentReportId, PersonId};
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "full")]
 use crate::schema::comment_report;
+use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]

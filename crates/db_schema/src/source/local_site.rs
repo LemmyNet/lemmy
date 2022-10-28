@@ -1,9 +1,8 @@
 use crate::newtypes::{LocalSiteId, SiteId};
-use serde::{Deserialize, Serialize};
-use typed_builder::TypedBuilder;
-
 #[cfg(feature = "full")]
 use crate::schema::local_site;
+use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
