@@ -11,6 +11,8 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
+use lemmy_api_common::utils::{blocking, get_local_user_view_from_jwt};
+use lemmy_db_schema::source::site::Site;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
@@ -123,6 +125,22 @@ async fn full_res(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
+  // block access to images if instance is private and unauthorized, public
+  let site = blocking(context.pool(), Site::read_local_site).await?;
+  // The site might not be set up yet
+  if let Ok(site) = site {
+    if site.private_instance {
+      let jwt = req
+        .cookie("jwt")
+        .expect("No auth header for picture access");
+      if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret())
+        .await
+        .is_err()
+      {
+        return Ok(HttpResponse::Unauthorized().finish());
+      };
+    }
+  }
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
