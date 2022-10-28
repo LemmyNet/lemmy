@@ -9,30 +9,4 @@
     '''
     (fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)
     '''
-  # rate limits for various user actions, by user ip
-  rate_limit: {
-    # Maximum number of messages created in interval
-    message: 180
-    # Interval length for message limit, in seconds
-    message_per_second: 1
-    # Maximum number of posts created in interval
-    post: 6
-    # Interval length for post limit, in seconds
-    post_per_second: 600
-    # Maximum number of registrations in interval
-    register: 30
-    # Interval length for registration limit, in seconds
-    register_per_second: 1
-    # Maximum number of image uploads in interval
-    image: 6
-    # Interval length for image uploads, in seconds
-    image_per_second: 3600
-    # Maximum number of comments created in interval
-    comment: 6
-    # Interval length for comment limit, in seconds
-    comment_per_second: 600
-    search: 60
-    # Interval length for search limit, in seconds
-    search_per_second: 1
-  }
 }
