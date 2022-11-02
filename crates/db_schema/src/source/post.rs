@@ -1,9 +1,8 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
-use serde::{Deserialize, Serialize};
-use typed_builder::TypedBuilder;
-
 #[cfg(feature = "full")]
 use crate::schema::{post, post_like, post_read, post_saved};
+use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]

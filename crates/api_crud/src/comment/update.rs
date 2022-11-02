@@ -1,3 +1,4 @@
+use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
@@ -34,8 +35,6 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperationCrud,
 };
-
-use crate::PerformCrud;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {

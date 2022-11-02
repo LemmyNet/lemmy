@@ -1,8 +1,7 @@
 use crate::newtypes::LanguageId;
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "full")]
 use crate::schema::language;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]

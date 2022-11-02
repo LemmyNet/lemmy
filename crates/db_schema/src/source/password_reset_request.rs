@@ -1,5 +1,4 @@
 use crate::newtypes::LocalUserId;
-
 #[cfg(feature = "full")]
 use crate::schema::password_reset_request;
 
