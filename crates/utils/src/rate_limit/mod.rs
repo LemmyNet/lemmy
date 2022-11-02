@@ -1,7 +1,6 @@
-use crate::{utils::get_ip, IpAddr};
+use crate::{error::LemmyError, utils::get_ip, IpAddr};
 use actix_web::{
   dev::{Service, ServiceRequest, ServiceResponse, Transform},
-  HttpResponse,
 };
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
@@ -177,10 +176,9 @@ where
         service.call(req).await
       } else {
         let (http_req, _) = req.into_parts();
-        // if rate limit was hit, respond with http 400
-        Ok(ServiceResponse::new(
+        Ok(ServiceResponse::from_err(
+          LemmyError::from_message("error_rate_limited"),
           http_req,
-          HttpResponse::BadRequest().finish(),
         ))
       }
     })
