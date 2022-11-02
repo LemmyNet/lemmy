@@ -11,6 +11,8 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
+use lemmy_api_common::utils::{blocking, get_local_user_view_from_jwt};
+use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
 use lemmy_websocket::LemmyContext;
 use reqwest::Body;
@@ -45,7 +47,7 @@ struct Images {
 #[derive(Deserialize)]
 struct PictrsParams {
   format: Option<String>,
-  thumbnail: Option<String>,
+  thumbnail: Option<i32>,
 }
 
 #[derive(Deserialize)]
@@ -123,6 +125,22 @@ async fn full_res(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
+  // block access to images if instance is private and unauthorized, public
+  let local_site = blocking(context.pool(), LocalSite::read)
+    .await?
+    .map_err(error::ErrorBadRequest)?;
+  // The site might not be set up yet
+  if local_site.private_instance {
+    let jwt = req
+      .cookie("jwt")
+      .expect("No auth header for picture access");
+    if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret())
+      .await
+      .is_err()
+    {
+      return Ok(HttpResponse::Unauthorized().finish());
+    };
+  }
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
@@ -130,8 +148,10 @@ async fn full_res(
   let url = if params.format.is_none() && params.thumbnail.is_none() {
     format!("{}image/original/{}", pictrs_config.url, name,)
   } else {
-    // Use jpg as a default when none is given
-    let format = params.format.unwrap_or_else(|| "jpg".to_string());
+    // Take file type from name, or jpg if nothing is given
+    let format = params
+      .format
+      .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string());
 
     let mut url = format!("{}image/process.{}?src={}", pictrs_config.url, format, name,);
 

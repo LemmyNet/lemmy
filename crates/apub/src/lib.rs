@@ -4,8 +4,10 @@ use activitypub_federation::{
   traits::{Actor, ApubObject},
   InstanceSettings,
   LocalInstance,
+  UrlVerifier,
 };
 use anyhow::Context;
+use async_trait::async_trait;
 use diesel::PgConnection;
 use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
@@ -59,9 +61,8 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       .http_fetch_retry_limit(http_fetch_retry_limit)
       .worker_count(worker_count)
       .debug(federation_debug)
-      // TODO No idea why, but you can't pass context.settings() to the verify_url_function closure
-      // without the value getting captured.
       .http_signature_compat(true)
+      .url_verifier(Box::new(VerifyUrlData(context.clone())))
       .build()
       .expect("configure federation");
     LocalInstance::new(
@@ -70,6 +71,20 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
       settings,
     )
   })
+}
+
+#[derive(Clone)]
+struct VerifyUrlData(LemmyContext);
+
+#[async_trait]
+impl UrlVerifier for VerifyUrlData {
+  async fn verify(&self, url: &Url) -> Result<(), &'static str> {
+    let local_site_data = blocking(self.0.pool(), fetch_local_site_data)
+      .await
+      .expect("read local site data")
+      .expect("read local site data");
+    check_apub_id_valid(url, &local_site_data, self.0.settings())
+  }
 }
 
 /// Checks if the ID is allowed for sending or receiving.
@@ -83,7 +98,6 @@ fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
 #[tracing::instrument(skip(settings, local_site_data))]
-// TODO This function needs to be called by incoming activities
 fn check_apub_id_valid(
   apub_id: &Url,
   local_site_data: &LocalSiteData,

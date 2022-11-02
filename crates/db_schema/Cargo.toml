@@ -24,7 +24,7 @@ url = { version = "2.3.1", features = ["serde"] }
 strum = "0.24.1"
 strum_macros = "0.24.3"
 serde_json = { version = "1.0.85", features = ["preserve_order"], optional = true }
-activitypub_federation = { version = "0.2.2", optional = true }
+activitypub_federation = { version = "0.2.3", optional = true }
 lemmy_utils = { version = "=0.16.5", path = "../utils", optional = true }
 bcrypt = { version = "0.13.0", optional = true }
 diesel = { version = "2.0.0", features = ["postgres","chrono","r2d2","serde_json"], optional = true }

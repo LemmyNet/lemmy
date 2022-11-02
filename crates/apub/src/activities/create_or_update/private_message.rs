@@ -1,7 +1,5 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  check_apub_id_valid,
-  fetch_local_site_data,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::private_message::CreateOrUpdatePrivateMessage,
@@ -71,10 +69,6 @@ impl ActivityHandler for CreateOrUpdatePrivateMessage {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
-    check_apub_id_valid(self.id(), &local_site_data, context.settings())
-      .map_err(LemmyError::from_message)?;
-
     verify_person(&self.actor, context, request_counter).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
