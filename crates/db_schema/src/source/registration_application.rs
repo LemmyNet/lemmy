@@ -1,8 +1,7 @@
 use crate::newtypes::{LocalUserId, PersonId};
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "full")]
 use crate::schema::registration_application;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]

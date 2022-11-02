@@ -1,7 +1,7 @@
 use clokwerk::{Scheduler, TimeUnits};
-use diesel::{Connection, ExpressionMethods, QueryDsl};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
+use diesel::{Connection, ExpressionMethods, QueryDsl};
 use lemmy_utils::error::LemmyError;
 use std::{thread, time::Duration};
 use tracing::info;
