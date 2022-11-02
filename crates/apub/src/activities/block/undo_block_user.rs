@@ -1,3 +1,17 @@
+use crate::{
+  activities::{
+    block::{generate_cc, SiteOrCommunity},
+    community::{announce::GetCommunity, send_activity_in_community},
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_is_public,
+  },
+  activity_lists::AnnouncableActivities,
+  local_instance,
+  objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
+  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  ActorType,
+};
 use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
@@ -17,21 +31,6 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
-
-use crate::{
-  activities::{
-    block::{generate_cc, SiteOrCommunity},
-    community::{announce::GetCommunity, send_activity_in_community},
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_is_public,
-  },
-  activity_lists::AnnouncableActivities,
-  local_instance,
-  objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
-  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-  ActorType,
-};
 
 impl UndoBlockUser {
   #[tracing::instrument(skip_all)]
