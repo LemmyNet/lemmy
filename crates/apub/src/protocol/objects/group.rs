@@ -102,7 +102,7 @@ impl Group {
       removed: None,
       published: self.published.map(|u| u.naive_local()),
       updated: self.updated.map(|u| u.naive_local()),
-      deleted: None,
+      deleted: Some(false),
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),
       local: Some(false),

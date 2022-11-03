@@ -217,7 +217,7 @@ impl ApubObject for ApubPost {
         locked: page.comments_enabled.map(|e| !e),
         published: page.published.map(|u| u.naive_local()),
         updated: page.updated.map(|u| u.naive_local()),
-        deleted: None,
+        deleted: Some(false),
         nsfw: page.sensitive,
         stickied: page.stickied,
         embed_title,
