@@ -149,7 +149,7 @@ impl ApubObject for ApubPrivateMessage {
       content: read_from_string_or_source(&note.content, &None, &note.source),
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
-      deleted: None,
+      deleted: Some(false),
       read: None,
       ap_id: Some(note.id.into()),
       local: Some(false),

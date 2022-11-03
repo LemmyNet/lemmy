@@ -202,7 +202,7 @@ impl ApubObject for ApubComment {
       removed: None,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
-      deleted: None,
+      deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,
       local: Some(false),

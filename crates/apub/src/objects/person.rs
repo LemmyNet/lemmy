@@ -160,7 +160,7 @@ impl ApubObject for ApubPerson {
       display_name: person.name,
       banned: None,
       ban_expires: None,
-      deleted: None,
+      deleted: Some(false),
       avatar: person.icon.map(|i| i.url.into()),
       banner: person.image.map(|i| i.url.into()),
       published: person.published.map(|u| u.naive_local()),
