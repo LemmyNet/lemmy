@@ -1,7 +1,5 @@
 use crate::{error::LemmyError, utils::get_ip, IpAddr};
-use actix_web::{
-  dev::{Service, ServiceRequest, ServiceResponse, Transform},
-};
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
 use serde::{Deserialize, Serialize};
@@ -177,7 +175,7 @@ where
       } else {
         let (http_req, _) = req.into_parts();
         Ok(ServiceResponse::from_err(
-          LemmyError::from_message("error_rate_limited"),
+          LemmyError::from_message("rate_limit_error"),
           http_req,
         ))
       }
