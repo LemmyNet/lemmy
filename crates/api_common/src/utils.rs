@@ -763,21 +763,6 @@ pub async fn delete_user_account(
   }
   // No need to update avatar and banner, those are handled in Person::delete_account
 
-  // Comments
-  let permadelete = move |conn: &mut _| Comment::permadelete_for_creator(conn, person_id);
-  blocking(pool, permadelete)
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
-
-  // Posts
-  let permadelete = move |conn: &mut _| Post::permadelete_for_creator(conn, person_id);
-  blocking(pool, permadelete)
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
-
-  // Purge image posts
-  purge_image_posts_for_person(person_id, pool, settings, client).await?;
-
   blocking(pool, move |conn| Person::delete_account(conn, person_id)).await??;
 
   Ok(())

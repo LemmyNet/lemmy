@@ -17,20 +17,6 @@ use diesel_ltree::Ltree;
 use url::Url;
 
 impl Comment {
-  pub fn permadelete_for_creator(
-    conn: &mut PgConnection,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
-      .set((
-        content.eq("*Permananently Deleted*"),
-        deleted.eq(true),
-        updated.eq(naive_now()),
-      ))
-      .get_results::<Self>(conn)
-  }
-
   pub fn update_removed_for_creator(
     conn: &mut PgConnection,
     for_creator_id: PersonId,
