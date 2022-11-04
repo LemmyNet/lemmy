@@ -314,7 +314,7 @@ pub async fn build_federated_instances(
 
 /// Checks the password length
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
-  if !(10..=60).contains(&pass.len()) {
+  if !(10..=60).contains(&pass.chars().count()) {
     Err(LemmyError::from_message("invalid_password"))
   } else {
     Ok(())
@@ -790,4 +790,18 @@ pub fn listing_type_with_site_default(
   Ok(listing_type.unwrap_or(ListingType::from_str(
     &local_site.default_post_listing_type,
   )?))
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::utils::password_length_check;
+
+  #[test]
+  #[rustfmt::skip]
+  fn password_length() {
+    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
+    assert!(password_length_check("1234567890").is_ok());
+    assert!(password_length_check("short").is_err());
+    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
+  }
 }
