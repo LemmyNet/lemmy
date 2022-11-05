@@ -131,7 +131,7 @@ pub fn diesel_option_overwrite_to_url_create(
   }
 }
 
-async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> DbPool {
+async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPool, LemmyError> {
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
@@ -139,15 +139,14 @@ async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> DbPool {
     .max_size(pool_size)
     .min_idle(Some(1))
     .build(manager)
-    .await
-    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    .await?;
 
   // If there's no settings, that means its a unit test, and migrations need to be run
   if settings.is_none() {
     run_migrations(&db_url);
   }
 
-  pool
+  Ok(pool)
 }
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
@@ -161,12 +160,12 @@ pub fn run_migrations(db_url: &str) {
     .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
 }
 
-pub async fn build_db_pool(settings: &Settings) -> DbPool {
-  build_db_pool_settings_opt(Some(settings)).await
+pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
+  Ok(build_db_pool_settings_opt(Some(settings)).await?)
 }
 
 pub async fn build_db_pool_for_tests() -> DbPool {
-  build_db_pool_settings_opt(None).await
+  build_db_pool_settings_opt(None).await.unwrap()
 }
 
 fn get_database_url(settings: Option<&Settings>) -> String {

@@ -38,7 +38,7 @@ pub(crate) async fn get_apub_community_http(
       .await?
       .into();
 
-  if !community.deleted {
+  if !community.deleted && !community.removed {
     let apub = community.into_apub(&**context).await?;
 
     Ok(create_apub_response(&apub))
@@ -75,6 +75,9 @@ pub(crate) async fn get_apub_community_outbox(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community = Community::read_from_name(context.pool(), &info.community_name, false).await?;
+  if community.deleted || community.removed {
+    return Err(LemmyError::from_message("deleted"));
+  }
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community.into(), context.get_ref().clone());
   let outbox: ApubCommunityOutbox = id
@@ -92,6 +95,9 @@ pub(crate) async fn get_apub_community_moderators(
     Community::read_from_name(context.pool(), &info.community_name, false)
       .await?
       .into();
+  if community.deleted || community.removed {
+    return Err(LemmyError::from_message("deleted"));
+  }
   let id = ObjectId::new(generate_outbox_url(&community.actor_id)?);
   let outbox_data = CommunityContext(community, context.get_ref().clone());
   let moderators: ApubCommunityModerators = id

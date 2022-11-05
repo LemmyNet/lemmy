@@ -67,7 +67,7 @@ async fn main() -> Result<(), LemmyError> {
   init_logging(&settings.opentelemetry_url)?;
 
   // Set up the bb8 connection pool
-  let pool = build_db_pool(&settings).await;
+  let pool = build_db_pool(&settings).await?;
 
   // Run the migrations from code
   // let settings_cloned = settings.to_owned();
