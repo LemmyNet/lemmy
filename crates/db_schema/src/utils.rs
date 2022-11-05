@@ -161,7 +161,7 @@ pub fn run_migrations(db_url: &str) {
 }
 
 pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
-  Ok(build_db_pool_settings_opt(Some(settings)).await?)
+  build_db_pool_settings_opt(Some(settings)).await
 }
 
 pub async fn build_db_pool_for_tests() -> DbPool {
