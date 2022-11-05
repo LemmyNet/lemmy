@@ -27,7 +27,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
@@ -62,7 +61,7 @@ impl PerformCrud for Register {
       return Err(LemmyError::from_message("email_required"));
     }
 
-    if local_site.require_application && data.answer.is_none() {
+    if local_site.site_setup && local_site.require_application && data.answer.is_none() {
       return Err(LemmyError::from_message(
         "registration_application_answer_required",
       ));
@@ -73,13 +72,8 @@ impl PerformCrud for Register {
       return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
-    // Check if there are admins. False if admins exist
-    let no_admins = PersonViewSafe::admins(context.pool())
-      .await
-      .map(|a| a.is_empty())?;
-
-    // If its not the admin, check the captcha
-    if !no_admins && local_site.captcha_enabled {
+    // If the site is set up, check the captcha
+    if local_site.site_setup && local_site.captcha_enabled {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
@@ -122,7 +116,8 @@ impl PerformCrud for Register {
       .public_key(actor_keypair.public_key)
       .inbox_url(Some(generate_inbox_url(&actor_id)?))
       .shared_inbox_url(Some(generate_shared_inbox_url(&actor_id)?))
-      .admin(Some(no_admins))
+      // If its the initial site setup, they are an admin
+      .admin(Some(!local_site.site_setup))
       .instance_id(site_view.site.instance_id)
       .build();
 
@@ -157,7 +152,7 @@ impl PerformCrud for Register {
       }
     };
 
-    if local_site.require_application {
+    if local_site.site_setup && local_site.require_application {
       // Create the registration application
       let form = RegistrationApplicationInsertForm {
         local_user_id: inserted_local_user.id,
@@ -180,8 +175,10 @@ impl PerformCrud for Register {
       verify_email_sent: false,
     };
 
-    // Log the user in directly if email verification and application aren't required
-    if !local_site.require_application && !local_site.require_email_verification {
+    // Log the user in directly if the site is not setup, or email verification and application aren't required
+    if !local_site.site_setup
+      || (!local_site.require_application && !local_site.require_email_verification)
+    {
       login_response.jwt = Some(
         Claims::jwt(
           inserted_local_user.id.0,

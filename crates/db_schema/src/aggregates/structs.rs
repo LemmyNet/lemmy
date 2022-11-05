@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
+use crate::newtypes::{CommentId, CommunityId, PersonId, PostId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::{
   comment_aggregates,
@@ -102,7 +102,7 @@ pub struct PersonPostAggregatesForm {
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
 pub struct SiteAggregates {
   pub id: i32,
-  pub site_id: i32,
+  pub site_id: SiteId,
   pub users: i64,
   pub posts: i64,
   pub comments: i64,
