@@ -165,7 +165,9 @@ pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
 }
 
 pub async fn build_db_pool_for_tests() -> DbPool {
-  build_db_pool_settings_opt(None).await.unwrap()
+  build_db_pool_settings_opt(None)
+    .await
+    .expect("db pool missing")
 }
 
 fn get_database_url(settings: Option<&Settings>) -> String {
