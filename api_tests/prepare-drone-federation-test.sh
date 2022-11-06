@@ -26,6 +26,8 @@ else
   done
 fi
 
+cat /etc/hosts
+
 killall lemmy_server || true
 
 echo "$PWD"
@@ -53,8 +55,8 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
   target/lemmy_server >/tmp/lemmy_epsilon.out 2>&1 &
 
 echo "wait for all instances to start"
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v3/site')" != "200" ]]; do sleep 10; cat /tmp/lemmy_alpha.out; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8551/api/v3/site')" != "200" ]]; do sleep 10; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8561/api/v3/site')" != "200" ]]; do sleep 10; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8571/api/v3/site')" != "200" ]]; do sleep 10; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8581/api/v3/site')" != "200" ]]; do sleep 10; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' '127.0.0.1:8541/api/v3/site')" != "200" ]]; do sleep 10; cat /tmp/lemmy_alpha.out; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' '127.0.0.1:8551/api/v3/site')" != "200" ]]; do sleep 10; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' '127.0.0.1:8561/api/v3/site')" != "200" ]]; do sleep 10; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' '127.0.0.1:8571/api/v3/site')" != "200" ]]; do sleep 10; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' '127.0.0.1:8581/api/v3/site')" != "200" ]]; do sleep 10; done
