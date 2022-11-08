@@ -2225,6 +2225,7 @@ dependencies = [
  "once_cell",
  "openssl",
  "parking_lot",
+ "percent-encoding",
  "rand 0.8.5",
  "regex",
  "reqwest-middleware",
