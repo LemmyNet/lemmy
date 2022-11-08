@@ -167,4 +167,11 @@ mod tests {
     test_json::<Page>("assets/peertube/objects/video.json").unwrap();
     test_json::<Note>("assets/peertube/objects/note.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_object_mobilizon() {
+    test_json::<Group>("assets/mobilizon/objects/group.json").unwrap();
+    test_json::<Page>("assets/mobilizon/objects/event.json").unwrap();
+    test_json::<Person>("assets/mobilizon/objects/person.json").unwrap();
+  }
 }

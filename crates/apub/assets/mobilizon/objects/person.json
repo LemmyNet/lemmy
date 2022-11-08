@@ -1,0 +1,144 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "addressRegion": "sc:addressRegion",
+      "timezone": {
+        "@id": "mz:timezone",
+        "@type": "sc:Text"
+      },
+      "isOnline": {
+        "@id": "mz:isOnline",
+        "@type": "sc:Boolean"
+      },
+      "pt": "https://joinpeertube.org/ns#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "inLanguage": "sc:inLanguage",
+      "address": {
+        "@id": "sc:address",
+        "@type": "sc:PostalAddress"
+      },
+      "discoverable": "toot:discoverable",
+      "repliesModerationOption": {
+        "@id": "mz:repliesModerationOption",
+        "@type": "mz:repliesModerationOptionType"
+      },
+      "sc": "http://schema.org#",
+      "mz": "https://joinmobilizon.org/ns#",
+      "category": "sc:category",
+      "joinModeType": {
+        "@id": "mz:joinModeType",
+        "@type": "rdfs:Class"
+      },
+      "Hashtag": "as:Hashtag",
+      "propertyID": "sc:propertyID",
+      "PostalAddress": "sc:PostalAddress",
+      "discussions": {
+        "@id": "mz:discussions",
+        "@type": "@id"
+      },
+      "remainingAttendeeCapacity": "sc:remainingAttendeeCapacity",
+      "streetAddress": "sc:streetAddress",
+      "anonymousParticipationEnabled": {
+        "@id": "mz:anonymousParticipationEnabled",
+        "@type": "sc:Boolean"
+      },
+      "addressLocality": "sc:addressLocality",
+      "joinMode": {
+        "@id": "mz:joinMode",
+        "@type": "mz:joinModeType"
+      },
+      "location": {
+        "@id": "sc:location",
+        "@type": "sc:Place"
+      },
+      "toot": "http://joinmastodon.org/ns#",
+      "participantCount": {
+        "@id": "mz:participantCount",
+        "@type": "sc:Integer"
+      },
+      "uuid": "sc:identifier",
+      "maximumAttendeeCapacity": "sc:maximumAttendeeCapacity",
+      "participationMessage": {
+        "@id": "mz:participationMessage",
+        "@type": "sc:Text"
+      },
+      "openness": {
+        "@id": "mz:openness",
+        "@type": "@id"
+      },
+      "members": {
+        "@id": "mz:members",
+        "@type": "@id"
+      },
+      "events": {
+        "@id": "mz:events",
+        "@type": "@id"
+      },
+      "resources": {
+        "@id": "mz:resources",
+        "@type": "@id"
+      },
+      "addressCountry": "sc:addressCountry",
+      "posts": {
+        "@id": "mz:posts",
+        "@type": "@id"
+      },
+      "commentsEnabled": {
+        "@id": "pt:commentsEnabled",
+        "@type": "sc:Boolean"
+      },
+      "value": "sc:value",
+      "PropertyValue": "sc:PropertyValue",
+      "repliesModerationOptionType": {
+        "@id": "mz:repliesModerationOptionType",
+        "@type": "rdfs:Class"
+      },
+      "todos": {
+        "@id": "mz:todos",
+        "@type": "@id"
+      },
+      "ical": "http://www.w3.org/2002/12/cal/ical#",
+      "postalCode": "sc:postalCode",
+      "memberCount": {
+        "@id": "mz:memberCount",
+        "@type": "sc:Integer"
+      },
+      "@language": "und"
+    }
+  ],
+  "discoverable": false,
+  "discussions": null,
+  "endpoints": {
+    "discussions": null,
+    "events": null,
+    "members": null,
+    "posts": null,
+    "resources": null,
+    "sharedInbox": "https://mobilizon.fr/inbox",
+    "todos": null
+  },
+  "events": null,
+  "followers": "https://mobilizon.fr/@sanof44/followers",
+  "following": "https://mobilizon.fr/@sanof44/following",
+  "id": "https://mobilizon.fr/@sanof44",
+  "inbox": "https://mobilizon.fr/@sanof44/inbox",
+  "manuallyApprovesFollowers": false,
+  "members": null,
+  "name": "Sanof44",
+  "openness": "moderated",
+  "outbox": "https://mobilizon.fr/@sanof44/outbox",
+  "posts": null,
+  "preferredUsername": "sanof44",
+  "publicKey": {
+    "id": "https://mobilizon.fr/@sanof44#main-key",
+    "owner": "https://mobilizon.fr/@sanof44",
+    "publicKeyPem": "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAneK5zzdQQ/6ElSpPv1mj34IMoIIHcTK+iEjZYd85yPfG4krK5bqI\nkUw0TUXFekpntLfDSsGohayrvD2WhN2b499y/A9wdl77RVLIAcBfE3UXr/TfDnjh\nsQEEzV4ghcYaKmXZa/ct2sSt6poT/WhahVweEugfyA75UHgW5VA7nS5URhd7uZUw\nS2CI8fXigDbJlB9AqcxvR7Uncgsn0JCCt5boP8X1jDrh5PEsqsqePm9ZpxvvX4WD\n1yib/ZPBsTo50hJgHoA9bLXO14KvAOeIrzgOlJkyjWTQ+rk+5ewXIZuM0ECPEzAC\nRcpopBjqk07lMxPu1OMG4D+oI0n0K+PgNwIDAQAB\n-----END RSA PUBLIC KEY-----\n\n"
+  },
+  "resources": null,
+  "summary": "",
+  "todos": null,
+  "type": "Person",
+  "url": "https://mobilizon.fr/@sanof44"
+}

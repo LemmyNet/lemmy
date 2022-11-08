@@ -20,6 +20,7 @@ use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -29,6 +30,7 @@ pub enum PageType {
   Article,
   Note,
   Video,
+  Event,
 }
 
 #[skip_serializing_none]
@@ -85,6 +87,7 @@ pub(crate) struct Image {
 pub(crate) enum Attachment {
   Link(Link),
   Image(Image),
+  Other(Value),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
