@@ -6,6 +6,7 @@ use crate::{
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use regex::Regex;
 use std::{env, fs, io::Error};
 
@@ -44,7 +45,11 @@ impl Settings {
     let conf = &self.database;
     format!(
       "postgres://{}:{}@{}:{}/{}",
-      conf.user, conf.password, conf.host, conf.port, conf.database,
+      utf8_percent_encode(&conf.user, NON_ALPHANUMERIC),
+      utf8_percent_encode(&conf.password, NON_ALPHANUMERIC),
+      conf.host,
+      conf.port,
+      utf8_percent_encode(&conf.database, NON_ALPHANUMERIC),
     )
   }
 
