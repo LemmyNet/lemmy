@@ -17,25 +17,6 @@ steps:
       - git submodule update --recursive --remote
       - chown 1000:1000 . -R
 
-  - name: cargo build
-    image: clux/muslrust:1.64.0
-    # image: rust:1.64-buster
-    commands:
-      - cargo build
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-
-  - name: run federation tests
-    image: node:alpine
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-      DO_WRITE_HOSTS_FILE: 1
-    commands:
-      - apk add bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
-      - cd api_tests/
-      - yarn
-      - yarn api-test
-
   - name: check formatting
     image: rustdocker/rust:nightly
     commands:
@@ -76,6 +57,23 @@ steps:
       - cargo workspaces exec cargo check --no-default-features
       - cargo workspaces exec cargo check --all-features
 
+  - name: cargo build
+    image: clux/muslrust:1.64.0
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+
+  - name: run federation tests
+    image: node:alpine
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - apk add bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
 
   - name: nightly build
     image: plugins/docker
