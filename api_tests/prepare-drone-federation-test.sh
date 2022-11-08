@@ -33,30 +33,35 @@ killall lemmy_server || true
 echo "$PWD"
 
 echo "start alpha"
+LEMMY_HOSTNAME=lemmy-alpha:8541 \
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_alpha.hjson \
   target/lemmy_server >/tmp/lemmy_alpha.out 2>&1 &
 
 echo "start beta"
+LEMMY_HOSTNAME=lemmy-beta:8551 \
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_beta.hjson \
   target/lemmy_server >/tmp/lemmy_beta.out 2>&1 &
 
 echo "start gamma"
+LEMMY_HOSTNAME=lemmy-gamma:8561 \
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_gamma.hjson \
   target/lemmy_server >/tmp/lemmy_gamma.out 2>&1 &
 
 echo "start delta"
+LEMMY_HOSTNAME=lemmy-delta:8571 \
 # An instance with only an allowlist for beta
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   target/lemmy_server >/tmp/lemmy_delta.out 2>&1 &
 
 echo "start epsilon"
 # An instance who has a blocklist, with lemmy-alpha blocked
+LEMMY_HOSTNAME=lemmy-epsilon:8581 \
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
   target/lemmy_server >/tmp/lemmy_epsilon.out 2>&1 &
 
 echo "wait for all instances to start"
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v3/site')" != "200" ]]; do sleep 10; cat /tmp/lemmy_alpha.out; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-beta:8551/api/v3/site')" != "200" ]]; do sleep 10; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-gamma:8561/api/v3/site')" != "200" ]]; do sleep 10; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-delta:8571/api/v3/site')" != "200" ]]; do sleep 10; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-epsilon:8581/api/v3/site')" != "200" ]]; do sleep 10; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v3/site')" != "200" ]]; do sleep 1; cat /tmp/lemmy_alpha.out; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-beta:8551/api/v3/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-gamma:8561/api/v3/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-delta:8571/api/v3/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-epsilon:8581/api/v3/site')" != "200" ]]; do sleep 1; done
