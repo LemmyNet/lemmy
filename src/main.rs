@@ -17,7 +17,7 @@ use lemmy_api_common::{
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_db_schema::{
   source::secret::Secret,
-  utils::{build_db_pool, run_migrations},
+  utils::{build_db_pool, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
@@ -67,20 +67,11 @@ async fn main() -> Result<(), LemmyError> {
   init_logging(&settings.opentelemetry_url)?;
 
   // Set up the bb8 connection pool
-  let pool = build_db_pool(&settings).await?;
+  let db_url = get_database_url(Some(&settings));
+  run_migrations(&db_url);
 
   // Run the migrations from code
-  // let settings_cloned = settings.to_owned();
-  // blocking(&pool, move |conn| {
-  //   let _ = conn
-  //     .run_pending_migrations(MIGRATIONS)
-  //     .map_err(|_| LemmyError::from_message("Couldn't run migrations"))?;
-  //   run_advanced_migrations(conn, &settings_cloned)?;
-  //   Ok(()) as Result<(), LemmyError>
-  // })
-  // .await??;
-  let db_url = settings.get_database_url();
-  run_migrations(&db_url);
+  let pool = build_db_pool(&settings).await?;
   run_advanced_migrations(&pool, &settings).await?;
 
   // Schedules various cleanup tasks for the DB

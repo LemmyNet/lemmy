@@ -170,12 +170,13 @@ pub async fn build_db_pool_for_tests() -> DbPool {
     .expect("db pool missing")
 }
 
-fn get_database_url(settings: Option<&Settings>) -> String {
-  match settings {
-    Some(settings) => settings.get_database_url(),
-    None => match get_database_url_from_env() {
-      Ok(url) => url,
-      Err(e) => panic!(
+pub fn get_database_url(settings: Option<&Settings>) -> String {
+  // The env var should override anything in the settings config
+  match get_database_url_from_env() {
+    Ok(url) => url,
+    Err(e) => match settings {
+      Some(settings) => settings.get_database_url(),
+      None => panic!(
         "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
         e
       ),
