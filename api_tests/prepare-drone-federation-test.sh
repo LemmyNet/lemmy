@@ -58,7 +58,7 @@ LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
 target/lemmy_server >/tmp/lemmy_epsilon.out 2>&1 &
 
 echo "wait for all instances to start"
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v3/site')" != "200" ]]; do sleep 1; cat /tmp/lemmy_alpha.out; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v3/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-beta:8551/api/v3/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-gamma:8561/api/v3/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-delta:8571/api/v3/site')" != "200" ]]; do sleep 1; done
