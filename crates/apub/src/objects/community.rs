@@ -20,7 +20,6 @@ use activitypub_federation::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
@@ -72,31 +71,23 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        Community::read_from_apub_id(conn, &object_id.into())
-      })
-      .await??
-      .map(Into::into),
+      Community::read_from_apub_id(context.pool(), &object_id.into())
+        .await?
+        .map(Into::into),
     )
   }
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    blocking(context.pool(), move |conn| {
-      let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
-      Community::update(conn, self.id, &form)
-    })
-    .await??;
+    let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
+    Community::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn into_apub(self, data: &LemmyContext) -> Result<Group, LemmyError> {
     let community_id = self.id;
-    let langs = blocking(data.pool(), move |conn| {
-      CommunityLanguage::read(conn, community_id)
-    })
-    .await??;
+    let langs = CommunityLanguage::read(data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
 
     let group = Group {
@@ -145,35 +136,29 @@ impl ApubObject for ApubCommunity {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let apub_id = group.id.inner().to_owned();
-    let instance = blocking(context.pool(), move |conn| {
-      Instance::create_from_actor_id(conn, &apub_id)
-    })
-    .await??;
+    let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
 
     let form = Group::into_insert_form(group.clone(), instance.id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
 
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      let community = Community::create(conn, &form)?;
-      CommunityLanguage::update(conn, languages, community.id)?;
-      Ok::<Community, diesel::result::Error>(community)
-    })
-    .await??
-    .into();
+    let community = Community::create(context.pool(), &form).await?;
+    CommunityLanguage::update(context.pool(), languages, community.id).await?;
+
+    let community: ApubCommunity = community.into();
     let outbox_data = CommunityContext(community.clone(), context.clone());
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
     group
       .outbox
-      .dereference(&outbox_data, local_instance(context), request_counter)
+      .dereference(&outbox_data, local_instance(context).await, request_counter)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = &group.moderators {
       moderators
-        .dereference(&outbox_data, local_instance(context), request_counter)
+        .dereference(&outbox_data, local_instance(context).await, request_counter)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();
@@ -217,11 +202,8 @@ impl ApubCommunity {
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
-    let follows = blocking(context.pool(), move |conn| {
-      CommunityFollowerView::for_community(conn, id)
-    })
-    .await??;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    let follows = CommunityFollowerView::for_community(context.pool(), id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
@@ -277,8 +259,7 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_community() {
-    let context = init_context();
-    let conn = &mut context.pool().get().unwrap();
+    let context = init_context().await;
     let site = parse_lemmy_instance(&context).await;
     let community = parse_lemmy_community(&context).await;
 
@@ -286,7 +267,9 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
-    Community::delete(conn, community.id).unwrap();
-    Site::delete(conn, site.id).unwrap();
+    Community::delete(context.pool(), community.id)
+      .await
+      .unwrap();
+    Site::delete(context.pool(), site.id).await.unwrap();
   }
 }

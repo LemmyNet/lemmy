@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
 use lemmy_db_schema::{
@@ -34,7 +34,7 @@ impl PerformCrud for GetPersonDetails {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -56,10 +56,7 @@ impl PerformCrud for GetPersonDetails {
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_details_id)
-    })
-    .await??;
+    let person_view = PersonViewSafe::read(context.pool(), person_details_id).await?;
 
     let sort = data.sort;
     let page = data.page;
@@ -69,57 +66,50 @@ impl PerformCrud for GetPersonDetails {
     let local_user = local_user_view.map(|l| l.local_user);
     let local_user_clone = local_user.to_owned();
 
-    let posts = blocking(context.pool(), move |conn| {
-      let posts_query = PostQuery::builder()
-        .conn(conn)
-        .sort(sort)
-        .saved_only(saved_only)
-        .local_user(local_user.as_ref())
-        .community_id(community_id)
-        .page(page)
-        .limit(limit);
+    let posts_query = PostQuery::builder()
+      .pool(context.pool())
+      .sort(sort)
+      .saved_only(saved_only)
+      .local_user(local_user.as_ref())
+      .community_id(community_id)
+      .page(page)
+      .limit(limit);
 
-      // If its saved only, you don't care what creator it was
-      // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only.unwrap_or(false) {
-        posts_query
-          .creator_id(Some(person_details_id))
-          .build()
-          .list()
-      } else {
-        posts_query.build().list()
-      }
-    })
-    .await??;
+    // If its saved only, you don't care what creator it was
+    // Or, if its not saved, then you only want it for that specific creator
+    let posts = if !saved_only.unwrap_or(false) {
+      posts_query
+        .creator_id(Some(person_details_id))
+        .build()
+        .list()
+    } else {
+      posts_query.build().list()
+    }
+    .await?;
 
-    let comments = blocking(context.pool(), move |conn| {
-      let comments_query = CommentQuery::builder()
-        .conn(conn)
-        .local_user(local_user_clone.as_ref())
-        .sort(sort.map(post_to_comment_sort_type))
-        .saved_only(saved_only)
-        .show_deleted_and_removed(Some(false))
-        .community_id(community_id)
-        .page(page)
-        .limit(limit);
+    let comments_query = CommentQuery::builder()
+      .pool(context.pool())
+      .local_user(local_user_clone.as_ref())
+      .sort(sort.map(post_to_comment_sort_type))
+      .saved_only(saved_only)
+      .show_deleted_and_removed(Some(false))
+      .community_id(community_id)
+      .page(page)
+      .limit(limit);
 
-      // If its saved only, you don't care what creator it was
-      // Or, if its not saved, then you only want it for that specific creator
-      if !saved_only.unwrap_or(false) {
-        comments_query
-          .creator_id(Some(person_details_id))
-          .build()
-          .list()
-      } else {
-        comments_query.build().list()
-      }
-    })
-    .await??;
+    // If its saved only, you don't care what creator it was
+    // Or, if its not saved, then you only want it for that specific creator
+    let comments = if !saved_only.unwrap_or(false) {
+      comments_query
+        .creator_id(Some(person_details_id))
+        .build()
+        .list()
+    } else {
+      comments_query.build().list()
+    }
+    .await?;
 
-    let moderates = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_person(conn, person_details_id)
-    })
-    .await??;
+    let moderates = CommunityModeratorView::for_person(context.pool(), person_details_id).await?;
 
     // Return the jwt
     Ok(GetPersonDetailsResponse {

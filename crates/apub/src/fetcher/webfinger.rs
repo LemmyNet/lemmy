@@ -2,7 +2,6 @@ use crate::{local_instance, ActorType};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::DbUrl, source::local_site::LocalSite};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -48,7 +47,7 @@ where
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 
-  let local_site = blocking(context.pool(), LocalSite::read).await?;
+  let local_site = LocalSite::read(context.pool()).await;
   let http_fetch_retry_limit = local_site
     .as_ref()
     .map(|l| l.federation_http_fetch_retry_limit)
@@ -81,7 +80,7 @@ where
       object_id.dereference_local(context).await
     } else {
       object_id
-        .dereference(context, local_instance(context), request_counter)
+        .dereference(context, local_instance(context).await, request_counter)
         .await
     };
     if object.is_ok() {

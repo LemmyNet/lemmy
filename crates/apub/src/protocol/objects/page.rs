@@ -155,7 +155,7 @@ impl Page {
           if let Some(cid) = iter.next() {
             let cid = ObjectId::new(cid.clone());
             if let Ok(c) = cid
-              .dereference(context, local_instance(context), request_counter)
+              .dereference(context, local_instance(context).await, request_counter)
               .await
             {
               break Ok(c);
@@ -170,7 +170,7 @@ impl Page {
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
           .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
-          .dereference(context, local_instance(context), request_counter)
+          .dereference(context, local_instance(context).await, request_counter)
           .await
       }
     }

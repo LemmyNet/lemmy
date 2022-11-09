@@ -18,7 +18,6 @@ use activitypub_federation::{
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
@@ -100,10 +99,8 @@ impl ActivityHandler for UpdateCommunity {
 
     let community_update_form = self.object.into_update_form();
 
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(conn, community.id, &community_update_form)
-    })
-    .await??;
+    let updated_community =
+      Community::update(context.pool(), community.id, &community_update_form).await?;
 
     send_community_ws_message(
       updated_community.id,
@@ -127,7 +124,7 @@ impl GetCommunity for UpdateCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let cid = ObjectId::new(self.object.id.clone());
     cid
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await
   }
 }

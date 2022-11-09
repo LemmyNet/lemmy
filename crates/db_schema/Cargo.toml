@@ -19,22 +19,26 @@ full = ["diesel", "diesel-derive-newtype", "diesel_migrations", "bcrypt", "lemmy
 
 [dependencies]
 chrono = { version = "0.4.22", features = ["serde"], default-features = false }
-serde = { version = "1.0.145", features = ["derive"] }
+serde = { version = "1.0.147", features = ["derive"] }
 url = { version = "2.3.1", features = ["serde"] }
 strum = "0.24.1"
 strum_macros = "0.24.3"
-serde_json = { version = "1.0.85", features = ["preserve_order"], optional = true }
+serde_json = { version = "1.0.87", features = ["preserve_order"], optional = true }
 activitypub_federation = { version = "0.2.3", optional = true }
 lemmy_utils = { version = "=0.16.5", path = "../utils", optional = true }
 bcrypt = { version = "0.13.0", optional = true }
-diesel = { version = "2.0.0", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
+diesel = { version = "2.0.2", features = ["postgres","chrono", "serde_json"], optional = true }
 diesel-derive-newtype = { version = "2.0.0-rc.0", optional = true }
 diesel_migrations = { version = "2.0.0", optional = true }
+diesel-async = { version = "0.1.1", features = ["postgres", "bb8"] }
+bb8 = "0.8.0"
 sha2 = { version = "0.10.6", optional = true }
 regex = { version = "1.6.0", optional = true }
 once_cell = { version = "1.15.0", optional = true }
 diesel_ltree = "0.3.0"
 typed-builder = "0.10.0"
+async-trait = "0.1.58"
+tokio = "1.21.2"
 
 [dev-dependencies]
 serial_test = "0.9.0"

@@ -21,10 +21,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
-use lemmy_api_common::{
-  request::fetch_site_data,
-  utils::{blocking, local_site_opt_to_slur_regex},
-};
+use lemmy_api_common::{request::fetch_site_data, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   self,
   source::{
@@ -77,22 +74,17 @@ impl ApubObject for ApubPost {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        Post::read_from_apub_id(conn, object_id)
-      })
-      .await??
-      .map(Into::into),
+      Post::read_from_apub_id(context.pool(), object_id)
+        .await?
+        .map(Into::into),
     )
   }
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     if !self.deleted {
-      blocking(context.pool(), move |conn| {
-        let form = PostUpdateForm::builder().deleted(Some(true)).build();
-        Post::update(conn, self.id, &form)
-      })
-      .await??;
+      let form = PostUpdateForm::builder().deleted(Some(true)).build();
+      Post::update(context.pool(), self.id, &form).await?;
     }
     Ok(())
   }
@@ -101,12 +93,9 @@ impl ApubObject for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_apub(self, context: &LemmyContext) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = blocking(context.pool(), move |conn| Person::read(conn, creator_id)).await??;
+    let creator = Person::read(context.pool(), creator_id).await?;
     let community_id = self.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), community_id).await?;
     let language = LanguageTag::new_single(self.language_id, context.pool()).await?;
 
     let page = Page {
@@ -146,7 +135,7 @@ impl ApubObject for ApubPost {
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     let community = page.extract_community(context, request_counter).await?;
     check_apub_id_valid_with_strictness(
@@ -173,7 +162,7 @@ impl ApubObject for ApubPost {
   ) -> Result<ApubPost, LemmyError> {
     let creator = page
       .creator()?
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community = page.extract_community(context, request_counter).await?;
 
@@ -199,7 +188,7 @@ impl ApubObject for ApubPost {
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
         .unwrap_or_default();
-      let local_site = blocking(context.pool(), LocalSite::read).await?.ok();
+      let local_site = LocalSite::read(context.pool()).await.ok();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body_slurs_removed =
@@ -246,7 +235,7 @@ impl ApubObject for ApubPost {
       .dereference_local(context)
       .await;
 
-    let post = blocking(context.pool(), move |conn| Post::create(conn, &form)).await??;
+    let post = Post::create(context.pool(), &form).await?;
 
     // write mod log entries for sticky/lock
     if Page::is_stickied_changed(&old_post, &page.stickied) {
@@ -255,10 +244,7 @@ impl ApubObject for ApubPost {
         post_id: post.id,
         stickied: Some(post.stickied),
       };
-      blocking(context.pool(), move |conn| {
-        ModStickyPost::create(conn, &form)
-      })
-      .await??;
+      ModStickyPost::create(context.pool(), &form).await?;
     }
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
       let form = ModLockPostForm {
@@ -266,7 +252,7 @@ impl ApubObject for ApubPost {
         post_id: post.id,
         locked: Some(post.locked),
       };
-      blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
+      ModLockPost::create(context.pool(), &form).await?;
     }
 
     Ok(post.into())
@@ -291,8 +277,7 @@ mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_post() {
-    let context = init_context();
-    let conn = &mut context.pool().get().unwrap();
+    let context = init_context().await;
     let (person, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
 
@@ -314,9 +299,11 @@ mod tests {
     assert!(post.stickied);
     assert_eq!(request_counter, 0);
 
-    Post::delete(conn, post.id).unwrap();
-    Person::delete(conn, person.id).unwrap();
-    Community::delete(conn, community.id).unwrap();
-    Site::delete(conn, site.id).unwrap();
+    Post::delete(context.pool(), post.id).await.unwrap();
+    Person::delete(context.pool(), person.id).await.unwrap();
+    Community::delete(context.pool(), community.id)
+      .await
+      .unwrap();
+    Site::delete(context.pool(), site.id).await.unwrap();
   }
 }

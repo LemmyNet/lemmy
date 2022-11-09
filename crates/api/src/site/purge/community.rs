@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   request::purge_image_from_pictrs,
   site::{PurgeCommunity, PurgeItemResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin, purge_image_posts_for_community},
+  utils::{get_local_user_view_from_jwt, is_admin, purge_image_posts_for_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -35,10 +35,7 @@ impl Perform for PurgeCommunity {
     let community_id = data.community_id;
 
     // Read the community to get its images
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), community_id).await?;
 
     if let Some(banner) = community.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -60,10 +57,7 @@ impl Perform for PurgeCommunity {
     )
     .await?;
 
-    blocking(context.pool(), move |conn| {
-      Community::delete(conn, community_id)
-    })
-    .await??;
+    Community::delete(context.pool(), community_id).await?;
 
     // Mod tables
     let reason = data.reason.to_owned();
@@ -72,10 +66,7 @@ impl Perform for PurgeCommunity {
       reason,
     };
 
-    blocking(context.pool(), move |conn| {
-      AdminPurgeCommunity::create(conn, &form)
-    })
-    .await??;
+    AdminPurgeCommunity::create(context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

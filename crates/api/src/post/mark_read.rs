@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{MarkPostAsRead, PostResponse},
-  utils::{blocking, get_local_user_view_from_jwt, mark_post_as_read, mark_post_as_unread},
+  utils::{get_local_user_view_from_jwt, mark_post_as_read, mark_post_as_unread},
 };
 use lemmy_db_views::structs::PostView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -33,10 +33,7 @@ impl Perform for MarkPostAsRead {
     }
 
     // Fetch it
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(person_id))
-    })
-    .await??;
+    let post_view = PostView::read(context.pool(), post_id, Some(person_id)).await?;
 
     let res = Self::Response { post_view };
 

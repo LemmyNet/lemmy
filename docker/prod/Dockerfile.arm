@@ -1,4 +1,4 @@
-ARG RUST_BUILDER_IMAGE=rust:1.60-slim-buster
+ARG RUST_BUILDER_IMAGE=rust:1.64-slim-buster
 
 # Build Lemmy
 FROM $RUST_BUILDER_IMAGE as builder

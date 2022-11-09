@@ -253,17 +253,19 @@ mod tests {
       secret::Secret,
     },
     traits::Crud,
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use lemmy_utils::{claims::Claims, settings::SETTINGS};
+  use serial_test::serial;
 
-  #[test]
-  fn test_should_not_validate_user_token_after_password_change() {
-    let conn = &mut establish_unpooled_connection();
-    let secret = Secret::init(conn).unwrap();
+  #[tokio::test]
+  #[serial]
+  async fn test_should_not_validate_user_token_after_password_change() {
+    let pool = &build_db_pool_for_tests().await;
+    let secret = Secret::init(pool).await.unwrap();
     let settings = &SETTINGS.to_owned();
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("Gerry9812".into())
@@ -271,14 +273,14 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted("123456".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
     let jwt = Claims::jwt(
       inserted_local_user.id.0,
@@ -292,11 +294,13 @@ mod tests {
 
     // The check should fail, since the validator time is now newer than the jwt issue time
     let updated_local_user =
-      LocalUser::update_password(conn, inserted_local_user.id, "password111").unwrap();
+      LocalUser::update_password(pool, inserted_local_user.id, "password111")
+        .await
+        .unwrap();
     let check_after = check_validator_time(&updated_local_user.validator_time, &claims);
     assert!(check_after.is_err());
 
-    let num_deleted = Person::delete(conn, inserted_person.id).unwrap();
+    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
     assert_eq!(1, num_deleted);
   }
 }

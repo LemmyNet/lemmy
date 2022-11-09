@@ -15,7 +15,6 @@ use activitypub_federation::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use http::StatusCode;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -71,7 +70,7 @@ where
   receive_activity::<Activity, ActorT, LemmyContext>(
     request,
     activity,
-    local_instance(&context),
+    local_instance(&context).await,
     data,
   )
   .await
@@ -122,10 +121,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = blocking(context.pool(), move |conn| {
-    Activity::read_from_apub_id(conn, &activity_id)
-  })
-  .await??;
+  let activity = Activity::read_from_apub_id(context.pool(), &activity_id).await?;
 
   let sensitive = activity.sensitive.unwrap_or(true);
   if !activity.local || sensitive {

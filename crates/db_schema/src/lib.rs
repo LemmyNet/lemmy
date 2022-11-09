@@ -12,6 +12,9 @@ extern crate diesel_derive_newtype;
 #[macro_use]
 extern crate diesel_migrations;
 
+#[macro_use]
+extern crate async_trait;
+
 pub mod aggregates;
 #[cfg(feature = "full")]
 pub mod impls;

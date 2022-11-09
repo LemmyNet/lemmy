@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, SaveComment},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::comment::{CommentSaved, CommentSavedForm},
@@ -32,23 +32,18 @@ impl Perform for SaveComment {
     };
 
     if data.save {
-      let save_comment = move |conn: &mut _| CommentSaved::save(conn, &comment_saved_form);
-      blocking(context.pool(), save_comment)
-        .await?
+      CommentSaved::save(context.pool(), &comment_saved_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
-      let unsave_comment = move |conn: &mut _| CommentSaved::unsave(conn, &comment_saved_form);
-      blocking(context.pool(), unsave_comment)
-        .await?
+      CommentSaved::unsave(context.pool(), &comment_saved_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     }
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, Some(person_id))
-    })
-    .await??;
+    let comment_view = CommentView::read(context.pool(), comment_id, Some(person_id)).await?;
 
     Ok(CommentResponse {
       comment_view,

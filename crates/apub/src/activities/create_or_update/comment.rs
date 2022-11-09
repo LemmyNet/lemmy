@@ -21,7 +21,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::utils::{blocking, check_post_deleted_or_removed};
+use lemmy_api_common::utils::check_post_deleted_or_removed;
 use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},
@@ -45,13 +45,9 @@ impl CreateOrUpdateComment {
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(context.pool(), post_id).await?;
     let community_id = post.community_id;
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
     let id = generate_activity_id(
       kind.clone(),
@@ -86,7 +82,7 @@ impl CreateOrUpdateComment {
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t
-        .dereference(context, local_instance(context), request_counter)
+        .dereference(context, local_instance(context).await, request_counter)
         .await?;
       inboxes.push(person.shared_inbox_or_inbox());
     }
@@ -143,10 +139,7 @@ impl ActivityHandler for CreateOrUpdateComment {
       person_id: comment.creator_id,
       score: 1,
     };
-    blocking(context.pool(), move |conn: &mut _| {
-      CommentLike::like(conn, &like_form)
-    })
-    .await??;
+    CommentLike::like(context.pool(), &like_form).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let recipients = get_comment_notif_recipients(
@@ -178,10 +171,7 @@ impl GetCommunity for CreateOrUpdateComment {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let post = self.object.get_parents(context, request_counter).await?.0;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, post.community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), post.community_id).await?;
     Ok(community.into())
   }
 }

@@ -74,7 +74,7 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
   ) -> Result<Kind, LemmyError> {
     match self {
       IdOrNestedObject::Id(i) => {
-        Ok(fetch_object_http(&i, local_instance(context), request_counter).await?)
+        Ok(fetch_object_http(&i, local_instance(context).await, request_counter).await?)
       }
       IdOrNestedObject::NestedObject(o) => Ok(o),
     }

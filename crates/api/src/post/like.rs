@@ -3,7 +3,6 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   post::{CreatePostLike, PostResponse},
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     check_downvotes_enabled,
@@ -42,16 +41,14 @@ impl Perform for CreatePostLike {
     let data: &CreatePostLike = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled
     check_downvotes_enabled(data.score, &local_site)?;
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post: ApubPost = blocking(context.pool(), move |conn| Post::read(conn, post_id))
-      .await??
-      .into();
+    let post: ApubPost = Post::read(context.pool(), post_id).await?.into();
 
     check_community_ban(local_user_view.person.id, post.community_id, context.pool()).await?;
     check_community_deleted_or_removed(post.community_id, context.pool()).await?;
@@ -64,10 +61,8 @@ impl Perform for CreatePostLike {
 
     // Remove any likes first
     let person_id = local_user_view.person.id;
-    blocking(context.pool(), move |conn| {
-      PostLike::remove(conn, person_id, post_id)
-    })
-    .await??;
+
+    PostLike::remove(context.pool(), person_id, post_id).await?;
 
     let community_id = post.community_id;
     let object = PostOrComment::Post(Box::new(post));
@@ -76,9 +71,8 @@ impl Perform for CreatePostLike {
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let like = move |conn: &mut _| PostLike::like(conn, &like_form2);
-      blocking(context.pool(), like)
-        .await?
+      PostLike::like(context.pool(), &like_form2)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
       Vote::send(

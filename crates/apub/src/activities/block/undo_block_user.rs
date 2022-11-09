@@ -19,7 +19,6 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -102,7 +101,7 @@ impl ActivityHandler for UndoBlockUser {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let instance = local_instance(context);
+    let instance = local_instance(context).await;
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self
       .actor
@@ -120,17 +119,15 @@ impl ActivityHandler for UndoBlockUser {
       .await?
     {
       SiteOrCommunity::Site(_site) => {
-        let blocked_person = blocking(context.pool(), move |conn| {
-          Person::update(
-            conn,
-            blocked_person.id,
-            &PersonUpdateForm::builder()
-              .banned(Some(false))
-              .ban_expires(Some(expires))
-              .build(),
-          )
-        })
-        .await??;
+        let blocked_person = Person::update(
+          context.pool(),
+          blocked_person.id,
+          &PersonUpdateForm::builder()
+            .banned(Some(false))
+            .ban_expires(Some(expires))
+            .build(),
+        )
+        .await?;
 
         // write mod log
         let form = ModBanForm {
@@ -140,7 +137,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+        ModBan::create(context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -148,10 +145,7 @@ impl ActivityHandler for UndoBlockUser {
           person_id: blocked_person.id,
           expires: None,
         };
-        blocking(context.pool(), move |conn: &mut _| {
-          CommunityPersonBan::unban(conn, &community_user_ban_form)
-        })
-        .await??;
+        CommunityPersonBan::unban(context.pool(), &community_user_ban_form).await?;
 
         // write to mod log
         let form = ModBanFromCommunityForm {
@@ -162,10 +156,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        blocking(context.pool(), move |conn| {
-          ModBanFromCommunity::create(conn, &form)
-        })
-        .await??;
+        ModBanFromCommunity::create(context.pool(), &form).await?;
       }
     }
 

@@ -16,7 +16,6 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FollowType;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
   traits::Followable,
@@ -54,10 +53,9 @@ impl FollowCommunity {
       person_id: actor.id,
       pending: true,
     };
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::follow(context.pool(), &community_follower_form)
+      .await
+      .ok();
 
     let follow = FollowCommunity::new(actor, community, context)?;
     let inbox = vec![community.shared_inbox_or_inbox()];
@@ -87,7 +85,7 @@ impl ActivityHandler for FollowCommunity {
     verify_person(&self.actor, context, request_counter).await?;
     let community = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
@@ -101,11 +99,11 @@ impl ActivityHandler for FollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
@@ -114,10 +112,9 @@ impl ActivityHandler for FollowCommunity {
     };
 
     // This will fail if they're already a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::follow(context.pool(), &community_follower_form)
+      .await
+      .ok();
 
     AcceptFollowCommunity::send(self, context, request_counter).await
   }

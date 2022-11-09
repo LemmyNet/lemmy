@@ -5,7 +5,6 @@ use crate::{
 use activitypub_federation::traits::ApubObject;
 use actix_web::{web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -23,9 +22,7 @@ pub(crate) async fn get_apub_comment(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
-  let comment: ApubComment = blocking(context.pool(), move |conn| Comment::read(conn, id))
-    .await??
-    .into();
+  let comment: ApubComment = Comment::read(context.pool(), id).await?.into();
   if !comment.local {
     return Err(NotFound.into());
   }

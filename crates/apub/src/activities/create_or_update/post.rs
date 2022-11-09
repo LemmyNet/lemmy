@@ -19,7 +19,6 @@ use activitypub_federation::{
   utils::{verify_domains_match, verify_urls_match},
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -62,11 +61,7 @@ impl CreateOrUpdatePost {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community_id = post.community_id;
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
@@ -149,10 +144,7 @@ impl ActivityHandler for CreateOrUpdatePost {
       person_id: post.creator_id,
       score: 1,
     };
-    blocking(context.pool(), move |conn: &mut _| {
-      PostLike::like(conn, &like_form)
-    })
-    .await??;
+    PostLike::like(context.pool(), &like_form).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,

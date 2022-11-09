@@ -14,7 +14,6 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use anyhow::anyhow;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite, post::Post},
@@ -50,11 +49,7 @@ impl Vote {
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community = Community::read(context.pool(), community_id).await?.into();
     let vote = Vote::new(object, actor, kind, context)?;
 
     let activity = AnnouncableActivities::Vote(vote);
@@ -83,8 +78,8 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let community = self.get_community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    let enable_downvotes = blocking(context.pool(), LocalSite::read)
-      .await?
+    let enable_downvotes = LocalSite::read(context.pool())
+      .await
       .map(|l| l.enable_downvotes)
       .unwrap_or(true);
     if self.kind == VoteType::Dislike && !enable_downvotes {
@@ -101,11 +96,11 @@ impl ActivityHandler for Vote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let object = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
@@ -124,17 +119,13 @@ impl GetCommunity for Vote {
   ) -> Result<ApubCommunity, LemmyError> {
     let object = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let cid = match object {
       PostOrComment::Post(p) => p.community_id,
-      PostOrComment::Comment(c) => {
-        blocking(context.pool(), move |conn| Post::read(conn, c.post_id))
-          .await??
-          .community_id
-      }
+      PostOrComment::Comment(c) => Post::read(context.pool(), c.post_id).await?.community_id,
     };
-    let community = blocking(context.pool(), move |conn| Community::read(conn, cid)).await??;
+    let community = Community::read(context.pool(), cid).await?;
     Ok(community.into())
   }
 }

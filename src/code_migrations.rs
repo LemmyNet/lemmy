@@ -2,8 +2,12 @@
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use diesel::{
   sql_types::{Nullable, Text},
-  *,
+  ExpressionMethods,
+  IntoSql,
+  QueryDsl,
+  TextExpressionMethods,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_api_common::lemmy_db_views::structs::SiteView;
 use lemmy_apub::{
   generate_followers_url,
@@ -27,36 +31,34 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::naive_now,
+  utils::{get_conn, naive_now, DbPool},
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use tracing::info;
 use url::Url;
 
-pub fn run_advanced_migrations(
-  conn: &mut PgConnection,
-  settings: &Settings,
-) -> Result<(), LemmyError> {
+pub async fn run_advanced_migrations(pool: &DbPool, settings: &Settings) -> Result<(), LemmyError> {
   let protocol_and_hostname = &settings.get_protocol_and_hostname();
-  user_updates_2020_04_02(conn, protocol_and_hostname)?;
-  community_updates_2020_04_02(conn, protocol_and_hostname)?;
-  post_updates_2020_04_03(conn, protocol_and_hostname)?;
-  comment_updates_2020_04_03(conn, protocol_and_hostname)?;
-  private_message_updates_2020_05_05(conn, protocol_and_hostname)?;
-  post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname)?;
-  apub_columns_2021_02_02(conn)?;
-  instance_actor_2022_01_28(conn, protocol_and_hostname)?;
-  regenerate_public_keys_2022_07_05(conn)?;
-  initialize_local_site_2022_10_10(conn, settings)?;
+  user_updates_2020_04_02(pool, protocol_and_hostname).await?;
+  community_updates_2020_04_02(pool, protocol_and_hostname).await?;
+  post_updates_2020_04_03(pool, protocol_and_hostname).await?;
+  comment_updates_2020_04_03(pool, protocol_and_hostname).await?;
+  private_message_updates_2020_05_05(pool, protocol_and_hostname).await?;
+  post_thumbnail_url_updates_2020_07_27(pool, protocol_and_hostname).await?;
+  apub_columns_2021_02_02(pool).await?;
+  instance_actor_2022_01_28(pool, protocol_and_hostname).await?;
+  regenerate_public_keys_2022_07_05(pool).await?;
+  initialize_local_site_2022_10_10(pool, settings).await?;
 
   Ok(())
 }
 
-fn user_updates_2020_04_02(
-  conn: &mut PgConnection,
+async fn user_updates_2020_04_02(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::*;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
 
@@ -64,7 +66,8 @@ fn user_updates_2020_04_02(
   let incorrect_persons = person
     .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
-    .load::<Person>(conn)?;
+    .load::<Person>(conn)
+    .await?;
 
   for cperson in &incorrect_persons {
     let keypair = generate_actor_keypair()?;
@@ -80,7 +83,7 @@ fn user_updates_2020_04_02(
       .last_refreshed_at(Some(naive_now()))
       .build();
 
-    Person::update(conn, cperson.id, &form)?;
+    Person::update(pool, cperson.id, &form).await?;
   }
 
   info!("{} person rows updated.", incorrect_persons.len());
@@ -88,11 +91,12 @@ fn user_updates_2020_04_02(
   Ok(())
 }
 
-fn community_updates_2020_04_02(
-  conn: &mut PgConnection,
+async fn community_updates_2020_04_02(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::*;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
 
@@ -100,7 +104,8 @@ fn community_updates_2020_04_02(
   let incorrect_communities = community
     .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
-    .load::<Community>(conn)?;
+    .load::<Community>(conn)
+    .await?;
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
@@ -117,7 +122,7 @@ fn community_updates_2020_04_02(
       .last_refreshed_at(Some(naive_now()))
       .build();
 
-    Community::update(conn, ccommunity.id, &form)?;
+    Community::update(pool, ccommunity.id, &form).await?;
   }
 
   info!("{} community rows updated.", incorrect_communities.len());
@@ -125,11 +130,12 @@ fn community_updates_2020_04_02(
   Ok(())
 }
 
-fn post_updates_2020_04_03(
-  conn: &mut PgConnection,
+async fn post_updates_2020_04_03(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_updates_2020_04_03");
 
@@ -137,7 +143,8 @@ fn post_updates_2020_04_03(
   let incorrect_posts = post
     .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
-    .load::<Post>(conn)?;
+    .load::<Post>(conn)
+    .await?;
 
   for cpost in &incorrect_posts {
     let apub_id = generate_local_apub_endpoint(
@@ -146,10 +153,11 @@ fn post_updates_2020_04_03(
       protocol_and_hostname,
     )?;
     Post::update(
-      conn,
+      pool,
       cpost.id,
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
-    )?;
+    )
+    .await?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());
@@ -157,11 +165,12 @@ fn post_updates_2020_04_03(
   Ok(())
 }
 
-fn comment_updates_2020_04_03(
-  conn: &mut PgConnection,
+async fn comment_updates_2020_04_03(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::*;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -169,7 +178,8 @@ fn comment_updates_2020_04_03(
   let incorrect_comments = comment
     .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
-    .load::<Comment>(conn)?;
+    .load::<Comment>(conn)
+    .await?;
 
   for ccomment in &incorrect_comments {
     let apub_id = generate_local_apub_endpoint(
@@ -178,10 +188,11 @@ fn comment_updates_2020_04_03(
       protocol_and_hostname,
     )?;
     Comment::update(
-      conn,
+      pool,
       ccomment.id,
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
-    )?;
+    )
+    .await?;
   }
 
   info!("{} comment rows updated.", incorrect_comments.len());
@@ -189,11 +200,12 @@ fn comment_updates_2020_04_03(
   Ok(())
 }
 
-fn private_message_updates_2020_05_05(
-  conn: &mut PgConnection,
+async fn private_message_updates_2020_05_05(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::*;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -201,7 +213,8 @@ fn private_message_updates_2020_05_05(
   let incorrect_pms = private_message
     .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
-    .load::<PrivateMessage>(conn)?;
+    .load::<PrivateMessage>(conn)
+    .await?;
 
   for cpm in &incorrect_pms {
     let apub_id = generate_local_apub_endpoint(
@@ -210,12 +223,13 @@ fn private_message_updates_2020_05_05(
       protocol_and_hostname,
     )?;
     PrivateMessage::update(
-      conn,
+      pool,
       cpm.id,
       &PrivateMessageUpdateForm::builder()
         .ap_id(Some(apub_id))
         .build(),
-    )?;
+    )
+    .await?;
   }
 
   info!("{} private message rows updated.", incorrect_pms.len());
@@ -223,11 +237,12 @@ fn private_message_updates_2020_05_05(
   Ok(())
 }
 
-fn post_thumbnail_url_updates_2020_07_27(
-  conn: &mut PgConnection,
+async fn post_thumbnail_url_updates_2020_07_27(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::*;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
@@ -244,7 +259,8 @@ fn post_thumbnail_url_updates_2020_07_27(
           .concat(thumbnail_url),
       ),
     )
-    .get_results::<Post>(conn)?;
+    .get_results::<Post>(conn)
+    .await?;
 
   info!("{} Post thumbnail_url rows updated.", res.len());
 
@@ -253,13 +269,15 @@ fn post_thumbnail_url_updates_2020_07_27(
 
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
-fn apub_columns_2021_02_02(conn: &mut PgConnection) -> Result<(), LemmyError> {
+async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
+  let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
     use lemmy_db_schema::schema::person::dsl::*;
     let persons = person
       .filter(inbox_url.like("http://changeme%"))
-      .load::<Person>(conn)?;
+      .load::<Person>(conn)
+      .await?;
 
     for p in &persons {
       let inbox_url_ = generate_inbox_url(&p.actor_id)?;
@@ -269,7 +287,8 @@ fn apub_columns_2021_02_02(conn: &mut PgConnection) -> Result<(), LemmyError> {
           inbox_url.eq(inbox_url_),
           shared_inbox_url.eq(shared_inbox_url_),
         ))
-        .get_result::<Person>(conn)?;
+        .get_result::<Person>(conn)
+        .await?;
     }
   }
 
@@ -277,7 +296,8 @@ fn apub_columns_2021_02_02(conn: &mut PgConnection) -> Result<(), LemmyError> {
     use lemmy_db_schema::schema::community::dsl::*;
     let communities = community
       .filter(inbox_url.like("http://changeme%"))
-      .load::<Community>(conn)?;
+      .load::<Community>(conn)
+      .await?;
 
     for c in &communities {
       let followers_url_ = generate_followers_url(&c.actor_id)?;
@@ -289,7 +309,8 @@ fn apub_columns_2021_02_02(conn: &mut PgConnection) -> Result<(), LemmyError> {
           inbox_url.eq(inbox_url_),
           shared_inbox_url.eq(shared_inbox_url_),
         ))
-        .get_result::<Community>(conn)?;
+        .get_result::<Community>(conn)
+        .await?;
     }
   }
 
@@ -300,12 +321,12 @@ fn apub_columns_2021_02_02(conn: &mut PgConnection) -> Result<(), LemmyError> {
 /// means we need to add actor columns to the site table, and initialize them with correct values.
 /// Before this point, there is only a single value in the site table which refers to the local
 /// Lemmy instance, so thats all we need to update.
-fn instance_actor_2022_01_28(
-  conn: &mut PgConnection,
+async fn instance_actor_2022_01_28(
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(site_view) = SiteView::read_local(conn) {
+  if let Ok(site_view) = SiteView::read_local(pool).await {
     let site = site_view.site;
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {
@@ -320,7 +341,7 @@ fn instance_actor_2022_01_28(
       .private_key(Some(Some(key_pair.private_key)))
       .public_key(Some(key_pair.public_key))
       .build();
-    Site::update(conn, site.id, &site_form)?;
+    Site::update(pool, site.id, &site_form).await?;
   }
   Ok(())
 }
@@ -330,7 +351,8 @@ fn instance_actor_2022_01_28(
 /// key field is empty, generate a new keypair. It would be possible to regenerate only the pubkey,
 /// but thats more complicated and has no benefit, as federation is already broken for these actors.
 /// https://github.com/LemmyNet/lemmy/issues/2347
-fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), LemmyError> {
+async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyError> {
+  let conn = &mut get_conn(pool).await?;
   info!("Running regenerate_public_keys_2022_07_05");
 
   {
@@ -339,7 +361,8 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
     let communities: Vec<Community> = community
       .filter(local.eq(true))
       .filter(public_key.eq(""))
-      .load::<Community>(conn)?;
+      .load::<Community>(conn)
+      .await?;
     for community_ in communities {
       info!(
         "local community {} has empty public key field, regenerating key",
@@ -350,7 +373,7 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
         .public_key(Some(key_pair.public_key))
         .private_key(Some(Some(key_pair.private_key)))
         .build();
-      Community::update(conn, community_.id, &form)?;
+      Community::update(pool, community_.id, &form).await?;
     }
   }
 
@@ -360,7 +383,8 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
     let persons = person
       .filter(local.eq(true))
       .filter(public_key.eq(""))
-      .load::<Person>(conn)?;
+      .load::<Person>(conn)
+      .await?;
     for person_ in persons {
       info!(
         "local user {} has empty public key field, regenerating key",
@@ -371,7 +395,7 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
         .public_key(Some(key_pair.public_key))
         .private_key(Some(Some(key_pair.private_key)))
         .build();
-      Person::update(conn, person_.id, &form)?;
+      Person::update(pool, person_.id, &form).await?;
     }
   }
   Ok(())
@@ -381,14 +405,14 @@ fn regenerate_public_keys_2022_07_05(conn: &mut PgConnection) -> Result<(), Lemm
 ///
 /// If a site already exists, the DB migration should generate a local_site row.
 /// This will only be run for brand new sites.
-fn initialize_local_site_2022_10_10(
-  conn: &mut PgConnection,
+async fn initialize_local_site_2022_10_10(
+  pool: &DbPool,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   info!("Running initialize_local_site_2022_10_10");
 
   // Check to see if local_site exists
-  if LocalSite::read(conn).is_ok() {
+  if LocalSite::read(pool).await.is_ok() {
     return Ok(());
   }
   info!("No Local Site found, creating it.");
@@ -398,7 +422,7 @@ fn initialize_local_site_2022_10_10(
     .expect("must have domain");
 
   // Upsert this to the instance table
-  let instance = Instance::create(conn, &domain)?;
+  let instance = Instance::create(pool, &domain).await?;
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
@@ -419,14 +443,14 @@ fn initialize_local_site_2022_10_10(
       .inbox_url(Some(generate_inbox_url(&person_actor_id)?))
       .shared_inbox_url(Some(generate_shared_inbox_url(&person_actor_id)?))
       .build();
-    let person_inserted = Person::create(conn, &person_form)?;
+    let person_inserted = Person::create(pool, &person_form).await?;
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person_inserted.id)
       .password_encrypted(setup.admin_password.to_owned())
       .email(setup.admin_email.to_owned())
       .build();
-    LocalUser::create(conn, &local_user_form)?;
+    LocalUser::create(pool, &local_user_form).await?;
   };
 
   // Add an entry for the site table
@@ -448,14 +472,14 @@ fn initialize_local_site_2022_10_10(
     .private_key(Some(site_key_pair.private_key))
     .public_key(Some(site_key_pair.public_key))
     .build();
-  let site = Site::create(conn, &site_form)?;
+  let site = Site::create(pool, &site_form).await?;
 
   // Finally create the local_site row
   let local_site_form = LocalSiteInsertForm::builder()
     .site_id(site.id)
     .site_setup(Some(settings.setup.is_some()))
     .build();
-  let local_site = LocalSite::create(conn, &local_site_form)?;
+  let local_site = LocalSite::create(pool, &local_site_form).await?;
 
   // Create the rate limit table
   let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
@@ -471,7 +495,7 @@ fn initialize_local_site_2022_10_10(
     .search(Some(999))
     .local_site_id(local_site.id)
     .build();
-  LocalSiteRateLimit::create(conn, &local_site_rate_limit_form)?;
+  LocalSiteRateLimit::create(pool, &local_site_rate_limit_form).await?;
 
   Ok(())
 }

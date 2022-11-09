@@ -24,7 +24,6 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::RemoveType, public};
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::{
     community::{CommunityModerator, CommunityModeratorForm},
@@ -108,22 +107,19 @@ impl ActivityHandler for RemoveMod {
     let community = self.get_community(context, request_counter).await?;
     let remove_mod = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
 
     let form = CommunityModeratorForm {
       community_id: community.id,
       person_id: remove_mod.id,
     };
-    blocking(context.pool(), move |conn| {
-      CommunityModerator::leave(conn, &form)
-    })
-    .await??;
+    CommunityModerator::leave(context.pool(), &form).await?;
 
     // write mod log
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let form = ModAddCommunityForm {
       mod_person_id: actor.id,
@@ -131,10 +127,7 @@ impl ActivityHandler for RemoveMod {
       community_id: community.id,
       removed: Some(true),
     };
-    blocking(context.pool(), move |conn| {
-      ModAddCommunity::create(conn, &form)
-    })
-    .await??;
+    ModAddCommunity::create(context.pool(), &form).await?;
 
     // TODO: send websocket notification about removed mod
     Ok(())

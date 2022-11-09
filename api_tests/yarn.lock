@@ -2373,10 +2373,10 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
-lemmy-js-client@0.17.0-rc.47:
-  version "0.17.0-rc.47"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.17.0-rc.47.tgz#6094657d2868767532c0e837a31f9af6273b345b"
-  integrity sha512-Pc1wyr6sX4Z6LS75NVu46WAXeci5G80+Y9ZBXEAmgM+OZGuOCLUq8lAHRvTwr7M0pj0gxo5yP+i3qPVmTPf+EA==
+lemmy-js-client@0.17.0-rc.48:
+  version "0.17.0-rc.48"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.17.0-rc.48.tgz#6085812d4901b7d12b3fca237d8aced7f5210eac"
+  integrity sha512-Lz8Nzq/kczQtDj6STlbhxoEarFHtTCoWcWBabyPs6X6em/pfK/cnZqx1mMn7EaBSDUVQ+WL8UNFjQiqjhR4kww==
 
 leven@^3.1.0:
   version "3.1.0"

@@ -47,7 +47,7 @@ pub async fn search_query_to_object_id(
     object_id.dereference_local(context).await
   } else {
     object_id
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await
   }
 }

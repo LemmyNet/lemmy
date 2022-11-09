@@ -1,16 +1,19 @@
 use crate::structs::PersonBlockView;
-use diesel::{result::Error, *};
+use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{person, person_block},
   source::person::{Person, PersonSafe},
   traits::{ToSafe, ViewToVec},
+  utils::{get_conn, DbPool},
 };
 
 type PersonBlockViewTuple = (PersonSafe, PersonSafe);
 
 impl PersonBlockView {
-  pub fn for_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let res = person_block::table
@@ -23,7 +26,8 @@ impl PersonBlockView {
       .filter(person_block::person_id.eq(person_id))
       .filter(person_alias_1.field(person::deleted).eq(false))
       .order_by(person_block::published)
-      .load::<PersonBlockViewTuple>(conn)?;
+      .load::<PersonBlockViewTuple>(conn)
+      .await?;
 
     Ok(Self::from_tuple_to_vec(res))
   }

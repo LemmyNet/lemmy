@@ -125,10 +125,10 @@ pub struct CreateSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<String>,
-  pub application_email_admins: Option<bool>,
-  pub auth: Sensitive<String>,
-  pub hide_modlog_mod_names: Option<bool>,
   pub legal_information: Option<String>,
+  pub application_email_admins: Option<bool>,
+  pub hide_modlog_mod_names: Option<bool>,
+  pub discussion_languages: Option<Vec<LanguageId>>,
   pub slur_filter_regex: Option<String>,
   pub actor_name_max_length: Option<i32>,
   pub rate_limit_message: Option<i32>,
@@ -152,6 +152,7 @@ pub struct CreateSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

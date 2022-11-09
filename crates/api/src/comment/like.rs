@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
-  utils::{blocking, check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
+  utils::{check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
 };
 use lemmy_apub::{
   fetcher::post_or_comment::PostOrComment,
@@ -36,7 +36,7 @@ impl Perform for CreateCommentLike {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateCommentLike = self;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
@@ -46,10 +46,7 @@ impl Perform for CreateCommentLike {
     check_downvotes_enabled(data.score, &local_site)?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -59,17 +56,10 @@ impl Perform for CreateCommentLike {
     .await?;
 
     // Add parent poster or commenter to recipients
-    let comment_reply = blocking(context.pool(), move |conn| {
-      CommentReply::read_by_comment(conn, comment_id)
-    })
-    .await?;
+    let comment_reply = CommentReply::read_by_comment(context.pool(), comment_id).await;
     if let Ok(reply) = comment_reply {
       let recipient_id = reply.recipient_id;
-      if let Ok(local_recipient) = blocking(context.pool(), move |conn| {
-        LocalUserView::read_person(conn, recipient_id)
-      })
-      .await?
-      {
+      if let Ok(local_recipient) = LocalUserView::read_person(context.pool(), recipient_id).await {
         recipient_ids.push(local_recipient.local_user.id);
       }
     }
@@ -83,10 +73,8 @@ impl Perform for CreateCommentLike {
 
     // Remove any likes first
     let person_id = local_user_view.person.id;
-    blocking(context.pool(), move |conn| {
-      CommentLike::remove(conn, person_id, comment_id)
-    })
-    .await??;
+
+    CommentLike::remove(context.pool(), person_id, comment_id).await?;
 
     // Only add the like if the score isnt 0
     let comment = orig_comment.comment;
@@ -94,9 +82,8 @@ impl Perform for CreateCommentLike {
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let like = move |conn: &mut _| CommentLike::like(conn, &like_form2);
-      blocking(context.pool(), like)
-        .await?
+      CommentLike::like(context.pool(), &like_form2)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
       Vote::send(

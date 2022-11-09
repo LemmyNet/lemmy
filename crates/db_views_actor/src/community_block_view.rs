@@ -1,5 +1,6 @@
 use crate::structs::CommunityBlockView;
-use diesel::{result::Error, *};
+use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, community_block, person},
@@ -8,12 +9,14 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ViewToVec},
+  utils::{get_conn, DbPool},
 };
 
 type CommunityBlockViewTuple = (PersonSafe, CommunitySafe);
 
 impl CommunityBlockView {
-  pub fn for_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_block::table
       .inner_join(person::table)
       .inner_join(community::table)
@@ -25,7 +28,8 @@ impl CommunityBlockView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community_block::published)
-      .load::<CommunityBlockViewTuple>(conn)?;
+      .load::<CommunityBlockViewTuple>(conn)
+      .await?;
 
     Ok(Self::from_tuple_to_vec(res))
   }

@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use diesel::NotFound;
 use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::fetcher::search::{search_query_to_object_id, SearchableObjects};
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
@@ -25,7 +25,7 @@ impl Perform for ResolveObject {
     let local_user_view =
       get_local_user_view_from_jwt_opt(self.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
     check_private_instance(&local_user_view, &local_site)?;
 
     let res = search_query_to_object_id(&self.q, local_user_view.is_none(), context)
@@ -53,20 +53,19 @@ async fn convert_response(
   match object {
     Person(p) => {
       removed_or_deleted = p.deleted;
-      res.person = Some(blocking(pool, move |conn| PersonViewSafe::read(conn, p.id)).await??)
+      res.person = Some(PersonViewSafe::read(pool, p.id).await?)
     }
     Community(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.community =
-        Some(blocking(pool, move |conn| CommunityView::read(conn, c.id, user_id)).await??)
+      res.community = Some(CommunityView::read(pool, c.id, user_id).await?)
     }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(blocking(pool, move |conn| PostView::read(conn, p.id, user_id)).await??)
+      res.post = Some(PostView::read(pool, p.id, user_id).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(blocking(pool, move |conn| CommentView::read(conn, c.id, user_id)).await??)
+      res.comment = Some(CommentView::read(pool, c.id, user_id).await?)
     }
   };
   // if the object was deleted from database, dont return it

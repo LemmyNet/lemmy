@@ -49,7 +49,7 @@ impl ActivityHandler for DeleteUser {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     delete_user_account(
       actor.id,

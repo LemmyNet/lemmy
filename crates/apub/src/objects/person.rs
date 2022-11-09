@@ -19,7 +19,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::{blocking, local_site_opt_to_slur_regex};
+use lemmy_api_common::utils::local_site_opt_to_slur_regex;
 use lemmy_db_schema::{
   source::{
     instance::Instance,
@@ -69,21 +69,16 @@ impl ApubObject for ApubPerson {
     context: &LemmyContext,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      blocking(context.pool(), move |conn| {
-        DbPerson::read_from_apub_id(conn, &object_id.into())
-      })
-      .await??
-      .map(Into::into),
+      DbPerson::read_from_apub_id(context.pool(), &object_id.into())
+        .await?
+        .map(Into::into),
     )
   }
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
-    blocking(context.pool(), move |conn| {
-      let form = PersonUpdateForm::builder().deleted(Some(true)).build();
-      DbPerson::update(conn, self.id, &form)
-    })
-    .await??;
+    let form = PersonUpdateForm::builder().deleted(Some(true)).build();
+    DbPerson::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
@@ -124,7 +119,7 @@ impl ApubObject for ApubPerson {
     context: &LemmyContext,
     _request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&person.preferred_username, slur_regex)?;
@@ -150,10 +145,7 @@ impl ApubObject for ApubPerson {
     request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
     let apub_id = person.id.inner().to_owned();
-    let instance = blocking(context.pool(), move |conn| {
-      Instance::create_from_actor_id(conn, &apub_id)
-    })
-    .await??;
+    let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,
@@ -178,10 +170,7 @@ impl ApubObject for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id: instance.id,
     };
-    let person = blocking(context.pool(), move |conn| {
-      DbPerson::create(conn, &person_form)
-    })
-    .await??;
+    let person = DbPerson::create(context.pool(), &person_form).await?;
 
     let actor_id = person.actor_id.clone().into();
     fetch_instance_actor_for_object(actor_id, context, request_counter).await;
@@ -245,20 +234,20 @@ pub(crate) mod tests {
   #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_person() {
-    let context = init_context();
+    let context = init_context().await;
     let (person, site) = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().unwrap().len(), 39);
 
-    cleanup((person, site), &context);
+    cleanup((person, site), &context).await;
   }
 
   #[actix_rt::test]
   #[serial]
   async fn test_parse_pleroma_person() {
-    let context = init_context();
+    let context = init_context().await;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
@@ -285,12 +274,11 @@ pub(crate) mod tests {
     assert_eq!(request_counter, 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
-    cleanup((person, site), &context);
+    cleanup((person, site), &context).await;
   }
 
-  fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
-    let conn = &mut context.pool().get().unwrap();
-    DbPerson::delete(conn, data.0.id).unwrap();
-    Site::delete(conn, data.1.id).unwrap();
+  async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
+    DbPerson::delete(context.pool(), data.0.id).await.unwrap();
+    Site::delete(context.pool(), data.1.id).await.unwrap();
   }
 }

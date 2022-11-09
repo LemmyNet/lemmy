@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   post::{PostResponse, SavePost},
-  utils::{blocking, get_local_user_view_from_jwt, mark_post_as_read},
+  utils::{get_local_user_view_from_jwt, mark_post_as_read},
 };
 use lemmy_db_schema::{
   source::post::{PostSaved, PostSavedForm},
@@ -32,23 +32,18 @@ impl Perform for SavePost {
     };
 
     if data.save {
-      let save = move |conn: &mut _| PostSaved::save(conn, &post_saved_form);
-      blocking(context.pool(), save)
-        .await?
+      PostSaved::save(context.pool(), &post_saved_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     } else {
-      let unsave = move |conn: &mut _| PostSaved::unsave(conn, &post_saved_form);
-      blocking(context.pool(), unsave)
-        .await?
+      PostSaved::unsave(context.pool(), &post_saved_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     }
 
     let post_id = data.post_id;
     let person_id = local_user_view.person.id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, Some(person_id))
-    })
-    .await??;
+    let post_view = PostView::read(context.pool(), post_id, Some(person_id)).await?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;

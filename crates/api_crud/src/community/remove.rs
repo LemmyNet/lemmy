@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin},
+  utils::{get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
@@ -35,16 +35,14 @@ impl PerformCrud for RemoveCommunity {
     // Do the remove
     let community_id = data.community_id;
     let removed = data.removed;
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(
-        conn,
-        community_id,
-        &CommunityUpdateForm::builder()
-          .removed(Some(removed))
-          .build(),
-      )
-    })
-    .await?
+    let updated_community = Community::update(
+      context.pool(),
+      community_id,
+      &CommunityUpdateForm::builder()
+        .removed(Some(removed))
+        .build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
     // Mod tables
@@ -56,10 +54,7 @@ impl PerformCrud for RemoveCommunity {
       reason: data.reason.to_owned(),
       expires,
     };
-    blocking(context.pool(), move |conn| {
-      ModRemoveCommunity::create(conn, &form)
-    })
-    .await??;
+    ModRemoveCommunity::create(context.pool(), &form).await?;
 
     let res = send_community_ws_message(
       data.community_id,

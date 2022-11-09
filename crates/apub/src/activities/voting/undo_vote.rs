@@ -22,7 +22,6 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -40,11 +39,7 @@ impl UndoVote {
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let community: ApubCommunity = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
+    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
     let object = Vote::new(object, actor, kind.clone(), context)?;
     let id = generate_activity_id(
@@ -97,12 +92,12 @@ impl ActivityHandler for UndoVote {
   ) -> Result<(), LemmyError> {
     let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let object = self
       .object
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,

@@ -12,7 +12,6 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   source::community::{CommunityFollower, CommunityFollowerForm},
   traits::Followable,
@@ -77,12 +76,12 @@ impl ActivityHandler for UndoFollowCommunity {
   ) -> Result<(), LemmyError> {
     let person = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community = self
       .object
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
 
     let community_follower_form = CommunityFollowerForm {
@@ -92,10 +91,9 @@ impl ActivityHandler for UndoFollowCommunity {
     };
 
     // This will fail if they aren't a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::unfollow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::unfollow(context.pool(), &community_follower_form)
+      .await
+      .ok();
     Ok(())
   }
 }

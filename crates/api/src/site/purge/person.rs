@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   request::purge_image_from_pictrs,
   site::{PurgeItemResponse, PurgePerson},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin, purge_image_posts_for_person},
+  utils::{get_local_user_view_from_jwt, is_admin, purge_image_posts_for_person},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,7 +34,7 @@ impl Perform for PurgePerson {
 
     // Read the person to get their images
     let person_id = data.person_id;
-    let person = blocking(context.pool(), move |conn| Person::read(conn, person_id)).await??;
+    let person = Person::read(context.pool(), person_id).await?;
 
     if let Some(banner) = person.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -56,7 +56,7 @@ impl Perform for PurgePerson {
     )
     .await?;
 
-    blocking(context.pool(), move |conn| Person::delete(conn, person_id)).await??;
+    Person::delete(context.pool(), person_id).await?;
 
     // Mod tables
     let reason = data.reason.to_owned();
@@ -65,10 +65,7 @@ impl Perform for PurgePerson {
       reason,
     };
 
-    blocking(context.pool(), move |conn| {
-      AdminPurgePerson::create(conn, &form)
-    })
-    .await??;
+    AdminPurgePerson::create(context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

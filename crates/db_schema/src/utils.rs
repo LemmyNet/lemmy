@@ -1,18 +1,28 @@
-use crate::{diesel_migrations::MigrationHarness, newtypes::DbUrl, CommentSortType, SortType};
+use crate::{
+  diesel::Connection,
+  diesel_migrations::MigrationHarness,
+  newtypes::DbUrl,
+  CommentSortType,
+  SortType,
+};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use bb8::PooledConnection;
 use chrono::NaiveDateTime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
   pg::Pg,
-  result::Error::QueryBuilderError,
+  result::{Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::Text,
-  Connection,
   PgConnection,
 };
+use diesel_async::{
+  pg::AsyncPgConnection,
+  pooled_connection::{bb8::Pool, AsyncDieselConnectionManager},
+};
 use diesel_migrations::EmbeddedMigrations;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{env, env::VarError};
@@ -21,7 +31,14 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 
-pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+pub type DbPool = Pool<AsyncPgConnection>;
+
+pub async fn get_conn(
+  pool: &DbPool,
+) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
+  // TODO Maybe find a better diesel error for this
+  pool.get().await.map_err(|_| DieselError::NotInTransaction)
+}
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
@@ -114,22 +131,57 @@ pub fn diesel_option_overwrite_to_url_create(
   }
 }
 
+async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPool, LemmyError> {
+  let db_url = get_database_url(settings);
+  let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
+  let pool = Pool::builder()
+    .max_size(pool_size)
+    .min_idle(Some(1))
+    .build(manager)
+    .await?;
+
+  // If there's no settings, that means its a unit test, and migrations need to be run
+  if settings.is_none() {
+    run_migrations(&db_url);
+  }
+
+  Ok(pool)
+}
+
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-pub fn establish_unpooled_connection() -> PgConnection {
-  let db_url = match get_database_url_from_env() {
-    Ok(url) => url,
-    Err(e) => panic!(
-      "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
-      e
-    ),
-  };
+pub fn run_migrations(db_url: &str) {
+  // Needs to be a sync connection
   let mut conn =
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
   let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
     .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
-  conn
+}
+
+pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
+  build_db_pool_settings_opt(Some(settings)).await
+}
+
+pub async fn build_db_pool_for_tests() -> DbPool {
+  build_db_pool_settings_opt(None)
+    .await
+    .expect("db pool missing")
+}
+
+pub fn get_database_url(settings: Option<&Settings>) -> String {
+  // The env var should override anything in the settings config
+  match get_database_url_from_env() {
+    Ok(url) => url,
+    Err(e) => match settings {
+      Some(settings) => settings.get_database_url(),
+      None => panic!(
+        "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
+        e
+      ),
+    },
+  }
 }
 
 pub fn naive_now() -> NaiveDateTime {

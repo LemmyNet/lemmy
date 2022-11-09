@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{source::local_site::LocalSite, traits::DeleteableOrRemoveable};
 use lemmy_db_views_actor::community_view::CommunityQuery;
@@ -23,7 +23,7 @@ impl PerformCrud for ListCommunities {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -34,18 +34,16 @@ impl PerformCrud for ListCommunities {
     let page = data.page;
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
-    let mut communities = blocking(context.pool(), move |conn| {
-      CommunityQuery::builder()
-        .conn(conn)
-        .listing_type(listing_type)
-        .sort(sort)
-        .local_user(local_user.as_ref())
-        .page(page)
-        .limit(limit)
-        .build()
-        .list()
-    })
-    .await??;
+    let mut communities = CommunityQuery::builder()
+      .pool(context.pool())
+      .listing_type(listing_type)
+      .sort(sort)
+      .local_user(local_user.as_ref())
+      .page(page)
+      .limit(limit)
+      .build()
+      .list()
+      .await?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() {

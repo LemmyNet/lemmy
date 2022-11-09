@@ -1,6 +1,5 @@
 use crate::{local_instance, objects::person::ApubPerson};
 use activitypub_federation::core::object_id::ObjectId;
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, post::Post},
@@ -22,9 +21,9 @@ async fn get_comment_notif_recipients(
   request_counter: &mut i32,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
-  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+  let post = Post::read(context.pool(), post_id).await?;
   let actor = actor
-    .dereference(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context).await, request_counter)
     .await?;
 
   // Note:

@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use bcrypt::verify;
 use lemmy_api_common::{
   person::{ChangePassword, LoginResponse},
-  utils::{blocking, get_local_user_view_from_jwt, password_length_check},
+  utils::{get_local_user_view_from_jwt, password_length_check},
 };
 use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
@@ -42,10 +42,8 @@ impl Perform for ChangePassword {
 
     let local_user_id = local_user_view.local_user.id;
     let new_password = data.new_password.to_owned();
-    let updated_local_user = blocking(context.pool(), move |conn| {
-      LocalUser::update_password(conn, local_user_id, &new_password)
-    })
-    .await??;
+    let updated_local_user =
+      LocalUser::update_password(context.pool(), local_user_id, &new_password).await?;
 
     // Return the jwt
     Ok(LoginResponse {

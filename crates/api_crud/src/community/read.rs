@@ -2,7 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
-  utils::{blocking, check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_apub::{
   fetcher::resolve_actor_identifier,
@@ -36,7 +36,7 @@ impl PerformCrud for GetCommunity {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     if data.name.is_none() && data.id.is_none() {
       return Err(LemmyError::from_message("no_id_given"));
@@ -57,11 +57,9 @@ impl PerformCrud for GetCommunity {
       }
     };
 
-    let mut community_view = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, person_id)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    let mut community_view = CommunityView::read(context.pool(), community_id, person_id)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     // Blank out deleted or removed info for non-logged in users
     if person_id.is_none() && (community_view.community.deleted || community_view.community.removed)
@@ -69,11 +67,9 @@ impl PerformCrud for GetCommunity {
       community_view.community = community_view.community.blank_out_deleted_or_removed_info();
     }
 
-    let moderators: Vec<CommunityModeratorView> = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     let online = context
       .chat_server()
@@ -82,10 +78,7 @@ impl PerformCrud for GetCommunity {
       .unwrap_or(1);
 
     let site_id = instance_actor_id_from_url(community_view.community.actor_id.clone().into());
-    let mut site: Option<Site> = blocking(context.pool(), move |conn| {
-      Site::read_from_apub_id(conn, site_id)
-    })
-    .await??;
+    let mut site = Site::read_from_apub_id(context.pool(), site_id).await?;
     // no need to include metadata for local site (its already available through other endpoints).
     // this also prevents us from leaking the federation private key.
     if let Some(s) = &site {
@@ -95,15 +88,9 @@ impl PerformCrud for GetCommunity {
     }
 
     let community_id = community_view.community.id;
-    let discussion_languages = blocking(context.pool(), move |conn| {
-      CommunityLanguage::read(conn, community_id)
-    })
-    .await??;
+    let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
     let default_post_language = if let Some(user) = local_user_view {
-      blocking(context.pool(), move |conn| {
-        default_post_language(conn, community_id, user.local_user.id)
-      })
-      .await??
+      default_post_language(context.pool(), community_id, user.local_user.id).await?
     } else {
       None
     };

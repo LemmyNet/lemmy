@@ -2,10 +2,7 @@ use crate::{captcha_as_wav_base64, Perform};
 use actix_web::web::Data;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_api_common::{
-  person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
-  utils::blocking,
-};
+use lemmy_api_common::person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse};
 use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{messages::CaptchaItem, LemmyContext};
@@ -20,7 +17,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     if !local_site.captcha_enabled {
       return Ok(GetCaptchaResponse { ok: None });

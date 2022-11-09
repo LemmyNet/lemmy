@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin},
+  utils::{get_local_user_view_from_jwt, is_mod_or_admin},
 };
 use lemmy_apub::{
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -38,10 +38,7 @@ impl Perform for AddModToCommunity {
 
     // Verify that only mods or admins can add mod
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), community_id).await?;
     if local_user_view.person.admin && !community.local {
       return Err(LemmyError::from_message("not_a_moderator"));
     }
@@ -52,14 +49,12 @@ impl Perform for AddModToCommunity {
       person_id: data.person_id,
     };
     if data.added {
-      let join = move |conn: &mut _| CommunityModerator::join(conn, &community_moderator_form);
-      blocking(context.pool(), join)
-        .await?
+      CommunityModerator::join(context.pool(), &community_moderator_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     } else {
-      let leave = move |conn: &mut _| CommunityModerator::leave(conn, &community_moderator_form);
-      blocking(context.pool(), leave)
-        .await?
+      CommunityModerator::leave(context.pool(), &community_moderator_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }
 
@@ -70,18 +65,12 @@ impl Perform for AddModToCommunity {
       community_id: data.community_id,
       removed: Some(!data.added),
     };
-    blocking(context.pool(), move |conn| {
-      ModAddCommunity::create(conn, &form)
-    })
-    .await??;
+
+    ModAddCommunity::create(context.pool(), &form).await?;
 
     // Send to federated instances
     let updated_mod_id = data.person_id;
-    let updated_mod: ApubPerson = blocking(context.pool(), move |conn| {
-      Person::read(conn, updated_mod_id)
-    })
-    .await??
-    .into();
+    let updated_mod: ApubPerson = Person::read(context.pool(), updated_mod_id).await?.into();
     let community: ApubCommunity = community.into();
     if data.added {
       AddMod::send(
@@ -104,10 +93,7 @@ impl Perform for AddModToCommunity {
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get
     //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
     let community_id = data.community_id;
-    let moderators = blocking(context.pool(), move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     let res = AddModToCommunityResponse { moderators };
     context.chat_server().do_send(SendCommunityRoomMessage {

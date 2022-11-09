@@ -6,7 +6,6 @@ use crate::{
 };
 use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
-use lemmy_api_common::utils::blocking;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -15,10 +14,7 @@ use url::Url;
 pub(crate) async fn get_apub_site_http(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let site: ApubSite = blocking(context.pool(), SiteView::read_local)
-    .await??
-    .site
-    .into();
+  let site: ApubSite = SiteView::read_local(context.pool()).await?.site.into();
 
   let apub = site.into_apub(&context).await?;
   Ok(create_apub_response(&apub))

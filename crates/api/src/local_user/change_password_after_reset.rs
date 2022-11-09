@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, PasswordChangeAfterReset},
-  utils::{blocking, password_length_check},
+  utils::password_length_check,
 };
 use lemmy_db_schema::source::{
   local_user::LocalUser,
@@ -25,10 +25,9 @@ impl Perform for PasswordChangeAfterReset {
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let local_user_id = blocking(context.pool(), move |conn| {
-      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.local_user_id)
-    })
-    .await??;
+    let local_user_id = PasswordResetRequest::read_from_token(context.pool(), &token)
+      .await
+      .map(|p| p.local_user_id)?;
 
     password_length_check(&data.password)?;
 
@@ -39,11 +38,9 @@ impl Perform for PasswordChangeAfterReset {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = blocking(context.pool(), move |conn| {
-      LocalUser::update_password(conn, local_user_id, &password)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Return the jwt
     Ok(LoginResponse {

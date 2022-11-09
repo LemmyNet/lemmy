@@ -3,7 +3,7 @@ use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
-  utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
+  utils::{check_community_ban, get_local_user_view_from_jwt},
 };
 use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_db_schema::{
@@ -31,17 +31,14 @@ impl Perform for CreateCommentReport {
     let data: &CreateCommentReport = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let reason = self.reason.trim();
     check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;
-    let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let comment_view = CommentView::read(context.pool(), comment_id, None).await?;
 
     check_community_ban(person_id, comment_view.community.id, context.pool()).await?;
 
@@ -52,16 +49,11 @@ impl Perform for CreateCommentReport {
       reason: reason.to_owned(),
     };
 
-    let report = blocking(context.pool(), move |conn| {
-      CommentReport::report(conn, &report_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
+    let report = CommentReport::report(context.pool(), &report_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
-    let comment_report_view = blocking(context.pool(), move |conn| {
-      CommentReportView::read(conn, report.id, person_id)
-    })
-    .await??;
+    let comment_report_view = CommentReportView::read(context.pool(), report.id, person_id).await?;
 
     let res = CommentReportResponse {
       comment_report_view,

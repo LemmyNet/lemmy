@@ -4,7 +4,6 @@ use lemmy_api_common::{
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
@@ -53,7 +52,7 @@ impl PerformCrud for CreatePost {
     let data: &CreatePost = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.name, &slur_regex)?;
@@ -71,15 +70,14 @@ impl PerformCrud for CreatePost {
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
 
     let community_id = data.community_id;
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, community_id)
-    })
-    .await??;
+    let community = Community::read(context.pool(), community_id).await?;
     if community.posting_restricted_to_mods {
       let community_id = data.community_id;
-      let is_mod = blocking(context.pool(), move |conn| {
-        CommunityView::is_mod_or_admin(conn, local_user_view.local_user.person_id, community_id)
-      })
+      let is_mod = CommunityView::is_mod_or_admin(
+        context.pool(),
+        local_user_view.local_user.person_id,
+        community_id,
+      )
       .await?;
       if !is_mod {
         return Err(LemmyError::from_message("only_mods_can_post_in_community"));
@@ -96,16 +94,11 @@ impl PerformCrud for CreatePost {
     let language_id = match data.language_id {
       Some(lid) => Some(lid),
       None => {
-        blocking(context.pool(), move |conn| {
-          default_post_language(conn, community_id, local_user_view.local_user.id)
-        })
-        .await??
+        default_post_language(context.pool(), community_id, local_user_view.local_user.id).await?
       }
     };
-    blocking(context.pool(), move |conn| {
-      CommunityLanguage::is_allowed_community_language(conn, language_id, community_id)
-    })
-    .await??;
+    CommunityLanguage::is_allowed_community_language(context.pool(), language_id, community_id)
+      .await?;
 
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
@@ -121,36 +114,33 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post =
-      match blocking(context.pool(), move |conn| Post::create(conn, &post_form)).await? {
-        Ok(post) => post,
-        Err(e) => {
-          let err_type = if e.to_string() == "value too long for type character varying(200)" {
-            "post_title_too_long"
-          } else {
-            "couldnt_create_post"
-          };
+    let inserted_post = match Post::create(context.pool(), &post_form).await {
+      Ok(post) => post,
+      Err(e) => {
+        let err_type = if e.to_string() == "value too long for type character varying(200)" {
+          "post_title_too_long"
+        } else {
+          "couldnt_create_post"
+        };
 
-          return Err(LemmyError::from_error_message(e, err_type));
-        }
-      };
+        return Err(LemmyError::from_error_message(e, err_type));
+      }
+    };
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let updated_post = blocking(context.pool(), move |conn| -> Result<Post, LemmyError> {
-      let apub_id = generate_local_apub_endpoint(
-        EndpointType::Post,
-        &inserted_post_id.to_string(),
-        &protocol_and_hostname,
-      )?;
-      Ok(Post::update(
-        conn,
-        inserted_post_id,
-        &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
-      )?)
-    })
-    .await?
-    .map_err(|e| e.with_message("couldnt_create_post"))?;
+    let apub_id = generate_local_apub_endpoint(
+      EndpointType::Post,
+      &inserted_post_id.to_string(),
+      &protocol_and_hostname,
+    )?;
+    let updated_post = Post::update(
+      context.pool(),
+      inserted_post_id,
+      &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
+    )
+    .await
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -161,9 +151,8 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    let like = move |conn: &mut _| PostLike::like(conn, &like_form);
-    blocking(context.pool(), like)
-      .await?
+    PostLike::like(context.pool(), &like_form)
+      .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
     // Mark the post as read
