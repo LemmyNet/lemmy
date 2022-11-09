@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::{
     get_local_user_view_from_jwt,
     is_admin,
+    local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     site_description_length_check,
   },
@@ -175,6 +176,13 @@ impl PerformCrud for EditSite {
     }
 
     let site_view = SiteView::read_local(context.pool()).await?;
+
+    let rate_limit_config =
+      local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+    context
+      .settings_updated_channel()
+      .send(rate_limit_config)
+      .await?;
 
     let res = SiteResponse { site_view };
 

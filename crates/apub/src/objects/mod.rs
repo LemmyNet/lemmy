@@ -56,17 +56,16 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 pub(crate) mod tests {
   use actix::Actor;
   use anyhow::anyhow;
-  use lemmy_api_common::request::build_user_agent;
-  use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
-  use lemmy_utils::{
-    error::LemmyError,
-    rate_limit::{rate_limiter::RateLimiter, RateLimit, RateLimitConfig},
-    settings::SETTINGS,
+  use lemmy_api_common::{
+    request::build_user_agent,
+    utils::local_site_rate_limit_to_rate_limit_config,
   };
+  use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
+  use lemmy_db_views::structs::SiteView;
+  use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
-  use std::sync::{Arc, Mutex};
   use task_local_extensions::Extensions;
 
   struct BlockedMiddleware;
@@ -104,23 +103,30 @@ pub(crate) mod tests {
       Ok("".to_string())
     }
 
-    let rate_limit_config = RateLimitConfig::builder().build();
-
-    let rate_limiter = RateLimit {
-      rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
-      rate_limit_config,
-    };
+    let site_view = SiteView::read_local(&pool)
+      .await
+      .expect("local site not set up");
+    let rate_limit_config =
+      local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+    let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
     let chat_server = ChatServer::startup(
       pool.clone(),
-      rate_limiter,
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),
       client.clone(),
       settings.clone(),
       secret.clone(),
+      rate_limit_cell.clone(),
     )
     .start();
-    LemmyContext::create(pool, chat_server, client, settings, secret)
+    LemmyContext::create(
+      pool,
+      chat_server,
+      client,
+      settings,
+      secret,
+      rate_limit_cell.clone(),
+    )
   }
 }
