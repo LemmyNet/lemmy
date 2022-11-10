@@ -56,13 +56,13 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 pub(crate) mod tests {
   use actix::Actor;
   use anyhow::anyhow;
-  use lemmy_api_common::{
-    request::build_user_agent,
-    utils::local_site_rate_limit_to_rate_limit_config,
-  };
+  use lemmy_api_common::request::build_user_agent;
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
-  use lemmy_db_views::structs::SiteView;
-  use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
+  use lemmy_utils::{
+    error::LemmyError,
+    rate_limit::{RateLimitCell, RateLimitConfig},
+    settings::SETTINGS,
+  };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
@@ -103,11 +103,7 @@ pub(crate) mod tests {
       Ok("".to_string())
     }
 
-    let site_view = SiteView::read_local(&pool)
-      .await
-      .expect("local site not set up");
-    let rate_limit_config =
-      local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+    let rate_limit_config = RateLimitConfig::builder().build();
     let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
     let chat_server = ChatServer::startup(
