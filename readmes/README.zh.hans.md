@@ -12,10 +12,10 @@
 
 <p align="center">
   <a href="../README.md">English</a> |
-  <a href="readmes/README.es.md">Español</a> |
-  <a href="readmes/README.ru.md">Русский</a> |
+  <a href="README.es.md">Español</a> |
+  <a href="README.ru.md">Русский</a> |
   <span>汉语</span> |
-  <a href="readmes/README.zh.hant.md">漢語</a>
+  <a href="README.zh.hant.md">漢語</a>
 </p>
 
 <p align="center">
@@ -139,10 +139,10 @@ Lemmy 是免费的开源软件，无广告，无营利，无风险投资。您�
 
 ### 加密货币
 
-- 比特币: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
+- 比特币：`1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - 以太坊: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
-- 门罗币: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
-- 艾达币: `addr1q858t89l2ym6xmrugjs0af9cslfwvnvsh2xxp6x4dcez7pf5tushkp4wl7zxfhm2djp6gq60dk4cmc7seaza5p3slx0sakjutm`
+- 门罗币：`41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
+- 艾达币：`addr1q858t89l2ym6xmrugjs0af9cslfwvnvsh2xxp6x4dcez7pf5tushkp4wl7zxfhm2djp6gq60dk4cmc7seaza5p3slx0sakjutm`
 
 ## 贡献
 

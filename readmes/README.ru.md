@@ -14,8 +14,8 @@
   <a href="../README.md">English</a> |
   <a href="README.ru.md">Español</a> |
   <span>Русский</span> |
-  <a href="readmes/README.zh.hans.md">汉语</a> |
-  <a href="readmes/README.zh.hant.md">漢語</a>
+  <a href="README.zh.hans.md">汉语</a> |
+  <a href="README.zh.hant.md">漢語</a>
 </p>
 
 <p align="center">
