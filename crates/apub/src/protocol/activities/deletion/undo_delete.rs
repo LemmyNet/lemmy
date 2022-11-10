@@ -1,7 +1,4 @@
-use crate::{
-  objects::person::ApubPerson,
-  protocol::{activities::deletion::delete::Delete, Unparsed},
-};
+use crate::{objects::person::ApubPerson, protocol::activities::deletion::delete::Delete};
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::UndoType;
 use serde::{Deserialize, Serialize};
@@ -21,6 +18,4 @@ pub struct UndoDelete {
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub(crate) cc: Vec<Url>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

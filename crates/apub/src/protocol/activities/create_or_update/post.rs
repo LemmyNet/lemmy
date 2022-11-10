@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{activities::CreateOrUpdateType, objects::page::Page, Unparsed},
+  protocol::{activities::CreateOrUpdateType, objects::page::Page},
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,4 @@ pub struct CreateOrUpdatePost {
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

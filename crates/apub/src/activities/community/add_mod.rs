@@ -55,7 +55,6 @@ impl AddMod {
       cc: vec![community.actor_id()],
       kind: AddType::Add,
       id: id.clone(),
-      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::AddMod(add);

@@ -1,4 +1,4 @@
-use crate::{objects::person::ApubPerson, protocol::Unparsed};
+use crate::objects::person::ApubPerson;
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::RemoveType;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,4 @@ pub struct RemoveMod {
   pub(crate) kind: RemoveType,
   pub(crate) target: Url,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

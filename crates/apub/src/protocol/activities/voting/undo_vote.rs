@@ -1,7 +1,4 @@
-use crate::{
-  objects::person::ApubPerson,
-  protocol::{activities::voting::vote::Vote, Unparsed},
-};
+use crate::{objects::person::ApubPerson, protocol::activities::voting::vote::Vote};
 use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::activity::UndoType;
 use serde::{Deserialize, Serialize};
@@ -15,7 +12,4 @@ pub struct UndoVote {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

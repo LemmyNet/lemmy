@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{activities::following::follow::FollowCommunity, Unparsed},
+  protocol::activities::following::follow::FollowCommunity,
 };
 use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::activity::UndoType;
@@ -15,7 +15,4 @@ pub struct UndoFollowCommunity {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

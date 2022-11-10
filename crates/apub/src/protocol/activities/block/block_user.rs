@@ -1,4 +1,4 @@
-use crate::{activities::block::SiteOrCommunity, objects::person::ApubPerson, protocol::Unparsed};
+use crate::{activities::block::SiteOrCommunity, objects::person::ApubPerson};
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::BlockType;
 use chrono::{DateTime, FixedOffset};
@@ -25,6 +25,4 @@ pub struct BlockUser {
   /// block reason, written to mod log
   pub(crate) summary: Option<String>,
   pub(crate) expires: Option<DateTime<FixedOffset>>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

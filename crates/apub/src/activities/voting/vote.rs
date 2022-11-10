@@ -37,7 +37,6 @@ impl Vote {
       object: ObjectId::new(object.ap_id()),
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
-      unparsed: Default::default(),
     })
   }
 

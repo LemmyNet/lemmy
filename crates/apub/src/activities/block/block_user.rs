@@ -65,7 +65,6 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       expires: expires.map(convert_datetime),
-      unparsed: Default::default(),
     })
   }
 

@@ -40,7 +40,6 @@ impl AcceptFollowCommunity {
         AcceptType::Accept,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      unparsed: Default::default(),
     };
     let inbox = vec![person.shared_inbox_or_inbox()];
     send_lemmy_activity(context, accept, &community, inbox, true).await

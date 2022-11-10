@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{objects::tombstone::Tombstone, IdOrNestedObject, Unparsed},
+  protocol::{objects::tombstone::Tombstone, IdOrNestedObject},
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::DeleteType;
@@ -27,6 +27,4 @@ pub struct Delete {
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
   /// deleting their own content.
   pub(crate) summary: Option<String>,
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

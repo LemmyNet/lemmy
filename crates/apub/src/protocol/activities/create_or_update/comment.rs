@@ -1,7 +1,7 @@
 use crate::{
   mentions::MentionOrValue,
   objects::person::ApubPerson,
-  protocol::{activities::CreateOrUpdateType, objects::note::Note, Unparsed},
+  protocol::{activities::CreateOrUpdateType, objects::note::Note},
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,4 @@ pub struct CreateOrUpdateComment {
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

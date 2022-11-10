@@ -41,7 +41,6 @@ impl UpdateCommunity {
       cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
-      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);

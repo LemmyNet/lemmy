@@ -1,7 +1,4 @@
-use crate::{
-  objects::person::ApubPerson,
-  protocol::{objects::group::Group, Unparsed},
-};
+use crate::{objects::person::ApubPerson, protocol::objects::group::Group};
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::UpdateType;
 use serde::{Deserialize, Serialize};
@@ -22,7 +19,4 @@ pub struct UpdateCommunity {
   #[serde(rename = "type")]
   pub(crate) kind: UpdateType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

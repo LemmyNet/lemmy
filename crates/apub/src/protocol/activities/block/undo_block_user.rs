@@ -1,7 +1,4 @@
-use crate::{
-  objects::person::ApubPerson,
-  protocol::{activities::block::block_user::BlockUser, Unparsed},
-};
+use crate::{objects::person::ApubPerson, protocol::activities::block::block_user::BlockUser};
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::UndoType;
 use serde::{Deserialize, Serialize};
@@ -19,7 +16,4 @@ pub struct UndoBlockUser {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

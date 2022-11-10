@@ -117,7 +117,6 @@ impl UndoDelete {
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
       id,
-      unparsed: Default::default(),
     })
   }
 

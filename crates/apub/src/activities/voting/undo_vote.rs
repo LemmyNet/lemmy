@@ -51,7 +51,6 @@ impl UndoVote {
       object,
       kind: UndoType::Undo,
       id: id.clone(),
-      unparsed: Default::default(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
     send_activity_in_community(activity, actor, &community, vec![], context).await
