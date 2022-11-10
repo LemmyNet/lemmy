@@ -13,7 +13,9 @@
 <p align="center">
   <span>English</span> |
   <a href="readmes/README.es.md">Español</a> |
-  <a href="readmes/README.ru.md">Русский</a>
+  <a href="readmes/README.ru.md">Русский</a> |
+  <a href="readmes/README.zh.hans.md">汉语</a> |
+  <a href="readmes/README.zh.hant.md">漢語</a>
 </p>
 
 <p align="center">
