@@ -66,7 +66,7 @@ reqwest = { version = "0.11.12", features = ["json"] }
 reqwest-middleware = "0.1.6"
 reqwest-tracing = "0.3.1"
 clokwerk = "0.3.5"
-doku = { version = "0.12.0", features = ["url-2"] }
+doku = { version = "0.20.0", features = ["url-2"] }
 parking_lot = "0.12.1"
 reqwest-retry = "0.1.5"
 console-subscriber = { version = "0.1.8", optional = true }

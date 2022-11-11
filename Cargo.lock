@@ -1219,9 +1219,9 @@ dependencies = [
 
 [[package]]
 name = "doku"
-version = "0.12.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6e0b8876b34b3a2504166bac1a5a8cb7ad65dc854e7a70b1114c055df1efc04"
+checksum = "966b1227ac4d9d77f4d7e9507dd01c56ceaec6e35888661b54319123da47b159"
 dependencies = [
  "doku-derive",
  "serde",
@@ -1231,9 +1231,9 @@ dependencies = [
 
 [[package]]
 name = "doku-derive"
-version = "0.12.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6430bef5fcbfa22f3c431f05a14254d45f41ab634cabe09fad82e98d4f9fdc8b"
+checksum = "252ec56116f931b050b5d80512c2c76f4807a297dd95a93f37593dd7650868a5"
 dependencies = [
  "darling 0.13.4",
  "proc-macro2 1.0.47",

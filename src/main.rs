@@ -4,7 +4,7 @@ extern crate diesel_migrations;
 use actix::prelude::*;
 use actix_web::{web::Data, *};
 use diesel_migrations::EmbeddedMigrations;
-use doku::json::{AutoComments, Formatting};
+use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api::match_websocket_operation;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
@@ -56,6 +56,13 @@ async fn main() -> Result<(), LemmyError> {
   if args.len() == 2 && args[1] == "--print-config-docs" {
     let fmt = Formatting {
       auto_comments: AutoComments::none(),
+      comments_style: CommentsStyle {
+        separator: "#".to_owned(),
+      },
+      objects_style: ObjectsStyle {
+        surround_keys_with_quotes: false,
+        use_comma_as_separator: false,
+      },
       ..Default::default()
     };
     println!("{}", doku::to_json_fmt_val(&fmt, &Settings::default()));
