@@ -13,7 +13,10 @@ use activitypub_federation::{
   },
   traits::{ActivityHandler, ApubObject},
 };
-use activitystreams_kinds::{link::LinkType, object::ImageType};
+use activitystreams_kinds::{
+  link::LinkType,
+  object::{DocumentType, ImageType},
+};
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use lemmy_db_schema::newtypes::DbUrl;
@@ -29,6 +32,7 @@ pub enum PageType {
   Article,
   Note,
   Video,
+  Event,
 }
 
 #[skip_serializing_none]
@@ -81,10 +85,32 @@ pub(crate) struct Image {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Document {
+  #[serde(rename = "type")]
+  pub(crate) kind: DocumentType,
+  pub(crate) url: Url,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub(crate) enum Attachment {
   Link(Link),
   Image(Image),
+  Document(Document),
+}
+
+impl Attachment {
+  pub(crate) fn url(self) -> Url {
+    match self {
+      // url as sent by Lemmy (new)
+      Attachment::Link(l) => l.href,
+      // image sent by lotide
+      Attachment::Image(i) => i.url,
+      // sent by mobilizon
+      Attachment::Document(d) => d.url,
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -1,0 +1,168 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "addressRegion": "sc:addressRegion",
+      "timezone": {
+        "@id": "mz:timezone",
+        "@type": "sc:Text"
+      },
+      "isOnline": {
+        "@id": "mz:isOnline",
+        "@type": "sc:Boolean"
+      },
+      "pt": "https://joinpeertube.org/ns#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "inLanguage": "sc:inLanguage",
+      "address": {
+        "@id": "sc:address",
+        "@type": "sc:PostalAddress"
+      },
+      "discoverable": "toot:discoverable",
+      "repliesModerationOption": {
+        "@id": "mz:repliesModerationOption",
+        "@type": "mz:repliesModerationOptionType"
+      },
+      "sc": "http://schema.org#",
+      "mz": "https://joinmobilizon.org/ns#",
+      "category": "sc:category",
+      "joinModeType": {
+        "@id": "mz:joinModeType",
+        "@type": "rdfs:Class"
+      },
+      "Hashtag": "as:Hashtag",
+      "propertyID": "sc:propertyID",
+      "PostalAddress": "sc:PostalAddress",
+      "discussions": {
+        "@id": "mz:discussions",
+        "@type": "@id"
+      },
+      "remainingAttendeeCapacity": "sc:remainingAttendeeCapacity",
+      "streetAddress": "sc:streetAddress",
+      "anonymousParticipationEnabled": {
+        "@id": "mz:anonymousParticipationEnabled",
+        "@type": "sc:Boolean"
+      },
+      "addressLocality": "sc:addressLocality",
+      "joinMode": {
+        "@id": "mz:joinMode",
+        "@type": "mz:joinModeType"
+      },
+      "location": {
+        "@id": "sc:location",
+        "@type": "sc:Place"
+      },
+      "toot": "http://joinmastodon.org/ns#",
+      "participantCount": {
+        "@id": "mz:participantCount",
+        "@type": "sc:Integer"
+      },
+      "uuid": "sc:identifier",
+      "maximumAttendeeCapacity": "sc:maximumAttendeeCapacity",
+      "participationMessage": {
+        "@id": "mz:participationMessage",
+        "@type": "sc:Text"
+      },
+      "openness": {
+        "@id": "mz:openness",
+        "@type": "@id"
+      },
+      "members": {
+        "@id": "mz:members",
+        "@type": "@id"
+      },
+      "events": {
+        "@id": "mz:events",
+        "@type": "@id"
+      },
+      "resources": {
+        "@id": "mz:resources",
+        "@type": "@id"
+      },
+      "addressCountry": "sc:addressCountry",
+      "posts": {
+        "@id": "mz:posts",
+        "@type": "@id"
+      },
+      "commentsEnabled": {
+        "@id": "pt:commentsEnabled",
+        "@type": "sc:Boolean"
+      },
+      "value": "sc:value",
+      "PropertyValue": "sc:PropertyValue",
+      "repliesModerationOptionType": {
+        "@id": "mz:repliesModerationOptionType",
+        "@type": "rdfs:Class"
+      },
+      "todos": {
+        "@id": "mz:todos",
+        "@type": "@id"
+      },
+      "ical": "http://www.w3.org/2002/12/cal/ical#",
+      "postalCode": "sc:postalCode",
+      "memberCount": {
+        "@id": "mz:memberCount",
+        "@type": "sc:Integer"
+      },
+      "@language": "und"
+    }
+  ],
+  "discoverable": true,
+  "discussions": "https://mobilizon.fr/@contribateliers/discussions",
+  "endpoints": {
+    "discussions": "https://mobilizon.fr/@contribateliers/discussions",
+    "events": "https://mobilizon.fr/@contribateliers/events",
+    "members": "https://mobilizon.fr/@contribateliers/members",
+    "posts": "https://mobilizon.fr/@contribateliers/posts",
+    "resources": "https://mobilizon.fr/@contribateliers/resources",
+    "sharedInbox": "https://mobilizon.fr/inbox",
+    "todos": "https://mobilizon.fr/@contribateliers/todos"
+  },
+  "events": "https://mobilizon.fr/@contribateliers/events",
+  "followers": "https://mobilizon.fr/@contribateliers/followers",
+  "following": "https://mobilizon.fr/@contribateliers/following",
+  "icon": {
+    "mediaType": null,
+    "type": "Image",
+    "url": "https://mobilizon.fr/media/a94f7f8da4b39f6b375f55bd8664abff4ae61d33496df7ee23ad6bf473c3632f.png?name=contribateliers%27s%20avatar.png"
+  },
+  "id": "https://mobilizon.fr/@contribateliers",
+  "image": {
+    "mediaType": null,
+    "type": "Image",
+    "url": "https://mobilizon.fr/media/7fe251dd5f8b5abcea10c31b655c09afee457efdd49f3087ba78b054b3f0dbeb.jpg?name=contribateliers%27s%20banner.jpg"
+  },
+  "inbox": "https://mobilizon.fr/@contribateliers/inbox",
+  "location": {
+    "address": {
+      "addressCountry": null,
+      "addressLocality": null,
+      "addressRegion": null,
+      "postalCode": null,
+      "streetAddress": null,
+      "type": "PostalAddress"
+    },
+    "id": "https://mobilizon.fr/address/935f207e-4c0f-4818-8762-51d6ab2ed27e",
+    "name": null,
+    "type": "Place"
+  },
+  "manuallyApprovesFollowers": false,
+  "memberCount": 13,
+  "members": "https://mobilizon.fr/@contribateliers/members",
+  "name": "Contribateliers",
+  "openness": "open",
+  "outbox": "https://mobilizon.fr/@contribateliers/outbox",
+  "posts": "https://mobilizon.fr/@contribateliers/posts",
+  "preferredUsername": "contribateliers",
+  "publicKey": {
+    "id": "https://mobilizon.fr/@contribateliers#main-key",
+    "owner": "https://mobilizon.fr/@contribateliers",
+    "publicKeyPem": "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEA1laog+0zKOkGdUHfWQ+lIJq5LOwWzGKLeqXzSdvaUzfk2X5Q5gTf\nbjh7pWJaWo2uxrIeNKRJSpmxeBn/lNR3+OrG05/MiYW6Y42q+ZL18coUDht46u23\nHH9+fFblmvY905cNslJ4/NouxpN0ai5JytZOzlNnJCan241rS4gkeLAy+LDW6UOd\nTvDPMJQlrAl8gr+OamRUxd4RL/8ws7/FbqNiAetXmN/5knjkQe5rFi0D/3fQtWEv\n/kSTG6CmnBhpeKE8eqp1sD0+CMROfOb7ceVIpJvUKAPHsENRE6DQFF9j3wl8AXjd\ndtGxTyOYYaMXCPyAUBjH/Rt6uV5Bc5x2CQIDAQAB\n-----END RSA PUBLIC KEY-----\n\n"
+  },
+  "resources": "https://mobilizon.fr/@contribateliers/resources",
+  "summary": "<p>Des ateliers pour contribuer au libre sans rien y connaître.</p>",
+  "todos": "https://mobilizon.fr/@contribateliers/todos",
+  "type": "Group",
+  "url": "https://mobilizon.fr/@contribateliers"
+}
