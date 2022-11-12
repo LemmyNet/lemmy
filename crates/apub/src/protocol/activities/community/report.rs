@@ -1,7 +1,6 @@
 use crate::{
   fetcher::post_or_comment::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::Unparsed,
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one};
 use activitystreams_kinds::activity::FlagType;
@@ -19,7 +18,4 @@ pub struct Report {
   #[serde(rename = "type")]
   pub(crate) kind: FlagType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

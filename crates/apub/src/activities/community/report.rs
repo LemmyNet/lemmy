@@ -47,7 +47,6 @@ impl Report {
       summary: reason,
       kind,
       id: id.clone(),
-      unparsed: Default::default(),
     };
 
     let inbox = vec![community.shared_inbox_or_inbox()];

@@ -38,7 +38,6 @@ impl FollowCommunity {
         FollowType::Follow,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      unparsed: Default::default(),
     })
   }
 

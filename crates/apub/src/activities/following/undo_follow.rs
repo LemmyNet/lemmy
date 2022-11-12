@@ -36,7 +36,6 @@ impl UndoFollowCommunity {
         UndoType::Undo,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      unparsed: Default::default(),
     };
     let inbox = vec![community.shared_inbox_or_inbox()];
     send_lemmy_activity(context, undo, actor, inbox, true).await

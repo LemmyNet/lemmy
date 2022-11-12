@@ -49,7 +49,6 @@ impl CreateOrUpdatePost {
       cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
-      unparsed: Default::default(),
     })
   }
 
@@ -65,7 +64,8 @@ impl CreateOrUpdatePost {
 
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
-    send_activity_in_community(activity, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], context).await?;
+    Ok(())
   }
 }
 

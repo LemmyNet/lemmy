@@ -32,7 +32,7 @@ where
   send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
 
   if community.local {
-    AnnounceActivity::send(activity, community, context).await?;
+    AnnounceActivity::send(activity.try_into()?, community, context).await?;
   }
 
   Ok(())

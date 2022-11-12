@@ -55,7 +55,6 @@ impl RemoveMod {
       id: id.clone(),
       cc: vec![community.actor_id()],
       kind: RemoveType::Remove,
-      unparsed: Default::default(),
     };
 
     let activity = AnnouncableActivities::RemoveMod(remove);

@@ -1,8 +1,4 @@
-use crate::{
-  fetcher::post_or_comment::PostOrComment,
-  objects::person::ApubPerson,
-  protocol::Unparsed,
-};
+use crate::{fetcher::post_or_comment::PostOrComment, objects::person::ApubPerson};
 use activitypub_federation::core::object_id::ObjectId;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -18,9 +14,6 @@ pub struct Vote {
   #[serde(rename = "type")]
   pub(crate) kind: VoteType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }
 
 #[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]

@@ -117,7 +117,6 @@ impl Delete {
       kind: DeleteType::Delete,
       summary,
       id,
-      unparsed: Default::default(),
     })
   }
 }

@@ -1,6 +1,6 @@
 use crate::{
   objects::person::ApubPerson,
-  protocol::{activities::CreateOrUpdateType, objects::chat_message::ChatMessage, Unparsed},
+  protocol::{activities::CreateOrUpdateType, objects::chat_message::ChatMessage},
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one};
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,4 @@ pub struct CreateOrUpdatePrivateMessage {
   pub(crate) object: ChatMessage,
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }

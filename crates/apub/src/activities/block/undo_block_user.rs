@@ -53,7 +53,6 @@ impl UndoBlockUser {
       cc: generate_cc(target, context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
-      unparsed: Default::default(),
     };
 
     let mut inboxes = vec![user.shared_inbox_or_inbox()];

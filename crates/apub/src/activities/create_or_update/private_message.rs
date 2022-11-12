@@ -39,7 +39,6 @@ impl CreateOrUpdatePrivateMessage {
       to: [ObjectId::new(recipient.actor_id())],
       object: private_message.into_apub(context).await?,
       kind,
-      unparsed: Default::default(),
     };
     let inbox = vec![recipient.shared_inbox_or_inbox()];
     send_lemmy_activity(context, create_or_update, actor, inbox, true).await

@@ -63,7 +63,6 @@ impl CreateOrUpdateComment {
       object: note,
       kind,
       id: id.clone(),
-      unparsed: Default::default(),
     };
 
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update

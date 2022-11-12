@@ -1,6 +1,6 @@
 use crate::{
   objects::community::ApubCommunity,
-  protocol::{activities::following::follow::FollowCommunity, Unparsed},
+  protocol::activities::following::follow::FollowCommunity,
 };
 use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::activity::AcceptType;
@@ -15,7 +15,4 @@ pub struct AcceptFollowCommunity {
   #[serde(rename = "type")]
   pub(crate) kind: AcceptType,
   pub(crate) id: Url,
-
-  #[serde(flatten)]
-  pub(crate) unparsed: Unparsed,
 }
