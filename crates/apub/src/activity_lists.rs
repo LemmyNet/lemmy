@@ -133,7 +133,12 @@ impl GetCommunity for AnnouncableActivities {
 #[cfg(test)]
 mod tests {
   use crate::{
-    activity_lists::{GroupInboxActivities, PersonInboxActivities, SiteInboxActivities},
+    activity_lists::{
+      GroupInboxActivities,
+      PersonInboxActivities,
+      PersonInboxActivitiesWithAnnouncable,
+      SiteInboxActivities,
+    },
     protocol::tests::test_parse_lemmy_item,
   };
 
@@ -151,11 +156,11 @@ mod tests {
   fn test_person_inbox() {
     test_parse_lemmy_item::<PersonInboxActivities>("assets/lemmy/activities/following/accept.json")
       .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivities>(
+    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
       "assets/lemmy/activities/create_or_update/create_note.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivities>(
+    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();
