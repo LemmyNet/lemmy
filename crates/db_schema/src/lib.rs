@@ -8,10 +8,10 @@ extern crate diesel;
 extern crate diesel_derive_newtype;
 // this is used in tests
 #[cfg(feature = "full")]
-#[allow(unused_imports)]
 #[macro_use]
 extern crate diesel_migrations;
 
+#[cfg(feature = "full")]
 #[macro_use]
 extern crate async_trait;
 
