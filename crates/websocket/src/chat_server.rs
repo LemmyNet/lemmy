@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::LemmyError,
   location_info,
-  rate_limit::RateLimit,
+  rate_limit::RateLimitCell,
   settings::structs::Settings,
   ConnectionId,
   IpAddr,
@@ -76,9 +76,6 @@ pub struct ChatServer {
   /// The Secrets
   pub(super) secret: Secret,
 
-  /// Rate limiting based on rate type and IP addr
-  pub(super) rate_limiter: RateLimit,
-
   /// A list of the current captchas
   pub(super) captchas: Vec<CaptchaItem>,
 
@@ -87,6 +84,8 @@ pub struct ChatServer {
 
   /// An HTTP Client
   client: ClientWithMiddleware,
+
+  rate_limit_cell: RateLimitCell,
 }
 
 pub struct SessionInfo {
@@ -101,12 +100,12 @@ impl ChatServer {
   #![allow(clippy::too_many_arguments)]
   pub fn startup(
     pool: DbPool,
-    rate_limiter: RateLimit,
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
     client: ClientWithMiddleware,
     settings: Settings,
     secret: Secret,
+    rate_limit_cell: RateLimitCell,
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -116,13 +115,13 @@ impl ChatServer {
       user_rooms: HashMap::new(),
       rng: rand::thread_rng(),
       pool,
-      rate_limiter,
       captchas: Vec::new(),
       message_handler,
       message_handler_crud,
       client,
       settings,
       secret,
+      rate_limit_cell,
     }
   }
 
@@ -446,8 +445,6 @@ impl ChatServer {
     msg: StandardMessage,
     ctx: &mut Context<Self>,
   ) -> impl Future<Output = Result<String, LemmyError>> {
-    let rate_limiter = self.rate_limiter.clone();
-
     let ip: IpAddr = match self.sessions.get(&msg.id) {
       Some(info) => info.ip.to_owned(),
       None => IpAddr("blank_ip".to_string()),
@@ -459,9 +456,11 @@ impl ChatServer {
       client: self.client.to_owned(),
       settings: self.settings.to_owned(),
       secret: self.secret.to_owned(),
+      rate_limit_cell: self.rate_limit_cell.to_owned(),
     };
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;
+    let rate_limiter = self.rate_limit_cell.clone();
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
       let data = &json["data"].to_string();

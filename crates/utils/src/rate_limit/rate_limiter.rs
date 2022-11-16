@@ -21,11 +21,11 @@ pub(crate) enum RateLimitType {
 
 /// Rate limiting based on rate type and IP addr
 #[derive(Debug, Clone, Default)]
-pub struct RateLimiter {
+pub struct RateLimitStorage {
   buckets: HashMap<RateLimitType, HashMap<IpAddr, RateLimitBucket>>,
 }
 
-impl RateLimiter {
+impl RateLimitStorage {
   fn insert_ip(&mut self, ip: &IpAddr) {
     for rate_limit_type in RateLimitType::iter() {
       if self.buckets.get(&rate_limit_type).is_none() {
