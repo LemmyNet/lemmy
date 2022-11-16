@@ -1,12 +1,11 @@
 [package]
 name = "lemmy_api"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 
 [lib]
 name = "lemmy_api"
@@ -14,28 +13,28 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_apub = { version = "=0.16.5", path = "../apub" }
-lemmy_utils = { version = "=0.16.5", path = "../utils" }
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", features = ["full"] }
-lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"] }
-lemmy_db_views_moderator = { version = "=0.16.5", path = "../db_views_moderator", features = ["full"] }
-lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
-lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
-lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
-activitypub_federation = "0.2.3"
-diesel = "2.0.2"
-bcrypt = "0.13.0"
-chrono = { version = "0.4.22", features = ["serde"], default-features = false }
-serde_json = { version = "1.0.87", features = ["preserve_order"] }
-serde = { version = "1.0.147", features = ["derive"] }
-actix-web = { version = "4.2.1", default-features = false }
-base64 = "0.13.1"
-uuid = { version = "1.2.1", features = ["serde", "v4"] }
-async-trait = "0.1.58"
-captcha = "0.0.9"
-anyhow = "1.0.66"
-tracing = "0.1.37"
+lemmy_apub = { workspace = true }
+lemmy_utils = { workspace = true }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_views = { workspace = true, features = ["full"] }
+lemmy_db_views_moderator = { workspace = true, features = ["full"] }
+lemmy_db_views_actor = { workspace = true, features = ["full"] }
+lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_websocket = { workspace = true }
+activitypub_federation = { workspace = true }
+diesel = { workspace = true }
+bcrypt = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+actix-web = { workspace = true }
+base64 = { workspace = true }
+uuid = { workspace = true }
+async-trait = { workspace = true }
+captcha = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
-serial_test = "0.9.0"
-tokio = "1.21.2"
+serial_test = { workspace = true }
+tokio = { workspace = true }
