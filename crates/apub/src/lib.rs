@@ -151,8 +151,8 @@ pub(crate) async fn fetch_local_site_data(
   let blocked = Instance::blocklist(pool).await?;
 
   // These can return empty vectors, so convert them to options
-  let allowed_instances = (!allowed.is_empty()).then(|| allowed);
-  let blocked_instances = (!blocked.is_empty()).then(|| blocked);
+  let allowed_instances = (!allowed.is_empty()).then_some(allowed);
+  let blocked_instances = (!blocked.is_empty()).then_some(blocked);
 
   Ok(LocalSiteData {
     local_site,
