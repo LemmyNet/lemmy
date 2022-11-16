@@ -63,7 +63,7 @@ impl CreateOrUpdatePost {
     let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
     let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
-    let activity = AnnouncableActivities::CreateOrUpdatePost(Box::new(create_or_update));
+    let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(activity, actor, &community, vec![], context).await?;
     Ok(())
   }
