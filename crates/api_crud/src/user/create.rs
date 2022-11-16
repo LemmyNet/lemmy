@@ -77,14 +77,8 @@ impl PerformCrud for Register {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
-          uuid: data
-            .captcha_uuid
-            .to_owned()
-            .unwrap_or_else(|| "".to_string()),
-          answer: data
-            .captcha_answer
-            .to_owned()
-            .unwrap_or_else(|| "".to_string()),
+          uuid: data.captcha_uuid.to_owned().unwrap_or_default(),
+          answer: data.captcha_answer.to_owned().unwrap_or_default(),
         })
         .await?;
       if !check {

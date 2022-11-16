@@ -72,7 +72,7 @@ impl ApubObject for ApubCommunityOutbox {
       let create =
         CreateOrUpdatePost::new(post, &person, &data.0, CreateOrUpdateType::Create, &data.1)
           .await?;
-      let announcable = AnnouncableActivities::CreateOrUpdatePost(Box::new(create));
+      let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
       let announce = AnnounceActivity::new(announcable.try_into()?, &data.0, &data.1)?;
       ordered_items.push(announce);
     }

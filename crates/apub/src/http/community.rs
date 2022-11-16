@@ -39,7 +39,7 @@ pub(crate) async fn get_apub_community_http(
       .into();
 
   if !community.deleted && !community.removed {
-    let apub = community.into_apub(&**context).await?;
+    let apub = community.into_apub(&context).await?;
 
     Ok(create_apub_response(&apub))
   } else {

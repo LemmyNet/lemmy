@@ -4,11 +4,10 @@ version = 3
 
 [[package]]
 name = "activitypub_federation"
-version = "0.2.3"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd9ae511df7135c271dca3ef3751f5528891c965e47d8d7a70fed9d2f1e5b6b1"
+checksum = "85eee18b953107c2ce1f9e217b533464b061c4416179aa65c6adb102379fbaff"
 dependencies = [
- "activitypub_federation_derive",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -17,6 +16,7 @@ dependencies = [
  "chrono",
  "derive_builder 0.11.2",
  "dyn-clone",
+ "enum_delegate",
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
@@ -31,17 +31,6 @@ dependencies = [
  "thiserror",
  "tracing",
  "url",
-]
-
-[[package]]
-name = "activitypub_federation_derive"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07520b54fc0f22ad30b90399b2a2689c6e5c113df0642ca3fa2f7ee823e54126"
-dependencies = [
- "proc-macro2 1.0.47",
- "quote 1.0.21",
- "syn 1.0.103",
 ]
 
 [[package]]
@@ -665,9 +654,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.22"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd4d1b31faaa3a89d7934dbded3111da0d2ef28e3ebccdb4f0179f5929d1ef1"
+checksum = "16b0a3d9ed01224b22057780a37bb8c5dbfe1be8ba48678e7bf57ec4b385411f"
 dependencies = [
  "iana-time-zone",
  "js-sys",
@@ -1347,6 +1336,30 @@ name = "entities"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5320ae4c3782150d900b79807611a59a99fc9a1d61d686faafc24b93fc8d7ca"
+
+[[package]]
+name = "enum_delegate"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8ea75f31022cba043afe037940d73684327e915f88f62478e778c3de914cd0a"
+dependencies = [
+ "enum_delegate_lib",
+ "proc-macro2 1.0.47",
+ "quote 1.0.21",
+ "syn 1.0.103",
+]
+
+[[package]]
+name = "enum_delegate_lib"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e1f6c3800b304a6be0012039e2a45a322a093539c45ab818d9e6895a39c90fe"
+dependencies = [
+ "proc-macro2 1.0.47",
+ "quote 1.0.21",
+ "rand 0.8.5",
+ "syn 1.0.103",
+]
 
 [[package]]
 name = "event-listener"
@@ -2107,6 +2120,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "diesel",
+ "enum_delegate",
  "futures",
  "html2md",
  "http",
@@ -2715,9 +2729,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.15.0"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
+checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "openssl"
