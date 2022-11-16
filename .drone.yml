@@ -62,6 +62,12 @@ steps:
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
 
+  - name: check cargo-deny
+    image: clux/muslrust:1.64.0
+    commands:
+      - cargo install --locked cargo-deny
+      - cargo deny check
+
   - name: cargo build
     image: clux/muslrust:1.64.0
     commands:

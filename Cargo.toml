@@ -80,7 +80,7 @@ doku = { version = "0.20.0", features = ["url-2"] }
 parking_lot = "0.12.1"
 reqwest-retry = "0.1.5"
 bcrypt = "0.13.0"
-chrono = { version = "0.4.22", features = ["serde"], default-features = false }
+chrono = { version = "0.4.23", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.87", features = ["preserve_order"] }
 base64 = "0.13.1"
 uuid = { version = "1.2.1", features = ["serde", "v4"] }
