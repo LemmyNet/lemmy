@@ -1,27 +1,26 @@
 [package]
 name = "lemmy_api_crud"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 
 [dependencies]
-lemmy_apub = { version = "=0.16.5", path = "../apub" }
-lemmy_utils = { version = "=0.16.5", path = "../utils" }
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", features = ["full"] }
-lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"] }
-lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
-lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
-lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
-activitypub_federation = "0.3.2"
-bcrypt = "0.13.0"
-serde_json = { version = "1.0.87", features = ["preserve_order"] }
-serde = { version = "1.0.147", features = ["derive"] }
-actix-web = { version = "4.2.1", default-features = false }
-tracing = "0.1.36"
-url = { version = "2.3.1", features = ["serde"] }
-async-trait = "0.1.58"
+lemmy_apub = { workspace = true }
+lemmy_utils = { workspace = true }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_views = { workspace = true, features = ["full"] }
+lemmy_db_views_actor = { workspace = true, features = ["full"] }
+lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_websocket = { workspace = true }
+activitypub_federation = { workspace = true }
+bcrypt = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+actix-web = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+async-trait = { workspace = true }
 webmention = "0.4.0"

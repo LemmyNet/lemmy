@@ -1,12 +1,11 @@
 [package]
 name = "lemmy_utils"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 
 [lib]
 name = "lemmy_utils"
@@ -14,38 +13,38 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-regex = "1.6.0"
-chrono = { version = "0.4.22", features = ["serde", "clock"], default-features = false }
-lettre = "0.10.1"
-tracing = "0.1.37"
-tracing-error = "0.2.0"
-itertools = "0.10.5"
-rand = "0.8.5"
-serde = { version = "1.0.147", features = ["derive"] }
-serde_json = { version = "1.0.87", features = ["preserve_order"] }
-comrak = { version = "0.14.0", default-features = false }
-once_cell = "1.15.0"
+regex = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tracing-error = { workspace = true }
+itertools = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+once_cell = { workspace = true }
+url = { workspace = true }
+actix-web = { workspace = true }
+anyhow = { workspace = true }
+reqwest-middleware = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+futures = { workspace = true }
+diesel = { workspace = true, features = ["chrono"] }
+http = { workspace = true }
+doku = { workspace = true, features = ["url-2"] }
+uuid = { workspace = true, features = ["serde", "v4"] }
+rosetta-i18n = { workspace = true }
+parking_lot = { workspace = true }
+typed-builder = { workspace = true }
+percent-encoding = { workspace = true }
+tokio = { workspace = true }
 openssl = "0.10.42"
-url = { version = "2.3.1", features = ["serde"] }
-actix-web = { version = "4.2.1", default-features = false, features = ["rustls"] }
-anyhow = "1.0.66"
-reqwest-middleware = "0.1.6"
-strum = "0.24.1"
-strum_macros = "0.24.3"
-futures = "0.3.25"
-diesel = { version = "2.0.2", features = ["chrono"] }
-http = "0.2.8"
+html2text = "0.4.3"
 deser-hjson = "1.0.2"
 smart-default = "0.6.0"
 jsonwebtoken = "8.1.1"
-doku = { version = "0.20.0", features = ["url-2"] }
-uuid = { version = "1.2.1", features = ["serde", "v4"] }
-html2text = "0.4.3"
-rosetta-i18n = "0.1.2"
-parking_lot = "0.12.1"
-typed-builder = "0.10.0"
-percent-encoding = "2.2.0"
-tokio = "1.21.2"
+lettre = "0.10.1"
+comrak = { version = "0.14.0", default-features = false }
 
 [build-dependencies]
 rosetta-build = "0.1.2"

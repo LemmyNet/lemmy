@@ -1,12 +1,11 @@
 [package]
 name = "lemmy_db_schema"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 
 [lib]
 name = "lemmy_db_schema"
@@ -18,28 +17,28 @@ full = ["diesel", "diesel-derive-newtype", "diesel_migrations", "bcrypt", "lemmy
     "activitypub_federation", "sha2", "regex", "once_cell", "serde_json"]
 
 [dependencies]
-chrono = { version = "0.4.22", features = ["serde"], default-features = false }
-serde = { version = "1.0.147", features = ["derive"] }
-url = { version = "2.3.1", features = ["serde"] }
-strum = "0.24.1"
-strum_macros = "0.24.3"
-serde_json = { version = "1.0.87", features = ["preserve_order"], optional = true }
-activitypub_federation = {version = "0.3.2", optional = true }
-lemmy_utils = { version = "=0.16.5", path = "../utils", optional = true }
-bcrypt = { version = "0.13.0", optional = true }
-diesel = { version = "2.0.2", features = ["postgres","chrono", "serde_json"], optional = true }
-diesel-derive-newtype = { version = "2.0.0-rc.0", optional = true }
-diesel_migrations = { version = "2.0.0", optional = true }
-diesel-async = { version = "0.1.1", features = ["postgres", "bb8"] }
+chrono = { workspace = true }
+serde = { workspace = true }
+url = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+serde_json = { workspace = true, optional = true }
+activitypub_federation = { workspace = true, optional = true }
+lemmy_utils = { workspace = true, optional = true }
+bcrypt = { workspace = true, optional = true }
+diesel = { workspace = true, features = ["postgres","chrono", "serde_json"], optional = true }
+diesel-derive-newtype = { workspace = true, optional = true }
+diesel_migrations = { workspace = true, optional = true }
+diesel-async = { workspace = true, features = ["postgres", "bb8"] }
+sha2 = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
+once_cell = { workspace = true, optional = true }
+diesel_ltree = { workspace = true }
+typed-builder = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
 bb8 = "0.8.0"
-sha2 = { version = "0.10.6", optional = true }
-regex = { version = "1.6.0", optional = true }
-once_cell = { version = "1.15.0", optional = true }
-diesel_ltree = "0.3.0"
-typed-builder = "0.10.0"
-async-trait = "0.1.58"
-tokio = "1.21.2"
 
 [dev-dependencies]
-serial_test = "0.9.0"
+serial_test = { workspace = true }
 
