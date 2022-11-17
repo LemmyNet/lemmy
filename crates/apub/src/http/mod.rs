@@ -53,6 +53,7 @@ where
   ActorT: ApubObject<DataType = LemmyContext, Error = LemmyError> + Actor + Send + 'static,
   for<'de2> <ActorT as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
+  static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
   let activity_value: Value = serde_json::from_str(&payload)?;
   debug!("Parsing activity {}", payload);
   let activity: Activity = serde_json::from_value(activity_value.clone())?;
@@ -64,7 +65,6 @@ where
   }
   info!("Received activity {}", payload);
 
-  static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
   let data = DATA.get_or_init(|| Data::new(context.get_ref().clone()));
   receive_activity::<Activity, ActorT, LemmyContext>(
     request,

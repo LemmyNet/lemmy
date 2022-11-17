@@ -1,15 +1,51 @@
 use crate::{
   newtypes::{DbUrl, PersonId},
-  schema::person::dsl::*,
+  schema::person::dsl::{
+    actor_id,
+    avatar,
+    banner,
+    bio,
+    deleted,
+    display_name,
+    local,
+    matrix_user_id,
+    name,
+    person,
+    updated,
+  },
   source::person::{Person, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
 mod safe_type {
-  use crate::{schema::person::columns::*, source::person::Person, traits::ToSafe};
+  use crate::{
+    schema::person::columns::{
+      actor_id,
+      admin,
+      avatar,
+      ban_expires,
+      banned,
+      banner,
+      bio,
+      bot_account,
+      deleted,
+      display_name,
+      id,
+      inbox_url,
+      instance_id,
+      local,
+      matrix_user_id,
+      name,
+      published,
+      shared_inbox_url,
+      updated,
+    },
+    source::person::Person,
+    traits::ToSafe,
+  };
 
   type Columns = (
     id,
@@ -186,7 +222,10 @@ impl ApubActor for Person {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{instance::Instance, person::*},
+    source::{
+      instance::Instance,
+      person::{Person, PersonInsertForm, PersonUpdateForm},
+    },
     traits::Crud,
     utils::build_db_pool_for_tests,
   };

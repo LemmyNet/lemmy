@@ -87,7 +87,7 @@ impl Settings {
         .collect::<Vec<&str>>()
         .first()
         .context(location_info!())?)
-        .to_string(),
+      .to_string(),
     )
   }
 

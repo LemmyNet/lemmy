@@ -1,6 +1,6 @@
 use crate::structs::CommentView;
 use diesel::{
-  dsl::*,
+  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -185,7 +185,6 @@ pub struct CommentQuery<'a> {
 
 impl<'a> CommentQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommentView>, Error> {
-    use diesel::dsl::*;
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
@@ -403,20 +402,33 @@ impl ViewToVec for CommentView {
 
 #[cfg(test)]
 mod tests {
-  use crate::comment_view::*;
+  use crate::comment_view::{
+    Comment,
+    CommentQuery,
+    CommentSortType,
+    CommentView,
+    Community,
+    CommunitySafe,
+    DbPool,
+    LocalUser,
+    Person,
+    PersonBlock,
+    PersonSafe,
+    Post,
+  };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::*,
-      community::*,
+      comment::{CommentInsertForm, CommentLike, CommentLikeForm},
+      community::CommunityInsertForm,
       instance::Instance,
       language::Language,
       local_user::LocalUserInsertForm,
-      person::*,
+      person::PersonInsertForm,
       person_block::PersonBlockForm,
-      post::*,
+      post::PostInsertForm,
     },
     traits::{Blockable, Crud, Likeable},
     utils::build_db_pool_for_tests,
@@ -447,7 +459,7 @@ mod tests {
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 

@@ -1,7 +1,7 @@
 use crate::structs::PostView;
 use diesel::{
   debug_query,
-  dsl::*,
+  dsl::{now, IntervalDsl},
   pg::Pg,
   result::Error,
   sql_function,
@@ -207,7 +207,6 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self) -> Result<Vec<PostView>, Error> {
-    use diesel::dsl::*;
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
@@ -472,14 +471,14 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      community::*,
+      community::{Community, CommunityInsertForm, CommunitySafe},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::*,
+      person::{Person, PersonInsertForm, PersonSafe},
       person_block::{PersonBlock, PersonBlockForm},
-      post::*,
+      post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
     traits::{Blockable, Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
@@ -513,7 +512,7 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 

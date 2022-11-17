@@ -72,12 +72,12 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
     .opengraph
     .properties
     .get("description")
-    .map(|t| t.to_string());
+    .map(std::string::ToString::to_string);
   let og_title = page
     .opengraph
     .properties
     .get("title")
-    .map(|t| t.to_string());
+    .map(std::string::ToString::to_string);
   let og_image = page
     .opengraph
     .images

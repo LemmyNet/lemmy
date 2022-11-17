@@ -63,8 +63,8 @@ fn reindex_table(conn: &mut PgConnection, table_name: &str, concurrently: bool) 
 
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
-  use diesel::dsl::*;
-  use lemmy_db_schema::schema::activity::dsl::*;
+  use diesel::dsl::{now, IntervalDsl};
+  use lemmy_db_schema::schema::activity::dsl::{activity, published};
   info!("Clearing old activities...");
   diesel::delete(activity.filter(published.lt(now - 6.months())))
     .execute(conn)

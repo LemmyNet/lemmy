@@ -2,7 +2,7 @@
 extern crate diesel_migrations;
 
 use actix::prelude::*;
-use actix_web::{web::Data, *};
+use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api::match_websocket_operation;
@@ -147,10 +147,10 @@ async fn main() -> Result<(), LemmyError> {
   HttpServer::new(move || {
     let context = LemmyContext::create(
       pool.clone(),
-      chat_server.to_owned(),
+      chat_server.clone(),
       client.clone(),
-      settings.to_owned(),
-      secret.to_owned(),
+      settings.clone(),
+      secret.clone(),
       rate_limit_cell.clone(),
     );
     App::new()

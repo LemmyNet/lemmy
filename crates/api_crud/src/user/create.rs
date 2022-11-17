@@ -123,7 +123,7 @@ impl PerformCrud for Register {
     // Create the local user
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .email(data.email.as_deref().map(|s| s.to_lowercase()))
+      .email(data.email.as_deref().map(str::to_lowercase))
       .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
       .build();

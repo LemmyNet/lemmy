@@ -1,6 +1,6 @@
 use crate::structs::CommentReplyView;
 use diesel::{
-  dsl::*,
+  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -162,7 +162,7 @@ impl CommentReplyView {
 
   /// Gets the number of unread replies
   pub async fn get_unread_replies(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
 
@@ -194,7 +194,6 @@ pub struct CommentReplyQuery<'a> {
 
 impl<'a> CommentReplyQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommentReplyView>, Error> {
-    use diesel::dsl::*;
     let conn = &mut get_conn(self.pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);

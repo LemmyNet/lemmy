@@ -1,6 +1,6 @@
 use crate::structs::CommentReportView;
 use diesel::{
-  dsl::*,
+  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -145,7 +145,7 @@ impl CommentReportView {
     admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
 
@@ -311,7 +311,20 @@ mod tests {
   use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
-    source::{comment::*, comment_report::*, community::*, instance::Instance, person::*, post::*},
+    source::{
+      comment::{Comment, CommentInsertForm},
+      comment_report::{CommentReport, CommentReportForm},
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunitySafe,
+      },
+      instance::Instance,
+      person::{Person, PersonInsertForm, PersonSafe},
+      post::{Post, PostInsertForm},
+    },
     traits::{Crud, Joinable, Reportable},
     utils::build_db_pool_for_tests,
   };

@@ -2,7 +2,7 @@ use crate::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   diesel::BoolExpressionMethods,
   newtypes::{PersonId, PostId},
-  schema::person_post_aggregates::dsl::*,
+  schema::person_post_aggregates::dsl::{person_id, person_post_aggregates, post_id},
   utils::{get_conn, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};

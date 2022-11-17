@@ -248,7 +248,7 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
     if let Some(port) = actor_id.port() {
       format!(":{}", port)
     } else {
-      "".to_string()
+      String::new()
     },
   );
   Ok(Url::parse(&url)?.into())

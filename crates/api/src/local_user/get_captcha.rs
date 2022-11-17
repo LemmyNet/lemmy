@@ -39,7 +39,7 @@ impl Perform for GetCaptcha {
 
     let captcha_item = CaptchaItem {
       answer,
-      uuid: uuid.to_owned(),
+      uuid: uuid.clone(),
       expires: naive_now() + Duration::minutes(10), // expires in 10 minutes
     };
 

@@ -1,12 +1,12 @@
 use crate::{
   newtypes::DbUrl,
-  schema::activity::dsl::*,
-  source::activity::*,
+  schema::activity::dsl::{activity, ap_id},
+  source::activity::{Activity, ActivityInsertForm, ActivityUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::*,
+  dsl::insert_into,
   result::{DatabaseErrorKind, Error},
   ExpressionMethods,
   QueryDsl,

@@ -1,6 +1,6 @@
 use crate::structs::PostReportView;
 use diesel::{
-  dsl::*,
+  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -132,7 +132,7 @@ impl PostReportView {
     admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
     let mut query = post_report::table
       .inner_join(post::table)
@@ -289,10 +289,16 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
-      community::*,
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunitySafe,
+      },
       instance::Instance,
-      person::*,
-      post::*,
+      person::{Person, PersonInsertForm, PersonSafe},
+      post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
     },
     traits::{Crud, Joinable, Reportable},

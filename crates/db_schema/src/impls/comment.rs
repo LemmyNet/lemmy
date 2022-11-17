@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, DbUrl, PersonId},
-  schema::comment::dsl::*,
+  schema::comment::dsl::{ap_id, comment, content, creator_id, deleted, path, removed, updated},
   source::comment::{
     Comment,
     CommentInsertForm,
@@ -13,7 +13,12 @@ use crate::{
   traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
   utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{insert_into, sql_query},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use url::Url;
@@ -179,7 +184,7 @@ impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
   async fn like(pool: &DbPool, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use crate::schema::comment_like::dsl::*;
+    use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_like)
       .values(comment_like_form)
@@ -194,7 +199,7 @@ impl Likeable for CommentLike {
     person_id_: PersonId,
     comment_id_: CommentId,
   ) -> Result<usize, Error> {
-    use crate::schema::comment_like::dsl::*;
+    use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       comment_like
@@ -210,7 +215,7 @@ impl Likeable for CommentLike {
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
   async fn save(pool: &DbPool, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
-    use crate::schema::comment_saved::dsl::*;
+    use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_saved)
       .values(comment_saved_form)
@@ -221,7 +226,7 @@ impl Saveable for CommentSaved {
       .await
   }
   async fn unsave(pool: &DbPool, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
-    use crate::schema::comment_saved::dsl::*;
+    use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       comment_saved
@@ -235,7 +240,7 @@ impl Saveable for CommentSaved {
 
 impl DeleteableOrRemoveable for Comment {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.content = "".into();
+    self.content = String::new();
     self
   }
 }
@@ -245,11 +250,19 @@ mod tests {
   use crate::{
     newtypes::LanguageId,
     source::{
-      comment::*,
+      comment::{
+        Comment,
+        CommentInsertForm,
+        CommentLike,
+        CommentLikeForm,
+        CommentSaved,
+        CommentSavedForm,
+        CommentUpdateForm,
+      },
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::*,
+      post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,

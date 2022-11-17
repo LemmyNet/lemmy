@@ -4,7 +4,7 @@ use crate::{
   source::instance::{Instance, InstanceForm},
   utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::utils::generate_domain_url;
 use url::Url;

@@ -86,7 +86,7 @@ fn test_slur_filter() {
   assert_eq!(slur_check(test, &slur_regex), Err(has_slurs_vec));
   assert_eq!(slur_check(slur_free, &slur_regex), Ok(()));
   if let Err(slur_vec) = slur_check(test, &slur_regex) {
-    assert_eq!(&slurs_vec_to_str(slur_vec), has_slurs_err_str);
+    assert_eq!(&slurs_vec_to_str(&slur_vec), has_slurs_err_str);
   }
 }
 

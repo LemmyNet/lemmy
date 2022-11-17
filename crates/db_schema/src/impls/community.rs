@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::community::dsl::*,
+  schema::community::dsl::{actor_id, community, deleted, local, name, removed},
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
@@ -20,11 +20,38 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{
+  dsl::{exists, insert_into},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 
 mod safe_type {
-  use crate::{schema::community::*, source::community::Community, traits::ToSafe};
+  use crate::{
+    schema::community::{
+      actor_id,
+      banner,
+      deleted,
+      description,
+      hidden,
+      icon,
+      id,
+      instance_id,
+      local,
+      name,
+      nsfw,
+      posting_restricted_to_mods,
+      published,
+      removed,
+      title,
+      updated,
+    },
+    source::community::Community,
+    traits::ToSafe,
+  };
 
   type Columns = (
     id,
@@ -129,7 +156,7 @@ impl Joinable for CommunityModerator {
     pool: &DbPool,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
-    use crate::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::community_moderator;
     let conn = &mut get_conn(pool).await?;
     insert_into(community_moderator)
       .values(community_moderator_form)
@@ -141,7 +168,7 @@ impl Joinable for CommunityModerator {
     pool: &DbPool,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
-    use crate::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_moderator
@@ -155,7 +182,7 @@ impl Joinable for CommunityModerator {
 
 impl DeleteableOrRemoveable for CommunitySafe {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = "".into();
+    self.title = String::new();
     self.description = None;
     self.icon = None;
     self.banner = None;
@@ -165,7 +192,7 @@ impl DeleteableOrRemoveable for CommunitySafe {
 
 impl DeleteableOrRemoveable for Community {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = "".into();
+    self.title = String::new();
     self.description = None;
     self.icon = None;
     self.banner = None;
@@ -178,7 +205,7 @@ impl CommunityModerator {
     pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
-    use crate::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::{community_id, community_moderator};
     let conn = &mut get_conn(pool).await?;
 
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id)))
@@ -190,7 +217,7 @@ impl CommunityModerator {
     pool: &DbPool,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
-    use crate::schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
     let conn = &mut get_conn(pool).await?;
     community_moderator
       .filter(person_id.eq(for_person_id))
@@ -207,7 +234,7 @@ impl Bannable for CommunityPersonBan {
     pool: &DbPool,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
-    use crate::schema::community_person_ban::dsl::*;
+    use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(community_person_ban)
       .values(community_person_ban_form)
@@ -222,7 +249,7 @@ impl Bannable for CommunityPersonBan {
     pool: &DbPool,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
-    use crate::schema::community_person_ban::dsl::*;
+    use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_person_ban
@@ -257,7 +284,7 @@ impl Followable for CommunityFollower {
     pool: &DbPool,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<Self, Error> {
-    use crate::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(community_follower)
       .values(community_follower_form)
@@ -272,7 +299,12 @@ impl Followable for CommunityFollower {
     community_id_: CommunityId,
     person_id_: PersonId,
   ) -> Result<Self, Error> {
-    use crate::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::{
+      community_follower,
+      community_id,
+      pending,
+      person_id,
+    };
     let conn = &mut get_conn(pool).await?;
     diesel::update(
       community_follower
@@ -287,7 +319,7 @@ impl Followable for CommunityFollower {
     pool: &DbPool,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<usize, Error> {
-    use crate::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_follower
@@ -300,7 +332,7 @@ impl Followable for CommunityFollower {
   // TODO: this function name only makes sense if you call it with a remote community. for a local
   //       community, it will also return true if only remote followers exist
   async fn has_local_followers(pool: &DbPool, community_id_: CommunityId) -> Result<bool, Error> {
-    use crate::schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::{community_follower, community_id};
     let conn = &mut get_conn(pool).await?;
     diesel::select(exists(
       community_follower.filter(community_id.eq(community_id_)),
@@ -357,7 +389,21 @@ impl ApubActor for Community {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{community::*, instance::Instance, person::*},
+    source::{
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunityPersonBan,
+        CommunityPersonBanForm,
+        CommunityUpdateForm,
+      },
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+    },
     traits::{Bannable, Crud, Followable, Joinable},
     utils::build_db_pool_for_tests,
   };

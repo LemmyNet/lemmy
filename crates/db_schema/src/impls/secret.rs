@@ -1,5 +1,5 @@
 use crate::{
-  schema::secret::dsl::*,
+  schema::secret::dsl::secret,
   source::secret::Secret,
   utils::{get_conn, DbPool},
 };

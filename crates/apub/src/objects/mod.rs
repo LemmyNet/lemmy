@@ -85,6 +85,9 @@ pub(crate) mod tests {
 
   // TODO: would be nice if we didnt have to use a full context for tests.
   pub(crate) async fn init_context() -> LemmyContext {
+    async fn x() -> Result<String, LemmyError> {
+      Ok(String::new())
+    }
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
@@ -97,11 +100,8 @@ pub(crate) mod tests {
     let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
     let secret = Secret {
       id: 0,
-      jwt_secret: "".to_string(),
+      jwt_secret: String::new(),
     };
-    async fn x() -> Result<String, LemmyError> {
-      Ok("".to_string())
-    }
 
     let rate_limit_config = RateLimitConfig::builder().build();
     let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;

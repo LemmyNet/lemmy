@@ -1,11 +1,16 @@
 use crate::{
   newtypes::{CommentReportId, PersonId},
-  schema::comment_report::dsl::*,
+  schema::comment_report::dsl::{comment_report, resolved, resolver_id, updated},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
   utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{insert_into, update},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]

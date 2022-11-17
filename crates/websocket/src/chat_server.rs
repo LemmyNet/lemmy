@@ -1,5 +1,5 @@
 use crate::{
-  messages::*,
+  messages::{CaptchaItem, StandardMessage, WsMessage},
   serialize_websocket_message,
   LemmyContext,
   OperationType,
@@ -8,7 +8,7 @@ use crate::{
 };
 use actix::prelude::*;
 use anyhow::Context as acontext;
-use lemmy_api_common::{comment::*, post::*};
+use lemmy_api_common::{comment::CommentResponse, post::PostResponse};
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PostId},
   source::secret::Secret,

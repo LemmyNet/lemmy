@@ -1,6 +1,6 @@
 use crate::structs::PersonViewSafe;
 use diesel::{
-  dsl::*,
+  dsl::{now, IntervalDsl},
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,

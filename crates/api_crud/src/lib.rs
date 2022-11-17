@@ -1,5 +1,24 @@
 use actix_web::{web, web::Data};
-use lemmy_api_common::{comment::*, community::*, person::*, post::*, private_message::*, site::*};
+use lemmy_api_common::{
+  comment::{CreateComment, DeleteComment, EditComment, GetComment, GetComments, RemoveComment},
+  community::{
+    CreateCommunity,
+    DeleteCommunity,
+    EditCommunity,
+    GetCommunity,
+    ListCommunities,
+    RemoveCommunity,
+  },
+  person::{DeleteAccount, GetPersonDetails, Register},
+  post::{CreatePost, DeletePost, EditPost, GetPost, GetPosts, RemovePost},
+  private_message::{
+    CreatePrivateMessage,
+    DeletePrivateMessage,
+    EditPrivateMessage,
+    GetPrivateMessages,
+  },
+  site::{CreateSite, EditSite, GetSite},
+};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperationCrud};
 use serde::Deserialize;

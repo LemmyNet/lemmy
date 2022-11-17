@@ -55,7 +55,7 @@ impl Perform for PurgePost {
     Post::delete(context.pool(), post_id).await?;
 
     // Mod tables
-    let reason = data.reason.to_owned();
+    let reason = data.reason.clone();
     let form = AdminPurgePostForm {
       admin_person_id: local_user_view.person.id,
       reason,

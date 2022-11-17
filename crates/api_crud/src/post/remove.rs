@@ -83,7 +83,7 @@ impl PerformCrud for RemovePost {
       local_user_view.person,
       community,
       deletable,
-      data.reason.clone().or_else(|| Some("".to_string())),
+      data.reason.clone().or_else(|| Some(String::new())),
       removed,
       context,
     )

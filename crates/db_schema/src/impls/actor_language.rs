@@ -2,10 +2,29 @@ use crate::{
   diesel::JoinOnDsl,
   newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
   schema::{local_site, site, site_language},
-  source::{actor_language::*, language::Language, site::Site},
+  source::{
+    actor_language::{
+      CommunityLanguage,
+      CommunityLanguageForm,
+      LocalUserLanguage,
+      LocalUserLanguageForm,
+      SiteLanguage,
+      SiteLanguageForm,
+    },
+    language::Language,
+    site::Site,
+  },
   utils::{get_conn, DbPool},
 };
-use diesel::{delete, dsl::*, insert_into, result::Error, select, ExpressionMethods, QueryDsl};
+use diesel::{
+  delete,
+  dsl::{count, exists},
+  insert_into,
+  result::Error,
+  select,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
@@ -15,7 +34,11 @@ impl LocalUserLanguage {
     pool: &DbPool,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::local_user_language::dsl::*;
+    use crate::schema::local_user_language::dsl::{
+      language_id,
+      local_user_id,
+      local_user_language,
+    };
     let conn = &mut get_conn(pool).await?;
 
     conn
@@ -47,7 +70,7 @@ impl LocalUserLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::local_user_language::dsl::*;
+          use crate::schema::local_user_language::dsl::{local_user_id, local_user_language};
           // Clear the current user languages
           delete(local_user_language.filter(local_user_id.eq(for_local_user_id)))
             .execute(conn)
@@ -106,7 +129,7 @@ impl SiteLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::site_language::dsl::*;
+          use crate::schema::site_language::dsl::{site_id, site_language};
 
           // Clear the current languages
           delete(site_language.filter(site_id.eq(for_site_id)))
@@ -141,7 +164,7 @@ impl CommunityLanguage {
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
-    use crate::schema::community_language::dsl::*;
+    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
     let conn = &mut get_conn(pool).await?;
 
     if let Some(for_language_id) = for_language_id {
@@ -197,7 +220,7 @@ impl CommunityLanguage {
     pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::community_language::dsl::*;
+    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
     let conn = &mut get_conn(pool).await?;
 
     let langs = community_language
@@ -223,7 +246,7 @@ impl CommunityLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::community_language::dsl::*;
+          use crate::schema::community_language::dsl::{community_id, community_language};
           // Clear the current languages
           delete(community_language.filter(community_id.eq(for_community_id)))
             .execute(conn)
@@ -294,7 +317,7 @@ async fn convert_read_languages(
   static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::const_new();
   let count = ALL_LANGUAGES_COUNT
     .get_or_init(|| async {
-      use crate::schema::language::dsl::*;
+      use crate::schema::language::dsl::{id, language};
       let count: i64 = language
         .select(count(id))
         .first(conn)
@@ -314,7 +337,20 @@ async fn convert_read_languages(
 #[cfg(test)]
 mod tests {
   use crate::{
-    impls::actor_language::*,
+    impls::actor_language::{
+      convert_read_languages,
+      convert_update_languages,
+      default_post_language,
+      get_conn,
+      CommunityLanguage,
+      DbPool,
+      Language,
+      LanguageId,
+      LocalUserLanguage,
+      QueryDsl,
+      RunQueryDsl,
+      SiteLanguage,
+    },
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
@@ -378,7 +414,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_read_languages() {
-    use crate::schema::language::dsl::*;
+    use crate::schema::language::dsl::{id, language};
     let pool = &build_db_pool_for_tests().await;
 
     // call with all languages, returns empty vec

@@ -71,7 +71,7 @@ impl PerformCrud for RemoveCommunity {
       local_user_view.person,
       updated_community,
       deletable,
-      data.reason.clone().or_else(|| Some("".to_string())),
+      data.reason.clone().or_else(|| Some(String::new())),
       removed,
       context,
     )

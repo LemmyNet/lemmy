@@ -1,11 +1,11 @@
 use crate::{
   newtypes::PersonId,
-  schema::person_block::dsl::*,
+  schema::person_block::dsl::{person_block, person_id, target_id},
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonBlock {
