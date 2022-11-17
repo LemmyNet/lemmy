@@ -23,8 +23,9 @@ steps:
       - /root/.cargo/bin/cargo fmt -- --check
 
   # latest rust for clippy to get extra checks
+  # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
   - name: cargo clippy
-    image: rust:1.64-buster
+    image: rust:1.65-buster
     commands:
       - apt-get update
       - apt-get -y install protobuf-compiler libprotobuf-dev
