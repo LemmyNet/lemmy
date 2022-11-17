@@ -32,16 +32,6 @@ fi
 # Update crate versions for crates.io
 pushd ../../
 old_tag=$(head -3 Cargo.toml | tail -1 | cut -d'"' -f 2)
-for crate in crates/*; do
-  pushd $crate
-  # update version of the crate itself (only first occurence)
-  # https://stackoverflow.com/a/9453461
-  sed -i "0,/version = \"$old_tag\"/s//version = \"$new_tag\"/g" Cargo.toml
-  # update version of lemmy dependencies
-  sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
-  git add Cargo.toml
-  popd
-done
 # same as above, for the main cargo.toml
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml

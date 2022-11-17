@@ -1,12 +1,11 @@
 [package]
 name = "lemmy_websocket"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 
 [lib]
 name = "lemmy_websocket"
@@ -14,25 +13,25 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.5", path = "../utils" }
-lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", features = ["full"] }
-lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"] }
-lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
-reqwest-middleware = "0.1.6"
-tracing = "0.1.36"
-rand = "0.8.5"
-serde = { version = "1.0.147", features = ["derive"] }
-serde_json = { version = "1.0.87", features = ["preserve_order"] }
-actix = "0.13.0"
-anyhow = "1.0.66"
-diesel = "2.0.2"
-background-jobs = "0.13.0"
-tokio = "1.21.2"
-strum = "0.24.1"
-strum_macros = "0.24.3"
-chrono = { version = "0.4.22", features = ["serde"], default-features = false }
-actix-web = { version = "4.2.1", default-features = false, features = ["rustls"] }
+lemmy_utils = { workspace = true }
+lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_views = { workspace = true, features = ["full"] }
+lemmy_db_views_actor = { workspace = true, features = ["full"] }
+reqwest-middleware = { workspace = true }
+tracing = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+actix = { workspace = true }
+anyhow = { workspace = true }
+diesel = { workspace = true }
+tokio = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+chrono = { workspace = true }
+actix-web = { workspace = true }
+opentelemetry = { workspace = true }
+tracing-opentelemetry = { workspace = true }
 actix-web-actors = { version = "4.1.0", default-features = false }
-opentelemetry = "0.18.0"
-tracing-opentelemetry = "0.18.0"
+background-jobs = "0.13.0"

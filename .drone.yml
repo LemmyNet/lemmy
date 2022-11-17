@@ -57,6 +57,11 @@ steps:
       - cargo workspaces exec cargo check --no-default-features
       - cargo workspaces exec cargo check --all-features
 
+  - name: lemmy_api_common doesnt depend on diesel
+    image: rust:1.64-buster
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+
   - name: cargo build
     image: clux/muslrust:1.64.0
     commands:

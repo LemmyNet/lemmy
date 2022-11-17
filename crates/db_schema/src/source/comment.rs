@@ -1,6 +1,9 @@
-use crate::newtypes::{CommentId, DbUrl, LanguageId, LtreeDef, PersonId, PostId};
+#[cfg(feature = "full")]
+use crate::newtypes::LtreeDef;
+use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{comment, comment_like, comment_saved};
+#[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
@@ -20,6 +23,7 @@ pub struct Comment {
   pub deleted: bool,
   pub ap_id: DbUrl,
   pub local: bool,
+  #[cfg(feature = "full")]
   #[serde(with = "LtreeDef")]
   pub path: Ltree,
   pub distinguished: bool,
