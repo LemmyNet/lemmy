@@ -24,6 +24,7 @@ impl LocalUserLanguage {
         Box::pin(async move {
           let langs = local_user_language
             .filter(local_user_id.eq(for_local_user_id))
+            .order(id)
             .select(language_id)
             .get_results(conn)
             .await?;
@@ -77,6 +78,7 @@ impl SiteLanguage {
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
+      .order(site_language::id)
       .select(site_language::language_id)
       .load(conn)
       .await
@@ -87,6 +89,7 @@ impl SiteLanguage {
 
     let langs = site_language::table
       .filter(site_language::site_id.eq(for_site_id))
+      .order(site_language::id)
       .select(site_language::language_id)
       .load(conn)
       .await?;
@@ -202,6 +205,7 @@ impl CommunityLanguage {
 
     let langs = community_language
       .filter(community_id.eq(for_community_id))
+      .order(id)
       .select(language_id)
       .get_results(conn)
       .await?;
