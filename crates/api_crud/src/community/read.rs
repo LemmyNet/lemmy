@@ -49,7 +49,7 @@ impl PerformCrud for GetCommunity {
     let community_id = match data.id {
       Some(id) => id,
       None => {
-        let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
+        let name = data.name.clone().unwrap_or_else(|| "main".to_string());
         resolve_actor_identifier::<ApubCommunity, Community>(&name, context, true)
           .await
           .map_err(|e| e.with_message("couldnt_find_community"))?

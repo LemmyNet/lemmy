@@ -594,7 +594,7 @@ mod tests {
 
     let expected_comment_view_no_person = expected_comment_view(&data, pool).await;
 
-    let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
+    let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
 
     let read_comment_views_no_person = CommentQuery::builder()
@@ -815,7 +815,7 @@ mod tests {
         updated: None,
         local: true,
         distinguished: false,
-        path: data.inserted_comment_0.to_owned().path,
+        path: data.inserted_comment_0.clone().path,
         language_id: LanguageId(0),
       },
       creator: PersonSafe {
@@ -824,7 +824,7 @@ mod tests {
         display_name: None,
         published: data.inserted_person.published,
         avatar: None,
-        actor_id: data.inserted_person.actor_id.to_owned(),
+        actor_id: data.inserted_person.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -833,7 +833,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: data.inserted_person.inbox_url.to_owned(),
+        inbox_url: data.inserted_person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -841,7 +841,7 @@ mod tests {
       },
       post: Post {
         id: data.inserted_post.id,
-        name: data.inserted_post.name.to_owned(),
+        name: data.inserted_post.name.clone(),
         creator_id: data.inserted_person.id,
         url: None,
         body: None,
@@ -857,7 +857,7 @@ mod tests {
         embed_description: None,
         embed_video_url: None,
         thumbnail_url: None,
-        ap_id: data.inserted_post.ap_id.to_owned(),
+        ap_id: data.inserted_post.ap_id.clone(),
         local: true,
         language_id: Default::default(),
       },
@@ -868,7 +868,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: data.inserted_community.actor_id.to_owned(),
+        actor_id: data.inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
         description: None,

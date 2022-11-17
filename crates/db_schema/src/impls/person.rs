@@ -217,7 +217,7 @@ mod tests {
       deleted: false,
       published: inserted_person.published,
       updated: None,
-      actor_id: inserted_person.actor_id.to_owned(),
+      actor_id: inserted_person.actor_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
@@ -225,7 +225,7 @@ mod tests {
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
-      inbox_url: inserted_person.inbox_url.to_owned(),
+      inbox_url: inserted_person.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
@@ -235,7 +235,7 @@ mod tests {
     let read_person = Person::read(pool, inserted_person.id).await.unwrap();
 
     let update_person_form = PersonUpdateForm::builder()
-      .actor_id(Some(inserted_person.actor_id.to_owned()))
+      .actor_id(Some(inserted_person.actor_id.clone()))
       .build();
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
       .await

@@ -135,7 +135,7 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let apub_id = group.id.inner().to_owned();
+    let apub_id = group.id.inner().clone();
     let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
 
     let form = Group::into_insert_form(group.clone(), instance.id);
@@ -186,10 +186,10 @@ impl Actor for ApubCommunity {
 
 impl ActorType for ApubCommunity {
   fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into()
+    self.actor_id.clone().into()
   }
   fn private_key(&self) -> Option<String> {
-    self.private_key.to_owned()
+    self.private_key.clone()
   }
 }
 

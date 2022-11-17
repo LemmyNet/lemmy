@@ -346,7 +346,7 @@ impl<'a> PostQuery<'a> {
       let searcher = fuzzy_search(&search_term);
       query = query.filter(
         post::name
-          .ilike(searcher.to_owned())
+          .ilike(searcher.clone())
           .or(post::body.ilike(searcher)),
       );
     }
@@ -504,7 +504,7 @@ mod tests {
     let person_name = "tegan".to_string();
 
     let new_person = PersonInsertForm::builder()
-      .name(person_name.to_owned())
+      .name(person_name.clone())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -867,7 +867,7 @@ mod tests {
         embed_description: None,
         embed_video_url: None,
         thumbnail_url: None,
-        ap_id: inserted_post.ap_id.to_owned(),
+        ap_id: inserted_post.ap_id.clone(),
         local: true,
         language_id: LanguageId(47),
       },
@@ -879,7 +879,7 @@ mod tests {
         display_name: None,
         published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_person.actor_id.to_owned(),
+        actor_id: inserted_person.actor_id.clone(),
         local: true,
         admin: false,
         bot_account: false,
@@ -888,7 +888,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_person.inbox_url.to_owned(),
+        inbox_url: inserted_person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -902,7 +902,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
+        actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
         description: None,

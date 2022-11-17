@@ -446,17 +446,17 @@ impl ChatServer {
     ctx: &mut Context<Self>,
   ) -> impl Future<Output = Result<String, LemmyError>> {
     let ip: IpAddr = match self.sessions.get(&msg.id) {
-      Some(info) => info.ip.to_owned(),
+      Some(info) => info.ip.clone(),
       None => IpAddr("blank_ip".to_string()),
     };
 
     let context = LemmyContext {
       pool: self.pool.clone(),
       chat_server: ctx.address(),
-      client: self.client.to_owned(),
-      settings: self.settings.to_owned(),
-      secret: self.secret.to_owned(),
-      rate_limit_cell: self.rate_limit_cell.to_owned(),
+      client: self.client.clone(),
+      settings: self.settings.clone(),
+      secret: self.secret.clone(),
+      rate_limit_cell: self.rate_limit_cell.clone(),
     };
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;

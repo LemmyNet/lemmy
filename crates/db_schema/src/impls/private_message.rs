@@ -144,7 +144,7 @@ mod tests {
       read: false,
       updated: None,
       published: inserted_private_message.published,
-      ap_id: inserted_private_message.ap_id.to_owned(),
+      ap_id: inserted_private_message.ap_id.clone(),
       local: true,
     };
 

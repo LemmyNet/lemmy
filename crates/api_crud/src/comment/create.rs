@@ -54,7 +54,7 @@ impl PerformCrud for CreateComment {
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(
-      &data.content.to_owned(),
+      &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
 
@@ -102,7 +102,7 @@ impl PerformCrud for CreateComment {
     .await?;
 
     let comment_form = CommentInsertForm::builder()
-      .content(content_slurs_removed.to_owned())
+      .content(content_slurs_removed.clone())
       .post_id(data.post_id)
       .creator_id(local_user_view.person.id)
       .language_id(Some(language_id))
@@ -110,7 +110,7 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let comment_form2 = comment_form.clone();
-    let parent_path = parent_opt.to_owned().map(|t| t.path);
+    let parent_path = parent_opt.clone().map(|t| t.path);
     let inserted_comment = Comment::create(context.pool(), &comment_form2, parent_path.as_ref())
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
@@ -200,7 +200,7 @@ impl PerformCrud for CreateComment {
       inserted_comment.id,
       UserOperationCrud::CreateComment,
       websocket_id,
-      data.form_id.to_owned(),
+      data.form_id.clone(),
       Some(local_user_view.person.id),
       recipient_ids,
       context,

@@ -307,7 +307,7 @@ mod tests {
       path: Ltree(format!("0.{}", inserted_comment.id)),
       published: inserted_comment.published,
       updated: None,
-      ap_id: inserted_comment.ap_id.to_owned(),
+      ap_id: inserted_comment.ap_id.clone(),
       distinguished: false,
       local: true,
       language_id: LanguageId::default(),

@@ -251,8 +251,8 @@ pub async fn default_post_language(
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
-  let conn = &mut get_conn(pool).await?;
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
+  let conn = &mut get_conn(pool).await?;
   let intersection = ul::local_user_language
     .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
     .filter(ul::local_user_id.eq(local_user_id))
@@ -378,10 +378,10 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_read_languages() {
+    use crate::schema::language::dsl::*;
     let pool = &build_db_pool_for_tests().await;
 
     // call with all languages, returns empty vec
-    use crate::schema::language::dsl::*;
     let conn = &mut get_conn(pool).await.unwrap();
     let all_langs = language.select(id).get_results(conn).await.unwrap();
     let converted1: Vec<LanguageId> = convert_read_languages(conn, all_langs).await.unwrap();

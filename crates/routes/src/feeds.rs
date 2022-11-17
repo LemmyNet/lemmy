@@ -102,7 +102,7 @@ async fn get_feed_data(
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - {}", site_view.site.name, listing_type))
     .link(context.settings().get_protocol_and_hostname())
     .items(items);
@@ -138,7 +138,7 @@ async fn get_feed(
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
-  let jwt_secret = context.secret().jwt_secret.to_owned();
+  let jwt_secret = context.secret().jwt_secret.clone();
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
   let builder = match request_type {
@@ -176,7 +176,7 @@ async fn get_feed(
 fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   let sort_query = info
     .sort
-    .to_owned()
+    .clone()
     .unwrap_or_else(|| SortType::Hot.to_string());
   SortType::from_str(&sort_query)
 }
@@ -205,7 +205,7 @@ async fn get_feed_user(
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - {}", site_view.site.name, person.name))
     .link(person.actor_id.to_string())
     .items(items);
@@ -236,7 +236,7 @@ async fn get_feed_community(
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - {}", site_view.site.name, community.name))
     .link(community.actor_id.to_string())
     .items(items);
@@ -274,7 +274,7 @@ async fn get_feed_front(
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - Subscribed", site_view.site.name))
     .link(protocol_and_hostname)
     .items(items);
@@ -327,7 +327,7 @@ async fn get_feed_inbox(
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - Inbox", site_view.site.name))
     .link(format!("{}/inbox", protocol_and_hostname,))
     .items(items);
@@ -429,8 +429,8 @@ fn create_post_items(
     i.pub_date(dt.to_rfc2822());
 
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    i.link(post_url.to_owned());
-    i.comments(post_url.to_owned());
+    i.link(post_url.clone());
+    i.comments(post_url.clone());
     let guid = GuidBuilder::default()
       .permalink(true)
       .value(&post_url)

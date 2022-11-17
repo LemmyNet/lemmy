@@ -155,7 +155,7 @@ impl<'a> CommunityQuery<'a> {
     if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
       query = query
-        .filter(community::name.ilike(searcher.to_owned()))
+        .filter(community::name.ilike(searcher.clone()))
         .or_filter(community::title.ilike(searcher));
     };
 

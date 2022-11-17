@@ -193,7 +193,7 @@ pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
 }
 
 pub fn clean_url_params(url: &Url) -> Url {
-  let mut url_out = url.to_owned();
+  let mut url_out = url.clone();
   if url.query().is_some() {
     let new_query = url
       .query_pairs()

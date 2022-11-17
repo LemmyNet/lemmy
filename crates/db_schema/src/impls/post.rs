@@ -366,7 +366,7 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: inserted_post.ap_id.to_owned(),
+      ap_id: inserted_post.ap_id.clone(),
       local: true,
       language_id: Default::default(),
     };

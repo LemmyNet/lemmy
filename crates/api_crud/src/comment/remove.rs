@@ -69,7 +69,7 @@ impl PerformCrud for RemoveComment {
       mod_person_id: local_user_view.person.id,
       comment_id: data.comment_id,
       removed: Some(removed),
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
     };
     ModRemoveComment::create(context.pool(), &form).await?;
 

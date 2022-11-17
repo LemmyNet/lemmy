@@ -85,13 +85,13 @@ impl PerformCrud for CreateCommunity {
     let keypair = generate_actor_keypair()?;
 
     let community_form = CommunityInsertForm::builder()
-      .name(data.name.to_owned())
-      .title(data.title.to_owned())
-      .description(data.description.to_owned())
+      .name(data.name.clone())
+      .title(data.title.clone())
+      .description(data.description.clone())
       .icon(icon)
       .banner(banner)
       .nsfw(data.nsfw)
-      .actor_id(Some(community_actor_id.to_owned()))
+      .actor_id(Some(community_actor_id.clone()))
       .private_key(Some(keypair.private_key))
       .public_key(keypair.public_key)
       .followers_url(Some(generate_followers_url(&community_actor_id)?))

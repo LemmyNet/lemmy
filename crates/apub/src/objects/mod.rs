@@ -88,7 +88,7 @@ pub(crate) mod tests {
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
-    let settings = SETTINGS.to_owned();
+    let settings = SETTINGS.clone();
     let client = Client::builder()
       .user_agent(build_user_agent(&settings))
       .build()

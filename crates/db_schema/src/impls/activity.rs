@@ -140,7 +140,7 @@ mod tests {
     .unwrap();
     let activity_form = ActivityInsertForm {
       ap_id: ap_id_.clone(),
-      data: test_json.to_owned(),
+      data: test_json.clone(),
       local: Some(true),
       sensitive: Some(false),
       updated: None,

@@ -36,8 +36,7 @@ pub type DbPool = Pool<AsyncPgConnection>;
 pub async fn get_conn(
   pool: &DbPool,
 ) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
-  // TODO Maybe find a better diesel error for this
-  pool.get().await.map_err(|_| DieselError::NotInTransaction)
+  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
 }
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
@@ -94,7 +93,7 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
     // An empty string is an erase
     Some(unwrapped) => {
       if !unwrapped.eq("") {
-        Some(Some(unwrapped.to_owned()))
+        Some(Some(unwrapped.clone()))
       } else {
         Some(None)
       }

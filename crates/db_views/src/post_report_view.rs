@@ -392,8 +392,8 @@ mod tests {
         .await
         .unwrap();
     let expected_jessica_report_view = PostReportView {
-      post_report: inserted_jessica_report.to_owned(),
-      post: inserted_post.to_owned(),
+      post_report: inserted_jessica_report.clone(),
+      post: inserted_post.clone(),
       community: CommunitySafe {
         id: inserted_community.id,
         name: inserted_community.name,
@@ -401,7 +401,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
+        actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: inserted_community.title,
         description: None,
@@ -418,7 +418,7 @@ mod tests {
         display_name: None,
         published: inserted_jessica.published,
         avatar: None,
-        actor_id: inserted_jessica.actor_id.to_owned(),
+        actor_id: inserted_jessica.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -427,7 +427,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_jessica.inbox_url.to_owned(),
+        inbox_url: inserted_jessica.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -435,11 +435,11 @@ mod tests {
       },
       post_creator: PersonSafe {
         id: inserted_timmy.id,
-        name: inserted_timmy.name.to_owned(),
+        name: inserted_timmy.name.clone(),
         display_name: None,
         published: inserted_timmy.published,
         avatar: None,
-        actor_id: inserted_timmy.actor_id.to_owned(),
+        actor_id: inserted_timmy.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -448,7 +448,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_timmy.inbox_url.to_owned(),
+        inbox_url: inserted_timmy.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -482,7 +482,7 @@ mod tests {
       display_name: None,
       published: inserted_sara.published,
       avatar: None,
-      actor_id: inserted_sara.actor_id.to_owned(),
+      actor_id: inserted_sara.actor_id.clone(),
       local: true,
       banned: false,
       deleted: false,
@@ -491,7 +491,7 @@ mod tests {
       bio: None,
       banner: None,
       updated: None,
-      inbox_url: inserted_sara.inbox_url.to_owned(),
+      inbox_url: inserted_sara.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
@@ -511,8 +511,8 @@ mod tests {
     assert_eq!(
       reports,
       [
-        expected_jessica_report_view.to_owned(),
-        expected_sara_report_view.to_owned()
+        expected_jessica_report_view.clone(),
+        expected_sara_report_view.clone()
       ]
     );
 
@@ -543,11 +543,11 @@ mod tests {
       .updated = read_jessica_report_view_after_resolve.post_report.updated;
     expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
       id: inserted_timmy.id,
-      name: inserted_timmy.name.to_owned(),
+      name: inserted_timmy.name.clone(),
       display_name: None,
       published: inserted_timmy.published,
       avatar: None,
-      actor_id: inserted_timmy.actor_id.to_owned(),
+      actor_id: inserted_timmy.actor_id.clone(),
       local: true,
       banned: false,
       deleted: false,
@@ -556,7 +556,7 @@ mod tests {
       bio: None,
       banner: None,
       updated: None,
-      inbox_url: inserted_timmy.inbox_url.to_owned(),
+      inbox_url: inserted_timmy.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
