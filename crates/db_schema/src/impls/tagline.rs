@@ -13,12 +13,12 @@ impl Tagline {
     for_local_site_id: LocalSiteId,
     list_content: Option<Vec<String>>,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          if let Some(list) = list_content {
+    if let Some(list) = list_content {
+      let conn = &mut get_conn(pool).await?;
+      conn
+        .build_transaction()
+        .run(|conn| {
+          Box::pin(async move {
             Self::clear(conn).await?;
 
             for item in list {
@@ -33,12 +33,12 @@ impl Tagline {
                 .await?;
             }
             Ok(())
-          } else {
-            Ok(())
-          }
-        }) as _
-      })
-      .await
+          }) as _
+        })
+        .await
+    } else {
+      Ok(())
+    }
   }
 
   async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
