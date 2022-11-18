@@ -180,7 +180,7 @@ impl Actor for ApubCommunity {
   }
 
   fn shared_inbox(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into())
+    self.shared_inbox_url.clone().map(Into::into)
   }
 }
 
